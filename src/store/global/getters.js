@@ -405,6 +405,18 @@ export function lockApp (state) {
 }
 
 /**
+ * Transaction list timestamp display preference.
+ * true: relative timestamps (e.g. "5 minutes ago")
+ * false: absolute timestamps (date + time) formatted using user's locale
+ */
+export function relativeTxTimestamp (state) {
+  const walletIndex = state.walletIndex
+  const value = state.vault?.[walletIndex]?.settings?.relativeTxTimestamp
+  if (value === undefined || value === null) return true
+  return Boolean(value)
+}
+
+/**
  * Check if ANY wallet in the vault has lock app enabled
  * Returns true if at least one wallet has lock enabled, false otherwise
  * Used for security checks that should apply globally when any wallet is protected

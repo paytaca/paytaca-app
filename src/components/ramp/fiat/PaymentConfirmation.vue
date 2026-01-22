@@ -203,17 +203,40 @@
       </q-banner>
     </div>
 
-    <!-- Appeal Button -->
-    <div v-if="showAppealBtn" class="section-wrapper text-center q-pb-lg">
+    <!-- Appeal Countdown / Appeal CTA -->
+    <div v-if="showAppealCountdown || showAppealBtn" class="section-wrapper text-center q-pb-lg">
+      <q-card
+        v-if="showAppealCountdown"
+        flat
+        bordered
+        class="pt-card q-mx-md appeal-countdown-card"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <q-card-section class="row items-center q-pa-md text-left">
+          <q-icon name="schedule" size="22px" :color="darkMode ? 'grey-4' : 'grey-7'" />
+          <div class="col q-ml-md">
+            <div class="text-weight-bold">
+              {{ $t('AppealableInSeconds', { countdown: appealCountdownDisplay }, `Appealable in ${appealCountdownDisplay}`) }}
+            </div>
+            <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              {{ $t('AppealCountdownHelper', {}, 'If the other party is unresponsive, you can submit an appeal once the timer ends.') }}
+            </div>
+          </div>
+        </q-card-section>
+      </q-card>
+
       <q-btn
-        v-if="!sendingBch"
+        v-else-if="showAppealBtn && !sendingBch"
         :loading="loadAppealButton"
-        outline
+        :disable="loadAppealButton"
+        unelevated
+        rounded
         no-caps
-        :disable="countDown !== '' || loadAppealButton"
-        :label="appealBtnLabel"
-        color="blue-6"
+        icon="gavel"
+        :label="$t('SubmitAnAppeal')"
+        color="negative"
         padding="12px 32px"
+        class="appeal-btn-cta"
         @click="onOpenAppealForm"
       />
     </div>
@@ -290,7 +313,7 @@ export default {
       order: null,
       txid: null,
       isloaded: false,
-      countDown: null,
+      appealCountdownSeconds: null,
       timer: null,
       paymentMethods: [],
       selectedPaymentMethods: [],
@@ -341,7 +364,12 @@ export default {
       if (userType === 'buyer') {
         showBtn = status === 'PD_PN'
       }
-      return showBtn && this.countDown !== null
+      // Show the CTA only once the countdown has ended (0 seconds remaining).
+      // IMPORTANT: `appealCountdownSeconds` starts as null; `Number(null) === 0` is true.
+      // Require an `appealable_at` timestamp and a non-null countdown value.
+      if (!this.order?.appealable_at) return false
+      if (this.appealCountdownSeconds === null || this.appealCountdownSeconds === undefined) return false
+      return showBtn && Number(this.appealCountdownSeconds) === 0
     },
     maxFileSize () {
       return 5 * 1024 * 1024
@@ -350,9 +378,18 @@ export default {
       const status = this.order.status.value
       return status !== 'ESCRW' && status !== 'PD_PN'
     },
-    appealBtnLabel () {
-      if (this.countDown) return this.$t('AppealableInSeconds', { countdown: this.countDown }, `Appealable in ${this.countDown}`)
-      return this.$t('SubmitAnAppeal')
+    appealCountdownDisplay () {
+      const seconds = Number(this.appealCountdownSeconds)
+      if (!Number.isFinite(seconds) || seconds <= 0) return '00:00'
+      const hrs = Math.floor(seconds / 3600)
+      const mins = Math.floor((seconds % 3600) / 60)
+      const secs = seconds % 60
+      const pad2 = (n) => String(n).padStart(2, '0')
+      if (hrs > 0) return `${pad2(hrs)}:${pad2(mins)}:${pad2(secs)}`
+      return `${pad2(mins)}:${pad2(secs)}`
+    },
+    showAppealCountdown () {
+      return !!this.order?.appealable_at && Number(this.appealCountdownSeconds) > 0
     },
     dragSlideTitle () {
       return this.data?.type === 'seller' ? this.$t('ReleaseCrypto') : this.$t('ConfirmPayment')
@@ -681,23 +718,23 @@ export default {
       const vm = this
       if (vm.order?.appealable_at) {
         const appealableDate = new Date(vm.order?.appealable_at)
-        vm.timer = setInterval(function () {
-          const now = new Date().getTime()
-          const distance = appealableDate - now
-
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-
-          if (hours > 0) vm.countDown = `${hours} hour(s)`
-          else if (minutes > 0) vm.countDown = `${minutes} minute(s)`
-          else if (seconds > 0) vm.countDown = `${seconds} second(s)`
-
-          if (distance < 0) {
+        const updateCountdown = () => {
+          const now = Date.now()
+          const distance = appealableDate.getTime() - now
+          const secondsRemaining = Math.max(0, Math.ceil(distance / 1000))
+          vm.appealCountdownSeconds = secondsRemaining
+          if (distance <= 0) {
             clearInterval(vm.timer)
-            vm.countDown = ''
+            vm.timer = null
+            vm.appealCountdownSeconds = 0
           }
-        }, 1000)
+        }
+
+        // Compute immediately so we don't briefly show the CTA state
+        updateCountdown()
+        if (!vm.timer) {
+          vm.timer = setInterval(updateCountdown, 1000)
+        }
       }
     },
     copyToClipboard (value) {
@@ -903,5 +940,22 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+
+.appeal-countdown-card {
+  border-radius: 16px;
+}
+
+.appeal-btn-cta {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 6px 18px rgba(237, 95, 89, 0.35);
+  animation: appealPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes appealPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 </style>

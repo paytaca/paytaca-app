@@ -14,7 +14,7 @@
           <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
-      <div style="overflow-y: scroll;">
+      <div class="asset-list-scroll">
         <template
           v-for="(asset, index) in assets"
           :key="asset?.id || index"
@@ -539,6 +539,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  .asset-list-scroll {
+    // Reserve space for the fixed footer menu so the last token can scroll fully into view
+    padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

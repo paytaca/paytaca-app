@@ -204,7 +204,7 @@ export default {
           this.isLoadingMore = false
         })
     },
-    async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, append: false }) {
+    async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, txids: null, append: false }) {
       // SmartBCH support removed
       return this.getBchTransactions(page, opts)
     },
@@ -214,12 +214,17 @@ export default {
       const id = vm.selectedAsset.id
       const recordType = recordTypeMap[vm.transactionsFilter]
       let txSearchReference = opts.txSearchReference
+      const txids = typeof opts?.txids === 'string' ? opts.txids.trim() : ''
       const shouldAppend = opts.append
 
       // Convert decimal reference to hex if needed (safety check)
       if (txSearchReference && /^[0-9]{8}$/.test(txSearchReference)) {
         txSearchReference = refToHex(txSearchReference)
       }
+
+      // Txid search is supported by watchtower via `txids=<comma-separated>`.
+      // When present, prefer this over reference-based filtering.
+      const hasTxidsFilter = !!txids
 
       // Handle "All" selection - use special endpoint
       if (id === 'all') {
@@ -233,7 +238,9 @@ export default {
           type: recordType
         }
         
-        if (txSearchReference) {
+        if (hasTxidsFilter) {
+          params.txids = txids
+        } else if (txSearchReference) {
           // watchtower API expects `reference` for ref-ID search
           params.reference = txSearchReference
         }
@@ -270,6 +277,62 @@ export default {
             setTimeout(() => {
               vm.transactionsPageHasNext = hasNext
             }, 250)
+          })
+          .catch(error => {
+            console.error('error:', error.response)
+          })
+          .finally(() => {
+            vm.transactionsAppending = false
+          })
+      }
+
+      // If we are filtering by txids, use the Watchtower REST endpoint directly for
+      // BCH/CT/SLP, since wallet helper methods don't consistently expose `txids`.
+      if (hasTxidsFilter) {
+        const isChipnet = vm.$store.getters['global/isChipnet']
+        const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+        let walletHash = ''
+        let url = ''
+        const params = { page: page, type: recordType, txids }
+
+        if (id?.startsWith?.('slp/')) {
+          const tokenId = id.split('/')[1]
+          walletHash = getWalletByNetwork(vm.wallet, 'slp').getWalletHash()
+          url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
+        } else if (id?.startsWith?.('ct/')) {
+          const tokenId = id.split('/')[1]
+          walletHash = getWalletByNetwork(vm.wallet, 'bch').getWalletHash()
+          url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
+        } else {
+          walletHash = getWalletByNetwork(vm.wallet, 'bch').getWalletHash()
+          url = `${baseUrl}/history/wallet/${walletHash}/`
+        }
+
+        vm.transactionsAppending = true
+        return axios.get(url, { params })
+          .then(async function (response) {
+            const data = response?.data
+            const transactions = data?.history || data
+            const pageNum = Number(data?.page || page)
+            const hasNext = data?.has_next
+
+            if (!Array.isArray(transactions)) return
+
+            const enrichedTransactions = await vm.enrichTransactionsWithAssetInfo(transactions)
+
+            if (shouldAppend) {
+              enrichedTransactions.forEach(function (item) { vm.transactions.push(item) })
+            } else {
+              vm.transactions = []
+              enrichedTransactions.forEach(function (item) { vm.transactions.push(item) })
+            }
+
+            vm.transactionsPage = pageNum
+            vm.transactionsMaxPage = data?.num_pages || 1
+            vm.transactionsLoaded = true
+
+            setTimeout(() => { vm.transactionsPageHasNext = hasNext }, 250)
           })
           .catch(error => {
             console.error('error:', error.response)

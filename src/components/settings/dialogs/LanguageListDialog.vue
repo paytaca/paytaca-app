@@ -55,26 +55,29 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
-const translationKeys = {
+// Language picker labels should not rely on translation keys.
+// Best practice is to display each language in its native form (autonym),
+// so users can recognize their language regardless of the current UI language.
+const languageLabels = {
   'af': 'Afrikaans',
   'en-us': 'English',
-  'zh-cn': 'ChineseSimplified',
-  'zh-tw': 'ChineseTraditional',
-  'nl': 'Dutch',
-  'fr': 'French',
-  'de': 'German',
+  'zh-cn': '中文（简体）',
+  'zh-tw': '中文（繁體）',
+  'nl': 'Nederlands',
+  'fr': 'Français',
+  'de': 'Deutsch',
   'ha': 'Hausa',
-  'id': 'Indonesian',
-  'it': 'Italian',
-  'ja': 'Japanese',
-  'ko': 'Korean',
-  'pt': 'Portuguese',
-  'pt-br': 'BrazilianPortuguese',
-  'es': 'Spanish',
-  'es-ar': 'ArgentinianSpanish',
+  'id': 'Bahasa Indonesia',
+  'it': 'Italiano',
+  'ja': '日本語',
+  'ko': '한국어',
+  'pt': 'Português',
+  'pt-br': 'Português (Brasil)',
+  'es': 'Español',
+  'es-ar': 'Español (Argentina)',
   'tl': 'Tagalog',
-  'ru': 'Russian',
-  'ar': 'Arabic'
+  'ru': 'Русский',
+  'ar': 'العربية'
 }
 
 export default {
@@ -89,28 +92,27 @@ export default {
 	  },
 	  languages () {
 	    // Build languages array with proper labels
-	    // Always use translationKeys values directly to avoid "EN" translation issues
-	    // These are already good display names (e.g., "English", "Tagalog", etc.)
+	    // Use autonyms to avoid missing translation keys and improve recognition.
 	    return [
-	      { value: 'en-us', label: translationKeys['en-us'] },
-	      { value: 'zh-cn', label: translationKeys['zh-cn'] },
-	      { value: 'zh-tw', label: translationKeys['zh-tw'] },
-	      { value: 'nl', label: translationKeys['nl'] },
-	      { value: 'fr', label: translationKeys['fr'] },
-	      { value: 'de', label: translationKeys['de'] },
-	      { value: 'ha', label: translationKeys['ha'] },
-	      { value: 'id', label: translationKeys['id'] },
-	      { value: 'it', label: translationKeys['it'] },
-	      { value: 'ja', label: translationKeys['ja'] },
-	      { value: 'ko', label: translationKeys['ko'] },
-	      { value: 'pt', label: translationKeys['pt'] },
-	      { value: 'pt-br', label: translationKeys['pt-br'] },
-	      { value: 'es', label: translationKeys['es'] },
-	      { value: 'es-ar', label: translationKeys['es-ar'] },
-	      { value: 'tl', label: translationKeys['tl'] },
-	      { value: 'af', label: translationKeys['af'] },
-	      { value: 'ru', label: translationKeys['ru'] },
-	      { value: 'ar', label: translationKeys['ar'] }
+	      { value: 'en-us', label: languageLabels['en-us'] },
+	      { value: 'zh-cn', label: languageLabels['zh-cn'] },
+	      { value: 'zh-tw', label: languageLabels['zh-tw'] },
+	      { value: 'nl', label: languageLabels['nl'] },
+	      { value: 'fr', label: languageLabels['fr'] },
+	      { value: 'de', label: languageLabels['de'] },
+	      { value: 'ha', label: languageLabels['ha'] },
+	      { value: 'id', label: languageLabels['id'] },
+	      { value: 'it', label: languageLabels['it'] },
+	      { value: 'ja', label: languageLabels['ja'] },
+	      { value: 'ko', label: languageLabels['ko'] },
+	      { value: 'pt', label: languageLabels['pt'] },
+	      { value: 'pt-br', label: languageLabels['pt-br'] },
+	      { value: 'es', label: languageLabels['es'] },
+	      { value: 'es-ar', label: languageLabels['es-ar'] },
+	      { value: 'tl', label: languageLabels['tl'] },
+	      { value: 'af', label: languageLabels['af'] },
+	      { value: 'ru', label: languageLabels['ru'] },
+	      { value: 'ar', label: languageLabels['ar'] }
 	    ]
 	  },
 	  filteredList () {

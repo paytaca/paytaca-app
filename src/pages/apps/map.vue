@@ -1,7 +1,7 @@
 <template>
   <div class="map-app" :class="getDarkModeClass(darkMode)">
     <!-- Header -->
-    <div class="map-header bg-grad" :class="{'ios-safe-area': $q.platform.is.ios}">
+    <div class="map-header bg-grad" :style="mapHeaderStyle">
       <div class="row items-center q-px-md q-py-sm">
         <q-btn
           flat
@@ -71,6 +71,17 @@ export default {
   computed: {
     darkMode() {
       return this.$store.getters['darkmode/getStatus']
+    },
+    mapHeaderStyle() {
+      // Keep header controls below the OS status bar / cutouts on native builds.
+      const isNativeMobile = this.$q.platform.is.ios || this.$q.platform.is.android
+      if (!isNativeMobile) return {}
+
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      return {
+        paddingTop: safeTop,
+        boxSizing: 'border-box',
+      }
     },
     currentTheme() {
       return this.darkMode ? 'dark' : 'light'
@@ -169,10 +180,6 @@ export default {
   .text-subtitle1 {
     color: white !important;
   }
-}
-
-.ios-safe-area {
-  padding-top: max(env(safe-area-inset-top), 44px) !important;
 }
 
 .map-content-container {
