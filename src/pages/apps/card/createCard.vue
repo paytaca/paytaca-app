@@ -97,12 +97,14 @@
                  <q-card-section>
                     <div class="text-caption text-grey">
                       Balance:
-                      <span class="text-h5 text-black"> {{ card.balance }} BCH</span>
+                      <span class="text-h5 text-black"> {{ card.balance.toLocalString() }} BCH</span>
                     </div>
 
                     <div class="text-caption text-grey">
                       Address:
-                      <span class="text-caption text-black ellipsis"> {{ formatContractAddress(card) }} </span>
+                      <span class="text-caption text-black ellipsis"> 
+                        {{ card.contractAddress ? formatContractAddress(card.contractAddress) : 'Fetching...' }} 
+                      </span>
                     </div>
 
                     <div class>
@@ -279,12 +281,11 @@
               unelevated
               label="Create"
               color="primary"
+              :disable="!newCardName || newCardName.length > 15"
               @click="handleCreateCard"
             />
          </q-card-actions>
-
     </q-card>
-
   </q-dialog>
 
   <!-- VIEW CARD POP-UP -->
@@ -438,17 +439,10 @@
 <script>
  
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-import { createCard } from 'src/services/card/api';
-import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { loadWallet } from 'src/wallet';
-import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
-import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
-import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
-import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue';
+import { loadCardUser } from 'src/services/card/auth';
 import { selectedCurrency } from 'src/store/market/getters';
-import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
+
   
   export default {
     
@@ -512,33 +506,81 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         return formatted
       },
       
-      handleCreateCard(){
+      async handleCreateCard(){
         if(!this.newCardName){
           this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
           return;
         }
-        
-        // Create new subcard object
-        const newCard = {
-          id: Date.now(), // unique key
-          name: this.newCardName,
-          contractAddress: this.contractAddress,
-          balance: 100,
-          status: 'Active'
+
+        try {
+          this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
+
+          // initializing the card helper
+          const cardHelper = new Card()
+          // execute workflow from card.js
+          const result = await cardHelper.createCard(this.userPublicKey)
+
+          // load user from card/auth
+          const user = await loadCardUser()
+          const cards = await user.fetchCards()
+          console.log('Card User: ', user)
+
+          // find the specific card we just created in the list
+          const mintedCard = cards.find(c => c.tokenId === result.tokenId)
+          let actualBalance = 0
+          let contractAddress = 'Pending'
+
+          if (mintedCard) {
+            // fetch real balance
+            const tokenUtxos = await mintedCard.getTokenUtxos()
+            // calculate sum of token amounts in Utxos
+            actualBalance = tokenUtxos.reduce((total, utxo) => {
+              return total + Number(utxo.token.amount)
+            }, 0)
+
+            const contract = await mintedCard.getContract()
+            contractAddr = contract.address
+          }
+
+          // print and fetch info for each card
+          for(const cardItem of cards){
+            const tokenUtxos = await cardItem.getTokenUtxos();
+            const bchUtxos = await cardItem.getBchUtxos();
+            const contract = await cardItem.getContract()
+
+            console.log('=====Card Details=====')
+            console.log('Card: ', cardItem);
+            console.log('Card ID: ', cardItem.tokenId)
+            console.log('Card tokenUtxos:', tokenUtxos);
+            console.log('Card bchUtxos:', bchUtxos);
+            console.log('Card contract:', contract);
+          }
+
+          // Create new subcard object
+          const newCard = {
+            id: result.tokenId,
+            name: this.newCardName,
+            contractAddress: contractAddr,
+            balance: actualBalance,
+            status: 'Active' // by default
+          }
+
+          // Update UI state ; Insert before the create card button
+          this.subCards.push(newCard);
+          this.createCardDialog = false; // close dialog
+          this.$q.notify({
+            message: `Card "${newCard.name}" created successfully with ${newCard.balance} BCH!`,
+            color: 'positive',
+          });
+        } catch (error) {
+          console.error('Final Workflow Error: ', error)
+          this.$q.notify({
+            message: 'Failed to create card. Please check your balance.',
+            color: 'negative'
+          })
+        } finally {
+          this.$q.loading.hide()
         }
-
-        // Insert before the create card button
-        this.subCards.push(newCard);
-
-        // Close dialog
-        this.createCardDialog = false;
-
-        // Card created successfully
-        this.$q.notify({
-          message: `Card "${this.newCardName}" created!`,
-          color: 'positive',
-        });
-
       },
 
       editCardName(card){
