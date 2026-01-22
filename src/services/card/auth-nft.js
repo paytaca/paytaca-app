@@ -15,8 +15,6 @@
  * commitment encoding/decoding to embed terminal metadata (ID, public key, authorization state,
  * expiration block, and spend limit) into token commitments for validation and access control.
  * 
- * @requires crypto - For SHA256 hashing of terminal data
- * @requires mainnet-js - For blockchain wallet operations and token management
  */
 
 import { createHash } from 'crypto';
@@ -24,16 +22,10 @@ import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainn
 import { defaultExpirationDeltaMinutes, defaultSpendLimitSats, minTokenValue } from './constants';
 import { convertTimeToBlock } from './utils';
 
-class AuthTokenManager {
+class AuthNft {
     constructor(wif) {
         this.wif = wif;
         this.wallet = null;
-    }
-
-    async defaultExpirationBlock() {
-        const expirationDate = Math.floor(Date.now()/1000) + (defaultExpirationDeltaMinutes * 60); // 30 days from now
-        const expirationBlock = await convertTimeToBlock(expirationDate)
-        return expirationBlock
     }
 
     async initWallet() {
@@ -49,6 +41,15 @@ class AuthTokenManager {
         return utxos;
     }
 
+    async getMutableTokens(tokenId) {
+        if (!this.wallet) {
+            await this.initWallet();
+        }
+
+        const utxos = await this.wallet.getTokenUtxos(tokenId);
+        return utxos.filter(utxo => utxo.token.capability === 'mutable')
+    }
+
     async getBalance() {
         if (!this.wallet) {
             await this.initWallet();
@@ -59,7 +60,7 @@ class AuthTokenManager {
     }
 
     /**
-     * Mint a genesis token with minting capability
+     * Mint a token with minting capability
      * @returns {Promise} API response with created genesis token
      */
     async genesis() {
@@ -67,7 +68,7 @@ class AuthTokenManager {
             await this.initWallet();
         }
 
-        // Create a genesis token with minting capability
+        // Create a genesis token
         const response = await this.wallet.tokenGenesis({
             amount: 0n,
             commitment: '',
@@ -88,14 +89,18 @@ class AuthTokenManager {
         for (let i = 0; i < terminals.length; i++) {
             const terminal = terminals[i]
             const commitmentData = {
-                authorized: terminal.authorized || true,
-                expirationBlock: terminal.expirationBlock || await this.defaultExpirationBlock(),
+                authorized: terminal.authorized !== undefined ? terminal.authorized : true,
+                expirationBlock: terminal.expirationBlock || await defaultExpirationBlock(),
                 spendLimitSats: terminal.spendLimitSats || defaultSpendLimitSats,
-                terminal: {
+            }
+
+            if (terminal.id && terminal.pubkey) {
+                commitmentData.terminal = {
                     id: terminal.id,
                     pk: terminal.pubkey
                 }
             }
+
             const commitment = encodeCommitment(commitmentData)
             tokenMintRequests.push(new TokenMintRequest({
                 cashaddr: this.wallet.cashaddr,
@@ -197,6 +202,13 @@ class AuthTokenManager {
             console.log(burnResponse)
         }
     }
+    
+}
+
+export async function defaultExpirationBlock() {
+    const expirationDate = Math.floor(Date.now()/1000) + (defaultExpirationDeltaMinutes * 60); // 30 days from now
+    const expirationBlock = await convertTimeToBlock(expirationDate)
+    return expirationBlock
 }
 
 function encodeTerminalHash({ terminalId, terminalPk }) {
@@ -211,7 +223,6 @@ function encodeTerminalHash({ terminalId, terminalPk }) {
 }
 
 function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSats }) {
-    if (!terminal) throw new Error('missing required terminal')
     if (!expirationBlock) throw new Error('missing required expiration block')
     if (!spendLimitSats) throw new Error ('missing required spend limit')
 
@@ -226,15 +237,20 @@ function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSat
     const spendLimitBuf = Buffer.alloc(8);
     spendLimitBuf.writeBigInt64LE(BigInt(spendLimitSats)); // 8 bytes
 
+    let commitmentData = [authorizedBuf, expirationBuf, spendLimitBuf]
+
     // terminal hash
-    const terminalIdBuf = Buffer.from(terminal.id, 'utf-8')
-    const terminalPkBuf = Buffer.from(terminal.pk, 'hex')
-    const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
-    const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
-    const truncatedHash = fullHash.subarray(0, 27)
+    if (terminal) {
+        const terminalIdBuf = Buffer.from(terminal.id, 'utf-8')
+        const terminalPkBuf = Buffer.from(terminal.pk, 'hex')
+        const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
+        const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
+        const truncatedHash = fullHash.subarray(0, 27)
+        commitmentData.push(truncatedHash);
+    }
 
     // structure: authorized + expirationBlock + spendLimit + hash
-    const commitment = Buffer.concat([authorizedBuf, expirationBuf, spendLimitBuf, truncatedHash]);
+    const commitment = Buffer.concat(commitmentData);
     return commitment.toString('hex'); 
 }
 
@@ -250,4 +266,4 @@ function decodeCommitment(hex) {
 
 export { encodeTerminalHash, encodeCommitment, decodeCommitment };
 
-export default AuthTokenManager;
+export default AuthNft;

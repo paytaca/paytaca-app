@@ -106,7 +106,7 @@
               :class="getDarkModeClass(darkMode)"
               @click.stop="openMerchantInfoDialog()"
             />
-            <q-btn-dropdown
+            <!-- <q-btn-dropdown
               dense
               flat
               dropdown-icon="more_vert"
@@ -122,7 +122,7 @@
                   </div>
                 </q-item>
               </q-list>
-            </q-btn-dropdown>
+            </q-btn-dropdown> -->
           </div>
         </q-item>
         <!-- TODO: Uncomment this when cashout is ready -->
@@ -369,8 +369,6 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
-import { createTerminal } from 'src/services/card/api';
-import { getPublicKeyAt } from 'src/utils/wallet';
 
 const bchjs = new BCHJS()
 
@@ -385,10 +383,10 @@ const walletType = 'bch'
 const merchantId = JSON.parse(history.state.merchantId)
 const merchantData = ref(history.state.merchantData)
 
-const isCardPaymentsEnabled = computed(() => {
-  console.log('merchantData?.nfc_payments_enabled || false:', merchantData.value?.nfc_payments_enabled || false)
-  return merchantData.value?.nfc_payments_enabled || false
-})
+// const isCardPaymentsEnabled = computed(() => {
+//   return merchantData.value?.nfc_payments_enabled || false
+// })
+
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const walletData = computed(() => {
   const _walletData = $store.getters['global/getWallet'](walletType)
@@ -402,45 +400,48 @@ const walletData = computed(() => {
   return data
 })
 
-async function enableCardPayments() {
-  console.log('enableCardPayments', merchantData.value)
-  if (merchantData.value.nfc_payments_enabled) {
-    return
-  }
+// TODO: Enabling card payments shouldn't be necessary as its common practice to accept card payments
+// watch(() => merchantData.value.nfc_payments_enabled, () => enableCardPayments())
+// async function enableCardPayments() {
+//   console.log('Enabling card payments for merchant ID:', merchantId)
+//   if (merchantData.value.nfc_payments_enabled) {
+//     return
+//   }
 
-  const payload = {
-    nfc_payments_enabled: true,
-  }
+//   const payload = {
+//     nfc_payments_enabled: true,
+//   }
 
-  await posBackend.patch(`paytacapos/merchants/${merchantId}/`, payload)
-    .then(response => {
-      console.log('Card payments enabled:', response.data)
-      $q.notify({
-        type: 'positive',
-        message: $t('CardPaymentsEnabled', {}, 'Card payments enabled'),
-      })
-      merchantData.value.nfc_payments_enabled = true
-    })
-    .catch(error => {
-      console.error('Failed to enable card payments:', error)
-      $q.notify({
-        type: 'negative',
-        message: $t('FailedToEnableCardPayments', {}, 'Failed to enable card payments'),
-      })
-    })
+//   await posBackend.patch(`paytacapos/merchants/${merchantId}/`, payload)
+//     .then(response => {
+//       console.log('Card payments enabled:', response.data)
+//       $q.notify({
+//         type: 'positive',
+//         message: $t('CardPaymentsEnabled', {}, 'Card payments enabled'),
+//       })
+//       merchantData.value.nfc_payments_enabled = true
+//     })
+//     .catch(error => {
+//       console.error('Failed to enable card payments:', error)
+//       $q.notify({
+//         type: 'negative',
+//         message: $t('FailedToEnableCardPayments', {}, 'Failed to enable card payments'),
+//       })
+//     })
 
-  const network = $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet';
-  const addressIndex = 1000;
-  const terminalPayload = {
-    wallet_hash: walletData.value.walletHash,
-    public_key: await getPublicKeyAt('bch', network, addressIndex),
-    address_path: `0/${addressIndex}`,
-    name: merchantData.value.name,
-  }
-  console.log('Creating terminal with payload:', terminalPayload);
-  const response = await createTerminal(terminalPayload)
-  console.log(response)
-}
+//   const network = $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet';
+//   const addressIndex = 1000;
+//   const terminalPayload = {
+//     wallet_hash: walletData.value.walletHash,
+//     public_key: await getPublicKeyAt('bch', network, addressIndex),
+//     address_path: `0/${addressIndex}`,
+//     name: merchantData.value.name,
+//   }
+//   console.log('Creating terminal with payload:', terminalPayload);
+//   const response = await createTerminal(terminalPayload)
+//   console.log(response)
+// }
+
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
   wallet.value = _wallet
@@ -1022,7 +1023,6 @@ function hidePopups() {
 
 
 onMounted(() => bus.on('paytaca-pos-relogin', reLogin))
-onMounted(() => enableCardPayments())
 onUnmounted(() => bus.off('paytaca-pos-relogin', reLogin))
 const reLogin = debounce(async (opts = {silent: false }) => {
   const loadingKey = 'paytacapos-relogin'
