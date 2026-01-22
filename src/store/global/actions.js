@@ -20,6 +20,14 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
+// Cache Watchtower last-address-index lookups to avoid spamming the endpoint.
+// This is in-memory only (resets on app reload) which is fine: we just want a short TTL.
+const LAST_ADDRESS_INDEX_REFRESH_TTL_MS = 30 * 1000
+let lastAddressIndexRefreshedAt = {
+  mainnet: 0,
+  chipnet: 0
+}
+
 export function fetchAppControl (context) {
   return new Promise((resolve, reject) => {
     backend.get('/app-control/')
@@ -342,13 +350,9 @@ import { migrateGlobalToWalletSpecific } from 'src/utils/wallet-migration'
  * @param {string|number} walletHashOrIndex - Wallet hash (string) or vault index (number)
  */
 export async function switchWallet (context, walletHashOrIndex) {
-  console.log('[switchWallet] ===== Starting wallet switch =====')
-  console.log('[switchWallet] Input (walletHashOrIndex):', walletHashOrIndex, typeof walletHashOrIndex)
-  
   // Save the OLD wallet index BEFORE any changes
   // This is critical: we need to sync the old wallet before switching
   const oldWalletIndex = context.getters.getWalletIndex
-  console.log('[switchWallet] Current (old) wallet index before switch:', oldWalletIndex)
   
   // Determine target index/hash SYNCHRONOUSLY before the async setTimeout
   // This allows immediate index update so router guard sees correct index
@@ -356,19 +360,15 @@ export async function switchWallet (context, walletHashOrIndex) {
   let index = null
   let newWallet = null
   const vault = context.state.vault
-  console.log('[switchWallet] Vault length:', vault?.length || 0)
   
   // Determine if input is wallet hash or index (synchronously for index, async for hash lookup)
   if (typeof walletHashOrIndex === 'string' && walletHashOrIndex.length >= 32) {
-    // Wallet hash provided - need to find index (async, but we'll do it in the setTimeout)
+    // Wallet hash provided - need to find index
     walletHash = walletHashOrIndex
-    console.log('[switchWallet] Wallet hash provided, will find index in async block...')
   } else {
     // Index provided (backward compatibility) - can validate synchronously
     index = walletHashOrIndex
-    console.log('[switchWallet] Index provided:', index)
     newWallet = vault[index]
-    console.log('[switchWallet] Wallet at index exists:', !!newWallet, 'deleted:', newWallet?.deleted)
     
     if (!newWallet || newWallet.deleted === true) {
       console.error(`[switchWallet] Cannot switch to wallet at index ${index}: wallet does not exist or is deleted`)
@@ -381,14 +381,11 @@ export async function switchWallet (context, walletHashOrIndex) {
                 newWallet?.BCH?.walletHash || 
                 newWallet?.bch?.walletHash ||
                 newWallet?.walletHash
-    console.log('[switchWallet] Extracted wallet hash:', walletHash || 'none')
     
     // Update wallet index IMMEDIATELY (synchronously) so router guard sees correct index
     // NOTE: We still need to sync the OLD wallet in the setTimeout block below
-    console.log('[switchWallet] Updating wallet index IMMEDIATELY to:', index)
     context.commit('updateWalletIndex', index)
     context.commit('updateCurrentWallet', index)
-    console.log('[switchWallet] Wallet index updated synchronously, new index:', context.getters.getWalletIndex)
   }
   
   return new Promise((resolve, reject) => {
@@ -400,8 +397,6 @@ export async function switchWallet (context, walletHashOrIndex) {
         // For hash-based switching: index is still the old one, so we can sync directly
         if (oldWalletIndex !== null && oldWalletIndex !== undefined && oldWalletIndex !== index) {
           const currentIndexBeforeSync = context.getters.getWalletIndex
-          console.log('[switchWallet] Syncing OLD wallet (index:', oldWalletIndex, ') to vault BEFORE switching...')
-          console.log('[switchWallet] Current index before sync:', currentIndexBeforeSync)
           
           // Temporarily restore old index to sync the old wallet (only if it's different)
           if (currentIndexBeforeSync !== oldWalletIndex) {
@@ -411,7 +406,6 @@ export async function switchWallet (context, walletHashOrIndex) {
           
           // Sync the old wallet to its vault slot
           await context.dispatch('syncCurrentWalletToVault')
-          console.log('[switchWallet] Old wallet sync completed')
           
           // Restore to target index (for index-based switching) or keep old index (for hash-based, will update below)
           if (index !== null) {
@@ -424,9 +418,7 @@ export async function switchWallet (context, walletHashOrIndex) {
         
         // If wallet hash was provided, find index now
         if (walletHash && index === null) {
-          console.log('[switchWallet] Finding index for wallet hash...')
           index = await getVaultIndexByWalletHashAsync(walletHash)
-          console.log('[switchWallet] Found index for wallet hash:', index)
           
           if (index === null || index === -1) {
             console.error(`[switchWallet] Wallet hash ${walletHash} not found in vault`)
@@ -440,13 +432,8 @@ export async function switchWallet (context, walletHashOrIndex) {
           context.commit('updateCurrentWallet', index)
         }
         
-        console.log('[switchWallet] Target wallet index:', index)
-        console.log('[switchWallet] Target wallet hash:', walletHash || 'none')
-        console.log('[switchWallet] Target wallet name:', newWallet?.name || 'none')
-        
         // Index was already updated synchronously above, but ensure it's still correct
         if (context.getters.getWalletIndex !== index) {
-          console.log('[switchWallet] Re-updating wallet index to:', index, '(was:', context.getters.getWalletIndex, ')')
           context.commit('updateWalletIndex', index)
           context.commit('updateCurrentWallet', index)
         }
@@ -476,13 +463,16 @@ export async function switchWallet (context, walletHashOrIndex) {
         // No need to clear data when switching wallets since each wallet has its own state
         // Note: wallet index was already updated above
         
+        // SECURITY: Check if destination wallet has lock enabled
+        // If it does AND we're switching from a different wallet, reset unlock state
+        // This requires authentication before showing balances of the new wallet
+        const lockAppEnabledAfter = context.rootGetters['global/lockApp']
+        if (lockAppEnabledAfter && oldWalletIndex !== index) {
+          context.commit('setIsUnlocked', false)
+        }
+        
         // Sync settings to darkmode and market modules
-        console.log('[switchWallet] Syncing settings to modules...')
         context.dispatch('syncSettingsToModules')
-        console.log('[switchWallet] Settings synced')
-
-        console.log('[switchWallet] Final wallet index:', context.getters.getWalletIndex)
-        console.log('[switchWallet] ===== Wallet switch completed successfully =====')
         resolve()
       } catch (error) {
         console.error('[switchWallet] Error during wallet switch:', error)
@@ -552,7 +542,6 @@ export async function deleteWallet (context, walletHashOrIndex) {
   
   // Perform complete cleanup of all wallet data
   if (walletHash) {
-    console.log(`[Wallet Deletion] Performing complete cleanup for wallet hash: ${walletHash}`)
     await deleteAllWalletData(walletHash, mnemonic, index).catch(err => {
       console.error(`[Wallet Deletion] Error during cleanup:`, err)
     })
@@ -803,7 +792,6 @@ export async function cleanupNullAndDeletedWallets (context) {
         await deleteMnemonic(i).catch(console.error)
       }
       
-      console.log(`[Wallet Cleanup] Removing vault entry at index ${i} - no mnemonic found`)
     }
   }
 
@@ -846,9 +834,6 @@ export async function cleanupNullAndDeletedWallets (context) {
     }
   }
   
-  if (indicesToRemove.length > 0) {
-    console.log(`[Wallet Cleanup] Removed ${indicesToRemove.length} null/deleted vault entries`)
-  }
 }
 
 /**
@@ -995,10 +980,21 @@ export async function loadWalletLastAddressIndex (context) {
     ? context.state.chipnet__wallets.bch
     : context.state.wallets.bch
 
+  // Check if wallet hash exists
+  if (!wallet || !wallet.walletHash) {
+    console.warn('Cannot load last address index: wallet hash not available')
+    return
+  }
+
   try {
     const lastAddressAndIndex = await w.getLastExternalAddressIndex(wallet.walletHash)
-    context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      context.commit('setWalletLastAddressAndIndex', lastAddressAndIndex)
+    } else {
+      console.warn('Invalid response from getLastExternalAddressIndex:', lastAddressAndIndex)
+    }
   } catch (error) {
+    console.error('Error loading last address index from watchtower:', error)
     // on error just use the existing
     context.commit('setWalletLastAddressAndIndex', {
       address: wallet.lastAddress,
@@ -1011,14 +1007,50 @@ export async function loadWalletLastAddressIndex (context) {
  * @return the BCH addresses of wallet
  */
 export async function loadWalletAddresses (context) {
-  let lastIndex =
-    context.state.wallets.bch.lastAddressAndIndex?.address_index ||
-    context.state.wallets.bch.lastAddressIndex
+  // NOTE:
+  // - Avoid `||` for numeric fields because 0 is a valid address_index.
+  // - Be defensive because on some platforms the wallet snapshot can briefly be incomplete
+  //   (e.g., lastAddressIndex missing or stored as a non-numeric string like "0/0").
+  const getLastIndexSafe = () => {
+    const bchWallet = context.state.isChipnet
+      ? context.state?.chipnet__wallets?.bch
+      : context.state?.wallets?.bch
 
-  if (context.state.isChipnet) {
-    lastIndex =
-    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index ||
-    context.state.chipnet__wallets.bch.lastAddressIndex
+    const idxFromLastAddressAndIndex = bchWallet?.lastAddressAndIndex?.address_index
+    if (Number.isFinite(idxFromLastAddressAndIndex)) return idxFromLastAddressAndIndex
+
+    const idxFromLastAddressIndex = bchWallet?.lastAddressIndex
+    if (Number.isFinite(idxFromLastAddressIndex)) return idxFromLastAddressIndex
+
+    // Handle string values (e.g. "0", "12", or even accidental "0/0")
+    const parsed = parseInt(String(idxFromLastAddressIndex ?? ''), 10)
+    if (Number.isFinite(parsed)) return parsed
+
+    return NaN
+  }
+
+  // Prefer Watchtower's last external address index (even if Vuex already has a value).
+  // This keeps address ranges fresh across devices and prevents stale indices.
+  // Use a short TTL to avoid spamming the endpoint during repeated renders.
+  let lastIndex = getLastIndexSafe()
+  try {
+    const networkKey = context.state.isChipnet ? 'chipnet' : 'mainnet'
+    const now = Date.now()
+    const shouldRefresh = (now - (lastAddressIndexRefreshedAt[networkKey] || 0)) > LAST_ADDRESS_INDEX_REFRESH_TTL_MS
+    if (shouldRefresh) {
+      // Populates state.wallets.bch.lastAddressAndIndex / lastAddressIndex
+      await context.dispatch('loadWalletLastAddressIndex')
+      lastAddressIndexRefreshedAt[networkKey] = now
+      lastIndex = getLastIndexSafe()
+    }
+  } catch (_) {
+    // ignore (offline / watchtower down)
+  }
+
+  // Fallback: generate a small set so UI has something to show
+  // (WalletConnect UI only needs the last few receiving addresses anyway.)
+  if (!Number.isFinite(lastIndex) || lastIndex < 0) {
+    lastIndex = 4
   }
 
   const walletIndex = context.getters.getWalletIndex
@@ -1038,7 +1070,7 @@ export async function loadWalletAddresses (context) {
       }
       walletAddresses.push({ address_index: i, address: cashAddress, wif: wif })
     } catch (error) {
-      console.log(error)
+      console.error(error)
       break
     }
   }
@@ -1074,7 +1106,8 @@ export async function autoGenerateAddress(context, opts) {
 
   const walletType = opts?.walletType || 'bch'
 
-  const address = context.getters['getAddress'](walletType)
+  // Use provided address if available (for dynamically generated addresses), otherwise fallback to store
+  const address = opts?.address || context.getters['getAddress'](walletType)
   const lastAddressIndex = context.getters['getLastAddressIndex'](walletType)
 
   const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
@@ -1127,12 +1160,64 @@ export async function autoGenerateAddress(context, opts) {
         lastAddressIndex: newAddressIndex
       })
     })
-
-    if (walletType === 'Smart BCH') {
-      await wallet.sBCH.getOrInitWallet().then(() => {
-        wallet.sBCH.subscribeWallet()
-      })
-    }
   }
   return { success: true }
+}
+
+/**
+ * Check if the address is from the wallet
+ * @param {Object} context
+ * @param {Object} opts
+ * @param {String} opts.address
+ * @param {Number} [opts.addressIndex]
+ * @param {Number} [opts.walletIndex] 
+ * @return {Object} { ok: boolean, walletIndex: number, addressIndex: number, address: string, wif: string }
+ */
+export async function depositAddressIsFromWallet(context, {address, addressIndex, walletIndex}) {
+
+  const selectedWalletIndex = walletIndex ?? context.getters.getWalletIndex
+  
+  const libauthWallet = await loadLibauthHdWallet(selectedWalletIndex, Boolean(context.state.isChipnet))
+
+  if (addressIndex !== undefined && addressIndex !== null) {
+    const wif = libauthWallet.getPrivateKeyWifAt(`0/${addressIndex}`)
+    const decodedPrivkey = decodePrivateKeyWif(wif)
+    let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+    if (context.state.isChipnet) {
+      cashAddress = toP2pkhTestAddress(cashAddress)
+    }
+
+    if (cashAddress === address) {
+      return { ok: true, walletIndex: selectedWalletIndex, addressIndex, address, wif }
+    }
+    return { ok: false, walletIndex: selectedWalletIndex  }
+  }
+
+  let lastIndex = 
+    context.state.wallets.bch.lastAddressAndIndex?.address_index ||
+    context.state.wallets.bch.lastAddressIndex || 0
+
+  if (context.state.isChipnet) {
+    lastIndex =
+    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index ||
+    context.state.chipnet__wallets.bch.lastAddressIndex || 0
+  }
+
+  const stopAtIndex = lastIndex + 50 // search within 50 addresses gap limit
+  for (let i = 0; i < stopAtIndex; i++) {
+    try {
+      const wif = libauthWallet.getPrivateKeyWifAt(`0/${i}`)
+      const decodedPrivkey = decodePrivateKeyWif(wif)
+      let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
+
+      if (context.state.isChipnet) {
+        cashAddress = toP2pkhTestAddress(cashAddress)
+      }
+
+      if (cashAddress === address) {
+        return { ok: true, walletIndex: selectedWalletIndex, addressIndex: i, address, wif }
+      }
+    } catch (error) {}
+  }
+  return { ok: false, walletIndex: selectedWalletIndex }
 }

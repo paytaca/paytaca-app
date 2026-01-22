@@ -36,7 +36,14 @@
       v-touch-pan="handlePan"
     >
       <div class="row items-center no-wrap justify-between q-mb-xs">
-        <img :src="getImageUrl(asset)" height="28" class="q-mr-xs" alt="">
+        <img 
+          :src="getImageUrl(asset)" 
+          height="28" 
+          class="q-mr-xs asset-icon" 
+          alt=""
+          @contextmenu.prevent
+          @selectstart.prevent
+        >
         <p class="col text-right asset-symbol">
           {{ asset.symbol }}
         </p>
@@ -71,6 +78,7 @@
 <script>
 import * as assetSettings from 'src/utils/asset-settings'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 
 export default {
@@ -138,16 +146,21 @@ export default {
         return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
       } 
       
-      // Fallback: show assets from props when customList is not yet initialized
-      // This ensures tokens show up immediately for newly imported wallets
-      // If favorites are already loaded, filter by them; otherwise show all assets
+      // For CashTokens on BCH network, tokens from API already have favorite field
+      // Use the favorite field directly from tokens instead of separate favorites array
       if (this.assets && this.assets.length > 0) {
-        if (this.favorites && this.favorites.length > 0) {
-          // Filter by favorites if available
-          return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
+        // Check if tokens have favorite field (from API)
+        const hasFavoriteField = this.assets.some(asset => asset && typeof asset.favorite !== 'undefined')
+        
+        if (hasFavoriteField) {
+          // Use favorite field from tokens (API provides this)
+          return this.assets.filter(asset => asset && (asset.favorite === 1 || asset.favorite === true))
+        } else {
+          // Fall back to old favorites array system (for sBCH/SLP)
+          if (Array.isArray(this.favorites)) {
+            return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
+          }
         }
-        // Show all assets if favorites not yet loaded (for newly imported wallets)
-        return this.assets.slice(0, 10)
       }
       
       return []
@@ -165,9 +178,15 @@ export default {
     }
   },
   watch: {
-    // Watch for changes in assets prop to refresh customList when new tokens are added
+    // For CashTokens on BCH, assets come from API with favorite field - no need to watch/save
+    // Only watch for sBCH/SLP which still use the old system
     async assets (newAssets, oldAssets) {
-      // Only process if we have customListIDs initialized and new assets
+      // Skip for CashTokens on BCH network - API handles everything
+      if (this.network === 'BCH' && this.isCashToken) {
+        return
+      }
+      
+      // Only process if we have customListIDs initialized and new assets (for sBCH/SLP)
       if (!this.customListIDs || !newAssets || newAssets.length === 0) {
         return
       }
@@ -216,9 +235,15 @@ export default {
       }
     }
   },
-  async mounted() {        
+  async mounted() {
+    // For CashTokens on BCH, API provides all data - no need for old favorites/customList APIs
+    if (this.network === 'BCH' && this.isCashToken) {
+      // Assets come from API with favorite field already set - nothing to do here
+      return
+    }
+    
+    // For sBCH/SLP, still use old system
     this.customListIDs = await assetSettings.fetchCustomList()      
-
 
     if (this.customListIDs) {
       
@@ -351,14 +376,20 @@ export default {
       return logoGenerator(String(asset && asset.id))
     },
     getImageUrl (asset) {
-      if (asset.logo) {
-        if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
-          return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-        } else {
-          return asset.logo
-        }
+      if (this.denomination === this.$t('DEEM') && asset.symbol === 'BCH') {
+        return 'assets/img/theme/payhero/deem-logo.png'
       } else {
-        return this.getFallbackAssetLogo(asset)
+        if (asset.logo) {
+          // Convert ipfs:// URLs to https://ipfs.paytaca.com/ipfs/ format
+          const convertedLogo = convertIpfsUrl(asset.logo)
+          if (convertedLogo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+            return convertedLogo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+          } else {
+            return convertedLogo
+          }
+        } else {
+          return this.getFallbackAssetLogo(asset)
+        }
       }
     },
     selectAsset (event, asset) {

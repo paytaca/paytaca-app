@@ -141,7 +141,9 @@ export default {
     left: 0;
     right: 0;
     width: 100%;
-    z-index: 9999 !important;
+    // Keep below Quasar overlays (QDialog/QMenu), but above page content.
+    // Quasar dialogs typically render around z-index ~6000+.
+    z-index: 4500 !important;
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     padding-top: 20px;
     background: transparent !important;
@@ -155,14 +157,19 @@ export default {
     
     /* Prevent iOS from hiding fixed elements during scroll */
     will-change: transform;
-    
-    /* Make sure all child elements are also transparent */
-    ::v-deep * {
-      background-color: transparent !important;
+
+    /*
+      IMPORTANT:
+      Do NOT force all child backgrounds to transparent.
+      QSlideItem uses the `left-color` to paint the revealed area during swipe.
+      Overriding it causes a "transparent strip" while sliding.
+    */
+    :deep(.q-slide-item__content) {
+      background: transparent;
     }
-    
+
     /* Keep only the actual button gradient - uses theme bg-grad */
-    ::v-deep .q-item.bg-grad {
+    :deep(.q-item.bg-grad) {
       /* Gradient is provided by theme system */
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       transition: all 0.3s ease;
@@ -170,6 +177,12 @@ export default {
       &:active {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
+    }
+
+    /* Ensure the slide item clips revealed background nicely */
+    :deep(.q-slide-item) {
+      border-radius: 40px;
+      overflow: hidden;
     }
   }
 }
@@ -180,7 +193,7 @@ export default {
   margin-right: 10%;
   background: transparent;
   position: relative;
-  z-index: 10000;
+  z-index: 4501;
   
   /* iOS specific - add more bottom margin */
   @supports (-webkit-touch-callout: none) {
@@ -191,7 +204,7 @@ export default {
   :deep(.q-slide-item),
   :deep(.q-item) {
     position: relative;
-    z-index: 10001;
+    z-index: 4502;
   }
 }
 </style>

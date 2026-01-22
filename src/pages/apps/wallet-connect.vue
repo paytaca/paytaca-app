@@ -311,9 +311,9 @@ export default {
       // Test site: https://example.walletconnect.org/
       // use `chainId: 1`
       // const chainId = 1
-      await this.wallet.sBCH.getOrInitWallet()
-      const chainId = await this.wallet.sBCH._wallet.getChainId()
-      const accounts = [this.wallet.sBCH._wallet.address]
+      // SmartBCH support removed
+      const chainId = null
+      const accounts = []
 
       const connector = createConnector(uri)
       this.pendingConnector = connector
@@ -493,7 +493,8 @@ export default {
     acceptCallRequest (callRequest) {
       if (!callRequest || !callRequest.payload) return Promise.reject()
 
-      return callRequestHandler(this.connector, callRequest.payload, this.wallet.sBCH._wallet)
+      // SmartBCH support removed
+      return Promise.reject(new Error('SmartBCH not supported'))
         .then(response => {
           this.removeCallRequest(callRequest)
           return Promise.resolve(response)

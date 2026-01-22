@@ -16,6 +16,32 @@ class Watchtower extends WatchtowerSdk {
   constructor (isChipnet = false) {
     super(isChipnet)
     this.isChipnet = isChipnet
+    
+    // Override Wallet.getHistory to automatically enrich responses with capability and commitment for NFTs
+    // Use setTimeout to ensure Wallet is initialized from parent class
+    setTimeout(() => {
+      if (this.Wallet && this.Wallet.getHistory) {
+        const originalGetHistory = this.Wallet.getHistory.bind(this.Wallet)
+        this.Wallet.getHistory = async (params) => {
+          // watchtower API expects `reference` query param for reference-id search.
+          // Keep backward compatibility with existing callers passing:
+          // - camelCase: txSearchReference
+          // - snake_case: tx_search_reference
+          const normalizedParams = { ...(params || {}) }
+          if (!normalizedParams.reference) {
+            normalizedParams.reference =
+              normalizedParams.txSearchReference ||
+              normalizedParams.tx_search_reference
+          }
+          // Avoid sending legacy params in the same request.
+          if (Object.prototype.hasOwnProperty.call(normalizedParams, 'txSearchReference')) delete normalizedParams.txSearchReference
+          if (Object.prototype.hasOwnProperty.call(normalizedParams, 'tx_search_reference')) delete normalizedParams.tx_search_reference
+
+          const response = await originalGetHistory(normalizedParams)
+          return this.enrichHistoryResponse(response)
+        }
+      }
+    }, 0)
   }
 
   /**
@@ -154,10 +180,13 @@ class Watchtower extends WatchtowerSdk {
     }
   }
 
-  async broadcastTx (tx, priceId) {
+  async broadcastTx (tx, priceId, outputFiatAmounts) {
     const body = { transaction: tx }
     if (priceId) {
       body.price_id = priceId
+    }
+    if (outputFiatAmounts) {
+      body.output_fiat_amounts = outputFiatAmounts
     }
     const r = await fetch(`${this._baseUrl}broadcast/`, {
       method: 'POST',
@@ -206,6 +235,87 @@ class Watchtower extends WatchtowerSdk {
 
   async getMultisigWalletUtxos(address) {
     return await axios.get(`${this._baseUrl}multisig/wallets/utxos/${address}`)
+  }
+
+  /**
+   * Enriches Wallet History API response to include capability and commitment
+   * in token field when is_nft is true
+   * @param {Object} response - The API response from Wallet.getHistory
+   * @returns {Object} - Enriched response with capability and commitment added to token field
+   */
+  enrichHistoryResponse(response) {
+    if (!response || !response.history) return response
+
+    const enrichedHistory = response.history.map(tx => {
+      // Check if transaction has is_nft flag
+      const isNft = tx.is_nft === true || tx.is_nft === 'true' || 
+                    tx.asset?.is_nft === true || tx.asset?.is_nft === 'true' ||
+                    (Array.isArray(tx.attributes) && tx.attributes.some(attr => 
+                      attr.key === 'is_nft' && (attr.value === true || attr.value === 'true')
+                    ))
+
+      if (isNft && tx.token) {
+        // Extract capability and commitment from attributes or other sources
+        let capability = null
+        let commitment = null
+
+        // Try to get from attributes
+        if (Array.isArray(tx.attributes)) {
+          const capabilityAttr = tx.attributes.find(attr => attr.key === 'capability')
+          const commitmentAttr = tx.attributes.find(attr => attr.key === 'commitment')
+          
+          if (capabilityAttr) capability = capabilityAttr.value
+          if (commitmentAttr) commitment = commitmentAttr.value
+        }
+
+        // Try to get from transaction outputs (if available)
+        if (!capability && tx.outputs && Array.isArray(tx.outputs)) {
+          for (const output of tx.outputs) {
+            if (output.token?.nft?.capability) {
+              capability = output.token.nft.capability
+            }
+            if (output.token?.nft?.commitment) {
+              commitment = typeof output.token.nft.commitment === 'string' 
+                ? output.token.nft.commitment 
+                : binToHex(output.token.nft.commitment)
+            }
+            if (capability && commitment) break
+          }
+        }
+
+        // Try to get from inputs (if available)
+        if (!capability && tx.inputs && Array.isArray(tx.inputs)) {
+          for (const input of tx.inputs) {
+            if (input.token?.nft?.capability) {
+              capability = input.token.nft.capability
+            }
+            if (input.token?.nft?.commitment) {
+              commitment = typeof input.token.nft.commitment === 'string'
+                ? input.token.nft.commitment
+                : binToHex(input.token.nft.commitment)
+            }
+            if (capability && commitment) break
+          }
+        }
+
+        // Enrich token field with capability and commitment
+        return {
+          ...tx,
+          token: {
+            ...tx.token,
+            ...(capability && { capability }),
+            ...(commitment && { commitment })
+          }
+        }
+      }
+
+      return tx
+    })
+
+    return {
+      ...response,
+      history: enrichedHistory
+    }
   }
 }
 

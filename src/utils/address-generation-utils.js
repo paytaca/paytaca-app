@@ -134,6 +134,67 @@ export async function generateAddressSetFromMnemonic(opts) {
 }
 
 /**
+ * Generates an address set without subscribing (for checking balance, etc.)
+ * @param {Object} opts - Same as generateAddressSetFromMnemonic
+ * @returns {Promise<{success: boolean, addresses?: {receiving: string, change: string}, error?: string}>}
+ */
+export async function generateAddressSetWithoutSubscription(opts) {
+  const { walletIndex = 0, derivationPath, addressIndex, isChipnet = false } = opts
+
+  if (!derivationPath) {
+    return { success: false, error: 'Derivation path is required' }
+  }
+
+  // Validate addressIndex - must be a non-negative integer
+  let validAddressIndex = addressIndex
+  if (typeof addressIndex !== 'number' || addressIndex < 0 || !Number.isInteger(addressIndex)) {
+    validAddressIndex = 0
+  }
+
+  try {
+    // Get mnemonic from secure storage
+    const mnemonic = await getMnemonic(walletIndex)
+    if (!mnemonic) {
+      return { success: false, error: 'Mnemonic not found' }
+    }
+
+    // Generate master HD node from mnemonic
+    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
+    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
+    
+    // Derive child node for the given derivation path
+    const childNode = masterHDNode.derivePath(derivationPath)
+    
+    // Generate receiving address (0/index) and change address (1/index)
+    const receivingAddressNode = childNode.derivePath('0/' + validAddressIndex)
+    const changeAddressNode = childNode.derivePath('1/' + validAddressIndex)
+
+    let receivingAddress = bchjs.HDNode.toCashAddress(receivingAddressNode)
+    let changeAddress = bchjs.HDNode.toCashAddress(changeAddressNode)
+
+    // Convert to chipnet format if needed
+    if (isChipnet) {
+      receivingAddress = convertCashAddress(receivingAddress, isChipnet, false)
+      changeAddress = convertCashAddress(changeAddress, isChipnet, false)
+    }
+
+    return {
+      success: true,
+      addresses: {
+        receiving: receivingAddress,
+        change: changeAddress
+      }
+    }
+  } catch (error) {
+    console.error('Error generating address set:', error)
+    return { 
+      success: false, 
+      error: error.message || 'Failed to generate address set' 
+    }
+  }
+}
+
+/**
  * Generates just the receiving address (with watchtower subscription)
  * @param {Object} opts - Same as generateAddressSetFromMnemonic
  * @returns {Promise<string|null>} Returns address if successful, null if subscription failed
@@ -163,73 +224,15 @@ export async function generateChangeAddress(opts) {
 
 /**
  * Gets the derivation path for a wallet type
- * @param {string} walletType - 'bch', 'slp', or 'sbch'
+ * @param {string} walletType - 'bch' or 'slp'
  * @returns {string}
  */
 export function getDerivationPathForWalletType(walletType) {
   const derivationPaths = {
     bch: "m/44'/145'/0'",
-    slp: "m/44'/245'/0'",
-    sbch: "m/44'/60'/0'/0"
+    slp: "m/44'/245'/0'"
   }
-  
+
   return derivationPaths[walletType] || derivationPaths.bch
-}
-
-/**
- * Generates sBCH address from mnemonic and subscribes to watchtower
- * @param {Object} opts
- * @param {number} opts.walletIndex - Index of the wallet in vault
- * @returns {Promise<string|null>} Returns address if successful, null if subscription failed
- */
-export async function generateSbchAddress(opts) {
-  const { walletIndex = 0 } = opts
-  
-  try {
-    // Get mnemonic from secure storage
-    const mnemonic = await getMnemonic(walletIndex)
-    if (!mnemonic) {
-      console.error('Mnemonic not found for sBCH address generation')
-      return null
-    }
-
-    const derivationPath = "m/44'/60'/0'/0"
-    
-    // Generate seed and derive the sBCH address
-    const seedBuffer = await bchjs.Mnemonic.toSeed(mnemonic)
-    const masterHDNode = bchjs.HDNode.fromSeed(seedBuffer)
-    const childNode = masterHDNode.derivePath(derivationPath)
-    const addressNode = childNode.derivePath('0')
-    const privateKey = bchjs.HDNode.toKeyPair(addressNode).d.toBuffer().toString('hex')
-    
-    // Use ethers to get the address
-    const { ethers } = await import('ethers')
-    const wallet = new ethers.Wallet(privateKey)
-    const address = wallet.address
-    
-    // CRITICAL: Subscribe sBCH address to watchtower before returning
-    const walletHash = computeWalletHash(mnemonic, derivationPath)
-    
-    const watchtower = new Watchtower(false) // sBCH is mainnet only
-    const subscriptionData = {
-      address: address,
-      projectId: projectId.mainnet,
-      walletHash: walletHash,
-      walletIndex: 0,
-      addressIndex: 0
-    }
-
-    const subscriptionResult = await watchtower.subscribe(subscriptionData)
-    
-    if (!subscriptionResult.success) {
-      console.error('Failed to subscribe sBCH address to watchtower:', subscriptionResult)
-      return null
-    }
-
-    return address
-  } catch (error) {
-    console.error('Error generating and subscribing sBCH address:', error)
-    return null
-  }
 }
 

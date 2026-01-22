@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" full-width position="bottom" transition-show="slide-up">
-    <q-card class="q-pb-lg br-15">
+    <q-card class="q-pb-lg br-15 bottom-card">
       <div class="q-pl-lg q-pt-md q-pb-sm text-bold" style="font-size: 20px;">Share Ad</div>
 
       <div class="q-px-lg q-pb-sm">

@@ -1,13 +1,12 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + ' ' + asset.symbol)"
+      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
       :backnavpath="backNavPath"
       class="header-nav"
     ></header-nav>
     <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
-        v-if="!isSep20"
         id="context-menu"
         size="35px"
         name="more_vert"
@@ -36,7 +35,7 @@
         </q-menu>
       </q-icon>
       <div>
-        <div v-if="asset.id ==='bch'" class="row flex-center">
+        <div v-if="asset && asset.id ==='bch'" class="row flex-center">
           <div class="row flex-center" style="margin-top: 20px;">
             <q-img @click="isCt = false" src="bitcoin-cash-circle.svg" height="35px" width="35px" />
             <span @click="isCt = false">&nbsp;BCH</span>
@@ -60,13 +59,27 @@
             <div class="col q-pl-sm q-pr-sm">
               <div class="row text-center" @click="copyToClipboard(isCt ? address : addressAmountFormat)">
                 <div class="col row justify-center q-pt-md">
+                  <div
+                    v-if="generating || !address"
+                    class="q-mb-sm"
+                    style="width: 220px; height: 220px; min-width: 220px; min-height: 220px; display: flex; align-items: center; justify-content: center;"
+                  >
+                    <q-skeleton
+                      type="rect"
+                      width="220px"
+                      height="220px"
+                      style="border-radius: 8px;"
+                      animation="fade"
+                    />
+                  </div>
                   <qr-code
+                    v-else
                     :text="isCt ? address : addressAmountFormat"
                     :generating="generating"
                     border-width="3px"
                     border-color="#ed5f59"
                     :size="220"
-                    :icon="isCt ? 'ct-logo.png' : getImageUrl(asset)"
+                    :icon="getQrCodeIcon()"
                     class="q-mb-sm"
                   >
                   </qr-code>
@@ -75,11 +88,11 @@
             </div>
           </div>
         </div>
-        <div v-if="!isCt && asset.id ==='bch'" class="row flex-center">
+        <div v-if="!isCt && asset && asset.id ==='bch'" class="row flex-center">
           <q-icon v-if="showLegacy" name="fas fa-angle-up" size="1.4em" @click="showLegacy = false" style="z-index: 1000;" />
           <q-icon v-else name="fas fa-angle-down" size="1.4em" @click="showLegacy = true" />
         </div>
-        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset.id ==='bch' && !isCt && showLegacy">
+        <div class="row q-mt-md" v-if="!generating && walletType === 'bch' && asset && asset.id ==='bch' && !isCt && showLegacy">
           <q-toggle
             v-model="legacy"
             class="text-bow"
@@ -90,7 +103,7 @@
             :label="$t('LegacyAddressFormat')"
           />
         </div>
-        <div class="row" v-if="!generating">
+        <div class="row" v-if="!generating && address">
           <div class="col copy-container">
             <div class="qr-code-text text-weight-light text-center">
               <div
@@ -123,7 +136,7 @@
                 </div>
                 <div class="text-weight-light receive-amount-label">
                   {{ formatWithLocale(amount, decimalObj) }}
-                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol }}
+                  {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol }}
                 </div>
               </div>
             </div>
@@ -160,7 +173,7 @@
         <div class="col q-mt-md q-px-lg text-center">
           <custom-input
             v-model="amount"
-            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset.symbol"
+            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol"
             :inputRules="[val => Boolean(val) || $t('InvalidAmount')]"
             :asset="asset"
             :decimalObj="decimalObj"
@@ -182,7 +195,6 @@
 
 <script>
 import { getMnemonic, Wallet, Address } from '../../wallet'
-import { watchTransactions } from '../../wallet/sbch'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
@@ -193,17 +205,16 @@ import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
 import {
   generateReceivingAddress,
-  generateSbchAddress,
-  getDerivationPathForWalletType
+  getDerivationPathForWalletType,
+  generateAddressSetWithoutSubscription
 } from 'src/utils/address-generation-utils.js'
+import { toTokenAddress } from 'src/utils/crypto.js'
+import axios from 'axios'
 
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
-
-const sep20IdRegexp = /sep20\/(.*)/
-const sBCHWalletType = 'Smart BCH'
 
 export default {
   name: 'receive-page',
@@ -216,7 +227,6 @@ export default {
   },
   data () {
     return {
-      sBCHListener: null,
       activeBtn: 'btn-bch',
       walletType: '',
       isCt: false,
@@ -230,7 +240,9 @@ export default {
       amountDialog: false,
       setAmountInFiat: true,
       tokens: [],
-      dynamicAddress: '' // Store dynamically generated address
+      dynamicAddress: '', // Store dynamically generated address (for display, may be token format)
+      dynamicAddressRegular: '', // Store regular format address (for API calls, subscriptions, listeners)
+      isInitializing: true // Flag to prevent watcher from triggering during initial load
     }
   },
   props: {
@@ -262,17 +274,12 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    isSep20 () {
-      return this.network === 'sBCH'
-    },
     address () {
       // Use dynamically generated address instead of store-retrieved address
       const address = this.dynamicAddress
       if (!address) return ''
       
-      if (this.walletType === sBCHWalletType) {
-        return address
-      } else if (this.legacy) {
+      if (this.legacy) {
         return this.convertToLegacyAddress(address)
       } else {
         if (this.isCt) {
@@ -283,7 +290,7 @@ export default {
       }
     },
     selectedAssetMarketPrice() {
-      return this.$store.getters['market/getAssetPrice'](this.asset.id, this.selectedMarketCurrency())
+      return this.$store.getters['market/getAssetPrice'](this.asset?.id, this.selectedMarketCurrency())
     },
     addressAmountFormat () {
       let tempAddress = this.address
@@ -301,7 +308,7 @@ export default {
       }
 
       if (this.assetId.startsWith('ct/')) {
-        const tokenAmount = parseFloat(tempAmount) * (10 ** this.asset.decimals)
+        const tokenAmount = parseFloat(tempAmount) * (10 ** (this.asset?.decimals || 0))
         tempAddress += this.amount ? '&f=' + Math.round(tokenAmount) : ''
       } else {
         tempAddress += this.amount ? '?amount=' + tempAmount : ''
@@ -316,6 +323,19 @@ export default {
   methods: {
     getDarkModeClass,
     formatWithLocale,
+
+    /**
+     * Ensures address index is never 0 (0/0 is reserved for message encryption)
+     * Returns 1 if index is 0, otherwise returns the index as-is
+     * @param {number} index - The address index to validate
+     * @returns {number} - The validated address index (never 0)
+     */
+    ensureAddressIndexNotZero (index) {
+      if (typeof index !== 'number' || index < 0) {
+        return 1 // Default to 1 if invalid
+      }
+      return index === 0 ? 1 : index
+    },
 
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
@@ -341,16 +361,6 @@ export default {
 
       return mainchainTokens
     },
-    async getSmartchainTokens () {
-      const tokens = await this.$store.dispatch(
-        'sep20/getMissingAssets',
-        {
-          address: this.getWallet('sbch').lastAddress,
-          icludeIgnoredTokens: false
-        }
-      )
-      return tokens
-    },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
       if (!parsedAmount) return ''
@@ -366,7 +376,30 @@ export default {
       const logoGenerator = this.$store.getters['global/getDefaultAssetLogo']
       return logoGenerator(String(asset && asset.id))
     },
+    getQrCodeIcon () {
+      const vm = this
+      // If user toggled to CashToken for BCH, use cashtoken logo
+      if (vm.isCt) {
+        return 'ct-logo.png'
+      }
+      // If it's a cashtoken (starts with ct/)
+      if (vm.asset && vm.asset.id && vm.asset.id.startsWith('ct/')) {
+        // If the token has a specific logo (listed token), use that
+        // Otherwise use the generic cashtoken logo
+        const assetLogo = vm.getImageUrl(vm.asset)
+        // Check if asset has a specific logo (not generic/fallback)
+        // If asset.logo exists and is not a generic cashtoken logo, use it
+        if (vm.asset.logo && !vm.asset.logo.includes('ct-logo') && !vm.asset.logo.includes('new-token')) {
+          return assetLogo
+        }
+        // For unlisted tokens or tokens without specific logos, use cashtoken logo
+        return 'ct-logo.png'
+      }
+      // For other assets, use their logo
+      return vm.getImageUrl(vm.asset)
+    },
     getImageUrl (asset) {
+      if (!asset) return this.getFallbackAssetLogo(asset)
       if (asset.logo) {
         if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
           return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
@@ -385,12 +418,13 @@ export default {
       const vm = this
       vm.generating = true
       const lastAddressIndex = vm.getLastAddressIndex()
-      const newAddressIndex = lastAddressIndex + 1
+      let newAddressIndex = lastAddressIndex + 1
+      // Skip address 0/0 (reserved for message encryption)
+      newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
 
-      vm.stopSbchListener()
       delete this?.$options?.sockets
 
-        getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+      getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
         const wallet = new Wallet(mnemonic, vm.network)
         if (vm.walletType === 'bch') {
           getWalletByNetwork(wallet, vm.walletType).getNewAddressSet(newAddressIndex).then(async function (result) {
@@ -421,19 +455,15 @@ export default {
             try { await vm.setupListener() } catch {}
           })
         }
-
-        if (vm.walletType === sBCHWalletType) {
-          wallet.sBCH.getOrInitWallet().then(() => {
-            wallet.sBCH.subscribeWallet()
-          })
-        }
       })
     },
     async showPrivateKey () {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Skip address 0/0 (reserved for message encryption)
+        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const privateKey = await dynamicWallet.getPrivateKey('0/' + String(lastAddressIndex))
         
@@ -457,7 +487,9 @@ export default {
       try {
         const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
         const wallet = new Wallet(mnemonic, this.network)
-        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        // Skip address 0/0 (reserved for message encryption)
+        lastAddressIndex = this.ensureAddressIndexNotZero(lastAddressIndex)
         const dynamicWallet = getWalletByNetwork(wallet, this.walletType)
         const publicKey = await dynamicWallet.getPublicKey('0/' + String(lastAddressIndex))
         
@@ -478,38 +510,43 @@ export default {
       }
     },
     async getAddress (forListener = false) {
-      if (this.isSep20) {
-        this.walletType = 'sbch'
-        // For sBCH, generate dynamically
-        try {
-          const address = await generateSbchAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
+      // Use the already-generated address from refreshDynamicAddress instead of regenerating
+      // For listeners and API calls, always use regular format
+      if (this.dynamicAddressRegular) {
+        return this.dynamicAddressRegular
+      }
+      
+      // Fallback to dynamicAddress if regular format not set (shouldn't happen in normal flow)
+      if (this.dynamicAddress) {
+        // If it's a token address and we need regular format, convert it back
+        if (forListener && this.assetId.indexOf('ct/') > -1) {
+          // Convert token address back to regular format using Address utility
+          try {
+            const addressObj = new Address(this.dynamicAddress)
+            return addressObj.toCashAddress()
+          } catch (e) {
+            console.error('Error converting token address to regular format:', e)
+            return this.dynamicAddress
           }
-          return address
-        } catch (error) {
-          console.error('Error generating sBCH address:', error)
-          this.$q.notify({
-            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
-            color: 'negative',
-            icon: 'warning'
-          })
-          // Don't fallback to store - address generation must succeed
-          return null
         }
-      } else if (this.assetId.indexOf('slp/') > -1) {
+        return this.dynamicAddress
+      }
+      
+      // Fallback: if dynamicAddress is not set yet, wait for it or generate
+      // This should rarely happen, but provides a safety net
+      if (this.assetId.indexOf('slp/') > -1) {
         this.walletType = 'slp'
       } else {
         this.walletType = 'bch'
       }
 
-      // Generate address dynamically from mnemonic instead of using stored address
+      // Fallback: generate address if dynamicAddress is not available
+      // This should not happen in normal flow since refreshDynamicAddress is called first
       try {
         const addressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
-        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
-        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        let validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 1
+        // Skip address 0/0 (reserved for message encryption)
+        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
         
         let address = await generateReceivingAddress({
           walletIndex: this.$store.getters['global/getWalletIndex'],
@@ -518,7 +555,6 @@ export default {
           isChipnet: this.isChipnet
         })
         
-        // Check if subscription failed (returns null)
         if (!address) {
           throw new Error('Failed to subscribe address to watchtower')
         }
@@ -534,19 +570,145 @@ export default {
           color: 'negative',
           icon: 'warning'
         })
-        // Don't fallback to store - address generation must succeed
         return null
       }
     },
-    async refreshDynamicAddress() {
-      // Regenerate the dynamic address when needed
+    async checkAddressBalance(address, walletType) {
+      // Check if address has balance (including token sats)
       try {
-        const address = await this.getAddress()
-        this.dynamicAddress = address
-        this.generating = false // Address loaded successfully
+        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+        
+        if (walletType === 'slp') {
+          // For SLP, check BCH balance
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        } else {
+          // For BCH, check balance including token sats
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`).catch(() => ({ data: { balance: 0 } }))
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        }
+      } catch (error) {
+        console.error('Error checking address balance:', error)
+        // If check fails, assume no balance to be safe
+        return false
+      }
+    },
+    async refreshDynamicAddress() {
+      // Step 1: Generate address from saved lastAddressIndex
+      try {
+        this.generating = true
+        
+        // Determine wallet type
+        if (this.assetId.indexOf('slp/') > -1) {
+          this.walletType = 'slp'
+        } else {
+          this.walletType = 'bch'
+        }
+        
+        // Get lastAddressIndex
+        const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](this.walletType)
+        let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
+        // Skip address 0/0 (reserved for message encryption)
+        validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
+        
+        // Generate address from lastAddressIndex
+        let address
+        
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+          const addressResult = await generateAddressSetWithoutSubscription({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType(this.walletType),
+            addressIndex: validAddressIndex,
+            isChipnet: this.isChipnet
+          })
+          
+          if (!addressResult.success) {
+            throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+          }
+          
+          address = addressResult.addresses.receiving
+          
+          // Step 2: Check if that address has balance (including token sats)
+          const hasBalance = await this.checkAddressBalance(address, this.walletType)
+          
+          if (!hasBalance) {
+            // Step 3: If balance is zero, subscribe and render that address
+            // Now subscribe the address since we're using it
+            const subscribeResult = await generateReceivingAddress({
+              walletIndex: this.$store.getters['global/getWalletIndex'],
+              derivationPath: getDerivationPathForWalletType(this.walletType),
+              addressIndex: validAddressIndex,
+              isChipnet: this.isChipnet
+            })
+            
+            if (!subscribeResult) {
+              throw new Error('Failed to subscribe address to watchtower')
+            }
+            
+            // Store regular format for API calls and listeners
+            this.dynamicAddressRegular = subscribeResult
+            
+            // Store display format (token format for CashToken, regular for others)
+            if (this.assetId.indexOf('ct/') > -1) {
+              this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
+            } else {
+              this.dynamicAddress = subscribeResult
+            }
+            this.generating = false
+            return
+          }
+          
+          // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
+          let newAddressIndex = validAddressIndex + 1
+          // Skip address 0/0 (reserved for message encryption)
+          newAddressIndex = this.ensureAddressIndexNotZero(newAddressIndex)
+          
+          // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
+          const newAddress = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType(this.walletType),
+            addressIndex: newAddressIndex,
+            isChipnet: this.isChipnet
+          })
+          
+          if (!newAddress) {
+            throw new Error('Failed to generate and subscribe new address')
+          }
+          
+          // Update store with new address index
+          const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+          const wallet = new Wallet(mnemonic, this.network)
+          const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
+          const addresses = result.addresses
+          
+          this.$store.commit('global/generateNewAddressSet', {
+            type: this.walletType,
+            lastAddress: addresses.receiving,
+            lastChangeAddress: addresses.change,
+            lastAddressIndex: newAddressIndex
+          })
+          
+          // Step 6: Render that new address in the page
+          // Store regular format for API calls and listeners
+          this.dynamicAddressRegular = newAddress
+          
+          // Store display format (token format for CashToken, regular for others)
+          if (this.assetId.indexOf('ct/') > -1) {
+            this.dynamicAddress = convertCashAddress(newAddress, this.isChipnet, true)
+          } else {
+            this.dynamicAddress = newAddress
+          }
+          this.generating = false
       } catch (error) {
         console.error('Error refreshing dynamic address:', error)
         this.generating = false // Stop generating even on error
+        this.$q.notify({
+          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
       }
     },
     getLastAddressIndex () {
@@ -558,7 +720,6 @@ export default {
       return this.$store.getters['global/getLastAddressIndex'](this.walletType)
     },
     copyToClipboard (value) {
-      console.log('copyToClipboard', value)
       this.$copyText(value)
       this.$q.notify({
         message: this.$t('CopiedToClipboard'),
@@ -568,10 +729,7 @@ export default {
       })
     },
     getAsset (id) {
-      let getter = 'assets/getAsset'
-      if (this.isSep20) {
-        getter = 'sep20/getAsset'
-      }
+      const getter = 'assets/getAsset'
       const assets = this.$store.getters[getter](id)
       if (assets.length > 0) {
         return assets[0]
@@ -598,7 +756,6 @@ export default {
     },
     async setupListener () {
       const vm = this
-      if (vm.isSep20) return vm.setupSbchListener()
 
       let url
       let assetType
@@ -679,7 +836,7 @@ export default {
               data.amount / (10 ** data.token_decimals),
               data.token_symbol.toUpperCase(),
               vm.getImageUrl(vm.asset),
-              tokenType === 'ct' ? vm.asset.decimals : 0,
+              tokenType === 'ct' ? (vm.asset?.decimals || 0) : 0,
               tokenType === 'ct'
             )
           }
@@ -756,16 +913,13 @@ export default {
           // if unlisted token is detected, add to front of list
           // check if token already added in list using store getters
           const allAssets = vm.$store.getters['assets/getAssets'] || []
-          const allSep20Assets = vm.$store.getters['sep20/getAssets'] || []
-          const existingAsset = allAssets.find(a => a && a.id === data.token_id) || 
-                               allSep20Assets.find(a => a && a.id === data.token_id)
+          const existingAsset = allAssets.find(a => a && a.id === data.token_id)
           
           if (!existingAsset) {
             try {
               const newTokenData = await vm.$store.dispatch('assets/getAssetMetadata', data.token_id)
               if (newTokenData) {
                 if (!newTokenData.decimals || newTokenData.isNft) {
-                  console.log('Not adding unrecognized token due to being an nft')
                   return
                 }
                 
@@ -775,8 +929,8 @@ export default {
                   balance: amount
                 }
 
-                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, tokenWithBalance)
-                vm.$store.commit(`${tokenWithBalance.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
+                vm.$store.commit('assets/addNewAsset', tokenWithBalance)
+                vm.$store.commit('assets/moveAssetToBeginning')
               }
             } catch (error) {
               console.error('Error adding new token:', error)
@@ -784,53 +938,16 @@ export default {
           }
         }
       }
-    },
-
-    setupSbchListener () {
-      const vm = this
-      if (!vm.isSep20) return
-
-      const address = vm.getAddress()
-      const opts = { type: 'incoming' }
-      if (sep20IdRegexp.test(vm.asset.id)) {
-        const contractAddress = vm.asset.id.match(sep20IdRegexp)[1]
-        opts.contractAddresses = [contractAddress]
-        opts.tokensOnly = true
-      } else {
-        opts.tokensOnly = false
-      }
-
-      // Stop listener if another listener already exists
-      vm.stopSbchListener()
-      watchTransactions(
-        address,
-        opts,
-        function ({ tx }) {
-          if (!tx || tx.to !== address) return
-
-          vm.notifyOnReceive(
-            tx.amount,
-            vm.asset.symbol,
-            vm.getImageUrl(vm.asset)
-          )
-        }
-      ).then(listener => {
-        vm.sBCHListener = listener
-      })
-    },
-
-    stopSbchListener () {
-      if (this.sBCHListener && this.sBCHListener.stop && this.sBCHListener.stop.call) {
-        this.sBCHListener.stop()
-      }
     }
   },
 
   watch: {
     address () {},
-    walletType () {
-      // Refresh dynamic address when wallet type changes
-      this.refreshDynamicAddress()
+    walletType (newVal, oldVal) {
+      // Only refresh if wallet type actually changed (not during initial load)
+      if (!this.isInitializing && oldVal && newVal !== oldVal) {
+        this.refreshDynamicAddress()
+      }
     },
     setAmountInFiat(newVal, oldVal) {
       const amount = parseFloat(this.amount)
@@ -859,41 +976,67 @@ export default {
 
   async unmounted () {
     if (!this.assetId.endsWith('unlisted')) {
-      this.stopSbchListener()
       this.$disconnect()
       delete this?.$options?.sockets
     }
 
-
     await self.wakeLock.release()
-  },
-
-  async beforeMount() {
-    const result = await this.$store.dispatch('global/autoGenerateAddress', {
-      walletType: this.walletType,
-      tokenId: this.assetId.replace('ct/', '').replace('slp/', '')
-    })
-    console.log('Auto generate address', result)
   },
 
   async mounted () {
     const vm = this
     
-    // Generate the dynamic address first
+    // Generate the dynamic address first (this handles balance check and subscription)
     await vm.refreshDynamicAddress()
+    
+    // Mark initialization as complete so watchers can trigger
+    vm.isInitializing = false
     
     // Setup websocket listener (async, needs to await address)
     await vm.setupListener()
 
+    // Request wake lock with error handling
+    try {
+      self.wakeLock = useWakeLock()
+      await self.wakeLock.request('screen')
+    } catch (error) {
+      // Wake lock permission may be denied - this is not critical, just log it
+      console.warn('Wake lock permission denied or not available:', error)
+    }
 
-    self.wakeLock = useWakeLock()
-    await wakeLock.request('screen')
-
-    vm.tokens = vm.$store.getters['global/network'] === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
+    vm.tokens = await vm.getMainchainTokens()
   },
 
   created () {
     const vm = this
+    
+    // Check if asset data was passed from select-asset page
+    // This allows immediate rendering with correct logo and details
+    if (vm.$route.query.assetData) {
+      try {
+        const passedAsset = JSON.parse(vm.$route.query.assetData)
+        if (passedAsset && passedAsset.id) {
+          // Use the passed asset data immediately
+          vm.asset = {
+            id: passedAsset.id,
+            name: passedAsset.name || 'Unknown Token',
+            symbol: passedAsset.symbol || '',
+            decimals: passedAsset.decimals !== undefined ? passedAsset.decimals : 0,
+            logo: passedAsset.logo || null,
+            balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
+          }
+          if (vm.assetId.startsWith('ct/')) {
+            vm.setAmountInFiat = false
+          }
+          return // Early return - we have the asset data we need
+        }
+      } catch (error) {
+        console.warn('[Receive] Failed to parse passed asset data:', error)
+        // Fall through to default logic below
+      }
+    }
+    
+    // Fallback to original logic if no asset data was passed or parsing failed
     if (vm.assetId.endsWith('unlisted')) {
       vm.asset = {
         id: vm.assetId,
@@ -930,17 +1073,27 @@ body {
   margin-top: 20px;
   padding-left: 28px;
   padding-right: 28px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  
+  // The QR component uses inline styles with fixed size (280px for size 220 + padding 30*2)
+  // On small screens, reduce padding to give QR code more room
 }
-/* iPhone 5/SE */
-@media (min-width: 280px) and (max-width: 320px) {
+/* iPhone 5/SE and small screens - reduce padding to fit QR */
+@media (min-width: 280px) and (max-width: 360px) {
   .qr-code-container {
     margin-top: 30px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }
-/* Galaxy Fold */
-@media (min-width: 200px) and (max-width: 280px) {
+/* Galaxy Fold and very small screens - minimal padding */
+@media (max-width: 280px) {
   .qr-code-container {
     margin-top: 66px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }
 .qr-code-text {

@@ -1,249 +1,163 @@
+
+/**
+ * @typedef {('ecdsa' | 'schnorr')} SignatureAlgorithm
+ */
+
+/**
+ * @typedef {Object} MultisigWalletSigner
+ * @property {string} xpub - The extended public key of the signer
+ * @property {string} name - The name of the signer
+ * @property {string} [publicKey] - The public key derived from the xpub
+ */
+
+/**
+ * @typedef {Object} MultisigWalletWcPeer
+ * @property {string} publicKey - The hexadecimal public key of the peer.
+ * @property {Object} metadata - Information describing the WalletConnect peer/client.
+ * @property {string} metadata.name - The display name of the peer.
+ * @property {string} metadata.description - A brief description of the peer.
+ * @property {string} metadata.url - Website or endpoint associated with the peer.
+ * @property {string[]} metadata.icons - Array of icon URLs representing the peer.
+ * @property {number} addressIndex - The address index last associated with the peer.
+ */
+
+
+/**
+* @typedef {Object} MultisigWalletNetworkData
+* @property {number} [lastIssuedDepositAddressIndex=0] - The last generated external address index, shown to the user to receive coins, or derived and stored locally
+* @property {number} [lastUsedDepositAddressIndex]  - The last used address, received funds or was used in a transaction input (spent), on chain
+* @property {number} [lastUsedChangeAddressIndex]  - The last used change address on-chain.
+*/
+
+/**
+ * @typedef {Object} MultisigWalletConfig
+ * @property {number} m - The required number of signatures
+ * @property {MultisigWalletSigner[]} signers - The allowed signers
+ * @property {number|string} [id] - The unique identifier of the wallet. If value is string it's the locking bytecode of the first address (address 0). If number it's the synced wallet id
+ * @property {number} [n] - The total number of signers
+ * @property {{[Network]: MultisigWalletNetworkData }} [networks] - Network specific state
+ * @property {MultisigWalletWcPeer} [wcPeers] - The wallet connect peers associated with particular address index of the MultisigWallet.
+ * /
+
+/**
+ * @typedef {Object} MultisigWalletOptions
+ * @property {NetworkProvider} provider
+ * @property {CoordinationServer} [coordinationServer]
+ * @property {Network} [network='mainnet']
+ * @property {Object} [store] - Optional Vuex-style store.
+ * @property {(type: string, payload?: any) => Promise<any>} [store.dispatch]
+ * @property {(type: string, payload?: any) => void} [store.commit]
+ * @property {Object.<string, any>} [store.state]
+ * @property {Object.<string, any>} [store.getters]
+ * @property {(param: { xpub: string }) => Promise<string>} [resolveXprvOfXpub] - Function that resolves to xprv given an xpub
+ * 
+ */
+ 
+/**
+ * @typedef {Object} TemplateCreatorParams
+ * @property {number} m - The required number of signatures
+ * @property {{Omit<MultisigWalletSigner, 'publicKey'> & { publicKey: string }}[]} signers - The signers with public keys derived from xpubs
+ * @property {string} [$schema] - The schema URL for the template
+ * @property {string} [name] - The name of the wallet
+ * @property {SignatureAlgorithm} [signatureFormat='schnorr'] - The format of the signatures
+ * @property {string[]} [supported] - The supported VMs 
+ */
+
+/**
+ * Fetches utxos of given address
+ * @callback GetAddressUtxos
+ * @param {string} address
+ * @returns {Promise<CommonUtxo[]>}
+ */
+
+/**
+ * Fetches balance of the given address
+ * @callback GetAddressBalance
+ * @param {string} address
+ * @returns {Promise<number>}
+ */
+
+/**
+ * Fetches utxos of given wallet configuration
+ * @callback GetWalletUtxos
+ * @param {MultisigWallet} wallet
+ * @returns {Promise<CommonUtxo[]>}
+ */
+
+/**
+ * Fetches utxos of given wallet configuration
+ * @callback GetWalletBalance
+ * @param {MultisigWallet} wallet
+ * @returns {Promise<number>}
+ */
+
+
+/**
+ * Fetches utxos of given wallet configuration
+ * @callback GetWalletHashUtxos
+ * @param {MultisigWallet} wallet
+ * @returns {Promise<CommonUtxo[]>}
+ */
+
+/**
+ * Fetches utxos of given wallet configuration
+ * @callback GetWalletHashBalance
+ * @param {MultisigWallet} wallet
+ * @returns {Promise<number>}
+ */
+
 import {
   importWalletTemplate,
   lockingBytecodeToCashAddress,
   walletTemplateToCompilerBch,
-  assertSuccess,
   decodeHdPublicKey,
-  publicKeyToP2pkhCashAddress,
+  decodeHdPrivateKey,
   deriveHdPathRelative,
   deriveHdPrivateNodeFromBip39Mnemonic,
   deriveHdPath,
   deriveHdPublicKey,
   encodeHdPrivateKey,
-  stringify,
   utf8ToBin,
-  binToBase64,
   base64ToBin,
   binToUtf8,
   CashAddressNetworkPrefix,
-  binToHex
+  binToHex,
+  hexToBin,
+  sha256,
+  cashAddressToLockingBytecode,
+  compileScript,
+  base58AddressToLockingBytecode,
+  secp256k1,
+  deriveHdPublicNode,
+  deriveSeedFromBip39Mnemonic,
+  deriveHdPrivateNodeFromSeed,
+  hash160,
+  bigIntToVmNumber,
+  SigningSerializationTypeBch,
+  readBytes,
+  binsAreEqual,
 } from 'bitauth-libauth-v3'
+import Big from 'big.js'
+import { createTemplate } from './template.js'
+import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos, watchtowerWalletHashUtxoToCommonUtxo } from './utxo.js'
+import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
+import { Pst } from './pst.js'
+import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
+import { retryWithBackoff } from './utils.js'
 
-export { createTemplate } from './template.js'
-
-const getHdKeys = ({ signers, addressIndex = 0 /* { [signerIndex: number]: { xpub: string, name: string ...} } */ }) => {
-  const hdKeys = {
-    addressIndex,
-    hdPublicKeys: {}
+export const getLockingData = ({ signers, addressDerivationPath }) => {
+  const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
+  const lockingData = {
+    bytecode: {}
   }
-  Object.entries(signers).forEach(([signerIndex, signer]) => {
-    const name = `signer_${signerIndex}`
-    // hdKeys.hdPublicKeys[name] = signers[signerIndex].publicKey --> error
-    hdKeys.hdPublicKeys[name] = signers[signerIndex].xpub // we're supposed to provide the xpub to lockingData not public key derived from it
-  })
-  return hdKeys
-}
-
-/**
- * Not used on this module just here for reference
- */
-export const derivePubKeyFromXPubKey = ({ xpub, addressIndex /* ?: e.g. '0/0' */ }) => {
-  // NOTE: We can get the fingerprint from node
-  const { node, ...rest } = assertSuccess(decodeHdPublicKey(xpub))
-  const { publicKey } = deriveHdPathRelative(node, addressIndex || '0')
-  const { address } = publicKeyToP2pkhCashAddress({ publicKey })
-  return {
-    publicKey,
-    address,
-    node,
-    rest
-  }
-}
-
-export const getLockingData = ({ signers, addressIndex }) => {
-  return {
-    hdKeys: getHdKeys({ signers, addressIndex })
-  }
-}
-
-/**
- * m: number
- * n: number
- * signers: { [signerIndex: number]: { xpub: string, name: string, derivationPath: string } }
- */
-export class MultisigWallet {
-  constructor ({ m, n, signers, name }) {
-    this.m = m
-    this.n = n
-    this.name = name
-    this.signers = signers
-  }
-
-  get lockingScriptId () {
-    return 'lock'
-  }
-
-  get signersSafe () {
-    const signers = structuredClone(this.signers)
-    for (const k of Object.keys(signers)) {
-      delete signers[k].xprv
+  for (const index in signersWithPublicKeys) {
+    let publicKey = signersWithPublicKeys[index].publicKey 
+    if (typeof(publicKey) === 'string') {
+      publicKey = hexToBin(publicKey)
     }
-    return signers
+    lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
   }
-
-  /**
-   * Primary multisig wallet address. Address at index 0.
-   * @deprecated Use getAddress({ addressIndex, cashAddressNetworkPrefix }) instead
-   * so that cashAddressNetworkPrefix can be removed as class dependency.
-   * Need to refactor WalletConnect before removing this.
-   */
-  getSignerNames () {
-    const signerNames = Object.entries(this.signers).map((entry) => {
-      const key = entry[0]
-      const value = entry[1]
-      return [key, value.name]
-    })
-    return Object.fromEntries(signerNames)
-  }
-
-  getTemplate ({ signatureFormat = 'schnorr' }) {
-    const signerNames = this.getSignerNames()
-    return createTemplate({
-      name: this.name,
-      m: this.m,
-      n: this.n,
-      signatureFormat,
-      signerNames
-    })
-  }
-
-  getCompiler ({ template }) {
-    const parsedTemplate = importWalletTemplate(template)
-    if (typeof parsedTemplate === 'string') {
-      throw new Error('Failed creating multisig wallet template.')
-    }
-    return walletTemplateToCompilerBch(parsedTemplate)
-  }
-
-  getLockingData ({ addressIndex = 0 }) {
-    return getLockingData({ signers: this.signers, addressIndex })
-  }
-
-  getLockingBytecode ({ addressIndex = 0, signatureFormat = 'schnorr' }) {
-    const lockingData = this.getLockingData({ addressIndex })
-    const template = this.getTemplate({ signatureFormat })
-    const compiler = this.getCompiler({ template })
-    const lockingBytecode = compiler.generateBytecode({
-      data: lockingData,
-      scriptId: this.lockingScriptId
-    })
-    return lockingBytecode
-  }
-
-  /**
-   * Resolves and set default address (index 0) as value of address property.
-   */
-  resolveDefaultAddress ({
-    cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
-  }) {
-    this.address = this.getAddress({
-      addressIndex: 0,
-      cashAddressNetworkPrefix
-    })
-    return this
-  }
-
-  getAddress ({
-    addressIndex = 0 /* CashAddressNetworkPrefix */,
-    cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
-  }) {
-    const lockingBytecode = this.getLockingBytecode({ addressIndex })
-    const { address } = lockingBytecodeToCashAddress({
-      bytecode: lockingBytecode.bytecode,
-      prefix: cashAddressNetworkPrefix
-    })
-    return address
-  }
-
-  signerCanSign ({ signerEntityIndex }) {
-    return Boolean(this.signers[signerEntityIndex].xprv)
-  }
-
-  /**
-   * @param {function} getSignerXPrv Function that returns the private key given an xpub
-   */
-  async loadSignerXprivateKeys (getSignerXPrv) {
-    for (const signerEntityIndex of Object.keys(this.signers || {})) {
-      const xprv = await getSignerXPrv({ xpub: this.signers[signerEntityIndex].xpub })
-      this.signers[signerEntityIndex].xprv = xprv
-    }
-  }
-
-  deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
-    return MultisigWallet.deriveHdKeysFromMnemonic({ mnemonic, network, hdPath })
-  }
-
-  export () {
-    return MultisigWallet.export(this)
-  }
-
-  toJSON () {
-    return {
-      name: this.name,
-      m: this.m,
-      n: this.n,
-      signers: this.signers
-    }
-  }
-
-  static export (multisigWallet) {
-    const bin = utf8ToBin(stringify(multisigWallet.toJSON()))
-    return binToBase64(bin)
-  }
-
-  static import (multisigWalletBase64) {
-    const bin = base64ToBin(multisigWalletBase64)
-    const parsed = JSON.parse(binToUtf8(bin))
-    const wallet = MultisigWallet.createInstanceFromObject(parsed)
-    return wallet
-  }
-
-  static fromJSON (stringifiedWallet) {
-    const parsed = JSON.parse(stringifiedWallet)
-    const wallet = new MultisigWallet({
-      m: parsed.m,
-      n: parsed.n,
-      network: parsed.network,
-      signers: parsed.signers
-    })
-    // wallet.createTemplate()
-    return wallet
-  }
-
-  static createInstanceFromObjects (wallets) {
-    const walletInstances = wallets.map((wallet) => {
-      return MultisigWallet.createInstanceFromObject(wallet)
-    })
-    return walletInstances
-  }
-
-  static createInstanceFromObject (wallet) {
-    const multisigWallet = new MultisigWallet(structuredClone(wallet))
-    return multisigWallet
-  }
-
-  static deriveHdKeysFromMnemonic ({ mnemonic, network, hdPath }) {
-    const node = deriveHdPath(
-      deriveHdPrivateNodeFromBip39Mnemonic(
-        mnemonic
-      ),
-      hdPath || "m/44'/145'/0'"
-    )
-    const { hdPrivateKey } = encodeHdPrivateKey({ network: network || 'mainnet', node })
-    const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey)
-    return {
-      hdPrivateKey,
-      hdPublicKey
-    }
-  }
-
-  static getAddress ({ multisigWallet, addressIndex, cashAddressNetworkPrefix }) {
-    if (multisigWallet instanceof MultisigWallet) {
-      return multisigWallet.getAddress({ addressIndex, cashAddressNetworkPrefix })
-    }
-    const instance = MultisigWallet.createInstanceFromObject(multisigWallet)
-    return instance.getAddress({ addressIndex, cashAddressNetworkPrefix })
-  }
+  return lockingData
 }
 
 export const getCompiler = ({ template }) => {
@@ -267,13 +181,6 @@ export const getLockingBytecode = ({ lockingData, template, hex = false }) => {
   return lockingBytecode
 }
 
-/**
- * The locking bytecode hex of the addressIndex 0 locking data
- */
-export const getWalletHash = ({ lockingData, template }) => {
-  return getLockingBytecode({ lockingData, template, hex: true }).bytecode
-}
-
 export const getMultisigCashAddress = ({
   lockingData,
   template,
@@ -287,9 +194,9 @@ export const getMultisigCashAddress = ({
   return address
 }
 
-export const signerCanSign = ({ signerEntityKey, lockingData }) => {
-  return Boolean(lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey])
-}
+// export const signerCanSign = ({ signerEntityKey, lockingData }) => {
+//   return Boolean(lockingData.hdKeys.hdPrivateKeys?.[signerEntityKey])
+// }
 
 export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
   const node = deriveHdPath(
@@ -306,54 +213,6 @@ export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
   }
 }
 
-/**
- * Populate's the hdPrivateKeys of lockingData
- */
-export const populateHdPrivateKeys = async ({
-  lockingData, getSignerXPrv /* Function that resolves to xprv given an xpub */
-}) => {
-  if (!lockingData.hdKeys?.hdPrivateKeys) {
-    lockingData.hdKeys = {
-      ...lockingData.hdKeys,
-      hdPrivateKeys: {}
-    }
-  }
-  for (const signerEntityId of Object.keys(lockingData.hdKeys.hdPublicKeys)) {
-    try {
-      const xprv = await getSignerXPrv({
-        xpub: lockingData.hdKeys.hdPublicKeys[signerEntityId]
-      })
-      if (!xprv) continue
-      lockingData.hdKeys.hdPrivateKeys[signerEntityId] = xprv
-    } catch (e) { console.log(e) }
-  }
-  return lockingData
-}
-
-export const removeHdPrivateKeys = ({ lockingData }) => {
-  delete lockingData.hdKeys.hdPublicKeys
-  return lockingData
-}
-
-export const exportMultisigWallet = (multisigWallet) => {
-  const bin = utf8ToBin(stringify(multisigWallet))
-  return binToBase64(bin)
-}
-
-export const generateTempId = ({ template, lockingData }) => {
-  return getLockingBytecode({ template, lockingData, hex: true }).bytecode
-}
-
-export const importMultisigWallet = (multisigWalletBase64) => {
-  const bin = base64ToBin(multisigWalletBase64)
-  const multisigWallet = JSON.parse(binToUtf8(bin))
-  if (!multisigWallet.id) {
-    multisigWallet.id = generateTempId({
-      template: multisigWallet.template, lockingData: multisigWallet.lockingData
-    })
-  }
-  return multisigWallet
-}
 
 export const getSignerInfos = (multisigWallet) => {
   return Object.keys(multisigWallet.template.entities).map((signerEntityKey) => {
@@ -373,6 +232,8 @@ export const getRequiredSignatures = (template) => {
 export const getTotalSigners = (template) => {
   return Object.keys(template.entities).length
 }
+
+
 
 export const findMultisigWalletByLockingData = ({ multisigWallets, template, lockingData }) => {
   const lockingBytecode = getLockingBytecode({ template, lockingData })
@@ -394,10 +255,1262 @@ export const isMultisigWalletSynced = multisigWallet => {
 }
 
 export const generateFilename = multisigWallet => {
-  if (multisigWallet.template?.name) {
-    return `${multisigWallet.template.name}.pmwif`
+  if (multisigWallet.name) {
+    return `${multisigWallet.name}.pmwif`
   }
-  const m = getRequiredSignatures(multisigWallet.template)
-  const n = getTotalSigners(multisigWallet.template)
-  return `${m}-of-${n})}-multisig-wallet.pmwif`
+  return `${multisigWallet.m}-of-${multisigWallet.signers.length}-multisig-wallet.pmwif`
 }
+
+
+export const sortPublicKeysBip67 = (publicKeys) => {
+  return publicKeys.sort((publicKeyA, publicKeyB) => {
+    return binToHex(publicKeyA).localeCompare(binToHex(publicKeyB))
+  })
+}
+
+/** 
+* @param {string} xpub
+* @param {string} relativeDerivationPath Example: '0/1' 
+* @returns {Uint8Array} The public key at the provided Bip32 relative derivation path. 
+*/
+export const derivePublicKey = (xpub, relativeDerivationPath) => {
+  const decodedHdPublicKey = decodeHdPublicKey(xpub, relativeDerivationPath)
+  const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, relativeDerivationPath)
+  return publicKey
+}
+/**
+ * @param {Object} params
+ * @param {MultisigWalletSigner[]} params.signers
+ * @param {string} [params.addressDerivationPath='0/0']
+ * @returns {MultisigWalletSigner[]} The multisig wallet signers with publicKey at `addressDerivationPath` set
+ */
+export const derivePublicKeys = ({ signers, addressDerivationPath, bip67Sort = true }) => {
+  const _signers = structuredClone(signers)
+  const signersWithPublicKeys = _signers.map(signer => {
+    signer.publicKey = binToHex(derivePublicKey(signer.xpub, addressDerivationPath))
+    signer.addressDerivationPath = addressDerivationPath
+    return signer
+  })
+
+  if (!bip67Sort) return signersWithPublicKeys
+
+  signersWithPublicKeys.sort((signerA, signerB) => {
+    return signerA.publicKey.localeCompare(signerB.publicKey)
+  })
+  return signersWithPublicKeys
+
+}
+
+export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    const lockingBytecode = compiler.generateBytecode({
+      data: lockingData,
+      scriptId: 'lock',
+      debug: true
+    })
+
+    const address = lockingBytecodeToCashAddress({
+      bytecode: lockingBytecode.bytecode,
+      prefix: prefix
+    });
+    return address.address
+}
+
+export const createWallet = ({ name, m, signers }) => {
+  return {
+    name, 
+    m, 
+    signers
+  }
+}
+
+/**
+ * Uses the wallet's locking bytecode at 0/0 as UUID 
+ * @param {MultisigWallet}
+ * @returns {string} - Locking bytecode at 0/0 in hex
+ */
+export const getWalletUUID = multisigWallet => {
+  const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: '0/0' })
+  const template = createTemplate({ ...multisigWallet })
+  const lockingBytecode = getLockingBytecode({ lockingData, template, hex: true })
+  return lockingBytecode.bytecode
+}
+
+/**
+ * Sha256 hash of the UUID
+ */
+export const getWalletHash = multisigWallet => {
+  const uuid = getWalletUUID(multisigWallet)
+  const hash = sha256.hash(hexToBin(uuid))
+  return binToHex(hash)
+}
+
+export const getDepositAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    const template = createTemplate({ ...multisigWallet })
+    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: `0/${addressIndex}` })
+    const compiler = getCompiler({ template })
+    return getAddress({ lockingData, compiler, prefix })
+    
+} 
+
+export const getChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
+    const template = createTemplate({ ...multisigWallet })
+    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: `1/${addressIndex}` })
+    const compiler = getCompiler({ template })
+    return getAddress({ lockingData, compiler, prefix })
+}
+
+export const isValidAddress = (address) => {
+  let lockingBytecodeOrError = cashAddressToLockingBytecode(address)
+  if (typeof(lockingBytecodeOrError) !== 'string' && lockingBytecodeOrError.bytecode) {
+    return [true]
+  }
+  lockingBytecodeOrError = base58AddressToLockingBytecode(address)
+  if (typeof(lockingBytecodeOrError) !== 'string' && lockingBytecodeOrError.bytecode) {
+    return [true]
+  }
+  return [false, lockingBytecodeOrError]
+}
+
+/**
+ * @param {Object} wallet 
+ * @param {number} m 
+ * @param {Array<{ publicKey: string, name?: string }>} signers Signers with public keys 
+ */
+export const generateRedeemScript = (m, publicKeys) => {
+  const sortedPublicKeys = sortPublicKeysBip67(publicKeys)
+  const lockingData = {
+    bytecode: {}
+  }
+  for (const index in sortedPublicKeys) {
+    let publicKey = sortedPublicKeys[index]
+    if (typeof(publicKey) === 'string') {
+      publicKey = hexToBin(publicKey)
+    }
+    lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
+  }
+
+  const template = createTemplate({ m, signers: sortedPublicKeys.map((p) => ({ publicKey: p })) }) // Create template for public key set
+  const compiler = getCompiler({ template })
+  const script = compileScript('lock', lockingData, compiler.configuration)
+  // const lockingScript = script.bytecode
+  return script.reduce.bytecode
+}
+
+/**
+ * @returns 1st 4 bytes of the hash160 of the master public key
+ */
+export const getMasterFingerprint = (mnemonic) => {
+  return hash160(
+    deriveHdPublicNode(
+      deriveHdPrivateNodeFromSeed(
+        deriveSeedFromBip39Mnemonic(mnemonic)
+      )).publicKey
+    ).slice(0, 4)
+}
+
+/**
+ * @returns {Uint8Array} 1st 4 bytes of the hash160 of the master public key in UintLE 
+ */
+export const getMasterFingerprintUintLE = (mnemonic) => {
+  return bigIntToVmNumber(
+    BigInt(
+        parseInt(
+          binToHex(getMasterFingerprint(mnemonic)), 
+          16
+        )
+      )
+  )
+}
+
+
+export class PriceOracle {
+  /**
+   * @param {string} asset - 'bch' or token id (token id not yet implemented, need cauldron)
+   * @param {string[]} currencySymbols - Example: ['php','usd']
+   */
+  static async fetchPrice(asset, currencySymbols) {
+    const url = `https://watchtower.cash/api/market-prices/?coin_ids=${asset}&currencies=${currencySymbols.join(',')}`
+    return await fetch(url)
+  }
+}
+
+export class MultisigWallet {
+
+  /**
+   * Creates a new MultisigWallet instance.
+   * @param {MultisigWalletConfig} config - Wallet configuration options.
+   * @param {MultisigWalletOptions} options - Wallet options.
+   */
+  constructor (config, options) {
+    this.id = config?.id
+    this.name = config?.name
+    this.m = config?.m
+    this.signers = config?.signers
+    this.networks = config?.networks || {
+      mainnet: {},
+      chipnet: {}
+    }
+
+    if (config?.enabled) {
+      this.enabled = config.enabled
+    }
+    if (!config?.id && this.signers) {
+      this.id = getWalletHash(this)
+    }
+    
+    this.options = options || {}
+    
+  }
+
+  setStore(store) {
+    this.options.store = store
+  }
+
+  set utxos(utxos) {
+    this._utxos = utxos
+  }
+
+  get utxos() {
+    return this._utxos
+  }
+
+  get n() {
+    return this.signers?.length
+  }
+
+  get cashAddressNetworkPrefix() {
+    if (this.options?.provider?.network === 'chipnet' || this.options?.provider?.network === 'testnet') {
+      return CashAddressNetworkPrefix.testnet 
+    }
+    return CashAddressNetworkPrefix.mainnet
+  }
+
+  get walletHash() {
+    return this.getWalletHash(this)
+  }
+
+  getMasterFingerprintOfPublicKey(publicKey, fullDerivationPath) {
+    const pubkey = publicKey instanceof Uint8Array? binToHex(publicKey): pubkey
+
+  }
+
+  getLastIssuedDepositAddressIndex(network) {
+    return this.networks?.[network]?.lastIssuedDepositAddressIndex ?? -1
+  }
+
+  getLastUsedDepositAddressIndex(network) {
+    return this.networks?.[network]?.lastUsedDepositAddressIndex ?? -1
+  }
+
+  getLastUsedChangeAddressIndex(network) {
+    return this.networks?.[network]?.lastUsedChangeAddressIndex ?? -1
+  }
+/**
+ * Returns a deposit address from the wallet.
+ *
+ * If an `addressIndex` is provided, it returns the address derived at that specific index
+ * If no index is provided, it returns the next unissued address (without altering internal state).
+ *
+ * @param {import('@bitauth/libauth').CashAddressNetworkPrefix} [prefix=import('@bitauth-libauth').CashAddressNetworkPrefix.mainnet] 
+ * @param {number} [addressIndex] - Optional index of the address to derive. If omitted, the next unissued address is returned.
+ 
+ * @returns {{ addressIndex: number, address: string }} The index and derived address. The derived deposit address at the given index, or the next unissued address if no index is given.
+ *
+ * @example
+ * wallet.getDepositAddress();       // Returns next unissued address (e.g., m/44'/145'/0'/0/5)
+ * wallet.getDepositAddress(0);      // Returns address at index 0 (e.g., m/44'/145'/0'/0/0)
+ */
+getDepositAddress(addressIndex, prefix) {
+  let _addressIndex = addressIndex
+
+  if (_addressIndex === undefined || _addressIndex < 0) {
+    if (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex === undefined) {
+      _addressIndex = 0
+    } else {
+      _addressIndex = this.networks[this.options.provider.network].lastIssuedDepositAddressIndex + 1
+    }
+  }
+
+  const address = getDepositAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.mainnet })
+  return {
+    addressIndex: _addressIndex,
+    address
+  }
+}
+
+/**
+ * Gets a change address from the wallet.
+ *
+ * If an `addressIndex` is provided, returns the change address at that index (without altering internal state).
+ * If no index is provided, returns the next unissued change address.
+ *
+ * @param {number} [addressIndex] - Optional index of the change address to derive.
+ * @returns {{ addressIndex: number, address: string }} The index and derived change address.
+ *
+ * @example
+ * wallet.getChangeAddress();        // Returns next unissued change address (e.g., m/44'/145'/0'/1/5)
+ * wallet.getChangeAddress(0);      // Returns change address at index 0 (e.g., m/44'/145'/0'/1/0)
+ */
+getChangeAddress(addressIndex, prefix) {
+
+    let _addressIndex = addressIndex
+
+    if (_addressIndex === undefined || _addressIndex < 0) {
+      if (this.networks[this.options.provider.network].lastUsedChangeAddressIndex === undefined) {
+        _addressIndex = 0
+      } else {
+        _addressIndex = this.networks[this.options.provider.network].lastUsedChangeAddressIndex + 1
+      }
+    }
+
+  const address = getChangeAddress({ multisigWallet: this, addressIndex: _addressIndex, prefix: prefix || this.cashAddressNetworkPrefix || CashAddressNetworkPrefix.testnet })
+  return {
+      addressIndex: _addressIndex,
+      address
+  }
+}
+
+getWalletHash() {
+  return getWalletHash(this)
+}
+
+/**
+ * @param {string} address - The cashaddress
+ * @param {string} addressPath - The bip32 relative derivation path. 
+ * Example: 0/0 for deposit address at index 0, 1/0 for change address at address 0
+ */
+async getAddressUtxos(address, addressPath) {
+  return await this.options?.provider?.getAddressUtxos(address, addressPath)
+}
+
+async getWalletUtxos() {
+
+  if (!this.options?.provider) throw new Error('Missing provider')
+
+  let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
+
+  let dCounter = 0
+
+  const utxoPromises = []
+
+  while (dCounter < lastDepositAddress) {
+    utxoPromises.push(
+      this.getAddressUtxos(
+        this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`
+      )
+    )
+    dCounter++
+  }
+
+  let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
+
+  let cCounter = 0
+
+  while (cCounter < lastChangeAddress) {
+    utxoPromises.push(
+      this.getAddressUtxos(
+        this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`
+      )
+    )
+    cCounter++
+  }
+
+  const utxos = await Promise.all(utxoPromises)
+
+  const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('0/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('1/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+
+  // const syncAddressIndicesPromises = []
+
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+    this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
+    // syncAddressIndicesPromises.push({
+    //   key: 'lastUsedDepositAddressIndex',
+    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)  
+    // })
+  }
+
+  if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
+    this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
+    // syncAddressIndicesPromises.push({
+    //   key: 'lastUsedChangeAddressIndex',
+    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)  
+    // })
+  }
+
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
+    this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
+    // syncAddressIndicesPromises.push({
+    //   key: 'lastIssuedDepositAddressIndex',
+    //   promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
+    // })    
+  }
+
+  // const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
+  // results.forEach((res, i) => {
+  //     const key = syncAddressIndicesPromises[i].key;
+  //     if (res.status === 'fullfilled') {
+  //       // Replace with the actual value here
+  //       console.log(`${key.replace(/^l/,'L')} success:`, results.data);
+  //     } 
+  //     // rejected
+  //   });
+
+  this._utxos = utxos?.flat()
+  return this._utxos
+}
+
+
+async getWalletHashUtxos() {
+
+  if (!this.options?.provider) throw new Error('Missing provider') 
+
+  const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
+  const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken')
+
+  const responses = await Promise.allSettled([r1, r2])
+
+  let utxos = []
+
+  for (const r of responses) {
+    utxos = utxos.concat(r?.value?.data?.utxos ?? [])
+  }
+
+  utxos = utxos?.map(u => {
+      return {
+        ...u,
+        ...watchtowerWalletHashUtxoToCommonUtxo(u)
+      }
+    })
+
+  utxos?.forEach((u) => {
+    const addressPaths = u.address_path?.split('/') 
+    if (addressPaths.length === 2 && addressPaths.every(p => /[0-9]/.test(p))) {
+      u.addressPath = u.address_path
+      const [ addressType, addressIndex ] = addressPaths.map(p => Number(p)) 
+      if (addressType === 0) {
+        u.address = this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+      }
+      if (addressType === 1) {
+        u.address = this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
+      }
+    }
+  })
+    
+  const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('0/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+    if (u.addressPath?.startsWith('1/')) {
+      const index = Number(u.addressPath.split('/')[1])
+      if (index > highest) return index
+    }
+    return highest
+  }, -1)
+
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
+    this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
+  }
+
+  if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
+    this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
+  }
+
+  if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
+    this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
+    this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
+  }
+  
+  this._utxos = utxos
+  return this._utxos
+}
+
+async getAddressBalance(address) {
+  return await this.options?.provider?.getAddressBalance(address)
+}
+
+/**
+ * @param {'bch'|string} [asset='bch'] - If not present assumed as 'bch', asset is a token category
+ * @param {number} [decimals=0] - The asset decimals, defaults to 0 if asset is present and is not 'bch'
+ 
+ */
+async getWalletBalance(asset, decimals) {
+  const utxos = (await this.getWalletHashUtxos())
+  if (!asset || asset === 'bch') {
+    const balance = utxos.filter(u=> !u.token).reduce((b, u) => b += u.satoshis, 0)
+    return balance / 1e8
+  }
+  const balance = utxos.filter(u=> u.token && u.token.category === asset).reduce((b, u) => b += u.token.amount, 0)
+  return balance / `1e${decimals || 0}`
+}
+
+async scanAddresses() {
+
+  let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
+
+  let dIndex = 0
+
+  const promises = []
+
+  while (dIndex < lastDepositAddress) {
+    promises.push(
+      (async () => {
+        await this.options?.store?.dispatch(
+          'multisig/subscribeWalletAddress',
+          this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
+        )
+      })()
+    )
+    dIndex++
+  }
+
+  let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
+
+  let cIndex = 0
+
+  while (cIndex < lastChangeAddress) {
+    promises.push(
+      (async () => {
+          await this.options?.store?.dispatch(
+            'multisig/subscribeWalletAddress',
+            this.getChangeAddress(cIndex, this.cashAddressNetworkPrefix).address
+          )
+        })()
+    )
+    cIndex++
+  }
+  return await Promise.all(promises)
+}
+
+/**
+ * @param {'bch'|string} [asset='bch']
+ * @param {number} balance - Should be a decimal value. Example: 1.2 (BCH)
+ * @param {string[]} [currencySymbols] - The currency symbols, Example: 'php','usd'
+ */
+async convertBalanceToCurrencies(asset, balance, currencySymbols) {
+  const response = await PriceOracle.fetchPrice(asset, currencySymbols)
+  if (response?.ok) {
+    const priceData = await response.json()
+    return priceData?.map((price) => {
+      const p = Big(balance).mul(price.price_value).toString()
+      price[`assetPriceIn${price.currency}Text`] = `${p} ${price.currency}`
+      price['assetPrice'] = p
+      return price
+    })
+  }
+  return []
+}
+
+async getWalletBalances() {
+  const assetsBalances = {}
+  const utxos = await this.getWalletHashUtxos() 
+  utxos.forEach((u) => {
+    if (!u.token) {
+      if (!assetsBalances['bch']) {
+        assetsBalances['bch'] = Number(u.satoshis)
+        return
+      }
+      assetsBalances['bch'] += Number(u.satoshis)
+      return
+    }
+    if(!assetsBalances[u.token.category]) {
+      assetsBalances[u.token.category] = BigInt(u.token.amount)
+      return
+    }
+    assetsBalances[u.token.category] += BigInt(u.token.amount)
+    
+  })
+  return assetsBalances
+}
+
+async getWalletHashBalance() {
+  return await this.options?.provider?.getWalletHashBalance(this.getWalletHash())
+}
+
+async getWalletTokenBalance(tokenCategory, decimals = 0) {
+  const balance = 
+    (await this.getWalletHashUtxos() || [])
+      .filter((u)=>{
+        return u.token.category === tokenCategory
+      })
+      .reduce((b, u) => b += u.satoshis, 0)
+  return balance / `1e${decimals || 0}`
+}
+
+async subscribeWalletAddress(address) {
+  return retryWithBackoff(async () => {
+    return await this.options?.store?.dispatch(
+      'multisig/subscribeWalletAddress',
+      address
+    )},
+    2,
+    1000
+  ).catch((e) => e)
+}
+
+async subscribeWalletAddressIndex(addressIndex, type) {
+  return retryWithBackoff(async () => {
+    return await this.options?.store?.dispatch(
+      'multisig/subscribeWalletAddressIndex',
+      { wallet: this, addressIndex: addressIndex, type: type }
+    )},
+    2,
+    1000
+  ).catch((e) => e)
+}
+
+async getWalletTransactionHistory({walletHash, type, all, tokenCategory, page }) {
+  return await this.options?.provider?.getWalletTransactionHistory({walletHash, type, all, tokenCategory, page })
+}
+
+/**
+ * Marks the address at addressIndex as issued.
+ * 
+ * @param {number} addressIndex - Index of the address to mark as issued.
+ */
+async issueDepositAddress(addressIndex) {
+    
+    
+  if (!this.options?.store?.dispatch) return
+
+  this.options?.store?.commit(
+    'multisig/updateWalletLastIssuedDepositAddressIndex', 
+    { wallet: this, lastIssuedDepositAddressIndex: addressIndex, network: this.options.provider.network }
+  ) 
+  
+  // this.options
+  //     ?.coordinationServer
+  //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
+  //     .catch(e => e)
+
+  // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+  await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
+
+}
+
+/**
+ * Marks the address at addressIndex as issued.
+ * 
+ * @param {number} addressIndex - Index of the address to mark as issued.
+ */
+ async issueChangeAddress(addressIndex) {
+
+    if (!this.options?.store?.commit) return
+
+    this.options?.store?.commit(
+      'multisig/updateWalletLastUsedChangeAddressIndex', 
+      { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
+    ) 
+    
+    // this.options
+    //     ?.coordinationServer
+    //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
+    //     .catch(e => e)
+
+    // await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
+    await this.subscribeWalletAddressIndex(addressIndex, 'change')
+ }
+
+  async selectUtxos(proposal) {
+
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    if (!this.utxos) {
+      await this.getWalletHashUtxos()
+    }
+
+    let targetBch = 
+      proposal.recipients
+        ?.filter(r => r.asset === 'bch')
+        .reduce((total, nextR) => {
+          total = Big(total).add(nextR.amount || 0)
+          return total}, '0'
+        )
+    
+    let targetSatoshis = Big(targetBch).mul(1e8)
+
+    /**
+     * @type {{Object.<string, bigint>}} - Key is the asset which is the token category
+     */
+    let targetTokens = {}
+
+    // Get target token amount of each asset(token category), convert decimal amount to vm number
+    for (const r of proposal.recipients) {
+      if (r.asset === 'bch') continue
+      let tokenAmountInVmNumber = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+      if (!targetTokens[r.asset]) {
+        targetTokens[r.asset] = tokenAmountInVmNumber
+        continue
+      }
+      targetTokens[r.asset] = BigInt(Big(targetTokens[r.asset]).add(tokenAmountInVmNumber))
+    }
+
+    let satoshiUtxos = null
+    if (Number(targetSatoshis) > 0) {
+      // trying to send bch
+      satoshiUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis })
+      if (!satoshiUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance!')
+      }
+    }
+
+    let tokenUtxos = null
+    if (Object.keys(targetTokens).length > 0) {
+      // trying to send tokens
+      tokenUtxos = selectUtxos(this.utxos?.filter(u => Boolean(u.token)), { targetTokens })
+      if (!tokenUtxos.tokensSatisfied) {
+        throw new Error('Insufficient token balance!')
+      }
+    }
+
+    let selectedUtxos = []
+
+    if (satoshiUtxos) {
+      selectedUtxos = selectedUtxos.concat(satoshiUtxos.selectedUtxos)
+    }
+
+    if (tokenUtxos) {
+      selectedUtxos = selectedUtxos.concat(tokenUtxos.selectedUtxos)
+    }
+
+
+    let inputs = selectedUtxos?.map((u) => {
+      return {
+        ...commonUtxoToLibauthInput(u, []),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+      }
+    })
+
+    let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+
+    let funderUtxos = null
+    const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
+    const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+
+
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+      valueSatoshis: 0n
+    }
+
+    const satoshisChangeOutputDustThreshold = 
+      getMofNDustThreshold(
+        this.m, this.n, 
+        satoshisChangeOutput
+      )
+
+    const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
+    
+    let totalSatoshisInputsAmount = 
+      inputs
+        .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+
+    const totalSatoshiOutputsAmount = 
+      outputs
+        .reduce((target, nextOutput) => target += nextOutput?.valueSatoshis, 0n)
+
+    let totalSatoshisChangeAmount = totalSatoshisInputsAmount - totalSatoshiOutputsAmount
+
+    let additionalFunds = 0
+
+    if (totalSatoshisChangeAmount < estimatedFee) {
+      
+      if (funderUtxos) { 
+        funderUtxos = selectUtxos(funderUtxos.remainingUtxos?.filter(u => !u.token), { targetSatoshis: estimatedFee +  satoshisChangeOutputDustThreshold })
+      } else {
+        funderUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
+      }
+
+      if (!funderUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance for fee!')
+      }
+
+      additionalFunds = 
+        funderUtxos.selectedUtxos.filter(u => !u.token).reduce((sats, nextU)=> sats += nextU.satoshis, 0)
+
+      selectedUtxos = 
+        selectedUtxos.concat(
+            funderUtxos.selectedUtxos
+        )
+    }
+    return selectedUtxos
+  }
+
+
+  async createPst(proposal, options) {
+
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    if (!this.utxos) {
+      await this.getWalletHashUtxos()
+    }
+
+    let selectedUtxos = await this.selectUtxos(proposal)
+    let inputs = selectedUtxos?.map((u) => {
+
+        const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
+        const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
+          const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + u.addressPath
+          return {
+            [s.publicKey]: {
+              path: fullDerivationPath,
+              masterFingerprint: s.masterFingerprint
+            }
+          }
+        }))
+      
+      return {
+        ...commonUtxoToLibauthInput(u, []),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+        sigHash: SigningSerializationTypeBch.allOutputs,
+        bip32Derivation,
+        redeemScript: generateRedeemScript(this.m, signersWithPublicKeys.map(s => hexToBin(s.publicKey)))
+      }
+    })
+
+    let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
+    const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
+    const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+    const changeAddressPublicKeySet = derivePublicKeys({ 
+      signers: this.signers, 
+      addressDerivationPath: `1/${changeAddressIndex}` 
+    })
+    const changeAddressRedeemScript = generateRedeemScript(this.m, changeAddressPublicKeySet.map(s=> hexToBin(s.publicKey)))
+    const changeAddressBip32Derivation = changeAddressPublicKeySet.reduce((acc, nextSigner) => {
+      acc[nextSigner.publicKey] = {
+        path: (this.derivationPath || `m/44'/145'/0'/`) +  `1/${changeAddressIndex}`,
+        masterFingerprint: nextSigner.masterFingerprint
+      }
+      return acc
+    }, {})
+
+
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+      valueSatoshis: 0n
+    }
+
+    const satoshisChangeOutputDustThreshold = 
+      getMofNDustThreshold(
+        this.m, this.n, 
+        satoshisChangeOutput
+      )
+
+    let tokenChangeOutput = null
+
+    if (selectedUtxos?.find(utxo => Boolean(utxo.token))) {
+
+      const tokenInputsTotalTokensValue = 
+        inputs
+          .filter(i=> Boolean(i.sourceOutput.token))
+          .reduce((target, nextInput) => target += nextInput.sourceOutput.token.amount, 0n)
+
+      const tokenOutputsTotalTokensValue = 
+        outputs
+          .filter(o=> Boolean(o.token))
+          .reduce((target, nextInput) => target += nextInput.token.amount, 0n)
+      
+      let tokensChangeAmount = tokenInputsTotalTokensValue - tokenOutputsTotalTokensValue
+
+      if (tokensChangeAmount > 0) {  
+        tokenChangeOutput =  {
+          lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+          valueSatoshis: 0n, //temporary
+          token: {
+            ...outputs[0].token,
+            amount: tokensChangeAmount,
+          }
+        }
+
+        let requiredSatoshisForTokenChange = getMofNDustThreshold(this.m, this.n, tokenChangeOutput)
+
+        tokenChangeOutput.valueSatoshis = requiredSatoshisForTokenChange
+        outputs.push({ 
+          ...tokenChangeOutput,
+          bip32Derivation: changeAddressBip32Derivation,
+          redeemScript: changeAddressRedeemScript,
+          purpose: 'token-self-internal' 
+        })
+        await this.issueChangeAddress(changeAddressIndex)
+      } 
+    }
+
+    const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
+
+    let totalSatoshisInputsAmount = 
+      inputs
+        .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+
+    const totalSatoshiOutputsAmount = 
+      outputs
+        .reduce((target, nextOutput) => target += nextOutput?.valueSatoshis, 0n)
+
+    
+    let totalSatoshisChangeAmount = totalSatoshisInputsAmount - (totalSatoshiOutputsAmount + estimatedFee)
+
+    satoshisChangeOutput.valueSatoshis = totalSatoshisChangeAmount
+    if (satoshisChangeOutput.valueSatoshis > satoshisChangeOutputDustThreshold) {
+      outputs.push({
+        ...satoshisChangeOutput,
+        bip32Derivation: changeAddressBip32Derivation,
+        redeemScript: changeAddressRedeemScript,
+        purpose: 'sats-self-internal'
+      })
+      await this.issueChangeAddress(changeAddressIndex)
+    }
+    
+    const pst = new Pst()
+
+    pst
+      .setOrigin(proposal.origin)
+      .setCreator(proposal.creator)
+      .setPurpose(proposal.purpose)
+      .addInputs(inputs)
+      .addOutputs(outputs)
+      .setWallet(this)
+      .setStore(options?.store)
+      .setProvider(options?.provider)
+      .setCoordinationServer(options?.coordinationServer)
+    return pst 
+  }
+
+  isSynced() {
+    if(this.id && /^[0-9]+$/.test(this.id)) return true 
+    return false
+  }
+
+  /**
+   * @param {object} saveOptions
+   * @param {boolean} saveOptions.sync - If true, wallet will be synced with watchtower
+   */
+  async save(saveOptions) {
+    if (this.options?.store) {
+      if (this.options?.store?.commit) {
+        this.options.store.commit('multisig/saveWallet', this)
+      }
+      if (this.options?.store?.dispatch && saveOptions?.sync) {
+        return await this.sync()
+      }
+    }
+  }
+
+  async create(saveOptions) {
+
+    if (this.options?.store) {
+      if (this.options?.store?.commit) {
+        this.options.store.commit('multisig/saveWallet', this)
+      }
+      if (this.options?.store?.dispatch && saveOptions?.sync) {
+        const syncedWallet = await this.options?.coordinationServer?.syncWallet(this)
+        if (syncedWallet?.id && /^[0-9]+$/.test(syncedWallet.id)) {
+          Object.assign(this, syncedWallet)
+          this.save()
+        }
+      }
+    }
+  }
+
+  /**
+   * @param {object} saveOptions
+   */
+  async sync() {
+
+    const syncedWallet = await this.options?.coordinationServer?.syncWallet(this)
+    if (!syncedWallet?.id || !(/^[0-9]+$/.test(syncedWallet.id))) return
+
+    if (!this.isSynced() || !this.updatedAt) {
+      Object.assign(this, syncedWallet)
+      this.save()
+      return this
+    }
+
+    if (new Date(syncedWallet.updatedAt) > new Date(this.updatedAt)) {
+      Object.assign(this, syncedWallet)
+      this.save()
+    }
+
+    return this
+  }
+
+  /**
+   * @param {object} deleteOptions
+   * @param {boolean} deleteOptions.sync - If true, wallet will be synced with watchtower
+   */
+  async delete(deleteOptions) {
+    if (this.options?.store) {
+      if (this.options?.store?.dispatch) {
+        this.options.store.dispatch('multisig/deleteWallet', { multisigWallet: this, ...deleteOptions})
+      }
+    }
+  }
+
+  /**
+   * Resolve the xprv of signers that do not have xprv if resolveXPrvOfXpub function is provided in options
+   */
+  async resolveXprvsOfXpubs() {
+    if (this.options?.resolveXprvOfXpub) {
+      for (const signer of this.signers) {
+        const xprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub})
+        if (xprv) {
+          if (!signer.xprv) {
+            signer.xprv = xprv
+          }
+        } 
+      }
+    }
+  }
+
+  signerCanSign(signerXpub) {
+    return this.signers.some(s => s.xpub === signerXpub && Boolean(s.xprv))
+  }
+  
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      m: this.m,
+      signers: this.signers,
+      networks: this.networks
+    }
+  }
+
+  toString() {
+    return utf8ToBin(this.toJSON())
+  }
+
+  export() {
+    const j = structuredClone(this.toJSON())
+
+    if (Object.keys(j.networks || {}).length === 0) {
+      delete j.networks
+    }
+
+    if (Object.keys(j.networks?.chipnet || {}).length === 0) {
+      delete j.networks?.chipnet
+    }
+
+    if (Object.keys(j.networks?.mainnet || {}).length === 0) {
+      delete j.networks?.mainnet
+    }
+
+    if (j.networks?.chipnet?.lastUsedDepositAddressIndex !== undefined) {
+      j.networks.chipnet.di = j.networks?.chipnet?.lastUsedDepositAddressIndex
+      delete j.networks?.chipnet?.lastUsedDepositAddressIndex
+    }
+    if (j.networks?.chipnet?.lastUsedChangeAddressIndex !== undefined) {
+      j.networks.chipnet.ci = j.networks?.chipnet?.lastUsedChangeAddressIndex
+      delete j.networks?.chipnet?.lastUsedChangeAddressIndex
+    }
+
+    if (j.networks?.mainnet?.lastUsedDepositAddressIndex !== undefined) {
+      j.networks.mainnet.di = j.networks?.mainnet?.lastUsedDepositAddressIndex
+      delete j.networks?.mainnet?.lastUsedDepositAddressIndex
+    }
+
+    if (j.networks?.mainnet?.lastUsedChangeAddressIndex !== undefined) {
+      j.networks.mainnet.ci = j.networks?.mainnet?.lastUsedChangeAddressIndex
+      delete j.networks?.mainnet?.lastUsedChangeAddressIndex
+    }
+    
+    return j
+  }
+
+  static import(wallet) {
+    // Clone the wallet to avoid mutating the input
+    const imported = structuredClone(wallet)
+    
+    // Restore network property names from shortened versions
+    // export() converts: lastUsedDepositAddressIndex → di, lastUsedChangeAddressIndex → ci
+    if (imported.networks) {
+      if (imported.networks.chipnet) {
+        if (imported.networks.chipnet.di !== undefined) {
+          imported.networks.chipnet.lastUsedDepositAddressIndex = imported.networks.chipnet.di
+          delete imported.networks.chipnet.di
+        }
+        if (imported.networks.chipnet.ci !== undefined) {
+          imported.networks.chipnet.lastUsedChangeAddressIndex = imported.networks.chipnet.ci
+          delete imported.networks.chipnet.ci
+        }
+      }
+      
+      // Handle mainnet
+      if (imported.networks.mainnet) {
+        if (imported.networks.mainnet.di !== undefined) {
+          imported.networks.mainnet.lastUsedDepositAddressIndex = imported.networks.mainnet.di
+          delete imported.networks.mainnet.di
+        }
+        if (imported.networks.mainnet.ci !== undefined) {
+          imported.networks.mainnet.lastUsedChangeAddressIndex = imported.networks.mainnet.ci
+          delete imported.networks.mainnet.ci
+        }
+      }
+    }
+    
+    // Create MultisigWallet instance with restored data
+    const mofn = new MultisigWallet({
+      id: imported.id,
+      name: imported.name,
+      m: imported.m,
+      signers: imported.signers,
+      networks: imported.networks || {
+        mainnet: {},
+        chipnet: {}
+      }
+    })
+    
+    return mofn
+  }
+
+
+  toPsbtWallet() {
+    const psbtWallet = new PsbtWallet()
+    psbtWallet.encode(this.export())
+    return psbtWallet.toString()
+  }
+
+  static fromPsbtWallet(psbtWalletBase64) {
+    const psbtWallet = new PsbtWallet()
+    const wallet = new MultisigWallet()
+    psbtWallet.decode(psbtWalletBase64, wallet)
+    return wallet
+  }
+
+  /**
+   * @param {string} [encoding='psbt'] - The encoding to use. Either 'psbt' or 'json'
+   */
+  toBase64(encoding='psbt') {
+
+    if (encoding === 'psbt') {
+      const psbtWallet = new PsbtWallet()
+      psbtWallet.encode(this.toJSON())
+      return psbtWallet.toString()
+    }
+    return utf8ToBin(this.toString())
+  }
+
+  // /**
+  //  * @deprecated
+  //  */
+  // exportToBase64() {
+  //   const bin = utf8ToBin(this.toJSON())
+  //   return binToBase64(bin)
+  // }
+
+/**
+ * Asynchronously generates authentication credentials for a signer.
+ *
+ * If no `xpub` is provided, the function will automatically select
+ * the first available xpub that has a corresponding private key on the device.
+ *
+ * @async
+ * @function generateAuthCredentials
+ * @param {string} [xpub] - Optional extended public key (xpub) to identify which signer to use.
+ * @returns {Promise<import('./network.js').WatchtowerMultisigCoordinationServerAuthCredentials|null>} 
+ * Resolves with authentication credentials including the signed message and xpub used.
+ */
+async generateAuthCredentials(xpub) {
+    if (!this.options.resolveXprvOfXpub) return null
+    if (xpub) {
+      const xprv = await this.options?.resolveXprvOfXpub({ xpub })
+      return MultisigWallet.generateAuthCredentials({ xprv, xpub })
+    }
+    for (const s of this.signers) {
+      const xprv = await this.options?.resolveXprvOfXpub({ xpub: s.xpub })
+      if (xprv) {
+        return MultisigWallet.generateAuthCredentials({ xprv, xpub: s.xpub })
+      }
+    } 
+  }
+
+  static cashAddressToTokenAddress(cashAddress) {
+    return lockingBytecodeToCashAddress({ 
+      bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
+      tokenSupport: true 
+    })
+  }
+
+  static fromBase64(base64) {
+    
+    const bin = base64ToBin(base64)
+    const psbtWalletMagicMarker = readBytes(4)
+    const psbtWalletMagicMarkerReadResult = psbtWalletMagicMarker({ bin, index: 0 })
+    if (binsAreEqual(psbtWalletMagicMarkerReadResult.result, hexToBin(WALLET_MAGIC))) {
+      const wallet = new MultisigWallet()
+      const psbtWallet = new PsbtWallet()
+      psbtWallet.decode(base64, wallet)
+      return wallet
+    }
+
+    return new MultisigWallet(JSON.parse(binToUtf8(bin)))
+  }
+
+  static importFromObject(multisigWalletObject, options) {
+    return new MultisigWallet(JSON.parse(JSON.stringify(multisigWalletObject)), options)
+  }
+
+  static fromObject(multisigWalletObject, options) {
+    return MultisigWallet.importFromObject(multisigWalletObject, options) 
+  }
+
+  static generateAuthCredentials({ xprv, xpub }) {
+    if (!xprv || !xpub) return null
+    const decodedPrivateKey = decodeHdPrivateKey(xprv)
+    const decodedPublicKey = decodeHdPublicKey(xpub)
+    const privateKey = deriveHdPathRelative(decodedPrivateKey.node, '0')
+    const publicKey = deriveHdPathRelative(decodedPublicKey.node, '0')
+    const rawMessage = `multisig:${Date.now()}`
+    const message = utf8ToBin(rawMessage);
+    const hash = sha256.hash(message)
+    const schnorr = secp256k1.signMessageHashSchnorr(privateKey.privateKey, hash)
+    const der = secp256k1.signMessageHashDER(privateKey.privateKey, hash)
+    return {
+        'X-Auth-PubKey': binToHex(publicKey.publicKey),
+        'X-Auth-Signature': `schnorr=${binToHex(schnorr)};der=${binToHex(der)}`,
+        'X-Auth-Message': rawMessage
+    }
+  }
+}
+
+
+// const wallet = new MultisigWallet({
+//   onStateChange: async ({ key, value }) => {
+//     await store.commit('wallet/update', { key, value });
+//     await fetch('/api/sync-wallet', {
+//       method: 'POST',
+//       body: JSON.stringify({ key, value }),
+//       headers: { 'Content-Type': 'application/json' }
+//     });
+//   }
+// });
+
+

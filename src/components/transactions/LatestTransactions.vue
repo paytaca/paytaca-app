@@ -4,6 +4,9 @@
       <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
         {{ $t('Transactions', {}, 'Transactions') }}
       </div>
+      <div class="q-mr-lg">
+        <TransactionTimestampSettings />
+      </div>
     </div>
 
     <div class="row q-px-lg q-pt-md q-pb-sm" :class="darkMode ? 'text-light' : 'text-dark'">
@@ -25,9 +28,9 @@
     </div>
 
     <template v-if="transactionsLoaded">
-      <div v-if="transactions.length > 0" class="transactions-list">
+      <div v-if="displayTransactions.length > 0" class="transactions-list">
         <TransactionListItem
-          v-for="(transaction, index) in transactions"
+          v-for="(transaction, index) in displayTransactions"
           :key="'latest-tx-' + index"
           :transaction="transaction"
           :selected-asset="allAsset"
@@ -37,7 +40,7 @@
           @click="() => handleTransactionClick(transaction)"
         />
         
-        <div v-if="hasMoreTransactions" class="see-more-container q-px-lg q-py-md">
+        <div v-if="displayHasMoreTransactions" class="see-more-container q-px-lg q-py-md">
           <q-btn
             flat
             no-caps
@@ -58,7 +61,7 @@
       </div>
     </template>
     
-    <div v-else class="loading-state q-px-lg q-py-md">
+    <div v-else class="loading-state">
       <TransactionListItemSkeleton v-for="i in 5" :key="i"/>
     </div>
   </div>
@@ -67,6 +70,7 @@
 <script>
 import TransactionListItem from 'src/components/transactions/TransactionListItem'
 import TransactionListItemSkeleton from 'src/components/transactions/TransactionListItemSkeleton'
+import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import axios from 'axios'
@@ -82,12 +86,21 @@ export default {
   
   components: {
     TransactionListItem,
-    TransactionListItemSkeleton
+    TransactionListItemSkeleton,
+    TransactionTimestampSettings
   },
   
   props: {
     wallet: Object,
-    denominationTabSelected: String
+    denominationTabSelected: String,
+    tutorialMode: {
+      type: Boolean,
+      default: false
+    },
+    tutorialStepId: {
+      type: String,
+      default: ''
+    }
   },
   
   data () {
@@ -112,6 +125,18 @@ export default {
     selectedNetwork () {
       return this.$store.getters['global/network']
     },
+    displayTransactions () {
+      // Only show dummy transactions when the tour is highlighting this section.
+      if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) {
+        return this.getTutorialDummyTransactions()
+      }
+      return this.transactions
+    },
+    displayHasMoreTransactions () {
+      // Never show "See more" on dummy tutorial transactions.
+      if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) return false
+      return this.hasMoreTransactions
+    },
     transactionsFilterOpts() {
       return [
         { label: this.$t('All'), value: 'all' },
@@ -127,6 +152,51 @@ export default {
   
   methods: {
     getDarkModeClass,
+    getTutorialDummyTransactions () {
+      const now = Date.now()
+      const bchAsset = {
+        id: 'bch',
+        symbol: 'BCH',
+        name: 'Bitcoin Cash',
+        logo: 'bch-logo.png',
+        decimals: 8
+      }
+      return [
+        {
+          record_type: 'incoming',
+          amount: 50000000, // 0.5 BCH
+          tx_timestamp: now - 1000 * 60 * 8,
+          asset: bchAsset,
+          attributes: []
+        },
+        {
+          record_type: 'outgoing',
+          amount: 4200000000, // 42 (decimals=8)
+          tx_timestamp: now - 1000 * 60 * 60 * 6,
+          asset: {
+            id: 'ct/tutorial-lift',
+            symbol: 'LIFT',
+            name: 'LIFT',
+            logo: null,
+            decimals: 8
+          },
+          attributes: []
+        },
+        {
+          record_type: 'incoming',
+          amount: 125750000, // 125.75 (decimals=6)
+          tx_timestamp: now - 1000 * 60 * 60 * 24 * 2,
+          asset: {
+            id: 'ct/tutorial-musd',
+            symbol: 'MUSD',
+            name: 'MUSD',
+            logo: null,
+            decimals: 6
+          },
+          attributes: []
+        }
+      ]
+    },
     async loadTransactions () {
       if (this.selectedNetwork === 'sBCH') {
         // For sBCH, we'll skip for now or implement separately
@@ -188,6 +258,11 @@ export default {
         const batchPromises = batch.map(async (transaction) => {
           const enrichedTx = { ...transaction }
           
+          // Check if transaction has token.id === "1" (BCH)
+          // When token.id is "1", it's a BCH transaction
+          const tokenId = transaction?.token?.id
+          const isBchToken = tokenId === "1" || tokenId === 1
+          
           // Check if transaction has token.asset_id
           // Try multiple possible paths for asset_id
           const assetId = transaction?.token?.asset_id || 
@@ -195,13 +270,21 @@ export default {
                          transaction?.token_id ||
                          null
           
-          // If assetId is null, undefined, empty string, or 'bch', it's a BCH transaction
-          if (!assetId || assetId === null || assetId === '' || assetId === 'bch') {
+          // If token.id is "1", assetId is null/undefined/empty, or 'bch', it's a BCH transaction
+          if (isBchToken || !assetId || assetId === null || assetId === '' || assetId === 'bch') {
             // BCH transaction
             enrichedTx.asset = bchAsset
           } else if (typeof assetId === 'string' && assetId.startsWith('ct/')) {
             // CashToken transaction - fetch metadata
             const tokenId = assetId.split('/')[1]
+            const commitment = transaction?.token?.commitment || transaction?.commitment
+            
+            // Check if this is an NFT transaction
+            const isNft = transaction?.is_nft === true || transaction?.is_nft === 'true' ||
+                         transaction?.asset?.is_nft === true || transaction?.asset?.is_nft === 'true' ||
+                         (Array.isArray(transaction?.attributes) && transaction.attributes.some(attr => 
+                           attr.key === 'is_nft' && (attr.value === true || attr.value === 'true')
+                         ))
             
             // Check if asset already exists in store
             const existingAssets = vm.$store.getters['assets/getAssets']
@@ -210,8 +293,62 @@ export default {
             if (asset && asset.logo && asset.symbol && asset.decimals !== undefined) {
               // Use existing asset from store
               enrichedTx.asset = asset
+            } else if (isNft && commitment) {
+              // For NFT transactions with commitment, fetch metadata directly from BCMR indexer
+              try {
+                const { getBcmrBackend } = await import('src/wallet/cashtokens')
+                const response = await getBcmrBackend().get(`tokens/${tokenId}/${commitment}/`)
+                const metadata = response?.data
+                
+                if (metadata) {
+                  // Extract collection name from top-level name field
+                  const collectionName = metadata.name || 'NFT'
+                  // Extract type name from type_metadata.name
+                  const typeName = metadata.type_metadata?.name || collectionName
+                  // Extract icon from uris.icon
+                  let logo = metadata.uris?.icon || null
+                  
+                  // Convert IPFS URL if needed
+                  if (logo && logo.startsWith('ipfs://')) {
+                    const { convertIpfsUrl } = await import('src/wallet/cashtokens')
+                    logo = convertIpfsUrl(logo)
+                  }
+                  
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: metadata.token?.symbol || 'NFT',
+                    name: typeName, // Use type name for NFT display
+                    logo: logo || null,
+                    decimals: 0,
+                    category: tokenId,
+                    commitment: commitment,
+                    collectionName: collectionName // Store collection name separately if needed
+                  }
+                } else {
+                  // Fallback if metadata not found
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: 'NFT',
+                    name: 'NFT',
+                    logo: null,
+                    decimals: 0,
+                    category: tokenId
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching NFT metadata from BCMR for', assetId, error)
+                // Fallback asset
+                enrichedTx.asset = {
+                  id: assetId,
+                  symbol: 'NFT',
+                  name: 'NFT',
+                  logo: null,
+                  decimals: 0,
+                  category: tokenId
+                }
+              }
             } else {
-              // Fetch token details
+              // Fetch token details for non-NFT tokens
               try {
                 const bchWallet = getWalletByNetwork(vm.wallet, 'bch')
                 const tokenDetails = await bchWallet.getTokenDetails(tokenId)
@@ -415,13 +552,13 @@ export default {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 200px;
+  min-height: 150px;
 }
 
 .no-transaction-img {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 24px;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 12px;
   opacity: 0.6;
 }
 
@@ -464,6 +601,9 @@ export default {
   cursor: pointer;
   transition: 0.2s;
   font-weight: 500;
+  white-space: nowrap;
+  font-size: clamp(13px, 2.5vw, 16px);
+  overflow: hidden;
 }
 
 .btn-all {

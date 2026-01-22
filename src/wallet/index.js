@@ -1,5 +1,4 @@
 import { SlpWallet } from './slp'
-import { SmartBchWallet } from './sbch'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
 import aes256 from 'aes256'
@@ -36,8 +35,6 @@ export class Wallet {
     this.mnemonic = mnemonic
     if (network === 'BCH') {
       this.loadBCH()
-    } else if (network === 'sBCH') {
-      this.loadSBCH()
     }
   }
 
@@ -61,11 +58,6 @@ export class Wallet {
     return this._SLP_TEST
   }
 
-  get sBCH() {
-    if (!this._sBCH) this.loadSBCH()
-    return this._sBCH
-  }
-
   loadBCH() {
     const derivationPaths = {
       bch: "m/44'/145'/0'",
@@ -77,10 +69,6 @@ export class Wallet {
     this._SLP_TEST = new SlpWallet(projectId.chipnet, this.mnemonic, derivationPaths.slp, true) // Test SLP wallet
   }
 
-  loadSBCH() {
-    this._sBCH = new SmartBchWallet(projectId.mainnet, this.mnemonic, "m/44'/60'/0'/0") // SmartBCH wallet
-    this._sBCH.initWallet()
-  }
 }
 
 export async function loadWallet(network = 'BCH', index = 0) {
@@ -112,6 +100,12 @@ export async function loadLibauthHdWallet(index=0, chipnet=false) {
  * @returns {string} The computed wallet hash
  */
 export function computeWalletHash(mnemonic, derivationPath = "m/44'/145'/0'") {
+  if (typeof mnemonic !== 'string' || mnemonic.length === 0) {
+    throw new TypeError('[computeWalletHash] mnemonic must be a non-empty string')
+  }
+  if (typeof derivationPath !== 'string' || derivationPath.length === 0) {
+    throw new TypeError('[computeWalletHash] derivationPath must be a non-empty string')
+  }
   const mnemonicHash = sha256(mnemonic)
   const derivationPathHash = sha256(derivationPath)
   const walletHash = sha256(mnemonicHash + derivationPathHash)
@@ -469,6 +463,54 @@ export async function getMnemonic (walletHashOrIndex = 0) {
   }
   
   return mnemonic
+}
+
+/**
+ * Check if PIN exists for a wallet
+ * @param {string|number} walletHashOrIndex - Wallet hash (string) or vault index (number)
+ * @returns {Promise<boolean>} True if PIN exists, false otherwise
+ */
+export async function pinExists (walletHashOrIndex = 0) {
+  try {
+    const mnemonic = await getMnemonic(walletHashOrIndex)
+    if (!mnemonic) {
+      return false
+    }
+    
+    const pinKey = `pin-${sha256(mnemonic)}`
+    
+    // Try to get PIN with all possible keys
+    try {
+      const pin = await SecureStoragePlugin.get({ key: pinKey })
+      if (pin?.value && pin.value.length >= 6) {
+        return true
+      }
+    } catch {
+      // Try fallback keys
+      try {
+        const pin = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
+        if (pin?.value && pin.value.length >= 6) {
+          return true
+        }
+      } catch {
+        // Try old global PIN key
+        try {
+          const pin = await SecureStoragePlugin.get({ key: 'pin' })
+          if (pin?.value && pin.value.length >= 6) {
+            return true
+          }
+        } catch {
+          // PIN doesn't exist
+          return false
+        }
+      }
+    }
+    
+    return false
+  } catch (error) {
+    console.error('[pinExists] Error checking PIN existence:', error)
+    return false
+  }
 }
 
 

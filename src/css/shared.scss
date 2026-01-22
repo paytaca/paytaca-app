@@ -148,7 +148,9 @@ div#q-app:has(.sticky-header-container) {
     position: sticky;
     top: -1px;
     width: 100%;
-    z-index: 100 !important;
+    // Keep headers above page content (cards/lists/etc).
+    // Dialogs/overlays use much higher z-index values.
+    z-index: 3000 !important;
   }
 }
 
@@ -188,7 +190,9 @@ div#q-app:has(.sticky-header-container) {
 .bottom-card-tall {
   @include bottom-card(90vh);
 }
-
+.q-btn.tile span.q-btn__content {
+  align-items: baseline !important;
+}
 .q-btn .tile-label {
   font-size: .8em;
 }

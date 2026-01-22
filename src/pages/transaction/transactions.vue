@@ -1,6 +1,10 @@
 <template>
 	<q-pull-to-refresh id="app-container" class="sticky-header-container" :class="darkmode ? 'dark' : 'light'" @refresh="onRefresh">
-		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/"/>
+		<header-nav :title="$t('Transactions')" class="header-nav apps-header" backnavpath="/">
+			<template #top-right-menu>
+				<TransactionTimestampSettings />
+			</template>
+		</header-nav>
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
@@ -26,10 +30,7 @@
                       </div>
                     </q-card-section>
                     <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <div v-if="selectedNetwork === 'sBCH'">
-                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
-                      </div>
-                      <div v-else>
+                      <div>
                         <img
                           :src="denominationTabSelected === $t('DEEM')
                             ? 'assets/img/theme/payhero/deem-logo.png'
@@ -69,22 +70,21 @@
 		                <q-input
 		                  ref="tx-search"
 		                  style="margin: 0px 30px 0px; padding-bottom: 3px;"
-		                  maxlength="8"
-		                  label="Search by Reference ID"
-		                  v-model="txSearchReference"
+		                  maxlength="128"
+		                  :label="$t('SearchByReferenceID') + ' / ' + $t('TransactionId', {}, 'Transaction ID')"
+		                  v-model="txSearchQuery"
 		                  debounce="200"
-		                  placeholder="00000000"
+		                  placeholder="00000000 or <txid>"
 		                  @update:model-value="(val) => { 
-		                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
-		                    txSearchReference = cleaned;
-		                    executeTxSearch(txSearchReference);
+		                    txSearchQuery = String(val || '').trim();
+		                    executeTxSearch(txSearchQuery);
 		                  }"
 		                >
 		                  <template v-slot:prepend>
 		                    <q-icon name="search" />
 		                  </template>
 		                  <template v-slot:append>
-		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
+		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchQuery = ''; $refs['transaction-list-component'].getTransactions() }" />
 		                  </template>
 		                </q-input>
 		              </div>
@@ -193,11 +193,12 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
 import { registerMemoUser, authMemo } from 'src/utils/transaction-memos'
 import { updateOrCreateKeypair } from 'src/exchange/chat/index'
-import { refToHex } from 'src/utils/reference-id-utils'
+import { hexToRef, normalizeRefToHex, refToHex } from 'src/utils/reference-id-utils'
 
 import Transaction from '../../components/transaction'
 // import assetList from 'src/components/ui-revamp/home/asset-list.vue'
 import TransactionList from 'src/components/transactions/TransactionList'
+import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import AssetListDialog from '../../pages/transaction/dialog/AssetListDialog.vue'
 import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
 import headerNav from 'src/components/header-nav'
@@ -211,7 +212,9 @@ export default {
 			wallet: null,
 			denominationTabSelected: 'BCH',
 			txSearchActive: false,
-			txSearchReference: '',
+			txSearchQuery: '',
+			// Prevent duplicate fetches when query updates multiple keys at once (e.g. txid + reference).
+			lastAppliedRouteTxSearchKey: '',
 			transactionsFilter: 'all',
 			stablehedgeView: false,
 			isCashToken: true,
@@ -271,7 +274,6 @@ export default {
 	      const currency = this.$store.getters['market/selectedCurrency']
 	      const selectedMarketCurrency = currency && currency.symbol
 	      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-	        this.selectedNetwork !== 'sBCH' &&
 	        currentCountry === 'HK' &&
 	        selectedMarketCurrency === 'HKD')
 	    },
@@ -280,11 +282,7 @@ export default {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },
-	    smartchainAssets() {
-	      return this.$store.getters['sep20/getAssets'].filter(function (item) {
-	        if (item && item.id !== 'bch') return item
-	      })
-	    },
+	    // SmartBCH assets removed
 	    // assets () {
 	    //   const vm = this
 	    //   if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
@@ -328,12 +326,13 @@ export default {
 		Transaction,
 		TransactionList,
 		StablehedgeHistory,
+		TransactionTimestampSettings,
 		AssetListDialog,
 		// assetList
 	},
 	async mounted () {				
 		// Update selected asset from query parameter
-		this.updateSelectedAssetFromQuery()
+		await this.updateSelectedAssetFromQuery()
 		
 		const walletHash = this.$store.getters['global/getWallet']('bch')?.walletHash
 
@@ -343,12 +342,15 @@ export default {
 
 		await this.loadWallets()
 		this.$nextTick(() => {
-	        this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
-	        this.$refs['transaction-list-component'].getTransactions()
-	        
-	        // Calculate transaction row height
-	        this.calculateTransactionRowHeight()
-	      })
+			this.$refs['transaction-list-component'].resetValues(this.transactionsFilter, null, this.selectedAsset)
+			// Apply QR/deeplink-driven reference-id search (if present).
+			// If applied, it will trigger a filtered fetch, so skip the default unfiltered fetch.
+			const didApplyTxSearch = this.applyRouteTxSearch()
+			if (!didApplyTxSearch) this.$refs['transaction-list-component'].getTransactions()
+
+			// Calculate transaction row height
+			this.calculateTransactionRowHeight()
+		})
 	      
 	      // Recalculate on window resize
 	      window.addEventListener('resize', this.calculateTransactionRowHeight)
@@ -363,15 +365,58 @@ export default {
 	        this.calculateTransactionRowHeight()
 	      })
 	    },
-	    '$route.query.assetID' (newAssetID) {
+	    async '$route.query.assetID' (newAssetID) {
 	      // Update selected asset when route query changes (e.g., when navigating back)
-	      this.updateSelectedAssetFromQuery()
+	      await this.updateSelectedAssetFromQuery()
+	    },
+	    '$route.query.txid' () {
+	      // Deep-links can update query without remounting; apply route-driven search.
+	      this.applyRouteTxSearch()
+	    },
+	    '$route.query.reference' () {
+	      // Deep-links can update query without remounting; apply route-driven search.
+	      this.applyRouteTxSearch()
 	    }
 	},
 	methods: {
+		applyRouteTxSearch () {
+			// Supports QR/deep links carrying:
+				// - txid: 64-hex transaction id
+			// - reference: reference-id in either 6-hex or 8-decimal format
+			const q = this.$route?.query || {}
+
+				const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
+				let referenceHex = ''
+			if (/^[0-9a-fA-F]{64}$/.test(txid)) {
+					// Prefer txid search when provided.
+					referenceHex = ''
+			} else if (typeof q.reference === 'string') {
+				referenceHex = normalizeRefToHex(q.reference)
+			}
+
+				const routeKey = `${txid || ''}|${referenceHex}`
+				if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchQuery || '') === String(txid || (hexToRef(referenceHex) || ''))) {
+				// Already applied for this exact deep-link; avoid duplicate fetch.
+				return true
+			}
+			this.lastAppliedRouteTxSearchKey = routeKey
+
+			this.txSearchActive = true
+				if (/^[0-9a-fA-F]{64}$/.test(txid)) {
+					this.txSearchQuery = txid
+					this.$nextTick(() => this.executeTxSearch(txid))
+					return true
+				}
+
+				const refDecimal = hexToRef(referenceHex)
+				if (!refDecimal) return false
+				this.txSearchQuery = refDecimal
+				this.$nextTick(() => this.executeTxSearch(refDecimal))
+			return true
+		},
 		parseAssetDenomination,
 		getDarkModeClass,
-		updateSelectedAssetFromQuery () {
+		async updateSelectedAssetFromQuery () {
 			const assetID = this.$route.query.assetID
 			let asset = []
 			
@@ -392,13 +437,36 @@ export default {
 					// This preserves the filter even if the asset metadata isn't loaded yet
 					// The transaction list component will use selectedAsset.id to filter transactions
 					const assetIdParts = assetID.split('/')
-					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp' || assetIdParts[0] === 'sep20')
-					
+					const isToken = assetIdParts.length === 2 && (assetIdParts[0] === 'ct' || assetIdParts[0] === 'slp')
+
+					// Set initial basic asset
 					this.selectedAsset = {
 						id: assetID,
-						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : assetIdParts[0] === 'slp' ? 'SLP' : 'SEP20') : 'BCH',
+						symbol: isToken ? (assetIdParts[0] === 'ct' ? 'CT' : 'SLP') : 'BCH',
 						name: isToken ? `${assetIdParts[0].toUpperCase()} Token` : 'Bitcoin Cash',
 						logo: null
+					}
+
+					// Fetch metadata from BCMR backend if it's a CashToken
+					if (assetIdParts[0] === 'ct') {
+						console.log('[Transactions] Fetching metadata for token:', assetID)
+						try {
+							const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetID)
+							if (metadata) {
+								console.log('[Transactions] Fetched metadata:', metadata)
+								// Update selectedAsset with fetched metadata
+								this.selectedAsset = {
+									id: metadata.id,
+									symbol: metadata.symbol || this.selectedAsset.symbol,
+									name: metadata.name || this.selectedAsset.name,
+									logo: metadata.logo || null,
+									decimals: metadata.decimals || 0
+								}
+							}
+						} catch (error) {
+							console.warn('[Transactions] Failed to fetch metadata from BCMR:', error)
+							// Keep the basic asset object if fetching fails
+						}
 					}
 				}
 			}
@@ -553,7 +621,7 @@ export default {
 	    	this.$q.dialog({
                 component: AssetListDialog,
                 componentProps: {
-                    assets: this.assets
+                    // AssetListDialog now fetches tokens directly from API
                 }
             })
             .onOk(asset => {
@@ -579,14 +647,29 @@ export default {
 	      this.hideBalances = !this.hideBalances
 	    },
 	    executeTxSearch (value) {
-	      const valueStr = String(value || '')
-	      // Allow empty or 8-digit decimal
-	      if (valueStr.length === 0 || valueStr.length === 8) {
-	        // Convert decimal reference to hex before API call
-	        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
-	        const opts = {txSearchReference: hexRef}
-	        this.$refs['tx-search'].blur()
-	        this.$refs['transaction-list-component'].getTransactions(1, opts)
+	      const raw = String(value || '').trim()
+
+	      // Empty => clear search
+	      if (!raw) {
+	        this.$refs['tx-search']?.blur?.()
+	        this.$refs['transaction-list-component'].getTransactions(1, { txSearchReference: null, txids: null })
+	        return
+	      }
+
+	      // Reference ID: exactly 8 digits
+	      if (/^[0-9]{8}$/.test(raw)) {
+	        const hexRef = refToHex(raw)
+	        this.$refs['tx-search']?.blur?.()
+	        this.$refs['transaction-list-component'].getTransactions(1, { txSearchReference: hexRef, txids: null })
+	        return
+	      }
+
+	      // Txid search: accept one or more 64-hex txids (comma/space separated)
+	      const candidates = raw.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+	      const txids = candidates.filter(s => /^[0-9a-fA-F]{64}$/.test(s))
+	      if (txids.length) {
+	        this.$refs['tx-search']?.blur?.()
+	        this.$refs['transaction-list-component'].getTransactions(1, { txSearchReference: null, txids: txids.map(t => t.toLowerCase()).join(',') })
 	      }
 	    },
 	    async onRefresh (done) {
@@ -718,7 +801,7 @@ export default {
 	      }
 	    },
 	    formatBalance (asset) {
-	      if (asset.id.includes('ct') || asset.id.includes('sep20')) {
+	      if (asset.id.includes('ct')) {
 	        const convertedBalance = asset.balance / 10 ** asset.decimals
 	        return `${(convertedBalance || 0).toLocaleString('en-us', {maximumFractionDigits: asset.decimals})} ${asset.symbol}`
 	      } else if (asset.id.includes('bch')) {
@@ -842,5 +925,8 @@ export default {
     cursor: pointer;
     transition: .2s;
     font-weight: 500;
+    white-space: nowrap;
+    font-size: clamp(13px, 2.5vw, 16px);
+    overflow: hidden;
 }
 </style>

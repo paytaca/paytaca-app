@@ -62,9 +62,9 @@
 </template>
 
 <script>
-import { convertIpfsUrl } from 'src/wallet/cashtokens';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { debounce, useDialogPluginComponent } from 'quasar';
 import { defineComponent, ref, computed, watch, onMounted } from 'vue';
 import { useStore } from 'vuex';
@@ -123,18 +123,10 @@ export default defineComponent({
       fetchTokens();
     }, 500);
 
-    function getTokenImage(url) {
-      const ipfsUrl = convertIpfsUrl(url);
-      if (ipfsUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-        return ipfsUrl + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN;
-      } else {
-        return ipfsUrl;
-      }
-    }
-
-    function onImgError(event) {
-      event.target.style.display = 'none';
-    }
+    const {
+      getTokenImage,
+      onImgError,
+    } = useCauldronValueFormatters();
 
     function handleSelectToken(token) {
       emit('select-token', token);
@@ -172,6 +164,7 @@ export default defineComponent({
       handleSelectToken,
       tokensList,
       fetchingTokens,
+      fetchTokens,
       searchQuery,
       debouncedFetchTokens,
       getDarkModeClass,

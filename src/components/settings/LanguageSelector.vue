@@ -15,26 +15,28 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import LanguageListDialog from './dialogs/LanguageListDialog.vue'
 
-const translationKeys = {
+// Use autonyms (native language names) so labels remain readable even
+// when translations are missing or the app is currently in another language.
+const languageLabels = {
   'af': 'Afrikaans',
   'en-us': 'English',
-  'zh-cn': 'ChineseSimplified',
-  'zh-tw': 'ChineseTraditional',
-  'nl': 'Dutch',
-  'fr': 'French',
-  'de': 'German',
+  'zh-cn': '中文（简体）',
+  'zh-tw': '中文（繁體）',
+  'nl': 'Nederlands',
+  'fr': 'Français',
+  'de': 'Deutsch',
   'ha': 'Hausa',
-  'id': 'Indonesian',
-  'it': 'Italian',
-  'ja': 'Japanese',
-  'ko': 'Korean',
-  'pt': 'Portuguese',
-  'pt-br': 'BrazilianPortuguese',
-  'es': 'Spanish',
-  'es-ar': 'ArgentinianSpanish',
+  'id': 'Bahasa Indonesia',
+  'it': 'Italiano',
+  'ja': '日本語',
+  'ko': '한국어',
+  'pt': 'Português',
+  'pt-br': 'Português (Brasil)',
+  'es': 'Español',
+  'es-ar': 'Español (Argentina)',
   'tl': 'Tagalog',
-  'ru': 'Russian',
-  'ar': 'Arabic'
+  'ru': 'Русский',
+  'ar': 'العربية'
 }
 
 export default {
@@ -50,7 +52,6 @@ export default {
     },
     currentLanguageLabel () {
       const langCode = this.currentLanguage
-      console.log('[LanguageSelector] Current language code:', langCode)
       
       // Normalize to lowercase for lookup
       const normalizedLangCode = langCode ? langCode.toLowerCase() : 'en-us'
@@ -61,11 +62,9 @@ export default {
         lookupCode = 'en-us'
       }
       
-      // Get the translation key for this language code (e.g., "English" for "en-us")
-      const translationKey = translationKeys[lookupCode] || translationKeys[normalizedLangCode]
-      console.log('[LanguageSelector] Translation key found:', translationKey, 'for code:', lookupCode)
-      
-      if (!translationKey) {
+      const label = languageLabels[lookupCode] || languageLabels[normalizedLangCode]
+
+      if (!label) {
         // If no translation key found, try to find a reasonable display name
         // For 'en' or other short codes, map to full names
         if (langCode && langCode.length <= 2) {
@@ -90,9 +89,7 @@ export default {
           }
           const mapped = shortCodeMap[langCode.toLowerCase()]
           if (mapped) {
-            console.log('[LanguageSelector] Using short code map:', mapped)
-            // Translate the mapped key
-            return this.$t(mapped)
+            return mapped
           }
           // If no mapping found, return uppercase language code
           console.warn('[LanguageSelector] No mapping found for short code:', langCode)
@@ -103,11 +100,7 @@ export default {
         return langCode
       }
       
-      // Translate the translation key to show the language name in the current language
-      // For example, if current language is Spanish and selected language is English,
-      // this will show "Inglés" instead of "English"
-      console.log('[LanguageSelector] Translating key:', translationKey)
-      return this.$t(translationKey)
+      return label
     }
   },
   methods: {

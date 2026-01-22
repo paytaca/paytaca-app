@@ -51,10 +51,8 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { refToHex } from 'src/utils/reference-id-utils'
-import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
 import axios from 'axios'
 
-const sep20IdRegexp = /sep20\/(.*)/
 const recordTypeMap = {
   all: 'all',
   sent: 'outgoing',
@@ -206,73 +204,9 @@ export default {
           this.isLoadingMore = false
         })
     },
-    async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, append: false }) {
-      if (this.selectedNetwork === 'sBCH') {
-        const address = await generateSbchAddress({
-          walletIndex: this.$store.getters['global/getWalletIndex']
-        })
-        if (!address) {
-          return Promise.reject(new Error('Failed to generate sBCH address'))
-        }
-        return this.getSbchTransactions(address, opts)
-      }
+    async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, txids: null, append: false }) {
+      // SmartBCH support removed
       return this.getBchTransactions(page, opts)
-    },
-    getSbchTransactions (address, opts = { scrollToBottom: false }) {
-      const vm = this
-      const asset = vm.selectedAsset
-      const id = String(vm.selectedAsset.id)
-
-      const filterOpts = {
-        limit: 10,
-        includeTimestamp: true,
-        type: recordTypeMap[vm.transactionsFilter]
-      }
-
-      let appendResults = false
-      if (Number.isSafeInteger(this.earliestBlock) && this.earliestBlock > 0) {
-        filterOpts.before = '0x' + (this.earliestBlock - 1).toString(16)
-        appendResults = true
-      }
-
-      let requestPromise = null
-      if (sep20IdRegexp.test(id)) {
-        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
-      } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          address,
-          filterOpts
-        )
-      }
-
-      if (!requestPromise) return
-      if (!appendResults) vm.transactionsLoaded = false
-      vm.transactionsAppending = true
-      requestPromise
-        .then(response => {
-          vm.transactionsPageHasNext = false
-          if (Array.isArray(response.transactions)) {
-            vm.transactionsPageHasNext = response.hasNextPage
-            if (!appendResults) vm.transactions = []
-            vm.transactions.push(...response.transactions
-              .map(tx => {
-                tx.senders = [tx.from]
-                tx.recipients = [tx.to]
-                tx.asset = asset
-                return tx
-              })
-            )
-          }
-        })
-        .finally(() => {
-          vm.transactionsAppending = false
-          vm.transactionsLoaded = true
-        })
     },
     getBchTransactions (page, opts = { scrollToBottom: false, append: false }) {
       const vm = this
@@ -280,12 +214,17 @@ export default {
       const id = vm.selectedAsset.id
       const recordType = recordTypeMap[vm.transactionsFilter]
       let txSearchReference = opts.txSearchReference
+      const txids = typeof opts?.txids === 'string' ? opts.txids.trim() : ''
       const shouldAppend = opts.append
 
       // Convert decimal reference to hex if needed (safety check)
       if (txSearchReference && /^[0-9]{8}$/.test(txSearchReference)) {
         txSearchReference = refToHex(txSearchReference)
       }
+
+      // Txid search is supported by watchtower via `txids=<comma-separated>`.
+      // When present, prefer this over reference-based filtering.
+      const hasTxidsFilter = !!txids
 
       // Handle "All" selection - use special endpoint
       if (id === 'all') {
@@ -299,8 +238,11 @@ export default {
           type: recordType
         }
         
-        if (txSearchReference) {
-          params.txSearchReference = txSearchReference
+        if (hasTxidsFilter) {
+          params.txids = txids
+        } else if (txSearchReference) {
+          // watchtower API expects `reference` for ref-ID search
+          params.reference = txSearchReference
         }
 
         vm.transactionsAppending = true
@@ -335,6 +277,62 @@ export default {
             setTimeout(() => {
               vm.transactionsPageHasNext = hasNext
             }, 250)
+          })
+          .catch(error => {
+            console.error('error:', error.response)
+          })
+          .finally(() => {
+            vm.transactionsAppending = false
+          })
+      }
+
+      // If we are filtering by txids, use the Watchtower REST endpoint directly for
+      // BCH/CT/SLP, since wallet helper methods don't consistently expose `txids`.
+      if (hasTxidsFilter) {
+        const isChipnet = vm.$store.getters['global/isChipnet']
+        const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+        let walletHash = ''
+        let url = ''
+        const params = { page: page, type: recordType, txids }
+
+        if (id?.startsWith?.('slp/')) {
+          const tokenId = id.split('/')[1]
+          walletHash = getWalletByNetwork(vm.wallet, 'slp').getWalletHash()
+          url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
+        } else if (id?.startsWith?.('ct/')) {
+          const tokenId = id.split('/')[1]
+          walletHash = getWalletByNetwork(vm.wallet, 'bch').getWalletHash()
+          url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
+        } else {
+          walletHash = getWalletByNetwork(vm.wallet, 'bch').getWalletHash()
+          url = `${baseUrl}/history/wallet/${walletHash}/`
+        }
+
+        vm.transactionsAppending = true
+        return axios.get(url, { params })
+          .then(async function (response) {
+            const data = response?.data
+            const transactions = data?.history || data
+            const pageNum = Number(data?.page || page)
+            const hasNext = data?.has_next
+
+            if (!Array.isArray(transactions)) return
+
+            const enrichedTransactions = await vm.enrichTransactionsWithAssetInfo(transactions)
+
+            if (shouldAppend) {
+              enrichedTransactions.forEach(function (item) { vm.transactions.push(item) })
+            } else {
+              vm.transactions = []
+              enrichedTransactions.forEach(function (item) { vm.transactions.push(item) })
+            }
+
+            vm.transactionsPage = pageNum
+            vm.transactionsMaxPage = data?.num_pages || 1
+            vm.transactionsLoaded = true
+
+            setTimeout(() => { vm.transactionsPageHasNext = hasNext }, 250)
           })
           .catch(error => {
             console.error('error:', error.response)
@@ -416,6 +414,11 @@ export default {
         const batchPromises = batch.map(async (transaction) => {
           const enrichedTx = { ...transaction }
           
+          // Check if transaction has token.id === "1" (BCH)
+          // When token.id is "1", it's a BCH transaction
+          const tokenId = transaction?.token?.id
+          const isBchToken = tokenId === "1" || tokenId === 1
+          
           // Check if transaction has token.asset_id
           // Try multiple possible paths for asset_id
           const assetId = transaction?.token?.asset_id || 
@@ -425,11 +428,11 @@ export default {
           
           // Debug logging
           if (vm.selectedAsset?.id === 'all') {
-            console.log('Transaction asset_id:', assetId, 'Transaction:', transaction)
+            console.log('Transaction asset_id:', assetId, 'Token ID:', tokenId, 'Transaction:', transaction)
           }
           
-          // If assetId is null, undefined, empty string, or 'bch', it's a BCH transaction
-          if (!assetId || assetId === null || assetId === '' || assetId === 'bch') {
+          // If token.id is "1", assetId is null/undefined/empty, or 'bch', it's a BCH transaction
+          if (isBchToken || !assetId || assetId === null || assetId === '' || assetId === 'bch') {
             // BCH transaction
             enrichedTx.asset = bchAsset
             if (vm.selectedAsset?.id === 'all') {
@@ -438,6 +441,14 @@ export default {
           } else if (typeof assetId === 'string' && assetId.startsWith('ct/')) {
             // CashToken transaction - fetch metadata
             const tokenId = assetId.split('/')[1]
+            const commitment = transaction?.token?.commitment || transaction?.commitment
+            
+            // Check if this is an NFT transaction
+            const isNft = transaction?.is_nft === true || transaction?.is_nft === 'true' ||
+                         transaction?.asset?.is_nft === true || transaction?.asset?.is_nft === 'true' ||
+                         (Array.isArray(transaction?.attributes) && transaction.attributes.some(attr => 
+                           attr.key === 'is_nft' && (attr.value === true || attr.value === 'true')
+                         ))
             
             // Check if asset already exists in store
             const existingAssets = vm.$store.getters['assets/getAssets']
@@ -446,8 +457,62 @@ export default {
             if (asset && asset.logo && asset.symbol && asset.decimals !== undefined) {
               // Use existing asset from store
               enrichedTx.asset = asset
+            } else if (isNft && commitment) {
+              // For NFT transactions with commitment, fetch metadata directly from BCMR indexer
+              try {
+                const { getBcmrBackend } = await import('src/wallet/cashtokens')
+                const response = await getBcmrBackend().get(`tokens/${tokenId}/${commitment}/`)
+                const metadata = response?.data
+                
+                if (metadata) {
+                  // Extract collection name from top-level name field
+                  const collectionName = metadata.name || 'NFT'
+                  // Extract type name from type_metadata.name
+                  const typeName = metadata.type_metadata?.name || collectionName
+                  // Extract icon from uris.icon
+                  let logo = metadata.uris?.icon || null
+                  
+                  // Convert IPFS URL if needed
+                  if (logo && logo.startsWith('ipfs://')) {
+                    const { convertIpfsUrl } = await import('src/wallet/cashtokens')
+                    logo = convertIpfsUrl(logo)
+                  }
+                  
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: metadata.token?.symbol || 'NFT',
+                    name: typeName, // Use type name for NFT display
+                    logo: logo || null,
+                    decimals: 0,
+                    category: tokenId,
+                    commitment: commitment,
+                    collectionName: collectionName // Store collection name separately if needed
+                  }
+                } else {
+                  // Fallback if metadata not found
+                  enrichedTx.asset = {
+                    id: assetId,
+                    symbol: 'NFT',
+                    name: 'NFT',
+                    logo: null,
+                    decimals: 0,
+                    category: tokenId
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching NFT metadata from BCMR for', assetId, error)
+                // Fallback asset
+                enrichedTx.asset = {
+                  id: assetId,
+                  symbol: 'NFT',
+                  name: 'NFT',
+                  logo: null,
+                  decimals: 0,
+                  category: tokenId
+                }
+              }
             } else {
-              // Fetch token details
+              // For non-NFT CashTokens, fetch token details as before
               try {
                 const bchWallet = getWalletByNetwork(vm.wallet, 'bch')
                 const tokenDetails = await bchWallet.getTokenDetails(tokenId)
@@ -622,9 +687,9 @@ export default {
   }
 
   .no-transaction-img {
-    width: 80px;
-    height: 80px;
-    margin-bottom: 24px;
+    width: 50px;
+    height: 50px;
+    margin-bottom: 12px;
     opacity: 0.6;
   }
 

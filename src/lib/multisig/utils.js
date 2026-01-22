@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { hexToBin, cashAddressToLockingBytecode, binToHex } from 'bitauth-libauth-v3'
+import { hexToBin, cashAddressToLockingBytecode, binToHex, binsAreEqual, binToBigIntUintBE } from 'bitauth-libauth-v3'
 
 export const shortenString = (str, maxLength) => {
   // If the string is shorter than or equal to the maxLength, return it as is.
@@ -91,48 +91,6 @@ export const getTotalBchChangeAmount = (tx, senderAddress, unit = 'bch') => {
   return amount
 }
 
-/**
- * Revives special types formatted by the stringify function:
- * - `<Uint8Array: 0x...>` → Uint8Array
- * - `<bigint: ...n>` → bigint
- * - `<function: ...>` → string representation (cannot fully reconstruct)
- * - `<symbol: ...>` → string representation (cannot fully reconstruct)
- *
- * @param { string } _ - Key
- * @param { any } value
- * @returns The reconstructed JavaScript value with proper types
- */
-export const libauthStringifyReviver = (_, value) => {
-  if (typeof value !== 'string') return value
-
-  // Uint8Array pattern: "<Uint8Array: 0x...>"
-  const uint8ArrayMatch = value.match(/^<Uint8Array: 0x([0-9a-f]+)>$/i)
-  if (uint8ArrayMatch) {
-    return hexToBin(uint8ArrayMatch[1])
-  }
-
-  // Bigint pattern: "<bigint: ...n>"
-  const bigintMatch = value.match(/^<bigint: (-?\d+)n>$/)
-  if (bigintMatch) {
-    return BigInt(bigintMatch[1])
-  }
-
-  // Function pattern: "<function: ...>"
-  const functionMatch = value.match(/^<function: (.+)>$/)
-  if (functionMatch) {
-    // Note: We can't reconstruct actual functions, just return the string representation
-    return { type: 'function', value: functionMatch[1] }
-  }
-
-  // Symbol pattern: "<symbol: ...>"
-  const symbolMatch = value.match(/^<symbol: (.+)>$/)
-  if (symbolMatch) {
-    // Note: We can't reconstruct actual symbols, just return the string representation
-    return { type: 'symbol', value: symbolMatch[1] }
-  }
-
-  return value
-}
 
 /**
   * @typedef { Object } MultisigSpec
@@ -233,4 +191,198 @@ export const estimateUnlockingBytecodeSize = (m, n, sigType = 'ecdsa') => {
     redeemScriptSize
 
   return scriptSigSize
+}
+
+/**
+ * Return the non-hardened part of a BIP32 derivation path.
+ * Example: "m/48'/145'/0'/0/5" → "0/5"
+ */
+export const bip32ExtractRelativePath = (fullPath) => {
+  if (!fullPath.startsWith("m/")) {
+    throw new Error("Path must start with 'm/'");
+  }
+
+  const parts = fullPath
+    .slice(2)
+    .split('/')
+    .filter(Boolean);
+
+  const lastHardenedIndex = parts.reduce(
+    (idx, el, i) => (el.endsWith("'") ? i : idx),
+    -1
+  );
+
+  const nonHardened = parts.slice(lastHardenedIndex + 1).join('/');
+  return nonHardened || '';
+}
+
+/**
+ * Encode a BIP32 derivation path string (e.g. "m/44'/145'/0'/0/5")
+ * into a Uint8Array of 32-bit little-endian integers. The derivation 
+ * path is represented as 32 bit unsigned integer indexes concatenated 
+ * with each other.
+ */
+export function bip32EncodeDerivationPath(path) {
+  if (typeof path !== 'string') {
+    throw new TypeError('Path must be a string');
+  }
+
+  const trimmed = path.trim();
+
+  if (trimmed === 'm') {
+    return new Uint8Array();
+  }
+
+  if (!trimmed.startsWith("m/")) {
+    throw new Error("Path must start with 'm/'");
+  }
+
+  const elements = trimmed
+    .slice(2)
+    .split("/")
+    .filter(Boolean);
+
+  const bytes = new Uint8Array(elements.length * 4);
+  const view = new DataView(bytes.buffer);
+
+  elements.forEach((el, i) => {
+    const hardened = el.endsWith("'");
+    const indexStr = hardened ? el.slice(0, -1) : el;
+
+    if (!/^[0-9]+$/.test(indexStr)) {
+      throw new Error(`Invalid derivation index '${el}'`);
+    }
+
+    const index = Number.parseInt(indexStr, 10);
+
+    if (!Number.isSafeInteger(index) || index < 0 || index > 0x7fffffff) {
+      throw new Error(`Derivation index out of range '${el}'`);
+    }
+
+    if (!hardened && index >= 0x80000000) {
+      throw new Error(`Unhardened index must be < 2^31 ('${el}')`);
+    }
+
+    const value = hardened ? index + 0x80000000 : index;
+    view.setUint32(i * 4, value, true); // little-endian
+  });
+
+  return bytes;
+}
+
+
+/**
+ * Decode a Uint8Array of 32-bit little-endian integers
+ * back into a BIP32 path string (e.g. "m/44'/145'/0'/0/5").
+ */
+export function bip32DecodeDerivationPath(bytes) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError('Derivation path bytes must be a Uint8Array');
+  }
+
+  if (bytes.byteLength === 0) {
+    return 'm';
+  }
+
+  if (bytes.byteLength % 4 !== 0) {
+    throw new Error("Invalid derivation path bytes");
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const elements = [];
+
+  for (let i = 0; i < bytes.byteLength; i += 4) {
+    const value = view.getUint32(i, true); // little-endian
+    const hardened = value >= 0x80000000;
+    const index = hardened ? value - 0x80000000 : value;
+    elements.push(hardened ? `${index}'` : `${index}`);
+  }
+
+  return elements.length ? `m/${elements.join('/')}` : 'm';
+}
+
+/**
+ * Decode a binary HD public key payload back to its components
+ * 
+ * Reverse of import('@bitauth/libauth').encodeHdPublicKeyPayload
+ * 
+ * @param {Uint8Array} payload - 78 bytes
+ * @returns {import('@bitauth/libauth').DecodedHdKey<HdPublicNodeValid>} 
+ */
+export function decodeHdPublicKeyPayload(payload) {
+  if (payload.length !== 78) throw new Error("Invalid payload length");
+  return {
+    network: binsAreEqual(payload.slice(0, 4), hexToBin('0488B21E')) ? 'mainnet': 'testnet',
+    node: {
+      version: payload.slice(0, 4),                     // Uint8Array(4)
+      depth: payload[4],                                // number
+      parentFingerprint: payload.slice(5, 9),          // Uint8Array(4)
+      childIndex: Number(binToBigIntUintBE(payload.slice(9, 13))), // Uint8Array(4)
+      chainCode: payload.slice(13, 45),                // Uint8Array(32)
+      publicKey: payload.slice(45, 78)
+    }
+  };
+}
+
+
+/**
+ * Runs a promise with a timeout limit.
+ * 
+ * If the provided promise does not settle (resolve or reject)
+ * within the specified time, the returned promise rejects
+ * with an error. You can optionally provide a custom error message.
+ *
+ * @template T
+ * @param {Promise<T>} promise - The asynchronous operation to execute.
+ * @param {number} ms - The timeout duration in milliseconds.
+ * @param {string} [error='Timeout exceeded'] - Optional custom error message for the timeout.
+ * @returns {Promise<T>} A promise that resolves with the result of `promise`,
+ *                       or rejects with an `Error` if the timeout is exceeded.
+ *
+ * @throws {Error} Throws an `Error` with either the provided custom message 
+ *                 or `'Timeout exceeded'` if the operation takes too long.
+ *
+ * @example
+ * // Example usage with default timeout message:
+ * const data = await withTimeout(fetchData(), 5000);
+ * 
+ * @example
+ * // Example usage with custom timeout message:
+ * const data = await withTimeout(fetchData(), 5000, 'Server did not respond in time');
+ */
+export const withTimeout = async (promise, ms, error) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(error || 'Timeout exceeded')), ms)
+    ),
+  ]);
+};
+
+/**
+ * Retries an asynchronous function multiple times with optional exponential backoff.
+ *
+ * @template T
+ * @param {() => Promise<T>} fn - The asynchronous function to execute.
+ * @param {number} [retries=2] - The number of retry attempts (total tries = retries).
+ * @param {number} [delay=500] - Initial delay between retries, in milliseconds.
+ * @returns {Promise<T>} Resolves with the result of `fn()` if it eventually succeeds.
+ * @throws Will throw the last error if all retry attempts fail.
+ *
+ * @example
+ * // Example usage:
+ * const data = await retryWithBackoff(() => axios.get('/api/data'), 3, 1000);
+ * console.log(data);
+ */
+export async function retryWithBackoff(fn, retries = 2, delay = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err; 
+      console.warn(`Retry ${i + 1} failed, waiting ${delay}ms...`);
+      await new Promise(res => setTimeout(res, delay));
+      delay *= 2; 
+    }
+  }
 }

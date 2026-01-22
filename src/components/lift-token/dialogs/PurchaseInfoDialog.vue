@@ -93,18 +93,32 @@
             </div>
           </div>
 
-          <div class="detail-row">
+          <div class="detail-row q-mb-sm">
             <div class="detail-label">
-              <q-icon name="mdi-receipt-text" size="16px" class="q-mr-xs" />
+              <q-icon name="mdi-credit-card" size="16px" class="q-mr-xs" />
+              {{ $t('PaymentMethod') }}
+            </div>
+            <div class="detail-value" style="word-break: auto-phrase;">
+              {{ $t(
+                'PaidUsingMethod',
+                { method: purchase.purchase_more_details.payment_method?.toUpperCase() },
+                `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase()}`
+              ) }}
+            </div>
+          </div>
+
+          <div v-if="purchase.purchase_more_details.payment_method === 'bch'" class="detail-row">
+            <div class="detail-label">
+              <q-icon name="receipt_long" size="16px" class="q-mr-xs" />
               {{ $t('TransactionId') }}
             </div>
             <div class="detail-value">
               <a
-                :href="`https://explorer.bch.ninja/tx/${purchase.initial_tx_id}`"
+                :href="`https://explorer.bch.ninja/tx/${purchase.payment_tx_id}`"
                 target="_blank"
                 class="tx-link"
               >
-                {{ parseTxid(purchase.initial_tx_id) }}
+                {{ parseTxid(purchase.payment_tx_id) }}
                 <q-icon name="mdi-open-in-new" size="14px" class="q-ml-xs" />
               </a>
             </div>
@@ -131,11 +145,10 @@
                   <div class="vesting-indicator">
                     <div 
                       class="indicator-dot" 
-                      :class="details ? 'completed' : 'pending'"
+                      :class="details.tx_id ? 'completed' : 'pending'"
                     >
-                      <q-icon 
-                        v-if="details" 
-                        name="mdi-check" 
+                      <q-icon
+                        :name="details.tx_id ? 'mdi-check' : 'mdi-clock'"
                         size="14px" 
                         color="white"
                       />
@@ -143,7 +156,7 @@
                     <div 
                       v-if="index < vestingDetailsList.length - 1" 
                       class="indicator-line"
-                      :class="details ? 'completed' : 'pending'"
+                      :class="details.tx_id ? 'completed' : 'pending'"
                     />
                   </div>
 
@@ -152,20 +165,20 @@
                       <span class="vesting-period">{{ $t('Period') }} {{ index + 1 }}</span>
                       <q-badge 
                         v-if="details" 
-                        :label="$t('Completed')" 
-                        color="teal-6" 
+                        :label="details.tx_id ? $t('Completed') : $t('Pending')"
+                        :color="details.tx_id ? 'teal-6' : 'light-blue-6'" 
                         class="q-ml-sm"
                         style="font-size: 10px; padding: 2px 8px;"
                       />
                     </div>
 
-                    <template v-if="details">
-                      <div class="vesting-date q-mb-xs">
-                        <q-icon name="mdi-calendar-check" size="14px" class="q-mr-xs" />
-                        {{ parseLocaleDate(details.vested_date) }}
-                      </div>
-                      <div class="vesting-amount q-mb-xs">
-                        <q-icon name="mdi-cash" size="14px" class="q-mr-xs" />
+                    <div class="vesting-date q-mb-xs">
+                      <q-icon name="mdi-calendar-check" size="14px" class="q-mr-xs" />
+                      {{ parseLocaleDate(details.vested_date) }}
+                    </div>
+                    <div class="vesting-amount q-mb-xs">
+                      <q-icon name="mdi-cash" size="14px" class="q-mr-xs" />
+                      <template v-if="details.tx_id">
                         {{
                           $t(
                             "VestedLift",
@@ -173,25 +186,22 @@
                             `Vested ${parseLiftToken(details.vested_amount_tkn)}`
                           )
                         }}
-                      </div>
-                      <div class="vesting-tx">
-                        <q-icon name="mdi-receipt-text" size="14px" class="q-mr-xs" />
-                        <a
-                          :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
-                          target="_blank"
-                          class="tx-link"
-                        >
-                          {{ parseTxid(details.tx_id) }}
-                          <q-icon name="mdi-open-in-new" size="12px" class="q-ml-xs" />
-                        </a>
-                      </div>
-                    </template>
-
-                    <template v-else>
-                      <div class="vesting-pending">
-                        {{ $t("VestingNotOccured") }}
-                      </div>
-                    </template>
+                      </template>
+                      <template v-else>
+                        {{ parseLiftToken(details.vested_amount_tkn) }}
+                      </template>
+                    </div>
+                    <div v-if="details.tx_id" class="vesting-tx">
+                      <q-icon name="receipt_long" size="14px" class="q-mr-xs" />
+                      <a
+                        :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
+                        target="_blank"
+                        class="tx-link"
+                      >
+                        {{ parseTxid(details.tx_id) }}
+                        <q-icon name="mdi-open-in-new" size="12px" class="q-ml-xs" />
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -282,12 +292,7 @@ export default {
 
   mounted() {
     if (!this.purchase || !this.purchase.purchase_vesting_details) return;
-    
-    for (let i = 0; i < 4; i++) {
-      if (this.purchase.purchase_vesting_details[i]?.vested_date)
-        this.vestingDetailsList.push(this.purchase.purchase_vesting_details[i]);
-      else this.vestingDetailsList.push(null);
-    }
+    this.vestingDetailsList = this.purchase.purchase_vesting_details
   },
 };
 </script>

@@ -1,5 +1,5 @@
 <template>
-	<div class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
+	<div v-bind="$attrs" class="asset-option text-center" :class="darkmode ? 'text-light' : 'text-dark'">
 		<div v-if="stablehedgeView">
 			<div class="row">
 				<div class="col" v-for="opt in stablehedgeOpt">
@@ -14,7 +14,11 @@
 			<div class="row">	             
 	              <div class="col" v-for="opt in bchOpt">	              	
 	                <q-btn color="primary" class="button-default" :class="darkmode ? 'dark' : 'light'" round size="14px" :disable="disableButton(opt.name)" @click="handleButton(opt.name)">
-	                  <q-icon class="default-text-color"  size="24px" :name="opt.icon"/>
+	                  <div v-if="opt.name === 'cash in'" class="receive-bch-icon-wrapper-small">
+	                    <q-icon class="default-text-color" size="24px" name="volunteer_activism"/>
+	                    <img src="bitcoin-cash-circle.svg" class="bch-overlay-icon-small" alt="BCH" />
+	                  </div>
+	                  <q-icon v-else class="default-text-color" size="24px" :name="opt.icon"/>
 	                </q-btn>
 	                <div class="q-pt-xs text-center text-capitalize" :class="disableButton(opt.name) ? 'text-grey' : ''" style="font-size: 13px;">{{ opt.label }}</div>
 	              </div>
@@ -46,6 +50,7 @@ import RedeemDialog from 'src/components/stablehedge/RedeemDialog.vue';
 import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
 
 export default {
+  inheritAttrs: false,
 	data () {
 		return {
 			depositFormDialog: {
@@ -86,10 +91,6 @@ export default {
 			type: String,
 			default: null
 		},
-		hasCashin: {
-			type: Boolean,
-			default: true
-		}
 	},
 	emits: [
 		'cashin',
@@ -101,6 +102,16 @@ export default {
 	computed: {
 		darkmode () {
 			return this.$store.getters['darkmode/getStatus']
+		},
+		selectedMarketCurrency () {
+			const currency = this.$store.getters['market/selectedCurrency']
+			return currency?.symbol
+		},
+		preferredStablehedgeCurrency () {
+			// Wallet currency --> Stablehedge token currency
+			// PHP -> SPHP (currency: PHP)
+			// USD and all other currencies -> SUSD (currency: USD)
+			return this.selectedMarketCurrency === 'PHP' ? 'PHP' : 'USD'
 		},
 		isChipnet () {
 			return this.$store.getters['global/isChipnet']
@@ -131,7 +142,7 @@ export default {
 	          this.$router.push({ name: 'transaction-receive-select-asset' })
 	          break
 	        case 'cash in':
-	          this.$emit('cashin')
+	          this.$router.push({ name: 'app-get-bch' })
 	          break
 	        case 'spend bch':
 	          this.$emit('spend-bch')
@@ -142,12 +153,7 @@ export default {
 	      } 
 	},
 	disableButton (name) {
-		if (name === 'cash in') {
-			return !this.loaded || !this.hasCashin
-		} else {
-			return !this.loaded
-		}
-
+		return !this.loaded
 	},
  		async openFreezeDialog() { 			
 			const { contract } = (await this.findContractForFreeze())
@@ -165,8 +171,7 @@ export default {
 		    try {
 		        const updateLoading = vm.$q.loading.show({ group: loadingKey, delay: 500 })
 		        const currencies = [
-		          vm.selectedMarketCurrency,
-		          'USD',
+		          vm.preferredStablehedgeCurrency,
 		          ...vm.tokenBalancesWithSats.map(tokenBalance => tokenBalance?.currency)
 		        ].filter(Boolean)
 		          .filter((element, index, list) => list.indexOf(element) === index)
@@ -184,7 +189,7 @@ export default {
 			        : response.data?.results
 
 			    let contract = redemptionContracts.find(contract => {
-			        return contract?.fiat_token?.currency === vm.selectedMarketCurrency
+			        return contract?.fiat_token?.currency === vm.preferredStablehedgeCurrency
 			    })
 			    if (!contract) {
 			        contract = redemptionContracts?.[0]
@@ -373,5 +378,20 @@ export default {
 <style lang="scss" scoped>
 .asset-option {
 	margin: 10px 0px 15px;
+}
+
+.receive-bch-icon-wrapper-small {
+  position: relative;
+  display: inline-block;
+  
+  .bch-overlay-icon-small {
+    position: absolute;
+    top: 30%;
+    left: 67%;
+    transform: translate(-50%, -50%);
+    width: 0.5em;
+    height: 0.5em;
+    pointer-events: none;
+  }
 }
 </style>

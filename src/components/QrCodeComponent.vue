@@ -75,20 +75,25 @@ export default {
     generating: {
       type: Boolean,
       default: false
+    },
+    padding: {
+      type: Number,
+      default: 30
     }
   },
   data () {
     return {
       loading: true,
-      padding: 35
+      _renderTimeout: null,
+      _renderToken: 0
     }
   },
   computed: {
     wrapperSize () {
       // Calculate border width in pixels (remove 'px' suffix if present)
       const borderWidth = parseFloat(this.borderWidth) || 0;
-      // CSS padding is 30px on all sides, so we need 60px total (30px * 2)
-      const cssPadding = 30 * 2;
+      // CSS padding on all sides, so we need padding * 2 total
+      const cssPadding = this.padding * 2;
       // Total wrapper size needed: QR size + CSS padding + border on both sides
       return this.size + cssPadding + (borderWidth * 2);
     }
@@ -96,9 +101,23 @@ export default {
   mounted() {
     this.renderQRCode();
   },
+  beforeUnmount() {
+    if (this._renderTimeout) {
+      clearTimeout(this._renderTimeout)
+      this._renderTimeout = null
+    }
+    // Invalidate any in-flight callbacks
+    this._renderToken++
+  },
   watch: {
     generating(newVal) {
       if (newVal) {
+        // Cancel any pending render and invalidate in-flight callbacks
+        this._renderToken++
+        if (this._renderTimeout) {
+          clearTimeout(this._renderTimeout)
+          this._renderTimeout = null
+        }
         this.loading = true
         const container = document.getElementById(`qr-${this.qrId}`)
         if (container) {
@@ -122,6 +141,14 @@ export default {
   methods: {
     renderQRCode() {
       const vm = this
+      // Cancel any previously scheduled render and ensure only the latest call can update DOM
+      vm._renderToken++
+      const token = vm._renderToken
+      if (vm._renderTimeout) {
+        clearTimeout(vm._renderTimeout)
+        vm._renderTimeout = null
+      }
+
       const container = document.getElementById(`qr-${vm.qrId}`)
 
       // Guard: Do not attempt to render with empty content
@@ -135,7 +162,9 @@ export default {
         return
       }
 
-      setTimeout(() => {
+      vm._renderTimeout = setTimeout(() => {
+        // Ignore stale renders
+        if (token !== vm._renderToken) return
         try {
           const qrcode = new QRCode({
             content,
@@ -163,9 +192,11 @@ export default {
           // Wait for next paint, then fade in
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
+              if (token !== vm._renderToken) return
               svgElement.style.transition = 'opacity 160ms ease'
               const onDone = () => {
                 svgElement.removeEventListener('transitionend', onDone)
+                if (token !== vm._renderToken) return
                 vm.loading = false
               }
               // use transitionend to hide skeleton exactly when visible
@@ -218,7 +249,7 @@ export default {
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  padding: 30px;
+  padding: v-bind(padding + 'px');
   background-color: white;
   border-radius: 10px;
   border-style: solid;

@@ -32,7 +32,6 @@ function getProcessedRecoveryIndices() {
         // If we filtered out invalid indices, save the cleaned version back
         if (validIndices.length !== (Array.isArray(indices) ? indices.length : 0)) {
             localStorage.setItem(WALLET_RECOVERY_PROCESSED_INDICES_KEY, JSON.stringify(validIndices))
-            console.log('[Wallet Recovery] Cleaned invalid indices from processed list')
         }
         
         return new Set(validIndices)
@@ -160,6 +159,9 @@ async function verifyWalletHashMatch(index, vaultEntry) {
  * 
  * If multiple keys have the same mnemonic value, only the first one is kept to avoid recovering the same wallet twice.
  * The final list is sorted ascending.
+ * 
+ * NOTE: This function returns all indices that have mnemonic keys in localStorage, regardless of vault state.
+ * The caller should filter out deleted wallets based on vault entries.
  */
 export async function getWalletIndicesFromStorage() {
     // Get all localStorage keys
@@ -202,7 +204,6 @@ function emptyAssetsList() {
 }
 
 export async function populateMissingVaults() {
-    console.log('[Wallet Recovery] Populating null vaults')
     // Get processed indices to skip already-handled wallets
     const processedIndices = getProcessedRecoveryIndices()
     
@@ -261,7 +262,6 @@ export async function populateMissingVaults() {
         
         // Vault entry is missing - create empty snapshot
         // Note: We don't need to check mnemonic here since we're only iterating indices that have mnemonics
-        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${index}`)
         const emptyWalletSnapshot = getEmptyWalletSnapshot()
         Store.commit('global/updateWalletSnapshot', {
             index: index,
@@ -276,7 +276,6 @@ export async function populateMissingVaults() {
     const assetVaults = Store.getters['assets/getVault'];
     for (const index of walletIndices) {
         if (assetVaults[index]) continue
-        console.log(`[Wallet Recovery] Adding base assets list for ${index}`)
         Store.commit('assets/updateVault', { index: index, asset: emptyAssetsList() })
     }
 }
@@ -296,7 +295,6 @@ export function resetAssetsList(index) {
     // this will autofill of earlier indices since indices might skip due to previously deleted wallets
     for(var i = vault.length; i <= index; i++) {
         if (vault[i]) continue
-        console.log(`[Wallet Recovery] Adding base assets list for ${i} in ${index}`)
         store.commit('assets/updateVault', { index: i, asset: emptyAssetsList() })
     }
 
@@ -311,6 +309,13 @@ async function recoverWallet(index, save=false) {
     const walletVault = store.getters['global/getVault']
     const existingVaultEntry = walletVault?.[index]
     
+    // If vault entry doesn't exist or is deleted, skip recovery
+    // This prevents trying to recover wallets that have been deleted
+    if (!existingVaultEntry || existingVaultEntry.deleted === true) {
+        console.warn(`[Wallet Recovery] Skipping recovery for index ${index}: vault entry missing or deleted`)
+        return null
+    }
+    
     // Use wallet hash from vault if available (post-migration pattern)
     // This provides more reliable mnemonic lookup
     let mnemonic = null
@@ -323,8 +328,6 @@ async function recoverWallet(index, save=false) {
     if (!mnemonic) {
         mnemonic = await getMnemonic(index)
     }
-    
-    console.log('[Wallet Recovery] Initializing wallet for index:', index)
 
     if (!mnemonic) {
         console.warn('[Wallet Recovery] No mnemonic found for index:', index)
@@ -340,7 +343,6 @@ async function recoverWallet(index, save=false) {
     for (const bchWallet of bchWallets) {
         const isChipnet = bchWallets.indexOf(bchWallet) === 1
         const networkName = isChipnet ? 'chipnet' : 'mainnet'
-        console.log(`[Wallet Recovery] Creating ${networkName} BCH wallet info for index ${index}`)
 
         let walletSnapshot = {}
         await bchWallet.getAddressSetAt(0).then(function (addresses) {
@@ -394,7 +396,6 @@ async function recoverWallet(index, save=false) {
         const isChipnet = slpWallets.indexOf(slpWallet) === 1
 
         const networkName = isChipnet ? 'chipnet' : 'mainnet'
-        console.log(`[Wallet Recovery] Creating ${networkName} SLP wallet info for index ${index}`)
 
         let walletSnapshot = {}
         await slpWallet.getAddressSetAt(0).then(function (addresses) {
@@ -440,12 +441,8 @@ async function recoverWallet(index, save=false) {
 
     // sbch wallet info creation, skipped wallet subscription,
     // will assume it's already subscribed if it's being recovered
-    await wallet.sBCH.getOrInitWallet();
     const walletTypeInfo = {
         type: 'sbch',
-        derivationPath: wallet.sBCH.derivationPath,
-        walletHash: wallet.sBCH.walletHash,
-        lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
     }
     if (save) store.commit('global/updateWallet', walletTypeInfo)
     const walletSnapshot = {
@@ -460,7 +457,6 @@ async function recoverWallet(index, save=false) {
     //     wallet.BCH_CHIP.walletHash,
     //     wallet.SLP.walletHash,
     //     wallet.SLP_TEST.walletHash,
-    //     wallet.sBCH.walletHash,
     // ]
     // $pushNotifications?.subscribe?.(walletHashes, walletIndex, true)
 
@@ -474,7 +470,6 @@ async function recoverWallet(index, save=false) {
     const vault = store.getters['global/getVault'];
     for (var i = vault.length; i <= index; i++) {
         if (vault[i]) continue
-        console.log(`[Wallet Recovery] Adding empty wallet snapshot for ${i} in ${index}`)
         const emptyWalletSnapshot = getEmptyWalletSnapshot()
         store.commit('global/updateWalletSnapshot', {
             index: i,
@@ -499,11 +494,9 @@ export async function recoverWalletsFromStorage() {
 
     // Get processed indices to skip already-processed wallets
     const processedIndices = getProcessedRecoveryIndices()
-    console.log('[Wallet Recovery] Processed indices:', Array.from(processedIndices))
 
     // Find mnemonic wallet indices
     const walletIndices = await getWalletIndicesFromStorage()
-    console.log('[Wallet Recovery] walletIndices found:', walletIndices);
 
     // Filter indices: skip processed ones UNLESS their vault entry is missing/invalid or walletHash doesn't match (allows re-recovery)
     // Note: This needs to be async to verify walletHash matches mnemonic
@@ -515,6 +508,14 @@ export async function recoverWalletsFromStorage() {
             continue
         }
         
+        // Skip indices that don't have vault entries or are marked as deleted
+        // This prevents trying to recover wallets that have been deleted
+        const vaultEntry = vault[index]
+        if (!vaultEntry || vaultEntry.deleted === true) {
+            console.warn(`[Wallet Recovery] Skipping index ${index}: vault entry missing or deleted`)
+            continue
+        }
+        
         // If not processed, include it
         if (!processedIndices.has(index)) {
             unprocessedIndices.push(index)
@@ -522,7 +523,7 @@ export async function recoverWalletsFromStorage() {
         }
         // If processed, check if vault entry still exists and is valid
         // If vault entry is missing or invalid, allow re-recovery
-        const vaultEntry = vault[index]
+        // Note: vaultEntry was already declared above, so we reuse it here
         if (!vaultEntry || !vaultEntry.wallet) {
             // Vault entry missing - allow re-recovery and remove from processed list
             const processed = getProcessedRecoveryIndices()
@@ -554,7 +555,6 @@ export async function recoverWalletsFromStorage() {
         }
         // Processed and has valid vault entry with matching walletHash - skip it
     }
-    console.log('[Wallet Recovery] Unprocessed indices (after filtering processed):', unprocessedIndices)
 
     // Filter out wallets that already exist in the vault with valid wallet hash
     // Also mark indices with valid vault entries as processed (they don't need recovery)
@@ -598,10 +598,7 @@ export async function recoverWalletsFromStorage() {
     // Mark all indices with verified matching vault entries as processed (they don't need recovery)
     if (indicesToMarkAsProcessed.length > 0) {
         markIndicesAsProcessed(indicesToMarkAsProcessed)
-        console.log('[Wallet Recovery] Marked', indicesToMarkAsProcessed.length, 'indices as processed (verified walletHash matches mnemonic)')
     }
-
-    console.log('[Wallet Recovery] Recoverable indices (after filtering existing wallets):', recoverableIndices);
 
     // Only recover the last 30 wallet indices
     if (recoverableIndices.length > 30) {
@@ -612,21 +609,17 @@ export async function recoverWalletsFromStorage() {
         const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
         if (walletRecoveryV2Done) {
             Store.commit('global/setWalletsRecovered', true)
-            console.log('[Wallet Recovery] No recoverable wallets found, exiting recovery process.')
             return
         }
     }
 
     const lastWalletIndex = Math.max(...recoverableIndices, -1)
     const hasRecoverableWallets = recoverableIndices.length > 0
-    console.log('[Wallet Recovery] hasRecoverableWallets:', hasRecoverableWallets);
 
     const walletRecoveryV2Done = localStorage.getItem(WALLET_RECOVERY2_FLAG_KEY)
-    console.log('[Wallet Recovery] walletRecoveryV2Done:', walletRecoveryV2Done)
     if (!hasRecoverableWallets && walletRecoveryV2Done) {
         Store.commit('global/setWalletsRecovered', true)
-        console.log('[Wallet Recovery] No recoverable wallets found, exiting recovery process.')
-        return 
+        return
     }
 
     Store.commit('global/setWalletsRecovered', false)
@@ -649,7 +642,6 @@ export async function recoverWalletsFromStorage() {
         markIndicesAsProcessed(recoverableIndices)
         Store.commit('global/setWalletsRecovered', true)
         localStorage.setItem(WALLET_RECOVERY2_FLAG_KEY, true)
-        console.log('[Wallet Recovery] All wallets recovered successfully.')
     }).catch(error => {
         Store.commit('global/setWalletRecoveryMessage', String(error))
     })

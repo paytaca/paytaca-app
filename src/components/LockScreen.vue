@@ -1,0 +1,779 @@
+<template>
+  <div>
+    <div class="lock-screen-container" :class="[getDarkModeClass(darkMode), themeClass]">
+      <!-- Animated Background Gradient -->
+      <div class="animated-background" :class="themeClass"></div>
+      
+      <!-- Glassmorphic Card -->
+      <div class="lock-screen-card" :class="getDarkModeClass(darkMode)">
+        <!-- Logo Section with Pulse Animation -->
+        <div class="logo-section">
+          <div class="logo-glass-circle" :class="[getDarkModeClass(darkMode), themeClass]">
+            <div class="logo-glow" :class="themeClass"></div>
+            <img 
+              :src="logoSrc"
+              width="50"
+              height="50"
+              alt="Logo" 
+              class="logo-image"
+              @error="handleLogoError"
+              @load="handleLogoLoad"
+            >
+          </div>
+          <div class="lock-title text-bow" :class="getDarkModeClass(darkMode)">
+            {{ $t('YourWalletIsLocked', {}, 'Your wallet is locked') }}
+          </div>
+        </div>
+
+      <!-- Unlock Button with Theme Color -->
+      <div class="unlock-section">
+        <!-- Unlock button - always shown, changes based on state -->
+        <q-btn
+          unelevated
+          no-caps
+          :color="themeColor"
+          class="unlock-button glass-button"
+          :class="getDarkModeClass(darkMode)"
+          :label="getUnlockButtonLabel()"
+          @click="handleUnlock"
+          :loading="authenticating"
+          :icon-right="getUnlockButtonIcon()"
+        >
+          <template #loading>
+            <q-spinner-dots size="24px" />
+          </template>
+        </q-btn>
+        
+        <!-- Error Message with Glassmorphic Style -->
+        <transition name="fade">
+          <div v-if="errorMessage" class="error-message glass-error" :class="getDarkModeClass(darkMode)">
+            <q-icon name="error_outline" size="18px" />
+            <span class="q-ml-xs">{{ errorMessage }}</span>
+          </div>
+        </transition>
+        
+        <!-- Use PIN Instead Button - shown when biometric is permanently unavailable -->
+        <transition name="fade">
+          <q-btn
+            v-if="biometricPermanentlyUnavailable && preferredSecurity === 'biometric' && !usePinFallback"
+            unelevated
+            no-caps
+            outline
+            :color="themeColor"
+            class="pin-fallback-button glass-button"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('UsePinInstead', {}, 'Use PIN Instead')"
+            @click="switchToPin"
+            icon="lock"
+          />
+        </transition>
+      </div>
+      </div>
+    </div>
+
+    <!-- PIN Dialog - Outside the lock screen container to avoid z-index issues -->
+    <pinDialog
+      ref="pinDialogRef"
+      :pinDialogAction="pinDialogAction"
+      @update:pinDialogAction="val => { pinDialogAction = val }"
+      @nextAction="pinDialogNextAction"
+      :disableClose="true"
+    />
+  </div>
+</template>
+
+<script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import pinDialog from 'src/components/pin/index.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { pinExists } from 'src/wallet'
+// Import logo as a static asset - webpack will resolve this automatically
+import logoImage from '../assets/paytaca_logo.png'
+
+export default {
+  name: 'LockScreen',
+  components: {
+    pinDialog
+  },
+  data() {
+    return {
+      pinDialogAction: '',
+      authenticating: false,
+      errorMessage: '',
+      biometricFailed: false,
+      biometricAttempts: 0,
+      biometricPermanentlyUnavailable: false, // Track if biometric is unavailable due to device issues
+      usePinFallback: false, // Track if user wants to use PIN instead of biometric
+      logoLoadAttempts: 0
+    }
+  },
+  computed: {
+    logoSrc() {
+      // Use the imported logo path, which webpack resolves automatically
+      // This ensures the path is properly resolved at build time
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[LockScreen] logoSrc computed, returning:', logoImage)
+      }
+      return logoImage
+    },
+    darkMode() {
+      return this.$store?.state?.darkmode?.darkmode
+    },
+    preferredSecurity() {
+      return this.$store.getters['global/preferredSecurity']
+    },
+    theme() {
+      return this.$store.getters['global/theme']
+    },
+    themeClass() {
+      return `theme-${this.theme}`
+    },
+    themeColor() {
+      // Map themes to Quasar color names or custom colors
+      const themeColorMap = {
+        'glassmorphic-blue': 'primary',
+        'glassmorphic-gold': 'warning',
+        'glassmorphic-green': 'positive',
+        'glassmorphic-red': 'negative',
+        'payhero': 'warning'
+      }
+      return themeColorMap[this.theme] || 'primary'
+    }
+  },
+  watch: {
+    pinDialogAction() {
+      // Watcher for pinDialogAction changes
+    }
+  },
+  methods: {
+    getDarkModeClass,
+    
+    handleLogoError(event) {
+      console.error('[LockScreen] Logo failed to load:', event.target.src)
+    },
+    
+    handleLogoLoad() {
+      // Logo loaded successfully
+    },
+    
+    preloadLogo() {
+      // Preload the logo image to ensure it's available
+      // This is especially important after navigation, dialogs, and wallet switching
+      const img = new Image()
+      
+      img.onerror = () => {
+        console.error('[LockScreen] Logo preload failed:', this.logoSrc)
+      }
+      
+      // Start preloading with the imported path
+      img.src = this.logoSrc
+    },
+    
+    getUnlockButtonLabel() {
+      if (this.preferredSecurity === 'biometric' && !this.usePinFallback) {
+        if (this.biometricFailed && !this.biometricPermanentlyUnavailable) {
+          return this.$t('TryAgain') || 'Try Again'
+        }
+        return this.$t('Unlock') || 'Unlock'
+      }
+      return this.$t('Unlock') || 'Unlock'
+    },
+    
+    getUnlockButtonIcon() {
+      if (this.preferredSecurity === 'biometric' && !this.usePinFallback) {
+        return 'fingerprint'
+      }
+      return 'lock_open'
+    },
+    
+    handleUnlock() {
+      this.errorMessage = ''
+      this.biometricFailed = false
+      this.authenticating = true
+
+      // Check if we should use PIN (either preferred or fallback)
+      const shouldUsePin = this.preferredSecurity === 'pin' || 
+                          (this.preferredSecurity === 'biometric' && (this.biometricPermanentlyUnavailable || this.usePinFallback))
+      
+      if (shouldUsePin) {
+        // Verify PIN exists before attempting PIN authentication
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        pinExists(walletIndex).then(hasPin => {
+          if (!hasPin) {
+            // PIN doesn't exist - this should not happen if validation worked correctly
+            // But handle it gracefully to prevent lockout
+            console.error('[LockScreen] PIN authentication requested but PIN does not exist')
+            this.authenticating = false
+            this.errorMessage = this.$t('PinNotConfigured', {}, 'PIN is not configured for this wallet. Please set up a PIN in Settings to use this feature.')
+            
+            // If biometric is available, suggest using it instead
+            if (this.preferredSecurity === 'biometric' && !this.biometricPermanentlyUnavailable) {
+              this.errorMessage += ' ' + this.$t('TryBiometricInstead', {}, 'Try using biometric authentication instead.')
+              // Reset state to allow biometric retry
+              this.usePinFallback = false
+              this.biometricPermanentlyUnavailable = false
+            }
+            return
+          }
+          
+          // PIN exists - proceed with PIN dialog
+          this.authenticating = false
+          this.pinDialogAction = 'VERIFY'
+          
+          // Check PIN dialog state after a delay
+          setTimeout(() => {
+            if (this.$refs.pinDialogRef) {
+              // Try to manually trigger the dialog
+              if (!this.$refs.pinDialogRef.dialog) {
+                this.$refs.pinDialogRef.dialog = true
+              }
+            }
+          }, 100)
+        }).catch(error => {
+          console.error('[LockScreen] Error checking PIN existence:', error)
+          this.authenticating = false
+          this.errorMessage = this.$t('ErrorCheckingPin', {}, 'Error checking PIN configuration. Please try again.')
+        })
+      } else {
+        this.verifyBiometric()
+      }
+    },
+    
+    async switchToPin() {
+      const vm = this
+      
+      // Check if PIN exists before allowing PIN fallback
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const hasPin = await pinExists(walletIndex)
+      
+      if (!hasPin) {
+        // PIN doesn't exist - this is a critical error
+        // User cannot unlock wallet without PIN or biometric
+        vm.errorMessage = vm.$t('PinNotConfigured', {}, 'PIN is not configured for this wallet. Please set up a PIN in Settings to use this feature.')
+        vm.biometricPermanentlyUnavailable = true
+        vm.usePinFallback = false
+        console.error('[LockScreen] PIN fallback requested but PIN does not exist')
+        return
+      }
+      
+      // PIN exists - proceed with PIN fallback
+      vm.usePinFallback = true
+      vm.errorMessage = ''
+      vm.biometricFailed = false
+      vm.handleUnlock()
+    },
+
+    verifyBiometric() {
+      const vm = this
+      
+      // Check if NativeBiometric is available
+      if (!NativeBiometric || typeof NativeBiometric.verifyIdentity !== 'function') {
+        console.error('[LockScreen] NativeBiometric not available')
+        vm.authenticating = false
+        vm.biometricFailed = true
+        vm.biometricPermanentlyUnavailable = true
+        vm.errorMessage = vm.$t('BiometricNotAvailable', {}, 'Biometric authentication not available. Please use PIN instead.')
+        return
+      }
+      
+      vm.errorMessage = ''
+      vm.biometricFailed = false
+      
+      NativeBiometric.verifyIdentity({
+        reason: vm.$t('NativeBiometricReason2') || 'Unlock your wallet',
+        title: vm.$t('SecurityAuthentication') || 'Security Authentication',
+        subtitle: vm.$t('NativeBiometricSubtitle') || 'Verify your identity to unlock your wallet',
+        description: ''
+      })
+        .then(() => {
+          // Authentication successful
+          vm.authenticating = false
+          vm.biometricFailed = false
+          vm.biometricAttempts = 0
+          vm.errorMessage = ''
+          vm.onUnlockSuccess()
+        })
+        .catch((error) => {
+          // Failed to authenticate
+          vm.authenticating = false
+          vm.biometricFailed = true
+          vm.biometricAttempts++
+          console.error('[LockScreen] Biometric verification error:', error)
+          
+          // Safely extract error message - handle various error formats
+          // Error could be: string, Error object, object with message property, or null/undefined
+          const errorMessage = typeof error === 'string' 
+            ? error 
+            : (error && typeof error === 'object' && typeof error.message === 'string')
+              ? error.message
+              : ''
+          
+          if (errorMessage.includes('Cancel') || 
+              errorMessage.includes('Authentication cancelled') || 
+              errorMessage.includes('Fingerprint operation cancelled') ||
+              errorMessage.includes('User cancelled')) {
+            // User cancelled - don't show error, just allow retry
+            vm.errorMessage = ''
+          } else if (errorMessage.includes('Too many attempts') || 
+                     errorMessage.includes('too many attempts')) {
+            vm.errorMessage = vm.$t('TooManyAttempts', {}, 'Too many attempts. Please try again later.')
+            // Disable retry for a moment
+            setTimeout(() => {
+              vm.biometricFailed = false
+              vm.errorMessage = ''
+            }, 2000)
+          } else if (error && typeof error === 'object' && error.code === 'UNIMPLEMENTED') {
+            vm.biometricPermanentlyUnavailable = true
+            vm.errorMessage = vm.$t('BiometricNotSupported', {}, 'Biometric authentication is not supported on this device.')
+          } else if (errorMessage.includes('not enrolled') || 
+                     errorMessage.includes('No biometric credentials')) {
+            vm.biometricPermanentlyUnavailable = true
+            vm.errorMessage = vm.$t('BiometricNotEnrolled', {}, 'No biometric credentials found. Please set up biometrics in your device settings.')
+          } else {
+            // Authentication failed (wrong fingerprint/face)
+            vm.errorMessage = vm.$t('BiometricFailed', {}, 'Authentication failed. Please try again.')
+          }
+        })
+    },
+
+    pinDialogNextAction(action) {
+      if (action === 'proceed') {
+        this.pinDialogAction = ''
+        this.errorMessage = ''
+        this.onUnlockSuccess()
+      } else if (action === 'cancel') {
+        this.pinDialogAction = ''
+        this.errorMessage = ''
+        // Don't show error on cancel - user can try again
+      } else {
+        // Action is undefined or empty - this happens during dialog reset
+        // Only show error if we were actually in verification mode and it wasn't successful
+        // Don't set error message here - wait for explicit failure
+      }
+    },
+
+    onUnlockSuccess() {
+      const vm = this
+      
+      // Set unlock state in store using proper Vuex mutation
+      // This ensures proper reactivity, DevTools support, and watcher notifications
+      vm.$store.commit('global/setIsUnlocked', true)
+      
+      // Emit unlock event for parent components
+      vm.$emit('unlocked')
+      
+      // Get redirect path
+      const redirectPath = vm.$route.query.redirect || '/'
+      
+      // Use nextTick to ensure store mutation is processed
+      // Then add a small delay to ensure state propagation before navigation
+      // This prevents race conditions with resume handlers and router guards
+      vm.$nextTick(() => {
+        // Double-check unlock state before navigation
+        const finalUnlockCheck = vm.$store.getters['global/isUnlocked']
+        if (finalUnlockCheck !== true) {
+          vm.$store.commit('global/setIsUnlocked', true)
+        }
+        
+        // Small delay to ensure state is fully propagated to all watchers and guards
+        setTimeout(() => {
+          vm.$router.replace(redirectPath).catch(err => {
+            console.error('[LockScreen] Navigation error:', err)
+            // If navigation fails, try going to home
+            vm.$router.replace('/').catch(err2 => {
+              console.error('[LockScreen] Fallback navigation also failed:', err2)
+            })
+          })
+        }, 50) // Small delay to ensure state propagation
+      })
+    }
+  },
+  mounted() {
+    // Reset biometric state flags on mount
+    this.biometricPermanentlyUnavailable = false
+    this.usePinFallback = false
+    this.biometricFailed = false
+    this.errorMessage = ''
+    
+    // Preload logo to ensure it's available when component renders
+    // This is especially important after navigation, dialogs, and wallet switching
+    this.preloadLogo()
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lock-screen-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  
+  &.light {
+    background: linear-gradient(-45deg, #f5f7fa, #e8eef5, #f0f4f8, #e3e9f0);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+  
+  &.dark {
+    background: linear-gradient(-45deg, #1a1d23, #252930, #1e2229, #2a2f38);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+  
+  // Theme-specific gradient overlays
+  &.theme-glassmorphic-blue {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(66, 165, 245, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(21, 101, 192, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-glassmorphic-gold {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(255, 167, 38, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(230, 81, 0, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-glassmorphic-green {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(46, 125, 50, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(46, 125, 50, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+  
+  &.theme-glassmorphic-red {
+    &.light::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(245, 66, 112, 0.15), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(192, 21, 67, 0.1), transparent 50%);
+      pointer-events: none;
+    }
+    &.dark::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(245, 66, 112, 0.08), transparent 50%),
+                  radial-gradient(circle at 70% 50%, rgba(192, 21, 67, 0.05), transparent 50%);
+      pointer-events: none;
+    }
+  }
+}
+
+.animated-background {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.lock-screen-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  max-width: 420px;
+  width: 90%;
+  border-radius: 24px;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  animation: fadeIn 0.6s ease-out;
+  
+  &.dark {
+    background: rgba(30, 35, 45, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+}
+
+.logo-section {
+  margin-bottom: 40px;
+  text-align: center;
+  opacity: 1 !important; // Fix for logo visibility on navigation
+}
+
+.logo-glass-circle {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 25px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: pulse 3s ease-in-out infinite;
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12),
+                0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+  }
+  
+  // Theme-specific glow effects
+  &.theme-glassmorphic-blue {
+    box-shadow: 0 12px 40px rgba(66, 165, 245, 0.25),
+                0 0 0 1px rgba(66, 165, 245, 0.2) inset;
+  }
+  
+  &.theme-glassmorphic-gold {
+    box-shadow: 0 12px 40px rgba(255, 167, 38, 0.25),
+                0 0 0 1px rgba(255, 167, 38, 0.2) inset;
+  }
+  
+  &.theme-glassmorphic-green {
+    box-shadow: 0 12px 40px rgba(76, 175, 80, 0.25),
+                0 0 0 1px rgba(76, 175, 80, 0.2) inset;
+  }
+  
+  &.theme-glassmorphic-red {
+    box-shadow: 0 12px 40px rgba(245, 66, 112, 0.25),
+                0 0 0 1px rgba(245, 66, 112, 0.2) inset;
+  }
+}
+
+.logo-glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  opacity: 0.3;
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: 0;
+  
+  &.theme-glassmorphic-blue {
+    background: radial-gradient(circle, rgba(66, 165, 245, 0.4), transparent 70%);
+  }
+  
+  &.theme-glassmorphic-gold {
+    background: radial-gradient(circle, rgba(255, 167, 38, 0.4), transparent 70%);
+  }
+  
+  &.theme-glassmorphic-green {
+    background: radial-gradient(circle, rgba(76, 175, 80, 0.4), transparent 70%);
+  }
+  
+  &.theme-glassmorphic-red {
+    background: radial-gradient(circle, rgba(245, 66, 112, 0.4), transparent 70%);
+  }
+}
+
+.logo-image {
+  position: relative;
+  z-index: 1;
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+.lock-title {
+  font-size: 24px !important;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  opacity: 0.9;
+  margin-top: 32px !important;
+  transform: none !important;
+  
+  &.dark {
+    color: rgba(255, 255, 255, 0.95);
+  }
+  
+  &.light {
+    color: rgba(0, 0, 0, 0.85);
+  }
+}
+
+.unlock-section {
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.unlock-button {
+  width: 100%;
+  padding: 14px 32px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 16px;
+  letter-spacing: 0.3px;
+  min-height: 54px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.glass-button {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  &.light {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+.pin-fallback-button {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 12px;
+  margin-top: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.glass-error {
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease-out;
+  
+  &.dark {
+    background: rgba(193, 0, 21, 0.15);
+    border: 1px solid rgba(193, 0, 21, 0.3);
+    color: #ff6b6b;
+  }
+  
+  &.light {
+    background: rgba(193, 0, 21, 0.08);
+    border: 1px solid rgba(193, 0, 21, 0.2);
+    color: #c10015;
+  }
+}
+
+// Fade transition
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>
+

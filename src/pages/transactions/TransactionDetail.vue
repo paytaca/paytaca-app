@@ -3,7 +3,6 @@
     <div class="transaction-detail-header-wrapper">
       <header-nav :title="$t('Transaction', {}, 'Transaction')" :backnavpath="backNavPath" class="header-nav apps-header" @click:left="goBack" />
     </div>
-    
     <div class="transaction-detail-content-wrapper" :class="getDarkModeClass(darkMode)">
       <!-- Skeleton Loading State -->
       <div v-if="isLoading" class="q-pa-lg">
@@ -69,18 +68,27 @@
         <!-- Amount block (mirrors SendSuccessBlock proportions) -->
         <div class="amount-block q-mt-md text-center section-block-ss">
           <div class="row justify-center q-gutter-sm amount-row-ss" style="margin-top: 25px;">
-            <q-avatar size="40px" class="amount-avatar-ss"><img :src="getImageUrl(tx.asset)" alt="asset-logo" /></q-avatar>
+            <q-avatar size="40px" class="amount-avatar-ss">
+              <img 
+                :src="getImageUrl(tx.asset)" 
+                alt="asset-logo" 
+                class="asset-icon"
+                @contextmenu.prevent
+                @selectstart.prevent
+              />
+            </q-avatar>
             <div class="amount-label-ss">{{ displayAmountText }}</div>
           </div>
-          <div v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
+          <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
             <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
             <q-icon 
               name="info" 
               size="16px" 
-              class="q-ml-xs cursor-pointer"
+              class="q-ml-xs cursor-pointer info-icon-clickable"
               :class="getDarkModeClass(darkMode)"
+              @click="showConversionInfo"
             >
-              <q-tooltip :delay="300" class="text-body2" :class="getDarkModeClass(darkMode)">
+              <q-tooltip v-if="!isMobile" :delay="300" class="text-body2" :class="getDarkModeClass(darkMode)">
                 {{ fiatConversionTooltip }}
               </q-tooltip>
             </q-icon>
@@ -88,6 +96,67 @@
           <div v-if="gainLossAmount !== null && gainLossAmount !== undefined && isBchTransaction && Math.abs(gainLossAmount) > 0.01" class="amount-gain-loss-ss" :class="gainLossClass">
             <q-icon :name="gainLossAmount >= 0 ? 'trending_up' : 'trending_down'" size="16px" class="q-mr-xs" />
             {{ gainLossText }}
+          </div>
+        </div>
+
+        <!-- NFT Image Display -->
+        <div v-if="isNft && tx && tx.asset" class="q-mt-md q-mb-lg text-center">
+          <div v-if="fetchingNftMetadata" class="nft-image-skeleton-container">
+            <q-skeleton
+              type="rect"
+              width="300px"
+              height="300px"
+              class="nft-image-skeleton"
+              style="border-radius: 12px; margin: 0 auto;"
+            />
+          </div>
+          <div v-else>
+            <q-img
+              v-if="nftImageUrl"
+              :src="nftImageUrl"
+              :alt="nftName || tx.asset.name || 'NFT'"
+              style="max-width: 300px; max-height: 300px; margin: 0 auto; border-radius: 12px;"
+              class="nft-image"
+              @error="nftImageError = true"
+            >
+              <template v-slot:error>
+                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">
+                  <div class="text-center">
+                    <q-icon name="image" size="48px" />
+                    <div class="text-caption q-mt-sm">{{ $t('ImageNotAvailable', {}, 'Image not available') }}</div>
+                  </div>
+                </div>
+              </template>
+            </q-img>
+            <q-img
+              v-else
+              :src="getImageUrl(tx.asset)"
+              :alt="tx.asset.name || 'NFT'"
+              style="max-width: 300px; max-height: 300px; margin: 0 auto; border-radius: 12px;"
+              class="nft-image"
+              @error="nftImageError = true"
+            >
+              <template v-slot:error>
+                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">
+                  <div class="text-center">
+                    <q-icon name="image" size="48px" />
+                    <div class="text-caption q-mt-sm">{{ $t('ImageNotAvailable', {}, 'Image not available') }}</div>
+                  </div>
+                </div>
+              </template>
+            </q-img>
+            <!-- View in Collectibles Button -->
+            <div class="q-mt-md q-mb-sm">
+              <q-btn
+                no-caps
+                rounded
+                color="pt-primary1"
+                :label="$t('ViewInCollectibles', {}, 'View in Collectibles')"
+                icon="collections"
+                @click="viewInCollectibles"
+                class="view-in-collectibles-btn"
+              />
+            </div>
           </div>
         </div>
 
@@ -132,80 +201,86 @@
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
+        <!-- Save Receipt Button -->
+        <div class="q-mt-md q-mb-lg text-center">
+          <q-btn
+            flat
+            outline
+            no-caps
+            :label="$t('SaveReceipt', {}, 'Save Receipt')"
+            icon="receipt"
+            color="grey-7"
+            class="save-receipt-btn glassmorphic-receipt-btn"
+            :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
+            :loading="savingReceipt"
+            :disable="savingReceipt"
+            @click="saveReceiptImage"
+          >
+            <template v-slot:loading>
+              <q-spinner-dots color="white" size="24px" />
+            </template>
+          </q-btn>
+        </div>
+
         <!-- Transaction Metadata Section -->
-        <template v-if="attributeDetails?.length">
+        <template v-if="metadataBadges?.length || attributeDetails?.length">
           <q-separator spaced class="q-mt-lg"/>
-          <div class="q-px-md row items-center justify-center section-block-ss">
-            <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
-            <q-btn flat icon="more_vert" padding="sm" round class="q-r-mr-md">
-              <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-                <q-item
-                  :active="displayRawAttributes"
-                  clickable v-close-popup
-                  @click="() => displayRawAttributes = true"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
-                  </q-item-section>
-                </q-item>
-                <q-item
-                  :active="!displayRawAttributes"
-                  clickable v-close-popup
-                  @click="() => displayRawAttributes = false"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
-                  </q-item-section>
-                </q-item>
-              </q-menu>
-            </q-btn>
+          <div class="section-block-ss">
+            <div class="row items-center justify-center q-mb-sm">
+              <div class="text-grey text-weight-medium text-caption">{{ $t('TransactionMetadata', {}, 'Transaction metadata') }}</div>
+              <q-btn flat icon="more_vert" size="sm" padding="xs" round dense>
+                <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+                  <q-item
+                    :active="displayRawAttributes"
+                    clickable v-close-popup
+                    @click="() => displayRawAttributes = true"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ $t('DisplayRawData', {}, 'Display raw data') }}</q-item-label>    
+                    </q-item-section>
+                  </q-item>
+                  <q-item
+                    :active="!displayRawAttributes"
+                    clickable v-close-popup
+                    @click="() => displayRawAttributes = false"
+                  >
+                    <q-item-section>
+                      <q-item-label>{{ $t('DisplayRefinedData', {}, 'Display refined data') }}</q-item-label>    
+                    </q-item-section>
+                  </q-item>
+                </q-menu>
+              </q-btn>
+            </div>
           </div>
           <q-slide-transition>
-            <div>
-              <div v-if="!displayRawAttributes" v-for="(group, index) in attributeDetails" :key="index" class="q-my-sm section-block-ss"> 
-                <div class="q-px-md text-subtitle1 text-left">{{ group?.name }}</div>
-                <q-item
-                  v-for="(attributeDetails, index2) in group?.items" :key="`${index}-${index2}`"
+            <div v-if="!displayRawAttributes" class="q-mt-sm q-mb-md">
+              <div v-if="metadataBadges?.length" class="transaction-metadata-badges">
+                <q-badge
+                  v-for="(badge, index) in metadataBadges" :key="index"
+                  class="badge-item"
+                  :color="badgeColor"
+                  rounded
+                  @click.stop
                 >
-                  <q-item-section>
-                    <q-item-label class="text-grey row items-center justify-left">
-                      <div>{{ attributeDetails?.label }}</div>
-                      <template v-if="attributeDetails?.tooltip">
-                        <q-icon name="description" size="1.25em" class="q-ml-xs"/>
-                        <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
-                          {{ attributeDetails?.tooltip }}
-                        </q-menu>
-                      </template>
-                    </q-item-label>
-                    <q-item-label>
-                      <div class="row items-start no-wrap justify-left">
-                        <div class="q-space q-my-xs text-left" style="word-break:break-all">
-                          {{ attributeDetails?.text }}
-                        </div>
-                        <div
-                          v-for="(action, index3) in attributeDetails?.actions" :key="`${index}-${index2}-${index3}`"
-                          class="row items-center"
-                        >
-                          <q-btn
-                            flat :icon="action?.icon"
-                            size="sm" padding="xs sm"
-                            @click.stop="() => handleAttributeAction(action)"
-                          />
-                          <q-separator
-                            v-if="index3 < attributeDetails?.actions?.length - 1"
-                            vertical
-                            :dark="darkMode"
-                          />
-                        </div>
+                  <img v-if="badge?.icon && badge?.icon.startsWith('img:')" :src="badge.icon" class="badge-icon-img q-mr-xs"/>
+                  <q-icon v-else-if="badge?.icon" :name="badge?.icon" class="q-mr-xs" size="14px"/>
+                  <span class="badge-text">
+                    {{ badge?.text }}
+                  </span>
+                  <q-popup-proxy :breakpoint="0">
+                    <div class="badge-popup pt-card pt-label" :class="getDarkModeClass(darkMode)">
+                      <div v-if="badge?.text?.length >= 14">
+                        {{ badge?.text }}
                       </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
+                      <div class="text-caption">{{ badge?.description }}</div>
+                    </div>
+                  </q-popup-proxy>
+                </q-badge>
               </div>
             </div>
           </q-slide-transition>
           <q-slide-transition>
-            <div v-if="displayRawAttributes">
+            <div v-if="displayRawAttributes" class="q-mt-sm">
               <q-item v-for="(attribute, index) in tx?.attributes" :key="index">
                 <q-item-section side top>
                   <q-item-label caption class="text-grey">
@@ -285,6 +360,12 @@
       </div>
     </div>
   </div>
+
+  <UpgradePromptDialog
+    v-model="showUpgradeDialog"
+    :dark-mode="darkMode"
+    limit-type="favoriteTokens"
+  />
 </template>
 
 <script>
@@ -294,23 +375,29 @@ import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { fetchMemo, createMemo, updateMemo, deleteMemo, encryptMemo, decryptMemo, authMemo } from 'src/utils/transaction-memos.js'
-import { getKeypair } from 'src/exchange/chat/keys'
+import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
-import { parseAttributesToGroups } from 'src/utils/tx-attributes'
+import html2canvas from 'html2canvas'
+import SaveToGallery from 'src/utils/save-to-gallery'
+import paytacaLogoHorizontal from '../../assets/paytaca_logo_horizontal.png'
+import QRCode from 'qrcode-svg'
+import { parseAttributesToGroups, parseAttributeToBadge } from 'src/utils/tx-attributes'
 import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 import { parseHedgePositionData } from 'src/wallet/anyhedge/formatters'
 import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDetailDialog.vue'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import * as assetSettings from 'src/utils/asset-settings'
+import { getBcmrBackend, convertIpfsUrl } from 'src/wallet/cashtokens'
+import { binToHex } from '@bitauth/libauth'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 
 export default {
   name: 'TransactionDetailPage',
-  components: { headerNav },
+  components: { headerNav, UpgradePromptDialog },
   props: {
     txid: String
   },
@@ -338,6 +425,12 @@ export default {
       favorites: [],
       addingToFavorites: false,
       favoritesEvaluated: false, // Track if favorites have been evaluated in background
+      showUpgradeDialog: false,
+      nftImageError: false, // Track if NFT image failed to load
+      nftImageUrl: null, // NFT image URL from BCMR type_metadata
+      nftName: null, // NFT name from BCMR type_metadata
+      fetchingNftMetadata: false, // Track if NFT metadata is being fetched
+      savingReceipt: false,
     }
   },
   computed: {
@@ -363,25 +456,66 @@ export default {
     },
     displayAmountText () {
       if (!this.tx) return ''
+      
+      // For NFT transactions, show type name instead of amount and symbol
+      if (this.isNft) {
+        // Use nftName if available (from BCMR metadata), otherwise use asset.name
+        return this.nftName || this.tx.asset?.name || 'NFT'
+      }
+      
       const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
         ? this.denominationTabSelected
         : this.$store.getters['global/denomination']
       return `${parseAssetDenomination(denom, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
     },
+    hasHistoricalPrice () {
+      if (!this.tx) return false
+      const code = this.selectedMarketCurrency
+      if (!code) return false
+      
+      // Check if we have fiat_amounts (historical data)
+      if (code && this.tx?.fiat_amounts && this.tx.fiat_amounts[code] !== undefined) {
+        return true
+      }
+      
+      // Check if we have historical prices
+      if (this.tx.usd_price && code === 'USD') {
+        return true
+      }
+      
+      if (this.tx.market_prices && this.tx.market_prices[code]) {
+        return true
+      }
+      
+      return false
+    },
     displayFiatAmount () {
       if (!this.tx) return null
       const code = this.selectedMarketCurrency
+      if (!code) return null
+      
+      // Access assetPrices to ensure reactivity when prices are updated
+      const _ = this.$store.getters['market/assetPrices']
+      
+      // First, try to use provided fiat_amounts
       const provided = code && this.tx?.fiat_amounts ? this.tx.fiat_amounts[code] : undefined
       const numeric = Number(provided)
       if (Number.isFinite(numeric)) return Math.abs(numeric)
+      
+      // Second, try historical prices (usd_price or market_prices)
       const price = (this.tx.usd_price && code === 'USD')
         ? this.tx.usd_price
         : (this.tx.market_prices && this.tx.market_prices[code])
-      if (!price) return null
-      let base = Math.abs(Number(this.tx.amount)) * Number(price)
+      
+      // Third, fallback to current market price from store if historical price is not available
+      const assetId = this.tx?.asset?.id || 'bch'
+      const currentPrice = price || this.$store.getters['market/getAssetPrice'](assetId, code)
+      if (!currentPrice || currentPrice === 0) return null
+      
+      let base = Math.abs(Number(this.tx.amount)) * Number(currentPrice)
       // Adjust for token decimals similar to list item computation
-      const assetId = String(this.tx?.asset?.id || '')
-      if (assetId && assetId !== 'bch') {
+      const assetIdStr = String(assetId)
+      if (assetIdStr && assetIdStr !== 'bch') {
         const decimals = parseInt(this.tx?.asset?.decimals) || 0
         if (decimals > 0) base = base / (10 ** decimals)
       }
@@ -392,21 +526,28 @@ export default {
       const code = this.selectedMarketCurrency
       if (!code) return null
       
+      // Access assetPrices to ensure reactivity when prices are updated
+      const _ = this.$store.getters['market/assetPrices']
+      
       // Get current price
-      const currentPrice = this.$store.getters['market/getAssetPrice'](this.tx?.asset?.id || 'bch', code)
+      const assetId = this.tx?.asset?.id || 'bch'
+      const currentPrice = this.$store.getters['market/getAssetPrice'](assetId, code)
       if (!currentPrice || currentPrice === 0) return null
       
       // Calculate current fiat value
       let base = Math.abs(Number(this.tx.amount)) * Number(currentPrice)
       // Adjust for token decimals
-      const assetId = String(this.tx?.asset?.id || '')
-      if (assetId && assetId !== 'bch') {
+      const assetIdStr = String(assetId)
+      if (assetIdStr && assetIdStr !== 'bch') {
         const decimals = parseInt(this.tx?.asset?.decimals) || 0
         if (decimals > 0) base = base / (10 ** decimals)
       }
       return base
     },
     gainLossAmount () {
+      // Only calculate gain/loss if we have historical price data
+      // If we're using current price as fallback, don't show gain/loss
+      if (!this.hasHistoricalPrice) return null
       if (!this.displayFiatAmount || !this.currentFiatAmount) return null
       return this.currentFiatAmount - this.displayFiatAmount
     },
@@ -444,11 +585,98 @@ export default {
     },
     fiatConversionTooltip () {
       const currency = this.selectedMarketCurrency || 'USD'
-      return this.$t('ConversionInfo', {}, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
+      return this.$t('ConversionInfo', { currency }, `Conversion to ${currency} at the time of the transaction. Gain/loss is shown below when compared to current price.`)
+    },
+    isMobile () {
+      return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    isNft () {
+      if (!this.tx) return false
+      // Check if is_nft is directly on tx or tx.asset
+      if (this.tx.is_nft === true || this.tx.is_nft === 'true') return true
+      if (this.tx.asset?.is_nft === true || this.tx.asset?.is_nft === 'true') return true
+      // Check if is_nft is in attributes array
+      if (Array.isArray(this.tx.attributes)) {
+        const nftAttribute = this.tx.attributes.find(attr => {
+          if (attr.key === 'is_nft') {
+            return attr.value === true || attr.value === 'true' || String(attr.value).toLowerCase() === 'true'
+          }
+          // Also check if key-value pair is stored as a string like "is_nft=true"
+          if (typeof attr.key === 'string' && attr.key.includes('is_nft')) {
+            return attr.value === true || attr.value === 'true' || String(attr.value).toLowerCase() === 'true'
+          }
+          return false
+        })
+        if (nftAttribute) return true
+      }
+      return false
+    },
+    nftTokenId () {
+      if (!this.isNft || !this.tx) return null
+      // Extract category from token field
+      // Priority: token.id (category) > token.asset_id (ct/category) > asset.id
+      let tokenId = null
+      
+      // First try token.id (this is the category ID)
+      if (this.tx.token?.id) {
+        tokenId = this.tx.token.id
+      }
+      // Then try token.asset_id (format: "ct/category")
+      else if (this.tx.token?.asset_id) {
+        tokenId = this.tx.token.asset_id
+      }
+      // Fallback to asset.id
+      else if (this.tx.asset?.id) {
+        tokenId = this.tx.asset.id
+      }
+      
+      if (!tokenId) return null
+      
+      // If it's in format "ct/..." or "slp/...", extract just the category part
+      if (typeof tokenId === 'string' && tokenId.includes('/')) {
+        const parts = tokenId.split('/')
+        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+          return parts[1] // Return just the category ID
+        }
+      }
+      
+      // Otherwise return as-is (should be just the category ID)
+      return tokenId
+    },
+    nftCommitment () {
+      if (!this.isNft || !this.tx) return null
+      // Try to get commitment from token field first
+      let commitment = this.tx.token?.commitment
+      
+      // If not found, try to get from attributes
+      if (!commitment && Array.isArray(this.tx.attributes)) {
+        const commitmentAttr = this.tx.attributes.find(attr => attr.key === 'commitment')
+        if (commitmentAttr && commitmentAttr.value) {
+          commitment = commitmentAttr.value
+        }
+      }
+      
+      // Convert commitment to hex string if it's a Uint8Array or Buffer
+      if (commitment) {
+        if (commitment instanceof Uint8Array || (commitment.constructor && commitment.constructor.name === 'Uint8Array')) {
+          return binToHex(commitment)
+        }
+        if (Buffer && Buffer.isBuffer(commitment)) {
+          return commitment.toString('hex')
+        }
+        // If it's already a string, return as is
+        if (typeof commitment === 'string') {
+          return commitment
+        }
+      }
+      
+      return null
     },
     showAddToFavoritesButton () {
       // Hide by default until favorites are evaluated
       if (!this.favoritesEvaluated) return false
+      // Don't show button for NFTs
+      if (this.isNft) return false
       if (!this.isTokenTransaction || !this.tokenAssetId) return false
       // Check if token is not in favorites
       const favoriteIds = this.favorites
@@ -465,6 +693,15 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    badgeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'amber-7',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
     },
     wrapperBackgroundStyle () {
       const theme = this.theme
@@ -502,6 +739,11 @@ export default {
       if (!Array.isArray(this.tx?.attributes)) return []
       return parseAttributesToGroups({ attributes: this.tx?.attributes })
     },
+    metadataBadges () {
+      if (!Array.isArray(this.tx?.attributes)) return []
+      return this.tx.attributes.map(parseAttributeToBadge)
+        .filter(badge => badge?.custom)
+    },
     backNavPath () {
       // Return the appropriate back path based on where we came from
       const fromParam = this.$route?.query?.from
@@ -520,25 +762,27 @@ export default {
           query: { assetID: assetId }
         }
       }
+      if (fromParam?.includes('apps/multisig')) { 
+        return {
+          path: this.$route?.query?.from,
+          query: { asset: this.$route?.query?.asset }
+        }
+      }
       return '/'
     }
   },
   async mounted () {
-    await this.initWallet()
-    
+
+    if (this.$route.query?.walletHash && this.$route.query?.from?.includes('apps/multisig')) {
+      this.walletHash = this.$route.query.walletHash
+    }
+
+    if (!this.$route.query?.from?.includes('apps/multisig')) {
+      await this.initWallet()
+    }
+
     // Ensure HTML and body have the correct background color to match our wrapper
     this.updateBackgroundColors()
-    
-    // Preload sound for new transactions (always preload, not just for new transactions)
-    // This ensures sound is ready when needed
-    // Don't block on audio errors - confetti should still work
-    this.preloadAudio()
-      .then(() => {
-        this.audioPreloaded = true
-      })
-      .catch(() => {
-        this.audioPreloaded = false
-      })
     
     // Check if this is a new transaction from receive page
     // Handle both properly formatted query and malformed URLs with double ?
@@ -546,6 +790,26 @@ export default {
     const isNewTransaction = query.new === 'true' || 
                              (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                              (window.location.search && window.location.search.includes('new=true'))
+
+    // Only preload audio for new transactions.
+    // iOS audio preload can interrupt other apps' background audio.
+    // Don't block on audio errors - confetti should still work.
+    if (isNewTransaction) {
+      this.preloadAudio()
+        .then(() => {
+          this.audioPreloaded = true
+        })
+        .catch(() => {
+          this.audioPreloaded = false
+        })
+    }
+    
+    // Extract category parameter from query string
+    let categoryParam = query.category || ''
+    // Handle malformed URLs where category might include ?new=true
+    if (typeof categoryParam === 'string' && categoryParam.includes('?new=true')) {
+      categoryParam = categoryParam.split('?')[0]
+    }
     
     const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
     if (preloaded) {
@@ -572,11 +836,13 @@ export default {
       if (Object.isFrozen(mutableTx)) {
         mutableTx = { ...mutableTx }
       }
-      this.attachAssetIfMissing(mutableTx)
+      // Pass category parameter to ensure correct asset is attached
+      await this.attachAssetIfMissing(mutableTx, categoryParam)
       this.tx = mutableTx
       this.$nextTick(() => {
         this.loadMemo()
         this.loadFavorites()
+        this.fetchTokenPrice()
         // Launch confetti if this is a new transaction
         // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction) {
@@ -605,10 +871,12 @@ export default {
     // Stop background fetch
     this.backgroundFetchActive = false
     
-    // Unload sound
-    NativeAudio.unload({
-      assetId: 'send-success'
-    })
+    // Unload sound (only if we preloaded/used it)
+    if (this.audioPreloaded) {
+      NativeAudio.unload({
+        assetId: 'send-success'
+      })
+    }
   },
   watch: {
     theme () {
@@ -616,9 +884,55 @@ export default {
     },
     darkMode () {
       this.updateBackgroundColors()
+    },
+    'tx.asset.id' () {
+      // Fetch token price when asset changes
+      this.fetchTokenPrice()
+    },
+    'tx.encrypted_memo' () {
+      // Reload memo when encrypted_memo changes (including when it becomes null/empty)
+      // loadMemo() handles null/empty memos correctly by clearing the displayed memo
+      this.$nextTick(() => {
+        this.loadMemo()
+      })
+    },
+    tx (newTx, oldTx) {
+      // Reload memo when transaction object is first set or txid changes
+      if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
+        this.$nextTick(() => {
+          this.loadMemo()
+        })
+      }
+      // Fetch NFT metadata when transaction changes and it's an NFT
+      if (newTx) {
+        this.$nextTick(() => {
+          // Reset NFT image and name when transaction changes
+          this.nftImageUrl = null
+          this.nftName = null
+          this.nftImageError = false
+          // Fetch metadata if it's an NFT
+          if (this.isNft) {
+            this.fetchNftMetadata()
+          }
+        })
+      }
     }
   },
   methods: {
+    async ensureAssetSettingsAuth () {
+      // `fetchFavorites()` works without auth, but `saveFavorites()` / `saveCustomList()` require it.
+      // Asset list page calls `assetSettings.authToken()` before saving; do the same here.
+      try {
+        const token = await assetSettings.getAuthToken()
+        if (token) return true
+        await assetSettings.authToken()
+        const tokenAfter = await assetSettings.getAuthToken()
+        return !!tokenAfter
+      } catch (e) {
+        console.warn('[TransactionDetail] Failed to initialize asset settings auth token:', e)
+        return false
+      }
+    },
     getDarkModeClass,
     parseFiatCurrency,
     getAssetDenomination,
@@ -692,7 +1006,6 @@ export default {
         const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
         // Get txid from prop first, then fallback to route params (for redirects from receive page)
         const effectiveTxid = this.txid || this.$route?.params?.txid
-        console.log('[TransactionDetail] fetchAndShow:', { effectiveWalletHash, effectiveTxid, retryAttempt, propTxid: this.txid, routeTxid: this.$route?.params?.txid })
         
         if (!effectiveWalletHash || !effectiveTxid) {
           console.error('[TransactionDetail] Missing walletHash or txid:', { effectiveWalletHash, effectiveTxid, propTxid: this.txid, routeParams: this.$route?.params })
@@ -708,6 +1021,10 @@ export default {
         const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
         // Prefer explicit query param; fallback to preloaded tx.asset.id (ct/{cat} | slp/{cat})
         let categoryParam = this.$route?.query?.category || ''
+        // Handle malformed URLs where category might include ?new=true
+        if (typeof categoryParam === 'string' && categoryParam.includes('?new=true')) {
+          categoryParam = categoryParam.split('?')[0]
+        }
         if (!categoryParam) {
           const preloaded = (window && window.history && window.history.state && window.history.state.tx) || null
           const assetId = String(preloaded?.asset?.id || '')
@@ -718,10 +1035,8 @@ export default {
         }
         const categoryPath = categoryParam ? `/${categoryParam}` : ''
         const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}${categoryPath}/`
-        console.log('[TransactionDetail] Fetching from URL:', url, 'txid:', effectiveTxid)
         const { data } = await axios.get(url, { params: { txids: effectiveTxid } })
         const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
-        console.log('[TransactionDetail] API response:', { hasTx: !!tx, dataKeys: Object.keys(data || {}), retryAttempt })
 
         if (tx) {
           // Prefer preloaded asset metadata (logo, symbol) if available
@@ -740,7 +1055,7 @@ export default {
             }
             mutableTx.asset = assetCopy
           }
-          this.attachAssetIfMissing(mutableTx, categoryParam)
+          await this.attachAssetIfMissing(mutableTx, categoryParam)
           this.tx = mutableTx
           this.isLoading = false
           this.retryCount = 0
@@ -751,11 +1066,13 @@ export default {
                                    (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                                    (window.location.search && window.location.search.includes('new=true'))
           
-          console.log('[TransactionDetail] Transaction loaded, isNewTransaction:', isNewTransaction, 'query:', query)
-          
           this.$nextTick(() => {
-            this.loadMemo()
+            // Ensure tx is set before loading memo
+            if (this.tx && this.tx.txid) {
+              this.loadMemo()
+            }
             this.loadFavorites()
+            this.fetchTokenPrice()
             // Launch confetti if this is a new transaction
             // Wait for DOM to be fully rendered before triggering
             if (isNewTransaction) {
@@ -766,9 +1083,8 @@ export default {
           // Transaction not found, retry with exponential backoff
           // After 2 retries, if we have websocket data, use it as fallback
           if (retryAttempt >= 2 && wsData && isFromWebsocket) {
-            console.log('[TransactionDetail] Using websocket data as fallback after', retryAttempt, 'retries')
             const mutableTx = this.createMutableCopy(wsData)
-            this.attachAssetIfMissing(mutableTx, categoryParam)
+            await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
             this.isLoading = false
             this.retryCount = 0
@@ -786,6 +1102,7 @@ export default {
             this.$nextTick(() => {
               this.loadMemo()
               this.loadFavorites()
+              this.fetchTokenPrice()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -803,9 +1120,8 @@ export default {
             // All retries exhausted
             // If we have websocket data, use it as final fallback
             if (wsData && isFromWebsocket) {
-              console.log('[TransactionDetail] All retries exhausted, using websocket data as final fallback')
               const mutableTx = this.createMutableCopy(wsData)
-              this.attachAssetIfMissing(mutableTx, categoryParam)
+              await this.attachAssetIfMissing(mutableTx, categoryParam)
               this.tx = mutableTx
               this.isLoading = false
               this.retryCount = 0
@@ -839,10 +1155,9 @@ export default {
         const isFromWebsocket = window?.history?.state?.fromWebsocket || false
         
         if (retryAttempt >= 2 && wsData && isFromWebsocket) {
-          console.log('[TransactionDetail] Using websocket data as fallback after error on retry', retryAttempt)
           const categoryParam = this.$route?.query?.category || ''
           const mutableTx = this.createMutableCopy(wsData)
-          this.attachAssetIfMissing(mutableTx, categoryParam)
+          await this.attachAssetIfMissing(mutableTx, categoryParam)
           this.tx = mutableTx
           this.isLoading = false
           this.retryCount = 0
@@ -859,6 +1174,7 @@ export default {
           this.$nextTick(() => {
             this.loadMemo()
             this.loadFavorites()
+            this.fetchTokenPrice()
             if (isNewTransaction) {
               this.waitForRenderAndLaunchConfetti()
             }
@@ -879,10 +1195,9 @@ export default {
           const isFromWebsocket = window?.history?.state?.fromWebsocket || false
           
           if (wsData && isFromWebsocket) {
-            console.log('[TransactionDetail] All retries exhausted after error, using websocket data as final fallback')
             const categoryParam = this.$route?.query?.category || ''
             const mutableTx = this.createMutableCopy(wsData)
-            this.attachAssetIfMissing(mutableTx, categoryParam)
+            await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
             this.isLoading = false
             this.retryCount = 0
@@ -920,7 +1235,6 @@ export default {
      */
     async startBackgroundFetch (retryAttempt = 0) {
       if (this.backgroundFetchActive) {
-        console.log('[TransactionDetail] Background fetch already active, skipping')
         return
       }
       
@@ -930,7 +1244,6 @@ export default {
       const fetchInBackground = async (attempt = 0) => {
         // Check if component is still mounted and background fetch should continue
         if (!this.backgroundFetchActive) {
-          console.log('[TransactionDetail] Background fetch stopped')
           return
         }
         
@@ -945,6 +1258,10 @@ export default {
           
           const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
           let categoryParam = this.$route?.query?.category || ''
+          // Handle malformed URLs where category might include ?new=true
+          if (typeof categoryParam === 'string' && categoryParam.includes('?new=true')) {
+            categoryParam = categoryParam.split('?')[0]
+          }
           if (!categoryParam && this.tx?.asset?.id) {
             const assetId = String(this.tx.asset.id)
             const parts = assetId.split('/')
@@ -955,13 +1272,11 @@ export default {
           const categoryPath = categoryParam ? `/${categoryParam}` : ''
           const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}${categoryPath}/`
           
-          console.log('[TransactionDetail] Background fetch attempt', attempt, 'for txid:', effectiveTxid)
           const { data } = await axios.get(url, { params: { txids: effectiveTxid } })
           const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
           
           if (tx) {
             // Transaction found! Update with real API data
-            console.log('[TransactionDetail] Background fetch successful, updating transaction data')
             const mutableTx = this.createMutableCopy(tx)
             if (Object.isFrozen(mutableTx)) {
               mutableTx = { ...mutableTx }
@@ -972,7 +1287,7 @@ export default {
               mutableTx.asset = this.tx.asset
             }
             
-            this.attachAssetIfMissing(mutableTx, categoryParam)
+            await this.attachAssetIfMissing(mutableTx, categoryParam)
             this.tx = mutableTx
             this.usingWebsocketData = false // Enable memo button now
             this.backgroundFetchActive = false
@@ -981,17 +1296,16 @@ export default {
             this.$nextTick(() => {
               this.loadMemo()
               this.loadFavorites()
+              this.fetchTokenPrice()
             })
           } else {
             // Not found yet, retry with exponential backoff
             if (attempt < maxBackgroundRetries) {
               const delay = Math.min(1000 * Math.pow(2, attempt), 30000) // Cap at 30 seconds
-              console.log('[TransactionDetail] Background fetch: transaction not found, retrying in', delay, 'ms')
               setTimeout(() => {
                 fetchInBackground(attempt + 1)
               }, delay)
             } else {
-              console.log('[TransactionDetail] Background fetch: max retries reached, stopping')
               this.backgroundFetchActive = false
             }
           }
@@ -1018,25 +1332,31 @@ export default {
       try {
         const txid = this.transactionId
         if (!txid) return
-        // prepare keypair
-        this.keypair = await getKeypair().catch(console.error)
-        let currentMemo = null
-        try {
-          currentMemo = await fetchMemo(txid)
-        } catch (err) {
-          this.networkError = true
-        }
-        if (currentMemo && !('error' in currentMemo)) {
-          const decryptedNote = await decryptMemo(this.keypair?.privkey, currentMemo.note)
-          this.transactionMemo = decryptedNote
-          this.memoInput = decryptedNote
-          this.hasMemo = !!decryptedNote
-          this.editingMemo = false
+
+        // Use memo service to load and decrypt memo
+        const result = await memoService.loadMemo(txid, this.tx?.encrypted_memo)
+
+        if (result.success) {
+          if (result.memo) {
+            // Memo successfully decrypted
+            this.transactionMemo = result.memo
+            this.memoInput = result.memo
+            this.hasMemo = true
+            this.editingMemo = false
+          } else {
+            // No memo found (not an error)
+            this.hasMemo = false
+            this.editingMemo = false
+          }
         } else {
+          // Error loading/decrypting memo
+          console.error('[TransactionDetail] loadMemo error:', result.error)
+          this.networkError = true
           this.hasMemo = false
           this.editingMemo = false
         }
       } catch (error) {
+        console.error('[TransactionDetail] loadMemo: Unexpected error:', error)
         this.networkError = true
         this.hasMemo = false
         this.editingMemo = false
@@ -1056,17 +1376,14 @@ export default {
       try {
         const txid = this.transactionId
         if (!txid) return
-        await authMemo()
-        // ensure keypair
-        if (!this.keypair) this.keypair = await getKeypair().catch(console.error)
+
         const trimmedMemo = String(this.memoInput || '').trim()
         if (!trimmedMemo) return
-        const encryptedMemo = await encryptMemo(this.keypair?.privkey, this.keypair?.pubkey, trimmedMemo)
-        const data = { txid: txid, note: encryptedMemo }
-        let response = null
-        if (this.hasMemo) response = await updateMemo(data).catch(err => { this.networkError = true })
-        else response = await createMemo(data).catch(err => { this.networkError = true })
-        if (response && !('error' in response)) {
+
+        // Use memo service to save memo
+        const result = await memoService.saveMemo(txid, trimmedMemo, this.hasMemo)
+
+        if (result.success) {
           this.transactionMemo = trimmedMemo
           this.memoInput = trimmedMemo
           this.hasMemo = true
@@ -1080,6 +1397,7 @@ export default {
             timeout: 2000
           })
         } else {
+          this.networkError = true
           this.$q.notify({
             message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
             color: 'negative',
@@ -1089,6 +1407,7 @@ export default {
           })
         }
       } catch (error) {
+        console.error('[TransactionDetail] saveMemo: Unexpected error:', error)
         this.networkError = true
         this.$q.notify({
           message: this.$t('ErrorSavingMemo', {}, 'Error saving memo'),
@@ -1100,32 +1419,65 @@ export default {
       }
     },
     async confirmDelete () {
-      try {
-        const txid = this.transactionId
-        if (!txid) return
-        await deleteMemo(txid)
-        this.hasMemo = false
-        this.transactionMemo = ''
-        this.memoInput = ''
-        this.editingMemo = false
-        
-        this.$q.notify({
-          message: this.$t('MemoDeleted', {}, 'Memo deleted'),
-          color: 'positive',
-          icon: 'check_circle',
-          position: 'top',
-          timeout: 2000
-        })
-      } catch (error) {
-        this.networkError = true
-        this.$q.notify({
-          message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+      // Show confirmation dialog before deleting
+      this.$q.dialog({
+        title: this.$t('DeleteMemo', {}, 'Delete Memo'),
+        message: this.$t('ConfirmDeleteMemo', {}, 'Are you sure you want to delete this memo? This action cannot be undone.'),
+        ok: {
+          push: true,
           color: 'negative',
-          icon: 'error',
-          position: 'top',
-          timeout: 2000
-        })
-      }
+          label: this.$t('Delete', {}, 'Delete')
+        },
+        cancel: {
+          push: true,
+          color: 'grey',
+          label: this.$t('Cancel', {}, 'Cancel')
+        },
+        persistent: true,
+        class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(async () => {
+        // User confirmed deletion
+        try {
+          const txid = this.transactionId
+          if (!txid) return
+
+          const result = await memoService.deleteMemo(txid)
+
+          if (result.success) {
+            this.hasMemo = false
+            this.transactionMemo = ''
+            this.memoInput = ''
+            this.editingMemo = false
+            
+            this.$q.notify({
+              message: this.$t('MemoDeleted', {}, 'Memo deleted'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          } else {
+            this.networkError = true
+            this.$q.notify({
+              message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 2000
+            })
+          }
+        } catch (error) {
+          console.error('[TransactionDetail] confirmDelete: Unexpected error:', error)
+          this.networkError = true
+          this.$q.notify({
+            message: this.$t('ErrorDeletingMemo', {}, 'Error deleting memo'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 2000
+          })
+        }
+      })
     },
     async initWallet () {
       // Load BCH wallet (consistent with transactions page)
@@ -1134,6 +1486,9 @@ export default {
     },
     async loadFavorites () {
       try {
+        // Best-effort: ensure auth is ready so follow-up actions (save favorites) won't fail.
+        // (Fetching favorites itself is unauthenticated.)
+        await this.ensureAssetSettingsAuth()
         const favorites = await assetSettings.fetchFavorites()
         if (favorites && Array.isArray(favorites)) {
           this.favorites = favorites
@@ -1149,22 +1504,167 @@ export default {
         this.favoritesEvaluated = true
       }
     },
+    async fetchTokenPrice () {
+      // Only fetch price for tokens (not BCH)
+      if (!this.tx || !this.tx.asset || !this.tx.asset.id) return
+      
+      const assetId = String(this.tx.asset.id)
+      // Skip if it's BCH or if price already exists in store
+      if (assetId === 'bch' || assetId === '') return
+      
+      // Check if price already exists
+      const code = this.selectedMarketCurrency
+      if (!code) return
+      
+      const existingPrice = this.$store.getters['market/getAssetPrice'](assetId, code)
+      if (existingPrice && existingPrice !== 0) {
+        // Price already exists, no need to fetch
+        return
+      }
+      
+      // Fetch price for this token
+      try {
+        await this.$store.dispatch('market/updateAssetPrices', {
+          assetId: assetId,
+          clearExisting: false
+        })
+      } catch (error) {
+        // Price might not be available for this token
+      }
+    },
+    async fetchNftMetadata () {
+      // Only fetch if it's an NFT and we have token ID
+      if (!this.isNft || !this.nftTokenId) {
+        this.nftImageUrl = null
+        this.nftName = null
+        return
+      }
+
+      // Don't fetch if already fetching or if we already have the image
+      if (this.fetchingNftMetadata || this.nftImageUrl) return
+
+      this.fetchingNftMetadata = true
+      this.nftImageError = false
+
+      try {
+        const tokenId = this.nftTokenId
+        const commitment = this.nftCommitment
+
+        // Build URL: tokens/{tokenId}/ or tokens/{tokenId}/{commitment}/
+        let url = `tokens/${tokenId}/`
+        if (commitment) {
+          url += `${commitment}/`
+        }
+
+        const response = await getBcmrBackend().get(url)
+        const metadata = response?.data
+
+        if (metadata) {
+          // Extract name from type_metadata
+          if (metadata.type_metadata?.name) {
+            this.nftName = metadata.type_metadata.name
+          } else if (metadata.name) {
+            // Fallback to top-level name if type_metadata.name doesn't exist
+            this.nftName = metadata.name
+          } else {
+            this.nftName = null
+          }
+
+          // Extract image URL from type_metadata
+          // Priority: type_metadata.uris.image > type_metadata.uris.icon
+          let imageUrl = null
+          if (metadata.type_metadata?.uris?.image) {
+            imageUrl = metadata.type_metadata.uris.image
+          } else if (metadata.type_metadata?.uris?.icon) {
+            imageUrl = metadata.type_metadata.uris.icon
+          }
+
+          if (imageUrl) {
+            // Convert IPFS URL if needed
+            this.nftImageUrl = convertIpfsUrl(imageUrl)
+            // Add Pinata gateway token if it's a Pinata IPFS URL
+            if (this.nftImageUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
+              this.nftImageUrl += '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+            }
+          } else {
+            // No image found in type_metadata
+            this.nftImageUrl = null
+          }
+        } else {
+          this.nftImageUrl = null
+          this.nftName = null
+        }
+      } catch (error) {
+        console.error('[TransactionDetail] Error fetching NFT metadata:', error)
+        this.nftImageUrl = null
+        this.nftName = null
+      } finally {
+        this.fetchingNftMetadata = false
+      }
+    },
+    viewInCollectibles () {
+      // Navigate to collectibles page with category parameter if available
+      const category = this.nftTokenId
+      const query = category ? { category } : {}
+      this.$router.push({
+        name: 'app-collectibles',
+        query
+      })
+    },
     async addTokenToFavorites () {
       if (!this.tokenAssetId || !this.tx || !this.tx.asset) return
       
+      // Check subscription limit before adding
+      await this.$store.dispatch('subscription/checkSubscriptionStatus')
+      
+      // Fetch current favorites to check count
+      let currentFavorites = await assetSettings.fetchFavorites()
+      if (!Array.isArray(currentFavorites)) {
+        currentFavorites = []
+      }
+      
+      // Count current favorites (where favorite === 1)
+      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+      
+      // Check if this token is already a favorite
+      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && fav.favorite === 1)
+      
+      // If not already a favorite, check limit
+      if (!isAlreadyFavorite) {
+        const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+        if (currentFavoriteCount >= limit) {
+          // Match `/asset/list` UX: show upgrade dialog when limit reached for free users.
+          const isPlus = this.$store.getters['subscription/isPlusSubscriber']
+          if (!isPlus) {
+            this.showUpgradeDialog = true
+            return
+          }
+
+          // Fallback for Plus users (should be rare): keep a lightweight notice.
+          this.$q.notify({
+            message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached.'),
+            color: 'negative',
+            icon: 'error',
+            position: 'top',
+            timeout: 2500,
+          })
+          return
+        }
+      }
+      
       this.addingToFavorites = true
       try {
-        // Determine network: 'sBCH' for smartchain tokens, 'BCH' for mainchain tokens
-        const isSmartchain = this.tokenAssetId.startsWith('sep20/')
-        const selectedNetwork = isSmartchain ? 'sBCH' : 'BCH'
+        const hasAuth = await this.ensureAssetSettingsAuth()
+        if (!hasAuth) {
+          throw new Error('Asset settings auth token missing')
+        }
+        const selectedNetwork = 'BCH'
         
         // Fetch custom list (same as asset list page)
         let customList = await assetSettings.fetchCustomList()
         
-        // Get all assets from store based on network
-        const allAssets = selectedNetwork === 'sBCH'
-          ? this.$store.getters['sep20/getAssets']
-          : this.$store.getters['assets/getAssets']
+        // Get all assets from store for BCH network
+        const allAssets = this.$store.getters['assets/getAssets']
         
         // Filter out BCH from the list
         const assets = allAssets.filter(asset => asset && asset.id !== 'bch')
@@ -1187,36 +1687,60 @@ export default {
         if (!assetIds.includes(this.tokenAssetId)) {
           assetIds.unshift(this.tokenAssetId)
           customList[selectedNetwork] = assetIds
-          await assetSettings.saveCustomList(customList)
-        }
-        
-        // Fetch current favorites to preserve favorites from all networks
-        let currentFavorites = await assetSettings.fetchFavorites()
-        if (!Array.isArray(currentFavorites)) {
-          currentFavorites = []
+          const savedCustom = await assetSettings.saveCustomList(customList)
+          if (savedCustom && typeof savedCustom === 'object' && (savedCustom.detail || savedCustom.error)) {
+            throw new Error(savedCustom.detail || savedCustom.error)
+          }
         }
         
         // Create a map of existing favorites for quick lookup
         const favoritesMap = new Map()
         currentFavorites.forEach(fav => {
-          favoritesMap.set(fav.id, fav.favorite)
+          favoritesMap.set(fav.id, { favorite: fav.favorite, favorite_order: fav.favorite_order || null })
         })
         
-        // Update or add the token to favorites (preserving all existing favorites)
-        // This matches the pattern in addNewAsset which preserves all favorites
+        // Update or add the token to favorites (preserving all existing favorites and favorite_order)
         if (favoritesMap.has(this.tokenAssetId)) {
-          // Update existing favorite status
+          // Update existing favorite status, preserve favorite_order if it exists
           const index = currentFavorites.findIndex(fav => fav.id === this.tokenAssetId)
           if (index !== -1) {
+            const existingOrder = currentFavorites[index].favorite_order
             currentFavorites[index].favorite = 1
+            // If favorite_order doesn't exist, assign it position 1 and shift others
+            if (existingOrder === null || existingOrder === undefined) {
+              // Get all existing favorites with order
+              const existingFavorites = currentFavorites.filter(fav => fav.favorite === 1 && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
+              const maxOrder = existingFavorites.length > 0 
+                ? Math.max(...existingFavorites.map(f => f.favorite_order))
+                : 0
+              currentFavorites[index].favorite_order = maxOrder + 1
+            }
           }
         } else {
-          // Add new favorite at the beginning (matching addNewAsset pattern)
-          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1 })
+          // Add new favorite at position 1, increment all existing favorites' favorite_order by 1
+          // First, increment all existing favorites' favorite_order
+          currentFavorites.forEach(fav => {
+            if (fav.favorite === 1 && fav.favorite_order !== null && fav.favorite_order !== undefined) {
+              fav.favorite_order = fav.favorite_order + 1
+            }
+          })
+          // Add new favorite with favorite_order: 1
+          currentFavorites.unshift({ id: this.tokenAssetId, favorite: 1, favorite_order: 1 })
         }
         
-        // Save the full favorites list (preserving favorites from all networks)
-        await assetSettings.saveFavorites(currentFavorites)
+        // Ensure all non-favorites have favorite_order: null
+        currentFavorites.forEach(fav => {
+          if (fav.favorite === 0 || fav.favorite === null || fav.favorite === undefined) {
+            fav.favorite_order = null
+          }
+        })
+        
+        // Save the full favorites list (preserving favorites from all networks and favorite_order)
+        const saved = await assetSettings.saveFavorites(currentFavorites)
+        if (saved && typeof saved === 'object' && (saved.detail || saved.error)) {
+          // asset-settings returns error payloads instead of throwing; normalize to exception
+          throw new Error(saved.detail || saved.error)
+        }
         
         // Update local favorites array immediately so button disappears right away
         this.favorites = currentFavorites
@@ -1244,15 +1768,28 @@ export default {
         this.addingToFavorites = false
       }
     },
-    attachAssetIfMissing (tx, categoryParam) {
+    async attachAssetIfMissing (tx, categoryParam) {
       if (!tx) return
-      if (tx.asset && tx.asset.id) return
-
-      // Try to resolve token asset from category
+      
+      // If category parameter is provided, check if current asset matches it
       if (categoryParam) {
+        const currentAssetId = String(tx.asset?.id || '')
+        const expectedAssetId = `ct/${categoryParam}`
+        const expectedSlpAssetId = `slp/${categoryParam}`
+        
+        // If current asset already matches, no need to change
+        if (currentAssetId === expectedAssetId || currentAssetId === expectedSlpAssetId) {
+          return
+        }
+        
+        // Current asset doesn't match the category, try to find the correct asset
         try {
           const assets = this.$store.getters['assets/getAssets'] || []
-          const match = assets.find(a => String(a?.id || '').endsWith(`/${categoryParam}`))
+          const match = assets.find(a => {
+            const assetId = String(a?.id || '')
+            return assetId.endsWith(`/${categoryParam}`) && 
+                   (assetId.startsWith('ct/') || assetId.startsWith('slp/'))
+          })
           if (match) {
             // Create a mutable copy of the asset to avoid readonly issues
             let assetCopy = this.createMutableCopy(match)
@@ -1264,22 +1801,110 @@ export default {
             return
           }
         } catch {}
-      }
-
-      // Fallback to BCH
-      let bchAsset = this.$store.getters['assets/getAsset'] && this.$store.getters['assets/getAsset']('bch')
-      if (Array.isArray(bchAsset)) bchAsset = bchAsset[0]
-      if (!bchAsset) {
-        bchAsset = { id: 'bch', symbol: 'BCH', name: 'Bitcoin Cash', logo: 'bch-logo.png', balance: 0 }
-      } else {
-        // Create a mutable copy of the asset to avoid readonly issues
-        bchAsset = this.createMutableCopy(bchAsset)
-        // Ensure the asset object itself is not frozen
-        if (Object.isFrozen(bchAsset)) {
-          bchAsset = { ...bchAsset }
+        
+        // Asset not found in store, but category is provided - try to fetch metadata
+        // Default to ct (CashToken) as it's more common
+        const assetId = `ct/${categoryParam}`
+        let basicAsset = {
+          id: assetId,
+          symbol: categoryParam.substring(0, 8).toUpperCase(), // Use first 8 chars as symbol
+          name: `Token ${categoryParam.substring(0, 8)}`,
+          logo: '',
+          decimals: 0,
+          balance: 0
         }
+        
+        // Try to fetch asset metadata from BCMR
+        try {
+          const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetId)
+          if (metadata) {
+            basicAsset = {
+              id: assetId,
+              symbol: metadata.symbol || basicAsset.symbol,
+              name: metadata.name || basicAsset.name,
+              logo: metadata.logo || '',
+              decimals: metadata.decimals || 0,
+              balance: 0
+            }
+          }
+        } catch (error) {
+          // Asset metadata fetch failed, continue without it
+        }
+        
+        tx.asset = basicAsset
+        return
       }
-      tx.asset = bchAsset
+      
+      // If no asset exists, try to resolve from category
+      if (!tx.asset || !tx.asset.id) {
+        // Try to resolve token asset from category
+        if (categoryParam) {
+          try {
+            const assets = this.$store.getters['assets/getAssets'] || []
+            const match = assets.find(a => {
+              const assetId = String(a?.id || '')
+              return assetId.endsWith(`/${categoryParam}`) && 
+                     (assetId.startsWith('ct/') || assetId.startsWith('slp/'))
+            })
+            if (match) {
+              // Create a mutable copy of the asset to avoid readonly issues
+              let assetCopy = this.createMutableCopy(match)
+              // Ensure the asset object itself is not frozen
+              if (Object.isFrozen(assetCopy)) {
+                assetCopy = { ...assetCopy }
+              }
+              tx.asset = assetCopy
+              return
+            }
+          } catch {}
+          
+          // Category provided but asset not found - try to fetch metadata
+          const assetId = `ct/${categoryParam}`
+          let basicAsset = {
+            id: assetId,
+            symbol: categoryParam.substring(0, 8).toUpperCase(),
+            name: `Token ${categoryParam.substring(0, 8)}`,
+            logo: '',
+            decimals: 0,
+            balance: 0
+          }
+          
+          // Try to fetch asset metadata from BCMR
+          try {
+            const metadata = await this.$store.dispatch('assets/getAssetMetadata', assetId)
+            if (metadata) {
+              basicAsset = {
+                id: assetId,
+                symbol: metadata.symbol || basicAsset.symbol,
+                name: metadata.name || basicAsset.name,
+                logo: metadata.logo || '',
+                decimals: metadata.decimals || 0,
+                balance: 0
+              }
+            }
+          } catch (error) {
+            // Asset metadata fetch failed, continue without it
+          }
+          
+          tx.asset = basicAsset
+          return
+        }
+
+        // Fallback to BCH
+        let bchAsset = this.$store.getters['assets/getAsset'] && this.$store.getters['assets/getAsset']('bch')
+        if (Array.isArray(bchAsset)) bchAsset = bchAsset[0]
+        if (!bchAsset) {
+          bchAsset = { id: 'bch', symbol: 'BCH', name: 'Bitcoin Cash', logo: 'bch-logo.png', balance: 0 }
+        } else {
+          // Create a mutable copy of the asset to avoid readonly issues
+          bchAsset = this.createMutableCopy(bchAsset)
+          // Ensure the asset object itself is not frozen
+          if (Object.isFrozen(bchAsset)) {
+            bchAsset = { ...bchAsset }
+          }
+        }
+        tx.asset = bchAsset
+      }
     },
     goBack () {
       // Check if we came from transactions page
@@ -1319,6 +1944,526 @@ export default {
     copyToClipboard (value) {
       this.$copyText(value)
       this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
+    },
+    async saveReceiptImage () {
+      const vm = this
+      if (!vm.tx || !vm.transactionId) return
+      if (vm.savingReceipt) return
+
+      vm.savingReceipt = true
+      let wrapper = null
+
+      try {
+        const isReceived = vm.tx.record_type === 'incoming'
+        const amount = vm.displayAmountText
+        const fiatAmount = vm.displayFiatAmount !== null && vm.displayFiatAmount !== undefined
+          ? vm.parseFiatCurrency(vm.displayFiatAmount, vm.selectedMarketCurrency)
+          : null
+        const dateTime = vm.formatDate(vm.tx.tx_timestamp || vm.tx.date_created)
+        const referenceId = vm.transactionId ? vm.hexToRef(vm.transactionId.substring(0, 6)) : ''
+        const explorerLink = vm.explorerLink
+
+        // Create a beautiful wrapper with gradient background (transaction receipt theme)
+        wrapper = document.createElement('div')
+        wrapper.style.cssText = `
+          background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 50%, #0d9488 100%);
+          padding: 40px 35px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          width: 600px;
+          box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
+        `
+
+        // Add decorative background elements
+        const bgDecoration = document.createElement('div')
+        bgDecoration.style.cssText = `
+          position: absolute;
+          top: -100px;
+          right: -100px;
+          width: 400px;
+          height: 400px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration)
+
+        const bgDecoration2 = document.createElement('div')
+        bgDecoration2.style.cssText = `
+          position: absolute;
+          bottom: -150px;
+          left: -150px;
+          width: 500px;
+          height: 500px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration2)
+
+        // Main content container
+        const contentContainer = document.createElement('div')
+        contentContainer.style.cssText = `
+          position: relative;
+          z-index: 1;
+          background: white;
+          border-radius: 24px;
+          padding: 35px 30px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `
+
+        // Header with icon and title
+        const header = document.createElement('div')
+        header.style.cssText = `
+          text-align: center;
+          margin-bottom: 40px;
+        `
+
+        // Header text (no icon, cleaner design)
+        const headerText = document.createElement('div')
+        headerText.style.cssText = `
+          font-size: 32px;
+          font-weight: 700;
+          color: #2d3748;
+          line-height: 1.4;
+          margin-bottom: 30px;
+          text-align: center;
+        `
+        headerText.textContent = 'Transaction Receipt'
+        header.appendChild(headerText)
+
+        // Transaction type and amount container with gradient
+        const amountContainer = document.createElement('div')
+        amountContainer.style.cssText = `
+          background: linear-gradient(135deg, #0ac18e 0%, #00d4aa 100%);
+          border-radius: 20px;
+          padding: 30px;
+          margin-bottom: 40px;
+          box-shadow: 0 8px 24px rgba(10, 193, 142, 0.3);
+        `
+
+        const typeLabel = document.createElement('div')
+        typeLabel.style.cssText = `
+          font-size: 18px;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.95);
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          margin-bottom: 12px;
+        `
+        typeLabel.textContent = isReceived ? 'Received' : 'Sent'
+        amountContainer.appendChild(typeLabel)
+
+        const amountValue = document.createElement('div')
+        amountValue.style.cssText = `
+          font-size: 48px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -1px;
+          margin-bottom: ${fiatAmount ? '12px' : '0'};
+        `
+        amountValue.textContent = amount
+        amountContainer.appendChild(amountValue)
+
+        if (fiatAmount) {
+          const fiatValue = document.createElement('div')
+          fiatValue.style.cssText = `
+            font-size: 24px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.2px;
+          `
+          fiatValue.textContent = fiatAmount
+          amountContainer.appendChild(fiatValue)
+        }
+
+        header.appendChild(amountContainer)
+
+        // Transaction details section
+        const detailsSection = document.createElement('div')
+        detailsSection.style.cssText = `
+          margin-bottom: 35px;
+        `
+
+        // Reference ID
+        if (referenceId) {
+          const refContainer = document.createElement('div')
+          refContainer.style.cssText = `
+            margin-bottom: 20px;
+          `
+          const refLabel = document.createElement('div')
+          refLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          `
+          refLabel.textContent = 'Reference ID'
+          refContainer.appendChild(refLabel)
+          const refValue = document.createElement('div')
+          refValue.style.cssText = `
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            letter-spacing: 0.3px;
+          `
+          refValue.textContent = referenceId
+          refContainer.appendChild(refValue)
+          detailsSection.appendChild(refContainer)
+        }
+
+        // Transaction ID
+        const txIdContainer = document.createElement('div')
+        txIdContainer.style.cssText = `
+          margin-bottom: 20px;
+        `
+        const txIdLabel = document.createElement('div')
+        txIdLabel.style.cssText = `
+          font-size: 12px;
+          font-weight: 600;
+          color: #718096;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        `
+        txIdLabel.textContent = 'Transaction ID'
+        txIdContainer.appendChild(txIdLabel)
+        const txIdValue = document.createElement('div')
+        txIdValue.style.cssText = `
+          font-size: 18px;
+          color: #4a5568;
+          font-family: monospace;
+          word-break: break-all;
+          line-height: 1.4;
+        `
+        // Truncate transaction ID like in the transaction details page
+        const truncatedTxId = vm.transactionId ? `${vm.transactionId.slice(0, 8)}...${vm.transactionId.slice(-8)}` : ''
+        txIdValue.textContent = truncatedTxId
+        txIdContainer.appendChild(txIdValue)
+
+        // QR Code for explorer link
+        if (explorerLink) {
+          const qrContainer = document.createElement('div')
+          qrContainer.style.cssText = `
+            display: flex;
+            justify-content: center;
+            margin-top: 12px;
+            margin-bottom: 8px;
+          `
+
+          // Create QR code
+          const qrcode = new QRCode({
+            content: explorerLink,
+            width: 200,
+            height: 200,
+            padding: 2,
+            color: '#000000',
+            background: '#ffffff',
+            ecl: 'M'
+          })
+
+          const parser = new DOMParser()
+          const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
+          const svgElement = svgDoc.documentElement
+          svgElement.setAttribute('width', '200')
+          svgElement.setAttribute('height', '200')
+          qrContainer.appendChild(svgElement)
+          txIdContainer.appendChild(qrContainer)
+        }
+
+        detailsSection.appendChild(txIdContainer)
+
+        // Date & Time
+        const dateContainer = document.createElement('div')
+        const dateLabel = document.createElement('div')
+        dateLabel.style.cssText = `
+          font-size: 12px;
+          font-weight: 600;
+          color: #718096;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        `
+        dateLabel.textContent = 'Date & Time'
+        dateContainer.appendChild(dateLabel)
+        const dateValue = document.createElement('div')
+        dateValue.style.cssText = `
+          font-size: 18px;
+          font-weight: 600;
+          color: #2d3748;
+          letter-spacing: 0.2px;
+        `
+        dateValue.textContent = dateTime
+        dateContainer.appendChild(dateValue)
+        detailsSection.appendChild(dateContainer)
+
+        header.appendChild(detailsSection)
+        contentContainer.appendChild(header)
+
+        // Footer with logo and website
+        const footer = document.createElement('div')
+        footer.style.cssText = `
+          text-align: center;
+          padding-top: 15px;
+        `
+
+        // Paytaca logo container
+        const paytacaLogoContainer = document.createElement('div')
+        paytacaLogoContainer.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 12px;
+        `
+
+        // Load Paytaca logo
+        const loadPaytacaLogo = () => {
+          return new Promise((resolve) => {
+            const logoImg = document.createElement('img')
+            logoImg.src = paytacaLogoHorizontal
+            logoImg.style.cssText = `
+              height: 120px;
+              width: auto;
+              object-fit: contain;
+              display: block;
+            `
+            logoImg.onload = () => {
+              paytacaLogoContainer.appendChild(logoImg)
+              resolve()
+            }
+            logoImg.onerror = () => {
+              // If logo fails, just resolve (no logo)
+              resolve()
+            }
+          })
+        }
+
+        // Website text
+        const websiteText = document.createElement('div')
+        websiteText.style.cssText = `
+          font-size: 26px;
+          font-weight: 500;
+          color: #4a5568;
+          letter-spacing: 0.2px;
+        `
+        websiteText.textContent = 'www.paytaca.com'
+        footer.appendChild(paytacaLogoContainer)
+        footer.appendChild(websiteText)
+        contentContainer.appendChild(footer)
+
+        wrapper.appendChild(contentContainer)
+        document.body.appendChild(wrapper)
+
+        // Wait for logo to load before capturing
+        await loadPaytacaLogo()
+
+        // Small delay to ensure DOM updates are rendered
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        // Capture with html2canvas (maximum scale for best quality)
+        const canvas = await html2canvas(wrapper, {
+          backgroundColor: null,
+          scale: 4,
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          windowWidth: wrapper.offsetWidth,
+          windowHeight: wrapper.offsetHeight,
+          onclone: (clonedDoc) => {
+            // Ensure all text is rendered at high quality
+            const clonedWrapper = clonedDoc.querySelector('div')
+            if (clonedWrapper) {
+              clonedWrapper.style.transform = 'scale(1)'
+              clonedWrapper.style.transformOrigin = 'top left'
+            }
+          }
+        })
+
+        // Remove temporary wrapper
+        if (document.body.contains(wrapper)) {
+          document.body.removeChild(wrapper)
+        }
+
+        // Compress image to keep under 300KB while maximizing quality
+        const compressImage = async (canvas) => {
+          // Use JPEG directly (much smaller than PNG)
+          // Try to keep full resolution with very high quality
+          let quality = 0.95
+          let blob = await new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/jpeg', quality)
+          })
+
+          // If too large, reduce quality gradually but keep it high
+          if (blob && blob.size > 300000) { // 300 KB
+            quality = 0.92
+            blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality)
+            })
+          }
+
+          if (blob && blob.size > 300000) {
+            quality = 0.90
+            blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality)
+            })
+          }
+
+          if (blob && blob.size > 300000) {
+            quality = 0.88
+            blob = await new Promise(resolve => {
+              canvas.toBlob(resolve, 'image/jpeg', quality)
+            })
+          }
+
+          // Only reduce dimensions as last resort, but use maximum quality smoothing
+          if (blob && blob.size > 300000) {
+            // Try a larger dimension first to maintain quality
+            const maxDimension = 1600
+            const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
+            const newWidth = Math.floor(canvas.width * ratio)
+            const newHeight = Math.floor(canvas.height * ratio)
+
+            const resizedCanvas = document.createElement('canvas')
+            resizedCanvas.width = newWidth
+            resizedCanvas.height = newHeight
+            const resizedCtx = resizedCanvas.getContext('2d')
+            // Use best image smoothing for quality
+            resizedCtx.imageSmoothingEnabled = true
+            resizedCtx.imageSmoothingQuality = 'high'
+            // Use better interpolation
+            resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
+
+            blob = await new Promise(resolve => {
+              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.90)
+            })
+          }
+
+          // Final fallback - smaller dimension but still high quality
+          if (blob && blob.size > 300000) {
+            const maxDimension = 1400
+            const ratio = Math.min(maxDimension / canvas.width, maxDimension / canvas.height, 1)
+            const newWidth = Math.floor(canvas.width * ratio)
+            const newHeight = Math.floor(canvas.height * ratio)
+
+            const resizedCanvas = document.createElement('canvas')
+            resizedCanvas.width = newWidth
+            resizedCanvas.height = newHeight
+            const resizedCtx = resizedCanvas.getContext('2d')
+            resizedCtx.imageSmoothingEnabled = true
+            resizedCtx.imageSmoothingQuality = 'high'
+            resizedCtx.drawImage(canvas, 0, 0, newWidth, newHeight)
+
+            blob = await new Promise(resolve => {
+              resizedCanvas.toBlob(resolve, 'image/jpeg', 0.88)
+            })
+          }
+
+          return blob
+        }
+
+        const blobToBase64Data = async (blob) => {
+          return await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              try {
+                if (typeof reader.result !== 'string') {
+                  return reject(new Error('FileReader result is not a string'))
+                }
+
+                const base64Data = reader.result.split(',')[1]
+                if (!base64Data) {
+                  return reject(new Error('Failed to extract base64 data from data URL'))
+                }
+                resolve(base64Data)
+              } catch (e) {
+                reject(e)
+              }
+            }
+            reader.onerror = (event) => reject(reader.error || event)
+            reader.onabort = () => reject(new Error('FileReader aborted'))
+            try {
+              reader.readAsDataURL(blob)
+            } catch (e) {
+              reject(e)
+            }
+          })
+        }
+
+        // Create filename with transaction ID (always JPEG now)
+        const shortTxId = vm.transactionId.substring(0, 8)
+        const filename = `receipt-${shortTxId}.jpg`
+
+        const blob = await compressImage(canvas)
+        if (!blob) {
+          throw new Error('Failed to create receipt image blob')
+        }
+
+        // Check if running on mobile
+        const isMobile = Capacitor.getPlatform() !== 'web'
+
+        if (isMobile) {
+          const base64Data = await blobToBase64Data(blob)
+          try {
+            await SaveToGallery.saveImage({
+              base64Data,
+              filename
+            })
+
+            vm.$q.notify({
+              message: vm.$t('ReceiptSavedToPhotos', {}, 'Receipt saved to Photos'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          } catch (error) {
+            console.error('[SaveReceipt] Error saving to photos:', error)
+            vm.$q.notify({
+              message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt. Please ensure photo library permissions are granted.'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 3000
+            })
+          }
+        } else {
+          // Desktop/web - use download link
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+
+          vm.$q.notify({
+            message: vm.$t('ReceiptSaved', {}, 'Receipt saved'),
+            color: 'positive',
+            icon: 'download',
+            position: 'top',
+            timeout: 2000
+          })
+        }
+      } catch (error) {
+        // Remove wrapper if it still exists
+        if (wrapper && document.body.contains(wrapper)) {
+          document.body.removeChild(wrapper)
+        }
+        console.error('Error saving receipt:', error)
+        vm.$q.notify({
+          message: vm.$t('ErrorSavingReceipt', {}, 'Error saving receipt'),
+          color: 'negative',
+          icon: 'error',
+          position: 'top',
+          timeout: 2000
+        })
+      } finally {
+        vm.savingReceipt = false
+      }
     },
     getImageUrl (asset) {
       if (this.denominationTabSelected === this.$t('DEEM') && asset.symbol === 'BCH') {
@@ -1370,6 +2515,15 @@ export default {
     },
     async playSound (success) {
       if (!success) return
+
+      // Only allow audio for new-transaction views.
+      // Prevents preloading/playing from interrupting background audio on iOS
+      // when viewing older transactions.
+      const query = this.$route?.query || {}
+      const isNewTransaction = query.new === 'true' || 
+                               (typeof query.category === 'string' && query.category.includes('?new=true')) ||
+                               (window.location.search && window.location.search.includes('new=true'))
+      if (!isNewTransaction) return
       
       try {
         // Ensure audio is preloaded before playing
@@ -1566,6 +2720,16 @@ export default {
           console.error(error)
           dialog.update({ message: 'Unable to fetch data' })
         })
+    },
+    showConversionInfo () {
+      if (this.isMobile) {
+        this.$q.dialog({
+          title: this.$t('ConversionInformation', {}, 'Conversion Information'),
+          message: this.fiatConversionTooltip,
+          ok: true,
+          class: `br-15 pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        })
+      }
     }
   }
 }
@@ -1616,6 +2780,15 @@ export default {
 .amount-primary { font-size: 20px; }
 .amount-label-ss { font-size: 28px; font-weight: 600; margin-top: -4px; margin-bottom: 4px; }
 .amount-fiat-label-ss { font-size: 20px; opacity: 0.85; margin-top: 0; }
+.info-icon-clickable {
+  padding: 4px;
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
 .amount-gain-loss-ss { 
   font-size: 16px; 
   margin-top: 8px; 
@@ -1726,16 +2899,10 @@ export default {
     padding-left: 2px !important;
     padding-right: 2px !important;
     overflow: visible !important;
+    --pt-header-side: 44px;
   }
   
-  .transaction-detail-wrapper .apps-header .pt-header .col-1:first-child {
-    flex: 0 0 32px !important;
-    max-width: 32px !important;
-    min-width: 32px !important;
-    padding-right: 0 !important;
-  }
-  
-  .transaction-detail-wrapper .apps-header .pt-header .col-10 {
+  .transaction-detail-wrapper .apps-header .pt-header .pt-header-title {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     max-width: none !important;
@@ -1744,7 +2911,7 @@ export default {
     overflow: visible !important;
   }
   
-  .transaction-detail-wrapper .apps-header .pt-header .col-10 p {
+  .transaction-detail-wrapper .apps-header .pt-header .pt-header-title p {
     line-height: 1.3 !important;
     white-space: normal !important;
     overflow: visible !important;
@@ -1752,13 +2919,6 @@ export default {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-  }
-  
-  .transaction-detail-wrapper .apps-header .pt-header .col-1:last-child {
-    flex: 0 0 32px !important;
-    max-width: 32px !important;
-    min-width: 32px !important;
-    padding-left: 0 !important;
   }
 }
 
@@ -1787,6 +2947,183 @@ export default {
 .memo-actions { display: flex; align-items: center; flex-shrink: 0; }
 .memo-input.memo-input-dark { background-color: rgba(255, 255, 255, 0.1); color: white; }
 .memo-input.memo-input-light { background-color: rgba(0, 0, 0, 0.05); color: black; }
+
+/* NFT Image Styles */
+.nft-image {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  object-fit: contain;
+}
+
+.nft-image-skeleton-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.nft-image-skeleton {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.nft-name {
+  margin-top: 12px;
+  word-break: break-word;
+  padding: 0 16px;
+}
+
+.view-in-collectibles-btn {
+  margin-top: 8px;
+}
+
+/* Transaction Metadata Badges */
+.transaction-metadata-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.transaction-metadata-badges .badge-item {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.transaction-metadata-badges .badge-item:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.transaction-metadata-badges .badge-text {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-metadata-badges .badge-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.transaction-metadata-badges .badge-popup {
+  padding: 8px 12px;
+  word-break: break-all;
+  max-width: 280px;
+}
+
+/* Glassmorphic Save Receipt Button */
+.glassmorphic-receipt-btn {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  padding: 8px 18px;
+  opacity: 0.9;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.10);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  /* Blue theme */
+  &.theme-glassmorphic-blue {
+    background: linear-gradient(
+      to right bottom,
+      rgba(59, 123, 246, 0.35),
+      rgba(54, 129, 232, 0.35),
+      rgba(49, 139, 218, 0.35)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(59, 123, 246, 0.30),
+        rgba(54, 129, 232, 0.30),
+        rgba(49, 139, 218, 0.30)
+      ) !important;
+    }
+  }
+  
+  /* Green theme */
+  &.theme-glassmorphic-green {
+    background: linear-gradient(
+      to right bottom,
+      rgba(67, 160, 71, 0.35),
+      rgba(62, 164, 74, 0.35),
+      rgba(57, 168, 77, 0.35)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(67, 160, 71, 0.30),
+        rgba(62, 164, 74, 0.30),
+        rgba(57, 168, 77, 0.30)
+      ) !important;
+    }
+  }
+  
+  /* Gold theme */
+  &.theme-glassmorphic-gold {
+    background: linear-gradient(
+      to right bottom,
+      rgba(255, 167, 38, 0.35),
+      rgba(255, 176, 56, 0.35),
+      rgba(255, 184, 74, 0.35)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(255, 167, 38, 0.30),
+        rgba(255, 176, 56, 0.30),
+        rgba(255, 184, 74, 0.30)
+      ) !important;
+    }
+  }
+  
+  /* Red theme */
+  &.theme-glassmorphic-red {
+    background: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.35),
+      rgba(232, 54, 96, 0.35),
+      rgba(218, 49, 72, 0.35)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(246, 59, 123, 0.30),
+        rgba(232, 54, 96, 0.30),
+        rgba(218, 49, 72, 0.30)
+      ) !important;
+    }
+  }
+
+  &.is-saving {
+    cursor: wait;
+  }
+}
 
 </style>
 

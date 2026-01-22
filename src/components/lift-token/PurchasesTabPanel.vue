@@ -23,7 +23,7 @@
     </div>
 
     <q-dialog v-model="showFilterDialog" position="bottom">
-      <q-card class="pt-card-2 text-bow filter-dialog-card" :class="getDarkModeClass(darkMode)">
+      <q-card class="pt-card-2 text-bow filter-dialog-card bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row justify-between items-center q-pb-sm">
           <div class="text-subtitle1 text-weight-bold">{{ $t('FilterPurchases') }}</div>
           <q-btn
@@ -300,21 +300,18 @@ export default {
         this.finalPurchasesList = this.purchasesList;
       } else if (saleGroup === "lock") {
         this.finalPurchasesList = this.purchasesList.filter(
-          (a) =>
-            a.purchase_vesting_details.length === 0 &&
-            a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
+          (a) => a.purchase_vesting_details.every(detail => !detail.tx_id) &&
+          !a.is_done_vesting
         );
       } else if (saleGroup === "vest") {
         this.finalPurchasesList = this.purchasesList.filter(
           (a) =>
-            a.purchase_vesting_details.some(detail => !detail.vested_date) &&
-            a.purchase_more_details.sale_group !== SaleGroup.PUBLIC
+            a.purchase_vesting_details.some(detail => detail.tx_id)
+            && !a.is_done_vesting
         );
       } else if (saleGroup === "comp") {
         this.finalPurchasesList = this.purchasesList.filter(
-          (a) =>
-            a.is_done_vesting ||
-            a.purchase_more_details.sale_group === SaleGroup.PUBLIC
+          (a) => a.is_done_vesting
         );
       } else {
         this.finalPurchasesList = this.purchasesList.filter(

@@ -6,7 +6,7 @@
 
     <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg">
       <q-icon name="error" left/>
-      {{ error }}
+      {{ error }} 
     </div>
     <template v-else>
       <qrcode-stream
@@ -40,47 +40,63 @@
       <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
     </div>
 
+    <div v-if="progress" class="q-mt-xl row items-center justify-center q-px-lg">
+      <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mt-sm q-mx-xl" >
+        <div class="absolute-full flex flex-center items-center">
+          <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
+        </div>
+      </q-linear-progress>
+    </div>
+
     <div class="q-mt-xl row items-center justify-around">
-      <div class="column flex flex-center">
+      <div v-if="!hideGenerateQR" class="column flex flex-center">
         <q-btn
           round
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="add"
+          :disabled="progress"
           @click="$router.push({ name: 'generate-qr' })"
         />
         <span class="q-mt-sm">{{ $t('GenerateQR') }}</span>
       </div>
 
-      <div class="column flex flex-center">
+      <div v-if="!hideUploadQR" class="column flex flex-center">
         <q-btn
           round
           size="lg"
           class="btn-scan button text-white bg-grad"
           icon="upload"
+          :disabled="progress"
           @click="$refs['qr-upload'].$refs['q-file'].pickFiles()"
         />
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
-
-    <footer-menu />
+    <div class="row justify-center q-mt-xl">
+      <div class="col-xs-12 text-center">
+        <q-btn size="md" label="Cancel" @click="$router.back()" class="glassmorphic-cancel-btn" v-close-popup></q-btn>
+      </div>
+    </div>
+    <footer-menu v-if="!hideFooter" />
   </div>
 </template>
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
+import { UR, URDecoder } from "@ngraveio/bc-ur";
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { extractWifFromUrl } from 'src/wallet/sweep'
 import { parsePayPro } from 'src/utils/pay-pro'
 import { QrcodeStream } from 'vue-qrcode-reader'
 import HeaderNav from 'src/components/header-nav'
-import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog'
 import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
+import { binToBase64 } from 'bitauth-libauth-v3';
+import { extractMValue, getWalletHash, Pst } from 'src/lib/multisig';
 
 export default {
   name: 'QRReader',
@@ -88,8 +104,6 @@ export default {
   components: {
     HeaderNav,
     QrcodeStream,
-    // eslint-disable-next-line vue/no-unused-components
-    LoadingWalletDialog,
     QRUploader
   },
 
@@ -102,7 +116,12 @@ export default {
       paused: false,
       error: '',
       frontCamera: false,
-      clWidth: '0px'
+      clWidth: '0px',
+      urDecoder: null,
+      progress: 0,
+      hideFooter: false,
+      hideGenerateQR: false,
+      hideUploadQR: false
     }
   },
 
@@ -112,6 +131,9 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    progressLabel () {
+      return (Math.floor(this.progress * 100)) + '% of Data Fragments Received'
     }
   },
 
@@ -227,12 +249,35 @@ export default {
       document.body.classList.add('transparent-body')
 
       const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
-
       if (res.content) {
-        BarcodeScanner.showBackground()
-        BarcodeScanner.stopScan()
-        document.body.classList.remove('transparent-body')
-        vm.onQRDecode([{ rawValue: res.content }])
+        const _value = res.content
+        const isStreamingQR = _value?.startsWith('ur:crypto-mofnwallet') || _value?.startsWith('ur:crypto-psbt')
+        
+        // For streaming QR codes, process the part but continue scanning
+        if (isStreamingQR) {
+          const part = _value
+          vm.urDecoder.receivePart(part)
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
+          
+          // If complete, process and stop scanning
+          if (vm.urDecoder.isComplete()) {
+            BarcodeScanner.showBackground()
+            BarcodeScanner.stopScan()
+            document.body.classList.remove('transparent-body')
+            vm.onQRDecode([{ rawValue: res.content }])
+          } else {
+            // Not complete yet, continue scanning without stopping
+            // Prepare scanner and continue scanning for next part
+            BarcodeScanner.prepare()
+            vm.scanBarcode()
+          }
+        } else {
+          // Non-streaming QR code - process normally and stop
+          BarcodeScanner.showBackground()
+          BarcodeScanner.stopScan()
+          document.body.classList.remove('transparent-body')
+          vm.onQRDecode([{ rawValue: res.content }])
+        }
       } else {
         BarcodeScanner.stopScan()
         document.body.classList.remove('transparent-body')
@@ -265,12 +310,21 @@ export default {
         // quick timeout to allow qrcode stream cache to reset after pausing
         await new Promise((resolve) => { window.setTimeout(resolve, 250) })
 
+        // Paytaca Explorer transaction URL (extract txid)
+        // Example: https://explorer.paytaca.com/tx/<txid>
+        const explorerTxMatch = String(value || '').match(/^(https?:\/\/)?explorer\.paytaca\.com\/tx\/([0-9a-fA-F]{64})/i)
+        if (explorerTxMatch) {
+          const txid = explorerTxMatch[2]
+          vm.$router.push({
+            name: 'transaction-list',
+            query: { txid }
+          })
+          vm.paused = false
+          return
+        }
+
         if (value.includes('gifts.paytaca.com')) {
           // redirect to gifts page
-          const loadingDialog = vm.loadingDialog()
-          setTimeout(() => {
-            loadingDialog.hide()
-          }, 700)
           vm.$router.push({
             name: 'claim-gift',
             query: { code: value }
@@ -283,10 +337,6 @@ export default {
         } else if (value.includes('bitcoincash:') || value.includes('bchtest:')) {
           vm.processSendPageRedirection(value)
         } else if (parseWalletConnectUri(value)) {
-          const loadingDialog = vm.loadingDialog()
-          setTimeout(() => {
-            loadingDialog.hide()
-          }, 700)
           vm.$router.push({
             name: 'app-wallet-connect',
             query: { uri: value }
@@ -297,6 +347,67 @@ export default {
             name: 'app-sweep',
             query: { w: '', bip38String: value }
           })
+        } else if(_value?.startsWith('ur:crypto-mofnwallet')) {
+          const part = content[0].rawValue;
+          vm.urDecoder.receivePart(part);
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
+          if (vm.urDecoder.isComplete()) {
+            const ur = vm.urDecoder.resultUR()
+            const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
+            vm.$router.push({
+              name: 'app-multisig-wallet-import',
+              query: { data: encodeURIComponent(base64) }
+            })
+          }
+        } else if(_value?.startsWith('ur:crypto-psbt')) {
+          const part = content[0].rawValue;
+          vm.urDecoder.receivePart(part);
+          vm.progress = vm.urDecoder.estimatedPercentComplete()
+          if (vm.urDecoder.isComplete()) {
+            const ur = vm.urDecoder.resultUR()
+            const decodedData = Buffer.from(ur.cbor, 'base64')
+            const pst = Pst.import(binToBase64(decodedData))
+            const mValues = [...new Set(pst.inputs?.map(i => {
+              if (!i.redeemScript) return null;
+              return extractMValue(i.redeemScript)
+            }).filter(m => m))]
+
+            for (const m of mValues) {
+              const wallet = {
+                m,
+                signers: pst.wallet.signers
+              }
+              const walletHash = getWalletHash(wallet)
+              const foundWallet = vm.$store.getters['multisig/getWalletByHash'](walletHash)
+              if (foundWallet) {
+                const canonicalPsbt =vm.$store.getters['multisig/getPsbtByUnsignedTransactionHash'](pst.unsignedTransactionHash)
+                if (canonicalPsbt) {
+                  const canonicalPst = Pst.import(canonicalPsbt)
+                  canonicalPst.combine([pst])
+                  canonicalPst.setStore(vm.$store)
+                  canonicalPst.save()
+                } else {
+                  pst.setStore(vm.$store)
+                  pst.save()
+                }                
+                vm.$router.push({
+                  name: 'app-multisig-wallet-pst-view',
+                  params: { 
+                    wallethash: walletHash,
+                    unsignedtransactionhash: pst.unsignedTransactionHash 
+                  }
+                })
+                return
+              }
+
+              vm.$q.notify({
+                message: vm.$t('WalletNotFound'),
+                timeout: 800,
+                color: 'red-9',
+                icon: 'mdi-qrcode-remove'
+              })
+            }
+          }
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
@@ -321,9 +432,6 @@ export default {
       // redirect to send page
       const vm = this
       const payProData = await parsePayPro(value)
-      const loadingDialog = vm.loadingDialog()
-
-      setTimeout(() => { loadingDialog.hide() }, 700)
 
       const prefixArray = [
         'bitcoincash:q', 'bchtest:q',
@@ -432,21 +540,12 @@ export default {
       return value.length === 58
         && value.substring(0, 2) === '6P'
         && isBase58
-    },
-
-    loadingDialog () {
-      return this.$q.dialog({
-        component: LoadingWalletDialog,
-        componentProps: {
-          loadingText: this.$t('Redirecting')
-        }
-      })
     }
   },
 
   mounted () {
     const vm = this
-
+    vm.urDecoder = new URDecoder()
     if (vm.decode) {
       vm.onQRDecode([{ rawValue: vm.decode }])
     } else if (vm.isMobile) {
@@ -454,6 +553,9 @@ export default {
     }
 
     vm.clWidth = `${document.body.clientWidth}px`
+    vm.hideFooter = vm.$route.query.hideFooter
+    vm.hideGenerateQR = vm.$route.query.hideGenerateQR
+    vm.hideUploadQR = vm.$route.query.hideUploadQR
   },
 
   deactivated () {
@@ -571,6 +673,30 @@ export default {
     bottom: 0px;
     border: 3px solid #3b7bf6;
     border-radius: 15%;
+  }
+  .glassmorphic-cancel-btn {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(
+      to right bottom,
+      rgba(244, 67, 54, 0.75),
+      rgba(229, 57, 53, 0.75),
+      rgba(211, 47, 47, 0.75)
+    ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 600;
+    box-shadow: 0 4px 12px 0 rgba(244, 67, 54, 0.2);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px 0 rgba(244, 67, 54, 0.3);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
   }
 </style>
 

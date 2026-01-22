@@ -8,9 +8,8 @@ import { removeWalletName } from 'src/utils/wallet-name-cache'
 function getDefaultWalletSettings() {
   return {
     isChipnet: false,
-    autoGenerateAddress: false,
+    autoGenerateAddress: true,
     enableStablhedge: false,
-    enableSmartBCH: false,
     enableSLP: false,
     denomination: 'BCH',
     theme: 'glassmorphic-blue',
@@ -21,7 +20,10 @@ function getDefaultWalletSettings() {
     },
     darkMode: true,
     currency: { name: 'United States Dollar', symbol: 'USD' },
-    preferredSecurity: 'pin' // 'pin' or 'biometric'
+    preferredSecurity: 'pin', // 'pin' or 'biometric'
+    lockApp: false, // Enable/disable app lock feature
+    relativeTxTimestamp: true, // true: relative timestamps, false: absolute timestamps
+    lastBackupTimestamp: null // Timestamp when user last confirmed backup completion (Unix timestamp in milliseconds)
   }
 }
 
@@ -31,6 +33,22 @@ export function setWalletsRecovered (state, value) {
 
 export function setWalletRecoveryMessage(state, value) {
   state.walletRecoveryMessage = value
+}
+
+export function setBackupReminderDismissed (state, value) {
+  state.backupReminderDismissed = Boolean(value)
+}
+
+export function setLastBackupTimestamp (state, timestamp) {
+  // timestamp should be Unix timestamp in milliseconds (Date.now())
+  // null or undefined means no backup timestamp recorded
+  // Store per-wallet in vault settings
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.lastBackupTimestamp = timestamp !== null && timestamp !== undefined ? Number(timestamp) : null
+  }
 }
 
 export function updateAppControl (state, data) {
@@ -59,9 +77,6 @@ export function setNetwork (state, network) {
   switch (network) {
     case 'BCH':
       state.network = 'BCH'
-      break
-    case 'sBCH':
-      state.network = 'sBCH'
       break
     default:
       state.network = 'BCH'
@@ -248,7 +263,6 @@ export function updateCurrentWallet (state, index) {
     state.isChipnet = vault.settings.isChipnet !== undefined ? vault.settings.isChipnet : state.isChipnet
     state.autoGenerateAddress = vault.settings.autoGenerateAddress !== undefined ? vault.settings.autoGenerateAddress : state.autoGenerateAddress
     state.enableStablhedge = vault.settings.enableStablhedge !== undefined ? vault.settings.enableStablhedge : state.enableStablhedge
-    state.enableSmartBCH = vault.settings.enableSmartBCH !== undefined ? vault.settings.enableSmartBCH : state.enableSmartBCH
     state.enableSLP = vault.settings.enableSLP !== undefined ? vault.settings.enableSLP : state.enableSLP
     state.denomination = vault.settings.denomination || state.denomination
     state.theme = vault.settings.theme || state.theme
@@ -265,7 +279,6 @@ export function updateCurrentWallet (state, index) {
     state.isChipnet = defaults.isChipnet
     state.autoGenerateAddress = defaults.autoGenerateAddress
     state.enableStablhedge = defaults.enableStablhedge
-    state.enableSmartBCH = defaults.enableSmartBCH
     state.enableSLP = defaults.enableSLP
     state.denomination = defaults.denomination
     state.theme = defaults.theme
@@ -346,7 +359,6 @@ export function migrateWalletSettings (state, payload) {
     isChipnet: state.isChipnet,
     autoGenerateAddress: state.autoGenerateAddress,
     enableStablhedge: state.enableStablhedge,
-    enableSmartBCH: state.enableSmartBCH,
     enableSLP: state.enableSLP,
     denomination: state.denomination,
     theme: state.theme,
@@ -354,7 +366,8 @@ export function migrateWalletSettings (state, payload) {
     country: state.country ? { ...state.country } : { name: 'United States', code: 'US' },
     darkMode: darkMode,
     currency: currency,
-    preferredSecurity: preferredSecurity
+    preferredSecurity: preferredSecurity,
+    relativeTxTimestamp: true
   }
 
   // Migrate each wallet that doesn't have settings
@@ -365,13 +378,12 @@ export function migrateWalletSettings (state, payload) {
       if (!wallet.deleted) {
         wallet.settings = { ...currentSettings }
         migratedCount++
-        console.log(`[Migration] Initialized settings for wallet at index ${index}`)
       }
     }
   })
 
   if (migratedCount > 0) {
-    console.log(`[Migration] Migrated settings for ${migratedCount} wallet(s)`)
+    // Settings migrated successfully
   }
 }
 
@@ -433,28 +445,6 @@ export function enableStablhedge(state, value) {
   }
 }
 
-export function enableSmartBCH (state) {
-  state.enableSmartBCH = !state.enableSmartBCH
-  // Save to vault
-  if (state.vault && state.vault[state.walletIndex]) {
-    if (!state.vault[state.walletIndex].settings) {
-      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
-    }
-    state.vault[state.walletIndex].settings.enableSmartBCH = state.enableSmartBCH
-  }
-}
-
-export function disableSmartBCH (state) {
-  state.enableSmartBCH = false
-  // Save to vault
-  if (state.vault && state.vault[state.walletIndex]) {
-    if (!state.vault[state.walletIndex].settings) {
-      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
-    }
-    state.vault[state.walletIndex].settings.enableSmartBCH = false
-  }
-}
-
 export function enableSLP (state) {  
   state.enableSLP = !state.enableSLP
   // Save to vault
@@ -464,6 +454,14 @@ export function enableSLP (state) {
     }
     state.vault[state.walletIndex].settings.enableSLP = state.enableSLP
   }
+}
+
+/**
+ * Forcibly disable SmartBCH support (deprecated feature)
+ * SmartBCH network is no longer supported in preparation for future deprecation
+ */
+export function disableSmartBCH (state) {
+  state.enableSmartBCH = false
 }
 
 export function updateWallet (state, details) {
@@ -628,8 +626,22 @@ export function setTheme (state, theme) {
 export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   if (state.isChipnet) {
     state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.chipnet__wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.chipnet__wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   } else {
     state.wallets.bch.lastAddressAndIndex = lastAddressAndIndex
+    // Also update lastAddressIndex if address_index is provided
+    if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+      state.wallets.bch.lastAddressIndex = lastAddressAndIndex.address_index
+      if (lastAddressAndIndex.address) {
+        state.wallets.bch.lastAddress = lastAddressAndIndex.address
+      }
+    }
   }
 }
 
@@ -649,4 +661,30 @@ export function setWalletConnectedApps(state, connectedApps) {
   }
 }
 
+export function cacheCashtokenIdentity(state, { category, cashtokenIdentity }) {
+  state.cache.cashtokenIdentities[category] = cashtokenIdentity
+}
+
+/**
+ * Set the lock app feature for current wallet
+ * @param {Object} state - Global state
+ * @param {boolean} value - true to enable lock, false to disable
+ */
+export function setLockApp (state, value) {
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.lockApp = Boolean(value)
+  }
+}
+
+/**
+ * Set the unlock state for current session
+ * @param {Object} state - Global state
+ * @param {boolean} value - true if unlocked, false if locked
+ */
+export function setIsUnlocked (state, value) {
+  state.isUnlocked = Boolean(value)
+}
 

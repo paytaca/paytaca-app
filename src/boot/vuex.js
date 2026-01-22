@@ -6,6 +6,7 @@ import { resetWalletsAssetsList } from 'src/utils/indexed-db-rollback/reset-asse
 import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
+import limitsConfig from 'src/store/subscription/limits.json'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
@@ -24,10 +25,9 @@ export default boot(async (obj) => {
 
     // Hydrate Vuex store from localStorage if available
     // This is a manual hydration step to ensure the store is populated
-    const persistedState = localStorage.getItem('vuex')
+    let persistedState = localStorage.getItem('vuex')
     if (persistedState) {
       const parsedState = JSON.parse(persistedState)
-      
       // Ensure new wallet-specific structure exists after hydration
       // Migrate old structure to new structure if needed
       if (parsedState.ramp && !parsedState.ramp.byWallet) {
@@ -39,8 +39,64 @@ export default boot(async (obj) => {
         parsedState.paytacapos.byWallet = {}
       }
       
+      if (parsedState.global && !parsedState.global.cache) {
+        parsedState.global.cache = {
+          cashtokenIdentities: {}
+        }
+      }
+      
+      // Ensure subscription module state is initialized
+      if (!parsedState.subscription) {
+        parsedState.subscription = {
+          isPlus: false,
+          liftTokenBalance: 0,
+          lastChecked: null,
+          limits: {
+            free: { ...limitsConfig.free },
+            plus: { ...limitsConfig.plus }
+          },
+          minLiftTokens: limitsConfig.minLiftTokens
+        }
+      } else {
+        // Ensure limits object exists (handles case where subscription exists but limits is undefined)
+        if (!parsedState.subscription.limits) {
+          parsedState.subscription.limits = {
+            free: { ...limitsConfig.free },
+            plus: { ...limitsConfig.plus }
+          }
+        } else {
+          // Migrate existing subscription limits to current values from limits.json
+          if (parsedState.subscription.limits.free) {
+            parsedState.subscription.limits.free = { ...limitsConfig.free }
+          }
+          // Ensure plus limits exist
+          if (!parsedState.subscription.limits.plus) {
+            parsedState.subscription.limits.plus = { ...limitsConfig.plus }
+          } else {
+            // Migrate existing plus limits to current values from limits.json
+            parsedState.subscription.limits.plus = { ...limitsConfig.plus }
+          }
+          // Ensure free limits exist
+          if (!parsedState.subscription.limits.free) {
+            parsedState.subscription.limits.free = { ...limitsConfig.free }
+          }
+        }
+        // Ensure other required properties exist
+        if (typeof parsedState.subscription.isPlus === 'undefined') {
+          parsedState.subscription.isPlus = false
+        }
+        if (typeof parsedState.subscription.liftTokenBalance === 'undefined') {
+          parsedState.subscription.liftTokenBalance = 0
+        }
+        if (typeof parsedState.subscription.lastChecked === 'undefined') {
+          parsedState.subscription.lastChecked = null
+        }
+        if (typeof parsedState.subscription.minLiftTokens === 'undefined') {
+          parsedState.subscription.minLiftTokens = limitsConfig.minLiftTokens
+        }
+      }
+
       store.replaceState(parsedState)
-      console.log('[Hydration] Vuex state manually hydrated.')
     }
 
     // Add error handler for store mutations

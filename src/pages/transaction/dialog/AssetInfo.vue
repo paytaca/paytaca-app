@@ -13,7 +13,13 @@
         <!-- Header: Logo and Name -->
         <div class="asset-header text-center q-mb-md">
           <div class="asset-logo-container">
-            <img :src="getImageUrl(asset)" height="45" class="asset-logo">
+            <img 
+              :src="getImageUrl(asset)" 
+              height="45" 
+              class="asset-logo asset-icon"
+              @contextmenu.prevent
+              @selectstart.prevent
+            >
           </div>
           <div class="asset-name q-mt-xs text-weight-bold" style="font-size: 20px; letter-spacing: 0.3px;">
             {{ assetDisplayName }}
@@ -238,13 +244,9 @@ export default {
       // This ensures computed properties that depend on prices will update when prices change
       return this.$store.getters['market/assetPrices']
     },
-    isSep20 () {
-      return this.network === 'sBCH'
-    },
     assetLink () {
       const tokenType = this.asset.id.split('/')[0]
       const tokenId = this.asset && this.asset.id.split('/')[1]
-      if (this.isSep20) return `https://sonar.cash/address/${tokenId}`
 
       if (tokenType === 'ct')
         return `https://tokenexplorer.cash/?tokenId=${tokenId}`

@@ -56,9 +56,21 @@ export class CashNonFungibleToken {
   }
 
   get imageUrl() {
-    const imageUrl = this.toIpfsUrl(this.metadata?.type_metadata?.uris?.icon)
-    if (imageUrl) return imageUrl
-    return this.toIpfsUrl(this.metadata?.type_metadata?.uris?.icon)
+    // For groups: use metadata.uris.icon or metadata.uris.image
+    if (this.metadata?.uris?.icon) {
+      return this.toIpfsUrl(this.metadata.uris.icon)
+    }
+    if (this.metadata?.uris?.image) {
+      return this.toIpfsUrl(this.metadata.uris.image)
+    }
+    // For items: use type_metadata.uris.icon or type_metadata.uris.image
+    if (this.metadata?.type_metadata?.uris?.icon) {
+      return this.toIpfsUrl(this.metadata.type_metadata.uris.icon)
+    }
+    if (this.metadata?.type_metadata?.uris?.image) {
+      return this.toIpfsUrl(this.metadata.type_metadata.uris.image)
+    }
+    return null
   }
 
   get parsedGroupMetadata() {
@@ -93,15 +105,20 @@ export class CashNonFungibleToken {
   }
 
   get parsedMetadata() {
-    if (!this.$state.metadataInitialized) return
+    if (!this.$state.metadataInitialized && !this.metadata) return
 
+    // For new API structure, metadata might be directly available
+    // Groups have full metadata, items have type_metadata
+    const nftMeta = this.parsedNftMetadata
+    const groupMeta = this.parsedGroupMetadata
+    
     return {
-      name: this.parsedNftMetadata?.name || this.parsedGroupMetadata?.name,
-      description: this.parsedNftMetadata?.description || this.parsedGroupMetadata?.description,
-      symbol: this.parsedGroupMetadata?.symbol,
-      imageUrl: this.parsedNftMetadata?.imageUrl || this.parsedGroupMetadata?.imageUrl || this.metadata?.uris?.icon,
-      imageUrlFull: this.parsedNftMetadata?.imageUrlFull || this.parsedGroupMetadata?.imageUrl || this.metadata?.uris?.icon,
-      attributes: this.parsedNftMetadata?.attributes,
+      name: nftMeta?.name || groupMeta?.name,
+      description: nftMeta?.description || groupMeta?.description,
+      symbol: groupMeta?.symbol,
+      imageUrl: nftMeta?.imageUrl || groupMeta?.imageUrl || this.imageUrl || this.metadata?.uris?.icon,
+      imageUrlFull: nftMeta?.imageUrlFull || groupMeta?.imageUrl || this.imageUrl || this.metadata?.uris?.image || this.metadata?.uris?.icon,
+      attributes: nftMeta?.attributes,
     }
   }
 
@@ -120,6 +137,7 @@ export class CashNonFungibleToken {
    * @param {'mutable' | 'minting' | 'none' | ''} data.capability
    * @param {String} data.current_txid
    * @param {String} data.current_index
+   * @param {Object} data.metadata - Pre-populated metadata from API (new endpoints)
    */
   updateData(data) {
     this.id = data?.id
@@ -128,9 +146,21 @@ export class CashNonFungibleToken {
     this.capability = data?.capability
     this.currentTxid = data?.currentTxid || data?.current_txid
     this.currentIndex = data?.currentIndex || data?.current_index
+    
+    // Handle new API structure where metadata is pre-populated
+    if (data?.metadata && Object.keys(data.metadata).length > 0) {
+      this.metadata = data.metadata
+      this.$state.metadataInitialized = true
+      this.$state.fetchingMetadata = false
+    }
   }
 
   async fetchMetadata() {
+    // Skip if metadata is already initialized (from new API endpoints)
+    if (this.$state.metadataInitialized && this.metadata) {
+      return Promise.resolve({ data: this.metadata })
+    }
+    
     let url = `tokens/${this.category}/`
     if (this.commitment) url += `${this.commitment}/`
     this.$state.fetchingMetadata = true

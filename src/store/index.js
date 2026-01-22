@@ -10,15 +10,13 @@ import darkmode from './darkmode'
 import market from './market'
 import marketplace from './marketplace'
 import assets from './assets'
-import lns from './lns'
 import paytacapos from './paytacapos'
-import sep20 from './sep20'
 import walletconnect from './walletconnect'
-import gifts from './gifts'
 import notification from './notification'
 import ramp from './ramp'
 import stablehedge from './stablehedge'
 import multisig from './multisig'
+import subscription from './subscription'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -193,6 +191,15 @@ function reducer(state) {
               }
             }
           }
+        } else if (moduleName === 'global') {
+          // For global module, exclude session-only state like isUnlocked
+          const globalState = state[moduleName]
+          const serializedGlobal = serializeState(globalState)
+          // Remove isUnlocked from persisted state (it's session-only)
+          if (serializedGlobal && typeof serializedGlobal === 'object') {
+            delete serializedGlobal.isUnlocked
+          }
+          serialized[moduleName] = serializedGlobal
         } else {
           // For other modules, serialize normally
           serialized[moduleName] = serializeState(state[moduleName])
@@ -218,7 +225,6 @@ export const Store = createStore({
       //   'global.theme',
       //   'global.isChipnet',
       //   'global.enableStablhedge',
-      //   'global.enableSmartBCH',
       //   'global.user',
       //   'global.online',
       //   'global.walletIndex',
@@ -257,15 +263,13 @@ export const Store = createStore({
     assets,
     market,
     marketplace,
-    lns,
     paytacapos,
-    sep20,
     walletconnect,
-    gifts,
     notification,
     ramp,
     stablehedge,
-    multisig
+    multisig,
+    subscription
   },
 
   // enable strict mode (adds overhead!)

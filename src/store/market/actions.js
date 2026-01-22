@@ -21,11 +21,10 @@ export async function updateSupportedCurrencies (context, { force = true }) {
  *  }
  */
 export function getAllAssetList (context) {
-  // TODO: Fetching of price needs to be improved. Coingecko does not not have price quoute for 
-  // most BCH and sBCH tokens currently. For SPICE, the price quote is wrong.
+  // TODO: Fetching of price needs to be improved. Coingecko does not have price quote for 
+  // most BCH tokens currently. For SPICE, the price quote is wrong.
   // The filters below is meant to only have BCH as result. This is temporary.
   const mainchainAssets = context.rootGetters['assets/getAssets'].filter(asset => asset?.id?.indexOf?.('/') === -1)
-  const smartchainAssets = context.rootGetters['sep20/getAssets'].filter(asset => asset?.id?.indexOf?.('/') === -1)
 
   const mainchain = mainchainAssets.map(asset => {
     if (asset?.id == 'bch') return {
@@ -41,22 +40,7 @@ export function getAllAssetList (context) {
     return { asset, coin }
   })
 
-  const smartchain = smartchainAssets.map(asset => {
-    if (asset?.id == 'bch') return {
-      asset,
-      coin: { id: 'bitcoin-cash', symbol: 'BCH', name: 'Bitcoin Cash' },
-    }
-
-    const filteredSymbol = context.state.coinsList
-      .filter(coin => String(coin.symbol).toLowerCase() === String(asset.symbol).toLowerCase())
-    const filteredPlatform = filteredSymbol
-      .filter(coin => coin?.platforms?.smartbch)
-
-    const coin = filteredPlatform.length ? filteredPlatform[0] : filteredSymbol[0]
-    return { asset, coin }
-  })
-
-  return { mainchain, smartchain }
+  return { mainchain, smartchain: [] }
 }
 
 export async function updateAssetPrices (context, { clearExisting = false, customCurrency = null, assetId = null }) {
@@ -95,6 +79,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
       // Note: For tokens, API returns tokens/currency (e.g., tokens per PHP), but we need currency/token (e.g., PHP per token)
       // For BCH, API returns currency/BCH (e.g., PHP per BCH) which is already in the correct format
       const prices = {}
+      const priceIds = {} // Store price_id per currency
       const isToken = assetId && assetId !== 'bch' && assetId.includes('/')
       
       data.prices.forEach(priceData => {
@@ -117,6 +102,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
         // Check for price data - handle different possible field names
         const currency = priceData?.currency || priceData?.vs_currency || priceData?.currency_symbol
         const priceValue = priceData?.price_value || priceData?.price || priceData?.value
+        const priceId = priceData?.id || priceData?.price_id
         
         if (!currency || priceValue === undefined || priceValue === null) return
         
@@ -130,6 +116,10 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
         const price = isToken && rawPrice !== 0 ? 1 / rawPrice : rawPrice
         
         prices[currencyLower] = price
+        // Store price_id if available
+        if (priceId) {
+          priceIds[currencyLower] = priceId
+        }
       })
       
       // Only commit prices if we actually have at least one price
@@ -139,7 +129,8 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
       
       const newAssetPrices = [{
         assetId: assetId,
-        prices: prices
+        prices: prices,
+        priceIds: priceIds // Store price_ids per currency
       }]
       
       if (clearExisting) context.commit('clearAssetPrices')

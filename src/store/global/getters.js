@@ -18,6 +18,19 @@ export function walletRecoveryMessage(state) {
   return state.walletRecoveryMessage
 }
 
+export function backupReminderDismissed (state) {
+  return state.backupReminderDismissed
+}
+
+export function lastBackupTimestamp (state) {
+  // Get last backup timestamp from current wallet's settings
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return state.vault[walletIndex].settings.lastBackupTimestamp || null
+  }
+  return null
+}
+
 export function theme (state) {
   return state.theme
 }
@@ -50,12 +63,12 @@ export function enableStablhedge (state) {
   return state.enableStablhedge
 }
 
-export function enableSmartBCH (state) {
-  return state.enableSmartBCH
-}
-
 export function enableSLP (state) {
   return state.enableSLP
+}
+
+export function enableSmartBCH (state) {
+  return state.enableSmartBCH
 }
 
 export function getAddress (state) {
@@ -346,6 +359,7 @@ export function merchantActivity (state) {
 }
 
 export function getWatchtowerBaseUrl (state) {
+  
   if (state.isChipnet) {
     return 'https://chipnet.watchtower.cash'
   }
@@ -376,4 +390,53 @@ export function preferredSecurity (state) {
   } catch {
     return 'pin'
   }
+}
+
+/**
+ * Get lock app setting for current wallet
+ * Returns true if app lock is enabled, false otherwise
+ */
+export function lockApp (state) {
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return Boolean(state.vault[walletIndex].settings.lockApp)
+  }
+  return false
+}
+
+/**
+ * Transaction list timestamp display preference.
+ * true: relative timestamps (e.g. "5 minutes ago")
+ * false: absolute timestamps (date + time) formatted using user's locale
+ */
+export function relativeTxTimestamp (state) {
+  const walletIndex = state.walletIndex
+  const value = state.vault?.[walletIndex]?.settings?.relativeTxTimestamp
+  if (value === undefined || value === null) return true
+  return Boolean(value)
+}
+
+/**
+ * Check if ANY wallet in the vault has lock app enabled
+ * Returns true if at least one wallet has lock enabled, false otherwise
+ * Used for security checks that should apply globally when any wallet is protected
+ */
+export function anyWalletHasLockEnabled (state) {
+  if (!state.vault || !Array.isArray(state.vault)) {
+    return false
+  }
+  return state.vault.some(wallet => {
+    if (!wallet || wallet.deleted === true) {
+      return false
+    }
+    return Boolean(wallet.settings?.lockApp)
+  })
+}
+
+/**
+ * Get current unlock state
+ * Returns true if app is unlocked in current session
+ */
+export function isUnlocked (state) {
+  return Boolean(state.isUnlocked)
 }

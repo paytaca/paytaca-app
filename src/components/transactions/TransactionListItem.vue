@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="transaction-item" 
+    class="transaction-item text-bow"
     :class="[
       'q-mx-lg q-px-sm',
       compact ? 'q-py-sm compact' : 'q-py-md',
@@ -11,9 +11,15 @@
     <div class="transaction-content">
       <div class="transaction-header">
         <div class="transaction-type">
-          <div class="type-with-asset" v-if="showAssetInfo">
+          <div class="type-with-asset" v-if="showAssetInfo && !isNftTransaction">
             <q-avatar size="20px" class="q-mr-xs">
-              <img v-if="assetImageUrl" :src="assetImageUrl" />
+              <img 
+                v-if="assetImageUrl" 
+                :src="assetImageUrl" 
+                class="asset-icon"
+                @contextmenu.prevent
+                @selectstart.prevent
+              />
               <q-icon v-else name="apps" size="14px" />
             </q-avatar>
             <span class="asset-symbol" :class="getDarkModeClass(darkMode)">{{ assetSymbol }}</span>
@@ -27,25 +33,10 @@
           </span>
         </div>
         <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
-          <template v-if="isStablehedgeTx">
-            <div class="amount-primary">
-              {{ 
-                parseAssetDenomination(
-                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                  ...asset,
-                  balance: stablehedgeTxData?.bch,
-                  thousandSeparator: true
-                })
-              }}
-            </div>
-            <div
-              v-if="isStablehedgeTx && stablehedgeTxData?.amount"
-              class="amount-secondary"
-              :class="getDarkModeClass(darkMode)"
-            >
-              {{ parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency) }}
-            </div>
-          </template>
+          <!-- For NFT transactions, show type name instead of quantity and symbol -->
+          <div v-if="isNftTransaction" class="amount-primary">
+            {{ asset?.name || 'NFT' }}
+          </div>
           <template v-else>
             <div class="amount-primary">
               {{
@@ -78,6 +69,7 @@
       <q-badge
         v-for="(badge, index) in badges" :key="index"
         class="badge-item"
+        :color="badgeColor"
         rounded
         @click.stop
       >
@@ -98,21 +90,36 @@
   </div>
 </template>
 <script setup>
-import ago from 's-ago'
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
-import { decryptMemo } from 'src/utils/transaction-memos.js'
-import { getKeypair } from 'src/exchange/chat/keys'
+import * as memoService from 'src/utils/memo-service'
 
 const $store = useStore()
-const $t = useI18n().t
+const { t: $t, locale: i18nLocale } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
+const theme = computed(() => $store.getters['global/theme'])
+const useRelativeTxTimestamp = computed(() => Boolean($store.getters['global/relativeTxTimestamp']))
+const userLocale = computed(() => {
+  // Prefer app-selected language; fall back to i18n locale; then browser locale.
+  const fromStore = $store.getters['global/language']
+  const candidate = fromStore || i18nLocale?.value || globalThis?.navigator?.language || 'en-US'
+  return String(candidate).replace('_', '-')
+})
+
+const badgeColor = computed(() => {
+  const themeMap = {
+    'glassmorphic-blue': 'blue-6',
+    'glassmorphic-green': 'green-6',
+    'glassmorphic-gold': 'amber-7',
+    'glassmorphic-red': 'pink-6'
+  }
+  return themeMap[theme.value] || 'blue-6'
+})
 
 const decryptedMemo = ref('')
 const currentTime = ref(Date.now())
@@ -211,10 +218,6 @@ const selectedAssetMarketPrice = computed(() => {
 })
 
 const recordTypeText = computed(() => {
-  if (stablehedgeTxData.value?.transactionTypeText) {
-    return stablehedgeTxData.value?.transactionTypeText
-  }
-
   switch (props?.transaction?.record_type) {
     case('incoming'):
       return $t('Received')
@@ -271,14 +274,75 @@ const badges = computed(() => {
   if (!Array.isArray(props.transaction?.attributes)) return []
   return props.transaction?.attributes.map(parseAttributeToBadge)
     .filter(badge => badge?.custom)
-    .filter(badge => isStablehedgeTx.value || badge.key !== 'stablehedge_transaction')
 })
 
-const stablehedgeTxData = computed(() => extractStablehedgeTxData(props.transaction))
-const isStablehedgeTx = computed(() => Boolean(stablehedgeTxData.value))
+// Check if this is an NFT transaction (has category/commitment or is_nft flag)
+const isNftTransaction = computed(() => {
+  if (!asset.value) return false
+  // Check if asset has category and commitment (NFT indicators)
+  if (asset.value.category && asset.value.commitment) return true
+  // Check if transaction has is_nft flag
+  if (props.transaction?.is_nft === true || props.transaction?.is_nft === 'true') return true
+  if (props.transaction?.asset?.is_nft === true || props.transaction?.asset?.is_nft === 'true') return true
+  // Check if asset ID starts with ct/ and has decimals 0 (NFT indicator)
+  if (asset.value.id && asset.value.id.startsWith('ct/') && asset.value.decimals === 0) {
+    // Additional check: if amount is 1 or 0 and it's not BCH, likely an NFT
+    const amount = Number(props.transaction?.amount) || 0
+    if (amount <= 1 && asset.value.id !== 'bch') return true
+  }
+  return false
+})
 
 function formatDate (date) {
-  return ago(new Date(date))
+  const dt = new Date(date)
+  if (Number.isNaN(dt.getTime())) return ''
+
+  if (useRelativeTxTimestamp.value) {
+    // Intl.RelativeTimeFormat handles grammar/plurals per locale.
+    // Use currentTime to keep this reactive with our existing interval.
+    const nowMs = Number(currentTime.value) || Date.now()
+    const diffMs = dt.getTime() - nowMs // negative => in the past (e.g., "5 minutes ago")
+    const diffSeconds = Math.round(diffMs / 1000)
+
+    const absSeconds = Math.abs(diffSeconds)
+    const rtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
+      ? new Intl.RelativeTimeFormat(userLocale.value, { numeric: 'auto' })
+      : null
+
+    const format = (value, unit) => {
+      if (rtf) return rtf.format(value, unit)
+      // Very defensive fallback (should rarely happen on modern platforms)
+      return new Date(date).toLocaleString()
+    }
+
+    if (absSeconds < 60) return format(diffSeconds, 'second')
+    const diffMinutes = Math.round(diffSeconds / 60)
+    if (Math.abs(diffMinutes) < 60) return format(diffMinutes, 'minute')
+    const diffHours = Math.round(diffMinutes / 60)
+    if (Math.abs(diffHours) < 24) return format(diffHours, 'hour')
+    const diffDays = Math.round(diffHours / 24)
+    if (Math.abs(diffDays) < 7) return format(diffDays, 'day')
+    const diffWeeks = Math.round(diffDays / 7)
+    if (Math.abs(diffWeeks) < 4) return format(diffWeeks, 'week')
+    const diffMonths = Math.round(diffDays / 30)
+    if (Math.abs(diffMonths) < 12) return format(diffMonths, 'month')
+    const diffYears = Math.round(diffDays / 365)
+    return format(diffYears, 'year')
+  }
+
+  // Absolute timestamp formatted per user's locale.
+  try {
+    return new Intl.DateTimeFormat(userLocale.value, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(dt)
+  } catch {
+    // Fallback: still show something useful.
+    return dt.toLocaleString()
+  }
 }
 
 const isNewTransaction = computed(() => {
@@ -290,39 +354,57 @@ const isNewTransaction = computed(() => {
   const diffMs = now - txDate
   const diffSeconds = Math.floor(diffMs / 1000)
   
-  // Check if formatted date shows "Just now" (less than 60 seconds old)
-  // Also check the formatted string to match "just now" (case-insensitive)
-  const formattedDate = formatDate(timestamp)
-  const isJustNow = diffSeconds < 60 || 
-                    /just\s+now/i.test(formattedDate) ||
-                    formattedDate.toLowerCase().includes('just now')
-  
-  return isJustNow
+  // "New" means less than 60 seconds old regardless of display format.
+  return diffSeconds < 60
 })
 
 async function loadMemo() {
-  if (!props.transaction?.encrypted_memo) {
+  // Support both txid and tx_hash field names
+  const txid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
+  if (!txid) {
     decryptedMemo.value = ''
     return
   }
 
+  // Capture transaction identifiers at the start to detect prop changes during async operation
+  // This prevents race conditions in virtualized lists where components are recycled
+  const initialTxid = txid
+  const initialEncryptedMemo = props.transaction?.encrypted_memo
+
   try {
-    const keypair = await getKeypair().catch(console.error)
-    if (!keypair) {
-      console.error('Failed to get keypair for memo decryption')
+    // Use memo service to load and decrypt memo
+    const result = await memoService.loadMemo(initialTxid, initialEncryptedMemo)
+
+    // Verify the transaction hasn't changed while the async call was in flight
+    // This prevents stale results from overwriting the memo for a different transaction
+    const currentTxid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
+    const currentEncryptedMemo = props.transaction?.encrypted_memo
+    
+    if (currentTxid !== initialTxid || currentEncryptedMemo !== initialEncryptedMemo) {
+      // Transaction changed during async operation, ignore this result
       return
     }
 
-    const decrypted = await decryptMemo(keypair.privkey, props.transaction.encrypted_memo)
-    decryptedMemo.value = decrypted
+    if (result.success && result.memo) {
+      decryptedMemo.value = result.memo
+    } else {
+      decryptedMemo.value = ''
+    }
   } catch (error) {
-    console.error('Error decrypting memo:', error)
-    decryptedMemo.value = ''
+    // Only update state if transaction hasn't changed
+    const currentTxid = props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash
+    if (currentTxid === initialTxid) {
+      console.error('[TransactionListItem] Error loading memo:', error)
+      decryptedMemo.value = ''
+    }
   }
 }
 
 onMounted(() => {
-  loadMemo()
+  // Load memo when component mounts - use nextTick to ensure transaction prop is set
+  nextTick(() => {
+    loadMemo()
+  })
   
   // Update current time every second to keep shine effect reactive
   updateTimer = setInterval(() => {
@@ -338,9 +420,14 @@ onUnmounted(() => {
   }
 })
 
-// Watch for changes to encrypted_memo and reload
+// Watch for changes to transaction txid and encrypted_memo
+// This ensures memos load when transactions are set asynchronously
+// Support multiple field names for transaction ID
 watch(
-  () => props.transaction?.encrypted_memo,
+  () => [
+    props.transaction?.txid || props.transaction?.tx_hash || props.transaction?.hash,
+    props.transaction?.encrypted_memo
+  ],
   () => {
     loadMemo()
   }

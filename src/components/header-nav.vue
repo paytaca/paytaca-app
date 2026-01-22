@@ -3,22 +3,22 @@
     <template v-if="rewardsPage === ''">
       <div
         ref="header-nav"
-        class="pt-header row no-wrap"
-        :style="{'padding-top': $q.platform.is.ios ? '73px' : '18px', 'height': $q.platform.is.ios ? '95px' : '70px', 'padding-bottom': $q.platform.is.ios ? '45px' : '0px'}"
+        class="pt-header row no-wrap items-center"
+        :style="headerNavStyle"
         :class="getDarkModeClass(darkMode)"
       >
-        <div class="col-1">
+        <div class="pt-header-left col-auto row items-center">
           <router-link
             :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons" @click="onClick">
                 arrow_back
             </span>
           </router-link>
         </div>
-        <div class="col-10">
+        <div class="pt-header-title col">
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
@@ -26,10 +26,13 @@
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
             v-on-long-press="onLongPressTitle"
           >
-            {{ title }}
+            <span class="pt-header-title-text">{{ title }}</span>
+            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
+              <slot name="title-append" />
+            </span>
           </p>
         </div>
-        <div class="col-1">
+        <div class="pt-header-right col-auto row items-center justify-end">
           <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
@@ -38,26 +41,22 @@
     <template v-else>
       <div
         ref="header-nav"
-        class="row no-wrap pt-header justify-between"
-        :style="{
-          'padding-top': $q.platform.is.ios ? '73px' : '18px',
-          'height': $q.platform.is.ios ? '95px' : '70px',
-          'padding-bottom': $q.platform.is.ios ? '45px' : '0px'
-        }"
+        class="row no-wrap pt-header justify-between items-center"
+        :style="headerNavStyle"
         :class="{'pt-card-3': darkMode}"
       >
-        <div class="col-1">
+        <div class="pt-header-left col-auto row items-center">
           <router-link
             :to="backTo"
             class="pt-arrow-left-link"
             :class="{'text-grad': darkMode}"
-            :style="{width: $q.platform.is.bex ? '375px' : '20%', 'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
             <span class="material-icons" @click="onClick">
                 arrow_back
             </span>
           </router-link>
         </div>
-        <div>
+        <div class="pt-header-title col">
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
@@ -65,10 +64,13 @@
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
             v-on-long-press="onLongPressTitle"
           >
-            {{ title }}
+            <span class="pt-header-title-text">{{ title }}</span>
+            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
+              <slot name="title-append" />
+            </span>
           </p>
         </div>
-        <div class="col-1 q-mr-sm">
+        <div class="pt-header-right col-auto q-mr-sm">
           <q-btn
             round
             class="button"
@@ -119,6 +121,30 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    headerNavStyle () {
+      /**
+       * Prevent header overlap with the OS status bar / cutouts.
+       * - iOS: keep the existing visual spacing, but also respect safe-area insets.
+       * - Android: add safe-area inset on top of the normal padding so the back button
+       *   stays clickable on devices where the status bar overlays the webview.
+       */
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+
+      if (this.$q.platform.is.ios) {
+        return {
+          // Preserve existing iOS sizing, but ensure we never go *below* safe area needs.
+          paddingTop: `max(73px, calc(${safeTop} + 29px))`,
+          height: `max(95px, calc(${safeTop} + 51px))`,
+          paddingBottom: '45px'
+        }
+      }
+
+      return {
+        paddingTop: `calc(18px + ${safeTop})`,
+        height: `calc(70px + ${safeTop})`,
+        paddingBottom: '0px'
+      }
+    },
     backTo () {
       if (typeof this.backnavpath === 'object' && this.backnavpath !== null && Object.keys(this.backnavpath).length > 0) {
         return this.backnavpath
@@ -131,12 +157,21 @@ export default {
     }
   },
   mounted () {
-    // adjust header-nav div height when header title breaks into two lines
-    const headerTitleHeight = this.$refs['header-title'].clientHeight
-    const headerNavHeight = this.$refs['header-nav'].clientHeight
+    // Mark that this route has a header so global safe-area padding won't double-apply.
+    document.body.classList.add('pt-has-header-nav')
 
-    if (headerNavHeight === 70) { // not iOS
-      this.$refs['header-nav'].setAttribute('style', `height: ${headerTitleHeight > 32 ? '100' : '70'}px;`)
+    // adjust header-nav div height when header title breaks into two lines
+    const headerTitleHeight = this.$refs['header-title']?.clientHeight
+    const headerNavEl = this.$refs['header-nav']
+
+    if (!headerNavEl || typeof headerTitleHeight !== 'number') return
+
+    if (!this.$q.platform.is.ios) {
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+      headerNavEl.style.height = headerTitleHeight > 32
+        ? `calc(100px + ${safeTop})`
+        : `calc(70px + ${safeTop})`
+
       if (headerTitleHeight > 32) {
         // move all elements 30px down due to the change in height
         document.body.style.paddingTop = '30px'
@@ -146,6 +181,7 @@ export default {
   },
   beforeUnmount () {
     if (this.addedBodyPadding) document.body.style.paddingTop = ''
+    document.body.classList.remove('pt-has-header-nav')
   },
   methods: {
     getDarkModeClass,
@@ -186,16 +222,38 @@ export default {
   margin-right: auto;
   padding-top: 20px;
   z-index: 100;
+  position: relative;
+  --pt-header-side: clamp(44px, 12vw, 56px);
+}
+
+/* Fixed side slots so icons never overlap the centered title */
+.pt-header-left,
+.pt-header-right {
+  flex: 0 0 var(--pt-header-side);
+  width: var(--pt-header-side);
+  min-width: var(--pt-header-side);
+}
+.pt-header-right {
+  /* Match the back button's left padding for visual balance */
+  padding-right: 10px;
+  box-sizing: border-box;
+}
+.pt-header-title {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .pt-arrow-left-link {
-  position: absolute;
+  position: relative;
   font-size: 30px;
-  left: 20px;
   color: #3B7BF6;
   text-decoration: none;
   display: flex;
   justify-items: center;
   align-items: center;
+  height: 100%;
+  width: 100%;
+  padding-left: 10px;
+  z-index: 2;
 }
 .pt-settings-icon {
   position: absolute;

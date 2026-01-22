@@ -23,14 +23,19 @@
 		          outlined
 		          rounded
 		          v-model="searchText"
-		          :placeholder="$t('Search Asset')"
+		          :placeholder="$t('SearchAsset')"
+		          :loading="loading"
 		        >
 		          <template v-slot:append>
 		            <q-icon name="search" color="grey-5" />
 		          </template>
 		        </q-input>
 		      </q-card-section>
-			<div :class="darkMode ? 'text-white' : 'text-black'">
+			<div v-if="loading" class="q-pa-md text-center">
+				<q-spinner color="primary" size="40px" />
+				<p class="q-mt-sm">{{ $t('LoadingAssets', {}, 'Loading assets') }}...</p>
+			</div>
+			<div v-else :class="darkMode ? 'text-white' : 'text-black'">
 				<q-list separator class="q-px-lg">
 					<!-- Add "All" option at the top -->
 					<q-item class="q-py-md" clickable v-ripple @click="onOKClick({ id: 'all', symbol: 'All', name: 'All Assets', logo: null })" :key="'all'">
@@ -45,7 +50,12 @@
 					<q-item class="q-py-md" clickable v-ripple v-for="asset in filteredList" @click="onOKClick(asset)" :key="asset.id">
 						<q-item-section avatar>
 		          <q-avatar>
-		            <img :src="getImageUrl(asset)">
+		            <img 
+		              :src="getImageUrl(asset)" 
+		              class="asset-icon"
+		              @contextmenu.prevent
+		              @selectstart.prevent
+		            >
 		          </q-avatar>
 		        </q-item-section>
 		        <q-item-section class="text-bold">{{ asset.name }}</q-item-section>
@@ -58,17 +68,64 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { cachedLoadWallet } from 'src/wallet'
+import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import axios from 'axios'
 
 export default {
 	data () {
 		return {
-			searchText: ''
+			searchText: '',
+			allTokensFromAPI: [], // Store tokens fetched from API
+			wallet: null,
+			loading: false
 		}
 	},
 	computed: {
 		darkMode () {
 	    return this.$store.getters['darkmode/getStatus']
 	  },
+	  assets () {
+			// Get BCH asset from store
+			const bchAsset = this.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
+			
+			// Use tokens from API - they already have favorite and favorite_order
+			// Filter out tokens without an id to prevent rendering errors
+			const apiTokens = (this.allTokensFromAPI || [])
+				.filter(token => token && token.id) // Only include tokens with valid id
+				.map(token => ({
+					id: token.id,
+					name: token.name || 'Unknown Token',
+					symbol: token.symbol || '',
+					decimals: token.decimals || 0,
+					logo: token.logo,
+					balance: token.balance !== undefined ? token.balance : 0,
+					favorite: token.favorite === true ? 1 : 0,
+					favorite_order: token.favorite_order !== null && token.favorite_order !== undefined ? token.favorite_order : null
+				}))
+
+			// Sort: favorites first (by favorite_order), then non-favorites
+			const sortedTokens = apiTokens.sort((a, b) => {
+				// If one is favorite and other is not, favorite comes first
+				if (a.favorite === 1 && b.favorite === 0) return -1
+				if (a.favorite === 0 && b.favorite === 1) return 1
+				// If both are favorites, sort by favorite_order
+				if (a.favorite === 1 && b.favorite === 1) {
+					const orderA = a.favorite_order || 0
+					const orderB = b.favorite_order || 0
+					return orderA - orderB
+				}
+				// If both are non-favorites, maintain their relative order
+				return 0
+			})
+
+			// Return: BCH first, then sorted tokens
+			return [
+				...(bchAsset ? [bchAsset] : []),
+				...sortedTokens
+			].filter(asset => asset && asset.id) // Extra safety
+		},
 	  filteredList () {
       if (!this.searchText) return this.assets
 
@@ -85,13 +142,98 @@ export default {
     }
 	},
 	props: {
-		assets: Array
+		// Removed assets prop - we fetch directly from API now
 	},
-	mounted () {
-		// console.log('assets: ', this.assets)
+	async mounted () {
+		// Load wallet and fetch tokens
+		const walletIndex = this.$store.getters['global/getWalletIndex']
+		this.wallet = await cachedLoadWallet('BCH', walletIndex)
+		await this.fetchTokensFromAPI()
 	},
 	methods: {
 		getDarkModeClass,
+		async fetchTokensFromAPI () {
+			if (!this.wallet) {
+				console.warn('[AssetListDialog] Wallet not loaded, cannot fetch tokens')
+				return []
+			}
+
+			const walletHash = this.wallet.BCH?.walletHash || this.wallet.bch?.walletHash
+			if (!walletHash) {
+				console.warn('[AssetListDialog] Wallet hash not available')
+				return []
+			}
+
+			const isChipnet = this.$store.getters['global/isChipnet']
+			const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+			const filterParams = {
+				has_balance: true,
+				token_type: 1,
+				wallet_hash: walletHash,
+				limit: 100 // Fetch more tokens per page
+			}
+
+			this.loading = true
+			try {
+				const url = `${baseUrl}/cashtokens/fungible/`
+				let allTokens = []
+				let nextUrl = url
+				let params = filterParams
+
+				// Fetch all pages if there are more results
+				while (nextUrl) {
+					const { data } = await axios.get(nextUrl, { params })
+
+					if (!Array.isArray(data.results)) {
+						break
+					}
+
+					// Map API response to asset format
+					const tokens = data.results
+						.filter(result => {
+							if (!result || !result.id) {
+								console.warn('[AssetListDialog] Token from API missing id:', result)
+								return false
+							}
+							return true
+						})
+						.map(result => {
+							// Convert IPFS URLs if needed
+							const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
+
+							return {
+								id: result.id,
+								name: result.name || 'Unknown Token',
+								symbol: result.symbol || '',
+								decimals: result.decimals || 0,
+								logo: logo,
+								balance: result.balance !== undefined ? result.balance : 0,
+								favorite: result.favorite === true ? 1 : 0,
+								favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
+							}
+						})
+
+					allTokens = [...allTokens, ...tokens]
+
+					// Check if there's a next page
+					if (data.next) {
+						nextUrl = data.next
+						params = {} // Don't send params again, URL already has them
+					} else {
+						nextUrl = null
+					}
+				}
+
+				this.allTokensFromAPI = allTokens
+				return allTokens
+			} catch (error) {
+				console.error('[AssetListDialog] Error fetching tokens from API:', error)
+				return []
+			} finally {
+				this.loading = false
+			}
+		},
 		getImageUrl (asset) {
 			if (asset?.logo) {
 				if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {

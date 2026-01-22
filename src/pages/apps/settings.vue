@@ -45,6 +45,14 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item v-if="showSensitiveInfo" clickable v-ripple @click="copyToClipboard(walletMasterFingerprint)">
+                <q-item-section>
+                  <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('MasterFingerprint') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" style="word-wrap: break-word;">
+                    {{ walletMasterFingerprint }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
               <q-item v-if="showSensitiveInfo" :clickable="!!bchWallet.walletHash" v-ripple @click="bchWallet.walletHash && copyToClipboard(bchWallet.walletHash)">
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletHash') }}</q-item-label>
@@ -53,20 +61,6 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-              <!-- <q-item clickable v-ripple @click="enableSmartBCH = !enableSmartBCH">
-                  <q-item-section>
-                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                        {{ $t('EnableSmartBCH') }}
-                      </q-item-label>
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-toggle
-                      v-model="enableSmartBCH"
-                      color="blue-9"
-                      keep-color
-                    />
-                  </q-item-section>
-              </q-item> -->
             </q-list>
         </div>
 
@@ -91,6 +85,24 @@
                   </q-item-section>
                   <q-item-section avatar>
                       <q-icon name="lock" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                  </q-item-section>
+              </q-item>
+              <q-item>
+                  <q-item-section>
+                      <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                        {{ $t('LockApp', {}, 'Lock App') }}
+                      </q-item-label>
+                      <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                        {{ $t('LockAppDescription', {}, 'Require authentication when opening or resuming the app') }}
+                      </q-item-label>
+                  </q-item-section>
+                  <q-item-section avatar>
+                      <q-toggle
+                        :model-value="lockAppEnabled"
+                        @update:model-value="toggleLockApp"
+                        :color="toggleColor"
+                        keep-color
+                      />
                   </q-item-section>
               </q-item>
             </q-list>
@@ -126,6 +138,11 @@
                   </q-item-section>
               </q-item>
             </q-list>
+        </div>
+
+        <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Subscription', {}, 'Subscription') }}</p>
+            <SubscriptionStatus :dark-mode="darkMode" />
         </div>
 
         <div class="col-12 q-px-lg q-mt-md">
@@ -183,7 +200,7 @@
         </div>
 
         <template v-if="isMobile">
-          <PushNotifsSettings />
+          <AdvertisementsSettings />
         </template>
 
         <div class="col-12 q-px-lg q-mt-md">
@@ -212,7 +229,7 @@
               <q-item>
                 <q-item-section>
                   <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" caption>{{ $t('Version') }}</q-item-label>
-                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">v{{ appVersion }}</q-item-label>
+                  <q-item-label class="pt-label text-grad" :class="getDarkModeClass(darkMode)">{{ appVersion }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
@@ -232,6 +249,24 @@
               </q-item>
             </q-list>
           </div>
+
+        <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
+          <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+            <q-item clickable v-ripple @click="confirmDeleteWallet">
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)" style="color: #f44336;">
+                  {{ $t('DeleteWallet') }}
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('DeleteWalletWarning', {}, 'Permanently remove this wallet and all its data. This action cannot be undone.') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-icon name="delete_forever" color="red"></q-icon>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
       </div>
 
       <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" :darkMode="darkMode" />
@@ -240,21 +275,24 @@
 </template>
 
 <script>
+import { deriveSeedFromBip39Mnemonic, binToHex, deriveHdPrivateNodeFromSeed, deriveHdPublicNode, hash160 } from 'bitauth-libauth-v3'
 import pinDialog from '../../components/pin'
 import securityOptionDialog from '../../components/authOption'
 import HeaderNav from '../../components/header-nav'
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { Plugins } from '@capacitor/core'
+import { Capacitor, Plugins } from '@capacitor/core'
 import packageInfo from '../../../package.json'
 import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
-import PushNotifsSettings from 'src/components/settings/PushNotifsSettings.vue'
+import AdvertisementsSettings from 'src/components/settings/AdvertisementsSettings.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
+import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { loadWallet } from 'src/wallet'
+import { loadWallet, getMnemonic, pinExists } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
+import ScreenshotSecurity from 'src/utils/screenshot-security'
 
 export default {
   data () {
@@ -265,15 +303,16 @@ export default {
       securityAuth: false,
       securityChange: null,
       pinStatus: true,
+      pendingLockEnable: false, // Track if lock should be enabled after PIN setup
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
       isChipnet: this.$store.getters['global/isChipnet'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
-      enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
       enablePushNotifs: false,
-      showSensitiveInfo: false
+      showSensitiveInfo: false,
+      walletMasterFingerprint: ''
     }
   },
   components: {
@@ -284,8 +323,9 @@ export default {
     CountrySelector,
     CurrencySelector,
     ThemeSelector,
-    PushNotifsSettings,
-    RenameDialog
+    AdvertisementsSettings,
+    RenameDialog,
+    SubscriptionStatus
   },
   computed: {
     isMobile () {
@@ -318,14 +358,14 @@ export default {
         }
       }
       return wallet
+    },
+    lockAppEnabled () {
+      return this.$store.getters['global/lockApp']
     }
   },
   watch: {
     isChipnet (n, o) {
       this.$store.commit('global/toggleIsChipnet')
-    },
-    enableSmartBCH (n, o) {
-      this.$store.commit('global/enableSmartBCH')
     },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
@@ -362,6 +402,73 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
+    async toggleLockApp (value) {
+      const vm = this
+      
+      // If enabling lock, check if PIN exists first
+      if (value) {
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const hasPin = await pinExists(walletIndex)
+        
+        if (!hasPin) {
+          // PIN doesn't exist - prompt user to set up PIN first
+          vm.$q.dialog({
+            title: vm.$t('PinRequired', {}, 'PIN Required'),
+            message: vm.$t('PinRequiredForLock', {}, 'A PIN must be set up before enabling app lock. This ensures you can always unlock your wallet even if biometric authentication becomes unavailable.'),
+            ok: {
+              label: vm.$t('SetupPin', {}, 'Set Up PIN'),
+              color: 'brandblue'
+            },
+            cancel: {
+              label: vm.$t('Cancel'),
+              flat: true
+            },
+            persistent: true
+          }).onOk(() => {
+            // Mark that lock should be enabled after PIN setup
+            vm.pendingLockEnable = true
+            // Open PIN setup dialog
+            vm.pinDialogAction = 'SET UP'
+          }).onCancel(() => {
+            // User cancelled - don't enable lock
+            // Reset toggle to previous state (disabled)
+            vm.$nextTick(() => {
+              // Force update the toggle to reflect that lock is still disabled
+              // Explicitly ensure state is false to trigger computed property update
+              // This ensures the toggle component syncs properly with the store state
+              const currentState = vm.$store.getters['global/lockApp']
+              if (currentState !== false) {
+                vm.$store.commit('global/setLockApp', false)
+              }
+            })
+          })
+          
+          // Don't enable lock if PIN doesn't exist
+          return
+        }
+      }
+      
+      // PIN exists or disabling lock - proceed with toggle
+      vm.$store.commit('global/setLockApp', value)
+      
+      // Update screenshot security based on lock app setting
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await ScreenshotSecurity.setSecureFlag({ enabled: value })
+        } catch (error) {
+          console.error('[Settings] Failed to set screenshot security:', error)
+        }
+      }
+      
+      vm.$q.notify({
+        message: value 
+          ? vm.$t('LockAppEnabled', {}, 'App lock enabled') 
+          : vm.$t('LockAppDisabled', {}, 'App lock disabled'),
+        timeout: 1000,
+        color: 'brandblue',
+        icon: value ? 'lock' : 'lock_open'
+      })
+    },
     openRenameDialog () {
       const vm = this
       const walletIndex = vm.$store.getters['global/getWalletIndex']
@@ -376,19 +483,68 @@ export default {
       this.securityChange = 'change-pin'
       this.pinDialogAction = 'VERIFY'
     },
-    pinDialogCallback (action = '') {
-      this.pinDialogAction = ''
+    async pinDialogCallback (action = '') {
+      const vm = this
+      vm.pinDialogAction = ''
       if (action !== 'cancel') {
-        this.securityOptionDialogStatus = 'dismiss'
+        vm.securityOptionDialogStatus = 'dismiss'
       }
       if (action === 'proceed') {
-        if (this.securityChange === 'change-pin') {
-          this.pinDialogAction = 'SET NEW'
+        if (vm.securityChange === 'change-pin') {
+          vm.pinDialogAction = 'SET NEW'
+          // Reset securityChange immediately after triggering SET NEW dialog
+          // to prevent infinite loop when callback fires again after new PIN is set
+          vm.securityChange = null
         }
-        if (this.securityChange === 'switch-to-biometric') {
-          this.$store.commit('global/setPreferredSecurity', 'biometric')
-          this.pinStatus = false
+        if (vm.securityChange === 'switch-to-biometric') {
+          vm.$store.commit('global/setPreferredSecurity', 'biometric')
+          vm.pinStatus = false
+          // Reset securityChange after completing the switch
+          vm.securityChange = null
         }
+        
+        // If PIN was just set up and lock is pending, enable it now
+        if (vm.pendingLockEnable) {
+          vm.pendingLockEnable = false
+          
+          // Verify PIN exists before enabling lock
+          const walletIndex = vm.$store.getters['global/getWalletIndex']
+          const hasPin = await pinExists(walletIndex)
+          
+          if (hasPin) {
+            // Enable lock now that PIN is set up
+            vm.$store.commit('global/setLockApp', true)
+            
+            // Update screenshot security
+            if (Capacitor.isNativePlatform()) {
+              try {
+                await ScreenshotSecurity.setSecureFlag({ enabled: true })
+              } catch (error) {
+                console.error('[Settings] Failed to set screenshot security:', error)
+              }
+            }
+            
+            vm.$q.notify({
+              message: vm.$t('LockAppEnabled', {}, 'App lock enabled'),
+              timeout: 2000,
+              color: 'brandblue',
+              icon: 'lock'
+            })
+          } else {
+            // PIN setup didn't complete - show error
+            vm.$q.notify({
+              message: vm.$t('PinSetupIncomplete', {}, 'PIN setup incomplete. Please try again.'),
+              timeout: 3000,
+              color: 'negative',
+              icon: 'error'
+            })
+          }
+        }
+      } else if (action === 'cancel') {
+        // User cancelled PIN setup - clear pending lock enable
+        vm.pendingLockEnable = false
+        // Reset securityChange when user cancels to clean up state
+        vm.securityChange = null
       }
     },
     verifyBiometric () {
@@ -411,7 +567,7 @@ export default {
         },
         (error) => {
           // Failed to authenticate
-          console.log(error)
+          console.error(error)
         }
         )
     },
@@ -447,6 +603,78 @@ export default {
           console.error('Error loading xPubKey:', error)
         }
       }
+    },
+    confirmDeleteWallet () {
+      const vm = this
+      const walletIndex = vm.$store.getters['global/getWalletIndex']
+      const vault = vm.$store.getters['global/getVault']
+      const walletCount = vault.filter(w => w && !w.deleted).length
+
+      // Prevent deletion if it's the last wallet
+      if (walletCount <= 1) {
+        vm.$q.dialog({
+          title: vm.$t('DeleteWallet'),
+          message: vm.$t('CannotDeleteLastWallet', {}, 'You cannot delete your last wallet. Please create another wallet first.'),
+          seamless: true,
+          ok: true,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+        })
+        return
+      }
+
+      vm.$q.dialog({
+        title: vm.$t('DeleteWallet'),
+        message: vm.$t('DeleteWalletDescription'),
+        seamless: true,
+        cancel: true,
+        ok: {
+          label: vm.$t('DeleteWalletNow'),
+          color: 'red',
+          flat: true
+        },
+        cancel: {
+          label: vm.$t('Cancel'),
+          flat: true
+        },
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(async () => {
+        try {
+          await vm.$store.dispatch('global/deleteWallet', walletIndex)
+          
+          // Check if there are any wallets left
+          const updatedVault = vm.$store.getters['global/getVault']
+          const remainingWallets = updatedVault.filter(w => w && !w.deleted).length
+          
+          if (remainingWallets === 0) {
+            // No wallets left, redirect to wallet creation
+            vm.$router.push('/wallet/create')
+          } else {
+            // Redirect to home page of the wallet the app switched to
+            vm.$router.push('/')
+          }
+        } catch (error) {
+          console.error('Error deleting wallet:', error)
+          vm.$q.dialog({
+            title: vm.$t('Error'),
+            message: vm.$t('ErrorDeletingWallet', {}, 'Failed to delete wallet. Please try again.'),
+            seamless: true,
+            ok: true,
+            class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
+          })
+        }
+      })
+    },
+    async loadWalletMasterFingerprint(type) {
+      const m = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+      if (!m) return ''
+      this.walletMasterFingerprint = binToHex(
+          hash160(
+          deriveHdPublicNode(
+            deriveHdPrivateNodeFromSeed(
+              deriveSeedFromBip39Mnemonic(m)
+            )).publicKey
+          ).slice(0, 4)
+      )
     }
   },
   created () {
@@ -483,6 +711,7 @@ export default {
     this.$store.dispatch('market/updateSupportedCurrencies', {})
     this.$store.dispatch('global/refetchWalletPreferences')
     this.ensureXPubKeyLoaded()
+    this.loadWalletMasterFingerprint('bch')
   }
 }
 </script>

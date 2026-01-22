@@ -5,7 +5,6 @@ import { parseWalletConnectUri } from '../wallet/walletconnect'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import { extractWifFromUrl } from 'src/wallet/sweep'
 
-
 export default boot(({ router, /* store */ }) => {
 
   App.addListener('appUrlOpen', event => {
@@ -47,6 +46,14 @@ export default boot(({ router, /* store */ }) => {
         query.network = parsedPaymentUri.asset.chain === 'smart' ? 'sBCH' : 'BCH'
       } catch(error) { console.error(error) }
       router.push({ name: 'transaction-send', query: query })
+    } else if (url.host === 'explorer.paytaca.com') {
+      // Paytaca Explorer transaction URL
+      // Example: https://explorer.paytaca.com/tx/<txid>
+      const match = url.pathname.match(/^\/tx\/([0-9a-fA-F]{64})\/?$/)
+      if (match) {
+        const txid = match[1]
+        router.push({ name: 'transaction-list', query: { txid } })
+      }
     } else if (url.host === 'gifts.paytaca.com' && url.pathname.match('/claim/?')) {
       router.push({ name: 'claim-gift', query: { claimShare: url.searchParams.get('code') } })
     } else if (url.host === 'p2p.paytaca.com' && url.pathname.match('/ad/share/?')) {

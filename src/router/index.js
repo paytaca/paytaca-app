@@ -33,57 +33,70 @@ export default function () {
   })
 
   Router.beforeEach(async (to, from, next) => {
+    // Check if app is locked and user is trying to access a protected route
+    const lockAppEnabled = store.getters['global/lockApp']
+    
+    // Try multiple ways to get the unlock state to ensure we have the latest value
+    let isUnlocked = Boolean(store.getters['global/isUnlocked'])
+    
+    // Also check state directly as a fallback (for debugging and reliability)
+    const stateUnlocked = store.state?.global?.isUnlocked
+    if (typeof stateUnlocked === 'boolean') {
+      isUnlocked = Boolean(stateUnlocked)
+    }
+    
+    const isLockScreen = to.path === '/lock'
+    const isAccountsRoute = to.path.startsWith('/accounts')
+    // Wallet backup routes have their own authentication (PIN/biometric) separate from app lock
+    // They should be accessible even when app is locked, as they handle their own security
+    const isWalletBackupRoute = to.path.startsWith('/apps/wallet-backup')
+
+    // IMPORTANT: If app is already unlocked, skip ALL lock checks and allow navigation
+    // The lock screen should only show on initial app load or when coming from background
+    // Once unlocked, the app should remain unlocked for the entire session until it goes to background
+    // This check must happen FIRST before any other lock-related logic
+    // Use strict equality to ensure we're checking for true, not just truthy
+    if (isUnlocked === true) {
+      // If user tries to go to lock screen while unlocked, redirect away
+      if (isLockScreen) {
+        const redirectPath = to.query.redirect || '/'
+        next(redirectPath)
+        return
+      }
+    } else if (lockAppEnabled) {
+      // App is locked - only redirect if not already on lock screen, accounts, or wallet-backup routes
+      // Wallet-backup routes have their own authentication mechanism and should not be blocked
+      if (!isLockScreen && !isAccountsRoute && !isWalletBackupRoute) {
+        next({
+          path: '/lock',
+          query: { redirect: to.fullPath }
+        })
+        return
+      }
+    }
+
     if (to.path === '/') {
       try {
-        console.log('[Router] ===== ROUTER GUARD: Checking wallet access =====')
-        
         // Ensure current wallet index is valid (points to undeleted wallet)
         // This will switch to the first valid wallet if current is null/deleted
         await store.dispatch('global/ensureValidWalletIndex')
-        
-        // Get the current wallet index (may have changed after ensureValidWalletIndex)
+
         const currentWalletIndex = store.getters['global/getWalletIndex']
         const vault = store.getters['global/getVault']
-        console.log('[Router] Vault length:', vault?.length || 0)
-        console.log('[Router] Vault contents:', vault?.map((w, i) => ({
-          index: i,
-          deleted: w?.deleted,
-          hasWallet: !!w?.wallet,
-          hasName: !!w?.name,
-          walletHash: w?.wallet?.bch?.walletHash || w?.wallet?.BCH?.walletHash || w?.BCH?.walletHash || w?.bch?.walletHash || w?.walletHash || 'none'
-        })))
-        
         const currentWallet = vault[currentWalletIndex]
-        console.log('[Router] Current wallet at index:', currentWalletIndex, currentWallet ? 'exists' : 'MISSING')
-        
-        if (currentWallet) {
-          console.log('[Router] Current wallet details:', {
-            deleted: currentWallet.deleted,
-            hasWallet: !!currentWallet.wallet,
-            hasChipnet: !!currentWallet.chipnet,
-            name: currentWallet.name,
-            walletHash: currentWallet.wallet?.bch?.walletHash || currentWallet.wallet?.BCH?.walletHash || currentWallet.BCH?.walletHash || currentWallet.bch?.walletHash || currentWallet.walletHash || 'none'
-          })
-        }
-        
+
         // Check if we have a valid wallet structure
         // Use helper function to check all possible wallet hash locations
-        const hasValidWallet = currentWallet && 
-          currentWallet.deleted !== true && 
+        const hasValidWallet = currentWallet &&
+          currentWallet.deleted !== true &&
           (currentWallet.wallet?.bch?.walletHash ||
            currentWallet.wallet?.BCH?.walletHash ||
            currentWallet.BCH?.walletHash ||
            currentWallet.bch?.walletHash ||
            currentWallet.walletHash)
         
-        console.log('[Router] Has valid wallet structure:', hasValidWallet)
-        
         if (!hasValidWallet) {
           // No valid wallets - go to account creation
-          console.warn('[Router] No valid wallet found, redirecting to accounts')
-          console.warn('[Router] Reason: currentWallet =', currentWallet ? 'exists' : 'null/undefined', 
-                       ', deleted =', currentWallet?.deleted, 
-                       ', hasWalletHash =', !!(currentWallet?.wallet?.bch?.walletHash || currentWallet?.wallet?.BCH?.walletHash || currentWallet?.BCH?.walletHash || currentWallet?.bch?.walletHash || currentWallet?.walletHash))
           next('/accounts')
           return
         }
@@ -95,28 +108,22 @@ export default function () {
                           currentWallet.bch?.walletHash ||
                           currentWallet.walletHash
         
-        console.log('[Router] Wallet hash for mnemonic lookup:', walletHash || 'none')
-        
         // Check if mnemonic exists for this wallet
         // Prefer wallet hash if available (post-migration pattern)
         let mnemonic = null
         if (walletHash) {
-          console.log('[Router] Attempting to get mnemonic using wallet hash:', walletHash)
           mnemonic = await getMnemonic(walletHash).catch((err) => {
             console.warn('[Router] Error getting mnemonic with wallet hash:', err)
             return null
           })
-          console.log('[Router] Mnemonic retrieved with wallet hash:', mnemonic ? 'found' : 'not found')
         }
         
         // Fallback to index-based lookup if wallet hash not available or mnemonic not found
         if (!mnemonic) {
-          console.log('[Router] Attempting to get mnemonic using index:', currentWalletIndex)
           mnemonic = await getMnemonic(currentWalletIndex).catch((err) => {
             console.warn('[Router] Error getting mnemonic with index:', err)
             return null
           })
-          console.log('[Router] Mnemonic retrieved with index:', mnemonic ? 'found' : 'not found')
         }
 
         // if mnemonic does not exist but not first wallet,
@@ -125,11 +132,9 @@ export default function () {
         let walletIndex = currentWalletIndex
 
         if (!_mnemonic) {
-          console.log('[Router] No mnemonic found for current wallet, checking other wallets...')
           while (!_mnemonic && walletIndex > 0) {
             walletIndex--;
             const otherWallet = vault[walletIndex]
-            console.log('[Router] Checking wallet at index:', walletIndex, otherWallet ? 'exists' : 'missing')
             if (otherWallet && otherWallet.deleted !== true) {
               const otherWalletHash = otherWallet.wallet?.bch?.walletHash ||
                                      otherWallet.wallet?.BCH?.walletHash ||
@@ -137,44 +142,28 @@ export default function () {
                                      otherWallet.bch?.walletHash ||
                                      otherWallet.walletHash
               if (otherWalletHash) {
-                console.log('[Router] Trying wallet hash for index', walletIndex, ':', otherWalletHash)
                 _mnemonic = await getMnemonic(otherWalletHash).catch(() => null)
               }
               if (!_mnemonic) {
-                console.log('[Router] Trying index for wallet at', walletIndex)
                 _mnemonic = await getMnemonic(walletIndex).catch(() => null)
-              }
-              if (_mnemonic) {
-                console.log('[Router] Found mnemonic for wallet at index:', walletIndex)
               }
             }
           }
         }
 
         if (_mnemonic && walletIndex !== currentWalletIndex) {
-          console.log('[Router] Switching to wallet at index:', walletIndex, 'which has mnemonic')
           await store.dispatch(`global/switchWallet`, walletIndex).catch(console.error)
           location.reload()
           return
         }
 
         if (mnemonic) {
-          console.log('[Router] Mnemonic found, allowing access to home page')
           next()
         } else {
-          console.warn('[Router] No mnemonic found for any wallet, redirecting to accounts')
-          console.warn('[Router] Checked wallet index:', currentWalletIndex)
-          console.warn('[Router] Checked wallet hash:', walletHash || 'none')
-          console.warn('[Router] Vault state:', vault?.map((w, i) => ({
-            index: i,
-            deleted: w?.deleted,
-            hasWalletHash: !!(w?.wallet?.bch?.walletHash || w?.wallet?.BCH?.walletHash || w?.BCH?.walletHash || w?.bch?.walletHash || w?.walletHash)
-          })))
           next('/accounts')
         }
       } catch (err) {
         console.error('[Router] Router error:', err)
-        console.error('[Router] Error stack:', err.stack)
         next('/accounts')
       }
     } else {

@@ -96,6 +96,7 @@ export function parseAttributeToBadge(attribute) {
       key,
       custom: true,
       text: 'Gift',
+      icon: 'mdi-gift',
       description: description || 'Gift Claim',
     }
   } else if (TxAttribute.isMatch(key, TxAttribute.Cashback)) {

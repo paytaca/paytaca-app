@@ -10,7 +10,6 @@ const RESET_ASSETS_FLAG = 'asset-list-reset'
 export async function resetWalletsAssetsList() {
   const alreadyReset = window.localStorage.getItem(RESET_ASSETS_FLAG)
   if (Boolean(alreadyReset) === true) {
-      console.log('Assets already reset:', alreadyReset)
       return
   }
   const walletIndices = await getWalletIndicesFromStorage()

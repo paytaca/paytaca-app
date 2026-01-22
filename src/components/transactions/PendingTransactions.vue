@@ -48,7 +48,7 @@
 				class="pending-card pt-card"
 				:class="darkMode ? 'dark' : 'light'"
 				:style="{ 'margin-left': (index === 0 && pending.length === 0) ? '0px' : '12px' }"
-				@click="selectTransaction(item.id, 'appeal')"
+				@click="selectTransaction(item.order.id, 'appeal')"
 			>
 				<q-badge 	
 					outline				

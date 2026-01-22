@@ -7,7 +7,7 @@
     <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
-        :title="$t('Send') + ' ' + (asset.symbol || name || '')"
+        :title="$t('Send') + ' ' + (asset?.symbol || name || '')"
         :backnavpath="backNavigationPath"
         class="header-nav"
       />
@@ -42,7 +42,7 @@
                 :class="getDarkModeClass(darkMode)"
                 v-if="tokenType === 'CT-NFT'"
               >
-                <span>{{ $t('name') }}: {{ name }}</span>
+                <span>{{ nftDisplayName }}</span>
                 <p style="word-break: break-all;">{{ $t('Commitment') }}: {{ commitment }}</p>
               </div>
             </div>
@@ -56,14 +56,14 @@
                   {{ $t('HowToSend', {}, 'How would you like to send?') }}
                 </div>
                 <div class="text-caption text-center q-mt-xs" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-                  {{ $t('ChooseMethod', { symbol: asset.symbol || 'BCH' }, `Choose a method to send your ${asset.symbol || 'BCH'}`) }}
+                  {{ $t('ChooseMethod', { symbol: isNFT ? 'NFT' : (asset?.symbol || 'BCH') }, `Choose a method to send your ${isNFT ? 'NFT' : (asset?.symbol || 'BCH')}`) }}
                 </div>
               </div>
 
               <!-- Paste Address Option -->
               <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
                 <div class="send-option-header">
-                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <q-icon name="mdi-inbox" size="28px" class="text-grad"/>
                   <div class="send-option-title">
                     <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
                       {{ $t('SendToAddress', {}, 'Send to Address') }}
@@ -175,6 +175,42 @@
                     </q-btn>
                   </div>
                 </div>
+              </div>
+
+              <!-- Send to Other Wallets Option -->
+              <div v-if="otherWallets.length > 0" class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-wallet" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('SendToYourOtherWallets', {}, 'Send to Your Other Wallets') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('SelectWalletToSend', {}, 'Select a wallet to send funds to') }}
+                    </div>
+                  </div>
+                </div>
+
+                <q-select
+                  v-model="selectedOtherWallet"
+                  :options="otherWallets"
+                  option-label="name"
+                  :dark="darkMode"
+                  filled
+                  :loading="generatingOtherWalletAddress"
+                  :disable="generatingOtherWalletAddress"
+                  class="q-mt-md"
+                  :placeholder="$t('SelectWallet', {}, 'Select a wallet')"
+                  @update:model-value="onOtherWalletSelected"
+                >
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps" class="text-bow" :class="getDarkModeClass(darkMode)">
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.name }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
               </div>
 
               <!-- Gift Link Option (only for BCH) -->
@@ -371,6 +407,10 @@ import { getCashbackAmount } from 'src/utils/engagementhub-utils/engagementhub-u
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
+import WatchtowerExtended from 'src/lib/watchtower'
+import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import { toTokenAddress } from 'src/utils/crypto'
+import axios from 'axios'
 import {
   getWalletByNetwork,
   convertTokenAmount
@@ -394,6 +434,7 @@ import {
   processCashinPoints,
   processOnetimePoints
 } from 'src/utils/engagementhub-utils/rewards'
+import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import Pin from 'src/components/pin/index.vue'
@@ -502,7 +543,14 @@ export default {
 
   data () {
     return {
-      asset: {},
+      asset: {
+        id: '',
+        name: '',
+        symbol: '',
+        decimals: 0,
+        logo: null,
+        balance: 0
+      },
       scanner: {
         show: false,
         frontCamera: false,
@@ -566,7 +614,9 @@ export default {
       focusedInputField: '',
       isScrolledToBottom: false,
       priceId: null,
-      priceIdPrice: null
+      priceIdPrice: null,
+      selectedOtherWallet: null,
+      generatingOtherWalletAddress: false
     }
   },
 
@@ -608,6 +658,32 @@ export default {
       if (this.tokenType === 1 && this.simpleNft) return true
 
       return this.tokenType === 65 || this.tokenType === 'CT-NFT'
+    },
+    nftDisplayName () {
+      // Check name prop first
+      if (this.name && this.name.trim()) {
+        return this.name
+      }
+      
+      // Check asset.name as fallback (might be populated from assetData or metadata)
+      if (this.asset?.name && this.asset.name.trim()) {
+        return this.asset.name
+      }
+      
+      // Otherwise, extract and truncate category ID from assetId
+      if (this.assetId && this.assetId.startsWith('ct/')) {
+        const categoryId = this.assetId.split('/')[1]
+        if (categoryId) {
+          // Truncate category ID: first 6 chars + ... + last 6 chars
+          if (categoryId.length > 12) {
+            return `${categoryId.substring(0, 6)}...${categoryId.substring(categoryId.length - 6)}`
+          }
+          return categoryId
+        }
+      }
+      
+      // Fallback
+      return 'NFT'
     },
     defaultNftImage () {
       if (!this.isNFT) return ''
@@ -661,6 +737,38 @@ export default {
       }
 
       return this.$store.getters['global/walletConnectedApps']?.filter(distinct)
+    },
+    otherWallets () {
+      const vault = this.$store.getters['global/getVault'] || []
+      const currentWalletIndex = this.$store.getters['global/getWalletIndex']
+      
+      return vault
+        .map((wallet, index) => {
+          // Skip deleted wallets and current wallet
+          if (wallet?.deleted === true || index === currentWalletIndex) {
+            return null
+          }
+          
+          // Get wallet name or fallback to 'Personal Wallet'
+          const name = wallet?.name || 'Personal Wallet'
+          
+          // Get wallet hash based on network (mainnet vs chipnet)
+          const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
+          const walletHash = walletData?.bch?.walletHash || 
+                            walletData?.BCH?.walletHash ||
+                            null
+          
+          return {
+            index,
+            name,
+            walletHash
+          }
+        })
+        .filter(wallet => wallet !== null && wallet.walletHash !== null)
+    },
+    // Get asset from store reactively to ensure balance updates are reflected
+    storeAsset () {
+      return sendPageUtils.getAsset(this.assetId, this.symbol)
     }
   },
 
@@ -688,6 +796,30 @@ export default {
         }
       }
     },
+    // Watch for asset balance updates from store
+    storeAsset (newStoreAsset) {
+      // Recompute derived wallet balance when either BCH `spendable` or `balance` updates.
+      // Some refresh paths update `spendable` without touching `balance`, which previously left
+      // the displayed balance stuck at 0 even though MAX (which uses spendable) was correct.
+      if (newStoreAsset && (newStoreAsset.balance !== undefined || newStoreAsset.spendable !== undefined)) {
+        // Merge store asset data with local asset (preserve local overrides like logo, name from route)
+        this.asset = {
+          ...this.asset,
+          balance: newStoreAsset.balance ?? this.asset?.balance,
+          spendable: newStoreAsset.spendable ?? this.asset?.spendable,
+          yield: newStoreAsset.yield
+        }
+        // Recalculate wallet balance when asset balance updates
+        this.adjustWalletBalance()
+      }
+    },
+    // Keep displayed balance in sync with BCH spendable/balance updates
+    'asset.spendable' () {
+      this.adjustWalletBalance()
+    },
+    'asset.balance' () {
+      this.adjustWalletBalance()
+    },
     manualAddress (address) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         address,
@@ -701,6 +833,96 @@ export default {
   },
 
   methods: {
+    // ========== send-success state persistence (for background/foreground) ==========
+    getSendSuccessSessionKey () {
+      // Keyed by wallet + asset, so switching wallets/assets doesn't leak state across pages
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const network = this.network || 'BCH'
+      return `send_success:${walletIndex}:${network}:${this.assetId}`
+    },
+    persistSendSuccessState () {
+      try {
+        if (!this.sent || !this.txid) return
+        if (typeof window === 'undefined' || !window.sessionStorage) return
+
+        const payload = {
+          v: 1,
+          savedAt: Date.now(),
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          network: this.network || 'BCH',
+          assetId: this.assetId,
+          // Minimal fields needed to re-render the success UI accurately
+          txid: this.txid,
+          txTimestamp: this.txTimestamp,
+          totalAmountSent: this.totalAmountSent,
+          totalFiatAmountSent: this.totalFiatAmountSent,
+          // Preserve breakdown list
+          recipients: this.recipients,
+          // Preserve asset display data as best-effort (store may not be ready yet on resume)
+          asset: this.asset
+        }
+        sessionStorage.setItem(this.getSendSuccessSessionKey(), JSON.stringify(payload))
+      } catch (_) {
+        // Best-effort only
+      }
+    },
+    restoreSendSuccessState () {
+      try {
+        if (typeof window === 'undefined' || !window.sessionStorage) return false
+        const raw = sessionStorage.getItem(this.getSendSuccessSessionKey())
+        if (!raw) return false
+
+        let parsed = null
+        try { parsed = JSON.parse(raw) } catch { return false }
+        if (!parsed || parsed.v !== 1) return false
+
+        // Safety: avoid restoring stale success state indefinitely
+        const maxAgeMs = 60 * 60 * 1000 // 1 hour
+        if (typeof parsed.savedAt === 'number' && (Date.now() - parsed.savedAt) > maxAgeMs) {
+          sessionStorage.removeItem(this.getSendSuccessSessionKey())
+          return false
+        }
+
+        // Ensure it matches the current context
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        if (parsed.walletIndex !== walletIndex) return false
+        if (parsed.assetId !== this.assetId) return false
+        if ((parsed.network || 'BCH') !== (this.network || 'BCH')) return false
+
+        // Restore state needed for the success screen
+        this.sent = true
+        this.sending = false
+        this.sliderStatus = false
+        this.customKeyboardState = 'dismiss'
+        this.focusedInputField = ''
+
+        this.txid = parsed.txid || this.txid
+        this.txTimestamp = parsed.txTimestamp || this.txTimestamp
+        this.totalAmountSent = Number(parsed.totalAmountSent) || this.totalAmountSent
+        this.totalFiatAmountSent = parsed.totalFiatAmountSent ?? this.totalFiatAmountSent
+
+        if (Array.isArray(parsed.recipients) && parsed.recipients.length) {
+          this.recipients = parsed.recipients
+        }
+        if (parsed.asset && typeof parsed.asset === 'object') {
+          // Keep reactive store updates working; this is just to prevent blank UI on resume
+          this.asset = { ...this.asset, ...parsed.asset }
+        }
+
+        return true
+      } catch (_) {
+        return false
+      }
+    },
+    clearSendSuccessState () {
+      try {
+        if (typeof window === 'undefined' || !window.sessionStorage) return
+        sessionStorage.removeItem(this.getSendSuccessSessionKey())
+      } catch (_) {
+        // ignore
+      }
+    },
+
     // ========== imported methods ==========
     convertTokenAmount,
     getAssetDenomination,
@@ -783,6 +1005,7 @@ export default {
       }
       return null
     },
+
 
     // ========== main methods ==========
     // on component mount
@@ -888,10 +1111,10 @@ export default {
         }
 
         if (vm.fungible || fungibleTokenAmount) {
-          const tokenAmount = parseInt(vm.fungible || fungibleTokenAmount) / (10 ** vm.asset.decimals) || 0
+          const tokenAmount = parseInt(vm.fungible || fungibleTokenAmount) / (10 ** (vm.asset?.decimals || 0)) || 0
           currentRecipient.amount = tokenAmount
           currentInputExtras.amountFormatted = tokenAmount.toLocaleString(
-            'en-us', { maximumFractionDigits: vm.asset.decimals }
+            'en-us', { maximumFractionDigits: vm.asset?.decimals || 0 }
           )
           currentRecipient.fixedAmount = true
           vm.sliderStatus = true
@@ -957,7 +1180,7 @@ export default {
       }
 
       if (paymentUriData?.outputs?.[0] && !this.isNFT) {
-        if (vm.asset.symbol === undefined) {
+        if (vm.asset?.symbol === undefined) {
           vm.$router.push({
             name: 'transaction-send-select-asset',
             query: { error: 'token-not-found' }
@@ -1014,6 +1237,7 @@ export default {
       this.txTimestamp = Date.now()
       this.sending = false
       this.sent = true
+      this.persistSendSuccessState()
     },
 
     // bip21
@@ -1076,10 +1300,10 @@ export default {
           currentRecipient.fiatAmount, this.decimalObj(true)
         )
       } else {
-        if (this.asset.id.startsWith('ct/')) {
-          currentRecipient.amount = this.asset.balance / (10 ** this.asset.decimals)
+        if (this.asset?.id?.startsWith('ct/')) {
+          currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
         } else {
-          currentRecipient.amount = this.asset.balance
+          currentRecipient.amount = this.asset?.balance || 0
         }
         currentInputExtras.amountFormatted = currentRecipient.amount
       }
@@ -1384,8 +1608,50 @@ export default {
           if (token?.tokenId && this.userSelectedChangeAddress) {
             changeAddress = this.userSelectedChangeAddress
           }
+
+          // Extract fiat amounts for BCH transactions (including tokens)
+          let fiatAmounts = null
+          let fiatCurrency = null
+          let priceIdToUse = vm.priceId // Use priceId from BIP21 if available
+          
+          if (vm.asset.id === 'bch') {
+            // Build a map of normalized addresses to fiat amounts from toSendData
+            const addressToFiatMap = new Map()
+            toSendData.forEach(sendData => {
+              if (sendData.fiatAmount && sendData.recipientAddress) {
+                try {
+                  const addressObj = new Address(sendData.recipientAddress.trim())
+                  const normalizedAddress = addressObj.toCashAddress().toLowerCase()
+                  addressToFiatMap.set(normalizedAddress, sendData.fiatAmount)
+                } catch (e) {
+                  // Skip invalid addresses
+                }
+              }
+            })
+
+            // Map fiat amounts to match the order of toSendBchRecipients
+            fiatAmounts = []
+            toSendBchRecipients.forEach(recipient => {
+              const normalizedRecipientAddr = recipient.address.toLowerCase()
+              const fiatAmount = addressToFiatMap.get(normalizedRecipientAddr)
+              fiatAmounts.push(fiatAmount || null)
+            })
+
+            // Only include fiat amounts if at least one is available
+            if (fiatAmounts.some(amount => amount !== null && amount !== '')) {
+              fiatCurrency = vm.currentSendPageCurrency()
+              
+              // If no priceId from BIP21, get the price_id from the market store
+              if (!priceIdToUse && fiatCurrency) {
+                priceIdToUse = vm.$store.getters['market/getAssetPriceId'](vm.assetId, fiatCurrency)
+              }
+            } else {
+              fiatAmounts = null
+            }
+          }
+
           getWalletByNetwork(vm.wallet, 'bch')
-            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, vm.priceId)
+            .sendBch(0, '', changeAddress, token, undefined, toSendBchRecipients, priceIdToUse, fiatAmounts, fiatCurrency)
             .then(result => vm.submitPromiseResponseHandler(result, vm.walletType))
         } else if (toSendSlpRecipients.length > 0) {
           const tokenId = vm.assetId.split('slp/')[1]
@@ -1470,7 +1736,7 @@ export default {
             toSendBchRecipients.push({
               address: recipientAddress,
               amount: sendData.amount,
-              tokenAmount: Math.round(tokenAmount * (10 ** vm.asset.decimals) || 0)
+              tokenAmount: Math.round(tokenAmount * (10 ** (vm.asset?.decimals || 0)) || 0)
             })
           } else {
             toSendBchRecipients.push({
@@ -1514,6 +1780,7 @@ export default {
             vm.txid = txId
             vm.sent = true
             vm.txTimestamp = Date.now()
+            vm.persistSendSuccessState()
           } catch (e) {
             sendPageUtils.raiseNotifyError(e.message)
           }
@@ -1657,6 +1924,7 @@ export default {
         vm.txTimestamp = Date.now()
         vm.sending = false
         vm.sent = true
+        vm.persistSendSuccessState()
 
         if (!vm.assetId?.startsWith?.('ct/')) {
           // api call for processing first transaction 5 PHP worth of BCH
@@ -1691,6 +1959,276 @@ export default {
     },
     decimalObj (isFiat) {
       return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
+    },
+
+    // ========== other wallets methods ==========
+    /**
+     * Get the last address index for a specific wallet
+     * @param {number} walletIndex - The vault index of the wallet
+     * @param {string} assetType - The asset type: 'bch' or 'slp' (defaults to 'bch')
+     * @returns {Promise<number>} The last address index or 0 if not available
+     */
+    async getLastAddressIndexForWallet (walletIndex, assetType = 'bch') {
+      try {
+        // Get the correct wallet hash based on asset type
+        // BCH and SLP have different derivation paths and wallet hashes
+        const vault = this.$store.getters['global/getVault'] || []
+        const wallet = vault?.[walletIndex]
+        
+        if (!wallet) {
+          console.warn(`No wallet found for wallet index ${walletIndex}`)
+          return 0
+        }
+
+        // Get wallet hash based on asset type and network (mainnet vs chipnet)
+        let walletHash = null
+        const walletData = this.isChipnet ? wallet?.chipnet : wallet?.wallet
+        
+        if (assetType === 'slp') {
+          walletHash = walletData?.slp?.walletHash || 
+                      walletData?.SLP?.walletHash ||
+                      null
+        } else {
+          // Default to BCH
+          walletHash = walletData?.bch?.walletHash || 
+                      walletData?.BCH?.walletHash ||
+                      null
+        }
+
+        if (!walletHash) {
+          console.warn(`No ${assetType} wallet hash found for wallet index ${walletIndex}`)
+          return 0
+        }
+
+        const watchtower = new WatchtowerExtended(this.isChipnet)
+        const lastAddressAndIndex = await watchtower.getLastExternalAddressIndex(walletHash)
+        
+        if (lastAddressAndIndex && typeof lastAddressAndIndex.address_index === 'number') {
+          return lastAddressAndIndex.address_index
+        }
+        
+        return 0
+      } catch (error) {
+        console.error(`Error getting last address index for wallet ${walletIndex} (${assetType}):`, error)
+        return 0
+      }
+    },
+
+    /**
+     * Ensure address index is not 0 (reserved for message encryption)
+     * @param {number} index - The address index to validate
+     * @returns {number} - The validated address index (never 0)
+     */
+    ensureAddressIndexNotZero (index) {
+      if (typeof index !== 'number' || index < 0) {
+        return 1 // Default to 1 if invalid
+      }
+      return index === 0 ? 1 : index
+    },
+
+    /**
+     * Get wallet type (bch or slp) from vault wallet object
+     * Note: All wallets support both BCH and SLP, but this can be used for validation
+     * @param {number} walletIndex - The vault index of the wallet
+     * @returns {string} 'bch' or 'slp' based on wallet structure, defaults to 'bch'
+     */
+    getWalletTypeFromVault (walletIndex) {
+      try {
+        const vault = this.$store.getters['global/getVault'] || []
+        const wallet = vault?.[walletIndex]
+        
+        if (!wallet) {
+          return 'bch' // Default to BCH
+        }
+        
+        // Check if wallet has SLP structure (indicating it's an SLP wallet)
+        // If both exist, default to BCH as it's more common
+        const hasSlp = !!(wallet?.wallet?.slp || wallet?.SLP)
+        const hasBch = !!(wallet?.wallet?.bch || wallet?.wallet?.BCH || wallet?.BCH || wallet?.bch)
+        
+        // For address generation, we use the asset type, not wallet type
+        // But return 'bch' as default since all wallets support BCH
+        return hasBch ? 'bch' : (hasSlp ? 'slp' : 'bch')
+      } catch (error) {
+        console.error(`Error getting wallet type for wallet ${walletIndex}:`, error)
+        return 'bch' // Default to BCH on error
+      }
+    },
+
+    /**
+     * Check if an address has balance (including token sats)
+     * @param {string} address - The address to check
+     * @param {string} walletType - 'bch' or 'slp'
+     * @returns {Promise<boolean>} True if address has balance, false otherwise
+     */
+    async checkAddressBalance (address, walletType) {
+      try {
+        const baseUrl = this.isChipnet ? 'https://chipnet.watchtower.cash' : 'https://watchtower.cash'
+        
+        if (walletType === 'slp') {
+          // For SLP, check both BCH balance and SLP token balance
+          // An address should not be reused if it has either BCH or SLP tokens
+          const [bchResponse, slpResponse] = await Promise.all([
+            axios.get(`${baseUrl}/api/balance/bch/${address}/`).catch(() => ({ data: { balance: 0 } })),
+            axios.get(`${baseUrl}/api/balance/slp/${address}/`).catch(() => ({ data: { balance: 0 } }))
+          ])
+          const bchBalance = bchResponse?.data?.balance || 0
+          const slpBalance = slpResponse?.data?.balance || 0
+          return bchBalance > 0 || slpBalance > 0
+        } else {
+          // For BCH, check balance including token sats
+          const response = await axios.get(`${baseUrl}/api/balance/bch/${address}/?include_token_sats=true`)
+          const balance = response?.data?.balance || 0
+          return balance > 0
+        }
+      } catch (error) {
+        console.error('Error checking address balance:', error)
+        // If check fails, assume has balance to be safe (prevents address reuse when balance cannot be verified)
+        return true
+      }
+    },
+
+    /**
+     * Handle wallet selection from dropdown
+     * @param {Object} selectedWallet - The selected wallet object with { index, name, walletHash }
+     */
+    async onOtherWalletSelected (selectedWallet) {
+      if (!selectedWallet || typeof selectedWallet.index !== 'number') {
+        return
+      }
+
+      const vm = this
+      vm.generatingOtherWalletAddress = true
+
+      try {
+        // Derive asset type directly from the asset being sent, not from vm.walletType
+        // This ensures we use the correct derivation path regardless of the current wallet context
+        const assetId = vm.asset?.id || vm.assetId
+        if (!assetId) {
+          throw new Error('Asset ID is required to determine derivation path')
+        }
+        
+        // Determine asset type: 'slp' for SLP tokens, 'bch' for BCH and CashTokens
+        const assetType = assetId.indexOf('slp/') > -1 ? 'slp' : 'bch'
+        
+        if (assetType !== 'bch' && assetType !== 'slp') {
+          throw new Error(`Invalid asset type: ${assetType}. Must be 'bch' or 'slp'.`)
+        }
+
+        // Get the last address index for the selected wallet using the correct asset type
+        // This ensures we use the correct wallet hash (BCH vs SLP) for the watchtower query
+        const lastAddressIndex = await vm.getLastAddressIndexForWallet(selectedWallet.index, assetType)
+        
+        // Ensure address index is valid and not 0
+        let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
+        validAddressIndex = vm.ensureAddressIndexNotZero(validAddressIndex)
+
+        // IMPORTANT: Address reuse strategy
+        // We use lastAddressIndex directly (not lastAddressIndex + 1) to check if the last address
+        // has a balance. This allows us to:
+        // 1. Reuse addresses that were previously used but now have zero balance (funds were spent)
+        //    - This is safe and privacy-preserving since the address has no balance
+        //    - It prevents unnecessary address index growth
+        // 2. Only increment to a new address if the last address still has a balance
+        //    - This ensures we never reuse an address that currently holds funds
+        // This behavior is intentional and correct - we check balance first, then decide whether
+        // to reuse or increment, rather than always incrementing.
+
+        // IMPORTANT: Use the asset type being sent for derivation path, not the selected wallet's type
+        // The asset type determines whether we need a BCH address (m/44'/145'/0') or SLP address (m/44'/245'/0')
+        // All wallets support both BCH and SLP addresses, so we use the asset type being sent
+        const derivationPath = getDerivationPathForWalletType(assetType)
+
+        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+        const addressResult = await generateAddressSetWithoutSubscription({
+          walletIndex: selectedWallet.index,
+          derivationPath: derivationPath,
+          addressIndex: validAddressIndex,
+          isChipnet: vm.isChipnet
+        })
+        
+        if (!addressResult.success) {
+          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+        }
+        
+        const address = addressResult.addresses.receiving
+        
+        // Step 2: Check if that address has balance (including token sats)
+        const hasBalance = await vm.checkAddressBalance(address, assetType)
+        
+        let finalAddress = null
+
+        if (!hasBalance) {
+          // Step 3: If balance is zero, subscribe and use that address
+          const subscribeResult = await generateReceivingAddress({
+            walletIndex: selectedWallet.index,
+            derivationPath: derivationPath,
+            addressIndex: validAddressIndex,
+            isChipnet: vm.isChipnet
+          })
+          
+          if (!subscribeResult) {
+            throw new Error('Failed to subscribe address to watchtower')
+          }
+          
+          finalAddress = subscribeResult
+        } else {
+          // Step 4: If address has balance (already used), generate a new address by incrementing
+          let newAddressIndex = validAddressIndex + 1
+          // Skip address 0/0 (reserved for message encryption)
+          newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
+          
+          // Step 5: Generate and subscribe the new address
+          const newAddress = await generateReceivingAddress({
+            walletIndex: selectedWallet.index,
+            derivationPath: derivationPath,
+            addressIndex: newAddressIndex,
+            isChipnet: vm.isChipnet
+          })
+          
+          if (!newAddress) {
+            throw new Error('Failed to generate and subscribe new address')
+          }
+          
+          finalAddress = newAddress
+        }
+
+        // Convert address to the appropriate format based on asset type
+        // For SLP tokens, convert to SLP address format
+        // For CashTokens, convert to token address format
+        // For regular BCH, use as-is (already in cash address format)
+        let formattedAddress = finalAddress
+        if (assetType === 'slp') {
+          // Convert to SLP address format for SLP tokens
+          const addressObj = new Address(finalAddress)
+          formattedAddress = addressObj.toSLPAddress()
+        } else if (assetId.indexOf('ct/') > -1) {
+          // Convert to token address format for CashTokens
+          try {
+            formattedAddress = toTokenAddress(finalAddress)
+          } catch (error) {
+            console.error('Error converting address to token format:', error)
+            // If conversion fails, use the original address and let validation handle it
+            formattedAddress = finalAddress
+          }
+        }
+        // For regular BCH, the address is already in the correct format
+
+        // Use the generated and formatted address as recipient address
+        // This will trigger the normal send flow
+        await vm.onScannerDecode(formattedAddress, false)
+        
+        // Keep selection visible to show which wallet was chosen
+      } catch (error) {
+        console.error('Error generating address for other wallet:', error)
+        sendPageUtils.raiseNotifyError(
+          vm.$t('FailedToGenerateAddress', {}, 'Failed to generate address. Please try again.')
+        )
+        // Reset selection on error to allow retry
+        vm.selectedOtherWallet = null
+      } finally {
+        vm.generatingOtherWalletAddress = false
+      }
     }
   },
 
@@ -1712,7 +2250,7 @@ export default {
 
     const dialog = this.$q.dialog({
       component: LoadingWalletDialog,
-      componentProps: { loadingText: this.$t('ProcessingNecessaryDetails') }
+      componentProps: { loadingText: 'ProcessingNecessaryDetails' }
     })
 
     await Promise.allSettled(loadTasks)
@@ -1723,7 +2261,76 @@ export default {
     const vm = this
 
     vm.updateNetworkDiff()
-    vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+    
+    // Check if asset data was passed from select-asset page
+    // This allows immediate rendering with correct logo and details
+    if (vm.$route.query.assetData) {
+      try {
+        const passedAsset = JSON.parse(vm.$route.query.assetData)
+        console.log('[Send] Received asset data from select-asset page:', passedAsset)
+        
+        if (passedAsset && passedAsset.id) {
+          // Use the passed asset data immediately
+          // Ensure symbol has a value - use fallback if empty
+          let symbol = passedAsset.symbol || passedAsset.name || ''
+          
+          // If still no symbol, extract from ID (e.g., "ct/abc123" -> use token name or "TOKEN")
+          if (!symbol && passedAsset.id.startsWith('ct/')) {
+            symbol = passedAsset.name || 'TOKEN'
+          }
+          
+          // BCH decimals should always be 8; some callers omit it.
+          const normalizedDecimals = passedAsset.id === 'bch'
+            ? 8
+            : (passedAsset.decimals !== undefined ? passedAsset.decimals : 0)
+
+          vm.asset = {
+            id: passedAsset.id,
+            name: passedAsset.name || 'Unknown Token',
+            symbol: symbol,
+            decimals: normalizedDecimals,
+            logo: passedAsset.logo || null,
+            balance: passedAsset.balance !== undefined ? passedAsset.balance : undefined
+          }
+          console.log('[Send] Set asset with symbol:', vm.asset.symbol)
+
+          // Ensure the asset exists in the `assets` store so balance refreshes
+          // (`updateAssetBalanceOnLoad` -> `assets/updateAssetBalance`) can update it.
+          // This is important for tokens that aren't already present in the asset list (e.g. non-favorites).
+          try {
+            const existing = vm.$store.getters['assets/getAsset']?.(passedAsset.id)
+            if (!Array.isArray(existing) || existing.length === 0) {
+              vm.$store.commit('assets/addNewAsset', {
+                id: passedAsset.id,
+                name: passedAsset.name || 'Unknown Token',
+                symbol: symbol,
+                decimals: normalizedDecimals,
+                logo: passedAsset.logo || '',
+                balance: passedAsset.balance !== undefined ? passedAsset.balance : 0,
+                spendable: passedAsset.balance !== undefined ? passedAsset.balance : 0,
+                is_nft: false,
+              })
+            }
+          } catch (e) {
+            console.warn('[Send] Failed to ensure asset exists in store:', e)
+          }
+          
+          // Don't fall through to the default logic - we have everything we need
+          // Continue with the rest of mounted() logic below
+        } else {
+          // Fallback to default logic
+          vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        }
+      } catch (error) {
+        console.warn('[Send] Failed to parse passed asset data:', error)
+        // Fallback to default logic
+        vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+      }
+    } else {
+      console.log('[Send] No asset data passed in query, using default logic')
+      // No asset data passed, use default logic
+      vm.asset = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+    }
 
     if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
     else {
@@ -1735,14 +2342,45 @@ export default {
     vm.$store.dispatch('market/updateAssetPrices', { assetId: vm.assetId })
 
     vm.selectedDenomination = vm.denomination
-    // Load wallets
-    vm.initWallet().then(() => vm.adjustWalletBalance())
+    // Load wallets and fetch balance
+    vm.initWallet().then(async () => {
+      // Fetch and update asset balance from wallet
+      try {
+        await updateAssetBalanceOnLoad(vm.assetId, vm.wallet, vm.$store)
+        // Refresh asset from store after balance update, but avoid clobbering
+        // route-provided balance/logo/name when store doesn't have the token yet.
+        const refreshed = sendPageUtils.getAsset(vm.assetId, vm.symbol)
+        const keepLocalBalance = (
+          (refreshed?.balance === undefined || refreshed?.balance === null) ||
+          (refreshed?.balance === 0 && (vm.asset?.balance || 0) > 0)
+        )
+        vm.asset = {
+          ...vm.asset,
+          ...refreshed,
+          balance: keepLocalBalance ? vm.asset?.balance : refreshed?.balance,
+          spendable: refreshed?.spendable ?? vm.asset?.spendable,
+        }
+      } catch (error) {
+        console.error('Error fetching asset balance:', error)
+      }
+      // Calculate wallet balance after asset balance is loaded
+      vm.adjustWalletBalance()
+    })
 
-    if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+    // When returning from background (or lock screen), restore success screen state
+    // before any logic that might mutate recipients.
+    // This ensures the "Successfully sent" screen remains visible after resume.
+    const restored = vm.restoreSendSuccessState()
+
+    if (!vm.sent) {
+      if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
+    }
 
     // check query if address is not empty (from qr reader redirection)
-    if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
-      vm.onScannerDecode(vm.$route.query.address)
+    if (!vm.sent) {
+      if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
+        vm.onScannerDecode(vm.$route.query.address)
+      }
     }
 
     if (this.inputExtras.length === 1) {
@@ -1758,6 +2396,15 @@ export default {
     })
   },
 
+  beforeRouteLeave (to, from, next) {
+    // If app lock is enabled, the app deliberately routes to `/lock` on background.
+    // Do NOT clear the send-success state in that case, otherwise resuming will lose the success screen.
+    if (to?.path !== '/lock') {
+      this.clearSendSuccessState()
+    }
+    next()
+  },
+
   unmounted () {
     
     // Remove scroll listener
@@ -1769,6 +2416,12 @@ export default {
 
   created () {
     const vm = this
+
+    // Restore success state as early as possible to avoid UI flicker on resume.
+    // If restored, skip normal form initialization.
+    if (vm.restoreSendSuccessState()) {
+      return
+    }
 
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.recipients[0].amount = vm.amount
@@ -1789,7 +2442,7 @@ export default {
     to{ opacity:1; }
   }
   .jpp-panel-container {
-    padding-top:5.5rem;
+    padding-top: 1rem;
     padding-bottom:120px;
     position: relative;
   }

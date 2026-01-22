@@ -12,65 +12,60 @@ export class SweepPrivateKey {
     this.bchAddress = bchjs.ECPair.toCashAddress(ecpair)
     this.slpAddress = bchjs.SLP.Address.toSLPAddress(this.bchAddress)
     this.tokenAddress = convertCashAddress(this.bchAddress, false, true)
+    this.subscribed = false
   }
 
-  async getBchBalance () {
-    const respBch = await axios.post('https://watchtower.cash/api/subscription/', {
+  async subscribe() {
+    if (this.subscribed) return true
+    const resp = await axios.post('https://watchtower.cash/api/subscription/', {
       address: this.bchAddress
     })
-    if (respBch.data.success) {
-      let retries = 0
-      let resp
+    if (resp.data.success) {
+      this.subscribed = true
+      return true
+    }
+    return false
+  }
 
-      while (retries < 3) {
+  async getBchBalance (subscribe=true) {
+    if (subscribe) {
+      const respBch = await axios.post('https://watchtower.cash/api/subscription/', {
+        address: this.bchAddress
+      })
+      if (!respBch.data.success) return
+    }
+
+    let retries = 0
+    let resp
+
+    while (retries < 3) {
+      try {
         resp = await axios.get(`https://watchtower.cash/api/balance/bch/${this.bchAddress}/`)
-        if (resp.data.balance > 0) break
-        else retries++
-        setTimeout(() => {}, 250)
+        // Return response even if balance is 0
+        if (resp.data) {
+          return resp.data
+        }
+      } catch (error) {
+        console.error(`BCH balance fetch attempt ${retries + 1} failed:`, error.message)
       }
-      return resp.data
+      
+      retries++
+      if (retries < 3) {
+        // Properly wait between retries
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
+    
+    // Return default balance structure if all retries failed
+    return resp?.data || { balance: 0, spendable: 0, pending: 0 }
   }
 
-  async getTokensList () {
-    const respSlp = await axios.post('https://watchtower.cash/api/subscription/', {
-      address: this.slpAddress
-    })
-
-    if (respSlp.data.success) {
-      const tokens = []
-      let retries = 0
-
-      while (retries < 3) {
-        const url = `https://watchtower.cash/api/tokens/?address=${this.slpAddress}&has_balance=true&token_type=1&limit=20`
-        const resp = await axios.get(url)
-        const _tokens = resp.data.results
-
-        if (_tokens.length > 0) {
-          for (let i = 0; i < _tokens.length; i++) {
-            const item = _tokens[i]
-            const tokenId = item.id.split('/')[1]
-            const resp = await axios.get(`https://watchtower.cash/api/balance/slp/${this.slpAddress}/${tokenId}/`)
-            const data = resp.data
-            resp.data.token_id = tokenId
-            resp.data.symbol = item.symbol
-            resp.data.image_url = item.image_url
-            tokens.push(data)
-          }
-          break
-        } else retries++
-        setTimeout(() => {}, 250)
-      }
-      return tokens
-    }
-  }
-
-  async getFungibleCashTokens(opts={ subscribe: true }) {
-    if (opts?.subscribe) {
+  async getFungibleCashTokens(subscribe=true) {
+    if (subscribe) {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
-      if (!subscribeResp.data.success) return
+      if (!subscribeResp.data.success) return []
     }
 
     const url = `https://watchtower.cash/api/cts/balances/${encodeURIComponent(this.tokenAddress)}/fts`
@@ -79,10 +74,24 @@ export class SweepPrivateKey {
     let resp
 
     while (retries < 3) {
-      resp = await axios.get(url, { params })
-      if (resp.data.results.length > 0) break
-      else retries++
-      setTimeout(() => {}, 250)
+      try {
+        resp = await axios.get(url, { params })
+        if (resp.data?.results) {
+          break
+        }
+      } catch (error) {
+        console.error(`Fungible tokens fetch attempt ${retries + 1} failed:`, error.message)
+      }
+      
+      retries++
+      if (retries < 3) {
+        // Properly wait between retries
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+    
+    if (!resp?.data?.results) {
+      return []
     }
 
     const tokenDataPromises = await Promise.allSettled(
@@ -117,12 +126,12 @@ export class SweepPrivateKey {
     return result
   }
 
-  async getNftCashTokens(opts={ subscribe: true }) {
-    if (opts?.subscribe) {
+  async getNftCashTokens(subscribe=true) {
+    if (subscribe) {
       const subscribeResp = await axios.post('https://watchtower.cash/api/subscription/', {
         address: this.bchAddress,
       })
-      if (!subscribeResp.data.success) return
+      if (!subscribeResp.data.success) return []
     }
 
     const url = `https://watchtower.cash/api/cashtokens/nft/`
@@ -135,36 +144,29 @@ export class SweepPrivateKey {
     let resp
 
     while (retries < 3) {
-      resp = await axios.get(url, { params })
-      if (resp?.data?.results?.length > 0) break
-      else retries++
-      setTimeout(() => {}, 250)
+      try {
+        resp = await axios.get(url, { params })
+        // If we get a valid response (even with empty results), that's the final answer
+        // Only retry if response is invalid/malformed
+        if (resp?.data && Array.isArray(resp.data.results)) {
+          break
+        }
+      } catch (error) {
+        console.error(`NFT tokens fetch attempt ${retries + 1} failed:`, error.message)
+      }
+      retries++
+      if (retries < 3) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
 
-    const results = resp?.data?.results.map(CashNonFungibleToken.parse)
+    if (!resp?.data?.results) {
+      return []
+    }
+
+    const results = resp.data.results.map(CashNonFungibleToken.parse)
     await Promise.allSettled(results.map(nft => nft?.fetchMetadata()))
     return results
-  }
-
-  sweepToken (slpAddress, slpWif, tokenId, balance, feeFunder, recipient) {
-    const watchtower = new Watchtower()
-    const data = {
-      sender: {
-        address: slpAddress,
-        wif: slpWif
-      },
-      tokenId: tokenId,
-      recipients: [
-        {
-          address: recipient,
-          amount: balance
-        }
-      ],
-      feeFunder: feeFunder,
-      broadcast: true
-    }
-
-    return watchtower.SLP.Type1.send(data)
   }
 
   /**
@@ -188,13 +190,13 @@ export class SweepPrivateKey {
         { address: recipient, tokenAmount: tokenAmount },
       ],
       token,
-      feeFunder: feeFunder,
+      feeFunder,
       broadcast: true,
     }
     return watchtower.BCH.send(data)
   }
 
-  sweepBch (bchAddress, bchWif, spendableBalance, recipient) {
+  sweepBch (bchAddress, bchWif, spendableBalance, feeFunder, recipient, broadcast = true) {
     const watchtower = new Watchtower()
     const data = {
       sender: {
@@ -207,7 +209,8 @@ export class SweepPrivateKey {
           amount: spendableBalance
         }
       ],
-      broadcast: true
+      feeFunder,
+      broadcast
     }
 
     return watchtower.BCH.send(data)

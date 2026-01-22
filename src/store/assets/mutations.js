@@ -143,7 +143,7 @@ export function updateAssetImageUrl (state, data) {
   if (!Array.isArray(assets)) return
 
   for (var i = 0; i < assets.length; i++) {
-    if (assets[i] && state.assets[i].id === data.assetId) {
+    if (assets[i] && assets[i].id === data.assetId) {
       assets[i].logo = data.imageUrl
       break
     }
@@ -168,11 +168,50 @@ export function clearVault (state) {
 
 export function updatedCurrentAssets (state, index) {
   let vault = state.vault[index]
+  
+  // Default BCH asset
+  const defaultBchAsset = {
+    id: 'bch',
+    symbol: 'BCH',
+    name: 'Bitcoin Cash',
+    logo: 'bch-logo.png',
+    balance: 0,
+    spendable: 0,
+    yield: {},
+    favorite: 0
+  }
+
+  // Filter out tokens when loading from vault - keep only base assets (BCH, sBCH)
+  // Tokens will be populated by API calls after wallet switch
+  const filterBaseAssetsOnly = (assets) => {
+    if (!Array.isArray(assets) || assets.length === 0) {
+      return [defaultBchAsset]
+    }
+    const filtered = assets.filter(asset => {
+      if (!asset || !asset.id) return false
+      // Keep BCH only, filter out all tokens (slp/, ct/)
+      const id = String(asset.id).toLowerCase()
+      return id === 'bch' || !id.includes('/')
+    })
+    // Ensure at least BCH is present
+    if (filtered.length === 0 || !filtered.find(a => a && a.id === 'bch')) {
+      return [defaultBchAsset]
+    }
+    return filtered
+  }
+
+  // Handle case where vault entry doesn't exist
+  if (!vault) {
+    state.assets = [defaultBchAsset]
+    state.chipnet__assets = [defaultBchAsset]
+    return
+  }
+
   vault = JSON.stringify(vault)
   vault = JSON.parse(vault)
 
-  state.assets = vault.asset
-  state.chipnet__assets = vault.chipnet_assets
+  state.assets = filterBaseAssetsOnly(vault.asset)
+  state.chipnet__assets = filterBaseAssetsOnly(vault.chipnet_assets)
 }
 
 // export function updateCurrentWallet (state, index) {

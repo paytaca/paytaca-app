@@ -10,7 +10,7 @@ import {
 import { loadWallet } from 'src/wallet'
 import { deriveHdKeysFromMnemonic } from 'src/lib/multisig'
 
-export const getSignerWalletFromVault = ({ walletVault, xpub }) => {
+export function getSignerWalletFromVault ({ walletVault, xpub }) {
     const vaultIndex = walletVault.findIndex((signerWallet) => {
       return signerWallet.wallet.bch.xPubKey === xpub
     })
@@ -19,7 +19,7 @@ export const getSignerWalletFromVault = ({ walletVault, xpub }) => {
     return { wallet, vaultIndex }
 }
 
-export const getSignerXPrv = async ({ walletVault, xpub }) => {
+export async function getSignerXPrv ({ walletVault, xpub }) {
     const signerWallet = getSignerWalletFromVault({ walletVault, xpub })
     if (!signerWallet) return
     const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
@@ -29,12 +29,32 @@ export const getSignerXPrv = async ({ walletVault, xpub }) => {
     return hdKeys.hdPrivateKey
 }
 
-export const generateAuthCredentialsForFirstSignerWithPrivateKey = async ({ multisigWallet, walletVault }) => {
+/**
+ * Creates a resolver function that can resolve an xprv from a given xpub.
+ *
+ * @param {Object} context - Optional context or dependencies used for resolution
+ *   (e.g., key storage, wallet info, or API client).
+ * @returns {(xpub: string) => string | Promise<string>} 
+ *   A function that takes an xpub and returns the corresponding xprv
+ *  
+ */
+export function createXprvFromXpubResolver ({ walletVault }) {
+    return async ({ xpub }) => {
+        const xprv = await getSignerXPrv({
+            walletVault, xpub })
+        return xprv
+    }
+}
+
+/**
+ * !!! Generates credential for the multisig coordination server (Watchtower) 
+ */
+export async function generateAuthCredentialsForFirstSignerWithPrivateKey ({ signers, walletVault }) {
     let xprv = null
     let xpub = null
-    for (const signerEntityId of Object.keys(multisigWallet.lockingData.hdKeys.hdPublicKeys)) {
+    for (const signer of signers) {
         try {
-            xpub = multisigWallet.lockingData.hdKeys.hdPublicKeys[signerEntityId]
+            xpub = signer.xpub
             xprv = await getSignerXPrv({
                 walletVault,
                 xpub
@@ -66,7 +86,7 @@ export const generateAuthCredentialsForFirstSignerWithPrivateKey = async ({ mult
     return {}
 }
 
-export const generateAuthCredentialsForXPub = async ({ xpub, walletVault }) => {
+export async function generateAuthCredentialsForXPub ({ xpub, walletVault }) {
 
     const xprv = await getSignerXPrv({
         walletVault,

@@ -49,6 +49,23 @@ export function getAssetPrice (state) {
   }
 }
 
+export function getAssetPriceId (state) {
+  return (assetId, currencySymbol) => {
+    // 1. check if asset price for assetId exists
+    if (!Array.isArray(state.assetPrices)) return null
+    const assetPrice = state.assetPrices.find(assetPrice => assetPrice && assetPrice.assetId === assetId)
+    if (!assetPrice || !assetPrice.priceIds) return null
+    
+    // 2. check if resolved asset price has the currency it is looking for
+    const parsedCurrencySymbol = String(currencySymbol).toLowerCase()
+    if (assetPrice.priceIds[parsedCurrencySymbol]) {
+      return assetPrice.priceIds[parsedCurrencySymbol]
+    }
+
+    return null
+  }
+}
+
 export function getAssetConversion(state) {
   return (fromCurrency, toCurrency) => {
     const fromCurrencyRate = state.usdRates[fromCurrency]

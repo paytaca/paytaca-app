@@ -1,7 +1,6 @@
 export function types() {
   return Object.freeze({
     MAIN_TRANSACTION: 'transaction',
-    SBCH_TRANSACTION: 'sbch_transaction',
     PAYMENT_REQUEST: 'payment_request',
     ANYHEDGE_OFFER_SETTLED: 'anyhedge_offer_settled',
     ANYHEDGE_MATURED: 'anyhedge_matured',

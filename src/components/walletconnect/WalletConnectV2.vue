@@ -39,8 +39,8 @@
               <q-item-section>
                 <div style="position:relative">
                   <span class="q-mr-xs">{{ $t('ShowConnectedApps') }}</span>
-                  <q-badge v-if="activeSessions" :color="Object.keys(activeSessions || {}).length > 0? 'green': 'grey'">
-                  {{ Object.keys(activeSessions || {}).length }}
+                  <q-badge :color="activeSessionsCount > 0 ? 'green' : 'grey'">
+                  {{ activeSessionsCount }}
                   </q-badge>
                 </div>
               </q-item-section>
@@ -48,7 +48,7 @@
                 <q-toggle
                   v-model="showActiveSessions"
                   left-label
-                  :disable="Boolean(loading) || Object.keys(activeSessions || {}).length === 0"
+                  :disable="Boolean(loading) || activeSessionsCount === 0"
                   checked-icon="check"
                   unchecked-icon="clear"
                   color="primary"
@@ -64,20 +64,50 @@
         </q-btn>
       </div>
       <div class="col-xs-12">
-        <q-btn-group spread push>
-          <q-btn
-            class="button"
-            icon="mdi-qrcode"
-            no-caps
-            :label="$t('Scan')"
-            @click="() => $emit('request-scanner')" :disable="Boolean(loading) || sessionProposals?.length > 0"/>
-          <q-btn
-            class="button"
-            icon="link"
-            no-caps
-            :label="$t('PasteURL')"
-            @click="() => connectNewSession()" :disable="Boolean(loading) || sessionProposals?.length > 0"/>
-        </q-btn-group>
+        <div class="send-option-card pt-card q-mb-md q-pa-lg br-15" :class="getDarkModeClass(darkMode)">
+            <div class="send-option-header">
+              <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+              <div class="send-option-title">
+                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  {{ $t('InitiateNewSession') }}
+                </div>
+                <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                  {{ $t('WcScanOrPasteURL') }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row q-gutter-sm q-mt-md">
+              <div class="col">
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width scan-option-btn"
+                  :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                  @click="() => $emit('request-scanner')" :disable="Boolean(loading) || sessionProposals?.length > 0"
+                >
+                  <div class="column items-center q-py-sm">
+                    <q-icon name="mdi-qrcode-scan" size="32px"/>
+                    <div class="text-caption q-mt-xs">{{ $t('ScanQRCode', {}, 'Scan QR Code') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+              <div class="col">
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width scan-option-btn"
+                  :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                  @click="() => connectNewSession()" :disable="Boolean(loading) || sessionProposals?.length > 0"
+                >
+                  <div class="column items-center q-py-sm">
+                    <q-icon name="content_paste_go" size="32px"/>
+                    <div class="text-caption q-mt-xs">{{ $t('PasteURL', {}, 'Paste URL') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+            </div>
+        </div>
       </div>
     </div>
     <div class="row">
@@ -107,19 +137,20 @@
                   <q-btn
                     :label="$t('Reject')" color="negative"
                     @click="() => rejectSessionRequest(sessionRequest)"
-                    class="action-button"
+                    class="action-button col-xs-5 col-sm-3"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
-                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Reject'))">
+                    :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Reject'))" rounded outline>
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
                     </template>
                   </q-btn>
                   <q-btn
-                    :label="$t('Accept')" color="green"
+                    :label="$t('Accept')" color="primary"
                     @click="() => respondToSessionRequest(sessionRequest)"
-                    class="action-button"
+                    class="action-button col-xs-5 col-sm-3"
                     :disable="Boolean(processingSession[sessionRequest.topic])"
                     :loading="Boolean(processingSession[sessionRequest.topic]?.includes('Sign'))"
+                    rounded outline
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook></q-spinner-facebook>
@@ -143,30 +174,31 @@
                 <q-icon name="notifications_active" size="sm" color="warning"></q-icon>
               </template>
               <template v-slot:actions>
-                <q-btn
-                  :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Rejecting'))"
-                  :label="$t('Reject')" color="negative" class="action-button"
-                  @click.stop="() => rejectSessionProposal(sessionProposal)"
-                  :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps>
-                  <template v-slot:loading>
-                    <q-spinner-facebook></q-spinner-facebook>
-                  </template>
-                </q-btn>
-                <q-btn
-                  :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Connecting'))"
-                  :label="$t('Connect')" color="green" class="action-button"
-                  @click.stop="() => approveSessionProposal(sessionProposal)"
-                  :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps >
-                  <template v-slot:loading>
-                    <q-spinner-facebook></q-spinner-facebook>
-                  </template>
-                </q-btn>
+                  <q-btn
+                    :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Rejecting'))"
+                    :label="$t('Reject')" color="negative" class="action-button col-xs-5 col-sm-3"
+                    @click.stop="() => rejectSessionProposal(sessionProposal)"
+                    :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps rounded outline>
+                    <template v-slot:loading>
+                      <q-spinner-facebook></q-spinner-facebook>
+                    </template>
+                  </q-btn>
+                  <q-btn
+                    color="primary"
+                    :loading="Boolean(processingSession[sessionProposal.pairingTopic]?.includes('Connecting'))"
+                    :label="$t('Connect')" class="action-button col-xs-5 col-sm-3"
+                    @click.stop="() => approveSessionProposal(sessionProposal)"
+                    :disable="Boolean(processingSession[sessionProposal.pairingTopic])" no-caps rounded>
+                    <template v-slot:loading>
+                      <q-spinner-facebook></q-spinner-facebook>
+                    </template>
+                  </q-btn>
               </template>
             </SessionInfo>
           </div>
         </div>
         <div class="row">
-          <div v-if="Object.keys(activeSessions || {}).length > 0" class="col-xs-12 text-bold text-right q-px-sm">
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold text-right q-px-sm">
             <q-toggle
               v-model="showActiveSessions"
               left-label
@@ -176,33 +208,34 @@
             <div class="row items-center">
               <div style="position:relative">
                 <span class="q-mr-xs">{{ $t('ShowConnectedApps') }}</span>
-                <q-badge v-if="activeSessions" color="green">
-                {{ Object.keys(activeSessions || {}).length }}
+                <q-badge v-if="activeSessionsCount > 0" color="green">
+                {{ activeSessionsCount }}
                 </q-badge>
               </div>
             </div>
             </q-toggle>
           </div>
-          <div v-if="Object.keys(activeSessions || {}).length > 0 && showActiveSessions" class="col-xs-12 q-gutter-y-sm">
+          <div v-if="activeSessionsCount > 0 && showActiveSessions" class="col-xs-12 q-gutter-y-sm">
             <q-separator spaced></q-separator>
             <SessionInfo
-              v-for="activeSession in activeSessions"
+              v-for="activeSession in activeSessionsArray"
               :session="activeSession"
               :address-display-formatter="formatAddressForDisplay"
               :address-display-format="settings.addressDisplayFormat"
               session-type="active"
-              :key="activeSession.id"
+              :key="activeSession.topic || activeSession.id"
               :flat="true"
             >
               <template v-slot:actions>
                   <q-btn
                     label="Disconnect"
                     color="negative"
-                    class="cursor-pointer action-button"
+                    class="cursor-pointer action-button col-xs-10"
                     no-caps
                     :loading="Boolean(processingSession[activeSession.topic]?.includes('Disconnect'))"
                     :disable="Boolean(processingSession[activeSession.topic])"
                     @click.stop="() => disconnectSession(activeSession)"
+                    rounded
                     >
                     <template v-slot:loading>
                       <q-spinner-facebook />
@@ -217,11 +250,13 @@
   </div>
 </template>
 <script setup>
-import { computed, onMounted, onUnmounted, ref, onBeforeMount, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, onBeforeMount, watchEffect, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
-import { convertCashAddress } from 'src/wallet/chipnet'
+import { convertCashAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
+import { loadLibauthHdWallet } from 'src/wallet'
+import axios from 'axios'
 import { buildApprovedNamespaces, getSdkError, mergeRequiredAndOptionalNamespaces } from '@walletconnect/utils'
 import Watchtower from 'src/lib/watchtower'
 import { useQuasar } from 'quasar'
@@ -240,12 +275,14 @@ import { useI18n } from 'vue-i18n'
 import SessionInfo from './SessionInfo.vue'
 import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
+import NewSessionDialog from './NewSessionDialog.vue'
+import ManualAddressEntryDialog from './ManualAddressEntryDialog.vue'
 import {
-  createMultisigTransactionFromWCSessionRequest,
-  generateTransactionHash,
-  getRequiredSignatures,
-  getStatusUrl,
-  getTotalSigners,
+  // createMultisigTransactionFromWCSessionRequest,
+  // generateTransactionHash,
+  // getRequiredSignatures,
+  // getStatusUrl,
+  // getTotalSigners,
   isMultisigWalletSynced
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
@@ -301,10 +338,24 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
+// Convert activeSessions object to array for efficient v-for iteration
+const activeSessionsArray = computed(() => Object.values(activeSessions.value || {}))
+const activeSessionsCount = computed(() => Object.keys(activeSessions.value || {}).length)
+
 const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
     setTimeout(() => { resolve() }, seconds * 1000)
   })
+}
+
+const getThemeColor = () => {
+  const themeColors = {
+    'glassmorphic-blue': '#42a5f5',
+    'glassmorphic-gold': '#ffa726',
+    'glassmorphic-green': '#4caf50',
+    'glassmorphic-red': '#f54270'
+  }
+  return themeColors[$store.getters['global/theme']] || '#42a5f5'
 }
 
 const formatAddressForDisplay = (address, lockingBytecode = null) => {
@@ -365,7 +416,7 @@ const loadActiveSessions = async ({ showLoading } = { showLoading: true }) => {
         })
       )
     }
-    mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value)
+    // mapSessionTopicWithAddress is automatically called by watchEffect when activeSessions changes
     return activeSessions.value
   } catch (error) {
     console.log(error)
@@ -440,39 +491,398 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }) => {
 }
 
 /**
- * Collects all the accounts with active session
- * and maps each topic with corresponding wallet
- * data
+ * Fetches address info from Watchtower API for a given address
+ * @param {string} address - The address to look up
+ * @param {string} walletHash - The wallet hash for filtering
+ * @returns {Promise<{address: string, address_index: number, address_path: string, wif: string}|null>}
  */
-const mapSessionTopicWithAddress = (activeSessions, walletAddresses, multisigWallets) => {
+const fetchAddressInfoFromWatchtower = async (address, walletHash) => {
+  try {
+    const isChipnet = $store.getters['global/isChipnet']
+    const baseUrl = getWatchtowerApiUrl(isChipnet)
+    const addressUri = encodeURIComponent(address)
+    // Include wallet_hash as query parameter to filter results to current wallet
+    // This makes the API call more efficient and accurate
+    const url = walletHash 
+      ? `${baseUrl}/address-info/bch/${addressUri}/?wallet_hash=${walletHash}`
+      : `${baseUrl}/address-info/bch/${addressUri}/`
+    
+    const response = await axios.get(url)
+    const addressPath = response.data?.address_path
+    const watchtowerAddress = response.data?.address
+    
+    if (!addressPath) {
+      return null
+    }
+    
+    // Derive WIF and verify address from address_path using libauth wallet
+    const walletIndex = $store.getters['global/getWalletIndex']
+    const libauthWallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+    const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
+    const derivedAddress = libauthWallet.getAddressAt({ path: addressPath, token: false })
+    
+    // Use the address from Watchtower response or derived address as the canonical address
+    const canonicalAddress = watchtowerAddress || derivedAddress || address
+    
+    // Extract hash portion from addresses for comparison (handles different prefix formats)
+    const getAddressHash = (addr) => {
+      if (!addr) return ''
+      const colonIndex = addr.indexOf(':')
+      return colonIndex >= 0 ? addr.substring(colonIndex + 1) : addr
+    }
+    
+    // Verify the address hash matches (allows for different prefix formats)
+    const requestedHash = getAddressHash(address)
+    const responseHash = getAddressHash(canonicalAddress)
+    if (requestedHash && responseHash && requestedHash !== responseHash) {
+      return null // Address hash mismatch
+    }
+    
+    // Extract address_index from path (format: "0/1042" -> 1042)
+    const addressIndex = parseInt(addressPath.split('/')[1]) || 0
+    
+    return {
+      address: canonicalAddress,
+      address_index: addressIndex,
+      address_path: addressPath,
+      wif: wif
+    }
+  } catch (error) {
+    if (error.response?.status === 404 || error.response?.status === 403) {
+      // Address not found in this wallet - this is expected for addresses that don't belong
+      return null
+    }
+    console.error('Error fetching address from Watchtower:', error)
+    return null
+  }
+}
+
+/**
+ * Fallback: Map using local wallet addresses (used when Watchtower API is unavailable)
+ * Derives WIF directly from seed phrase using address_index, not relying on walletAddresses array
+ */
+const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, multisigWallets) => {
+  // Create Maps for O(1) address lookups to find address_index
+  // Build map with multiple keys per address to support different formats:
+  // - Full CashAddress format: "bitcoincash:qxxx..." (as stored)
+  // - Hash-only format: "qxxx..." (for accounts like "bch:qxxx...")
+  const addressIndexMap = new Map() // Maps address -> address_index for WIF derivation
+  if (walletAddresses?.length) {
+    walletAddresses.forEach(addrInfo => {
+      const fullAddress = addrInfo?.address
+      // Skip if address is missing or invalid
+      if (!fullAddress || typeof fullAddress !== 'string') {
+        return
+      }
+      const addressIndex = addrInfo?.address_index
+      if (typeof addressIndex === 'number') {
+        // Store address -> index mapping (we'll derive WIF later)
+        addressIndexMap.set(fullAddress, addressIndex)
+        
+        // Also store with hash-only format for compatibility
+        const colonIndex = fullAddress.indexOf(':')
+        if (colonIndex >= 0) {
+          const hashOnly = fullAddress.substring(colonIndex + 1)
+          if (!addressIndexMap.has(hashOnly)) {
+            addressIndexMap.set(hashOnly, addressIndex)
+          }
+        }
+      }
+    })
+  }
+  
+  const multisigMap = new Map()
+  if (multisigWallets?.length) {
+    multisigWallets.forEach(wallet => {
+      const fullAddress = wallet?.address
+      // Skip if address is missing or invalid
+      if (!fullAddress || typeof fullAddress !== 'string') {
+        return
+      }
+      multisigMap.set(fullAddress, wallet)
+      
+      // Also store with hash-only format for compatibility
+      const colonIndex = fullAddress.indexOf(':')
+      if (colonIndex >= 0) {
+        const hashOnly = fullAddress.substring(colonIndex + 1)
+        if (!multisigMap.has(hashOnly)) {
+          multisigMap.set(hashOnly, wallet)
+        }
+      }
+    })
+  }
+  
+  // Load libauth wallet for deriving WIF directly from seed phrase
+  const isChipnet = $store.getters['global/isChipnet']
+  const walletIndex = $store.getters['global/getWalletIndex']
+  const libauthWallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+  
+  // Map sessions to addresses and derive WIF directly from seed phrase
   for (const topic in activeSessions) {
     activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
-      let addressInfo = walletAddresses?.find((addressInfo) => {
-        return account.includes(addressInfo.address)
-      })
-      if (!addressInfo) {
-        addressInfo = multisigWallets?.find((addressInfo) => {
-          return account.includes(addressInfo.address)
-        })
+      // Skip if account is missing or invalid
+      if (!account || typeof account !== 'string') {
+        return
       }
+      
+      // Extract address from account format: "bch:bitcoincash:qxxx..." or "bch:qxxx..."
+      // Remove the "bch:" prefix first (matches how saveConnectedApp handles it)
+      const accountAddress = account.replace(/^bch:/, '')
+      
+      // Skip if accountAddress is empty after processing
+      if (!accountAddress) {
+        return
+      }
+      
+      // Try O(1) lookup with extracted address to find address_index
+      let addressIndex = addressIndexMap.get(accountAddress)
+      let addressInfo = null
+      
+      // If account format is "bch:qxxx..." (hash only), also try with "bitcoincash:" prefix
+      if (addressIndex === undefined && !accountAddress.includes(':')) {
+        addressIndex = addressIndexMap.get(`bitcoincash:${accountAddress}`)
+        if (addressIndex === undefined) {
+          addressIndex = addressIndexMap.get(`bchtest:${accountAddress}`)
+        }
+      }
+      
+      // Check multisig wallets (these don't need WIF derivation as they're handled separately)
+      if (addressIndex === undefined) {
+        addressInfo = multisigMap.get(accountAddress)
+        if (!addressInfo && !accountAddress.includes(':')) {
+          addressInfo = multisigMap.get(`bitcoincash:${accountAddress}`)
+          if (!addressInfo) {
+            addressInfo = multisigMap.get(`bchtest:${accountAddress}`)
+          }
+        }
+      }
+      
+      // Fallback: check if account includes the address (for edge cases only)
+      if (addressIndex === undefined && !addressInfo) {
+        for (const [addr, index] of addressIndexMap.entries()) {
+          if (addr && account.includes(addr)) {
+            addressIndex = index
+            break
+          }
+        }
+      }
+      if (addressIndex === undefined && !addressInfo) {
+        for (const [addr, info] of multisigMap.entries()) {
+          if (addr && account.includes(addr)) {
+            addressInfo = info
+            break
+          }
+        }
+      }
+      
+      // If we found an address index, derive WIF directly from seed phrase
+      if (typeof addressIndex === 'number') {
+        try {
+          const addressPath = `0/${addressIndex}`
+          const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
+          const derivedAddress = libauthWallet.getAddressAt({ path: addressPath, token: false })
+          
+          // Use the derived address or the account address (normalize format)
+          const canonicalAddress = derivedAddress || accountAddress
+          
+          addressInfo = {
+            address: canonicalAddress,
+            address_index: addressIndex,
+            address_path: addressPath,
+            wif: wif
+          }
+        } catch (error) {
+          console.error(`Error deriving WIF for address index ${addressIndex}:`, error)
+        }
+      }
+      
       if (addressInfo) {
         sessionTopicWalletAddressMapping.value[topic] = addressInfo
       }
     })
   }
+  
+  return sessionTopicWalletAddressMapping.value
+}
+
+/**
+ * Collects all the accounts with active session and maps each topic with corresponding wallet data
+ * Uses Watchtower API for on-demand lookups instead of building large Maps from all addresses
+ * This is much faster for wallets with many addresses (500+) as it only queries addresses in active sessions
+ */
+const mapSessionTopicWithAddress = async (activeSessions, walletAddresses, multisigWallets) => {
+  // Clear previous mappings for topics that no longer exist
+  // Exclude topics that are currently being processed (e.g., pairingTopic during session approval)
+  // to prevent race condition where cleanup deletes temporary mappings before they can be copied
+  const currentTopics = new Set(Object.keys(activeSessions || {}))
+  const processingTopics = new Set(Object.keys(processingSession.value || {}))
+  Object.keys(sessionTopicWalletAddressMapping.value).forEach(topic => {
+    if (!currentTopics.has(topic) && !processingTopics.has(topic)) {
+      delete sessionTopicWalletAddressMapping.value[topic]
+    }
+  })
+  
+  // If no active sessions, nothing to do
+  if (!activeSessions || Object.keys(activeSessions).length === 0) {
+    return sessionTopicWalletAddressMapping.value
+  }
+  
+  // Get wallet hash for API calls (optional - improves API efficiency)
+  // Even without wallet_hash, we can still query and verify via path derivation
+  const wallet = $store.getters['global/getWallet']('bch')
+  const walletHash = wallet?.walletHash
+  
+  // Process each session topic and its accounts
+  const mappingPromises = []
+  
+  for (const topic in activeSessions) {
+    // Don't overwrite existing mappings that were set during approval (they have the correct wif)
+    const existingMapping = sessionTopicWalletAddressMapping.value[topic]
+    if (existingMapping?.wif) {
+      // Mapping already exists with wif (set during approval), skip processing this topic
+      continue
+    }
+    
+    activeSessions?.[topic]?.namespaces?.bch?.accounts?.forEach((account) => {
+      // Skip if account is missing or invalid
+      if (!account || typeof account !== 'string') {
+        return
+      }
+      
+      // Extract address from account format: "bch:bitcoincash:qxxx..." or "bch:qxxx..."
+      // Remove the "bch:" prefix first (matches how saveConnectedApp handles it)
+      const accountAddress = account.replace(/^bch:/, '')
+      
+      // Skip if accountAddress is empty after processing
+      if (!accountAddress) {
+        return
+      }
+      
+      // Helper to extract hash portion from address (handles different prefix formats)
+      const getAddressHash = (addr) => {
+        if (!addr) return ''
+        const colonIndex = addr.indexOf(':')
+        return colonIndex >= 0 ? addr.substring(colonIndex + 1) : addr
+      }
+      
+      const accountHash = getAddressHash(accountAddress)
+      
+      // Try different address formats to query Watchtower API
+      const addressesToTry = []
+      
+      if (accountAddress.includes(':')) {
+        // Full format: "bitcoincash:qxxx..." or "bchtest:qxxx..."
+        addressesToTry.push(accountAddress)
+      } else {
+        // Hash-only format: "qxxx..." - try with mainnet and testnet prefixes
+        addressesToTry.push(`bitcoincash:${accountAddress}`)
+        addressesToTry.push(`bchtest:${accountAddress}`)
+      }
+      
+      // Query Watchtower API for each address format (stop on first success)
+      // Note: walletHash is optional - if not provided, verification step ensures address belongs to wallet
+      const addressPromise = (async () => {
+        for (const address of addressesToTry) {
+          const addressInfo = await fetchAddressInfoFromWatchtower(address, walletHash)
+          if (addressInfo) {
+            // Verify the address hash matches (handles different prefix formats like bitcoincash: vs bchtest:)
+            // The verification in fetchAddressInfoFromWatchtower (deriving address from path) ensures it belongs to wallet
+            const foundHash = getAddressHash(addressInfo.address)
+            if (foundHash && accountHash && foundHash === accountHash) {
+              sessionTopicWalletAddressMapping.value[topic] = addressInfo
+              return true // Found it, stop trying other formats
+            }
+          }
+        }
+        return false // Not found via API, will try local fallback
+      })()
+      
+      mappingPromises.push(addressPromise)
+    })
+  }
+  
+  // Wait for all API calls to complete (non-blocking, allows UI to remain responsive)
+  await Promise.allSettled(mappingPromises)
+  
+  // Check which topics still don't have mappings and need local fallback
+  const topicsNeedingFallback = []
+  for (const topic in activeSessions) {
+    if (!sessionTopicWalletAddressMapping.value[topic]) {
+      topicsNeedingFallback.push(topic)
+    }
+  }
+  
+  // If some topics don't have mappings yet, try local fallback for those specific topics
+  if (topicsNeedingFallback.length > 0 && (walletAddresses?.length > 0 || multisigWallets?.length > 0)) {
+    // Build a filtered activeSessions object with only topics that need fallback
+    const sessionsNeedingFallback = {}
+    topicsNeedingFallback.forEach(topic => {
+      if (activeSessions[topic]) {
+        sessionsNeedingFallback[topic] = activeSessions[topic]
+      }
+    })
+    
+    // Use local method only for topics that weren't found via API
+    await mapSessionTopicWithAddressLocal(sessionsNeedingFallback, walletAddresses, multisigWallets)
+  }
+  
   return sessionTopicWalletAddressMapping.value
 }
 
 async function saveConnectedApp (session) {
   try {
-    session?.namespaces?.bch?.accounts?.forEach(async (account) => {
+    const accounts = session?.namespaces?.bch?.accounts
+    if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+      return
+    }
+    
+    // Use Promise.all to wait for all async operations to complete
+    const savePromises = accounts.map(async (account) => {
       const accountWCPrefixRemoved = account.replace('bch:', '')
-      const addressWithWif = walletAddresses.value.find((walletAddress) => {
-        // eslint-disable-next-line eqeqeq
-        return walletAddress.address == accountWCPrefixRemoved
-      })
-      if (addressWithWif?.wif) {
-        const decodedPrivkey = decodePrivateKeyWif(addressWithWif.wif)
+      let wif = null
+      
+      // First, try to get WIF from the session mapping (if session topic is available)
+      if (session?.topic && sessionTopicWalletAddressMapping.value[session.topic]?.wif) {
+        wif = sessionTopicWalletAddressMapping.value[session.topic].wif
+      }
+      
+      // If not found in mapping, try to get address_path from Watchtower API and derive WIF
+      if (!wif) {
+        try {
+          const isChipnet = $store.getters['global/isChipnet']
+          const wallet = $store.getters['global/getWallet']('bch')
+          const walletHash = wallet?.walletHash
+          const addressInfo = await fetchAddressInfoFromWatchtower(accountWCPrefixRemoved, walletHash)
+          if (addressInfo?.wif) {
+            wif = addressInfo.wif
+          }
+        } catch (error) {
+          console.error('Error fetching address info from Watchtower in saveConnectedApp:', error)
+        }
+      }
+      
+      // Fallback: search walletAddresses and derive WIF from address_index
+      if (!wif) {
+        await ensureWalletAddressesLoaded()
+        const addressWithIndex = walletAddresses.value.find((walletAddress) => {
+          // eslint-disable-next-line eqeqeq
+          return walletAddress.address == accountWCPrefixRemoved
+        })
+        if (addressWithIndex && typeof addressWithIndex.address_index === 'number') {
+          try {
+            const isChipnet = $store.getters['global/isChipnet']
+            const walletIndex = $store.getters['global/getWalletIndex']
+            const libauthWallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+            const addressPath = `0/${addressWithIndex.address_index}`
+            wif = libauthWallet.getPrivateKeyWifAt(addressPath)
+          } catch (error) {
+            console.error('Error deriving WIF in saveConnectedApp:', error)
+          }
+        }
+      }
+      
+      if (wif) {
+        const decodedPrivkey = decodePrivateKeyWif(wif)
         return watchtower.value.saveConnectedApp({
           address: accountWCPrefixRemoved,
           appName: session?.peer?.metadata?.name || session?.peer?.metadata?.url,
@@ -502,39 +912,24 @@ async function saveConnectedApp (session) {
       //     addressToConnect: accountWCPrefixRemoved
       //   })
       // }
+      return null
     })
+    
+    // Wait for all save operations to complete
+    await Promise.all(savePromises)
   } catch (error) { console.log('🚀 ~ saveConnectedApp ~ error:', error) }
 }
 
 const connectNewSession = async (uri = '', prompt = true) => {
   if (prompt) {
     $q.dialog({
-      title: $t('NewSession'),
-      class: `q-pb-lg q-px-sm br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)} new-session`,
-      prompt: {
-        label: $t('SessionURL'),
-        placeholder: $t('PasteURL'),
-        model: uri,
-        outlined: true,
-        type: 'textarea',
-        autogrow: true,
-        inputStyle: 'word-break: break-all; padding: 2px;'
-      },
-      ok: {
-        noCaps: true,
-        label: $t('Proceed'),
-        class: `button q-mr-md ${getDarkModeClass(darkMode.value)}`
-      },
-      cancel: {
-        flat: true,
-        noCaps: true,
-        label: $t('Close'),
-        class: `${getDarkModeClass(darkMode.value)}`
-      },
-      position: 'bottom',
-      seamless: true
+      component: NewSessionDialog,
+      componentProps: {
+        darkMode: darkMode.value
+      }
     })
-      .onOk(async (_uri) => await pairURI(_uri))
+      .onOk(async (payload) => await pairURI(payload))
+      
   } else {
     setTimeout(async () => {
       await pairURI(uri)
@@ -590,11 +985,14 @@ const disconnectSession = async (activeSession) => {
         ok: {
           label: $t('Yes'),
           noCaps: true,
-          color: 'primary'
+          color: 'primary',
+          rounded: true
         },
         cancel: {
-          flat: true,
           noCaps: true,
+          rounded: true,
+          outline: true,
+          color: 'negative',
           label: $t('No')
         },
         class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
@@ -616,10 +1014,69 @@ const disconnectSession = async (activeSession) => {
   }
 }
 
+const openManualAddressEntryDialog = async (sessionProposal) => {
+  try {
+    const addressAddressIndexAndWif = await new Promise((resolve, reject) => {
+      $q.dialog({
+        component: ManualAddressEntryDialog,
+        componentProps: {
+          darkMode: darkMode.value
+        }
+      })
+      .onOk(async(payload) => {
+        const { ok, addressIndex, address, wif } = 
+          await $store.dispatch('global/depositAddressIsFromWallet', { 
+            address: payload.address, addressIndex: payload.addressIndex
+          })
+          if (ok) {
+            return resolve({ address, addressIndex, wif }) 
+          }
+        reject(new Error($t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')))
+      })
+      .onCancel(() => {
+        // Just close the dialog and return control to SelectAddressForSessionDialog
+        reject(new Error('MANUAL_ADDRESS_ENTRY_CANCELLED'))
+      })
+    })
+    return addressAddressIndexAndWif
+  } catch (error) {
+    if (error.message === 'MANUAL_ADDRESS_ENTRY_CANCELLED') {
+      // Just return undefined to give control back to SelectAddressForSessionDialog
+      openAddressSelectionDialog(sessionProposal)
+      return
+    }
+    $q.dialog({
+      title: 'Error',
+      message: error.message,
+      ok: {
+        rounded: true,
+        label: $t('Ok'),
+        noCaps: true,
+        color: 'primary'
+      },
+      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }   
+}
+
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
   try {
+    await ensureWalletAddressesLoaded()
     const lastUsedWalletAddress =
       $store.getters['global/lastUsedAddressAtAppUrl'](sessionProposal?.proposer?.metadata?.url)
+    let addressSelection = walletAddresses.value
+      ?.map(a => a)
+      ?.filter((addressInfo, index, self) => 
+        index === self.findIndex((a) => a.address === addressInfo.address)
+      )
+      ?.sort((a, b) => b.address_index - a.address_index)
+    const arrayIndexOfLastUsedWalletAddress = addressSelection?.findIndex((addressInfo) => addressInfo.address === lastUsedWalletAddress?.wallet_address)
+    if (arrayIndexOfLastUsedWalletAddress !== -1) {
+      // Remove the last used address from its current position first, then add it to the front
+      const lastUsedAddress = addressSelection.splice(arrayIndexOfLastUsedWalletAddress, 1)[0]
+      addressSelection.unshift(lastUsedAddress)
+    }
+    addressSelection = addressSelection.slice(0, 5)
     const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
       $q.dialog({
         component: SelectAddressForSessionDialog,
@@ -628,13 +1085,21 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
           // peerMeta: sessionProposal?.proposer?.metadata,
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
-          walletAddresses: walletAddresses.value,
-          multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
+          walletAddresses: addressSelection,
+          // multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
+          // multisigWallets: [],
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
-        .onOk(({ selectedWalletAddress, isMultisig }) => {
-          resolve({ selectedWalletAddress, isMultisig })
+        .onOk(async (payload) => {
+          if (payload.iWantToProvideSpecificAddress) {
+            const selectedWalletAddress = await openManualAddressEntryDialog(sessionProposal)
+            return resolve({ selectedWalletAddress, isMultisig: false })
+          }
+          resolve({ 
+            selectedWalletAddress: payload.selectedWalletAddress, 
+            isMultisig: payload.isMultisig
+          })
         })
         .onCancel(async () => {
           processingSession.value[sessionProposal.pairingTopic] = ''
@@ -659,6 +1124,7 @@ const rejectSessionProposal = async (sessionProposal) => {
 }
 
 const approveSessionProposal = async (sessionProposal) => {
+  await ensureWalletAddressesLoaded()
   const proposalExpiry = sessionProposal.expiryTimestamp // Assuming expiry is a timestamp in seconds
   const currentTime = Math.floor(Date.now() / 1000)
   const namespaces = mergeRequiredAndOptionalNamespaces(sessionProposal.requiredNamespaces, sessionProposal.optionalNamespaces)
@@ -679,6 +1145,30 @@ const approveSessionProposal = async (sessionProposal) => {
     }
   }
 
+  // Ensure selectedAddress has WIF by deriving it directly from seed phrase using address_index
+  // This ensures consistency even if walletAddresses was deferred or missing WIF
+  if (selectedAddress && typeof selectedAddress.address_index === 'number') {
+    try {
+      const isChipnet = $store.getters['global/isChipnet']
+      const walletIndex = $store.getters['global/getWalletIndex']
+      const libauthWallet = await loadLibauthHdWallet(walletIndex, isChipnet)
+      const addressPath = `0/${selectedAddress.address_index}`
+      const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
+      const derivedAddress = libauthWallet.getAddressAt({ path: addressPath, token: false })
+      
+      // Update selectedAddress with derived WIF and ensure address format is correct
+      selectedAddress = {
+        ...selectedAddress,
+        address: derivedAddress || selectedAddress.address,
+        address_path: addressPath,
+        wif: wif
+      }
+    } catch (error) {
+      console.error('Error deriving WIF during session approval:', error)
+      // If derivation fails and WIF is missing, this will cause an error later which is acceptable
+    }
+  }
+  
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
   processingSession.value[sessionProposal.pairingTopic] = 'Connecting'
@@ -716,7 +1206,20 @@ const approveSessionProposal = async (sessionProposal) => {
       //   }
       // }
     })
+    // Update mapping to use session.topic instead of pairingTopic (they're different!)
+    // IMPORTANT: Copy mapping first, then update activeSessions (which triggers watch),
+    // then delete pairingTopic. This order prevents race conditions:
+    // 1. Copy ensures session.topic mapping exists
+    // 2. Updating activeSessions triggers mapSessionTopicWithAddress, but session.topic is now protected (in activeSessions)
+    // 3. pairingTopic is protected during cleanup by processingSession check
+    // 4. After activeSessions update, safe to delete pairingTopic (already copied)
+    if (sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]) {
+      sessionTopicWalletAddressMapping.value[session.topic] = sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
+    }
+    // Update activeSessions - this triggers the watch but session.topic is now protected
     activeSessions.value[session.topic] = session
+    // Now safe to delete pairingTopic mapping (session.topic is already in activeSessions, so it's protected)
+    delete sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
     processingSession.value[sessionProposal.pairingTopic] = ''
     showActiveSessions.value = true
     await saveConnectedApp(session)
@@ -739,49 +1242,49 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      if (wallet.template) { // Account with active session is a multisig wallet
-        const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
-          sessionRequest,
-          addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
-        })
-        const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
-        await $store.dispatch('multisig/createTransaction', {
-          multisigWallet: wallet,
-          multisigTransaction
-        })
-        await web3Wallet.value.respondSessionRequest({
-          topic: sessionRequest.topic,
-          response: {
-            id: sessionRequest.id,
-            jsonrpc: '2.0',
-            result: {
-              status: 'accepted',
-              walletType: 'p2shMultisig',
-              walletLockingType: 'p2shMultisig',
-              walletSpec: {
-                m: getRequiredSignatures(wallet.template),
-                n: getTotalSigners(wallet.template),
-                sigAlgo: 'schnorr'
-              },
-              message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
-              statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
-              txid: unsignedTransactionHash,
-              unsignedHash: unsignedTransactionHash,
-              txidIsUnsignedHash: true
-            }
-          }
-        })
-        return $router.push({
-          name: 'app-multisig-wallet-transaction-view',
-          params: {
-            address: wallet.address,
-            hash: unsignedTransactionHash
-          },
-          query: {
-            backnavpath: '/apps/wallet-connect'
-          }
-        })
-      }
+      // if (wallet.template) { // Account with active session is a multisig wallet
+      //   const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
+      //     sessionRequest,
+      //     addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
+      //   })
+      //   const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
+      //   await $store.dispatch('multisig/createTransaction', {
+      //     multisigWallet: wallet,
+      //     multisigTransaction
+      //   })
+      //   await web3Wallet.value.respondSessionRequest({
+      //     topic: sessionRequest.topic,
+      //     response: {
+      //       id: sessionRequest.id,
+      //       jsonrpc: '2.0',
+      //       result: {
+      //         status: 'accepted',
+      //         walletType: 'p2shMultisig',
+      //         walletLockingType: 'p2shMultisig',
+      //         walletSpec: {
+      //           m: getRequiredSignatures(wallet.template),
+      //           n: getTotalSigners(wallet.template),
+      //           sigAlgo: 'schnorr'
+      //         },
+      //         message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
+      //         statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
+      //         txid: unsignedTransactionHash,
+      //         unsignedHash: unsignedTransactionHash,
+      //         txidIsUnsignedHash: true
+      //       }
+      //     }
+      //   })
+      //   return $router.push({
+      //     name: 'app-multisig-wallet-transaction-view',
+      //     params: {
+      //       address: wallet.address,
+      //       hash: unsignedTransactionHash
+      //     },
+      //     query: {
+      //       backnavpath: '/apps/wallet-connect'
+      //     }
+      //   })
+      // }
       if (!wallet?.wif) {
         return await new Promise((resolve, reject) => {
           $q.dialog({
@@ -857,7 +1360,6 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   } finally {
     if (!response.result) delete response.result
     if (!response.error) delete response.error
-    console.log(sessionRequest?.params?.request?.method, 'response', response);
     await web3Wallet.value.respondSessionRequest({ topic: sessionRequest.topic, response })
     if (!sessionRequest.error) {
       sessionRequest.confirmed = true
@@ -954,7 +1456,6 @@ const openSessionRequestDialog = (sessionRequest) => {
 }
 
 const rejectSessionRequest = async (sessionRequest) => {
-  console.log('🚀 ~ rejectSessionRequest ~ sessionRequest:', sessionRequest)
   const id = sessionRequest?.id
   const topic = sessionRequest?.topic
   try {
@@ -999,12 +1500,6 @@ async function wcVersionUpgradeMigration() {
 }
 
 const loadWeb3Wallet = async () => {
-  // console.log('🚀 ~ loadWeb3Wal ~ chipnet:', chipnet)
-  // web3WalletPromise.value = initWeb3Wallet(chipnet)
-  // const _web3Wallet = await web3WalletPromise.value
-  // web3Wallet.value = _web3Wallet
-  // window.w3w = _web3Wallet
-
   web3Wallet.value = await initWeb3Wallet()
   window.w3w = web3Wallet.value
 }
@@ -1069,30 +1564,96 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_request_expire', onSessionExpire)
 }
 
-const refreshComponent = async () => {
-  await $store.dispatch('global/loadWalletLastAddressIndex')
-  await $store.dispatch('global/loadWalletAddresses')
-  await $store.dispatch('global/loadWalletConnectedApps')
-  watchtower.value = new Watchtower($store.getters['global/isChipnet'])
-  walletAddresses.value = $store.getters['global/walletAddresses']
-  await loadSessionRequests({ showLoading: true })
-  await loadSessionProposals({ showLoading: true })
-  await loadActiveSessions({ showLoading: true })
+// Helper function to ensure walletAddresses is loaded when needed
+// This is used by functions that require walletAddresses (saveConnectedApp, openAddressSelectionDialog, approveSessionProposal)
+const ensureWalletAddressesLoaded = async () => {
+  // On some platforms, getters can temporarily be an empty array while
+  // lastAddressIndex is still being fetched. Treat empty array as "not loaded"
+  // and force a refresh so address selection dialog always has options.
+  const stored = $store.getters['global/walletAddresses']
+  const needsLoad = !Array.isArray(stored) || stored.length === 0
+
+  if (needsLoad) {
+    // Best-effort: load last address index first to avoid deriving 0..0 only
+    try {
+      await $store.dispatch('global/loadWalletLastAddressIndex')
+    } catch (_) {
+      // ignore
+    }
+    await $store.dispatch('global/loadWalletAddresses')
+  }
+
+  walletAddresses.value = $store.getters['global/walletAddresses'] || []
+  return walletAddresses.value
 }
 
-watchEffect(() => {
-  mapSessionTopicWithAddress(activeSessions.value, walletAddresses.value, multisigWallets.value)
-})
-
-onBeforeMount(async () => {
+const refreshComponent = async (showLoading = true) => {
   await $store.dispatch('global/loadWalletLastAddressIndex')
-  await $store.dispatch('global/loadWalletAddresses')
+  // Defer loading walletAddresses - it's not needed for initial render
+  // Only needed when user interacts (saving app, selecting address, approving proposal)
+  // The mapping function uses Watchtower API for on-demand lookups, so we don't need all addresses upfront
+  if (!$store.getters['global/walletAddresses']) {
+    // Defer to avoid blocking UI during initialization
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(() => {
+        $store.dispatch('global/loadWalletAddresses').then(() => {
+          walletAddresses.value = $store.getters['global/walletAddresses']
+        }).catch(err => {
+          console.error('Error loading wallet addresses:', err)
+        })
+      }, { timeout: 1000 })
+    } else {
+      setTimeout(() => {
+        $store.dispatch('global/loadWalletAddresses').then(() => {
+          walletAddresses.value = $store.getters['global/walletAddresses']
+        }).catch(err => {
+          console.error('Error loading wallet addresses:', err)
+        })
+      }, 100)
+    }
+  } else {
+    walletAddresses.value = $store.getters['global/walletAddresses']
+  }
   await $store.dispatch('global/loadWalletConnectedApps')
   watchtower.value = new Watchtower($store.getters['global/isChipnet'])
-  walletAddresses.value = $store.getters['global/walletAddresses']
-  await loadSessionRequests()
-  await loadSessionProposals()
-  await loadActiveSessions()
+  await loadSessionRequests({ showLoading })
+  await loadSessionProposals({ showLoading })
+  await loadActiveSessions({ showLoading })
+}
+
+// Use watch with explicit dependencies to avoid unnecessary rebuilds
+// Defer execution to avoid blocking UI on initial load with many addresses
+// Note: mapSessionTopicWithAddress is now async and uses Watchtower API for on-demand lookups
+watch(
+  [() => activeSessions.value, () => walletAddresses.value, () => multisigWallets.value],
+  ([newActiveSessions, newWalletAddresses, newMultisigWallets]) => {
+    // Execute async mapping operation (non-blocking)
+    // The function uses Watchtower API for on-demand lookups, so it's already optimized
+    // Still defer slightly to allow UI to remain responsive during initialization
+    const executeMapping = async () => {
+      await mapSessionTopicWithAddress(newActiveSessions, newWalletAddresses, newMultisigWallets)
+    }
+    
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(() => {
+        executeMapping().catch(err => {
+          console.error('Error in mapSessionTopicWithAddress:', err)
+        })
+      }, { timeout: 500 })
+    } else {
+      // Fallback: use setTimeout with minimal delay to yield to event loop
+      setTimeout(() => {
+        executeMapping().catch(err => {
+          console.error('Error in mapSessionTopicWithAddress:', err)
+        })
+      }, 0)
+    }
+  },
+  { flush: 'post' }
+)
+
+onBeforeMount(async () => {
+  await refreshComponent(false)
 })
 
 onMounted(async () => {
@@ -1108,13 +1669,35 @@ onMounted(async () => {
     if (!$store.getters['global/walletConnectedApps']) {
       await $store.dispatch('global/loadWalletConnectedApps')
     }
+    // Defer loading walletAddresses - it's not needed for initial render
+    // Only needed when user interacts (saving app, selecting address, approving proposal)
+    // The mapping function uses Watchtower API for on-demand lookups, so we don't need all addresses upfront
     if (!$store.getters['global/walletAddresses']) {
-      await $store.dispatch('global/loadWalletAddresses')
+      // Defer to avoid blocking UI during initialization
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(() => {
+          $store.dispatch('global/loadWalletAddresses').then(() => {
+            walletAddresses.value = $store.getters['global/walletAddresses']
+          }).catch(err => {
+            console.error('Error loading wallet addresses:', err)
+          })
+        }, { timeout: 1000 })
+      } else {
+        setTimeout(() => {
+          $store.dispatch('global/loadWalletAddresses').then(() => {
+            walletAddresses.value = $store.getters['global/walletAddresses']
+          }).catch(err => {
+            console.error('Error loading wallet addresses:', err)
+          })
+        }, 100)
+      }
+    } else {
+      walletAddresses.value = $store.getters['global/walletAddresses']
     }
     // multisigWallets.value = $store.getters['multisig/getWallets']
     // TODO: load multisig wallets from watchtower
-    walletAddresses.value = $store.getters['global/walletAddresses']
-    console.log('multisigWallets', multisigWallets.value)
+    // Note: The watch will automatically trigger mapSessionTopicWithAddress when walletAddresses changes
+    // It's deferred using requestIdleCallback/setTimeout to avoid blocking UI
   } catch (error) {} finally { loading.value = undefined }
 })
 onUnmounted(() => {
@@ -1125,10 +1708,7 @@ onUnmounted(() => {
 
 defineExpose({
   onScannerDecode,
-  // statusUpdate,
   refreshComponent,
-  // web3Wallet,
-  // web3WalletPromise,
   connectNewSession
 })
 </script>

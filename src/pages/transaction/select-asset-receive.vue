@@ -2,30 +2,6 @@
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav id="RECEIVE" 
       :title="$t('Receive')" backnavpath="/"></header-nav>
-    <q-tabs
-      dense
-      v-if="enableSmartBCH"
-      active-color="brandblue"
-      
-      :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}"
-      class="col-12 q-px-lg"
-      :modelValue="selectedNetwork"
-      @update:modelValue="changeNetwork"
-    >
-      <q-tab
-        name="BCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.BCH.name"
-      />
-      <q-tab
-        name="sBCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        :label="networks.sBCH.name"
-        :disable="isChipnet"
-      />
-    </q-tabs>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
         <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
@@ -33,46 +9,47 @@
             {{ $t('SelectAssetToBeReceived') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm asset-filter-container" v-show="selectedNetwork === networks.BCH.name">
+        <div class="col-3 q-mt-sm asset-filter-container">
           <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
-      <div style="overflow-y: scroll;">
-        <div
+      <div class="asset-list-scroll">
+        <template
           v-for="(asset, index) in assets"
-          :key="index"
+          :key="asset?.id || index"
         >
-          <!-- FAVORITES label - show before first favorite token -->
-          <div 
-            v-if="shouldShowFavoritesLabel(asset, index)"
-            class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
-          >
-            <p 
-              class="q-ma-none text-uppercase text-weight-bold"
-              :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
-              style="font-size: 12px; letter-spacing: 1px;"
+          <template v-if="asset && asset.id">
+            <!-- FAVORITES label - show before first favorite token -->
+            <div 
+              v-if="shouldShowFavoritesLabel(asset, index)"
+              class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
             >
-              {{ $t('Favorites').toLocaleUpperCase() }}
-            </p>
-          </div>
-          <!-- OTHER TOKENS label - show before first non-favorite token -->
-          <div 
-            v-if="shouldShowOtherTokensLabel(asset, index)"
-            class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
-          >
-            <p 
-              class="q-ma-none text-uppercase text-weight-bold"
-              :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
-              style="font-size: 12px; letter-spacing: 1px;"
+              <p 
+                class="q-ma-none text-uppercase text-weight-bold"
+                :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
+                style="font-size: 12px; letter-spacing: 1px;"
+              >
+                {{ $t('Favorites').toLocaleUpperCase() }}
+              </p>
+            </div>
+            <!-- OTHER TOKENS label - show before first non-favorite token -->
+            <div 
+              v-if="shouldShowOtherTokensLabel(asset, index)"
+              class="q-pl-lg q-pr-lg q-mt-md q-mb-sm"
             >
-              {{ $t('OtherTokens').toLocaleUpperCase() }}
-            </p>
-          </div>
-          <div
-            @click="checkIfFirstTimeReceiver(asset)"
-            role="button"
-            class="row q-pl-lg q-pr-lg"
-          >
+              <p 
+                class="q-ma-none text-uppercase text-weight-bold"
+                :class="darkMode ? 'text-grey-4' : 'text-grey-7'"
+                style="font-size: 12px; letter-spacing: 1px;"
+              >
+                {{ $t('OtherTokens').toLocaleUpperCase() }}
+              </p>
+            </div>
+            <div
+              @click="checkIfFirstTimeReceiver(asset)"
+              role="button"
+              class="row q-pl-lg q-pr-lg"
+            >
           <div 
             class="col row group-currency q-mb-sm" 
             :class="getDarkModeClass(darkMode)" 
@@ -81,7 +58,7 @@
             <div class="row q-pt-sm q-pb-xs q-pl-md" style="width: 100%;">
               <div>
                 <img
-                  v-if="asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'"
+                  v-if="asset.id === 'ct/unlisted' || asset.id === 'slp/unlisted'"
                   src="ct-logo.png"
                   width="50"
                   alt=""
@@ -90,7 +67,10 @@
                   v-else
                   :src="getImageUrl(asset)"
                   width="50"
+                  class="asset-icon"
                   alt=""
+                  @contextmenu.prevent
+                  @selectstart.prevent
                 >
               </div>
               <div class="col q-pl-sm q-pr-sm">
@@ -100,16 +80,16 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p 
-                  v-if="asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'"
-                  class="q-ma-none amount-text" 
+                <p
+                  v-if="asset.id === 'ct/unlisted' || asset.id === 'slp/unlisted'"
+                  class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
                 >
-                  Any Fungible CashToken
+                  {{ $t('AnyCashToken') }}
                 </p>
-                <p 
-                  v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'sep20/unlisted' && asset.id !== 'slp/unlisted'"
-                  class="q-ma-none amount-text" 
+                <p
+                  v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'slp/unlisted'"
+                  class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
                 >
                   <template v-if="!asset.name.includes('New')">
@@ -126,7 +106,8 @@
             </div>
           </div>
           </div>
-        </div>
+          </template>
+        </template>
         <q-banner
           v-if="!isCashToken"
           inline-actions
@@ -154,12 +135,10 @@ import HeaderNav from '../../components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
-import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
-import FirstTimeReceiverWarning from 'src/pages/transaction/dialog/FirstTimeReceiverWarning'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
-import { convertTokenAmount, getWalletByNetwork } from 'src/wallet/chipnet'
-import * as assetSettings from 'src/utils/asset-settings'
-import { generateSbchAddress } from 'src/utils/address-generation-utils.js'
+import { convertTokenAmount, getWatchtowerApiUrl } from 'src/wallet/chipnet'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import axios from 'axios'
 
 export default {
   name: 'Receive-page',
@@ -168,22 +147,16 @@ export default {
   ],
   components: {
     HeaderNav,
-    AssetFilter,
-    FirstTimeReceiverWarning
+    AssetFilter
   },
   data () {
     return {
-      networks: {
-        BCH: { name: 'BCH' },
-        sBCH: { name: 'SmartBCH' }
-      },
       activeBtn: 'btn-bch',
       result: '',
       error: '',
       isCashToken: true,
       wallet: null,
-      favorites: [],
-      customList: null,
+      allTokensFromAPI: [], // Store tokens fetched from API
     }
   },
   computed: {
@@ -205,9 +178,6 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
-    },
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -217,152 +187,231 @@ export default {
       }
     },
     assets () {
-      let _assets
       const themedIconPath = ''
       const themedNewTokenIcon = `${themedIconPath}new-token.png`
 
-      if (this.selectedNetwork === 'sBCH') {
-        _assets = this.$store.getters['sep20/getAssets'].filter(Boolean)
-        _assets = _assets.map((item) => {
-          if (item?.id === 'bch') {
-            item.name = 'Smart Bitcoin Cash'
-            item.symbol = 'sBCH'
-            item.logo = 'sep20-logo.png'
+      // For CashTokens, use API data directly
+      if (this.isCashToken) {
+        // Get BCH asset from store
+        const bchAsset = this.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
+        
+        // Use tokens from API - they already have favorite and favorite_order
+        // Filter out tokens without an id to prevent rendering errors
+        const apiTokens = (this.allTokensFromAPI || [])
+          .filter(token => token && token.id) // Only include tokens with valid id
+          .map(token => ({
+            id: token.id,
+            name: token.name || 'Unknown Token',
+            symbol: token.symbol || '',
+            decimals: token.decimals || 0,
+            logo: token.logo,
+            balance: token.balance !== undefined ? token.balance : 0,
+            favorite: token.favorite === true ? 1 : 0,
+            favorite_order: token.favorite_order !== null && token.favorite_order !== undefined ? token.favorite_order : null
+          }))
+
+        // Sort: favorites first (by favorite_order), then non-favorites
+        const sortedTokens = apiTokens.sort((a, b) => {
+          // If one is favorite and other is not, favorite comes first
+          if (a.favorite === 1 && b.favorite === 0) return -1
+          if (a.favorite === 0 && b.favorite === 1) return 1
+          // If both are favorites, sort by favorite_order
+          if (a.favorite === 1 && b.favorite === 1) {
+            const orderA = a.favorite_order || 0
+            const orderB = b.favorite_order || 0
+            return orderA - orderB
           }
-          return item
+          // If both are non-favorites, maintain their relative order
+          return 0
         })
+
+        // Separate favorites and non-favorites
+        const favoriteTokens = sortedTokens.filter(token => token.favorite === 1)
+        const nonFavoriteTokens = sortedTokens.filter(token => token.favorite === 0)
+
+        // Add unlisted CashToken
         const unlistedAsset = {
-          id: 'sep20/unlisted',
+          id: 'ct/unlisted',
           name: 'CashToken',
-          symbol: 'SEP20 token',
+          symbol: 'CashToken',
           logo: themedNewTokenIcon
         }
-        // Ordering: sBCH first, then unlisted SEP20 token, then others
-        const bchAsset = _assets.find(asset => asset?.id === 'bch')
-        const otherAssets = _assets.filter(asset => asset?.id !== 'bch')
-        return [
+
+        // Ordering: BCH first, then unlisted CashToken, then favorites, then others
+        const allAssets = [
           ...(bchAsset ? [bchAsset] : []),
           unlistedAsset,
-          ...otherAssets
-        ]
+          ...favoriteTokens,
+          ...nonFavoriteTokens
+        ].filter(asset => asset && asset.id) // Extra safety: filter out any undefined/invalid assets
+        
+        return allAssets
       }
 
+      // For SLP tokens, use store data (API doesn't support SLP yet)
       const vm = this
-      _assets = this.$store.getters['assets/getAssets'].filter(function (item) {
+      let _assets = this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item) {
           const isBch = item?.id === 'bch'
           const tokenType = item.id?.split?.('/')?.[0]
-
-          if (vm.isCashToken) 
-            return tokenType === 'ct' || isBch
           return tokenType === 'slp' || isBch
         }
       })
-      let unlistedAsset = {
+      
+      const unlistedAsset = {
         id: 'slp/unlisted',
         name: 'CashToken',
         symbol: 'SLP token',
         logo: themedNewTokenIcon
       }
-      if (vm.isCashToken) {
-        unlistedAsset = {
-          id: 'ct/unlisted',
-          name: 'CashToken',
-          symbol: 'CashToken',
-          logo: themedNewTokenIcon
-        } 
-      }
-      // Ordering: BCH first, then favorites (using custom list order), then others, with optional unlisted at end
+      
+      // Ordering: BCH first, then unlisted SLP token, then others
       const bchAsset = _assets.find(asset => asset?.id === 'bch')
-      const favoriteTokenIds = this.favorites
-        .filter(item => item.favorite === 1)
-        .map(item => item.id)
-
-      // Build ordered list from custom list if available
-      let orderedAssets = []
-      if (this.customList && this.customList.BCH && Array.isArray(this.customList.BCH)) {
-        // Map all assets from custom list in order (excluding BCH which is handled separately)
-        orderedAssets = this.customList.BCH
-          .map(id => {
-            // Skip BCH as it's handled separately
-            if (id === 'bch') return null
-            return _assets.find(asset => {
-              const aid = String(asset?.id || '')
-              return aid === id || aid.endsWith('/' + id)
-            })
-          })
-          .filter(Boolean)
-      } else {
-        // Fallback: use all assets in their current order
-        orderedAssets = _assets.filter(asset => asset?.id !== 'bch')
-      }
-
-      // Separate into favorites and others, preserving custom list order
-      const favoriteAssets = orderedAssets.filter(asset => {
-        const aid = String(asset?.id || '')
-        return favoriteTokenIds.some(fid => fid === aid || aid.endsWith('/' + fid))
-      })
-
-      const sortedOtherAssets = orderedAssets.filter(asset => {
-        const aid = String(asset?.id || '')
-        const isFav = favoriteTokenIds.some(fid => fid === aid || aid.endsWith('/' + fid))
-        return !isFav
-      })
-
-      // Ordering: BCH first, then New/Unlisted CashToken (if CashToken mode), then favorites, then others
-      const baseList = [
+      const otherAssets = _assets.filter(asset => asset?.id !== 'bch')
+      
+      const allAssets = [
         ...(bchAsset ? [bchAsset] : []),
-        // Add unlisted CashToken right after BCH if in CashToken mode
-        ...(vm.isCashToken ? [unlistedAsset] : []),
-        ...favoriteAssets
-      ]
-
-      // Always show all tokens
-      const finalList = [...baseList, ...sortedOtherAssets, ...(vm.isCashToken ? [] : [unlistedAsset])]
-
-      return finalList
+        unlistedAsset,
+        ...otherAssets
+      ].filter(asset => asset && asset.id) // Extra safety: filter out any undefined/invalid assets
+      
+      return allAssets
     }
   },
   methods: {
     isFavorite(assetId) {
-      return this.favorites.some(item => item.id === assetId && item.favorite === 1)
+      if (!assetId) return false
+      // For CashTokens on BCH, use API data
+      if (this.isCashToken && this.selectedNetwork === 'BCH') {
+        const token = this.allTokensFromAPI.find(t => t && t.id === assetId)
+        return token && (token.favorite === true || token.favorite === 1)
+      }
+      // For other cases, check if asset is in favorites (legacy support)
+      // This shouldn't be needed for CashTokens on BCH anymore
+      return false
+    },
+    async fetchTokensFromAPI () {
+      // Only fetch for CashTokens on BCH network
+      if (this.selectedNetwork !== 'BCH' || !this.isCashToken) {
+        return []
+      }
+
+      if (!this.wallet) {
+        console.warn('Wallet not loaded, cannot fetch tokens')
+        return []
+      }
+
+      const walletHash = this.wallet.BCH?.walletHash || this.wallet.bch?.walletHash
+      if (!walletHash) {
+        console.warn('Wallet hash not available')
+        return []
+      }
+
+      const isChipnet = this.$store.getters['global/isChipnet']
+      const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+      const filterParams = {
+        has_balance: true,
+        token_type: 1,
+        wallet_hash: walletHash,
+        limit: 100 // Fetch more tokens per page
+      }
+
+      try {
+        const url = `${baseUrl}/cashtokens/fungible/`
+        let allTokens = []
+        let nextUrl = url
+        let params = filterParams
+
+        // Fetch all pages if there are more results
+        while (nextUrl) {
+          const { data } = await axios.get(nextUrl, { params })
+
+          if (!Array.isArray(data.results)) {
+            break
+          }
+
+          // Map API response to asset format
+          const tokens = data.results
+            .filter(result => {
+              if (!result || !result.id) {
+                console.warn('Token from API missing id:', result)
+                return false
+              }
+              return true
+            })
+            .map(result => {
+              // Convert IPFS URLs if needed
+              const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
+
+              return {
+                id: result.id,
+                name: result.name || 'Unknown Token',
+                symbol: result.symbol || '',
+                decimals: result.decimals || 0,
+                logo: logo,
+                balance: result.balance !== undefined ? result.balance : 0,
+                favorite: result.favorite === true ? 1 : 0, // Convert boolean to 1/0 format
+                favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
+              }
+            })
+
+          allTokens = [...allTokens, ...tokens]
+
+          // Check if there's a next page
+          if (data.next) {
+            nextUrl = data.next
+            params = {} // Don't send params again, URL already has them
+          } else {
+            nextUrl = null
+          }
+        }
+
+        return allTokens
+      } catch (error) {
+        console.error('Error fetching tokens from API:', error)
+        return []
+      }
     },
     shouldShowFavoritesLabel(asset, index) {
       // Show label if:
       // 1. Current asset is a favorite
       // 2. Previous asset (if exists) is not a favorite (or is BCH/unlisted CashToken)
+      if (!asset || !asset.id) return false
       if (!this.isFavorite(asset.id)) return false
       
       if (index === 0) return false // Don't show before first item
       
       const previousAsset = this.assets[index - 1]
-      if (!previousAsset) return false
+      if (!previousAsset || !previousAsset.id) return false
       
       // Show if previous asset was BCH or unlisted CashToken, or if it wasn't a favorite
-      const isUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'sep20/unlisted' || previousAsset.id === 'slp/unlisted'
+      const isUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'slp/unlisted'
       const isBch = previousAsset.id === 'bch'
       const wasFavorite = this.isFavorite(previousAsset.id)
-      
+
       return (isBch || isUnlisted || !wasFavorite)
     },
     shouldShowOtherTokensLabel(asset, index) {
       // Show label if:
       // 1. Current asset is NOT a favorite (and not BCH or unlisted CashToken)
       // 2. Previous asset (if exists) was a favorite, BCH, or unlisted CashToken
-      const isUnlisted = asset.id === 'ct/unlisted' || asset.id === 'sep20/unlisted' || asset.id === 'slp/unlisted'
+      if (!asset || !asset.id) return false
+      
+      const isUnlisted = asset.id === 'ct/unlisted' || asset.id === 'slp/unlisted'
       const isBch = asset.id === 'bch'
       if (isBch || isUnlisted || this.isFavorite(asset.id)) return false
-      
+
       if (index === 0) return false // Don't show before first item
-      
+
       const previousAsset = this.assets[index - 1]
-      if (!previousAsset) return false
-      
+      if (!previousAsset || !previousAsset.id) return false
+
       // Show if previous asset was a favorite, BCH, or unlisted CashToken
-      const prevIsUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'sep20/unlisted' || previousAsset.id === 'slp/unlisted'
+      const prevIsUnlisted = previousAsset.id === 'ct/unlisted' || previousAsset.id === 'slp/unlisted'
       const prevIsBch = previousAsset.id === 'bch'
       const prevWasFavorite = this.isFavorite(previousAsset.id)
-      
+
       return (prevIsBch || prevIsUnlisted || prevWasFavorite)
     },
     convertTokenAmount,
@@ -384,6 +433,7 @@ export default {
         return 'assets/img/theme/payhero/deem-logo.png'
       } else {
         if (asset.logo) {
+          // Handle IPFS URLs (already converted by convertIpfsUrl)
           if (asset.logo.startsWith('https://ipfs.paytaca.com/ipfs')) {
             return asset.logo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
           } else {
@@ -394,141 +444,93 @@ export default {
         }
       }
     },
-    async isFirstTimeReceiver(asset) {
-      if ((asset?.balance ?? 0) !== 0) return false
-      if ((asset?.txCount ?? 0) !== 0) return false
-      if (asset.id.split('/')[1] === 'unlisted') return false
-
-      const transactionsLength = this.selectedNetwork === 'sBCH'
-        ? await this.getSbchTransactions(asset)
-        : await this.getBchTransactions(asset)
-
-      if (this.selectedNetwork !== 'sBCH') {
-        this.$store.commit('assets/updateAssetTxCount', {
-          id: asset?.id,
-          txCount: transactionsLength,
-        })
+    checkIfFirstTimeReceiver (asset) {
+      // Prepare asset data to pass to receive page
+      // This ensures the receive page has immediate access to logo, name, symbol, decimals, and balance
+      const assetData = asset ? {
+        id: asset.id,
+        name: asset.name,
+        symbol: asset.symbol,
+        decimals: asset.decimals !== undefined ? asset.decimals : 0,
+        logo: asset.logo || null,
+        balance: asset.balance !== undefined ? asset.balance : undefined
+      } : null
+      
+      const routeQuery = {
+        assetId: asset.id,
+        network: this.selectedNetwork,
+        // Pass asset data as JSON string to preserve structure
+        assetData: assetData ? JSON.stringify(assetData) : undefined
       }
-
-      return transactionsLength === 0
-    },
-    async checkIfFirstTimeReceiver (asset) {
-      // check wallet/assets if balance is zero and no transactions were made
-      const displayFirstTimeReceiverWarning = await this.isFirstTimeReceiver(asset)
-      if (displayFirstTimeReceiverWarning) {
-        this.$q.dialog({ component: FirstTimeReceiverWarning })
-          .onOk(() => {
-            this.$router.push({
-              name: 'transaction-receive',
-              query: { assetId: asset.id, network: this.selectedNetwork }
-            })
-          })
-      } else {
-        this.$router.push({
-          name: 'transaction-receive',
-          query: { assetId: asset.id, network: this.selectedNetwork }
-        })
-      }
-    },
-    async getBchTransactions (asset) {
-      const vm = this
-      const id = asset.id
-      let historyLength = -1
-      let requestPromise
-
-      if (id.indexOf('slp/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'slp').getTransactions(tokenId, 1, 'all')
-      } else if (id.indexOf('ct/') > -1) {
-        const tokenId = id.split('/')[1]
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(1, 'all', tokenId)
-      } else {
-        requestPromise = getWalletByNetwork(vm.wallet, 'bch').getTransactions(1, 'all')
-      }
-
-      if (!requestPromise) return
-      await requestPromise.then((response) => {
-        historyLength = response?.history.length ?? 0
+      
+      this.$router.push({
+        name: 'transaction-receive',
+        query: routeQuery
       })
-
-      return historyLength
-    },
-    async getSbchTransactions (asset) {
-      const vm = this
-      const address = await generateSbchAddress({
-        walletIndex: vm.$store.getters['global/getWalletIndex']
-      })
-      if (!address) {
-        return Promise.reject(new Error('Failed to generate sBCH address'))
-      }
-      const id = asset.id
-      const sep20IdRegexp = /sep20\/(.*)/
-      let historyLength = -1
-
-      const filterOpts = { limit: 10, includeTimestamp: true, type: 'incoming' }
-      let requestPromise = null
-
-      if (sep20IdRegexp.test(id)) {
-        const contractAddress = vm.selectedAsset.id.match(sep20IdRegexp)[1]
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getSep20Transactions(
-          contractAddress,
-          address,
-          filterOpts
-        )
-      } else {
-        requestPromise = vm.wallet.sBCH._watchtowerApi.getTransactions(
-          address,
-          filterOpts
-        )
-      }
-
-      if (!requestPromise) return
-      await requestPromise.then(response => {
-        historyLength = response?.transactions.length ?? 0
-      })
-      return historyLength
     }
   },
   async mounted () {
     const vm = this
     vm.$store.dispatch('market/updateAssetPrices', {})
-    const bchAssets = vm.$store.getters['assets/getAssets']
-    bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
 
-    // Fetch custom list and favorites for sorting (do this early so it's available for initial render)
+    // Fetch and update lastAddressIndex from backend
     try {
-      const [customList, favorites] = await Promise.all([
-        assetSettings.fetchCustomList(),
-        assetSettings.fetchFavorites()
-      ])
-      if (customList && !('error' in customList)) {
-        vm.customList = customList
-      }
-      if (favorites && Array.isArray(favorites)) {
-        vm.favorites = favorites
-      }
+      await vm.$store.dispatch('global/loadWalletLastAddressIndex')
     } catch (error) {
-      console.error('Error fetching custom list or favorites:', error)
+      console.error('Error loading last address index:', error)
+      // Continue even if this fails
     }
 
-    // update balance of assets
+    // Load wallet
     const wallet = await cachedLoadWallet('BCH', vm.$store.getters['global/getWalletIndex'])
-    vm.wallet = wallet // Initialize the wallet property
-    
-    for (var i = 0; i < bchAssets.length; i = i + 3) {
-      const balanceUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
-        return updateAssetBalanceOnLoad(asset.id, wallet, vm.$store)
-      })
-      const assetMetadataUpdatePromises = bchAssets.slice(i, i + 3).map(asset => {
-        return vm.$store.dispatch('assets/getAssetMetadata', asset.id)
-      })
-      await Promise.allSettled([...balanceUpdatePromises, ...assetMetadataUpdatePromises])
+    vm.wallet = wallet
+
+    // For CashTokens on BCH, fetch tokens directly from API
+    if (vm.isCashToken) {
+      vm.allTokensFromAPI = await vm.fetchTokensFromAPI()
+    } else {
+      // For SLP, use store data (legacy behavior)
+      const bchAssets = vm.$store.getters['assets/getAssets']
+      bchAssets.forEach(a => vm.$store.dispatch('assets/getAssetMetadata', a.id))
+    }
+  },
+  watch: {
+    assets: {
+      handler(newAssets) {
+        // Debug log to check if any assets are invalid
+        const invalidAssets = newAssets.filter(asset => !asset || !asset.id)
+        if (invalidAssets.length > 0) {
+          console.error('Invalid assets detected:', invalidAssets)
+          console.error('All assets:', newAssets)
+        }
+      },
+      immediate: true
+    },
+    isCashToken () {
+      // Reload tokens when filter changes
+      if (this.isCashToken) {
+        this.fetchTokensFromAPI().then(tokens => {
+          this.allTokensFromAPI = tokens
+        })
+      }
+    },
+    selectedNetwork () {
+      // Reload tokens when network changes
+      if (this.isCashToken && this.selectedNetwork === 'BCH') {
+        this.fetchTokensFromAPI().then(tokens => {
+          this.allTokensFromAPI = tokens
+        })
+      }
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
+  .asset-list-scroll {
+    // Reserve space for the fixed footer menu so the last token can scroll fully into view
+    padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  }
   .group-currency {
     width: 100%;
     border-radius: 7px;

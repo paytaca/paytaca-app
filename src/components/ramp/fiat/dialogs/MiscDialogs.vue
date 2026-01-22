@@ -531,7 +531,7 @@
 
   <!-- WIP instruction dialog fot ad form -->
   <q-dialog v-model="instructionDialog" @before-hide="$emit('back')" full-width position="bottom">
-    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+    <q-card class="br-15 pt-card-2 text-bow bottom-card" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">{{ title }}</div>
       </q-card-section>

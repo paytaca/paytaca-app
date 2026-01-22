@@ -1,14 +1,21 @@
 {
   "name": "paytaca",
-  "version": "0.23.0-rc.4",
+  "version": "v0.23.0",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "productName": "Paytaca",
   "author": "joemar@paytaca.com",
   "private": true,
   "scripts": {
+    "dev": "quasar dev -m spa",
+    "build": "quasar build -m spa",
+    "dev:capacitor:ios": "quasar dev -m capacitor -T ios",
+    "dev:capacitor:android": "quasar dev -m capacitor -T android",
+    "build:capacitor:ios": "quasar build -m capacitor -T ios",
+    "build:capacitor:android": "quasar build -m capacitor -T android",
     "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
     "postinstall": "quasar prepare",
-    "test": "cypress run"
+    "test": "cypress run",
+    "test:unit": "mocha"
   },
   "dependencies": {
     "@asoltys/bip38": "^4.0.3",
@@ -32,6 +39,8 @@
     "@jsonforms/core": "^3.1.0",
     "@jsonforms/vue": "^3.1.0",
     "@jsonforms/vue-vanilla": "^3.1.0",
+    "@keystonehq/bc-ur-registry": "^0.7.1",
+    "@ngraveio/bc-ur": "^1.1.13",
     "@noble/secp256k1": "^2.0.0",
     "@psf/bch-js": "^4.18.0",
     "@quasar/cli": "^1.3.2",
@@ -128,8 +137,12 @@
     "eslint-plugin-vue": "^10.0.0",
     "eslint-webpack-plugin": "^5.0.0",
     "globals": "^16.0.0",
+    "mocha": "^11.7.1",
+    "module-alias": "^2.2.3",
     "node-polyfill-webpack-plugin": "^1.1.4",
-    "ts-loader": "^9.5.2"
+    "sinon": "^21.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.9.3"
   },
   "browserslist": [
     "last 10 Chrome versions",

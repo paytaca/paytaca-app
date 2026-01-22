@@ -28,7 +28,49 @@
 
         <!-- Shards Display -->
         <div class="shards-section q-px-lg">
-          <div v-if="!isLoading && shards.length > 0">
+          <div v-if="isLoading" class="text-center q-py-xl">
+            <q-spinner-dots size="50px" color="primary" />
+            <div class="q-mt-md">{{ $t('LoadingWalletData', {}, 'Loading wallet data') }}...</div>
+          </div>
+
+          <div v-else-if="!shardsGenerated" class="pt-card q-pa-md q-mb-lg" :class="getDarkModeClass(darkMode)">
+            <div class="text-subtitle1 text-weight-bold">
+              {{ $t('GenerateShards', {}, 'Generate Shards') }}
+            </div>
+            <div class="q-mt-sm" style="opacity: 0.9; line-height: 1.5;">
+              {{ $t('ShardsGenerationWarning', {}, 'Note: This algorithm generates a new set of shards every time it is run. Make sure the shards you save were generated at the same time. This is indicated by the Generation ID.') }}
+            </div>
+            <div class="q-mt-md">
+              <q-btn
+                unelevated
+                no-caps
+                icon="mdi-shield-key"
+                type="button"
+                :label="$t('GenerateShards', {}, 'Generate Shards')"
+                class="glassmorphic-generate-btn"
+                :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+                :loading="generatingShards"
+                :disable="generatingShards"
+                @click="generateShardsAndShow()"
+              >
+                <template v-slot:loading>
+                  <q-spinner-dots color="white" size="24px" />
+                </template>
+              </q-btn>
+            </div>
+          </div>
+
+          <div v-if="shardsGenerated && generationId" class="pt-card q-pa-md q-mb-lg" :class="getDarkModeClass(darkMode)">
+            <div class="text-subtitle1 text-weight-bold">
+              {{ $t('GenerationId', {}, 'Generation ID') }}
+            </div>
+            <div class="q-mt-sm" style="opacity: 0.9; line-height: 1.5;">
+              {{ $t('ShardsGeneratedAtSameTimeNote', {}, 'The shards displayed below were generated at the same time with Generation ID:') }}
+              <span class="generation-id-value q-ml-xs">{{ generationId }}</span>
+            </div>
+          </div>
+
+          <div v-if="shardsGenerated && shards.length > 0">
           <!-- Shard 1 -->
           <div class="shard-accordion-item q-mb-md">
             <div 
@@ -52,9 +94,9 @@
               <div v-show="expandedShard === 0" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
                 <div class="qr-code-container" :id="`qr-shard-0`">
                   <div class="col q-pl-sm q-pr-sm">
-                    <div class="row text-center">
-                      <div class="col row justify-center q-pt-md">
-                        <qr-code :qr-id="1" :text="shards[0]" :size="220" class="q-mb-sm" />
+                    <div class="row text-center justify-center">
+                      <div class="col-auto q-pt-md">
+                        <qr-code :qr-id="1" :text="shards[0]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -69,8 +111,14 @@
                     icon="download"
                     color="primary"
                     class="action-btn"
+                    :loading="savingShardQR[0]"
+                    :disable="savingShardQR[0]"
                     @click="downloadQR(0)"
-                  />
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="24px" />
+                    </template>
+                  </q-btn>
                   <q-btn
                     unelevated
                     no-caps
@@ -127,9 +175,9 @@
               <div v-show="expandedShard === 1" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
                 <div class="qr-code-container" :id="`qr-shard-1`">
                   <div class="col q-pl-sm q-pr-sm">
-                    <div class="row text-center">
-                      <div class="col row justify-center q-pt-md">
-                        <qr-code :qr-id="2" :text="shards[1]" :size="220" class="q-mb-sm" />
+                    <div class="row text-center justify-center">
+                      <div class="col-auto q-pt-md">
+                        <qr-code :qr-id="2" :text="shards[1]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -144,8 +192,14 @@
                     icon="download"
                     color="primary"
                     class="action-btn"
+                    :loading="savingShardQR[1]"
+                    :disable="savingShardQR[1]"
                     @click="downloadQR(1)"
-                  />
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="24px" />
+                    </template>
+                  </q-btn>
                   <q-btn
                     unelevated
                     no-caps
@@ -202,9 +256,9 @@
               <div v-show="expandedShard === 2" class="shard-content pt-card-2" :class="getDarkModeClass(darkMode)">
                 <div class="qr-code-container" :id="`qr-shard-2`">
                   <div class="col q-pl-sm q-pr-sm">
-                    <div class="row text-center">
-                      <div class="col row justify-center q-pt-md">
-                        <qr-code :qr-id="3" :text="shards[2]" :size="220" class="q-mb-sm" />
+                    <div class="row text-center justify-center">
+                      <div class="col-auto q-pt-md">
+                        <qr-code :qr-id="3" :text="shards[2]" :size="200" class="q-mb-sm" />
                       </div>
                     </div>
                   </div>
@@ -219,8 +273,14 @@
                     icon="download"
                     color="primary"
                     class="action-btn"
+                    :loading="savingShardQR[2]"
+                    :disable="savingShardQR[2]"
                     @click="downloadQR(2)"
-                  />
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="24px" />
+                    </template>
+                  </q-btn>
                   <q-btn
                     unelevated
                     no-caps
@@ -254,13 +314,12 @@
             </q-slide-transition>
           </div>
           </div>
-          <div v-else class="text-center q-py-xl">
-            <q-spinner-dots size="50px" color="primary" />
-            <div class="q-mt-md">{{ $t('LoadingShards', {}, 'Loading shards') }}...</div>
-          </div>
         </div>
       </template>
     </div>
+
+    <!-- Sticky Confirm Backup button -->
+    <StickyBackupConfirmButton v-if="shardsGenerated" :authenticated="authenticated" />
 
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="onPinVerified" />
     <biometricWarningAttempts :warning-attempts="warningAttemptsStatus" />
@@ -273,20 +332,25 @@ import { toHex } from 'hex-my-bytes'
 import { copyToClipboard } from 'quasar'
 import html2canvas from 'html2canvas'
 import QRCode from 'qrcode-svg'
+import sha256 from 'js-sha256'
 import HeaderNav from 'src/components/header-nav'
-import { getMnemonic } from 'src/wallet'
+import StickyBackupConfirmButton from 'src/components/wallet-backup/StickyBackupConfirmButton.vue'
+import { getMnemonic, computeWalletHash } from 'src/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import pinDialog from 'src/components/pin'
 import biometricWarningAttempts from 'src/components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { Capacitor } from '@capacitor/core'
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import SaveToGallery from 'src/utils/save-to-gallery'
+import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 
 export default {
   name: 'view-shards',
 
   components: {
     HeaderNav,
+    StickyBackupConfirmButton,
     pinDialog,
     biometricWarningAttempts
   },
@@ -298,29 +362,221 @@ export default {
       walletName: '',
       shards: [],
       isLoading: true,
-      expandedShard: 0,
+      expandedShard: null,
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
       authenticated: false,
-      showRawText: [false, false, false]
+      showRawText: [false, false, false],
+      savingShardQR: [false, false, false],
+      shardsGenerated: false,
+      generatingShards: false,
+      walletDataLoaded: false
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    generationId () {
+      if (!this.shardsGenerated) return ''
+      if (!Array.isArray(this.shards) || this.shards.length < 3) return ''
+      const material = this.shards.join('|')
+      return sha256(material).substring(0, 12)
     }
   },
 
   methods: {
     getDarkModeClass,
+    getSessionStorageKey () {
+      return this.walletHash ? `seed_phrase_shards:${this.walletHash}` : 'seed_phrase_shards'
+    },
+    getLastShardsKey () {
+      return 'seed_phrase_shards:last'
+    },
+    readLegacyLocalStoragePayload () {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return null
+        if (!this.walletHash) return null
+
+        const readPayload = (key) => {
+          const raw = window.localStorage.getItem(key)
+          if (!raw) return null
+          try { return JSON.parse(raw) } catch { return null }
+        }
+
+        // Prefer wallet-specific key
+        let parsed = readPayload(this.getSessionStorageKey())
+        // Fallback to last-known key only if it matches this wallet
+        if (!parsed) {
+          const last = readPayload(this.getLastShardsKey())
+          if (last?.walletHash === this.walletHash) parsed = last
+        }
+        return parsed
+      } catch (_) {
+        return null
+      }
+    },
+    clearLegacyLocalStorageShards () {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return
+        if (!this.walletHash) return
+        window.localStorage.removeItem(this.getSessionStorageKey())
+        // Only clear the fallback key if it matches this wallet
+        const rawLast = window.localStorage.getItem(this.getLastShardsKey())
+        if (rawLast) {
+          try {
+            const last = JSON.parse(rawLast)
+            if (last?.walletHash === this.walletHash) {
+              window.localStorage.removeItem(this.getLastShardsKey())
+            }
+          } catch (_) {
+            // ignore
+          }
+        }
+      } catch (_) {
+        // ignore
+      }
+    },
+    applyPersistedPayload (parsed) {
+      const shards = parsed?.shards
+      if (!Array.isArray(shards) || shards.length < 3) return false
+      this.shards = shards
+      this.shardsGenerated = true
+      this.generatingShards = false
+      // Allow restoring "no shard expanded" state (null)
+      if (parsed?.expandedShard === null) {
+        this.expandedShard = null
+      } else {
+        this.expandedShard = Number.isInteger(parsed?.expandedShard) ? parsed.expandedShard : 0
+      }
+      this.showRawText = Array.isArray(parsed?.showRawText) ? parsed.showRawText : [false, false, false]
+      return true
+    },
+    async persistGeneratedShards () {
+      try {
+        if (!this.walletHash || !Array.isArray(this.shards) || this.shards.length < 3) return
+        const payload = {
+          walletHash: this.walletHash,
+          shards: this.shards,
+          expandedShard: this.expandedShard,
+          showRawText: this.showRawText,
+          generatedAt: Date.now()
+        }
+        const value = JSON.stringify(payload)
+        // Store encrypted at rest (Keychain/Keystore). Do NOT store shards in plaintext localStorage.
+        await SecureStoragePlugin.set({ key: this.getSessionStorageKey(), value })
+        // Fallback key (helps restore if wallet-specific key is unavailable for any reason)
+        await SecureStoragePlugin.set({ key: this.getLastShardsKey(), value })
+      } catch (e) {
+        // Best-effort only
+      } finally {
+        // Always remove any legacy plaintext copies.
+        this.clearLegacyLocalStorageShards()
+      }
+    },
+    async restorePersistedShards () {
+      try {
+        if (!this.walletHash) return false
+
+        const parse = (raw) => {
+          if (!raw) return null
+          try { return JSON.parse(raw) } catch { return null }
+        }
+
+        // Prefer wallet-specific secure storage key
+        let parsed = null
+        try {
+          const resp = await SecureStoragePlugin.get({ key: this.getSessionStorageKey() })
+          parsed = parse(resp?.value)
+        } catch (_) {
+          // ignore
+        }
+
+        // Fallback to last-known secure key only if it matches this wallet
+        if (!parsed) {
+          try {
+            const lastResp = await SecureStoragePlugin.get({ key: this.getLastShardsKey() })
+            const lastParsed = parse(lastResp?.value)
+            if (lastParsed?.walletHash === this.walletHash) parsed = lastParsed
+          } catch (_) {
+            // ignore
+          }
+        }
+
+        // Legacy migration: if nothing in secure storage, read any old plaintext localStorage payload,
+        // apply it for this session, then immediately delete plaintext keys (and best-effort re-save encrypted).
+        if (!parsed) {
+          const legacy = this.readLegacyLocalStoragePayload()
+          if (!legacy) return false
+
+          const applied = this.applyPersistedPayload(legacy)
+          if (!applied) {
+            this.clearLegacyLocalStorageShards()
+            return false
+          }
+
+          try {
+            const value = JSON.stringify(legacy)
+            await SecureStoragePlugin.set({ key: this.getSessionStorageKey(), value })
+            await SecureStoragePlugin.set({ key: this.getLastShardsKey(), value })
+          } catch (_) {
+            // ignore
+          } finally {
+            this.clearLegacyLocalStorageShards()
+          }
+          return true
+        }
+
+        return this.applyPersistedPayload(parsed)
+      } catch (e) {
+        return false
+      }
+    },
+    async clearPersistedShards () {
+      try {
+        if (!this.walletHash) return
+        try {
+          await SecureStoragePlugin.remove({ key: this.getSessionStorageKey() })
+        } catch (_) {
+          // ignore
+        }
+        // Only clear the fallback key if it matches this wallet
+        try {
+          const rawLast = await SecureStoragePlugin.get({ key: this.getLastShardsKey() })
+          if (rawLast?.value) {
+            const last = JSON.parse(rawLast.value)
+            if (last?.walletHash === this.walletHash) {
+              await SecureStoragePlugin.remove({ key: this.getLastShardsKey() })
+            }
+          }
+        } catch (_) {
+          // ignore
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        // Ensure no legacy plaintext shards remain
+        this.clearLegacyLocalStorageShards()
+      }
+    },
     toggleShard (index) {
       // Close if clicking on already expanded shard, otherwise open the clicked one
       this.expandedShard = this.expandedShard === index ? null : index
+      void this.persistGeneratedShards()
     },
     toggleRawText (index) {
-      this.showRawText[index] = !this.showRawText[index]
-      this.$forceUpdate() // Force update to ensure reactivity
+      // Vue 2: array index assignment isn't reactive; use $set
+      if (typeof this.$set === 'function') {
+        this.$set(this.showRawText, index, !this.showRawText[index])
+      } else {
+        this.showRawText[index] = !this.showRawText[index]
+        this.$forceUpdate()
+      }
+      void this.persistGeneratedShards()
     },
     copyToClipboard (text) {
       copyToClipboard(text)
@@ -345,56 +601,288 @@ export default {
     },
     async downloadQR (shardIndex) {
       const vm = this
+      if (vm.savingShardQR?.[shardIndex]) return
+      vm.savingShardQR.splice(shardIndex, 1, true)
+      let wrapper = null
       try {
-        // Create a professional wrapper for the QR code
-        const wrapper = document.createElement('div')
+        // Create a beautiful wrapper with gradient background (security/backup theme)
+        wrapper = document.createElement('div')
         wrapper.style.cssText = `
-          background: white;
-          padding: 50px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-          width: 700px;
+          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+          padding: 60px 50px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          width: 800px;
           box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
         `
-
-        // Header with wallet info
+        
+        // Add decorative background elements
+        const bgDecoration = document.createElement('div')
+        bgDecoration.style.cssText = `
+          position: absolute;
+          top: -100px;
+          right: -100px;
+          width: 400px;
+          height: 400px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration)
+        
+        const bgDecoration2 = document.createElement('div')
+        bgDecoration2.style.cssText = `
+          position: absolute;
+          bottom: -150px;
+          left: -150px;
+          width: 500px;
+          height: 500px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 50%;
+          z-index: 0;
+        `
+        wrapper.appendChild(bgDecoration2)
+        
+        // Main content container
+        const contentContainer = document.createElement('div')
+        contentContainer.style.cssText = `
+          position: relative;
+          z-index: 1;
+          background: white;
+          border-radius: 32px;
+          padding: 50px 40px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `
+        
+        // Header with icon and title
         const header = document.createElement('div')
         header.style.cssText = `
           text-align: center;
-          margin-bottom: 35px;
-          padding-bottom: 25px;
-          border-bottom: 3px solid #e0e0e0;
+          margin-bottom: 40px;
         `
-        header.innerHTML = `
-          <div style="font-size: 36px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px;">
-            ${vm.walletName || 'Paytaca Wallet'}
-          </div>
-          <div style="font-size: 14px; font-weight: 600; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-            Wallet Hash
-          </div>
-          <div style="font-size: 20px; color: #333; font-family: monospace; margin-bottom: 20px; word-break: break-all; line-height: 1.4;">
-            ${vm.walletHash}
-          </div>
-          <div style="font-size: 22px; font-weight: 600; color: #0d47a1; margin-top: 16px;">
-            Seed Phrase Shard ${shardIndex + 1}
-          </div>
+        
+        // Security icon and text container
+        const iconContainer = document.createElement('div')
+        iconContainer.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin-bottom: 30px;
+        `
+        
+        // Security icon
+        const securityIcon = document.createElement('div')
+        securityIcon.style.cssText = `
+          font-size: 48px;
+          line-height: 1;
+        `
+        securityIcon.innerHTML = '🔐'
+        iconContainer.appendChild(securityIcon)
+        
+        // Header text
+        const headerText = document.createElement('div')
+        headerText.style.cssText = `
+          font-size: 28px;
+          font-weight: 700;
+          color: #2d3748;
+          line-height: 1.4;
+        `
+        headerText.textContent = 'Seed Phrase Shard Backup'
+        iconContainer.appendChild(headerText)
+        header.appendChild(iconContainer)
+        
+        // Wallet info container with gradient (compact layout)
+        const walletInfoContainer = document.createElement('div')
+        walletInfoContainer.style.cssText = `
+          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+          border-radius: 16px;
+          padding: 20px 24px;
+          margin-bottom: 30px;
+          box-shadow: 0 8px 24px rgba(30, 60, 114, 0.3);
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
         `
 
-        // Generate a large QR code natively at 550px
+        // Top row: Wallet Name (left) + Shard Number (right)
+        const walletTopRow = document.createElement('div')
+        walletTopRow.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 30px;
+        `
+        
+        // Left side: Wallet Name
+        const walletNameSection = document.createElement('div')
+        walletNameSection.style.cssText = `
+          flex: 1;
+          text-align: left;
+        `
+        
+        const walletNameLabel = document.createElement('div')
+        walletNameLabel.style.cssText = `
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+        `
+        walletNameLabel.textContent = 'Wallet Name'
+        walletNameSection.appendChild(walletNameLabel)
+        
+        const walletNameValue = document.createElement('div')
+        walletNameValue.style.cssText = `
+          font-size: 24px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -0.3px;
+          line-height: 1.2;
+        `
+        walletNameValue.textContent = vm.walletName || 'Paytaca Wallet'
+        walletNameSection.appendChild(walletNameValue)
+        
+        // Right side: Shard Number
+        const shardSection = document.createElement('div')
+        shardSection.style.cssText = `
+          text-align: right;
+          flex-shrink: 0;
+        `
+        
+        const shardLabel = document.createElement('div')
+        shardLabel.style.cssText = `
+          font-size: 11px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.9);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+        `
+        shardLabel.textContent = 'Shard Number'
+        shardSection.appendChild(shardLabel)
+        
+        const shardValue = document.createElement('div')
+        shardValue.style.cssText = `
+          font-size: 36px;
+          font-weight: 800;
+          color: white;
+          letter-spacing: -1px;
+          line-height: 1;
+        `
+        shardValue.textContent = `${shardIndex + 1}`
+        shardSection.appendChild(shardValue)
+
+        walletTopRow.appendChild(walletNameSection)
+        walletTopRow.appendChild(shardSection)
+        walletInfoContainer.appendChild(walletTopRow)
+
+        // Full-width row: Wallet Hash (inside the colored wallet info box)
+        if (vm.walletHash) {
+          const walletHashRow = document.createElement('div')
+          walletHashRow.style.cssText = `
+            width: 100%;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            padding-top: 12px;
+          `
+
+          const walletHashLabel = document.createElement('div')
+          walletHashLabel.style.cssText = `
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            margin-bottom: 4px;
+            text-align: left;
+          `
+          walletHashLabel.textContent = 'Wallet Hash'
+          walletHashRow.appendChild(walletHashLabel)
+
+          const walletHashValue = document.createElement('div')
+          walletHashValue.style.cssText = `
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: monospace;
+            word-break: break-all;
+            line-height: 1.35;
+            text-align: left;
+          `
+          walletHashValue.textContent = vm.walletHash
+          walletHashRow.appendChild(walletHashValue)
+
+          walletInfoContainer.appendChild(walletHashRow)
+        }
+        
+        header.appendChild(walletInfoContainer)
+        
+        // Generation ID (below main info)
+        const hashContainer = document.createElement('div')
+        hashContainer.style.cssText = `
+          text-align: center;
+          margin-top: 8px;
+          margin-bottom: 20px;
+        `
+
+        // Generation ID (to verify shards are from same run)
+        const generationId = vm.generationId || (vm.shards?.length ? sha256(vm.shards.join('|')).substring(0, 12) : '')
+        if (generationId) {
+          const genLabel = document.createElement('div')
+          genLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          `
+          genLabel.textContent = 'Generation ID'
+          hashContainer.appendChild(genLabel)
+
+          const genValue = document.createElement('div')
+          genValue.style.cssText = `
+            font-size: 16px;
+            color: #2d3748;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+          `
+          genValue.textContent = generationId
+          hashContainer.appendChild(genValue)
+        }
+
+        header.appendChild(hashContainer)
+        
+        contentContainer.appendChild(header)
+
+        // QR Code container with nice frame
         const qrContainer = document.createElement('div')
         qrContainer.style.cssText = `
           display: flex;
           justify-content: center;
-          padding: 25px;
+          align-items: center;
+          padding: 30px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 24px;
+          margin-bottom: 35px;
+          position: relative;
+        `
+        
+        const qrFrame = document.createElement('div')
+        qrFrame.style.cssText = `
           background: white;
-          border-radius: 8px;
-          margin-bottom: 25px;
+          padding: 20px;
+          border-radius: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          position: relative;
         `
 
         // Create QR code at native large size
         const qrcode = new QRCode({
           content: vm.shards[shardIndex],
-          width: 550,
-          height: 550,
+          width: 500,
+          height: 500,
           swap: true,
           join: true,
           ecl: 'Q',
@@ -404,127 +892,233 @@ export default {
         const parser = new DOMParser()
         const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
         const svgElement = svgDoc.documentElement
-        qrContainer.appendChild(svgElement)
-
-        // Footer with instructions
+        svgElement.setAttribute('width', '500')
+        svgElement.setAttribute('height', '500')
+        qrFrame.appendChild(svgElement)
+        
+        // Add security icon overlay in the center
+        const iconOverlay = document.createElement('div')
+        iconOverlay.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 90px;
+          height: 90px;
+          background: white;
+          border-radius: 50%;
+          padding: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          z-index: 10;
+          font-size: 48px;
+        `
+        iconOverlay.innerHTML = '🔐'
+        qrFrame.appendChild(iconOverlay)
+        qrContainer.appendChild(qrFrame)
+        contentContainer.appendChild(qrContainer)
+        
+        // Footer with instructions, logo, and website
         const footer = document.createElement('div')
         footer.style.cssText = `
           text-align: center;
-          padding-top: 25px;
-          border-top: 3px solid #e0e0e0;
-          color: #666;
+          padding-top: 30px;
         `
-        footer.innerHTML = `
-          <div style="margin-bottom: 12px; font-weight: 600; color: #1a1a1a; font-size: 18px;">
-            Generated using Shamir's Secret Sharing Algorithm
-          </div>
-          <div style="line-height: 1.7; font-size: 18px;">
-            Any 2 of 3 shards can recover your seed phrase.<br>
-            Store securely in separate locations.
-          </div>
+        
+        // Instruction text
+        const instructionText = document.createElement('div')
+        instructionText.style.cssText = `
+          font-size: 24px;
+          font-weight: 600;
+          color: #2d3748;
+          letter-spacing: -0.3px;
+          margin-bottom: 16px;
+          line-height: 1.4;
         `
-
-        // Append all elements
-        wrapper.appendChild(header)
-        wrapper.appendChild(qrContainer)
-        wrapper.appendChild(footer)
+        instructionText.textContent = 'Generated using Shamir\'s Secret Sharing Algorithm'
+        footer.appendChild(instructionText)
+        
+        const instructionSubtext = document.createElement('div')
+        instructionSubtext.style.cssText = `
+          font-size: 20px;
+          font-weight: 500;
+          color: #4a5568;
+          letter-spacing: 0.2px;
+          margin-bottom: 24px;
+          line-height: 1.5;
+        `
+        instructionSubtext.innerHTML = 'Any 2 of 3 shards can recover your seed phrase.<br>Store securely in separate locations.'
+        footer.appendChild(instructionSubtext)
+        
+        // Paytaca logo container
+        const paytacaLogoContainer = document.createElement('div')
+        paytacaLogoContainer.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 16px;
+        `
+        
+        // Load Paytaca logo
+        const loadPaytacaLogo = () => {
+          return new Promise((resolve) => {
+            const logoImg = document.createElement('img')
+            logoImg.src = paytacaLogoHorizontal
+            logoImg.style.cssText = `
+              height: 120px;
+              width: auto;
+              object-fit: contain;
+              display: block;
+            `
+            logoImg.onload = () => {
+              paytacaLogoContainer.appendChild(logoImg)
+              resolve()
+            }
+            logoImg.onerror = () => {
+              // If logo fails, just resolve (no logo)
+              resolve()
+            }
+          })
+        }
+        
+        // Website text
+        const websiteText = document.createElement('div')
+        websiteText.style.cssText = `
+          font-size: 26px;
+          font-weight: 500;
+          color: #4a5568;
+          letter-spacing: 0.2px;
+        `
+        websiteText.textContent = 'www.paytaca.com'
+        footer.appendChild(paytacaLogoContainer)
+        footer.appendChild(websiteText)
+        contentContainer.appendChild(footer)
+        
+        wrapper.appendChild(contentContainer)
         document.body.appendChild(wrapper)
+        
+        try {
+          // Wait for logo to load before capturing
+          await loadPaytacaLogo()
+          
+          // Small delay to ensure DOM updates are rendered
+          await new Promise(resolve => setTimeout(resolve, 100))
 
-        // Capture with html2canvas
-        const canvas = await html2canvas(wrapper, {
-          backgroundColor: '#ffffff',
-          scale: 3,
-          logging: false,
-          useCORS: true
-        })
+          // Capture with html2canvas
+          const canvas = await html2canvas(wrapper, {
+            backgroundColor: null,
+            scale: 3,
+            logging: false,
+            useCORS: true,
+            allowTaint: true
+          })
 
-        // Remove temporary wrapper
-        document.body.removeChild(wrapper)
+          // Remove temporary wrapper
+          document.body.removeChild(wrapper)
 
-        // Create filename with wallet name, hash, and shard number
-        const sanitizedWalletName = (vm.walletName || 'wallet')
-          .replace(/[^a-z0-9]/gi, '-')
-          .toLowerCase()
-        const shortHash = vm.walletHash.substring(0, 8)
-        const filename = `${sanitizedWalletName}-${shortHash}-shard-${shardIndex + 1}.png`
+          // Create filename with wallet name, hash, and shard number
+          const sanitizedWalletName = (vm.walletName || 'wallet')
+            .replace(/[^a-z0-9]/gi, '-')
+            .toLowerCase()
+          const shortHash = vm.walletHash.substring(0, 8)
+          const genId = vm.generationId || 'unknown'
+          const filename = `${sanitizedWalletName}-${shortHash}-gen-${genId}-shard-${shardIndex + 1}.png`
 
-        canvas.toBlob(async (blob) => {
-          try {
-            // Check if running on mobile
-            const isMobile = Capacitor.getPlatform() !== 'web'
-            
-            if (isMobile) {
-              // Convert blob to base64
+          const blobToBase64Data = async (blob) => {
+            return await new Promise((resolve, reject) => {
               const reader = new FileReader()
-              reader.onloadend = async () => {
+              reader.onload = () => {
                 try {
+                  if (typeof reader.result !== 'string') {
+                    return reject(new Error('FileReader result is not a string'))
+                  }
+
                   const base64Data = reader.result.split(',')[1]
-                  console.log('[SaveQR] Attempting to save image, base64 length:', base64Data.length)
-                  console.log('[SaveQR] Filename:', filename)
-                  console.log('[SaveQR] SaveToGallery plugin:', SaveToGallery)
-                  
-                  // Save to photo library using our custom plugin
-                  const result = await SaveToGallery.saveImage({
-                    base64Data: base64Data,
-                    filename: filename
-                  })
-                  
-                  console.log('[SaveQR] Save successful:', result)
-                  
-                  vm.$q.notify({
-                    message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
-                    color: 'positive',
-                    icon: 'check_circle',
-                    position: 'top',
-                    timeout: 2000
-                  })
-                } catch (error) {
-                  console.error('[SaveQR] Error saving to photos:', error)
-                  console.error('[SaveQR] Error details:', {
-                    message: error.message,
-                    code: error.code,
-                    stack: error.stack
-                  })
-                  vm.$q.notify({
-                    message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
-                    color: 'negative',
-                    icon: 'error',
-                    position: 'top',
-                    timeout: 3000
-                  })
+                  if (!base64Data) {
+                    return reject(new Error('Failed to extract base64 data from data URL'))
+                  }
+                  resolve(base64Data)
+                } catch (e) {
+                  reject(e)
                 }
               }
-              reader.readAsDataURL(blob)
-            } else {
-              // Desktop/web - use download link
-              const url = URL.createObjectURL(blob)
-              const link = document.createElement('a')
-              link.href = url
-              link.download = filename
-              document.body.appendChild(link)
-              link.click()
-              document.body.removeChild(link)
-              URL.revokeObjectURL(url)
+              reader.onerror = (event) => reject(reader.error || event)
+              reader.onabort = () => reject(new Error('FileReader aborted'))
+              try {
+                reader.readAsDataURL(blob)
+              } catch (e) {
+                reject(e)
+              }
+            })
+          }
+
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+          if (!blob) {
+            throw new Error('canvas.toBlob() returned null')
+          }
+
+          // Check if running on mobile
+          const isMobile = Capacitor.getPlatform() !== 'web'
+
+          if (isMobile) {
+            const base64Data = await blobToBase64Data(blob)
+            try {
+              await SaveToGallery.saveImage({
+                base64Data,
+                filename
+              })
 
               vm.$q.notify({
-                message: vm.$t('QRSaved', {}, 'QR code saved'),
+                message: vm.$t('QRSavedToPhotos', {}, 'QR code saved to Photos'),
                 color: 'positive',
-                icon: 'download',
+                icon: 'check_circle',
                 position: 'top',
                 timeout: 2000
               })
+            } catch (error) {
+              console.error('[SaveQR] Error saving to photos:', error)
+              console.error('[SaveQR] Error details:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack
+              })
+              vm.$q.notify({
+                message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code. Please ensure photo library permissions are granted.'),
+                color: 'negative',
+                icon: 'error',
+                position: 'top',
+                timeout: 3000
+              })
             }
-          } catch (error) {
-            console.error('Error in download process:', error)
+          } else {
+            // Desktop/web - use download link
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+
             vm.$q.notify({
-              message: vm.$t('ErrorSavingQR', {}, 'Error saving QR code'),
-              color: 'negative',
-              icon: 'error',
+              message: vm.$t('QRSaved', {}, 'QR code saved'),
+              color: 'positive',
+              icon: 'download',
               position: 'top',
               timeout: 2000
             })
           }
-        })
+        } catch (error) {
+          // Error during logo loading or canvas capture
+          // Remove wrapper if it still exists
+          if (document.body.contains(wrapper)) {
+            document.body.removeChild(wrapper)
+          }
+          throw error // Re-throw to be caught by outer catch
+        }
       } catch (error) {
         console.error('Error downloading QR:', error)
         vm.$q.notify({
@@ -534,6 +1128,8 @@ export default {
           position: 'top',
           timeout: 2000
         })
+      } finally {
+        vm.savingShardQR.splice(shardIndex, 1, false)
       }
     },
     async generateShards () {
@@ -552,22 +1148,40 @@ export default {
         })
       }
     },
+
+    async generateShardsAndShow () {
+      const vm = this
+      if (vm.generatingShards) return
+      vm.generatingShards = true
+
+      // Clear any previously persisted shards before generating a new set
+      // so restore always loads the latest generation.
+      await vm.clearPersistedShards()
+
+      vm.shardsGenerated = false
+      vm.shards = []
+      vm.expandedShard = null
+      vm.showRawText = [false, false, false]
+      try {
+        await vm.generateShards()
+        if (vm.shards?.length) {
+          vm.shardsGenerated = true
+          vm.expandedShard = 0
+          await vm.persistGeneratedShards()
+        }
+      } finally {
+        vm.generatingShards = false
+      }
+    },
     
     executeSecurityChecking () {
       const vm = this
-      console.log('[WalletBackup-Shards] executeSecurityChecking called')
-      console.log('[WalletBackup-Shards] $store available:', !!vm.$store)
-      console.log('[WalletBackup-Shards] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
       
       setTimeout(() => {
         const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
-        console.log('[WalletBackup-Shards] Setting security check, preferredSecurity:', preferredSecurity)
         if (preferredSecurity === 'pin') {
-          console.log('[WalletBackup-Shards] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
-          console.log('[WalletBackup-Shards] pinDialogAction after set:', vm.pinDialogAction)
         } else {
-          console.log('[WalletBackup-Shards] Calling verifyBiometric')
           vm.verifyBiometric()
         }
       }, 300)
@@ -601,15 +1215,12 @@ export default {
     
     onPinVerified (action) {
       const vm = this
-      console.log('PIN verified with action:', action)
       
       if (action === 'proceed') {
-        console.log('Authentication successful, loading shards...')
         vm.pinDialogAction = ''
         vm.onAuthenticationSuccess()
       } else if (action === 'cancel') {
         // User explicitly cancelled
-        console.log('Authentication cancelled, redirecting back')
         vm.pinDialogAction = ''
         vm.$router.push('/apps/wallet-backup')
       }
@@ -618,23 +1229,27 @@ export default {
     
     async onAuthenticationSuccess () {
       const vm = this
+      if (vm.walletDataLoaded) return
       vm.authenticated = true
+      vm.isLoading = true
       try {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         vm.mnemonic = await getMnemonic(walletIndex)
-        vm.walletHash = vm.$store.getters['global/getWallet']('bch').walletHash
+        if (typeof vm.mnemonic !== 'string' || vm.mnemonic.length === 0) {
+          throw new Error('[view-shards] Missing mnemonic from secure storage')
+        }
+        // Compute walletHash from mnemonic to avoid relying on Vuex wallet instance during app resume/reload
+        vm.walletHash = computeWalletHash(vm.mnemonic)
         
         // Get wallet name from vault
         const vault = vm.$store.getters['global/getVault']
         vm.walletName = vault?.[walletIndex]?.name || ''
-        
-        // Generate shards
-        await vm.generateShards()
-        
-        // Wait a bit before showing (for smooth UX)
-        setTimeout(() => {
-          vm.isLoading = false
-        }, 500)
+
+        // Restore previously generated shards for this app session (survives background/foreground)
+        await vm.restorePersistedShards()
+
+        // Do not auto-generate shards; user must click Generate Shards (unless restored above)
+        vm.walletDataLoaded = true
       } catch (error) {
         console.error('Error loading wallet data:', error)
         vm.$q.notify({
@@ -645,17 +1260,28 @@ export default {
           timeout: 3000
         })
         vm.$router.push('/apps/wallet-backup')
+      } finally {
+        vm.isLoading = false
       }
     }
   },
 
+  beforeRouteLeave (to, from, next) {
+    // Clear persisted shards only on explicit back navigation from this page
+    // (prevents accidental clearing during app background/foreground lifecycle quirks)
+    const toPath = to?.path || ''
+    if (toPath === '/apps/settings') {
+      void this.clearPersistedShards()
+    }
+    next()
+  },
+
   mounted () {
-    console.log('[WalletBackup-Shards] Component mounted, calling executeSecurityChecking')
     this.executeSecurityChecking()
   },
   watch: {
-    pinDialogAction (newVal, oldVal) {
-      console.log('[WalletBackup-Shards] pinDialogAction changed from', oldVal, 'to', newVal)
+    pinDialogAction () {
+      // Watcher for pinDialogAction changes
     }
   }
 }
@@ -664,7 +1290,7 @@ export default {
 <style lang="scss" scoped>
   .shards-view-container {
     min-height: 100vh;
-    padding-bottom: 40px;
+    padding-bottom: 100px; // Extra padding for sticky button
   }
 
   .content-wrapper {
@@ -694,6 +1320,118 @@ export default {
       font-size: 14px;
       opacity: 0.85;
       line-height: 1.6;
+    }
+  }
+
+  .generation-id-row {
+    gap: 0;
+  }
+
+  .generation-id-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    letter-spacing: 0.4px;
+    opacity: 0.9;
+  }
+
+  /* Glassmorphic Generate Shards Button (theme-aware) */
+  .glassmorphic-generate-btn {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: white !important;
+    font-weight: 700;
+    border-radius: 14px;
+    padding: 10px 18px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    text-transform: none;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.dark {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Blue theme */
+    &.theme-glassmorphic-blue {
+      background: linear-gradient(
+        to right bottom,
+        rgba(59, 123, 246, 0.85),
+        rgba(54, 129, 232, 0.85),
+        rgba(49, 139, 218, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(59, 123, 246, 0.75),
+          rgba(54, 129, 232, 0.75),
+          rgba(49, 139, 218, 0.75)
+        ) !important;
+      }
+    }
+
+    /* Green theme */
+    &.theme-glassmorphic-green {
+      background: linear-gradient(
+        to right bottom,
+        rgba(67, 160, 71, 0.85),
+        rgba(62, 164, 74, 0.85),
+        rgba(57, 168, 77, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(67, 160, 71, 0.75),
+          rgba(62, 164, 74, 0.75),
+          rgba(57, 168, 77, 0.75)
+        ) !important;
+      }
+    }
+
+    /* Gold theme */
+    &.theme-glassmorphic-gold {
+      background: linear-gradient(
+        to right bottom,
+        rgba(255, 167, 38, 0.85),
+        rgba(255, 176, 56, 0.85),
+        rgba(255, 184, 74, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(255, 167, 38, 0.75),
+          rgba(255, 176, 56, 0.75),
+          rgba(255, 184, 74, 0.75)
+        ) !important;
+      }
+    }
+
+    /* Red theme */
+    &.theme-glassmorphic-red {
+      background: linear-gradient(
+        to right bottom,
+        rgba(246, 59, 123, 0.85),
+        rgba(232, 54, 96, 0.85),
+        rgba(218, 49, 72, 0.85)
+      ) !important;
+
+      &.dark {
+        background: linear-gradient(
+          to right bottom,
+          rgba(246, 59, 123, 0.75),
+          rgba(232, 54, 96, 0.75),
+          rgba(218, 49, 72, 0.75)
+        ) !important;
+      }
     }
   }
 
@@ -757,25 +1495,36 @@ export default {
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
-        overflow: visible;
+        overflow-x: hidden; // Prevent horizontal overflow from QR codes
+        overflow-y: visible;
 
         .qr-code-container {
           margin-top: 20px;
           padding-left: 28px;
           padding-right: 28px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          
+          // The QR component uses inline styles with fixed size (280px for size 220 + padding 30*2)
+          // On small screens, reduce padding to give QR code more room
         }
         
-        /* iPhone 5/SE */
-        @media (min-width: 280px) and (max-width: 320px) {
+        /* iPhone 5/SE and small screens - reduce padding to fit QR */
+        @media (min-width: 280px) and (max-width: 360px) {
           .qr-code-container {
             margin-top: 30px;
+            padding-left: 12px;
+            padding-right: 12px;
           }
         }
         
-        /* Galaxy Fold */
-        @media (min-width: 200px) and (max-width: 280px) {
+        /* Galaxy Fold and very small screens - minimal padding */
+        @media (max-width: 280px) {
           .qr-code-container {
             margin-top: 66px;
+            padding-left: 8px;
+            padding-right: 8px;
           }
         }
 
@@ -866,25 +1615,7 @@ export default {
           width: 100%;
           max-width: 100%;
           box-sizing: border-box;
-
-          .qr-container {
-            padding: 10px;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-            height: auto;
-            
-            // Override QR code component's fixed width on mobile
-            :deep(.qr-wrap) {
-              max-width: 100% !important;
-              width: 100% !important;
-              box-sizing: border-box !important;
-            }
-            
-            :deep(.qr) {
-              max-width: 100%;
-            }
-          }
+          overflow-x: hidden; // Prevent horizontal overflow
 
           .qr-action-buttons {
             flex-direction: column;
@@ -903,6 +1634,13 @@ export default {
             .shard-text {
               font-size: 11px;
             }
+          }
+        }
+        
+        /* Reduce shard-content padding on very small screens to fit QR */
+        @media (max-width: 360px) {
+          .shard-content {
+            padding: 12px;
           }
         }
       }

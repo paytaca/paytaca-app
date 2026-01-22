@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
-    <q-card class="br-15 pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card v-show="displayDialogCard" class="br-15 pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-center q-mb-sm">
           {{ $t('SecurityCheck') }}
@@ -10,9 +10,9 @@
           <q-btn rounded :label="$t('Cancel')" class="button" @click="onCancelClick()" />
         </div>
       </q-card-section>
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
-      <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="verifyBiometric()" />
     </q-card>
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
+    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="verifyBiometric()" />
   </q-dialog>
 </template>
 <script>
@@ -39,9 +39,13 @@ export default {
     biometricWarningAttmepts
   },
   props: {
-    darkMode: {
+    securityCheckingDelay: {
+      type: Number,
+      default: 50,
+    },
+    displayDialogCard: {
       type: Boolean,
-      default: false
+      default: false,
     }
   },
   data () {
@@ -49,6 +53,11 @@ export default {
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss'
     }
+  },
+  computed: {
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
   },
   watch: {
     pinDialogAction (newVal, oldVal) {
@@ -74,7 +83,7 @@ export default {
           console.log('[SecurityCheckDialog] Calling verifyBiometric')
           vm.verifyBiometric()
         }
-      }, 500)
+      }, this.securityCheckingDelay)
     },
     pinDialogNextAction (action) {
       console.log('[SecurityCheckDialog] pinDialogNextAction called with action:', action)

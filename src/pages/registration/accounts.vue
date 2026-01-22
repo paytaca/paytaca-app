@@ -5,7 +5,7 @@
     <!-- Minimal Glassmorphic Layout -->
     <div 
       class="minimal-wallet-container"
-      :style="{ 'margin-top': $q.platform.is.ios ? '50px' : '0px'}"
+      :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}"
       v-if="mnemonic.length === 0 && importSeedPhrase === false && steps === -1"
     >
       <div v-if="serverOnline === true" v-cloak>
@@ -33,9 +33,12 @@
             <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.4s' }">
               <div 
                 id="create-new-wallet"
-                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
-                :class="getDarkModeClass(darkMode)"
-                @click="initCreateWallet()"
+                class="action-glass-card pt-card bg-grad text-bow"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  canCreateOrImportWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                ]"
+                @click="initCreateWallet"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
@@ -51,9 +54,12 @@
 
             <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.5s' }">
               <div 
-                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
-                :class="getDarkModeClass(darkMode)"
-                @click="initRestoreWallet()"
+                class="action-glass-card pt-card bg-grad text-bow"
+                :class="[
+                  getDarkModeClass(darkMode),
+                  canCreateOrImportWallet ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                ]"
+                @click="initRestoreWallet"
               >
                 <div class="action-icon-wrapper">
                   <div class="row justify-center">
@@ -507,6 +513,13 @@
       v-on:nextAction="executeActionTaken"
       :new-wallet-mnemonic="mnemonic"
     />
+    
+    <!-- Upgrade Prompt Dialog -->
+    <UpgradePromptDialog
+      v-model="showUpgradeDialog"
+      :dark-mode="darkMode"
+      limit-type="wallets"
+    />
 
   </div>
 </template>
@@ -518,6 +531,7 @@ import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { updateCssThemeColors } from 'src/utils/theme-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 import { getAllAssets } from 'src/store/assets/getters'
 import initialAssetState from 'src/store/assets/state'
@@ -536,6 +550,7 @@ import MnemonicProcessContainer from 'src/components/registration/MnemonicProces
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
+import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 function countWords(str) {
@@ -568,7 +583,8 @@ export default {
     MnemonicProcessContainer,
     SeedPhraseContainer,
     Onboarding,
-    Login
+    Login,
+    UpgradePromptDialog
     // RewardsStep
   },
   data () {
@@ -619,11 +635,20 @@ export default {
       pageLoaded: false,
       walletCreationError: '',
       isRedirecting: false,
-      step2Initialized: false
+      step2Initialized: false,
+      showUpgradeDialog: false,
+      subscriptionChecked: false
       // moveToReferral: false,
     }
   },
   watch: {
+    // Watch subscription state to update button state reactively
+    '$store.state.subscription.liftTokenBalance' () {
+      this.$forceUpdate()
+    },
+    '$store.state.subscription.isPlus' () {
+      this.$forceUpdate()
+    },
     currentStep (val, oldVal) {
       // Reset step2Initialized when leaving step 2
       if (oldVal === 2 && val !== 2) {
@@ -651,13 +676,26 @@ export default {
     seedPhraseBackup (val) {
       this.seedPhraseBackup = this.cleanUpSeedPhrase(val)
     },
-    $route (to) {
+    async $route (to) {
       // Reset restore flow state when navigating back to /accounts
       if (to.path === '/accounts' || to.path === '/accounts/') {
         this.importSeedPhrase = false
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
+        
+        // Check subscription status and show upgrade dialog if limits are exceeded
+        // Force refresh to ensure we fetch fresh LIFT token balance from the server
+        // This handles the case when user navigates back to /accounts page
+        try {
+          await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
+          const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+          if (isOnMainView && this.checkIfLimitsExceeded()) {
+            this.showUpgradeDialog = true
+          }
+        } catch (error) {
+          console.error('Error checking subscription status in route watcher:', error)
+        }
       }
       
       // Handle route changes for create flow
@@ -708,6 +746,42 @@ export default {
     }
   },
   computed: {
+    canCreateOrImportWallet () {
+      // Check if vault is initialized
+      const vault = this.$store.getters['global/getVault']
+      if (!vault || !Array.isArray(vault)) {
+        return true // Allow if vault is not initialized yet
+      }
+      
+      // Check subscription state exists
+      const subscriptionState = this.$store.state.subscription
+      if (!subscriptionState) {
+        return false // Block if subscription state doesn't exist
+      }
+      
+      // First, check subscription tier limit (3 for free, 12 for plus)
+      // This is the primary restriction that matches initCreateWallet logic
+      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
+      if (!canCreate) {
+        return false // Block if wallet limit is reached for current subscription tier
+      }
+      
+      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
+      const nonDeletedWallets = vault.filter(w => !w?.deleted)
+      const walletCount = nonDeletedWallets.length
+      
+      if (walletCount >= 3) {
+        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
+        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance'] || 0
+        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens'] || 100
+        
+        if (liftBalance < minLiftTokens) {
+          return false // Block if LIFT token requirement not met
+        }
+      }
+      
+      return true // All checks passed
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -820,18 +894,21 @@ export default {
           
           const finalWalletIndex = currentWalletIndex
           
-          // Update settings
+          // Update settings - preserve existing vault settings to maintain theme and other selections made during onboarding
+          const existingVaultEntry = vault[currentWalletIndex]
+          const existingSettings = existingVaultEntry?.settings || {}
           const currentSettings = {
-            language: this.$store.getters['global/language'],
-            theme: this.$store.getters['global/theme'],
-            country: this.$store.getters['global/country'],
-            denomination: this.$store.getters['global/denomination'],
-            preferredSecurity: this.$store.getters['global/preferredSecurity'],
-            isChipnet: this.$store.getters['global/isChipnet'],
-            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-            enableStablhedge: this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-            enableSLP: this.$store.getters['global/enableSLP'],
+            ...existingSettings, // Preserve existing vault settings (theme, etc.)
+            language: existingSettings.language || this.$store.getters['global/language'],
+            theme: existingSettings.theme || this.$store.getters['global/theme'], // Use vault theme if available
+            country: existingSettings.country || this.$store.getters['global/country'],
+            denomination: existingSettings.denomination || this.$store.getters['global/denomination'],
+            preferredSecurity: existingSettings.preferredSecurity || this.$store.getters['global/preferredSecurity'],
+            isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: existingSettings.enableSmartBCH !== undefined ? existingSettings.enableSmartBCH : this.$store.getters['global/enableSmartBCH'],
+            enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']
           }
@@ -842,6 +919,11 @@ export default {
           
           this.$store.commit('global/updateWalletIndex', finalWalletIndex)
           this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          
+          // Update theme CSS colors after switching wallet
+          const currentTheme = this.$store.getters['global/theme']
+          updateCssThemeColors(currentTheme)
+          
           this.$store.dispatch('global/syncSettingsToModules')
           
           // Handle asset vault update
@@ -894,18 +976,21 @@ export default {
           
           const finalWalletIndex = duplicateIndex
           
-          // Update settings and continue as above...
+          // Update settings - preserve existing vault settings to maintain theme and other selections
+          const existingVaultEntry = vault[duplicateIndex]
+          const existingSettings = existingVaultEntry?.settings || {}
           const currentSettings = {
-            language: this.$store.getters['global/language'],
-            theme: this.$store.getters['global/theme'],
-            country: this.$store.getters['global/country'],
-            denomination: this.$store.getters['global/denomination'],
-            preferredSecurity: this.$store.getters['global/preferredSecurity'],
-            isChipnet: this.$store.getters['global/isChipnet'],
-            autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-            enableStablhedge: this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-            enableSLP: this.$store.getters['global/enableSLP'],
+            ...existingSettings, // Preserve existing vault settings (theme, etc.)
+            language: existingSettings.language || this.$store.getters['global/language'],
+            theme: existingSettings.theme || this.$store.getters['global/theme'], // Use vault theme if available
+            country: existingSettings.country || this.$store.getters['global/country'],
+            denomination: existingSettings.denomination || this.$store.getters['global/denomination'],
+            preferredSecurity: existingSettings.preferredSecurity || this.$store.getters['global/preferredSecurity'],
+            isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
+            autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
+            enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
+            enableSmartBCH: existingSettings.enableSmartBCH !== undefined ? existingSettings.enableSmartBCH : this.$store.getters['global/enableSmartBCH'],
+            enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']
           }
@@ -916,6 +1001,11 @@ export default {
           
           this.$store.commit('global/updateWalletIndex', finalWalletIndex)
           this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+          
+          // Update theme CSS colors after switching wallet
+          const currentTheme = this.$store.getters['global/theme']
+          updateCssThemeColors(currentTheme)
+          
           this.$store.dispatch('global/syncSettingsToModules')
           
           let asset = this.$store.getters['assets/getAllAssets']
@@ -971,21 +1061,27 @@ export default {
       }
       
       // Settings should already be saved during steps 2-4 since vault entry exists
-      // But ensure they're up to date with current state
+      // Read existing settings from vault entry first to preserve theme and other selections made during onboarding
+      const existingVaultEntry = vaultAfterUpdate && vaultAfterUpdate[finalWalletIndex] ? vaultAfterUpdate[finalWalletIndex] : null
+      const existingSettings = existingVaultEntry?.settings || {}
+      
+      // Merge with current global state settings, but prioritize vault settings for critical fields like theme
+      // This ensures that theme selected during onboarding is preserved
       const currentSettings = {
-        language: this.$store.getters['global/language'],
-        theme: this.$store.getters['global/theme'],
-        country: this.$store.getters['global/country'],
-        denomination: this.$store.getters['global/denomination'],
-        preferredSecurity: this.$store.getters['global/preferredSecurity'],
-        isChipnet: this.$store.getters['global/isChipnet'],
-        autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
-        enableStablhedge: this.$store.getters['global/enableStablhedge'],
-        enableSmartBCH: this.$store.getters['global/enableSmartBCH'],
-        enableSLP: this.$store.getters['global/enableSLP'],
-        // Get darkMode from darkmode module
+        ...existingSettings, // Preserve existing vault settings (theme, etc.)
+        language: existingSettings.language || this.$store.getters['global/language'],
+        theme: existingSettings.theme || this.$store.getters['global/theme'], // Use vault theme if available
+        country: existingSettings.country || this.$store.getters['global/country'],
+        denomination: existingSettings.denomination || this.$store.getters['global/denomination'],
+        preferredSecurity: existingSettings.preferredSecurity || this.$store.getters['global/preferredSecurity'],
+        isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
+        autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
+        enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
+        enableSmartBCH: existingSettings.enableSmartBCH !== undefined ? existingSettings.enableSmartBCH : this.$store.getters['global/enableSmartBCH'],
+        enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
+        // Get darkMode from darkmode module (always use current state)
         darkMode: this.$store.getters['darkmode/getStatus'],
-        // Get currency from market module
+        // Get currency from market module (always use current state)
         currency: this.$store.getters['market/selectedCurrency']
       }
       // Use mutation to update settings (prevents Vuex mutation error)
@@ -999,6 +1095,11 @@ export default {
       
       // Update current wallet to switch to the wallet
       this.$store.commit('global/updateCurrentWallet', finalWalletIndex)
+      
+      // Update theme CSS colors after switching wallet
+      const currentTheme = this.$store.getters['global/theme']
+      updateCssThemeColors(currentTheme)
+      
       // Sync settings to darkmode and market modules
       this.$store.dispatch('global/syncSettingsToModules')
 
@@ -1006,8 +1107,8 @@ export default {
       // Check if vault existed before we created this new entry
       const vaultBeforeCreate = finalWalletIndex > 0
       if (vaultBeforeCreate) {
-        const vault = this.$store.getters['global/getVault']
         const previousWalletIndex = finalWalletIndex - 1
+        const vault = this.$store.getters['global/getVault']
         
         // Save wallet data from snapshot for new wallet first
         this.newWalletSnapshot.walletInfo.map(walletInfo => {
@@ -1156,6 +1257,18 @@ export default {
         return vm.promptEnablePushNotification()?.catch?.(console.error)
       }).then(async function () {
         vm.saveToVault()
+        
+        // Sync wallet name after saving to vault (for imported wallets)
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        if (walletIndex >= 0) {
+          try {
+            await vm.$store.dispatch('global/syncWalletName', { walletIndex })
+          } catch (error) {
+            // Non-critical - wallet name will sync later or use cached/default name
+            console.warn('Failed to sync wallet name after import:', error)
+          }
+        }
+        
         // Ensure mnemonic is readable before navigating to '/' (router guard depends on it)
         try {
           await vm.ensureMnemonicReady()
@@ -1163,7 +1276,10 @@ export default {
           console.warn('mnemonic readiness wait timeout', e)
           vm.isRedirecting = false
         }
-        vm.$router.push('/').catch(() => {
+        vm.$router.push({
+          path: '/',
+          query: { newWallet: 'true' }
+        }).catch(() => {
           vm.isRedirecting = false
         })
       }).catch((error) => {
@@ -1184,7 +1300,44 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
+    checkIfLimitsExceeded () {
+      // Check wallet limit first - this is the primary restriction
+      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
+      
+      if (!canCreate) {
+        // Show upgrade dialog when wallet limit is reached
+        return true
+      }
+      
+      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
+      const vault = this.$store.getters['global/getVault']
+      const nonDeletedWallets = vault ? vault.filter(w => !w?.deleted) : []
+      const walletCount = nonDeletedWallets.length
+      
+      if (walletCount >= 3) {
+        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
+        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance']
+        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens']
+        
+        if (liftBalance < minLiftTokens) {
+          // Show upgrade dialog instead of generic LIFT token dialog
+          // This provides better context about Paytaca Plus
+          return true
+        }
+      }
+      
+      return false
+    },
     async initCreateWallet () {
+      // First, check subscription status to get current limits
+      // Force refresh to ensure we fetch fresh LIFT token balance from the server
+      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
+      
+      if (this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+        return
+      }
+      
       // Handle restore flow
       if (this.importSeedPhrase && this.restoreStep === 2) {
         // Validate seed phrase before proceeding
@@ -1221,7 +1374,16 @@ export default {
       }
       this.$forceUpdate()
     },
-    initRestoreWallet () {
+    async initRestoreWallet () {
+      // First, check subscription status to get current limits
+      // Force refresh to ensure we fetch fresh LIFT token balance from the server
+      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
+      
+      if (this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+        return
+      }
+      
       // Set importSeedPhrase flag and navigate to restore step-1
       this.importSeedPhrase = true
       this.$router.push('/accounts/restore/step-1').then(() => {
@@ -1321,24 +1483,12 @@ export default {
         })
       }
 
-      await wallet.sBCH.subscribeWallet().then(function () {
-        const walletTypeInfo = {
-          type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        }
-
-        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-      })
 
       const walletHashes = [
         wallet.BCH.walletHash,
         wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
-        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
@@ -1352,8 +1502,7 @@ export default {
       // Build wallet structure from newWalletSnapshot
       const walletStructure = {
         bch: null,
-        slp: null,
-        sbch: null
+        slp: null
       }
       
       const chipnetStructure = {
@@ -1403,14 +1552,8 @@ export default {
               lastAddressIndex: walletInfo.lastAddressIndex
             }
           }
-        } else if (walletInfo.type === 'sbch') {
-          walletStructure.sbch = {
-            walletHash: walletInfo.walletHash,
-            derivationPath: walletInfo.derivationPath,
-            lastAddress: walletInfo.lastAddress,
-            subscribed: false
-          }
         }
+        // SmartBCH wallet type removed
       })
       
       // Populate xPubKeys from newWalletSnapshot
@@ -1451,14 +1594,7 @@ export default {
           lastAddressIndex: -1
         }
       }
-      if (!walletStructure.sbch) {
-        walletStructure.sbch = {
-          walletHash: wallet.sBCH.walletHash,
-          derivationPath: wallet.sBCH.derivationPath,
-          lastAddress: '',
-          subscribed: false
-        }
-      }
+      // SmartBCH wallet structure removed
       if (!chipnetStructure.bch) {
         chipnetStructure.bch = {
           walletHash: wallet.BCH_CHIP.walletHash,
@@ -1690,27 +1826,21 @@ export default {
     async initializeStep2 () {
       // Prevent duplicate calls
       if (this.step2Initialized) {
-        console.log('[Step 2] Already initialized, skipping geoip call')
         return
       }
       this.step2Initialized = true
-      console.log('[Step 2] Initializing step 2 - making geoip call...')
       
       try {
         // Auto-detect language and currency for step 2
         await this.$store.dispatch('market/updateSupportedCurrencies', {})
 
         const ipGeoPreferences = await this.getIPGeolocationPreferences()
-        console.log('[Step 2] Geoip preferences received:', ipGeoPreferences)
 
         // set currency immediately (no timeout) and persist
         // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
         const currencyOptions = this.$store.getters['market/currencyOptions']
-        console.log('[Step 2] Available currency options:', currencyOptions.map(c => ({ symbol: c.symbol, name: c.name })))
-        console.log('[Step 2] Looking for currency code:', ipGeoPreferences.currency.symbol)
         // Match by symbol (which is the currency code like "PHP")
         let currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
-        console.log('[Step 2] Selected currency:', currency)
         
         // If currency not found in options, create it from geoip data
         if (!currency && ipGeoPreferences.currency.symbol && ipGeoPreferences.currency.name) {
@@ -1723,7 +1853,6 @@ export default {
           if (!updatedOptions.some(c => c.symbol === newCurrency.symbol)) {
             updatedOptions.push(newCurrency)
             this.$store.commit('market/updateCurrencyOptions', updatedOptions)
-            console.log('[Step 2] Added currency to options:', newCurrency)
           }
           // Get the currency reference from the store after updating (must be same reference for indexOf to work)
           const updatedCurrencyOptions = this.$store.getters['market/currencyOptions']
@@ -1741,13 +1870,11 @@ export default {
             this.$store.commit('market/updateSelectedCurrency', currencyFromState)
             // Also save to vault settings for wallet-specific storage
             this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currencyFromState })
-            console.log('[Step 2] Currency set to:', currencyFromState.symbol, currencyFromState.name)
           } else {
             // Fallback: use mutation to set currency if not found in state options array
             console.warn('[Step 2] Currency not in state options array, using fallback mutation')
             this.$store.commit('market/setSelectedCurrency', currency)
             this.$store.commit('global/saveWalletSetting', { key: 'currency', value: currency })
-            console.log('[Step 2] Currency set via fallback mutation to:', currency.symbol, currency.name)
           }
         } else {
           console.warn('[Step 2] Currency not found and could not be created for:', ipGeoPreferences.currency.symbol)
@@ -1768,13 +1895,10 @@ export default {
         // Find first matching supported language
         let selectedLangCode = 'en-us' // default fallback
         const supportedLanguageCodes = Object.keys(supportedLangsI18n)
-        console.log('[Step 2] Language codes from geoip:', languageCodes)
-        console.log('[Step 2] Supported language codes:', supportedLanguageCodes)
         for (let languageCode of languageCodes) {
           // Try exact match first
           if (supportedLanguageCodes.includes(languageCode)) {
             selectedLangCode = languageCode
-            console.log('[Step 2] Exact language match found:', languageCode)
             break
           }
           // Try matching general language code (e.g., 'en' from 'en-ph')
@@ -1785,11 +1909,9 @@ export default {
           })
           if (languageMatched) {
             selectedLangCode = languageMatched
-            console.log('[Step 2] General language match found:', languageCode, '->', languageMatched)
             break
           }
         }
-        console.log('[Step 2] Selected language code:', selectedLangCode)
         
         // Always set language during registration (step 2), regardless of vault state
         // The vault entry exists but settings should be updated
@@ -1797,18 +1919,15 @@ export default {
           this.setLanguage(selectedLangCode)
           // Also save to vault settings explicitly
           this.$store.commit('global/saveWalletSetting', { key: 'language', value: selectedLangCode })
-          console.log('[Step 2] Language set to:', selectedLangCode)
         } else {
           console.warn('[Step 2] Invalid language code or not supported:', selectedLangCode)
         }
         
         // set country
-        console.log('[Step 2] Setting country:', ipGeoPreferences.country)
         this.$store.commit('global/setCountry', {
           country: ipGeoPreferences.country,
           denomination: 'BCH' // Default denomination, can be changed by user later
         })
-        console.log('[Step 2] Country set to:', ipGeoPreferences.country)
 
         // persist preferences to avoid later overrides (e.g., refetchWalletPreferences)
         await this.$store.dispatch('global/saveWalletPreferences').catch(() => {})
@@ -1857,8 +1976,8 @@ export default {
       // This allows settings to be saved during steps 2-4
       const wallet = new Wallet(this.mnemonic)
       const walletHash = wallet.BCH.walletHash
-      
-      // Create minimal wallet structure with all wallet types (BCH, SLP, sBCH)
+
+      // Create minimal wallet structure with all wallet types (BCH, SLP)
       const minimalWallet = {
         bch: {
           walletHash: wallet.BCH.walletHash,
@@ -1875,12 +1994,6 @@ export default {
           lastAddress: '',
           lastChangeAddress: '',
           lastAddressIndex: -1
-        },
-        sbch: {
-          walletHash: wallet.sBCH.walletHash,
-          derivationPath: wallet.sBCH.derivationPath,
-          lastAddress: '',
-          subscribed: false
         }
       }
       
@@ -2048,24 +2161,12 @@ export default {
         })
       }
 
-      await wallet.sBCH.subscribeWallet().then(function () {
-        const walletTypeInfo = {
-          type: 'sbch',
-          derivationPath: wallet.sBCH.derivationPath,
-          walletHash: wallet.sBCH.walletHash,
-          lastAddress: wallet.sBCH._wallet ? wallet.sBCH._wallet.address : ''
-        }
-
-        if (vm.isVaultEmpty) vm.$store.commit('global/updateWallet', walletTypeInfo)
-        else vm.newWalletSnapshot.walletInfo.push(walletTypeInfo)
-      })
 
       const walletHashes = [
         wallet.BCH.walletHash,
         wallet.BCH_CHIP.walletHash,
         wallet.SLP.walletHash,
         wallet.SLP_TEST.walletHash,
-        wallet.sBCH.walletHash,
       ]
       this.$pushNotifications?.subscribe?.(walletHashes, this.walletIndex, true)
       this.newWalletHash = wallet.BCH.walletHash
@@ -2134,7 +2235,6 @@ export default {
       let response
       try {
         response = await this.$axios.get(url)
-        console.log('[GeoIP] Raw API response:', response?.data)
       } catch (error) {
         console.error('[GeoIP] Error fetching geoip data:', error)
         // Return default values if API call fails
@@ -2146,7 +2246,6 @@ export default {
           name: response.data.country_name,
           code: response.data.country_code2
         }
-        console.log('[GeoIP] Country parsed:', result.country)
       } else {
         console.warn('[GeoIP] No country_name in response')
       }
@@ -2156,7 +2255,6 @@ export default {
           symbol: response.data.currency.code, // Store code as symbol (e.g., "PHP")
           name: response.data.currency.name
         }
-        console.log('[GeoIP] Currency parsed:', result.currency)
       } else {
         console.warn('[GeoIP] No currency.code in response:', response?.data?.currency)
       }
@@ -2173,12 +2271,10 @@ export default {
         })
         
         result.langs = langs
-        console.log('[GeoIP] Languages parsed:', result.langs)
       } else {
         console.warn('[GeoIP] No languages in response:', response?.data?.languages)
       }
       
-      console.log('[GeoIP] Final result:', result)
       return result
     },
     resolveDeviceLangCode() {
@@ -2287,6 +2383,30 @@ export default {
   },
   async mounted () {
     this.isOnboarding = this.isVaultEmpty
+    
+    // Check subscription status on mount to enable/disable buttons
+    // Force refresh to ensure we fetch fresh LIFT token balance from the server
+    // This ensures the computed property has the correct values
+    try {
+      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
+      this.subscriptionChecked = true
+      // Force reactivity update to refresh computed property
+      this.$nextTick(() => {
+        this.$forceUpdate()
+      })
+      
+      // Check if user is on the base /accounts page and has exceeded limits
+      // Show upgrade dialog immediately if limits are exceeded
+      const isOnBaseAccountsPage = this.$route.path === '/accounts' || this.$route.path === '/accounts/'
+      const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+      
+      if (isOnBaseAccountsPage && isOnMainView && this.checkIfLimitsExceeded()) {
+        this.showUpgradeDialog = true
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error)
+      this.subscriptionChecked = true // Set to true even on error to prevent blocking
+    }
 
     // Check if we're on a step route and initialize wallet creation if needed
     if (this.$route.path.startsWith('/accounts/create/step-') && this.steps === -1 && !this.importSeedPhrase) {
@@ -2319,14 +2439,9 @@ export default {
 
     // Note: Auto-detection moved to step 2 initialization (initializeStep2 method)
     
-    // Check server status
-    this.$axios.get('https://watchtower.cash/api/status/', { timeout: 30000 }).then(response => {
-      if (response.status !== 200) return Promise.reject(new Error('Server status check returned non-200 status'))
-      if (response.data.status !== 'up') return Promise.reject(new Error('Server status is not up'))
-      this.serverOnline = true
-    }).catch(() => {
-      this.serverOnline = false
-    })
+    // Server status is checked globally in App.vue
+    // Use global connectivity status as proxy for server availability
+    this.serverOnline = this.$store.getters['global/getConnectivityStatus']
 
     // If user lands directly on step-1, ensure generation starts
     if (this.currentStep === 1 && !this.mnemonic && !this.importSeedPhrase) {

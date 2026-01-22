@@ -209,9 +209,7 @@ export default defineComponent({
     })
 
     function securityCheck(resetSwipe=() => {}) {
-      $q.dialog({
-        component: SecurityCheckDialog,
-      })
+      $q.dialog({ component: SecurityCheckDialog })
         .onOk(() => startRedeem())
         .onCancel(() => resetSwipe?.())
     }

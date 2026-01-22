@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">{{ $t('Payments') }}</div>

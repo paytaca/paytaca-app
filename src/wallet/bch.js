@@ -1,6 +1,7 @@
 import Watchtower from 'watchtower-cash-js'
 import BCHJS from '@psf/bch-js'
 import sha256 from 'js-sha256'
+import { decodeTransaction, hexToBin, lockingBytecodeToCashAddress, binToHex } from '@bitauth/libauth'
 import { getWatchtowerApiUrl, convertCashAddress } from './chipnet'
 import { convertIpfsUrl, getBcmrBackend } from './cashtokens'
 import { isTokenAddress } from '../utils/address-utils'
@@ -261,7 +262,29 @@ export class BchWallet {
     } 
   }
 
-  async _sendBch (changeAddress, token, recipients, broadcast = true, priceId) {
+  /**
+   * Normalizes addresses for comparison by converting to cash address format
+   * @param {string} address 
+   * @returns {string}
+   */
+  _normalizeAddress (address) {
+    try {
+      // Try to convert to cash address if it's a legacy address
+      if (address && !address.includes(':')) {
+        // Legacy address, try to convert
+        try {
+          return bchjs.Address.toCashAddress(address)
+        } catch (e) {
+          return address.toLowerCase()
+        }
+      }
+      return address.toLowerCase()
+    } catch (e) {
+      return address.toLowerCase()
+    }
+  }
+
+  async _sendBch (changeAddress, token, recipients, broadcast = true, priceId, fiatAmounts = null, fiatCurrency = null) {
     const data = {
       sender: {
         walletHash: this.walletHash,
@@ -280,6 +303,119 @@ export class BchWallet {
     if (priceId) {
       data.price_id = priceId
     }
+
+    // If fiat amounts are provided, we need to build transaction without broadcasting,
+    // decode it to map outputs to recipients, then broadcast with fiat amounts
+    if (fiatAmounts && fiatAmounts.length > 0 && fiatCurrency && broadcast) {
+      data.broadcast = false
+      const result = await this.watchtower.BCH.send(data)
+      
+      if (!result?.success || !result?.transaction) {
+        return result
+      }
+
+      // Decode transaction to map outputs to recipients
+      try {
+        const txHex = result.transaction
+        const decoded = decodeTransaction(hexToBin(txHex))
+        
+        if (typeof decoded === 'string') {
+          // Error decoding, fall back to normal broadcast without fiat amounts
+          const broadcastData = { transaction: txHex }
+          if (priceId) {
+            broadcastData.price_id = priceId
+          }
+          const broadcastResponse = await this.watchtower.BCH._api.post('broadcast/', broadcastData)
+          return {
+            ...result,
+            ...broadcastResponse.data
+          }
+        }
+
+        const outputFiatAmounts = {}
+        const normalizedChangeAddress = this._normalizeAddress(changeAddress)
+        
+        // Map recipients to their fiat amounts
+        const recipientFiatMap = new Map()
+        recipients.forEach((recipient, index) => {
+          if (index < fiatAmounts.length && fiatAmounts[index]) {
+            const normalizedRecipientAddr = this._normalizeAddress(recipient.address)
+            recipientFiatMap.set(normalizedRecipientAddr, {
+              fiatAmount: fiatAmounts[index],
+              recipient: recipient.address,
+              tokenAmount: token?.tokenId ? recipient.amount : undefined, // Use decimal amount for tokens
+              tokenCategory: token?.tokenId
+            })
+          }
+        })
+
+        // Match outputs to recipients
+        decoded.outputs.forEach((output, outputIndex) => {
+          try {
+            const outputAddress = lockingBytecodeToCashAddress(output.lockingBytecode)
+            if (typeof outputAddress === 'string') {
+              const normalizedOutputAddr = this._normalizeAddress(outputAddress)
+              
+              // Skip change outputs
+              if (normalizedOutputAddr === normalizedChangeAddress) {
+                return
+              }
+
+              const fiatData = recipientFiatMap.get(normalizedOutputAddr)
+              if (fiatData) {
+                const outputData = {
+                  fiat_amount: String(fiatData.fiatAmount),
+                  fiat_currency: fiatCurrency.toUpperCase(),
+                  recipient: fiatData.recipient
+                }
+
+                // Include token information if this is a token transaction
+                if (fiatData.tokenCategory) {
+                  outputData.token_category = fiatData.tokenCategory
+                  if (fiatData.tokenAmount !== undefined && fiatData.tokenAmount !== null) {
+                    // Token amount is already in decimal format
+                    outputData.token_amount = String(fiatData.tokenAmount)
+                  }
+                }
+
+                outputFiatAmounts[String(outputIndex)] = outputData
+              }
+            }
+          } catch (e) {
+            // Skip outputs we can't decode
+            console.warn('Could not decode output address:', e)
+          }
+        })
+
+        // Broadcast with fiat amounts
+        const broadcastData = { transaction: txHex }
+        if (priceId) {
+          broadcastData.price_id = priceId
+        }
+        if (Object.keys(outputFiatAmounts).length > 0) {
+          broadcastData.output_fiat_amounts = outputFiatAmounts
+        }
+        
+        const broadcastResponse = await this.watchtower.BCH._api.post('broadcast/', broadcastData)
+        return {
+          ...result,
+          ...broadcastResponse.data
+        }
+      } catch (error) {
+        console.error('Error processing fiat amounts:', error)
+        // Fall back to normal broadcast
+        const broadcastData = { transaction: result.transaction }
+        if (priceId) {
+          broadcastData.price_id = priceId
+        }
+        const broadcastResponse = await this.watchtower.BCH._api.post('broadcast/', broadcastData)
+        return {
+          ...result,
+          ...broadcastResponse.data
+        }
+      }
+    }
+
     const result = await this.watchtower.BCH.send(data)
     return result
   }
@@ -293,8 +429,10 @@ export class BchWallet {
    * @param {Number} tokenAmount
    * @param {Array} recipients
    * @param {String|Number} priceId - Optional price ID from BIP21 URI
+   * @param {Array} fiatAmounts - Optional array of fiat amounts matching recipients order
+   * @param {String} fiatCurrency - Optional fiat currency code (e.g., "PHP")
    */
-  async sendBch (amount, address, changeAddress, token, tokenAmount, recipients = [], priceId) {
+  async sendBch (amount, address, changeAddress, token, tokenAmount, recipients = [], priceId, fiatAmounts = null, fiatCurrency = null) {
     const finalRecipients = []
     if (recipients.length > 0) {
       finalRecipients.push(...recipients)
@@ -302,7 +440,7 @@ export class BchWallet {
       finalRecipients.push({ address, amount, tokenAmount })
     }
 
-    return this._sendBch(changeAddress, token, finalRecipients, true, priceId)
+    return this._sendBch(changeAddress, token, finalRecipients, true, priceId, fiatAmounts, fiatCurrency)
   }
 
   /**
