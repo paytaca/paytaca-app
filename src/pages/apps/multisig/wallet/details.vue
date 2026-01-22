@@ -42,7 +42,6 @@
                     <CopyButton :text="wallet.walletHash" />
                   </q-item-section>
                 </q-item>
-                
                 <q-item-label header>Signers</q-item-label>
                 <q-item v-for="signer in wallet.signers" :key="signer.xpub" >
                     <q-item-section>
@@ -54,10 +53,10 @@
                                 </q-item-label>
                                 </q-item-section>
                                 <q-item-section avatar>
-                                    <q-icon name="person" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                                    <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
+                                    <q-icon v-else name="person" size="sm" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
                                 </q-item-section>
-                            </q-item>
-                            <!-- <q-separator></q-separator> -->
+                              </q-item>
                             <q-item-label caption>
                                 <div class="flex nowrap justify-between q-ma-sm">
                                     <div class="text-bold">Master Fingerprint:</div>
@@ -76,6 +75,12 @@
                                     <div>{{ signer.path || `m/44'/145'/0'` }}</div>
                                 </div>
                             </q-item-label>
+                            <q-item-label caption>
+                                <div class="flex nowrap justify-between q-ma-sm">
+                                    <div class="text-bold">Can Sign On This Device?</div>
+                                    <div>{{ hdPrivateKeys?.[signer.xpub] ? 'Yes' : 'No' }}</div>
+                                </div>
+                            </q-item-label>
                             <div class="flex nowrap justify-end q-my-md q-mx-sm">
                                 <CopyButton :text="JSON.stringify(signer)" :label="$t('CopySignerDetails', {}, 'Copy Signer Details')" />
                             </div>
@@ -92,7 +97,7 @@
                   <q-item-section>
                     <q-item-label caption>{{ $t('WalletSetup', {}, 'Wallet Setup') }}</q-item-label>
                     <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
-                      {{ wallet.isSynced() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
+                      {{ wallet.isOnline() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -108,7 +113,7 @@
                 <q-item-section>
                   <q-item-label caption>{{ $t('TransactionSigning', {}, 'Transaction Signing') }}</q-item-label>
                   <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
-                    {{ wallet.isSynced() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
+                    {{ wallet.isOnline() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
                   </q-item-label>
                 </q-item-section>
               </q-item>
@@ -136,7 +141,7 @@
   </template>
   
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
@@ -146,129 +151,158 @@ import { MultisigWallet, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'src/components/CopyButton.vue'
 
-  const $store = useStore()
-  const $q = useQuasar()
-  const route = useRoute()
-  const { multisigNetworkProvider, resolveXprvOfXpub } = useMultisigHelpers()
-  const darkMode = computed(() => {
-    return $store.getters['darkmode/getStatus']
-  })
-  const wallet = computed(() => {
-    const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-    if (storedWallet) {
-      return MultisigWallet.importFromObject(storedWallet, {
-        store: $store,
-        provider: multisigNetworkProvider,
-        resolveXprvOfXpub: resolveXprvOfXpub
-      })
-    }
-    return null
-  })
-  
-  const openRenameDialog = () => {
-    $q.dialog({
-      component: RenameDialog,
-      componentProps: {
-        index: wallet.value.getIndex()
-      }
+const $store = useStore()
+const $q = useQuasar()
+const route = useRoute()
+const { multisigNetworkProvider, resolveXprvOfXpub, getSignerXPrv} = useMultisigHelpers()
+
+const hdPrivateKeys = ref()
+
+const darkMode = computed(() => {
+  return $store.getters['darkmode/getStatus']
+})
+const wallet = computed(() => {
+  const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  if (storedWallet) {
+    return MultisigWallet.importFromObject(storedWallet, {
+      store: $store,
+      provider: multisigNetworkProvider,
+      resolveXprvOfXpub: resolveXprvOfXpub
     })
   }
-  </script>
-  
-  <style lang="scss" scoped>
-    .section-title {
-      font-weight: 600;
-      font-size: 16px;
-      letter-spacing: 0.5px;
-      opacity: 0.85;
+  return null
+})
+
+const loadHdPrivateKeys = async (signers) => {
+  if (!hdPrivateKeys.value) {
+    hdPrivateKeys.value = {}
+  }
+  console.log('SIGNERS', signers)
+  for (const signer of signers) {
+    try {
+      console.log('signer', signer.xpub)
+      const xprv = await getSignerXPrv({
+        xpub: signer.xpub
+      })
+      console.log('xprv', xprv)
+      if (xprv) {
+        hdPrivateKeys.value[signer.xpub] = xprv
+      }
       
-      &.dark {
-        color: rgba(255, 255, 255, 0.8);
-      }
-      &.light {
-        color: rgba(0, 0, 0, 0.6);
-      }
+    } catch (e) {
+      console.log('error', e)
+    } // getSignerXPrv throws if xprv not found, we'll just ignore
+  }
+}
+
+const openRenameDialog = () => {
+  $q.dialog({
+    component: RenameDialog,
+    componentProps: {
+      index: wallet.value.getIndex()
     }
-  
-    .pt-setting-menu {
-      font-weight: 400;
-      font-size: 15px;
-      &.dark {
-        color: #e0e2e5;
-      }
-      &.light {
-        color: rgba(0, 0, 0, 0.87);
-      }
-    }
+  })
+}
+
+onMounted(async () => {
+  console.log('wallet.value', wallet.value)
+  await loadHdPrivateKeys(wallet.value?.signers)
+})
+</script>
+
+<style lang="scss" scoped>
+  .section-title {
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
     
-    .pt-setting-avatar-dark {
-      color: #A6ACAF;
+    &.dark {
+      color: rgba(255, 255, 255, 0.8);
     }
+    &.light {
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .pt-setting-menu {
+    font-weight: 400;
+    font-size: 15px;
+    &.dark {
+      color: #e0e2e5;
+    }
+    &.light {
+      color: rgba(0, 0, 0, 0.87);
+    }
+  }
   
-    .pt-label {
-      font-size: 14px;
-      &.dark {
-        color: #e0e2e5;
-      }
-      &.light {
-        color: rgba(0, 0, 0, 0.87);
-      }
+  .pt-setting-avatar-dark {
+    color: #A6ACAF;
+  }
+
+  .pt-label {
+    font-size: 14px;
+    &.dark {
+      color: #e0e2e5;
     }
-    
-    .pt-card {
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    &.light {
+      color: rgba(0, 0, 0, 0.87);
     }
+  }
   
-    .settings-list {
-      .q-item {
-        padding: 16px 20px;
-        min-height: 64px;
-        
+  .pt-card {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .settings-list {
+    .q-item {
+      padding: 16px 20px;
+      min-height: 64px;
+      
+      &:not(:last-child) {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      &.dark:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    :deep(.q-item__label--caption) {
+      opacity: 0.7;
+      margin-top: 4px;
+      line-height: 1.3;
+      font-size: 13px;
+    }
+  }
+
+  #app-container {
+    &.dark {
+      .settings-list .q-item {
         &:not(:last-child) {
-          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-        }
-  
-        &.dark:not(:last-child) {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
       }
-  
-      :deep(.q-item__label--caption) {
-        opacity: 0.7;
-        margin-top: 4px;
-        line-height: 1.3;
-        font-size: 13px;
-      }
     }
-  
-    #app-container {
-      &.dark {
-        .settings-list .q-item {
-          &:not(:last-child) {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          }
-        }
-      }
-      
-      &.light {
-        .settings-list .q-item {
-          &:not(:last-child) {
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-          }
+    
+    &.light {
+      .settings-list .q-item {
+        &:not(:last-child) {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         }
       }
     }
-  
-    .glass-input {
-      :deep(.q-field__control) {
-        transition: all 0.3s ease;
-      }
-      
-      :deep(.q-field__native) {
-        font-weight: 500;
-      }
+  }
+
+  .glass-input {
+    :deep(.q-field__control) {
+      transition: all 0.3s ease;
     }
-  </style>
-  
+    
+    :deep(.q-field__native) {
+      font-weight: 500;
+    }
+  }
+</style>
