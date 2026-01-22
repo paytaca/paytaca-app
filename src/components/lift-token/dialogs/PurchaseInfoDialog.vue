@@ -114,7 +114,7 @@
             </div>
             <div class="detail-value">
               <a
-                :href="`https://explorer.bch.ninja/tx/${purchase.payment_tx_id}`"
+                :href="`https://explorer.paytaca.com/tx/${purchase.payment_tx_id}`"
                 target="_blank"
                 class="tx-link"
               >
@@ -194,7 +194,7 @@
                     <div v-if="details.tx_id" class="vesting-tx">
                       <q-icon name="receipt_long" size="14px" class="q-mr-xs" />
                       <a
-                        :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
+                        :href="`https://explorer.paytaca.com/tx/${details.tx_id}`"
                         target="_blank"
                         class="tx-link"
                       >
