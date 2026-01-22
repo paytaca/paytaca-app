@@ -158,6 +158,7 @@ const routes = [
       { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
       { path: 'wallet-backup/seed-phrase', component: () => import('src/pages/apps/wallet-backup/view-seed-phrase.vue'), name: 'app-wallet-backup-seed-phrase' },
       { path: 'wallet-backup/shards', component: () => import('src/pages/apps/wallet-backup/view-shards.vue'), name: 'app-wallet-backup-shards' },
+      { path: 'eload', component: () => import('src/pages/apps/eload/index.vue'), name: 'app-eload' },
       {
         path: 'marketplace',
         component: () => import('src/layouts/MarketplaceLayout.vue'),
