@@ -183,6 +183,28 @@
                       label="City"
                       class="col-6"
                       dense
+                      lazy-rules
+                      :rules="[val => !!val || 'City is required']"
+                    />
+                    <q-input
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.state"
+                      label="State/Province"
+                      class="col-6"
+                      dense
+                      lazy-rules
+                      :rules="[val => !!val || 'State/Province is required']"
+                    />
+                    <q-input 
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.zip"
+                      label="ZIP/Postal Code"
+                      class="col-6"
+                      dense
+                      lazy-rules
+                      :rules="[val => !!val || 'Zip code is required']"
                     />
                     <q-input
                       outlined
@@ -191,6 +213,8 @@
                       label="Country"
                       class="col-6"
                       dense
+                      lazy-rules
+                      :rules="[val => !!val || 'Country is required']"
                     />
                   </div>
 
