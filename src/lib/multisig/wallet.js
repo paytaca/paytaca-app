@@ -145,6 +145,7 @@ import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
 import { decryptECIESMessage, encryptECIESMessage } from './ecies.js'
+import { BsmsDescriptor } from './bsms.js'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
@@ -1229,7 +1230,7 @@ export class MultisigWallet {
 
     for (const signer of this.signers) {
       const pubkeyZero = derivePublicKey(signer.xpub, '0/0')
-      const unencryptedBsmsDescriptor = this.generateBSMSRecord()
+      const unencryptedBsmsDescriptor = this.generateBsmsDescriptor()
       const encryptedBsmsDescriptor = await encryptECIESMessage(
         MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub),
         unencryptedBsmsDescriptor
@@ -1577,29 +1578,18 @@ static cashAddressToTokenAddress(cashAddress) {
    * @param {string} options.firstAddress - The first receive address (you provide this)
    * @returns {string} Complete BSMS record as multi-line string
    */
-  generateBSMSRecord({
-    scriptType = 'sh',
-    branchRange = '<0;1>/*',
-    pathRestrictions = '/0/*,/1/*'
-  } = {}) {
+  generateBsmsDescriptor() {
       
+
       const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
 
-      // Build each key expression: [fingerprint/path]xpub/branchRange
-      const keyExpressions = this.signers.map(signer => {
-        const { masterFingerprint, xpub, path } = signer;
-        const cleanPath = (path || 'm/44\'/145\'/0\'').trim()?.replace(/^m/, '');
-        return `[${masterFingerprint}/${cleanPath}]${xpub}/${branchRange}`;
-      });
+      const descriptor = new BsmsDescriptor({
+        m: this.m,
+        signers: this.signers,
+        firstAddress: firstAddress
+      })
 
-      const descriptor = `${scriptType}(sortedmulti(${this.m},${keyExpressions.join(',')}))`;
-
-      return [
-        'BSMS 1.0',
-        descriptor,
-        pathRestrictions,
-        firstAddress
-      ].join('\n');
+      return descriptor.toString()
   }
 
   /**
