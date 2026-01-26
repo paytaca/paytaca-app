@@ -1,5 +1,5 @@
 <template>
-	<div class="text-black q-pt-md">
+	<div class="text-black q-py-md">
 		<q-input
 			class="q-px-lg"
 			dense
@@ -13,34 +13,78 @@
 		</q-input>
 
 		<!-- Selecting Service -->
-		<div  class="q-mt-lg" v-if="step === 1">
+		<div  class="q-mt-lg" v-if="step === 0">
 			<q-card v-for="service in services" id="service-card" class="text-center q-my-sm bg-grad" @click="updateFilters('service', service)">
 				<div class="text-capitalize purchase-type text-white text-bold lg-font-size">{{ service.name.toLowerCase() }}</div>
 			</q-card>			
 		</div>
 
 		<!-- Selecting Service Group -->
-		<div v-if="step === 2" class="q-pt-md">
-			<q-card class="q-mx-lg br-15 q-py-sm q-px-lg" @click="changeValue('service')">
-				<div class="sm-font-size text-italic q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Click to change the Purchase Type...</div>
-				<div class="text-h5 text-weight-bold lg-font-size text-grad">{{ filters.service.name }}</div>
-				<!-- Service Group Selection -->
-			</q-card>
+		<div class="q-pt-md">
+			<!-- Service Display/Edit Card -->
+			<q-card v-if="step > 0" class="q-mx-lg br-15 q-py-sm q-px-lg">
+				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Purchase Type</div>
 
-			<div class="q-px-lg q-pt-sm md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
+				<div class="row justify-between">
+					<div class="text-h5 text-weight-bold lg-font-size text-grad">{{ filters.service.name }}</div>				
+					<q-icon size="sm" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('service')"/>
+				</div>				
+			</q-card>	
 
-			<q-card v-for="group in serviceGroups" id="service-card" class="text-center q-my-sm bg-grad" style="height: 40px;" @click="updateFilters('serviceGroup', group)">
-				<div class="text-capitalize text-white text-bold md-font-size">{{ group.name.toLowerCase() }}</div>
-			</q-card>			
+			<!-- Service Group Selection -->
+			<div v-if="step === 1">
+				<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
 
-			<!-- <q-card class="q-mx-lg br-15 q-mt-md q-px-lg q-py-sm" v-if="serviceGroups.length > 0">
-				<div class="sm-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
-				<div v-for="group in serviceGroups">
-					<div class="md-font-size">{{ group.name }}</div>
-
-					<q-separator :dark="darkMode" class="q-my-sm"/>
+				<div class="q-px-lg">
+				    <div class="row q-col-gutter-sm">
+				    	<div
+				    		v-for="(group, index) in serviceGroups"
+				    		:key="index"
+				    		class="col-4 col-sm-4"
+				     	>
+					        <q-card class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('serviceGroup', group)"> 
+					        	<div class="sm-font-size text-weight-bold service-group-text">{{ group.name }}</div>			          
+					        </q-card>
+				      	</div>
+				    </div>
 				</div>
-			</q-card> -->
+			</div>
+		</div>
+
+		<!-- Service Group Display/Edit Card -->
+		<q-card v-if="step > 1" class="q-mx-lg br-15 q-py-sm q-px-lg q-mt-lg">
+			<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Service Provider</div>
+
+			<div class="row justify-between">
+				<div class="text-h5 text-weight-bold lg-font-size text-grad">{{ filters.serviceGroup.name }}</div>
+				<q-icon size="sm" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('serviceGroup')"/>
+			</div>			
+		</q-card>	
+
+		<!-- Category Selection -->
+		<div v-if="step === 2">
+			<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
+
+			<div class="q-px-lg">
+				<div class="row q-col-gutter-sm">
+					<div
+						v-for="(category, index) in categories"
+				    	:key="index"
+				    	class="col-4 col-sm-4"
+					>
+						<q-card class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
+					    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
+						</q-card>
+					</div>
+				</div>
+			</div>
+
+			<div class="text-center text-grad q-pt-md md-font-size text-bold" v-if="!isLastPage('category')" style="cursor: pointer;" @click="nextPage('category')">See More</div>
+		</div>
+
+		<!-- Select Promo -->
+		<div v-if="step === 3">
+			<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Promo</div>
 		</div>
 	</div>
 </template>
@@ -60,20 +104,50 @@ export default {
 			filters:{				
 				service: null, //service
 				serviceGroup: null, //service-group
-				category: 'all', // category // allow all
+				category: null, // category // allow all
 			},
 			services: [],
-			serviceGroups: []
+			serviceGroups: [],
+			categories: [],
+			promos: [],
+			paginationSettings: {
+				serviceGroup: {
+					limit: 9,
+					page: 1,
+					totalPages: 0
+				},
+				category: {
+					limit: 9,
+					page: 1,
+					totalPages: 0
+				},
+				promo: {
+					limit: 9,
+					page: 1,
+					totalPages: 0
+				}
+			}
 		}
 	},
 	watch: {
-		'filters.service'(item) {
-			if (item) {
+		'filters.service'(val) {
+			if (val) {
 				this.step++
 				this.fetchServiceGroup()
 			}
-
 		},
+		'filters.serviceGroup'(val) {
+			if (val) {
+				this.step++
+				this.fetchCategory()
+
+			}
+		},
+		step (val) {
+			if (val === 3) {
+				// Get Promos
+			}
+		}
 	},
 	async mounted () {
 		const vm = this
@@ -85,7 +159,6 @@ export default {
 		}	
 
 		// Fetch Services
-		vm.step++
 		vm.loading = false
 	},
 	methods: {
@@ -94,12 +167,42 @@ export default {
 		},
 		changeValue (type) {
 			this.filters[type] = null
-			this.step--
+
+			switch (type) {
+				case 'service':
+					this.step = 0
+					break
+				case 'serviceGroup':
+					this.step = 1
+					this.resetPagination('category')
+					break
+				default:
+					this.step--
+			}			
+
 		},
-		async fetchServiceGroup() {
-			console.log('Fetching Sevice Group')
-			// let page;
-			// let limit;
+		getTotalPages (type) {
+			return this.paginationSettings[type].totalPages
+		},	
+		isLastPage (type) {
+			const total_page = this.getTotalPages(type)
+			const page = this.paginationSettings[type].page
+
+			return page >= total_page
+		},
+		nextPage(type) {
+			this.paginationSettings[type].page++
+
+			this.fetchCategory(true)
+		},
+		resetPagination (type) {
+			this.paginationSettings[type] = {
+					limit: 9,
+					page: 1,
+					totalPages: 0
+				}
+		},
+		async fetchServiceGroup() {			
 			let data = {
 				service: this.filters.service,
 				limit: 10,
@@ -108,8 +211,40 @@ export default {
 
 			let result = await eloadServiceAPI.fetchServiceGroup(data)			
 			if (result.success) {				
-				this.serviceGroups = result.data.service_group				
+				this.serviceGroups = result.data.service_group
+				this.paginationSettings.serviceGroup.totalPages = result.data.total_pages
 			}
+		},
+		async fetchCategory(overflow=false) {
+			const vm = this
+			const setting = vm.paginationSettings.category
+			
+			let data = {
+				serviceGroup: this.filters.serviceGroup,
+				limit: setting.limit,
+				page: setting.page
+			}
+
+			let result = await eloadServiceAPI.fetchCategory(data)
+
+			if (result.success) {
+				if (overflow) {
+					this.categories.push(...result.data.category)
+				} else {
+					this.categories = result.data.category
+				}
+				this.paginationSettings.category.totalPages = result.data.total_pages	
+
+				if (this.categories.length <= 1) {
+					this.step++
+				}				
+			}			
+
+		},
+		async fetchPromos () {
+			const vm = this
+
+
 		}
 	}
 }
@@ -139,4 +274,9 @@ export default {
   .purchase-type { 
   	margin-top: 28px; 	  	
  } 
+ .service-group-text {
+ 	white-space: normal; /* allow wrapping */ 
+ 	word-wrap: break-word; /* legacy support */ 
+ 	overflow-wrap: break-word; /* modern browsers */
+ }
 </style>
