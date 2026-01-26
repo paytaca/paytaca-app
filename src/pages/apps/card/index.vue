@@ -138,16 +138,17 @@ export default {
       console.log('Cards:', this.cards);
 
       // Print and fetch info, tokenUtxos, bchUtxos, and contract for each card
-      for (const card of this.cards) {
-        console.log('================')
-        console.log('Card:', card);
-        const tokenUtxos = await card.getTokenUtxos();
-        console.log('Card tokenUtxos:', tokenUtxos);
-        const bchUtxos = await card.getBchUtxos();
-        console.log('Card bchUtxos:', bchUtxos);
-        const contract = await card.getContract()
-        console.log('Card contract:', contract);
-      }
+      // for (const card of this.cards) {
+      //   console.log('================')
+      //   console.log('Card:', card);
+      //   // const tokenUtxos = await card.getTokenUtxos();
+        // console.log('Card tokenUtxos:', tokenUtxos);
+        // const bchUtxos = await card.getBchUtxos();
+        // console.log('Card bchUtxos:', bchUtxos);
+        // const contract = await card.getContract()
+        // console.log('Card contract:', contract);
+      const authNfts = await this.cards[this.cards.length - 1].getAuthNfts();
+      console.log('Card authNfts:', authNfts);
       
     } catch (error) {
       console.error('Error during card user load:', error);
