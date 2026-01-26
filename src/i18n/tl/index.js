@@ -160,6 +160,7 @@ export default {
   Arbitrary: "Arbitraryo",
   ArbitrationFee: "Bayad sa arbitrasyon",
   AreYouSure: "Sigurado ka ba?",
+  AreYouSureDeleteAllWallets: "Sigurado ka bang gusto mong tanggalin ang lahat ng multisig wallet?Ang pagkilos na ito ay hindi maaaring i-undo.",
   AreYouSureDeleteWallet: "Sigurado ka bang gusto mong tanggalin ang wallet?",
   AreYouSureYouWantToHideTheDebugApp: "Sigurado ka bang gusto mong itago ang Debug app?Maaari mo itong ipakitang muli sa pamamagitan ng mahabang pagpindot sa Apps header.",
   ArgentinianSpanish: "Espanyol (Argentina)",

@@ -160,6 +160,7 @@ export default {
   Arbitrary: "Sewenang-wenang",
   ArbitrationFee: "Biaya arbitrase",
   AreYouSure: "Apakah kamu yakin?",
+  AreYouSureDeleteAllWallets: "Apakah Anda yakin ingin menghapus semua dompet multisig?Tindakan ini tidak dapat dibatalkan.",
   AreYouSureDeleteWallet: "Apakah Anda yakin ingin menghapus dompet?",
   AreYouSureYouWantToHideTheDebugApp: "Apakah Anda yakin ingin menyembunyikan aplikasi Debug?Anda dapat menampilkannya lagi dengan menekan lama header Aplikasi.",
   ArgentinianSpanish: "Spanyol (Argentina)",

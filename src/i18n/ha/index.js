@@ -160,6 +160,7 @@ export default {
   Arbitrary: "Na sabani",
   ArbitrationFee: "Kudin sasantawa",
   AreYouSure: "Ka tabbata?",
+  AreYouSureDeleteAllWallets: "Shin kun tabbata kuna son share duk wallet ɗin multisig?Ba za a iya soke wannan aikin ba.",
   AreYouSureDeleteWallet: "Shin kun tabbata kuna son goge wallet?",
   AreYouSureYouWantToHideTheDebugApp: "Shin kun tabbata kuna son ɓoye ƙa'idar Debug?Kuna iya sake nuna ta ta dogon latsa kan Apps.",
   ArgentinianSpanish: "Sifen (Argentina)",

@@ -160,6 +160,7 @@ export default {
   Arbitrary: "임의",
   ArbitrationFee: "중재 수수료",
   AreYouSure: "확실합니까?",
+  AreYouSureDeleteAllWallets: "모든 다중서명 지갑을 삭제하시겠습니까?이 작업은 취소할 수 없습니다.",
   AreYouSureDeleteWallet: "지갑을 삭제하시겠습니까?",
   AreYouSureYouWantToHideTheDebugApp: "디버그 앱을 숨기시겠습니까?앱 헤더를 길게 누르면 다시 표시할 수 있습니다.",
   ArgentinianSpanish: "스페인어(아르헨티나)",

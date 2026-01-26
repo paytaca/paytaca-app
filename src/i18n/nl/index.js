@@ -160,6 +160,7 @@ export default {
   Arbitrary: "Willekeurig",
   ArbitrationFee: "Arbitrage vergoeding",
   AreYouSure: "Are you sure?",
+  AreYouSureDeleteAllWallets: "Weet u zeker dat u alle multisig-portefeuilles wilt verwijderen?Deze actie kan niet ongedaan worden gemaakt.",
   AreYouSureDeleteWallet: "Weet u zeker dat u de portemonnee wilt verwijderen?",
   AreYouSureYouWantToHideTheDebugApp: "Weet u zeker dat u de Debug-app wilt verbergen?Je kunt het opnieuw weergeven door lang op de Apps-header te drukken.",
   ArgentinianSpanish: "Spaans (Argentinië)",

@@ -21,6 +21,7 @@
               <div class="row justify-end q-gutter-x-sm q-mb-md">
                 <q-btn color="primary" icon="add" @click="onCreateWalletClick" round dense outline></q-btn>
                 <q-btn color="primary" icon="download" @click="onImportWalletClick" round dense outline></q-btn>
+                <q-btn color="red" icon="mdi-delete-sweep-outline" @click="onDeleteAllWalletsClick" round dense outline></q-btn>
               </div>
             </div>
             <q-card
@@ -111,7 +112,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { MultisigWallet } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
-import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
@@ -145,37 +145,30 @@ const onImportWalletClick = async () => {
   importWallet()
 }
 
-// const wallets = computed(() => {
-//   return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
-// })
+const onDeleteAllWalletsClick = async () => {
+  $q.dialog({
+    message: $t('AreYouSureDeleteAllWallets'),
+    ok: { 
+      label: $t('Yes'),
+      color: 'primary',
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)}`,
+    },
+    cancel: { 
+      label: $t('No'),
+      color: 'default',
+      outline: true,
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)} `,
+    },
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1`,
+  }).onOk(() => {
+    $store.commit('multisig/deleteAllWallets')
+  })
+}
 
 const importWallet = () => {
   router.push({ name: 'app-multisig-wallet-import' })
-  // $q.dialog({
-  //   component: ImportWalletDialog,
-  //   componentProps: {
-  //     darkMode: darkMode.value,
-  //     onImportFromFile: () => walletFileElementRef.value.pickFiles(),
-  //     onImportFromServer: async () => {
-  //       router.push({ name: 'app-multisig-wallets-synced' })
-  //     }
-  //   }
-  // })
-}
-
-const openMainActionsDialog = () => {
-  $q.dialog({
-    component: MainActionsDialog,
-    componentProps: {
-      darkMode: darkMode.value,
-      onCreateWallet: () => {
-        onCreateWalletClick()
-      },
-      onImportWallet: async () => {
-        onImportWalletClick()
-      }
-    }
-  })
 }
 
 const onUpdateWalletFileModelValue = (file) => {
@@ -228,7 +221,7 @@ onMounted(() => {
       console.error('Error importing wallet from QR:', error)
       $q.notify({
         message: $t('FailedToImportWalletFromQR'),
-        color: 'negative'
+        color: 'red'
       })
     }
   }
