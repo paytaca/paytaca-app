@@ -1,7 +1,6 @@
 <template>
   <q-layout>
   
-  
     <div class="q-ml-l">
       <p class="text-primary text-weight-bold text-h5 text-center">Card Management</p>
     </div>
@@ -10,15 +9,13 @@
       <MultiWalletDropdown></MultiWalletDropdown>
     </div>
 
-    <q-separator class="q-my-xl" />
-
-    
     <transition
       appear
       enter-active-class="animated fadeIn"
       leave-active-class="animated fadeOut"
     >
-      <div class="q-mt-lg">
+      <div class="q-mt-lg q-ml-lg">
+        
         <!-- Header -->
         <div class="text-h6 q-mb-md q-mt-md row items-center">
           <q-icon name="credit_card" class="q-mr-sm" color="primary" />
@@ -26,15 +23,28 @@
         </div>
 
         <!-- Cards Grid -->
-        <div class="row q-col-gutter-md">
+        <div class="row q-col-gutter-md" style="max-width: 2500px; max-height: 300px;">
           <!-- Existing Subcards -->
             <div v-for="card in subCards" :key="card.id" class="col-12 col-sm-2">
               <q-card bordered flat class="bg-white full-height">
                 <!-- Card header: Name + Icons -->
-                <q-card-section class="row items-center justify-between q-pa-sm">
-                  <div class="text-weight-bold text-subtitle1 text-black">{{ card.name }}</div>
-
+                <q-card-section class="row items-center justify-between q-pa-sm bg-blue-2">
+                  <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 150px;">{{ card.name }}</div>
+                  
                   <div class="row items-center q-gutter-sm">
+                    <!-- Edit Icon -->
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="edit"
+                      size="sm"
+                      color="primary"
+                      @click="editCardName(card)"
+                    >
+                      <q-tooltip>Edit Card Name</q-tooltip>
+                    </q-btn>
+
                     <!-- View Icon -->
                      <q-btn
                         flat
@@ -53,6 +63,7 @@
                         color="primary"
                         @click="openCardMenu($event, card)"
                      >
+                        <q-tooltip>Card Options</q-tooltip>
                         <!-- Card Options Menu -->
                         <q-menu
                             anchor="top right"
@@ -80,12 +91,21 @@
                   </div>
                 </q-card-section>
 
-                <q-separator/>
+                <q-separator color="primary" size="1px"/>
 
                 <!-- Card Info -->
                  <q-card-section>
-                    <div class="text-caption text-grey">Contract Address: {{ card.contractAddress }}</div>
-                    <div class="text-caption text-grey">Balance: {{ card.balance }} BCH</div>
+                    <div class="text-caption text-grey">
+                      Balance:
+                      <span class="text-h5 text-black"> {{ card.balance.toLocalString() }} BCH</span>
+                    </div>
+
+                    <div class="text-caption text-grey">
+                      Address:
+                      <span class="text-caption text-black ellipsis"> 
+                        {{ card.contractAddress ? formatContractAddress(card.contractAddress) : 'Fetching...' }} 
+                      </span>
+                    </div>
 
                     <div class>
                       <div class="text-caption text-weight-bold">Status:</div>
@@ -123,7 +143,103 @@
 
         </div>
       </div>
-    </transition>
+    </transition> 
+
+    <!-- Order physical card form to be component -->
+     <div class="q-pa-md" style="max-width: 800px;">
+        <q-card flat bordered class="[$q.dark.isActive ? 'bg-grey-10' : 'bg-blue-1', order-card-container]">
+          <q-card-section>
+            <div class="row items-center q-col-gutter-md">
+
+              <div class="col-12 col-md-5 text-center">
+                <div class="text-h6 text-weight-bold q-mb-sm" :class="$q.dark.isActive ? 'text-blue-2' : 'text-primary'">
+                  Order your physical card
+                </div>
+                <q-icon  
+                  name="style"
+                  size="100px"
+                  :color="$q.dark.isActive ? 'blue-2' : 'primary'"
+                  class="q-mb-md"
+                />
+              </div>
+
+              <div class="col-12 col-md-7">
+                <q-form ref="orderForm" @submit="onSubmit" class="q-gutter-y-sm">
+                  <q-input 
+                    outlined
+                    :dark="$q.dark.isActive"
+                    v-model="formData.fullname"
+                    label="Full Name"
+                    dense
+                    lazy-rules
+                    :rules="[val => !!val || 'Name is required']"
+                  />
+
+                  <div class="row q-col-gutter-sm">
+                    <q-input 
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.city"
+                      label="City"
+                      class="col-6"
+                      dense
+                      lazy-rules
+                      :rules="[val => !!val || 'City is required']"
+                    />
+                    <q-input
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.state"
+                      label="State/Province"
+                      class="col-6"
+                      dense
+                      lazy-rules
+                      :rules="[val => !!val || 'State/Province is required']"
+                    />
+                    <q-input 
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.zip"
+                      label="ZIP/Postal Code"
+                      class="col-6"
+                      dense
+                      lazy-rules
+                      :rules="[val => !!val || 'Zip code is required']"
+                    />
+                    <q-input
+                      outlined
+                      :dark="$q.dark.isActive"
+                      v-model="formData.country"
+                      label="Country"
+                      class="col-6"
+                      dense
+                      lazy-rules
+                      :rules="[val => !!val || 'Country is required']"
+                    />
+                  </div>
+
+                  <div class="q-mt-md">
+                    <q-btn 
+                      label="Order Now"
+                      :color="$q.dark.isActive ? 'blue-7' : 'blue-9'"
+                      type="submit"
+                      class="full-width text-bold"
+                      unelevated
+                    />
+                  </div>
+
+                  <div class="text-caption text-center q-mt-xs" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-8'">
+                    Standard Shipping: 7-10 business days.
+                  </div>
+
+                </q-form>
+              </div>
+
+            </div>
+          </q-card-section>
+
+        </q-card>
+     </div>
   </q-layout>
 
   <!-- CREATE CARD POP-UP BOX -->
@@ -160,7 +276,19 @@
 
        <!-- Dialog Content -->
        <q-card-section>
-          <q-input v-model="newCardName" label="Card Name" outlined dense></q-input>
+          <q-input 
+            v-model="newCardName" 
+            label="Card Name" 
+            outlined 
+            dense 
+            hint="Max of 15 characters allowed"
+            counter
+            maxlength="15"
+            :rules="[
+              val => (val && val.length > 0) || 'Name is required',
+              val => val.length <= 15 || 'Maximum 15 characters'
+            ]"
+          ></q-input>
        </q-card-section>
 
        <q-separator />
@@ -177,12 +305,11 @@
               unelevated
               label="Create"
               color="primary"
+              :disable="!newCardName || newCardName.length > 15"
               @click="handleCreateCard"
             />
          </q-card-actions>
-
     </q-card>
-
   </q-dialog>
 
   <!-- VIEW CARD POP-UP -->
@@ -223,7 +350,7 @@
 
           <!-- Contract Address with Copy Icon -->
            <q-card-section class="row justify-center items-center text-nowrap q-gutter-sm" style="letter-spacing: 1px;">
-              <div>{{ selectedCard?.contractAddress }}</div>
+              <div class="text-white">{{ formatContractAddress(selectedCard)}}</div>
               <q-btn
                 flat
                 round
@@ -242,11 +369,7 @@
                     @click="handleCashIn(selectedCard)"
                   />
             </q-card-section>
-
-
-
       </q-card>
-
    </q-dialog>
 
 
@@ -314,23 +437,38 @@
             
         </q-card>
      </q-dialog>
-  
+
+     <!-- Transaction History Popup-->
+     <q-dialog v-model="showTransactionHistory" persistent>
+        <q-card style="min-width: 300px" class="br-15 q-pa-sm">
+          <q-card-section>
+              <div class="text-h6">Transaction History</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+              <q-input v-model="transactionSearch" label="Search" outlined dense class="q-mb-md"/>
+          </q-card-section>
+
+          <q-card-section>
+            Contents
+          </q-card-section>
+
+          <q-card-actions align="right">
+              <q-btn flat label="Close" color="primary" v-close-popup />
+          </q-card-actions>
+        </q-card>
+     </q-dialog>
 </template>
 
 <script>
  
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-import { createCard } from 'src/services/card/backend/api';
+//import { createCard } from 'src/services/card/backend/api';
 import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { loadWallet } from 'src/wallet';
-import { getPrivateKey, getPrivateKeyAt, getPublicKey, getPublicKeyAt } from 'src/utils/wallet';
-import { publicKeyToP2pkhCashAddress } from 'bitauth-libauth-v3';
-import { FailedTransactionEvaluationError } from 'cashscript0.10.0';
-import RampHistoryDialog from 'src/components/ramp/crypto/RampHistoryDialog.vue';
+import { loadCardUser } from 'src/services/card/auth';
 import { selectedCurrency } from 'src/store/market/getters';
-import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
+
   
   export default {
     
@@ -342,7 +480,7 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
       return {
         createCardDialog: false,
         subCards: [],
-        contractAddress: 'address', // dummy
+        contractAddress: 'bchtest:p02aanptmywrtmwt75mckrekkpnrwm0lxc7w6d0ljq4w97mu9uguzfdqshmp8', // dummy
         // For inputs
         newCardName: '',
         // View card dialog
@@ -365,9 +503,18 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         showManageAuthNFTdialog: false,
         merchantSearch: '',
         genericAuthEnabled: false,
+        // Transaction History
+        showTransactionHistory: false,
+        isSweep: false,
+        // Order form
+        formData: {
+          fullName: '',
+          city: '',
+          country: ''
+        },
       }
     },
-
+    
     async mounted () {
       console.log("GO!")
     },
@@ -378,34 +525,110 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
         this.newCardName = '';
         this.createCardDialog = true;
       },
+
+      formatContractAddress(card) {
+        const contractAddressLength = this.contractAddress.length
+        const formatted = this.contractAddress.substring(0, 4) + "..." + this.contractAddress.substring(contractAddressLength - 5, contractAddressLength)
+        return formatted
+      },
       
-      handleCreateCard(){
+      async handleCreateCard(){
         if(!this.newCardName){
           this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
           return;
         }
 
-        // Create new subcard object
-        const newCard = {
-          id: Date.now(), // unique key
-          name: this.newCardName,
-          contractAddress: this.contractAddress,
-          balance: 0,
-          status: 'Active'
+        try {
+          this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
+
+          // initializing the card helper
+          const card = new Card()
+          // execute workflow from card.js
+          await card.create()
+          const tokenId = card.tokenId
+
+          // load user from card/auth
+          const user = await loadCardUser()
+          const cards = await user.fetchCards()
+          console.log('Card User: ', user)
+
+          // find the specific card we just created in the list
+          const mintedCard = cards.find(c => c.tokenId === tokenId)
+          let actualBalance = 0
+          let contractAddress = 'Pending'
+
+          if (mintedCard) {
+            // fetch real balance
+            const tokenUtxos = await mintedCard.getTokenUtxos()
+            // calculate sum of token amounts in Utxos
+            actualBalance = tokenUtxos.reduce((total, utxo) => {
+              return total + Number(utxo.token.amount)
+            }, 0)
+
+            const contract = await mintedCard.getContract()
+            contractAddress = contract.address
+          }
+
+          // print and fetch info for each card
+          for(const cardItem of cards){
+            const tokenUtxos = await cardItem.getTokenUtxos();
+            const bchUtxos = await cardItem.getBchUtxos();
+            const contract = await cardItem.getContract()
+
+            console.log('=====Card Details=====')
+            console.log('Card: ', cardItem);
+            console.log('Card ID: ', cardItem.tokenId)
+            console.log('Card tokenUtxos:', tokenUtxos);
+            console.log('Card bchUtxos:', bchUtxos);
+            console.log('Card contract:', contract);
+          }
+
+          // Create new subcard object
+          const newCard = {
+            id: result.tokenId,
+            name: this.newCardName,
+            contractAddress: contractAddress,
+            balance: actualBalance,
+            status: 'Active' // by default
+          }
+
+          // Update UI state ; Insert before the create card button
+          this.subCards.push(newCard);
+          this.createCardDialog = false; // close dialog
+          this.$q.notify({
+            message: `Card "${newCard.name}" created successfully with ${newCard.balance} BCH!`,
+            color: 'positive',
+          });
+        } catch (error) {
+          console.error('Final Workflow Error: ', error)
+          this.$q.notify({
+            message: 'Failed to create card. Please check your balance.',
+            color: 'negative'
+          })
+        } finally {
+          this.$q.loading.hide()
         }
+      },
 
-        // Insert before the create card button
-        this.subCards.push(newCard);
-
-        // Close dialog
-        this.createCardDialog = false;
-
-        // Card created successfully
-        this.$q.notify({
-          message: `Card "${this.newCardName}" created!`,
-          color: 'positive',
-        });
-
+      editCardName(card){
+        this.$q.dialog({
+          title: 'Edit Card Name',
+          message: 'Maximum of 15 characters allowed',
+          prompt: {
+            model: card.name,
+            type: 'text',
+            attrs: {
+              maxLength: 15, 
+            },
+            isValid: val => val.length <= 15 && val.length > 0
+          },
+          cancel: true,
+          persistent: true
+        }).onOk(data => {
+          if (data.length <= 15){
+            card.name = data;
+          }
+        })
       },
 
       viewCard(card){
@@ -482,8 +705,9 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
       },
 
       viewTransactionHistory(card) {
-        this.$q.notify({ message: `Transaction History for "${card.name}" clicked!`, color: 'primary' });
-        this.cardMenu.visible = false;
+        this.selectedCard = card;
+        this.showTransactionHistory = true;
+        this.transactionSearch = '';
       },
 
       toggleLock(card) {
@@ -512,6 +736,23 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
             this.notifyStatus(card.name, 'unlocked', 'positive', 'lock_open')
           }
           else{
+            this.$q.dialog({
+              message: `Do you want to sweep funds? This will send all ${card.name}'s funds to your wallet.'`,
+              cancel: true, 
+              persistent: true,
+              ok: {
+                label: 'Sweep',
+                color: 'positive',
+              },
+              cancel: {
+                label: 'Cancel',
+                flat: true,
+                color: 'grey',
+              }         
+            }).onOk(() => {
+                this.isSweep = true;
+                card.balance = 0;
+            })
             card.status = 'Locked'
             this.notifyStatus(card.name, 'locked', 'negative', 'lock')
           }
@@ -525,6 +766,45 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
           message: `Card "${name}" has been ${action}`,
           color: color,
           icon: icon
+        })
+      },
+
+      async onSubmit(){
+        this.$q.loading.show({message: 'Processing your order...'})
+
+        try {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+
+          this.$q.notify({
+            color: 'positive',
+            message: 'Physical card order placed!',
+            icon: 'check'
+          })
+
+          this.resetForm()
+        }
+        catch (error){
+          this.$q.notify({
+            color: 'negative',
+            message: 'Something went wrong'
+          })
+        } 
+        finally {
+          this.$q.loading.hide()
+        }
+      },
+
+      resetForm(){
+        this.formData = {
+          fullName: '',
+          city: '',
+          country: ''
+        }
+
+        this.$nextTick(() => {
+          if (this.$refs.orderForm){
+            this.$refs.orderForm.resetValidation()
+          }
         })
       }
 
@@ -555,5 +835,10 @@ import { mapStateToJsonFormsRendererProps } from '@jsonforms/core';
     flex-direction: column;
     border-radius: 18px;
     overflow: hidden;
+  }
+
+  .order-card-container {
+    border-radius: 16px;
+    border: 1px dashed #1976d2;
   }
 </style>
