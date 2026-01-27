@@ -36,22 +36,16 @@ export class Card {
 
       // Save genesis NFT to server
       const response = await this.saveGenesisNft(cardData.id, genesisResult);
-      this.raw = {
-        ...response.card,
-        genesis_nft: response.genesis_nft
-      };
+      this.raw = response
 
       // Initialize TapToPay contract
       this.initializeTapToPay()
 
       // Mint global auth token
-      const mintResult = await this.mintGlobalAuthToken();
+      await this.mintGlobalAuthToken();
 
       // Issue the global auth token to the card
-      const _ = await this.issueGlobalAuthToken(this.raw.token_address);
-
-      // Save global auth token to server
-      await this.saveGlobalAuthToken(cardData.id, mintResult);
+      await this.issueGlobalAuthToken(this.raw.token_address);
 
       console.log('Card creation completed successfully');
       return this
@@ -128,7 +122,7 @@ export class Card {
     }
 
     const result = await this.authNft.mint({ 
-        tokenId: this.raw?.genesis_nft?.category, 
+        tokenId: this.raw?.category, 
         terminals: [{
           authorized: true,
           expirationBlock: await defaultExpirationBlock(),
@@ -154,7 +148,7 @@ export class Card {
     }
 
     console.log('Issuing global auth token to address:', toAddress);
-    const tokenId = this.raw.genesis_nft.category
+    const tokenId = this.raw.category;
     const authNfts = await this.authNft.getMutableTokens(tokenId);
     console.log('Auth NFTs to be issued:', authNfts);
 
@@ -191,29 +185,10 @@ export class Card {
     const nftData = genesisResult.utxos[0];
     const payload = {
       category: nftData.token?.tokenId,
-      txid: nftData.txid,
-      card_id: cardId
     };
 
     console.log('Saving Genesis NFT with payload:', payload);
-    const response = await backend.post('/genesis-nfts/', payload);
-    console.log('Server record created:', response.data);
-    return response.data;
-  }
-
-  /**
-   * Saves global auth token to server
-   * @param {number} cardId
-   * @param {Object} mintResult
-   * @returns {Promise<Object>}
-   */
-  async saveGlobalAuthToken(cardId, mintResult) {
-    const payload = {
-      txid: mintResult.txId,
-      card_id: cardId
-    };
-    console.log('Saving global auth token:', payload);
-    const response = await backend.post('/global-auth-nfts/', payload);
+    const response = await backend.patch(`/cards/${cardId}/`, payload);
     console.log('Server record created:', response.data);
     return response.data;
   }
@@ -333,6 +308,33 @@ export class Card {
   async waitForTransaction(delayMs = 6000) {
     console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+
+  /**
+   * Gets auth NFTs associated with the card
+   * @returns {Promise<Object>}
+   */
+  async getAuthNfts() {
+    const response = await backend.get(`/auth-nfts/${this.raw.token_address}`);
+    return response.data
+  }
+
+  /**
+   * Gets the card's global auth NFT
+   * @returns {Promise<Object>}
+   */
+  async getGlobalAuthNft() {
+    const { global_auth_nft } = await this.getAuthNfts()
+    return global_auth_nft
+  }
+
+  /**
+   * Gets the card's merchant auth NFTs
+   * @returns {Promise<Object>}
+   */
+  async getMerchantAuthNft() {
+    const { merchant_auth_nft } = await this.getAuthNfts()
+    return merchant_auth_nft
   }
 
   /**

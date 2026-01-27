@@ -32,9 +32,7 @@ export class CardUser {
 
     async getChallenge(publicKey) {
         try {
-            const payload = {
-                public_key: publicKey
-            };
+            const payload = { public_key: publicKey };
             const { data: { challenge } } = await this.backend.post('/auth/challenge/', payload);
             return challenge;
         } catch (error) {
@@ -126,13 +124,13 @@ export async function loadCardUser() {
 }
 
 export async function getAuthToken () {
-  try {
-    const result = await SecureStoragePlugin.get({ TOKEN_STORAGE_KEY });
-    return result.value;
-  } catch (error) {
-    console.error(`Item with key ${TOKEN_STORAGE_KEY} does not exist:`, error);
-    return null;
-  }
+    try {
+        const result = await SecureStoragePlugin.get({ TOKEN_STORAGE_KEY });
+        return result.value;
+    } catch (error) {
+        console.error(`Item with key ${TOKEN_STORAGE_KEY} does not exist:`, error);
+        return null;
+    }
 }
 
 export async function saveAuthToken (value) {
