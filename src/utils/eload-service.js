@@ -18,7 +18,7 @@ export async function fetchService () {
 		}
 	} catch (error) {
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch service'
-		console.error('[fetchMemo] Error:', errorMessage)
+		console.error('[fetchService] Error:', errorMessage)
 
 		return {
 			success: false,
@@ -47,7 +47,7 @@ export async function fetchServiceGroup (data) {
 			}
 	} catch (error) {
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch service group'
-		console.error('[fetchMemo] Error:', errorMessage)
+		console.error('[fetchServiceGroup] Error:', errorMessage)
 
 		return {
 			success: false,
@@ -75,7 +75,7 @@ export async function fetchCategory (data) {
 		}
 	} catch (error) {
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch category'
-		console.error('[fetchMemo] Error:', errorMessage)
+		console.error('[fetchCategory] Error:', errorMessage)
 
 		return {
 			success: false,
@@ -100,7 +100,23 @@ export async function fetchPromo (data) {
 		}
 
 		console.log('params: ', params)
+
+		const response = await backend.get(baseURL + "/promo/", { params: params })
+
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+
 	} catch (error) {
-		
+		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch promos'
+		console.error('[fetchPromo] Error:', errorMessage)
+
+		return {
+			success: false,
+			data: null,
+			error: `Network error: ${errorMessage}`
+		}
 	}
 }
