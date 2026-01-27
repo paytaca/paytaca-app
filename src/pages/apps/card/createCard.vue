@@ -542,9 +542,10 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
           // initializing the card helper
-          const cardHelper = new Card()
+          const card = new Card()
           // execute workflow from card.js
-          const result = await cardHelper.createCard(this.userPublicKey)
+          await card.create()
+          const tokenId = card.tokenId
 
           // load user from card/auth
           const user = await loadCardUser()
@@ -552,7 +553,7 @@ import { selectedCurrency } from 'src/store/market/getters';
           console.log('Card User: ', user)
 
           // find the specific card we just created in the list
-          const mintedCard = cards.find(c => c.tokenId === result.tokenId)
+          const mintedCard = cards.find(c => c.tokenId === tokenId)
           let actualBalance = 0
           let contractAddress = 'Pending'
 
