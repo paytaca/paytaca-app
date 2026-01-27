@@ -115,6 +115,8 @@ export class Card {
     console.log('Minting global auth token...');
     if (!this.wallet) {
       this.wallet = await loadWallet();
+      // add log
+      console.log("Using wallet address: ", this.wallet.address);
     }
 
     if (!this.authNft) {
