@@ -494,13 +494,7 @@ export default {
     },
     handleNavigateToBuy() {
       if (this.liftSwapContractAddress) {
-        // this.showBuyDialog = true
-        this.$q.notify({
-          message: this.$t('ComingSoon'),
-          color: 'positive',
-          icon: 'campaign',
-          timeout: 3000
-        })
+        this.showBuyDialog = true
       } else {
         this.$q.notify({
           message: this.$t('LIFTPurchaseUnavailable'),

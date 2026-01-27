@@ -364,13 +364,7 @@ export default {
       if (rsvp.is_paid) {
         this.openConfirmReservationDialog(rsvp)
       } else if (this.liftSwapContractAddress) {
-        // this.openPayReservationDialog(rsvp)
-        this.$q.notify({
-          message: this.$t('ComingSoon'),
-          color: 'positive',
-          icon: 'campaign',
-          timeout: 3000}
-        )
+        this.openPayReservationDialog(rsvp)
       } else {
         this.$q.notify({
           message: this.$t('LIFTPurchaseUnavailable'),
