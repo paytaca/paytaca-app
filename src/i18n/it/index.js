@@ -160,6 +160,7 @@ export default {
   Arbitrary: "Arbitrario",
   ArbitrationFee: "Tassa di arbitrato",
   AreYouSure: "Sei sicuro?",
+  AreYouSureDeleteAllWallets: "Sei sicuro di voler eliminare tutti i portafogli multisig?Questa azione non può essere annullata.",
   AreYouSureDeleteWallet: "Sei sicuro di voler eliminare il portafoglio?",
   AreYouSureYouWantToHideTheDebugApp: "Sei sicuro di voler nascondere l'app Debug?Puoi mostrarlo di nuovo premendo a lungo l'intestazione App.",
   ArgentinianSpanish: "spagnolo (Argentina)",

@@ -160,6 +160,7 @@ export default {
   Arbitrary: "任意",
   ArbitrationFee: "仲裁費",
   AreYouSure: "你確定嗎？",
+  AreYouSureDeleteAllWallets: "您確定要刪除所有多重簽名錢包嗎？此操作無法撤消。",
   AreYouSureDeleteWallet: "您確定要刪除錢包嗎？",
   AreYouSureYouWantToHideTheDebugApp: "您確定要隱藏調試應用程序嗎？您可以通過長按應用程序標題再次顯示它。",
   ArgentinianSpanish: "西班牙語（阿根廷）",

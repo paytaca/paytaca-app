@@ -160,6 +160,7 @@ export default {
   Arbitrary: "произвольный",
   ArbitrationFee: "Арбитражный сбор",
   AreYouSure: "Вы уверены?",
+  AreYouSureDeleteAllWallets: "Вы уверены, что хотите удалить все мультиподписные кошельки?Это действие невозможно отменить.",
   AreYouSureDeleteWallet: "Вы уверены, что хотите удалить кошелек?",
   AreYouSureYouWantToHideTheDebugApp: "Вы уверены, что хотите скрыть приложение Debug?Вы можете показать его снова, нажав и удерживая заголовок «Приложения».",
   ArgentinianSpanish: "Испанский (Аргентина)",

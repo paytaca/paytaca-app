@@ -1660,6 +1660,7 @@ const phrases = {
       SyncWallet: 'Sync Wallet',
       ExportWallet: 'Export Wallet',
       AreYouSureDeleteWallet: 'Are you sure you want to delete wallet?',
+      AreYouSureDeleteAllWallets: 'Are you sure you want to delete all multisig wallets? This action cannot be undone.',
       Yes: 'Yes',
       No: 'No',
       ScanWalletQRCode: 'Scan Wallet QR Code',

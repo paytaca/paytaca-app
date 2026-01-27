@@ -160,6 +160,7 @@ export default {
   Arbitrary: "arbitrario",
   ArbitrationFee: "Tarifa de arbitraje",
   AreYouSure: "¿Estás seguro?",
+  AreYouSureDeleteAllWallets: "¿Está seguro de que desea eliminar todas las billeteras multifirma?Esta acción no se puede deshacer.",
   AreYouSureDeleteWallet: "¿Estás seguro de que deseas eliminar la billetera?",
   AreYouSureYouWantToHideTheDebugApp: "¿Está seguro de que desea ocultar la aplicación de depuración?Puedes mostrarlo nuevamente presionando prolongadamente el encabezado de Aplicaciones.",
   ArgentinianSpanish: "Español (Argentina)",

@@ -160,6 +160,7 @@ export default {
   Arbitrary: "任意",
   ArbitrationFee: "仲裁手数料",
   AreYouSure: "よろしいですか？",
+  AreYouSureDeleteAllWallets: "すべてのマルチシグ ウォレットを削除してもよろしいですか?この操作は元に戻すことができません。",
   AreYouSureDeleteWallet: "ウォレットを削除してもよろしいですか?",
   AreYouSureYouWantToHideTheDebugApp: "デバッグ アプリを非表示にしてもよろしいですか?アプリヘッダーを長押しすると、再度表示できます。",
   ArgentinianSpanish: "スペイン語 (アルゼンチン)",

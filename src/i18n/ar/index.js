@@ -160,6 +160,7 @@ export default {
   Arbitrary: "تعسفي",
   ArbitrationFee: "رسوم التحكيم",
   AreYouSure: "هل أنت متأكد؟",
+  AreYouSureDeleteAllWallets: "هل أنت متأكد أنك تريد حذف جميع محافظ multisig؟لا يمكن التراجع عن هذا الإجراء.",
   AreYouSureDeleteWallet: "هل أنت متأكد أنك تريد حذف المحفظة؟",
   AreYouSureYouWantToHideTheDebugApp: "هل أنت متأكد أنك تريد إخفاء تطبيق Debug؟يمكنك إظهاره مرة أخرى بالضغط لفترة طويلة على رأس التطبيقات.",
   ArgentinianSpanish: "الإسبانية (الأرجنتين)",
