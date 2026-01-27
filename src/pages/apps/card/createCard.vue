@@ -565,7 +565,7 @@ import { selectedCurrency } from 'src/store/market/getters';
             }, 0)
 
             const contract = await mintedCard.getContract()
-            contractAddr = contract.address
+            contractAddress = contract.address
           }
 
           // print and fetch info for each card
@@ -586,7 +586,7 @@ import { selectedCurrency } from 'src/store/market/getters';
           const newCard = {
             id: result.tokenId,
             name: this.newCardName,
-            contractAddress: contractAddr,
+            contractAddress: contractAddress,
             balance: actualBalance,
             status: 'Active' // by default
           }
