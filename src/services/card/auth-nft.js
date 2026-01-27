@@ -22,7 +22,7 @@ import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainn
 import { defaultExpirationDeltaMinutes, defaultSpendLimitSats, minTokenValue } from './constants';
 import { convertTimeToBlock } from './utils';
 
-class AuthNft {
+class AuthNftService {
     constructor(wif) {
         this.wif = wif;
         this.wallet = null;
@@ -79,25 +79,25 @@ class AuthNft {
         return response;
     }
 
-    async mint({ tokenId, terminals }) {
+    async mint({ tokenId, merchants }) {
         if (!this.wallet) {
             await this.initWallet();
         }
 
         // TODO: prevent minting tokens with same terminal id?
         const tokenMintRequests = [];
-        for (let i = 0; i < terminals.length; i++) {
-            const terminal = terminals[i]
+        for (let i = 0; i < merchants.length; i++) {
+            const merchant = merchants[i]
             const commitmentData = {
-                authorized: terminal.authorized !== undefined ? terminal.authorized : true,
-                expirationBlock: terminal.expirationBlock || await defaultExpirationBlock(),
-                spendLimitSats: terminal.spendLimitSats || defaultSpendLimitSats,
+                authorized: merchant.authorized !== undefined ? merchant.authorized : true,
+                expirationBlock: merchant.expirationBlock || await defaultExpirationBlock(),
+                spendLimitSats: merchant.spendLimitSats || defaultSpendLimitSats,
             }
 
-            if (terminal.id && terminal.pubkey) {
-                commitmentData.terminal = {
-                    id: terminal.id,
-                    pk: terminal.pubkey
+            if (merchant.id && merchant.pubkey) {
+                commitmentData.merchant = {
+                    id: merchant.id,
+                    pk: merchant.pubkey
                 }
             }
 
@@ -143,65 +143,65 @@ class AuthNft {
         return result;
     }
 
-    async mutate({ tokenId, mutations }) {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
+    // async mutate({ tokenId, mutations }) {
+    //     if (!this.wallet) {
+    //         await this.initWallet();
+    //     }
 
-        const recipients = mutations.map(m => {
-            const newCommitment = encodeCommitment({
-                authorized: m.authorized,
-                expirationBlock: m.expirationBlock,
-                spendLimitSats: m.spendLimitSats,
-                terminal: {
-                    id: m.id,
-                    pk: m.pubkey
-                }
-            })
-            console.log('newCommitment:', newCommitment)
-            return {
-                address: this.wallet.cashaddr,
-                tokenId: tokenId,
-                capability: NFTCapability.mutable,
-                commitment: newCommitment
-            }
-        })
-        console.log('mutating: ', recipients)
-        await this.issue({ recipients })
-    }
+    //     const recipients = mutations.map(m => {
+    //         const newCommitment = encodeCommitment({
+    //             authorized: m.authorized,
+    //             expirationBlock: m.expirationBlock,
+    //             spendLimitSats: m.spendLimitSats,
+    //             terminal: {
+    //                 id: m.id,
+    //                 pk: m.pubkey
+    //             }
+    //         })
+    //         console.log('newCommitment:', newCommitment)
+    //         return {
+    //             address: this.wallet.cashaddr,
+    //             tokenId: tokenId,
+    //             capability: NFTCapability.mutable,
+    //             commitment: newCommitment
+    //         }
+    //     })
+    //     console.log('mutating: ', recipients)
+    //     await this.issue({ recipients })
+    // }
 
-    async burn ({ tokenId, terminals }) {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
+    // async burn ({ tokenId, terminals }) {
+    //     if (!this.wallet) {
+    //         await this.initWallet();
+    //     }
 
-        if (terminals.length === 0) return
-        const terminalHashes = terminals.map(terminal => 
-            encodeTerminalHash({
-                terminalId: terminal.id,
-                terminalPk: terminal.pubkey
-            })
-        )
-        console.log('terminalHashes:', terminalHashes)
-        const utxos = await this.wallet.getTokenUtxos(tokenId)
-        console.log(utxos)
-        const utxosToBurn = utxos.filter(utxo => {
-            const commitment = decodeCommitment(utxo.token.commitment)
-            return utxo.token.capability === NFTCapability.mutable &&
-                    terminalHashes.includes(commitment.hash)
-        })
-        console.log('utxosToBurn:', utxosToBurn)
-        for(let i = 0; i < utxosToBurn.length; i++) {
-            const element = utxosToBurn[i]
-            const burnResponse = await this.wallet.tokenBurn({
-                tokenId: tokenId, 
-                amount: element.amount,
-                capability: element.token.capability,
-                commitment: element.token.commitment
-            }, "burn")
-            console.log(burnResponse)
-        }
-    }
+    //     if (terminals.length === 0) return
+    //     const merchantHashes = terminals.map(terminal => 
+    //         encodeMerchantHash({
+    //             merchantId: terminal.id,
+    //             merchantPk: terminal.pubkey
+    //         })
+    //     )
+    //     console.log('merchantHashes:', merchantHashes)
+    //     const utxos = await this.wallet.getTokenUtxos(tokenId)
+    //     console.log(utxos)
+    //     const utxosToBurn = utxos.filter(utxo => {
+    //         const commitment = decodeCommitment(utxo.token.commitment)
+    //         return utxo.token.capability === NFTCapability.mutable &&
+    //                 merchantHashes.includes(commitment.hash)
+    //     })
+    //     console.log('utxosToBurn:', utxosToBurn)
+    //     for(let i = 0; i < utxosToBurn.length; i++) {
+    //         const element = utxosToBurn[i]
+    //         const burnResponse = await this.wallet.tokenBurn({
+    //             tokenId: tokenId, 
+    //             amount: element.amount,
+    //             capability: element.token.capability,
+    //             commitment: element.token.commitment
+    //         }, "burn")
+    //         console.log(burnResponse)
+    //     }
+    // }
     
 }
 
@@ -211,10 +211,14 @@ export async function defaultExpirationBlock() {
     return expirationBlock
 }
 
-function encodeTerminalHash({ terminalId, terminalPk }) {
-    const terminalIdBuf = Buffer.from(terminalId, 'utf-8')
-    const terminalPkBuf = Buffer.from(terminalPk, 'hex')
-    const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
+function encodeMerchantHash({ merchantId, merchantPk }) {
+    if (!merchantId || !merchantPk) {
+        return ''
+    }
+    
+    const merchantIdBuf = Buffer.from(merchantId, 'utf-8')
+    const merchantPkBuf = Buffer.from(merchantPk, 'hex')
+    const concat = Buffer.concat([merchantIdBuf, merchantPkBuf])
 
     const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
     const truncatedHash = fullHash.subarray(0, 27)
@@ -222,7 +226,7 @@ function encodeTerminalHash({ terminalId, terminalPk }) {
     return truncatedHashHex
 }
 
-function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSats }) {
+function encodeCommitment({ authorized, merchant, expirationBlock, spendLimitSats }) {
     if (!expirationBlock) throw new Error('missing required expiration block')
     if (!spendLimitSats) throw new Error ('missing required spend limit')
 
@@ -240,9 +244,9 @@ function encodeCommitment({ authorized, terminal, expirationBlock, spendLimitSat
     let commitmentData = [authorizedBuf, expirationBuf, spendLimitBuf]
 
     // terminal hash
-    if (terminal) {
-        const terminalIdBuf = Buffer.from(terminal.id, 'utf-8')
-        const terminalPkBuf = Buffer.from(terminal.pk, 'hex')
+    if (merchant) {
+        const terminalIdBuf = Buffer.from(merchant.id, 'utf-8')
+        const terminalPkBuf = Buffer.from(merchant.pk, 'hex')
         const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
         const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
         const truncatedHash = fullHash.subarray(0, 27)
@@ -264,6 +268,6 @@ function decodeCommitment(hex) {
     };
 }
 
-export { encodeTerminalHash, encodeCommitment, decodeCommitment };
+export { encodeMerchantHash, encodeCommitment, decodeCommitment };
 
-export default AuthNft;
+export default AuthNftService;

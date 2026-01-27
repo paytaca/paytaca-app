@@ -147,8 +147,12 @@ export default {
         // console.log('Card bchUtxos:', bchUtxos);
         // const contract = await card.getContract()
         // console.log('Card contract:', contract);
-      const authNfts = await this.cards[this.cards.length - 1].getAuthNfts();
-      console.log('Card authNfts:', authNfts);
+      // const authNfts = await this.cards[this.cards.length - 1].getAuthNfts();
+      // console.log('Card authNfts:', authNfts);
+      // await this.cards[this.cards.length - 1].mutateGlobalAuthToken({
+      //   authorize: false,
+      //   broadcast: false
+      // });
       
     } catch (error) {
       console.error('Error during card user load:', error);
@@ -184,8 +188,9 @@ export default {
     async onCreateCard() {
       try {
         this.showLoading("Creating card...");
-        this.card = new Card();
-        const result = await this.card.create();
+        const card = await Card.createInitialized();
+        const result = await card.create();
+        this.card = card;
         this.hideLoading();
         
         console.log('✅ Card created successfully:', result);
@@ -195,7 +200,7 @@ export default {
           position: 'top'
         });
 
-        console.log('card:', this.card);
+        console.log('card:', card);
         
       } catch (error) {
         console.error('❌ Error in card creation process:', error);

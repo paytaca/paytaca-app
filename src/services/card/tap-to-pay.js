@@ -5,7 +5,7 @@ import { SignatureTemplate, Contract } from 'cashscript0.11.x';
 import { defaultNetwork, TX_FEE } from './constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { convertCashAddressToTokenAddress, pubkeyToPkHash } from './utils.js';
-import { decodeCommitment, encodeCommitment, encodeTerminalHash } from './auth-nft.js';
+import { decodeCommitment, encodeCommitment, encodeMerchantHash } from './auth-nft.js';
 
 // import artifact from './contract/TapToPay.json';
 import { compileString } from 'cashc0.11.x';
@@ -99,7 +99,7 @@ export class TapToPay {
         console.log('utxos:', utxos)
         console.log('authCategory:', this.contractCreationParams.authCategory)
 
-        const terminalHash = encodeTerminalHash({
+        const terminalHash = encodeMerchantHash({
             terminalId: recipient.terminalId,
             terminalPk: terminalPk
         })
@@ -169,7 +169,19 @@ export class TapToPay {
         return result
     }
 
-    // the functions below should only be exposed to the user at the paytaca app
+    /**
+     * Mutates authorization NFTs held by this contract.
+     *
+     * Rewrites NFT commitments for the provided terminal mutations and
+     * re-emits the NFTs back to the contract token address. Only the owner
+     * (matching `ownerPkh`) may perform this action.
+     *
+     * @param {Object} params
+     * @param {string} params.senderWif - Owner WIF used to sign the mutation.
+     * @param {Array<Object>} params.mutations - Mutation objects with merchant/authorization data.
+     * @param {boolean} [params.broadcast=true] - Broadcast the transaction when true, else return tx hex.
+     * @returns {Promise<Object>} Transaction result or `{ success: true, txHex }` when not broadcasting.
+     */
     async mutate ({ senderWif, mutations, broadcast = true }) {
 
         const contract = this.getContract()
@@ -188,46 +200,48 @@ export class TapToPay {
         // Helper to safely convert numbers/strings to BigInt
         const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
-        const terminalHashes = mutations.map(e => encodeTerminalHash({ 
-            terminalId: e.id, 
-            terminalPk: e.pubkey 
+        // Get the merchant hashes from the mutations
+        const merchantHashes = mutations.map(e => encodeMerchantHash({ 
+            merchantId: e.merchant?.id, 
+            merchantPk: e.merchant?.pubkey 
         }))
 
+        // Filter UTXOs to only those matching the token category and merchant hashes
         const utxosToMutate = utxos.filter(utxo => {
             if (utxo.token?.nft?.commitment) {
                 const commitment = utxo.token?.nft?.commitment
                 const { hash } = decodeCommitment(commitment)
-                return utxo.token.category === tokenCategory && terminalHashes.includes(hash)
+                return utxo.token.category === tokenCategory && merchantHashes.includes(hash)
             } else {
                 return false
             }
         })
 
+        // Prepare the outputs for the mutations
         const outputs = []
         for (let i = 0; i < mutations.length; i++) {
             const mutation = mutations[i]
-            const terminalHash = encodeTerminalHash({ 
-                terminalId: mutation.id, 
-                terminalPk: mutation.pubkey
+            const merchantHash = encodeMerchantHash({ 
+                merchantId: mutation.merchant?.id, 
+                merchantPk: mutation.merchant?.pubkey
             })
             
+            // Find the utxos to mutate (matching the merchant hash)
             const mutxo = utxosToMutate.find(utxo => {
                 const commitment = utxo.token?.nft?.commitment
                 const { hash } = decodeCommitment(commitment)
-                return terminalHash === hash
+                return merchantHash === hash
             })
 
-            const newCommitmentData = {
+            // Encode the new commitment
+            const newCommitment = encodeCommitment({
                 authorized: mutation.authorized,
                 expirationBlock: mutation.expirationBlock,
                 spendLimitSats: mutation.spendLimitSats,
-                terminal: {
-                    id: mutation.id,
-                    pk: mutation.pubkey
-                }
-            }
-            const newCommitment = encodeCommitment(newCommitmentData)
+                merchant: mutation.merchant
+            })
             
+            // Prepare the output rewriting the commitment
             const output = {
                 to: contract.tokenAddress,
                 amount: toBigInt(mutxo.satoshis),
@@ -240,10 +254,15 @@ export class TapToPay {
                     }
                 }
             }
+
+            // Add the output to the outputs array
             outputs.push(output)
         }
 
+        // Prepare the token inputs for mutation,
+        // normalizing the input UTXOs to expected format
         const tokenInputs = utxosToMutate.map((input) => {
+
             const normalized = { 
                 ...input, 
                 satoshis: toBigInt(input.satoshis),
@@ -270,6 +289,7 @@ export class TapToPay {
             return normalized
         })
 
+        // Prepare the BCH inputs
         const bchInputs = bchUtxos.map((input) => {
             const normalized = { 
                 ...input, 
@@ -280,7 +300,10 @@ export class TapToPay {
             return normalized
         })
 
+        // Combine token and BCH inputs
         const combinedInputs = [...tokenInputs, ...bchInputs]
+
+        // Prepare the contract transaction from the combined inputs and outputs
         const tx = contract.functions.mutate(senderPk, senderSig)
             .from(combinedInputs)
             .to(outputs)
@@ -288,7 +311,8 @@ export class TapToPay {
         let result
 
         try {
-            console.log('Building transaction...')
+            // Build the transaction
+            console.log('[mutate] Building transaction...')
             const txHex = await tx.build()
             
             if (broadcast) {
@@ -301,7 +325,7 @@ export class TapToPay {
             throw error
         }
 
-        console.log(result)
+        console.log('[mutate] Result:', result)
         return result
     }
 
