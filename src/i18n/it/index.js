@@ -1394,7 +1394,7 @@ export default {
   Outputs: "Uscite",
   Ownership: "Proprietà",
   P2PDescription: "Crea qualsiasi offerta di contratto di copertura e trova una corrispondenza con altri utenti",
-  P2PExchange: "Scambio P2P",
+  P2PExchange: "P2P Ramp",
   PAYMENTMETHODS: "METODI DI PAGAMENTO",
   POSAdmin: "Amministratore POS",
   POSDeviceIsNotLinked: "Il dispositivo POS non è collegato",

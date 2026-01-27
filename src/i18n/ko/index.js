@@ -1394,7 +1394,7 @@ export default {
   Outputs: "출력",
   Ownership: "소유권",
   P2PDescription: "헤지 계약 제안을 생성하고 다른 사용자와 일치하는 항목을 찾으세요.",
-  P2PExchange: "P2P 교환",
+  P2PExchange: "P2P Ramp",
   PAYMENTMETHODS: "결제 방법",
   POSAdmin: "POS 관리자",
   POSDeviceIsNotLinked: "POS 장치가 연결되지 않았습니다",

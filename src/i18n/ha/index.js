@@ -1394,7 +1394,7 @@ export default {
   Outputs: "Abubuwan da aka fitar",
   Ownership: "Mallaka",
   P2PDescription: "Ƙirƙiri tayin kwangilar kowane shinge kuma nemo wasa tare da wasu masu amfani",
-  P2PExchange: "Farashin P2P",
+  P2PExchange: "P2P Ramp",
   PAYMENTMETHODS: "HANYOYIN BIYAYYA",
   POSAdmin: "POS Admin",
   POSDeviceIsNotLinked: "Ba a haɗa na'urar POS ba",

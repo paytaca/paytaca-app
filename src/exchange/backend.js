@@ -86,7 +86,7 @@ backend.interceptors.response.use(
       }
       
       // Emit session-expired event to trigger authentication
-      // This will show the login dialog in P2P Exchange
+      // This will show the login dialog in P2P Ramp
       // If backend explicitly says token is invalid on 401 as well, clear it.
       // Some auth backends return 401 with "Invalid token".
       const errorDetail = error?.response?.data?.detail || ''
