@@ -1394,7 +1394,7 @@ export default {
   Outputs: "出力",
   Ownership: "所有権",
   P2PDescription: "任意のヘッジ契約オファーを作成し、他のユーザーと一致するものを見つけます",
-  P2PExchange: "P2P交換",
+  P2PExchange: "P2P Ramp",
   PAYMENTMETHODS: "支払い方法",
   POSAdmin: "POS管理者",
   POSDeviceIsNotLinked: "POSデバイスがリンクされていません",

@@ -1,6 +1,6 @@
 <template>
   <div class="ad-form-container" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="previousRoute" class="header-nav" />
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">

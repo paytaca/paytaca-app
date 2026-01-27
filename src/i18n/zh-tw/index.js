@@ -1394,7 +1394,7 @@ export default {
   Outputs: "輸出",
   Ownership: "所有權",
   P2PDescription: "創建任何對沖合約報價並找到與其他用戶的匹配",
-  P2PExchange: "P2P交換",
+  P2PExchange: "P2P Ramp",
   PAYMENTMETHODS: "付款方式",
   POSAdmin: "POS 管理員",
   POSDeviceIsNotLinked: "POS機未聯網",

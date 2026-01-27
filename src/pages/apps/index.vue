@@ -158,7 +158,7 @@ export default {
       apps: [
         {
           id: 'p2p-exchange',
-          name: this.$t('P2PExchange', {}, 'P2P Exchange'),
+          name: this.$t('P2PExchange', {}, 'P2P Ramp'),
           description: this.$t('Apps.P2PExchange.Description', {}, 'Buy and sell BCH peer-to-peer with anyone, secured by smart contract escrow.'),
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',

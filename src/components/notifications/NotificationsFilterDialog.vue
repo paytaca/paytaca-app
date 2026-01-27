@@ -101,7 +101,7 @@ export default {
         },
         {
           value: 'RP',
-          label: 'P2P Exchange',
+          label: 'P2P Ramp',
           selected: false
         },
         {

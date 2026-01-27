@@ -5,7 +5,7 @@
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
       <!-- Header (visible during loading) -->
-      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav" />
+      <HeaderNav title="P2P Ramp" backnavpath="/apps" class="header-nav" />
       
       <!-- Content Skeletons -->
       <div class="q-px-md">

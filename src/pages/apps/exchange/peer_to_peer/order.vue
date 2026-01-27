@@ -1,5 +1,5 @@
 <template>
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/orders" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/orders" class="header-nav" />
     
     <!-- Skeleton Loader -->
     <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">

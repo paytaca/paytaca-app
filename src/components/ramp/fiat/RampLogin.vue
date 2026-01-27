@@ -14,7 +14,7 @@
             class="text-h5 text-uppercase text-center q-my-none"
             :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-            {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
+            {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Ramp' }}
           </p>
         </div>
         <div class="col-1">

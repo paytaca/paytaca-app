@@ -342,7 +342,7 @@ export function deleteAuthTokenForWallet(walletHash) {
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` })
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}` })
-  console.log('P2P Exchange auth tokens deleted for wallet:', walletHash)
+  console.log('P2P Ramp auth tokens deleted for wallet:', walletHash)
 }
 
 /**
