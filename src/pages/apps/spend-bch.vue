@@ -55,7 +55,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="img:marketplace.png" size="3em" />
+                <q-icon name="storefront" size="3em" color="primary" />
               </div>
             </div>
             <div class="col">

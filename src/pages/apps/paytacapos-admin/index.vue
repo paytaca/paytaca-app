@@ -198,7 +198,7 @@ import { useStore } from 'vuex'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import HeaderNav from 'src/components/header-nav'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
 
 const $router = useRouter()
 const $store = useStore()
@@ -206,6 +206,7 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const confirm = ref(false)
+const { ensureCanPerformAction } = useTieredLimitGate()
 
 onMounted(() => refreshPage())
 
@@ -291,7 +292,6 @@ function fetchMerchants() {
 }
 
 async function openMerchantPage(merchantData) {
-  // $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
   try {
     $q.loading.show({ group: 'open-merchant', message: $t('FetchingData') })
     await $store.dispatch('global/fetchMerchant', merchantData?.id)
@@ -304,26 +304,16 @@ async function openMerchantPage(merchantData) {
   } finally {
     $q.loading.hide('open-merchant')
   }
-  $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id) } })
+  // Use query param so the merchant page is reloadable and doesn't rely on history.state.
+  $router.push({ name: 'app-pos-merchant', query: { merchantId: String(merchantData?.id) } })
 }
 
 const merchantInfoDialog = ref({ show: false, merchant: null })
 async function openMerchantInfoDialog(merchantData) {
   // If creating a new merchant (merchantData is null/undefined), check limit
   if (!merchantData) {
-    await $store.dispatch('subscription/checkSubscriptionStatus')
-    const canCreate = $store.getters['subscription/canPerformAction']('merchants')
-    
-    if (!canCreate) {
-      $q.dialog({
-        component: UpgradePromptDialog,
-        componentProps: {
-          darkMode: darkMode.value,
-          limitType: 'merchants'
-        }
-      })
-      return
-    }
+    const canCreate = await ensureCanPerformAction('merchants', { darkMode: darkMode.value, forceRefresh: true })
+    if (!canCreate) return
   }
   
   // Continue with opening dialog

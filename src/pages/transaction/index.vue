@@ -2147,32 +2147,41 @@ export default {
         platform = 'web'
       }
 
-      if (platform) {
+      if (!platform) return false
+
+      try {
         // fetching version check
-        await backend.get(`version/check/${platform}/`)
-          .then(response => {
-            if (!('error' in response.data)) {
-              const latestVer = response.data?.latest_version
-              const minReqVer = response.data?.min_required_version
+        const response = await backend.get(`version/check/${platform}/`)
+        if (!response?.data || ('error' in response.data)) return false
 
-              if (appVer !== latestVer) {
-                const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
+        const latestVer = response.data?.latest_version
+        const minReqVer = response.data?.min_required_version
+        if (!latestVer || !minReqVer) return false
 
-                // open version update dialog
-                if (openVersionUpdate) {
-                  this.$q.dialog({
-                    component: versionUpdate,
-                    componentProps: {
-                      data: response.data
-                    }
-                  })
-                  return true
-                }
-              }
-            }
-          })
+        if (appVer === latestVer) return false
+
+        const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
+        if (!openVersionUpdate) return false
+
+        // open version update dialog
+        try {
+          sessionStorage.setItem('appUpdateDialogActive', '1')
+          sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
+        } catch (_) {}
+        const dlg = this.$q.dialog({
+          component: versionUpdate,
+          componentProps: {
+            data: response.data
+          }
+        })
+        dlg?.onOk?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        dlg?.onCancel?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        dlg?.onDismiss?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        return true
+      } catch (error) {
+        console.error('Error checking version update:', error)
+        return false
       }
-      return false
     },
     checkOutdatedVersion (appVer, minReqVer) {
       let isOutdated = false
@@ -2270,6 +2279,21 @@ export default {
       this.$router.push('/apps/wallet-backup')
     },
     checkAndShowBackupAlert () {
+      // If an app update dialog is active, don't show backup reminder (avoid competing dialogs).
+      try {
+        if (sessionStorage.getItem('appUpdateDialogActive') === '1') {
+          const activeAt = Number(sessionStorage.getItem('appUpdateDialogActiveAt'))
+          const maxAgeMs = 10 * 60 * 1000
+          // If the flag is stale (e.g. crash / unexpected close), clear it and continue.
+          if (!Number.isFinite(activeAt) || Date.now() - activeAt > maxAgeMs) {
+            sessionStorage.removeItem('appUpdateDialogActive')
+            sessionStorage.removeItem('appUpdateDialogActiveAt')
+          } else {
+            return
+          }
+        }
+      } catch (_) {}
+
       // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
       // Each wallet is tracked independently
       if (this.lastBackupTimestamp) {
@@ -2338,15 +2362,12 @@ export default {
       // so we don't need to call it again, avoiding duplicate API calls
       await Promise.race([ asyncSleep(500), walletLoadPromise ])
 
-      this.checkVersionUpdate()
-        .catch(error => {
-          console.error('Error checking version update:', error)
-          return false
-        })
-        .then(updatePromptShown => {
-          if (updatePromptShown) return true
-          this.checkSecurityPreferenceSetup()
-        })
+      // IMPORTANT: Check for version update BEFORE backup reminder.
+      // If update dialog is shown, do not show backup reminder (avoid competing dialogs).
+      const updatePromptShown = await this.checkVersionUpdate()
+      if (!updatePromptShown) {
+        await this.checkSecurityPreferenceSetup()
+      }
 
       // Only handle notifications that were just received
       const openedNotification = this.$store.getters['notification/openedNotification']
@@ -2452,10 +2473,11 @@ export default {
       })
 
       // Check and show backup reminder alert
-      this.checkAndShowBackupAlert()
-
-      // Auto-run home tour only after backup is confirmed.
-      this._maybeAutoStartHomeTourAfterBackup()
+      if (!updatePromptShown) {
+        this.checkAndShowBackupAlert()
+        // Auto-run home tour only after backup is confirmed.
+        this._maybeAutoStartHomeTourAfterBackup()
+      }
     } catch (error) {
       console.error('Error in mounted hook:', error)
       // Ensure loading state is reset even on error

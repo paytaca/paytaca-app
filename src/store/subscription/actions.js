@@ -1,4 +1,5 @@
 import { checkLiftTokenBalance } from 'src/utils/subscription-utils'
+import limitsConfig from './limits.json'
 
 /**
  * Check subscription status by verifying LIFT token balance
@@ -26,7 +27,7 @@ export async function checkSubscriptionStatus (context, forceRefresh = false) {
   
   try {
     const balance = await checkLiftTokenBalance()
-    const minLiftTokens = context.state.minLiftTokens || 100
+    const minLiftTokens = context.state.minLiftTokens || limitsConfig.minLiftTokens
     const isPlus = balance >= minLiftTokens
     
     context.commit('setSubscriptionStatus', {

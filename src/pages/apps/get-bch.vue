@@ -32,7 +32,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="img:cashin.svg" size="3em" />
+                <q-icon name="payments" size="3em" color="primary" />
               </div>
             </div>
             <div class="col">

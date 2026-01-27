@@ -5,30 +5,30 @@
     :class="getDarkModeClass(darkMode)"
   >
     <q-card class="q-dialog-plugin upgrade-prompt-dialog text-bow" :class="getDarkModeClass(darkMode)">
-      <!-- Header with icon and close button -->
+      <!-- Header -->
       <q-card-section class="dialog-header q-pa-lg">
         <div class="row items-center justify-between q-mb-md">
           <div class="upgrade-icon-container">
             <q-icon name="workspace_premium" color="amber" size="32px" class="upgrade-icon" />
           </div>
-          <q-btn 
-            icon="close" 
-            flat 
-            round 
-            dense 
+          <q-btn
+            icon="close"
+            flat
+            round
+            dense
             v-close-popup
             class="close-button"
             :class="darkMode ? 'close-button-dark' : 'close-button-light'"
           />
         </div>
         <div class="text-h5 text-weight-bold q-mt-sm" :class="darkMode ? 'text-white' : 'text-grey-9'">
-          {{ $t('UpgradeToPaytacaPlus', {}, 'Upgrade to Paytaca Plus') }}
+          {{ $t('PaytacaMaxComingSoon', {}, 'Paytaca Max (coming soon)') }}
         </div>
       </q-card-section>
 
       <!-- Content -->
       <q-card-section class="dialog-content q-px-lg q-pt-lg q-pb-lg">
-        <div class="text-body1 q-mb-md q-mt-md" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
+        <div class="text-body1 q-mb-md" :class="darkMode ? 'text-grey-3' : 'text-grey-8'">
           {{ contextualMessage }}
         </div>
       </q-card-section>
@@ -37,10 +37,10 @@
       <q-card-actions class="dialog-actions q-pa-lg q-pt-none">
         <q-btn
           unelevated
-          :label="$t('LearnMore', {}, 'Learn More')"
+          :label="$t('OK', {}, 'OK')"
           color="pt-primary1"
           class="learn-more-button"
-          @click="navigateToSubscriptionDetails"
+          @click="onDialogOK()"
         />
       </q-card-actions>
     </q-card>
@@ -49,7 +49,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useDialogPluginComponent } from 'quasar'
@@ -65,36 +64,46 @@ defineEmits([
 ])
 
 const { dialogRef, onDialogOK } = useDialogPluginComponent()
-const router = useRouter()
 const store = useStore()
 const { t: $t } = useI18n()
 
-const freeLimit = computed(() => store.state.subscription.limits.free)
-
-const contextualMessage = computed(() => {
-  const merchantCount = Number(freeLimit.value?.merchants ?? 0)
-  const merchantLabel = merchantCount === 1
-    ? $t('MerchantLower', {}, 'merchant')
-    : $t('MerchantsLower', {}, 'merchants')
-
-  const messages = {
-    wallets: $t('WalletLimitReached', { free: freeLimit.value.wallets }, `You've reached the limit of ${freeLimit.value.wallets} wallets. Upgrade to Paytaca Plus to create more wallets.`),
-    multisigWallets: $t('MultisigWalletLimitReached', { free: freeLimit.value.multisigWallets }, `You've reached the limit of ${freeLimit.value.multisigWallets} multisig wallets. Upgrade to Paytaca Plus to create more multisig wallets.`),
-    unclaimedGifts: $t('UnclaimedGiftsLimitReached', { free: freeLimit.value.unclaimedGifts }, `You've reached the limit of ${freeLimit.value.unclaimedGifts} unclaimed gifts. Upgrade to Paytaca Plus to create more gifts.`),
-    favoriteTokens: $t('FavoriteTokensLimitReached', { free: freeLimit.value.favoriteTokens }, `You've reached the limit of ${freeLimit.value.favoriteTokens} favorite tokens. Upgrade to Paytaca Plus to add more favorites.`),
-    merchants: $t(
-      'MerchantsLimitReached',
-      { free: merchantCount, merchantLabel },
-      `You've reached the limit of ${merchantCount} ${merchantLabel} per wallet. Upgrade to Paytaca Plus to add more merchants.`
-    )
-  }
-  return messages[props.limitType] || $t('ExceededFreeTierLimits', {}, 'You have exceeded the limits of the Free tier. Upgrade to Paytaca Plus to unlock higher limits and special features.')
+const plusLimit = computed(() => {
+  const key = props.limitType
+  if (!key) return null
+  const value = store.state?.subscription?.limits?.plus?.[key]
+  return Number.isFinite(Number(value)) ? Number(value) : null
 })
 
-const navigateToSubscriptionDetails = () => {
-  onDialogOK()
-  router.push({ name: 'app-subscription-details' })
-}
+const limitLabel = computed(() => {
+  const key = props.limitType
+  const labels = {
+    wallets: $t('Wallets', {}, 'Wallets'),
+    favoriteTokens: $t('FavoriteTokens', {}, 'Favorite tokens'),
+    multisigWallets: $t('MultisigWallets', {}, 'Multisig wallets'),
+    unclaimedGifts: $t('UnclaimedGifts', {}, 'Unclaimed gifts'),
+    merchants: $t('Merchants', {}, 'Merchants')
+  }
+  return labels[key] || $t('ThisFeature', {}, 'this feature')
+})
+
+const contextualMessage = computed(() => {
+  const limit = plusLimit.value
+  const label = limitLabel.value
+
+  if (limit != null) {
+    return $t(
+      'MaxPlanLimitReachedWithCount',
+      { limit, label },
+      `You've reached the Paytaca Plus limit of ${limit} for ${label}. Paytaca Max will be available in the future with much higher limits.`
+    )
+  }
+
+  return $t(
+    'MaxPlanLimitReached',
+    { label },
+    `You've reached the Paytaca Plus limit for ${label}. Paytaca Max will be available in the future with much higher limits.`
+  )
+})
 </script>
 
 <style scoped>
@@ -153,7 +162,7 @@ const navigateToSubscriptionDetails = () => {
 }
 
 .dialog-content {
-  padding-top: 32px;
+  padding-top: 24px;
 }
 
 .dialog-actions {
@@ -174,16 +183,6 @@ const navigateToSubscriptionDetails = () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
   transition: all 0.2s ease;
-}
-
-/* Dark mode adjustments */
-.upgrade-prompt-dialog.dark .dialog-header {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 193, 7, 0.08) 100%);
-}
-
-.upgrade-prompt-dialog.dark .upgrade-icon-container {
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.25) 0%, rgba(255, 193, 7, 0.12) 100%);
-  border-color: rgba(255, 193, 7, 0.4);
 }
 </style>
 

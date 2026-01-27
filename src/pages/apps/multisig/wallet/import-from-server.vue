@@ -1,6 +1,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
+    class="multisig-app"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >

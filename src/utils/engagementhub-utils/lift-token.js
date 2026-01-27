@@ -1,16 +1,17 @@
-import { cashAddressToLockingBytecode, hexToBin } from "@bitauth/libauth"
-import { hash256 } from '@cashscript/utils'
+import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
-import { HashType, SignatureTemplate } from "cashscript"
-import { createSighashPreimage, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils"
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
+import { Contract, ElectrumNetworkProvider } from "cashscript"
 
 import axios from 'axios'
+import BCHJS from "@psf/bch-js";
 import Watchtower from "watchtower-cash-js"
 
 
+import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContract.json'
+
+const bchjs = new BCHJS();
 const watchtower = new Watchtower(false)
-const btcGenesisBlock = 1231006505;
 
 export const SaleGroup = {
   SEED: 'seed',
@@ -32,50 +33,25 @@ const ORACLE_PUBKEY =
 const ORACLE_RELAY = process.env.ORACLE_RELAY || "oracles.generalprotocols.com";
 
 // ================================
-// Promise functions
+// Contract functions
 // ================================
 
-export async function generateSignature(txId, wif) {
-  const tx = await watchtower.BCH._api
-    .post(`transactions/${txId}`)
-    .then(resp => {
-      return resp.data.details
-    })
+export function initializeVestingContract(buyerPubkey, liftTokenId, adminPubkey, lockupEnd, amount) {
+  const provider = new ElectrumNetworkProvider('mainnet')
+  const contractParams = [
+    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')), // buyer pubkey hash
+    changeEndianness(liftTokenId), // LIFT token ID
+    adminPubkey, // admin pubkey
+    BigInt(convertDateToBlockHeight(lockupEnd)), // lockup end
+    BigInt(amount), // total LIFT tokens purchased
+  ]
 
-  const locktime = Math.floor((tx.timestamp - btcGenesisBlock) / 600);
-  const utxoLockingBytecode = cashAddressToLockingBytecode(tx.inputs[0].address)
-
-  const transaction = {
-    version: 2,
-    locktime,
-    inputs: [{
-      outpointIndex: tx.inputs[0].spent_index,
-      outpointTransactionHash: hexToBin(txId),
-      sequenceNumber: 0xfffffffe,
-      unlockingBytecode: new Uint8Array(),
-    }],
-    outputs: [{
-      lockingBytecode: utxoLockingBytecode,
-      valueSatoshis: 1000n
-    }]
-  }
-  const sourceOutputs = [{
-    lockingBytecode: utxoLockingBytecode,
-    valueSatoshis: BigInt(tx.outputs[0].value),
-  }]
-
-  const sigHashType = HashType.SIGHASH_SINGLE | HashType.SIGHASH_ANYONECANPAY // 0x83
-  const signatureTemplate = new SignatureTemplate(wif, sigHashType)
-
-  const signature = generateP2PKHSig({
-    template: signatureTemplate,
-    transaction,
-    inputIndex: 0,
-    sourceOutputs,
-  })
-
-  return Buffer.from(signature).toString('hex')
+  return new Contract(VestingContractArtifact, contractParams, { provider })
 }
+
+// ================================
+// Promise functions
+// ================================
 
 export async function getAddressPath(address) {
   return await watchtower.BCH._api
@@ -106,34 +82,52 @@ export async function getOracleData() {
 }
 
 // ================================
-// non-Promise functions
+// Non-promise functions
 // ================================
 
 /**
- * @param {Object} params
- * @param {SignatureTemplate} params.template
- * @param {Number} params.inputIndex
- * @param {import("@bitauth/libauth").TransactionBCH} params.transaction
- * @param {import("@bitauth/libauth").Output[]} params.sourceOutputs
- * @param {Boolean} [params.includeSignature]
+ * Swaps the endian-ness (byte order) of the string,
+ * since the contract uses the reversed order.
+ * From https://stackoverflow.com/a/47668549.
+ * @param {string} string the string to be reversed
+ * @returns the swapped string
  */
-export function generateP2PKHSig(params) {
-  const template = params?.template
-  const transaction = params?.transaction
-  const sourceOutputs = params?.sourceOutputs
-  const inputIndex = params?.inputIndex
+export function changeEndianness(string) {
+  const result = [];
+  let len = string.length - 2;
+  while (len >= 0) {
+    result.push(string.substring(len, len + 2));
+    len -= 2;
+  }
+  return result.join("");
+}
 
-  const pubkey = template.getPublicKey();
-  const prevOutScript = publicKeyToP2PKHLockingBytecode(pubkey);
-  const hashtype = template.getHashType();
-  const preimage = createSighashPreimage(transaction, sourceOutputs, inputIndex, prevOutScript, hashtype);
-  const sighash = hash256(preimage);
+/**
+ * Convert the target date to equivalent block height. The date will first
+ * be converted to an integer timestamp, then it will be converted to
+ * block height. The value used for the blocks per second is only an
+ * average, since block times are inconsistent. This is done because using
+ * block height in the contract is more accurate than age.
+ * @param {number | string | Date} date the target date to be converted
+ * @returns the converted date
+ */
+export function convertDateToBlockHeight(date) {
+  // BTC Genesis Block | January 03 2009, 18:15:05 UTC
+  const btcGenesisBlock = 1231006505;
+  const dateTimestamp = Math.floor(new Date(date).getTime() / 1000);
 
-  return template.generateSignature(sighash);
+  if (dateTimestamp < btcGenesisBlock) {
+    throw new Error(
+      "Date stamp cannot be before the date of BTC genesis block."
+    );
+  }
+
+  const secondsSinceGenesis = dateTimestamp - btcGenesisBlock;
+  return Math.floor(secondsSinceGenesis / 600);
 }
 
 // ================================
-// functions with calls to engagement hub
+// Functions with calls to engagement hub
 // ================================
 
 export async function getReservationsData() {
@@ -185,4 +179,14 @@ export async function confirmReservationApi(data) {
     .post('reservation/confirm_reservation/', data)
     .then(response => { return response.status === 200 })
     .catch(_error => { return false })
+}
+
+export async function getIdAndPubkeyApi() {
+  return await LIFTTOKEN_URL
+    .get('purchase/get_id_and_pubkey/')
+    .then(response => {
+      if (response.status === 200) return response.data
+      return null
+    })
+    .catch(_error => { return null } )
 }

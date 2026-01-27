@@ -27,7 +27,7 @@
                   {{ $t('PaytacaFree', {}, 'Paytaca Free') }}
                 </div>
                 <div class="tier-description text-body2" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-                  {{ $t('FreeTierDescription', {}, 'Perfect for getting started. Create up to 3 wallets, add 7 favorite tokens, and manage 3 multisig wallets per device.') }}
+                  {{ freeTierDescription }}
                 </div>
               </div>
             </div>
@@ -73,7 +73,7 @@
                   {{ $t('PaytacaPlus', {}, 'Paytaca Plus') }}
                 </div>
                 <div class="tier-description text-body2" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-                  {{ $t('PlusTierDescription', {}, 'Unlock higher limits and enhanced capabilities. Create up to 12 wallets, add 24 favorite tokens, manage 12 multisig wallets, and more.') }}
+                  {{ plusTierDescription }}
                 </div>
               </div>
             </div>
@@ -94,7 +94,7 @@
             </div>
             <div v-if="!isPlus" class="tier-upgrade-section q-pa-lg q-pt-md">
               <div class="upgrade-text text-body2 q-mb-md text-center" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
-                {{ $t('UpgradeByHoldingLift', {}, 'Upgrade by holding at least 100 LIFT tokens in your wallet.') }}
+                {{ $t('UpgradeByHoldingLift', { count: minLiftTokens }, `Upgrade by holding at least ${minLiftTokens} LIFT tokens in your wallet.`) }}
               </div>
               <q-btn
                 unelevated
@@ -135,6 +135,33 @@ export default {
     const isPlus = computed(() => store.getters['subscription/isPlusSubscriber'])
     const freeLimits = computed(() => store.state.subscription.limits.free)
     const plusLimits = computed(() => store.state.subscription.limits.plus)
+    const minLiftTokens = computed(() => store.getters['subscription/getMinLiftTokens'])
+
+    const freeTierDescription = computed(() => {
+      const free = freeLimits.value || {}
+      return $t(
+        'FreeTierDescription',
+        {
+          wallets: free.wallets,
+          favoriteTokens: free.favoriteTokens,
+          multisigWallets: free.multisigWallets,
+        },
+        `Perfect for getting started. Create up to ${free.wallets} wallets, add ${free.favoriteTokens} favorite tokens, and manage ${free.multisigWallets} multisig wallets per device.`
+      )
+    })
+
+    const plusTierDescription = computed(() => {
+      const plus = plusLimits.value || {}
+      return $t(
+        'PlusTierDescription',
+        {
+          wallets: plus.wallets,
+          favoriteTokens: plus.favoriteTokens,
+          multisigWallets: plus.multisigWallets,
+        },
+        `Unlock higher limits and enhanced capabilities. Create up to ${plus.wallets} wallets, add ${plus.favoriteTokens} favorite tokens, manage ${plus.multisigWallets} multisig wallets, and more.`
+      )
+    })
     
     const getLimitLabel = (key) => {
       const labels = {
@@ -163,7 +190,7 @@ export default {
         name: 'app-cauldron',
         query: {
           selectTokenId: LIFT_TOKEN_CATEGORY,
-          amount: 100
+          amount: minLiftTokens.value
         }
       })
     }
@@ -173,6 +200,9 @@ export default {
       isPlus,
       freeLimits,
       plusLimits,
+      minLiftTokens,
+      freeTierDescription,
+      plusTierDescription,
       getLimitLabel,
       getLimitScope,
       navigateToCauldron,

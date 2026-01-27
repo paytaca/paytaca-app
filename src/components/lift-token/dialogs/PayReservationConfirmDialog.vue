@@ -79,7 +79,6 @@ import {
 } from "src/utils/denomination-utils";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
-  generateSignature,
   getAddressPath,
   processPurchaseApi,
 } from "src/utils/engagementhub-utils/lift-token";
@@ -232,8 +231,6 @@ export default {
         const addressPath = await getAddressPath(buyerAddress)
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
-        const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
-        const signature = await generateSignature(result.txid, wif)
         const satsWithFee = Math.floor(this.purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
         const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
@@ -244,7 +241,6 @@ export default {
           purchased_amount_sats: satsWithFee,
           current_date: new Date().toISOString(),
           tx_id: result.txid,
-          buyer_sig: signature,
           buyer_token_address: tokenAddress,
           buyer_tx_address: buyerAddress,
           reservation: this.rsvp.id,

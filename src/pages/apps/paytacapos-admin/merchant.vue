@@ -424,7 +424,7 @@ import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const bchjs = new BCHJS()
 
@@ -433,13 +433,39 @@ const bchjs = new BCHJS()
 // })
 
 const $router = useRouter()
+const $route = useRoute()
 const $store = useStore()
 const $q = useQuasar()
 const $t = useI18n().t
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const confirm = ref(false)
 const walletType = 'bch'
-const merchantId = JSON.parse(history.state.merchantId)
+
+function safeMerchantId () {
+  const fromQuery = $route?.query?.merchantId
+  if (fromQuery !== undefined && fromQuery !== null && String(fromQuery).length) {
+    const n = Number(fromQuery)
+    return Number.isFinite(n) ? n : NaN
+  }
+
+  // Backwards-compat: older navigation used history.state
+  const fromState = history?.state?.merchantId
+  if (fromState === undefined || fromState === null) return NaN
+  try {
+    const parsed = typeof fromState === 'string' ? JSON.parse(fromState) : fromState
+    const n = Number(parsed)
+    return Number.isFinite(n) ? n : NaN
+  } catch (_) {
+    const n = Number(fromState)
+    return Number.isFinite(n) ? n : NaN
+  }
+}
+
+const merchantId = safeMerchantId()
+if (!Number.isFinite(merchantId)) {
+  // If we don't have an ID, go back to the merchants list.
+  $router.replace({ name: 'app-pos-admin' })
+}
 const walletData = computed(() => {
   const _walletData = $store.getters['global/getWallet'](walletType)
   // extract necessary data
@@ -542,10 +568,20 @@ async function fetchAcceptedTokens() {
   fetchingAcceptedTokens.value = true
   return marketplaceBackend.get(`merchants/watchtower/accepted_tokens/`, { params })
     .then(response => {
-      const data = response.data?.find?.(record => record?.watchtower_merchant_id == merchantId)
-      if (!data || !Array.isArray(data?.accepted_tokens)) return Promise.reject({ response })
-      merchantAcceptedTokens.value = data.accepted_tokens.map(FungibleCashToken.parse);
+      const list = Array.isArray(response?.data)
+        ? response.data
+        : (Array.isArray(response?.data?.results) ? response.data.results : [])
+
+      const data = list.find?.(record => record?.watchtower_merchant_id == merchantId)
+      const accepted = Array.isArray(data?.accepted_tokens) ? data.accepted_tokens : []
+      merchantAcceptedTokens.value = accepted.map(FungibleCashToken.parse)
       return response
+    })
+    .catch(error => {
+      console.error('fetchAcceptedTokens error:', error)
+      // Treat failure/empty response as "no accepted tokens" instead of crashing the page.
+      merchantAcceptedTokens.value = []
+      return null
     })
     .finally(() => {
       fetchingAcceptedTokens.value = false
@@ -1207,12 +1243,17 @@ async function refreshPage(done=() => {}) {
         reLogin({ silent: true })
       })
 
-    await Promise.all([
-      fetchAcceptedTokens(),
-      fetchPosDevices(),
-      fetchBranches(),
-      checkCashoutAvailability(),
-    ])
+    try {
+      await Promise.all([
+        fetchAcceptedTokens(),
+        fetchPosDevices(),
+        fetchBranches(),
+        checkCashoutAvailability(),
+      ])
+    } catch (error) {
+      console.error('merchant refreshPage error:', error)
+      // Avoid throwing an object into the global error handler.
+    }
   } finally {
     done?.()
   }

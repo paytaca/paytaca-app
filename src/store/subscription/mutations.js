@@ -1,3 +1,5 @@
+import limitsConfig from './limits.json'
+
 export function setSubscriptionStatus (state, { isPlus, liftTokenBalance }) {
   if (!state) {
     console.error('Subscription state is undefined in setSubscriptionStatus')
@@ -37,12 +39,12 @@ export function setLiftTokenBalance (state, balance) {
     state.lastChecked = null
   }
   if (typeof state.minLiftTokens === 'undefined') {
-    state.minLiftTokens = 100
+    state.minLiftTokens = limitsConfig.minLiftTokens
   }
   
   state.liftTokenBalance = balance || 0
   // Update isPlus status based on balance
-  const minLiftTokens = state.minLiftTokens || 100
+  const minLiftTokens = state.minLiftTokens || limitsConfig.minLiftTokens
   state.isPlus = balance >= minLiftTokens
   state.lastChecked = Date.now()
 }
