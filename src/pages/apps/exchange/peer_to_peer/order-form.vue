@@ -1,5 +1,21 @@
 <template>
-  <HeaderNav :title="`P2P Ramp`" :backnavpath="'/apps/exchange/peer-to-peer/store'" class="header-nav" />
+  <HeaderNav :title="`P2P Ramp`" :backnavpath="'/apps/exchange/peer-to-peer/store'" class="header-nav">
+    <template #top-right-menu>
+      <q-btn
+        v-if="adShareLinkEnabled !== false && ad?.id"
+        :color="darkMode ? 'white' : 'grey-6'"
+        class="q-mr-sm"
+        padding="0"
+        round
+        flat
+        dense
+        size="1em"
+        icon="share"
+        aria-label="Share ad"
+        @click="openShareDialog()"
+      />
+    </template>
+  </HeaderNav>
   <q-pull-to-refresh @refresh="loadData">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
@@ -41,7 +57,6 @@
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
             {{ ad.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
           </div>
-          <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
             <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
