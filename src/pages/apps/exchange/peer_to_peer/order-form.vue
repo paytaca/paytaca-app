@@ -596,7 +596,12 @@ export default {
       this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
-      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}/`, { authorize: true })
+      const adId = this.$route?.params?.ad
+      if (!adId) {
+        console.warn('Ad ID is missing, skipping fetchAd')
+        return
+      }
+      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true })
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {

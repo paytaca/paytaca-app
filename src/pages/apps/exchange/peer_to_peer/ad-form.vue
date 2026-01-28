@@ -704,7 +704,12 @@ export default {
     },
     async fetchAd () {
       const vm = this
-      await backend.get(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, { authorize: true })
+      const adId = vm.$route?.params?.ad
+      if (!adId) {
+        console.warn('Ad ID is missing, skipping fetchAd')
+        return
+      }
+      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true })
         .then(response => {
           const data = response.data
           vm.adData.tradeType = data.trade_type
@@ -768,7 +773,12 @@ export default {
     async updateAd () {
       const vm = this
       const body = vm.transformPostData(false)
-      await backend.put(`/ramp-p2p/ad/${vm.$route.params?.ad}/`, body, { authorize: true })
+      const adId = vm.$route?.params?.ad
+      if (!adId) {
+        console.warn('Ad ID is missing, skipping updateAd')
+        return
+      }
+      await backend.put(`/ramp-p2p/ad/${adId}/`, body, { authorize: true })
         .then(() => {
           vm.swipeStatus = true
         })
