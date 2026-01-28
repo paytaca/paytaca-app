@@ -113,6 +113,34 @@
                   <span class="col text-left text-weight-bold text-h6">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
                   <span :class="isBlinking ? 'blink market-price': 'market-price'" class="col text-right text-h6 text-weight-bold">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(marketPrice).replace(/[^\d.,-]/g, '') }}</span>
                 </div>
+                <q-banner
+                  v-if="showPriceDeviationWarning"
+                  class="q-mt-sm price-deviation-warning"
+                  :class="darkMode ? 'dark' : 'light'"
+                  rounded
+                >
+                  <template v-slot:avatar>
+                    <q-icon name="warning" color="orange" />
+                  </template>
+                  <div class="text-weight-medium">
+                    {{
+                      $t(
+                        'PriceDeviationWarningTitle',
+                        { pct: absPriceDeviationPct, direction: priceDeviationDirectionLabel },
+                        `Your price is ${absPriceDeviationPct}% ${priceDeviationDirectionLabel} the market price.`
+                      )
+                    }}
+                  </div>
+                  <div class="text-caption">
+                    {{
+                      $t(
+                        'PriceDeviationWarningBody',
+                        {},
+                        'Correct the pricing, or ignore this warning if you know what you are doing.'
+                      )
+                    }}
+                  </div>
+                </q-banner>
               </div>
             </div>
 
@@ -607,6 +635,29 @@ export default {
       // data.isTradeAmountFiat = this.setTradeQuantityInFiat
       data.isTradeLimitsFiat = this.setTradeLimitsInFiat
       return data
+    },
+    priceDeviationPct () {
+      const market = Number(this.marketPrice)
+      const yourPrice = Number(this.priceAmount)
+      if (!Number.isFinite(market) || market <= 0) return null
+      if (!Number.isFinite(yourPrice) || yourPrice <= 0) return null
+      return ((yourPrice - market) / market) * 100
+    },
+    absPriceDeviationPct () {
+      if (!Number.isFinite(this.priceDeviationPct)) return null
+      return Number(Math.abs(this.priceDeviationPct).toFixed(1))
+    },
+    priceDeviationDirectionLabel () {
+      if (!Number.isFinite(this.priceDeviationPct)) return ''
+      if (this.priceDeviationPct > 0) return this.$t('Above', {}, 'above')
+      if (this.priceDeviationPct < 0) return this.$t('Below', {}, 'below')
+      return this.$t('EqualTo', {}, 'equal to')
+    },
+    showPriceDeviationWarning () {
+      // Only warn on create flow, not edit.
+      if (this.adsState !== 'create') return false
+      if (!Number.isFinite(this.absPriceDeviationPct)) return false
+      return this.absPriceDeviationPct >= 5
     }
   },
     async mounted () {
@@ -1256,6 +1307,23 @@ export default {
   
   &.light {
     background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
+  }
+}
+
+.price-deviation-warning {
+  border-left: 4px solid #ff9800;
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: 1.3;
+
+  &.dark {
+    background: rgba(255, 152, 0, 0.14);
+    border: 1px solid rgba(255, 193, 7, 0.18);
+  }
+
+  &.light {
+    background: rgba(255, 152, 0, 0.10);
+    border: 1px solid rgba(255, 193, 7, 0.22);
   }
 }
 
