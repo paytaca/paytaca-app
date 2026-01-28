@@ -5,12 +5,27 @@ import { convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 const denomDecimalPlaces = {
   BCH: { convert: 1, decimal: 8 },
   mBCH: { convert: 10 ** 3, decimal: 5 },
-  Satoshis: { convert: 10 ** 8, decimal: 0 },
+  sats: { convert: 10 ** 8, decimal: 0 },
   DEEM: { convert: 10 ** 5, decimal: 0 }
 }
 
+export function normalizeDenomination (denomination) {
+  if (!denomination) return denomination
+  if (denomination === 'Satoshis') return 'sats'
+  // Be forgiving in case old values are stored with different casing
+  if (typeof denomination === 'string' && denomination.toLowerCase() === 'satoshis') return 'sats'
+  return denomination
+}
+
+export function getDenominationDisplayLabel (denomination) {
+  const normalized = normalizeDenomination(denomination)
+  if (normalized === 'sats') return 'sats'
+  return normalized
+}
+
 export function getDenomDecimals(denomination) {
-  return denomDecimalPlaces[denomination] ?? denomDecimalPlaces.DEEM
+  const normalized = normalizeDenomination(denomination)
+  return denomDecimalPlaces[normalized] ?? denomDecimalPlaces.DEEM
 }
 
 function getCountryCode () {
@@ -105,7 +120,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     }
     newBalance = formatWithLocale(calculatedBalance, { max: decimal })
     if (subStringMax > 0) newBalance = newBalance.substring(0, subStringMax)
-    symbol = denomination
+    symbol = getDenominationDisplayLabel(denomination)
   } else {
     const isSLP = asset.id?.startsWith('slp/')
     const rawConverted = parseFloat(
@@ -141,8 +156,9 @@ export function parseFiatCurrency (amount, currency) {
 }
 
 export function convertToBCH (denomination, amount) {
-  const { convert } = getDenomDecimals(denomination)
-  return denomination === 'BCH' ? amount : (amount / convert).toFixed(8)
+  const normalized = normalizeDenomination(denomination)
+  const { convert } = getDenomDecimals(normalized)
+  return normalized === 'BCH' ? amount : (amount / convert).toFixed(8)
 }
 
 /**

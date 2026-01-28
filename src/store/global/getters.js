@@ -314,7 +314,9 @@ export function getConnectedSites (state) {
 }
 
 export function denomination (state) {
-  return state.denomination
+  // Backward-compat: older wallets may still have 'Satoshis' stored.
+  // Canonical UI/value moving forward is 'sats'.
+  return state.denomination === 'Satoshis' ? 'sats' : state.denomination
 }
 
 export function walletAddresses (state) {

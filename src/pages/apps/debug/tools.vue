@@ -1,103 +1,16 @@
 <template>
   <div id="app-container" class="debug-page sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="$t('Tools', {}, 'Tools')"
+      :title="$t('AddressKeyViewer', {}, 'Address Key Viewer')"
       backnavpath="/apps/debug"
       class="header-nav q-px-sm apps-header"
     />
 
     <div class="q-pa-md q-mt-sm">
-      <!-- Enable SLP Toggle -->
-      <div class="q-mb-md">
-        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
-          <q-card-section>
-            <div class="row items-center justify-between">
-              <div class="col">
-                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
-                  {{ $t('EnableSlp') }}
-                </div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                  {{ $t('EnableSlpToolTip', {}, 'Enable SLP token support') }}
-                </div>
-              </div>
-              <q-toggle
-                v-model="enableSLP"
-                :color="toggleColor"
-                keep-color
-              />
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- BCH Denomination Selector -->
-      <div class="q-mb-md">
-        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
-          <q-card-section>
-            <div class="row items-center justify-between">
-              <div class="col">
-                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
-                  {{ $t('SelectBCHDenomination') }}
-                </div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                  {{ $t('SelectBCHDenominationToolTip', {}, 'Choose how BCH amounts are displayed') }}
-                </div>
-              </div>
-              <div class="q-ml-md">
-                <DenominatorSelector :darkMode="darkMode" />
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- Auto Generate Address Toggle -->
-      <div class="q-mb-md">
-        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
-          <q-card-section>
-            <div class="row items-center justify-between">
-              <div class="col">
-                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
-                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
-                </div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
-                </div>
-              </div>
-              <q-toggle
-                v-model="autoGenerateAddress"
-                :color="toggleColor"
-                keep-color
-              />
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- Sound Test Button -->
-      <div class="q-mb-md">
-        <q-btn
-          color="primary"
-          :label="$t('TestSound', {}, 'Test Sound')"
-          icon="volume_up"
-          @click="testSound"
-          :loading="testingSound"
-          class="full-width"
-        />
-      </div>
-
-      <div class="q-mb-md">
-        <div class="text-center">Check security test</div>
-        <DragSlide text="Test" disable-absolute-bottom @swiped="onSwipe"/>
-      </div>
-
       <!-- Address Key Viewer -->
       <div class="q-mb-md">
         <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
-            <div class="text-subtitle1 text-weight-medium text-bow q-mb-md" :class="getDarkModeClass(darkMode)">
-              {{ $t('AddressKeyViewer', {}, 'Address Key Viewer') }}
-            </div>
             <div class="text-caption q-mb-md" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
               {{ $t('AddressKeyViewerToolTip', {}, 'View public and private keys for wallet addresses') }}
             </div>
@@ -230,11 +143,6 @@
 <script>
 import headerNav from 'src/components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { NativeAudio } from '@capacitor-community/native-audio'
-import { Capacitor } from '@capacitor/core'
-import DenominatorSelector from 'src/components/settings/DenominatorSelector'
-import SecurityCheckDialog from "src/components/SecurityCheckDialog.vue"
-import DragSlide from "src/components/drag-slide.vue"
 import { wifToPubkey } from 'src/utils/crypto'
 import { loadLibauthHdWallet } from 'src/wallet'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
@@ -245,14 +153,9 @@ export default {
   name: 'DebugTools',
   components: {
     headerNav,
-    DenominatorSelector,
-    DragSlide
   },
   data () {
     return {
-      testingSound: false,
-      enableSLP: this.$store.getters['global/enableSLP'],
-      autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
       addressPublicKey: null,
       addressPrivateKey: null,
       showPrivateKey: false,
@@ -274,12 +177,6 @@ export default {
     }
   },
   watch: {
-    enableSLP (n, o) {
-      this.$store.commit('global/enableSLP')
-    },
-    autoGenerateAddress (n, o) {
-      this.$store.commit('global/toggleAutoGenerateAddress')
-    }
   },
   methods: {
     getDarkModeClass,
@@ -458,99 +355,6 @@ export default {
         })
       }
     },
-    onSwipe(reset = () => {}) {
-      this.$q.dialog({
-        component: SecurityCheckDialog,
-      }).onOk(() => {
-        this.$q.notify({ type: 'positive', message: 'Success!' })
-      }).onCancel(() => {
-        this.$q.notify({ message: 'Cancelled' })
-      }).onDismiss(() => reset())
-    },
-    async testSound () {
-      this.testingSound = true
-      
-      try {
-        try {
-          await NativeAudio.unload({
-            assetId: 'send-success'
-          })
-        } catch (unloadError) {
-          // Ignore errors if asset doesn't exist yet
-        }
-
-        let paths = []
-        if (this.$q.platform.is.ios) {
-          paths = [
-            'assets/sounds/send-success.mp3',
-            'send-success.mp3',
-            ...(typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc ? [
-              Capacitor.convertFileSrc('assets/sounds/send-success.mp3'),
-              Capacitor.convertFileSrc('/assets/sounds/send-success.mp3')
-            ] : [])
-          ]
-        } else {
-          paths = ['send-success.mp3']
-        }
-
-        let preloaded = false
-        let lastError = null
-        
-        for (const path of paths) {
-          if (!path || typeof path !== 'string' || path.trim() === '') {
-            continue
-          }
-          
-          try {
-            const isUrl = path.startsWith('http') || path.startsWith('https') || 
-                        path.startsWith('capacitor') || path.startsWith('file://')
-            
-            const preloadPromise = NativeAudio.preload({
-              assetId: 'send-success',
-              assetPath: path,
-              audioChannelNum: 1,
-              volume: 1.0,
-              isUrl: isUrl
-            })
-            
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Preload timeout')), 5000)
-            })
-            
-            await Promise.race([preloadPromise, timeoutPromise])
-            
-            preloaded = true
-            break
-          } catch (error) {
-            lastError = error
-          }
-        }
-
-        if (!preloaded) {
-          const errorMsg = lastError?.message || 'Unknown error'
-          throw new Error(`Failed to preload audio with any path. Last error: ${errorMsg}`)
-        }
-
-        await NativeAudio.play({
-          assetId: 'send-success'
-        })
-        
-        this.$q.notify({
-          type: 'positive',
-          message: this.$t('SoundPlayedSuccessfully', {}, 'Sound played successfully!'),
-          timeout: 2000
-        })
-      } catch (error) {
-        console.error('Sound test failed:', error)
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('SoundTestFailed', {}, 'Sound test failed'),
-          timeout: 3000
-        })
-      } finally {
-        this.testingSound = false
-      }
-    }
   },
   async mounted () {
     // No initialization needed for address key viewer
