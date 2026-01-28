@@ -75,7 +75,7 @@
               <div class="col text-white" @click="selectBch" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
                 <q-card id="bch-card" data-tour="bch-card">
                   <q-card-section horizontal>
-                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px; min-height: 80px;">
+                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px; min-height: 80px; min-width: 0;">
                       <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
                         <div>
                           <q-skeleton type="rect" width="120px" height="24px" class="q-mb-xs" />
@@ -88,18 +88,18 @@
                       <div v-else style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
                         <div>
                           <p class="q-mb-none">
-                            <span ellipsis class="text-h5" >
+                            <span class="text-h5 bch-balance-text">
                               {{ bchBalanceText }}
                             </span>
                           </p>
-                          <div v-if="getAssetMarketBalance(bchAsset)">
+                          <div v-if="getAssetMarketBalance(bchAsset)" class="bch-fiat-text">
                             {{ getAssetMarketBalance(bchAsset) }}
                           </div>
                           <div v-else-if="loadingBchPrice" class="row justify-start">
                             <q-skeleton type="rect" width="100px" height="16px" />
                           </div>
                         </div>
-                        <div>
+                        <div class="bch-card-controls row items-center no-wrap">
                           <div @click.stop style="display: inline-block;">
                             <q-select
                               :model-value="bchBalanceMode"
@@ -135,7 +135,7 @@
                         </div>
                       </div>
                     </q-card-section>
-                    <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
+                    <q-card-section class="col-auto flex items-center justify-end bch-card-icon" style="padding: 10px 16px; height: 100%;">
                       <img
                         :src="denominationTabSelected === $t('DEEM') ? 'assets/img/theme/payhero/deem-logo.png' : 'bch-logo.png'"
                         alt=""
@@ -2572,6 +2572,72 @@ export default {
     .bch-skeleton {
       height: 53px;
       width: 100%
+    }
+
+    // Prevent the BCH card from growing/overflowing when strings are long.
+    // Keep layout stable: text truncates, controls stay on one line, logo remains centered.
+    .bch-balance-text,
+    .bch-fiat-text {
+      display: block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bch-card-controls {
+      width: 100%;
+      gap: 6px;
+      justify-content: space-between;
+      min-width: 0;
+
+      // Allow the select to shrink so it doesn't push the badge or wrap.
+      > div {
+        min-width: 0;
+      }
+
+      .balance-mode-selector {
+        max-width: 170px !important;
+      }
+
+      // Force single-line selection label.
+      .balance-mode-selector .q-field__native,
+      .balance-mode-selector .q-field__native > .ellipsis {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+    }
+
+    // Responsive BCH logo sizing: shrink on tighter layouts so it doesn't crowd text.
+    // Ensure the horizontal section stretches to full card height so centering works reliably.
+    .q-card__section--horiz {
+      height: 100%;
+      align-items: stretch;
+    }
+
+    .bch-card-icon {
+      flex: 0 0 auto;
+      width: clamp(72px, 22vw, 96px);
+      min-width: 72px;
+      height: 100%;
+      align-items: center !important; // center when at max size / roomy layouts
+    }
+
+    .bch-card-icon .asset-icon {
+      // Override inline height="75px" with a responsive clamp.
+      height: clamp(52px, 18vw, 75px) !important;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      display: block; // avoid baseline alignment quirks
+    }
+
+    // When the logo begins shrinking (narrow screens), anchor it to the top.
+    @media (max-width: 420px) {
+      .bch-card-icon {
+        align-items: flex-start !important;
+      }
     }
   }
   .fixed-container {
