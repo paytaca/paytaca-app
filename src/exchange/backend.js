@@ -5,7 +5,12 @@ import { wallet } from './wallet'
 
 export const backend = axios.create()
 backend.interceptors.request.use(async (config) => {
-  config.baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''
+  let baseURL = process.env.MAINNET_WATCHTOWER_BASE_URL || 'http://localhost:8001/api'
+  if (Store.getters['global/isChipnet']) {
+    baseURL = process.env.CHIPNET_WATCHTOWER_BASE_URL || 'http://localhost:8001/api'
+  }
+  console.log('Using backend baseURL:', baseURL)
+  config.baseURL = baseURL
   const wallet = Store.getters['global/getWallet']('bch')
   config.headers['wallet-hash'] = wallet.walletHash
   if (config.authorize) {

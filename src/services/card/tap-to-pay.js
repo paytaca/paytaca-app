@@ -19,14 +19,12 @@ export class TapToPay {
     constructor (contractId) {
         this.contractId = contractId;
         const contract = MainnetContract.fromId(contractId);
-        console.log('Loaded contract:', contract);
-        console.log('Contract parameters raw:', contract.parameters);
+
         const parameters = [];
         contract.parameters.forEach((param) => {
             parameters.push(Buffer(param).toString('hex'));
         })
 
-        console.log('Contract parameters:', parameters);
         this.params = {
             ownerPkh: parameters[0],
             backendPkh: parameters[1],
@@ -230,17 +228,21 @@ export class TapToPay {
             const mutxo = utxosToMutate.find(utxo => {
                 const commitment = utxo.token?.nft?.commitment
                 const { hash } = decodeCommitment(commitment)
+                
                 return merchantHash === hash
             })
 
-            // Encode the new commitment
-            const newCommitment = encodeCommitment({
+            const currCommitment = decodeCommitment(mutxo.token.nft.commitment)
+            const newCommitmentData = {
                 authorized: mutation.authorized,
-                expirationBlock: mutation.expirationBlock,
-                spendLimitSats: mutation.spendLimitSats,
+                expirationBlock: mutation.expirationBlock || currCommitment.expirationBlock,
+                spendLimitSats: mutation.spendLimitSats || currCommitment.spendLimitSats,
                 merchant: mutation.merchant
-            })
-            
+            }
+
+            // Encode the new commitment
+            const newCommitment = encodeCommitment(newCommitmentData)
+
             // Prepare the output rewriting the commitment
             const output = {
                 to: contract.tokenAddress,

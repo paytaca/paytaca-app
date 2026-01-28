@@ -1,8 +1,9 @@
-import AuthNftService from './auth-nft';
+import AuthNftService, { encodeCommitment, encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats, minTokenValue } from './constants';
 import { defaultExpirationBlock } from './auth-nft';
 import { TapToPay } from './tap-to-pay';
 import { backend } from './backend';
+import { backend as watchtowerBackend } from 'src/exchange/backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './auth';
 
@@ -39,8 +40,8 @@ export class Card {
    */
   static async createInitialized(data) {
     const card = await Card.createWithWallet(data);
-    card.initializeAuthNftService();
-    card.initializeContract();
+    card._initializeAuthNftService();
+    card._initializeContract();
     return card;
   }
 
@@ -48,9 +49,10 @@ export class Card {
 
   /**
    * Throws if wallet is not initialized
+   * @private
    * @returns {void}
    */
-  assertWallet() {
+  _assertWallet() {
     if (!this.wallet) {
       throw new Error('Wallet not initialized. Use Card.createWithWallet() or set card.wallet before calling this method.');
     }
@@ -58,9 +60,10 @@ export class Card {
 
   /**
    * Throws if TapToPay is not initialized
+   * @private
    * @returns {void}
    */
-  assertContract() {
+  _assertContract() {
     if (!this.contract) {
       throw new Error('TapToPay not initialized. Ensure card has contract_id and call initializeContract() first.');
     }
@@ -68,9 +71,10 @@ export class Card {
 
   /**
    * Throws if AuthNftService is not initialized
+   * @private
    * @returns {void}
    */
-  assertAuthNftService() {
+  _assertAuthNftService() {
     if (!this.authNftService) {
       throw new Error('AuthNftService not initialized. Call initializeAuthNftService() first.');
     }
@@ -80,27 +84,30 @@ export class Card {
 
   /**
    * Initializes AuthNftService instance
+   * @private
    * @returns {void}
    */
-  initializeAuthNftService() {
-    this.assertWallet();
+  _initializeAuthNftService() {
+    this._assertWallet();
     this.authNftService = new AuthNftService(this.wallet.privkey());
   }
 
   /**
    * Initializes TapToPay contract instance
+   * @private
    * @returns {void}
    */
-  initializeContract() {
+  _initializeContract() {
     if (!this.raw?.contract_id) return;
     this.contract = new TapToPay(this.raw.contract_id);
   }
 
   /**
    * Ensures the card user is authenticated
+   * @private
    * @returns {Promise<void>}
    */
-  async ensureCardUserAuthenticated() {
+  async _ensureCardUserAuthenticated() {
     const user = await loadCardUser();
     console.log('Loaded Card User for authentication:', user);
   }
@@ -115,17 +122,16 @@ export class Card {
     console.log('Starting complete card creation workflow...');
     
     try {
-      const genesisResult = await this.mintGenesisToken();
-      const cardData = await this.createCardEntry();
-      await this.ensureCardUserAuthenticated();
+      const genesisResult = await this._mintGenesisToken();
+      const cardData = await this._createCardEntry();
+      await this._ensureCardUserAuthenticated();
 
-      this.raw = await this.saveGenesisNft(cardData.id, genesisResult);
+      this.raw = await this._saveGenesis(cardData.id, genesisResult);
 
       // Reinitialize contract now that we have contract_id
-      this.initializeContract();
+      this._initializeContract();
 
-      await this.mintGlobalAuthToken();
-      await this.issueGlobalAuthToken();
+      await this._issueGlobalAuthToken();
 
       console.log('Card creation completed successfully');
       return this;
@@ -140,11 +146,12 @@ export class Card {
 
   /**
    * Creates card entry on server
+   * @private
    * @returns {Promise<Object>}
    */
-  async createCardEntry() {
+  async _createCardEntry() {
     console.log('Creating card entry...');
-    this.assertWallet();
+    this._assertWallet();
 
     const data = {
       wallet_hash: this.wallet.walletHash,
@@ -158,14 +165,13 @@ export class Card {
   }
 
   /**
-   * Saves genesis NFT to server
+   * Saves genesis token id (category) to server
+   * @private
    * @param {number} cardId
    * @param {Object} genesisResult
    * @returns {Promise<Object>}
    */
-  async saveGenesisNft(cardId, genesisResult) {
-    console.log('Creating server record for genesis NFT...');
-    
+  async _saveGenesis(cardId, genesisResult) {
     if (!genesisResult.utxos || genesisResult.utxos.length === 0) {
       throw new Error('No UTXOs available from genesis result');
     }
@@ -175,9 +181,7 @@ export class Card {
       category: nftData.token?.tokenId,
     };
 
-    console.log('Saving Genesis NFT with payload:', payload);
     const response = await backend.patch(`/cards/${cardId}/`, payload);
-    console.log('Server record created:', response.data);
     return response.data;
   }
 
@@ -208,25 +212,31 @@ export class Card {
     return merchant_auth_nft
   }
 
+  async getMerchantList() {
+    const response = await watchtowerBackend.get('/paytacapos/merchants/');
+    return response.data;
+  } 
+
   // ==================== AUTH NFT OPERATIONS ====================
 
   /**
    * Mints genesis token, creates vout=0 UTXO if needed
+   * @private
    * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
-  async mintGenesisToken() {
+  async _mintGenesisToken() {
     console.log('Starting genesis token minting...');
-    this.assertAuthNftService();
+    this._assertAuthNftService();
     
     // Check existing vout=0 UTXOs and calculate needed amount
     const requiredSats = this.estimateGenesisSatsRequirement();
-    const existingSats = await this.checkForVoutZeroUtxos();
+    const existingSats = await this._checkForVoutZeroUtxos();
     
     if (existingSats < requiredSats) {
       const neededSats = requiredSats - existingSats;
       console.log(`Need ${neededSats} more sats (have ${existingSats}, need ${requiredSats})`);
-      await this.createVoutZeroTransaction(neededSats);
-      await this.waitForTransaction();
+      await this._createVoutZeroTransaction(neededSats);
+      await this._waitForTransaction();
     } else {
       console.log(`Sufficient vout=0 UTXOs available: ${existingSats} sats`);
     }
@@ -245,7 +255,7 @@ export class Card {
       throw new Error('No token ID returned from genesis');
       
     } catch (error) {
-      if (this.isVoutZeroError(error)) {
+      if (this._isVoutZeroError(error)) {
         console.error('Still getting vout=0 error after ensuring UTXO exists');
         console.error('Possible causes: UTXO not confirmed, wallet sync issues');
       }
@@ -253,13 +263,24 @@ export class Card {
     }
   }
 
+  /** 
+   * Complete workflow to issue global and merchant auth tokens
+   * @private
+   * @returns {Promise<void>}
+   */
+  async _issueGlobalAuthToken() {
+    await this._mintGlobalAuthToken();
+    await this._issueAuthTokens();
+  }
+
   /**
    * Mints global auth token for card
+   * @private
    * @returns {Promise<Object>}
    */
-  async mintGlobalAuthToken({ authorized = true, expirationBlock, spendLimitSats } = {}) {
+  async _mintGlobalAuthToken({ authorized = true, expirationBlock, spendLimitSats } = {}) {
     console.log('Minting global auth token...');
-    this.assertAuthNftService();
+    this._assertAuthNftService();
 
     const result = await this.authNftService.mint({ 
         tokenId: this.raw?.category, 
@@ -274,20 +295,54 @@ export class Card {
   }
 
   /**
-   *  Mints merchant auth token for specific merchant
+   * Mints and issues merchant auth token for specific merchant
    * @param {Object} options
    * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-   * @param {number} [options.expirationBlock] - Expiration block number
-   * @param {number} [options.spendLimitSats] - Spend limit in satoshis
+   * @param {number} [options.expirationBlock] - Expiration block number (Optional, defaults to 30 days from now)
+   * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
+   * @param {Object} options.merchant - Merchant info
+   * @param {string} options.merchant.id - Merchant ID
+   * @param {string} options.merchant.pubkey - Merchant public key
+   * @returns {Promise<{mintResult: Object, issueResult: Object}>}
+   */
+  async issueMerchantAuthToken({ authorized = true, expirationBlock, spendLimitSats, merchant } = {}) {
+    
+    if (!merchant?.id || !merchant?.pubkey) {
+      throw new Error('Merchant id and pubkey are required to issue merchant auth token');
+    }
+
+    // Guard against minting a duplicate auth token for the same merchant.
+    const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthNfts();
+    const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
+    const hasExistingToken = merchantAuthNfts.some(
+      token => token?.commitment?.decoded?.hash === merchantHash
+    );
+
+    if (hasExistingToken) {
+      throw new Error('Merchant auth token with matching commitment already exists.');
+    }
+
+    const mintResult = await this._mintMerchantAuthToken({ authorized, expirationBlock, spendLimitSats, merchant });
+    const issueResult = await this._issueAuthTokens();
+    return { mintResult, issueResult };
+  }
+
+  /**
+   *  Mints merchant auth token for specific merchant
+   * @private
+   * @param {Object} options
+   * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
+   * @param {number} [options.expirationBlock] - Expiration block number (Optional, defaults to 30 days from now)
+   * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
    * @param {Object} options.merchant - Merchant info
    * @param {string} options.merchant.id - Merchant ID
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<Object>}
    * TODO: Needs testing!
    */
-  async mintMerchantAuthToken({ authorized = true, expirationBlock, spendLimitSats, merchant } = {}) {
+  async _mintMerchantAuthToken({ authorized = true, expirationBlock, spendLimitSats, merchant } = {}) {
     console.log('Minting merchant auth token...');
-    this.assertAuthNftService();
+    this._assertAuthNftService();
 
     if (!merchant || !merchant.id || !merchant.pubkey) {
       throw new Error('Merchant id and pubkey are required to mint merchant auth token');
@@ -308,11 +363,11 @@ export class Card {
   }
 
   /**
-   * Issues global auth token to card's token address
+   * Issues all auth tokens to card's token address
    * @returns {Promise<Object>}
    */
-  async issueGlobalAuthToken() {
-    this.assertAuthNftService();
+  async _issueAuthTokens() {
+    this._assertAuthNftService();
 
     const toAddress = this.raw.token_address;
     console.log('Issuing global auth token to address:', toAddress);
@@ -333,7 +388,7 @@ export class Card {
     }); 
     console.log('Issuing to recipients:', recipients);
     const result = await this.authNftService.issue({recipients});
-    console.log('Global auth token issued:', result);
+    console.log('Auth tokens issued:', result);
     return result;
   }
 
@@ -344,7 +399,7 @@ export class Card {
    * @returns {Promise<Array>}
    */
   async getTokenUtxos() {
-    this.assertContract();
+    this._assertContract();
     return await this.contract.getTokenUtxos();
   }
 
@@ -353,7 +408,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getBchUtxos() {
-    this.assertContract();
+    this._assertContract();
     return await this.contract.getBchUtxos();
   }
 
@@ -362,7 +417,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getContract(){
-    this.assertContract();
+    this._assertContract();
     const contract = this.contract.getContract()
     return contract
   }
@@ -377,8 +432,8 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async mutateGlobalAuthToken({ authorize = true, expirationBlock, spendLimitSats, broadcast = true }) {
-    this.assertContract();
-    this.assertWallet();
+    this._assertContract();
+    this._assertWallet();
 
     try {
 
@@ -386,8 +441,8 @@ export class Card {
       // that we are mutating the global auth token
       const mutations = [{
         authorized: authorize,
-        expirationBlock: expirationBlock || await defaultExpirationBlock(),
-        spendLimitSats: spendLimitSats || defaultSpendLimitSats,
+        expirationBlock: expirationBlock, // (Optional, can omit if not changing)
+        spendLimitSats: spendLimitSats, // (Optional, can omit if not changing)
       }]
 
       console.log('Mutating global auth token commitment:', mutations);
@@ -417,11 +472,10 @@ export class Card {
    * @param {string} options.merchant.pubkey - Merchant public key
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
-   * TODO: Needs testing!
    */
   async mutateMerchantAuthToken({ authorize = true, expirationBlock, spendLimitSats, merchant, broadcast = true }) {
-    this.assertContract();
-    this.assertWallet();
+    this._assertContract();
+    this._assertWallet();
 
     if (!merchant || !merchant.id || !merchant.pubkey) {
       throw new Error('Merchant id and pubkey are required to mutate merchant auth token');
@@ -431,11 +485,13 @@ export class Card {
 
       // Prepare mutation data including merchant info
       const mutations = [{
-        id: merchant.id,
-        pk: merchant.pubkey,
+        merchant: {
+          id: merchant.id,
+          pubkey: merchant.pubkey
+        },
         authorized: authorize,
-        expirationBlock: expirationBlock || await defaultExpirationBlock(),
-        spendLimitSats: spendLimitSats || defaultSpendLimitSats,
+        expirationBlock: expirationBlock,
+        spendLimitSats: spendLimitSats,
       }]
 
       console.log('Mutating merchant auth token commitment:', mutations);
@@ -460,10 +516,10 @@ export class Card {
    * Checks for available vout=0 UTXOs and returns total satoshis
    * @returns {Promise<number>} Total satoshis available in vout=0 UTXOs
    */
-  async checkForVoutZeroUtxos() {
+  async _checkForVoutZeroUtxos() {
     try {
       console.log('Checking for existing vout=0 UTXOs...');
-      this.assertWallet();
+      this._assertWallet();
       
       const resp = await this.wallet.getBchUtxos()
       console.log('UTXO response:', resp);
@@ -485,8 +541,8 @@ export class Card {
    * @param {number} [amount] - Amount in satoshis to send (defaults to full estimated requirement)
    * @returns {Promise<Object>}
    */
-  async createVoutZeroTransaction(amount) {
-    this.assertWallet();
+  async _createVoutZeroTransaction(amount) {
+    this._assertWallet();
     console.log('Creating vout=0 transaction...');
     console.log('Genesis tokens require a UTXO with output index 0 (vout=0)');
     
@@ -520,7 +576,7 @@ export class Card {
     const feeRate = 1.2; // sats/byte
     const estimatedFee = BigInt(Math.ceil(estimatedTxSize * feeRate));
     const dustLimit = 546n;
-    const buffer = 15000n; // Larger buffer based on actual requirements (~12k sats observed)
+    const buffer = 20000n; // Larger buffer based on actual requirements (~20k sats observed)
     
     const total = tokenOutputValue + estimatedFee + dustLimit + buffer;
     
@@ -537,10 +593,11 @@ export class Card {
 
   /**
    * Waits for transaction confirmation
+   * @private
    * @param {number} [delayMs=6000]
    * @returns {Promise<void>}
    */
-  async waitForTransaction(delayMs = 6000) {
+  async _waitForTransaction(delayMs = 6000) {
     console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
   }
@@ -549,10 +606,11 @@ export class Card {
 
   /**
    * Checks if error is vout=0 related
+   * @private
    * @param {Error} error
    * @returns {boolean}
    */
-  isVoutZeroError(error) {
+  _isVoutZeroError(error) {
     return error.message?.includes('No suitable inputs with vout=0 available for new token genesis');
   }
 }

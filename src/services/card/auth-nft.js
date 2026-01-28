@@ -97,7 +97,7 @@ class AuthNftService {
             if (merchant.id && merchant.pubkey) {
                 commitmentData.merchant = {
                     id: merchant.id,
-                    pk: merchant.pubkey
+                    pubkey: merchant.pubkey
                 }
             }
 
@@ -126,7 +126,7 @@ class AuthNftService {
         const sendRequests = [];
         for (let i = 0; i < recipients.length; i++) {
             const recipient = recipients[i];
-            console.log('>>>recipient:', recipient)
+
             const data = {
                 cashaddr: recipient.address,
                 tokenId: recipient.tokenId,
@@ -135,7 +135,6 @@ class AuthNftService {
                 amount: recipient.amount
             };
 
-            console.log('>>>data:', data)
             sendRequests.push(new TokenSendRequest(data));
         }
         const result = await this.wallet.send(sendRequests);
@@ -216,7 +215,7 @@ function encodeMerchantHash({ merchantId, merchantPk }) {
         return ''
     }
     
-    const merchantIdBuf = Buffer.from(merchantId, 'utf-8')
+    const merchantIdBuf = Buffer.from(merchantId.toString(), 'utf-8')
     const merchantPkBuf = Buffer.from(merchantPk, 'hex')
     const concat = Buffer.concat([merchantIdBuf, merchantPkBuf])
 
@@ -245,8 +244,8 @@ function encodeCommitment({ authorized, merchant, expirationBlock, spendLimitSat
 
     // terminal hash
     if (merchant) {
-        const terminalIdBuf = Buffer.from(merchant.id, 'utf-8')
-        const terminalPkBuf = Buffer.from(merchant.pk, 'hex')
+        const terminalIdBuf = Buffer.from((merchant.id).toString(), 'utf-8')
+        const terminalPkBuf = Buffer.from(merchant.pubkey, 'hex')
         const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
         const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
         const truncatedHash = fullHash.subarray(0, 27)
@@ -255,6 +254,7 @@ function encodeCommitment({ authorized, merchant, expirationBlock, spendLimitSat
 
     // structure: authorized + expirationBlock + spendLimit + hash
     const commitment = Buffer.concat(commitmentData);
+
     return commitment.toString('hex'); 
 }
 
