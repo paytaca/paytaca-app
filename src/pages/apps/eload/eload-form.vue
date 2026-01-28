@@ -98,7 +98,14 @@
 
 			<!-- <q-card class="br-15 q-mx-lg"> -->
 				<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 250}px`" ref="scrollTarget">
-					<q-card class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" v-ripple v-for="(promo, index) in promos" :key="index" style="overflow: auto;">
+					<q-card 
+						class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
+						v-ripple 
+						v-for="(promo, index) in promos"
+						:key="index" 
+						style="overflow: auto;"
+						@click="selectPromo(promo)"
+					>
 						<!-- <q-item-section class="q-pb-sm"> -->
 							<div class="md-font-size text-bold">{{ promo.name }}</div>
 							<!-- <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'"> -->
@@ -110,16 +117,27 @@
 
 					<div class="text-center text-grad q-pt-sm md-font-size text-bold see-more" v-if="!isLastPage('promo')" @click="nextPage('promo')">See More</div>		
 				</q-list>
-			<!-- </q-card>			 -->
+			<!-- </q-card>-->			
+		</div>
 
-			<!-- <div v-for="promo in promos" class="q-px-lg">
-				<q-card class="q-pa-md q-my-sm br-15 bg-grad text-white">
-					<div class="md-font-size text-weight-bold">
-						{{ promo.name }}
-					</div>
-				</q-card>				
-			</div> -->
-			
+		<div v-if="step > 3" class="q-mt-md">
+			<q-card class="q-mx-lg q-pa-md br-15">
+				<div class="md-font-size text-bold">{{ selectedPromo.name }}</div>
+				<div>{{ selectedPromo.amount }} PHP</div>
+				<div class="q-py-sm">{{ selectedPromo.description }}</div>
+				<div>{{ selectedPromo.validity }}</div>
+
+			</q-card>
+
+			<q-card class="q-mx-lg q-pa-md br-15 q-mt-md">
+				<!-- <div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ addressType(selectedPromo.address_type) }}</div> -->
+
+				<q-input dense outlined v-model="address" :placeholder="'Enter ' + addressType(selectedPromo.address_type)"/>
+			</q-card>
+
+			<div class="q-px-lg">
+				<q-btn :disable="!address" class="full-width button q-my-md" rounded label="BUY"></q-btn>
+			</div>			
 		</div>
 	</div>
 </template>
@@ -134,7 +152,8 @@ export default {
 			loading: true,
 			step: 0,				
 
-			selectedPromo: null,			
+			selectedPromo: null,
+			address: '',		
 
 			filters:{				
 				service: null,
@@ -260,6 +279,13 @@ export default {
 			}
 			
 		},
+		addressType (type) {
+			if (type === 'AN') {
+				return 'Account Number'
+			} else if (type === 'MN') {
+				return 'Mobile Number'
+			}
+		},
 		resetPagination (type) {
 			this.paginationSettings[type] = {
 					limit: type === 'serviceGroup' ? 20 : 9,
@@ -279,6 +305,13 @@ export default {
 			if (type === 'service' || type === 'serviceGroup' || type === 'category') {
 				this.filters.category = null
 			}						
+		},
+		selectPromo(promo) {		
+			this.selectedPromo = promo
+
+			this.step++
+
+			console.log('promo: ', this.selectedPromo)
 		},
 		async fetchServiceGroup() {			
 			let data = {
