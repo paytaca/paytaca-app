@@ -331,7 +331,7 @@
               class="chat-input-wrapper" 
               :class="[getDarkModeClass(darkMode), { 'chat-input-hidden': isChatInputHidden }]"
             >
-              <!-- 1-hour grace period countdown after release/cancel -->
+              <!-- 1-hour grace period countdown after release/cancel/refund -->
               <div v-if="chatGraceCountdownActive" class="chat-close-countdown" :class="getDarkModeClass(darkMode)">
                 {{ $t('ChatClosesIn', { time: chatGraceCountdownText }, `Chat closes in ${chatGraceCountdownText}`) }}
               </div>
@@ -597,7 +597,7 @@ export default {
       showImageDialog: false,
       selectedImageUrl: null,
 
-      // Chat-close countdown state (1-hour grace after release/cancel)
+      // Chat-close countdown state (1-hour grace after release/cancel/refund)
       chatCloseNowMs: Date.now(),
       chatCloseCountdownIntervalId: null,
     }
@@ -681,11 +681,11 @@ export default {
     },
 
     /**
-     * P2P chat should close 1 hour after order is marked as released/cancelled.
+     * P2P chat should close 1 hour after order is marked as released/cancelled/refunded.
      * We derive the timestamp from status history when available, and fall back to order timestamps if not.
      */
     chatCloseStatusAtMs () {
-      const finalStatuses = ['RLS', 'CNCL']
+      const finalStatuses = ['RLS', 'CNCL', 'RFN']
       const current = this.order?.status?.value
       const isFinal = finalStatuses.includes(current)
 
