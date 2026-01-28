@@ -347,7 +347,7 @@ export default {
     },
     async fetchArbiters () {
       const vm = this
-      await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
+      await backend.get('/ramp-p2p/arbiter/', { params: { currency: vm.order.ad.fiat_currency.symbol }, authorize: true })
         .then(response => {
           vm.arbiterOptions = response.data
           if (vm.arbiterOptions.length > 0) {

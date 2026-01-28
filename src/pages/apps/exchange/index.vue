@@ -187,7 +187,7 @@ export default {
 
       if (platform) {
         // fetching version check - non-blocking, don't prevent UI from showing
-        backend.get(`ramp-p2p/version/check/${platform}/`)
+        backend.get(`/ramp-p2p/version/check/${platform}/`)
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
