@@ -123,9 +123,6 @@ export default {
     if (this.error) this.errorMessage = this.error
     this.loadUser()
   },
-  beforeUnmount () {
-    bus.emit('relogged')
-  },
   methods: {
     getDarkModeClass,
     onLoggingIn (value) {
@@ -140,6 +137,9 @@ export default {
         this.user = await loadAuthenticatedUser(forceLogin)
         this.$emit('loggedIn', this.user.user_type)
         this.$store.commit('ramp/updateUser', this.user)
+        // Only notify the app to refetch data after a successful login.
+        // Emitting on unmount can cause refresh loops if the dialog is closed/cancelled.
+        bus.emit('relogged')
       } catch (error) {
         if (!error.response) {
           bus.emit('network-error')

@@ -24,11 +24,16 @@ function resolveRequestUserType (config) {
   // Strong signal: inspect URL for arbiter-only areas first.
   // This avoids reusing a cached "peer" store user when navigating directly to arbiter pages.
   const url = String(config?.url || '')
+  const method = String(config?.method || '').toLowerCase()
   if (
-    /\/ramp-p2p\/arbiter\b/i.test(url) ||
+    // Arbiter-only functional areas
     /\/ramp-p2p\/appeal\b/i.test(url) ||
     /\/ramp-p2p\/order\/feedback\/arbiter\b/i.test(url) ||
-    /\/ramp-p2p\/order\/\d+\/appeal\b/i.test(url)
+    /\/ramp-p2p\/order\/\d+\/appeal\b/i.test(url) ||
+    // Arbiter profile lookups like /ramp-p2p/arbiter/<walletHash>
+    /\/ramp-p2p\/arbiter\/[^/?]+/i.test(url) ||
+    // Arbiter state changes like PATCH /ramp-p2p/arbiter/
+    (method && method !== 'get' && /\/ramp-p2p\/arbiter\/?$/i.test(url))
   ) return 'arbiter'
 
   // Try from store
@@ -41,7 +46,10 @@ function resolveRequestUserType (config) {
 }
 
 backend.interceptors.request.use(async (config) => {
-  config.baseURL = Store.getters['global/isChipnet'] ? process.env.CHIPNET_WATCHTOWER_BASE_URL : process.env.MAINNET_WATCHTOWER_BASE_URL || ''  
+  const isChipnet = Store.getters['global/isChipnet']
+  config.baseURL = isChipnet
+    ? (process.env.CHIPNET_WATCHTOWER_BASE_URL || '')
+    : (process.env.MAINNET_WATCHTOWER_BASE_URL || '')
   const wallet = Store.getters['global/getWallet']('bch')
   config.headers['wallet-hash'] = wallet.walletHash
   if (config.authorize) {
