@@ -554,6 +554,8 @@ const words = [
     Tools: 'Tools',
     ComingSoon: 'Coming Soon',
     RelativeTimestamp: 'Relative Timestamp',
+    ContractDetails: 'Contract Details',
+    ContractAddress: 'Contract Address',
   }
 ]
 
