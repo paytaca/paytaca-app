@@ -322,6 +322,7 @@ export default {
     },
 
     parseBchAddress(address) {
+      if (!address) return ''
       const addLen = address.length;
       return `${address.substring(0, 17)}...${address.substring(
         addLen - 7,
@@ -329,6 +330,7 @@ export default {
       )}`;
     },
     parseTxid(txId) {
+      if (!txId) return ''
       const txIdLen = txId.length
       return `${txId.substring(0, 10)}...${txId.substring(txIdLen - 10, txIdLen)}`
     }
