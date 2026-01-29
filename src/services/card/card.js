@@ -1,6 +1,5 @@
-import AuthNftService, { encodeCommitment, encodeMerchantHash } from './auth-nft';
+import AuthNftService, { encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats, minTokenValue } from './constants';
-import { defaultExpirationBlock } from './auth-nft';
 import { TapToPay } from './tap-to-pay';
 import { backend } from './backend';
 import { backend as watchtowerBackend } from 'src/exchange/backend';
@@ -217,6 +216,15 @@ export class Card {
     return response.data;
   } 
 
+  async pay({ amountSats, merchantId }) {
+    const response = await backend.post(`/cards/${this.raw.cash_address}/pay/`, {
+      amount_sats: amountSats,
+      merchant_id: merchantId
+    });
+    console.log('Payment response:', response.data);
+    return response.data;
+  }
+
   // ==================== AUTH NFT OPERATIONS ====================
 
   /**
@@ -278,7 +286,7 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _mintGlobalAuthToken({ authorized = true, expirationBlock, spendLimitSats } = {}) {
+  async _mintGlobalAuthToken({ authorized = true, spendLimitSats } = {}) {
     console.log('Minting global auth token...');
     this._assertAuthNftService();
 
@@ -286,7 +294,6 @@ export class Card {
         tokenId: this.raw?.category, 
         merchants: [{
           authorized: authorized,
-          expirationBlock: expirationBlock || await defaultExpirationBlock(),
           spendLimitSats: spendLimitSats || defaultSpendLimitSats,
         }]
     });
@@ -298,14 +305,13 @@ export class Card {
    * Mints and issues merchant auth token for specific merchant
    * @param {Object} options
    * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-   * @param {number} [options.expirationBlock] - Expiration block number (Optional, defaults to 30 days from now)
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
    * @param {Object} options.merchant - Merchant info
    * @param {string} options.merchant.id - Merchant ID
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<{mintResult: Object, issueResult: Object}>}
    */
-  async issueMerchantAuthToken({ authorized = true, expirationBlock, spendLimitSats, merchant } = {}) {
+  async issueMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}) {
     
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');
@@ -322,7 +328,7 @@ export class Card {
       throw new Error('Merchant auth token with matching commitment already exists.');
     }
 
-    const mintResult = await this._mintMerchantAuthToken({ authorized, expirationBlock, spendLimitSats, merchant });
+    const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant });
     const issueResult = await this._issueAuthTokens();
     return { mintResult, issueResult };
   }
@@ -332,7 +338,6 @@ export class Card {
    * @private
    * @param {Object} options
    * @param {boolean} [options.authorized=true] - Whether to authorize the merchant
-   * @param {number} [options.expirationBlock] - Expiration block number (Optional, defaults to 30 days from now)
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis (Optional, defaults to 1 BCH)
    * @param {Object} options.merchant - Merchant info
    * @param {string} options.merchant.id - Merchant ID
@@ -340,7 +345,7 @@ export class Card {
    * @returns {Promise<Object>}
    * TODO: Needs testing!
    */
-  async _mintMerchantAuthToken({ authorized = true, expirationBlock, spendLimitSats, merchant } = {}) {
+  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}) {
     console.log('Minting merchant auth token...');
     this._assertAuthNftService();
 
@@ -354,7 +359,6 @@ export class Card {
           id: merchant.id,
           pubkey: merchant.pubkey,
           authorized: authorized,
-          expirationBlock: expirationBlock || await defaultExpirationBlock(),
           spendLimitSats: spendLimitSats || defaultSpendLimitSats,
         }]
     });
@@ -426,12 +430,11 @@ export class Card {
    * Mutates the global auth token commitment
    * @param {Object} options
    * @param {boolean} [options.authorize=true] - Whether to authorize the terminal
-   * @param {number} [options.expirationBlock] - Expiration block number
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async mutateGlobalAuthToken({ authorize = true, expirationBlock, spendLimitSats, broadcast = true }) {
+  async mutateGlobalAuthToken({ authorize = true, spendLimitSats, broadcast = true }) {
     this._assertContract();
     this._assertWallet();
 
@@ -441,7 +444,6 @@ export class Card {
       // that we are mutating the global auth token
       const mutations = [{
         authorized: authorize,
-        expirationBlock: expirationBlock, // (Optional, can omit if not changing)
         spendLimitSats: spendLimitSats, // (Optional, can omit if not changing)
       }]
 
@@ -465,7 +467,6 @@ export class Card {
    * Mutates the merchant auth token commitment
    * @param {Object} options
    * @param {boolean} [options.authorize=true] - Whether to authorize the merchant
-   * @param {number} [options.expirationBlock] - Expiration block number
    * @param {number} [options.spendLimitSats] - Spend limit in satoshis
    * @param {Object} options.merchant - Merchant info
    * @param {string} options.merchant.id - Merchant ID
@@ -473,7 +474,7 @@ export class Card {
    * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async mutateMerchantAuthToken({ authorize = true, expirationBlock, spendLimitSats, merchant, broadcast = true }) {
+  async mutateMerchantAuthToken({ authorize = true, spendLimitSats, merchant, broadcast = true }) {
     this._assertContract();
     this._assertWallet();
 
@@ -490,7 +491,6 @@ export class Card {
           pubkey: merchant.pubkey
         },
         authorized: authorize,
-        expirationBlock: expirationBlock,
         spendLimitSats: spendLimitSats,
       }]
 

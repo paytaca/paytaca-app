@@ -520,6 +520,8 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       try {
         const cardUser = await loadCardUser()
+        console.log('Card User loaded:', cardUser)
+
         const cards = await cardUser.fetchCards()
         if (cards.length === 0) {
           console.warn('No cards found for the user.')
@@ -530,9 +532,9 @@ import { selectedCurrency } from 'src/store/market/getters';
         console.log('Loaded Cards:', cards)
         console.log('Using Card:', card)
 
-        await card.getAuthNfts().then(authNfts => {
-          console.log('Card Auth NFTs:', authNfts)
-        })
+        // await card.getAuthNfts().then(authNfts => {
+        //   console.log('Card Auth NFTs:', authNfts)
+        // })
 
         const merchants = await card.getMerchantList()
         if (merchants.results.length === 0) {
@@ -542,8 +544,13 @@ import { selectedCurrency } from 'src/store/market/getters';
 
         const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
 
-        console.log('Merchants:', merchants)
-        console.log('Selected Merchant:', selectedMerchant)
+        const spendResult = await card.pay({
+          amountSats: 1000,
+          merchantId: selectedMerchant.id})
+        console.log('spendResult:', spendResult)
+
+        // console.log('Merchants:', merchants)
+        // console.log('Selected Merchant:', selectedMerchant)
 
         // // Example: Minting and issuing merchant auth token
         // const mintParams = {
@@ -584,7 +591,7 @@ import { selectedCurrency } from 'src/store/market/getters';
         })
 
       } catch (error) {
-        console.error('Error during mounted lifecycle:', error)
+        console.error('Error during mounted lifecycle:', error.response || error)
       }
     },
 

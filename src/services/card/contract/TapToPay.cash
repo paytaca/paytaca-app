@@ -25,12 +25,9 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
         // obtains the authFlag from the commitment (authFlag is 1 byte)
         bytes authFlag, bytes rest = commitment.split(1);
 
-        // obtains the expirationBlock from the rest of the commitment (next 4 bytes)
-        bytes expirationBlock, bytes rest2 = rest.split(4);
-
-        // obtains the spendLimit from the rest of the commitment (next 8 bytes), 
+        // obtains the spendLimit from the next 8 bytes of the commitment, 
         // the rest of the remaining bytes is the expectedMerchantHash
-        bytes spendLimit, bytes expectedMerchantHash = rest2.split(8);
+        bytes spendLimit, bytes expectedMerchantHash = rest.split(8);
         
         // checks if payment is enabled
         require(authFlag == 0x01, 'Access denied: Merchant is not authorized');
@@ -39,9 +36,6 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
         bytes fullHash = sha256(merchantId + merchantPk);
         bytes merchantHash = fullHash.split(27)[0];
         require(merchantHash == expectedMerchantHash, 'Access denied: Invalid merchant id');
-
-        // require that the auth NFT is not expired
-        require(tx.locktime <= int(expirationBlock), 'Authentication has expired');
 
         // require that auth NFT commitment is not tampered with after spending
         require(commitment == tx.outputs[0].nftCommitment, 'Auth NFT output commitment should not change');
