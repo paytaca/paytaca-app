@@ -20,22 +20,22 @@
 
     <div class="q-pa-md q-mt-sm">
       <div class="row">
-        <!-- Tools Card -->
+        <!-- Address Key Viewer Card -->
         <div class="col-12 col-md-6 q-pa-sm">
           <q-card 
             class="debug-menu-card cursor-pointer"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push('/apps/debug/tools')"
+            @click="$router.push('/apps/debug/address-key-viewer')"
           >
             <q-card-section>
               <div class="row items-center q-gutter-md">
-                <q-icon name="build" size="48px" :color="toggleColor" />
+                <q-icon name="vpn_key" size="48px" :color="toggleColor" />
                 <div class="col">
                   <div class="text-h6 text-weight-medium" :class="getDarkModeClass(darkMode)">
-                    {{ $t('Tools', {}, 'Tools') }}
+                    {{ $t('AddressKeyViewer', {}, 'Address Key Viewer') }}
                   </div>
                   <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                    {{ $t('DebugToolsDescription', {}, 'SLP settings, denomination selector, address key viewer, and more') }}
+                    {{ $t('AddressKeyViewerToolTip', {}, 'View public and private keys for wallet addresses') }}
                   </div>
                 </div>
                 <q-icon name="chevron_right" size="24px" />

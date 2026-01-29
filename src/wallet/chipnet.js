@@ -59,7 +59,9 @@ export function getBlockChainNetwork () {
 }
 
 export function convertTokenAmount (amount, decimals, decimalPlaces=2, isBCH=false, isSLP=false) {
-  if (isBCH || isSLP) return amount
+  // BCH amounts are already human-readable; token amounts (including SLP) are in base units
+  // and should be scaled by `decimals`.
+  if (isBCH) return amount
   if (amount === 0) return amount
   const parsedAmount = parseInt(amount) || 0
   const finalAmount = parsedAmount / (10 ** decimals)
@@ -67,7 +69,9 @@ export function convertTokenAmount (amount, decimals, decimalPlaces=2, isBCH=fal
 }
 
 export function convertToTokenAmountWithDecimals(amount, decimals, isBCH=false, isSLP=false) {
-  if (isBCH || isSLP) return amount
+  // BCH amounts are already human-readable; token amounts (including SLP) are in base units
+  // and should be scaled by `decimals`.
+  if (isBCH) return amount
   if (amount === null || amount === undefined) return 0
 
   const amountStr = String(amount)
