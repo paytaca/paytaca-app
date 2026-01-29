@@ -1,16 +1,31 @@
 <template>
 	<div class="text-black q-py-md">
-		<q-input
-			class="q-px-lg"
-			dense
-			outlined
-			rounded
-			placeholder="Seach for Promos..."
-		>
-			<template v-slot:append>
-	          <q-icon name="search" />
-	        </template>
-		</q-input>
+		<div>
+			<q-input
+				class="q-px-lg"
+				dense
+				outlined				
+				v-model="search"
+				placeholder="Seach for Promos..."
+				debounce="500"
+				@update:modelValue="searchPromo"				
+				ref="search"
+			>
+				<q-menu v-model="menu" fit @before-show="$refs.search.focus()"> 
+		    	<q-list style="min-width: 200px"> 
+		    		<q-item v-for="(promo, index) in searchResult" :key="index" clickable @click=""> 
+		    			<q-item-section class="text-black">{{ promo.name }}</q-item-section> 
+		    		</q-item> 
+		    	</q-list> 
+		    </q-menu>
+
+				<template v-slot:append>
+		    	<q-icon name="search" />
+		    </template>		    
+			</q-input>
+
+
+		</div>		
 
 		<!-- Selecting Service -->
 		<div  class="q-mt-lg" v-if="step === 0">
@@ -25,7 +40,7 @@
 				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Purchase Type</div>
 
 				<div class="row justify-between">
-					<div class="text-weight-bold md-font-size">{{ filters.service.name }}</div>				
+					<div class="md-font-size">{{ filters.service.name }}</div>				
 					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('service')"/>
 				</div>				
 			</div>
@@ -34,7 +49,7 @@
 				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Service Provider</div>
 
 				<div class="row justify-between">
-					<div class="text-weight-bold md-font-size">{{ filters.serviceGroup.name }}</div>
+					<div class="md-font-size">{{ filters.serviceGroup.name }}</div>
 					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('serviceGroup')"/>
 				</div>			
 			</div>
@@ -43,7 +58,7 @@
 				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Category</div>
 
 				<div class="row justify-between">
-					<div class="text-weight-bold md-font-size">{{ filters.category.name }}</div>
+					<div class="md-font-size">{{ filters.category.name }}</div>
 					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('category')"/>
 				</div>
 			</div>	
@@ -137,7 +152,12 @@
 			<q-card class="q-mx-lg q-pa-md br-15 q-mt-md">
 				<!-- <div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ addressType(selectedPromo.address_type) }}</div> -->
 
-				<q-input dense outlined v-model="address" :placeholder="'Enter ' + addressType(selectedPromo.address_type)"/>
+				<q-input 
+					dense 
+					outlined 
+					v-model="address" 
+					:placeholder="'Enter ' + addressType(selectedPromo.address_type)"
+				/>
 			</q-card>
 
 			<div class="q-px-lg">
@@ -157,8 +177,12 @@ export default {
 			loading: true,
 			step: 0,				
 
+			search: '', // for search input
+			searchResult: [],
 			selectedPromo: null,
+			menu: true,
 			address: '',		
+
 
 			filters:{				
 				service: null,
@@ -216,6 +240,14 @@ export default {
 		step (val) {
 			if (val === 3) {
 				// Get Promos
+			}
+		},
+		search (val) {
+			this.menu = !!val	
+		},
+		menu (val) {
+			if (val) {
+				this.$refs.search.focus()
 			}
 		}
 	},
@@ -318,9 +350,22 @@ export default {
 		selectPromo(promo) {		
 			this.selectedPromo = promo
 
-			this.step++
+			this.step++	
+		},
+		async searchPromo (val) {
+			console.log('Searching: ', val)
 
-			console.log('promo: ', this.selectedPromo)
+			let data = {
+				promoName: val
+			}
+
+			let result = await eloadServiceAPI.fetchPromo(data)
+
+
+			console.log('result: ', result)
+			if (result.success) {
+				this.searchResult = result.data.promos
+			}
 		},
 		async fetchServiceGroup() {			
 			let data = {

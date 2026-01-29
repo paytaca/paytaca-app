@@ -91,17 +91,25 @@ export async function fetchCategory (data) {
 export async function fetchPromo (data) {
 	try {
 		let params = {
-			limit: data.limit,
-			page: data.page,
-			service: data.service,
-			'service-group': data.serviceGroup,
+			limit: data.limit || 10,
+			page: data.page || 1,		
+		}
+
+		if ('service' in data) {
+			params['service'] = data.service
+		}
+
+		if ('serviceGroup' in data) {
+			params['service-group'] = data.serviceGroup
 		}
 
 		if ('category' in data) {
 			params['category'] = data.category
 		}
 
-		console.log('params: ', params)
+		if ('promoName' in data) {
+			params['promo-name'] = data.promoName
+		} 		
 
 		const response = await backend.get(baseURL + "/promo/", { params: params })
 
@@ -150,7 +158,7 @@ export async function createOrder (data) {
 	}
 }
 
-// Add Authentication Later
+
 export async function registerUser() {	
 	if (!walletHash) {
 		console.error('[registerUser] Wallet hash not available')
