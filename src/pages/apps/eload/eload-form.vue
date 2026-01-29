@@ -110,7 +110,7 @@
 							<div class="md-font-size text-bold">{{ promo.name }}</div>
 							<!-- <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'"> -->
 								<div>{{ promo.amount }} PHP</div>
-								<div>{{ promo.validity }}</div>
+								<div class="sm-font-size">{{ promo.validity }}</div>
 							<!-- </div>						 -->
 						<!-- </q-item-section> -->
 					</q-card>
@@ -122,10 +122,15 @@
 
 		<div v-if="step > 3" class="q-mt-md">
 			<q-card class="q-mx-lg q-pa-md br-15">
-				<div class="md-font-size text-bold">{{ selectedPromo.name }}</div>
-				<div>{{ selectedPromo.amount }} PHP</div>
+				<div class="row justify-between">
+					<div class="text-weight-bold md-font-size">{{ selectedPromo.name }}</div>
+					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('promo')"/>
+				</div>			
+			<!-- </div> -->
+				<!-- <div class="md-font-size text-bold"></div> -->
+				<div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.amount }} PHP</div>
 				<div class="q-py-sm">{{ selectedPromo.description }}</div>
-				<div>{{ selectedPromo.validity }}</div>
+				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.validity }}</div>
 
 			</q-card>
 
@@ -251,6 +256,10 @@ export default {
 					this.step = 2					
 
 					this.resetFilters('category')
+					break
+				case 'promo':
+					this.step = 3
+
 					break
 				default:
 					this.step--
