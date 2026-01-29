@@ -44,15 +44,17 @@
                 )
               }}
             </span>
-            <span>•</span>
-            <span>
-              {{
-                getAssetDenomination(
-                  denomination,
-                  purchase.purchased_amount_sats / 10 ** 8
-                )
-              }}
-            </span>
+            <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
+              <span>•</span>
+              <span>
+                {{
+                  getAssetDenomination(
+                    denomination,
+                    purchase.purchased_amount_sats / 10 ** 8
+                  )
+                }}
+              </span>
+            </template>
           </div>
         </div>
 

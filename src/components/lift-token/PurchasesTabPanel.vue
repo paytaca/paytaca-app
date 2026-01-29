@@ -132,12 +132,21 @@
                 }}
               </span>
               <span class="bch-amount text-subtitle1 text-weight-medium">
-                {{
-                  getAssetDenomination(
-                    denomination,
-                    purchase.purchased_amount_sats / 10 ** 8
-                  )
-                }}
+                <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
+                  {{
+                    getAssetDenomination(
+                      denomination,
+                      purchase.purchased_amount_sats / 10 ** 8
+                    )
+                  }}
+                </template>
+                <template v-else>
+                  {{ $t(
+                    'PaidUsingMethod',
+                    { method: purchase.purchase_more_details.payment_method?.toUpperCase() },
+                    `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase()}`
+                  ) }}
+                </template>
               </span>
             </div>
 
