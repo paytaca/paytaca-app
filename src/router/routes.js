@@ -178,6 +178,7 @@ const routes = [
         path: 'crypto-swap/',
         name: 'crypto-swap',
         component: () => import('layouts/Transaction.vue'),
+        meta: { disableOnNativeIOS: true },
         children: [
           {
             path: '', 
