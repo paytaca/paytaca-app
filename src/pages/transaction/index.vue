@@ -235,7 +235,14 @@
             >
             </asset-cards>
           </template>
-          <div v-if="assets.length == 0 && !isLoadingAssets" style="margin-bottom: 10px;">
+
+          <div v-if="!isCashToken && enableSLP" class="q-px-lg q-mt-sm text-center">
+            <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.
+            </div>
+          </div>
+
+          <div v-if="isCashToken && assets.length == 0 && !isLoadingAssets" style="margin-bottom: 10px;">
             <div class="text-center">
               <q-btn
                 outline
@@ -576,6 +583,7 @@ export default {
       bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
       favoriteTokenIds: [], // Store favorite token IDs for synchronous access (deprecated, kept for compatibility)
       allTokensFromAPI: [], // Store all tokens fetched from API with balances (includes favorites)
+      allSlpTokensFromAPI: [], // Store all SLP tokens fetched from API (includes favorites)
       showBackupAlert: false,
       alertDismissedForSession: false,
       backupAlertTimeout: null,
@@ -604,10 +612,14 @@ export default {
         this._maybeAutoStartHomeTourAfterBackup()
       }
     },
-    isCashToken() {
-      // Refetch API data when token type changes
-      if (this.isCashToken) {
-        this.fetchAllTokensFromAPI()
+    async isCashToken (newValue, oldValue) {
+      // Refetch token list when token type changes
+      if (newValue) {
+        // Switching to CashTokens
+        await this.fetchAllTokensFromAPI()
+      } else {
+        // Switching to SLP
+        await this.fetchSlpTokensFromServer()
       }
     },
     'assets.length': {
@@ -722,20 +734,14 @@ export default {
     assets () {
       const vm = this
 
-      // For CashTokens on BCH network, filter favorites from allTokensFromAPI
-      // No need for separate API call - allTokensFromAPI already includes favorite field
+      // Token cards should display favorite tokens only.
+      // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
+      // because the API includes `favorite` and `favorite_order`.
       if (vm.isCashToken) {
         return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
 
-      // For SLP tokens, use store data (API doesn't support SLP yet)
-      return vm.mainchainAssets.filter(token => {
-        const assetId = token.id?.split?.('/')?.[0]
-        return (
-          vm.isCashToken && assetId === 'ct' ||
-          !vm.isCashToken && assetId === 'slp'
-        )
-      })
+      return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active
@@ -793,8 +799,7 @@ export default {
       if (this.isCashToken) {
         hasTokens = this.allTokensFromAPI && this.allTokensFromAPI.length > 0
       } else {
-        // For SLP, fall back to Vuex store (since API doesn't support these yet)
-        hasTokens = this.assets && this.assets.length > 0
+        hasTokens = this.allSlpTokensFromAPI && this.allSlpTokensFromAPI.length > 0
       }
 
       // Check if there are favorites in allTokensFromAPI (uses API data exclusively)
@@ -804,8 +809,8 @@ export default {
         const favorites = (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
         hasFavorites = favorites.length > 0
       } else {
-        // For SLP, check favoriteTokens computed property
-        hasFavorites = this.favoriteTokens && this.favoriteTokens.length > 0
+        const favorites = (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+        hasFavorites = favorites.length > 0
       }
 
       const assetsLoaded = this.balanceLoaded // Use balanceLoaded as indicator that assets are ready
@@ -837,14 +842,11 @@ export default {
     },
     favoriteTokens () {
       // Always use API data only - never use Vuex store for favorite tokens
-      // For CashTokens on BCH network, filter favorites from allTokensFromAPI
       if (this.isCashToken) {
         return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
 
-      // For SLP, the API doesn't support favorites_only yet
-      // Return empty array instead of using store data
-      return []
+      return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
     },
     aggregatedBchBalance () {
       // If mode is 'bch-only', just return BCH balance in satoshis
@@ -1249,7 +1251,7 @@ export default {
     async fetchAllTokensFromAPI () {
       // Fetch favorite tokens directly from API for the home page tokens section
       if (!this.isCashToken) {
-        // For SLP, API doesn't support favorites_only yet
+        // This method is CashTokens-only. For SLP, use `fetchSlpTokensFromServer()`.
         return []
       }
 
@@ -1375,6 +1377,126 @@ export default {
           params: error.config?.params
         })
         this.allTokensFromAPI = []
+        return []
+      }
+    },
+
+    async fetchSlpTokensFromServer () {
+      // Trigger Watchtower request for SLP tokens with balance and add any missing tokens to the store.
+      // This ensures switching the home page filter to SLP will fetch the wallet's SLP token list.
+      if (this.isCashToken) return []
+
+      const slpWalletHash = this.getWallet('slp')?.walletHash
+      if (!slpWalletHash) {
+        console.warn('SLP wallet hash not available')
+        return []
+      }
+
+      try {
+        // IMPORTANT: Fetch SLP fungible tokens for this wallet.
+        // Use the dedicated endpoint instead of `/tokens/` (which is generic and may not include the same shape).
+        const isChipnet = this.$store.getters['global/isChipnet']
+        const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+        const filterParams = {
+          wallet_hash: slpWalletHash,
+          limit: 100
+        }
+
+        let allTokens = []
+        let nextUrl = `${baseUrl}/slp-tokens/fungible/`
+        let params = filterParams
+
+        while (nextUrl) {
+          const response = await axios.get(nextUrl, { params })
+          const data = response?.data
+          if (!data || !Array.isArray(data.results)) break
+
+          allTokens = [...allTokens, ...data.results]
+          if (data.next) {
+            nextUrl = data.next
+            params = {} // next URL already includes params
+          } else {
+            nextUrl = null
+          }
+        }
+
+        if (!allTokens.length) {
+          this.allSlpTokensFromAPI = []
+          return []
+        }
+
+        // Normalize to the same asset shape used by the token cards.
+        const mappedTokens = allTokens
+          .map(token => {
+            const tokenId = token?.id
+            if (!tokenId) return null
+            const assetId = String(tokenId).startsWith('slp/') ? String(tokenId) : `slp/${tokenId}`
+            const logoRaw = token?.image_url || token?.logo || ''
+            const logo = logoRaw ? convertIpfsUrl(logoRaw) : ''
+            return {
+              id: assetId,
+              name: token?.name || 'Unknown Token',
+              symbol: token?.symbol || '',
+              decimals: token?.decimals || 0,
+              logo: logo,
+              balance: token?.balance !== undefined ? token.balance : 0,
+              favorite: token?.favorite === true ? 1 : 0,
+              favorite_order: token?.favorite_order !== null && token?.favorite_order !== undefined ? token.favorite_order : null
+            }
+          })
+          .filter(Boolean)
+
+        // Store raw list for computed favorites + "has tokens" checks
+        this.allSlpTokensFromAPI = mappedTokens
+
+        // Merge into store for rendering in token cards (respect removed tokens locally).
+        const assets = this.$store.getters['assets/getAssets'] || []
+        const assetsId = assets.map(a => a.id)
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const removedAssetIdsGetter = this.$store.getters['assets/getRemovedAssetIds']
+        const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+
+        mappedTokens.forEach(token => {
+          const assetId = token?.id
+          if (!assetId) return
+          if (vaultRemovedAssetIds.includes(assetId)) return
+
+          // Update balance/metadata if it already exists
+          if (assetsId.includes(assetId)) {
+            this.$store.commit('assets/updateAssetBalance', { id: assetId, balance: token.balance })
+            // If server provides basic metadata, keep it fresh
+            this.$store.commit('assets/updateAssetMetadata', {
+              id: assetId,
+              name: token?.name,
+              symbol: token?.symbol,
+              decimals: token?.decimals,
+              logo: token?.logo || ''
+            })
+            if (token?.logo) {
+              this.$store.commit('assets/updateAssetImageUrl', { assetId, imageUrl: token.logo })
+            }
+            return
+          }
+
+          // Add new asset for tokens not yet in store
+          this.$store.commit('assets/addNewAsset', {
+            id: assetId,
+            name: token?.name,
+            symbol: token?.symbol,
+            decimals: token?.decimals,
+            logo: token?.logo || '',
+            balance: token?.balance,
+            is_nft: false
+          })
+          if (token?.logo) this.$store.commit('assets/updateAssetImageUrl', { assetId, imageUrl: token.logo })
+          this.$store.commit('assets/moveAssetToBeginning')
+        })
+
+        return mappedTokens
+      } catch (error) {
+        console.error('Error fetching SLP tokens:', error)
+        this.allSlpTokensFromAPI = []
         return []
       }
     },
@@ -1867,8 +1989,8 @@ export default {
               return null
             })
         } else {
-          // For SLP, the API doesn't support favorites_only yet
-          // Just refresh BCH balance
+          // For SLP, refresh token list from Watchtower and refresh BCH balance.
+          await vm.fetchSlpTokensFromServer()
           if (!vm.refreshingTokenIds.includes('bch')) {
             vm.refreshingTokenIds.push('bch')
           }
@@ -1902,9 +2024,8 @@ export default {
           const favorites = (vm.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
           favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
         } else {
-          // For SLP, API doesn't support favorites_only yet
-          // No favorite tokens to refresh prices for
-          favoriteTokenIds = []
+          const favorites = (vm.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+          favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
         }
 
         // Always include BCH (id: 'bch')
@@ -2416,21 +2537,9 @@ export default {
             vm.$store.commit('assets/moveAssetToBeginning')
           })
         } else {
-          // For SLP tokens, still use getMissingAssets (API doesn't support SLP yet)
-          const slpWalletHash = vm.getWallet('slp').walletHash
-          const slpTokens = await vm.$store.dispatch('assets/getMissingAssets', {
-            isCashToken: false,
-            walletHash: slpWalletHash,
-            includeIgnoredTokens: false
-          })
-          
-          if (slpTokens && slpTokens.length > 0) {
-            const newTokens = slpTokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
-            newTokens.forEach(token => {
-              vm.$store.commit('assets/addNewAsset', token)
-              vm.$store.commit('assets/moveAssetToBeginning')
-            })
-          }
+          // For SLP tokens, fetch directly from Watchtower.
+          // `fetchSlpTokensFromServer()` already normalizes and merges tokens into the store.
+          await vm.fetchSlpTokensFromServer()
         }
       } catch (error) {
         console.error('Error loading tokens:', error)

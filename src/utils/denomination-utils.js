@@ -102,7 +102,7 @@ export function parseLocaleNumber (value) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0) {
+export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0, maxFractionDigitsOverride = null) {
   const balanceCheck = asset.balance ?? 0
   const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
   let newBalance = ''
@@ -126,7 +126,10 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     const rawConverted = parseFloat(
       convertToTokenAmountWithDecimals(asset.balance, asset.decimals, isBCH, isSLP)
     )
-    newBalance = formatWithLocale(rawConverted, { max: asset.decimals })
+    const maxFractionDigits = Number.isFinite(maxFractionDigitsOverride)
+      ? maxFractionDigitsOverride
+      : asset.decimals
+    newBalance = formatWithLocale(rawConverted, { max: maxFractionDigits })
     if (subStringMax > 0) newBalance = String(newBalance).substring(0, subStringMax)
     symbol = asset.symbol || ''
   }

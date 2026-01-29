@@ -4,14 +4,10 @@
       :title="$t('Send')" :backnavpath="!backPath ? '/' : backPath"></header-nav>
     <template v-if="assets">
       <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '20px' : '0px'}">
-        <div class="col-9 q-mt-md q-pl-lg q-pr-lg q-pb-none">
+        <div class="col q-mt-md q-pl-lg q-pr-lg q-pb-none">
           <p class="q-mb-sm pt-label" :class="getDarkModeClass(darkMode)" id="select-asset-to-send">
             {{ $t('SelectAssetToSend') }}
           </p>
-        </div>
-        <div
-          class="col-3 q-mt-sm asset-filter-container">
-          <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
         </div>
       </div>
       <div class="asset-list-scroll">
@@ -99,7 +95,6 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
 import { convertTokenAmount, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
@@ -127,8 +122,7 @@ export default {
     }
   },
   components: {
-    HeaderNav,
-    AssetFilter
+    HeaderNav
   },
   data () {
     return {
@@ -145,9 +139,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    enableSLP () {
-      return this.$store.getters['global/enableSLP']
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
