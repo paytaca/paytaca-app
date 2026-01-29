@@ -764,8 +764,13 @@ export default {
 	    			const tokens = data.results
 	    				.map(result => {
 	    					const logo = result?.image_url ? convertIpfsUrl(result.image_url) : null
+	    					const tokenId = result?.id
+	    					const assetId = tokenId
+	    						? (String(tokenId).startsWith('slp/') ? String(tokenId) : `slp/${tokenId}`)
+	    						: null
 	    					return {
-	    						id: result?.id,
+	    						// Normalize IDs to match other pages/store usage (`slp/<tokenId>`)
+	    						id: assetId,
 	    						name: result?.name || 'Unknown Token',
 	    						symbol: result?.symbol || '',
 	    						decimals: result?.decimals || 0,
