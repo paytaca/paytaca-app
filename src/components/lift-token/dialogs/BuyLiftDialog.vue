@@ -176,7 +176,13 @@
 <script>
 import { markRaw } from '@vue/reactivity'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getOracleData, getAddressPath, processPurchaseApi } from 'src/utils/engagementhub-utils/lift-token'
+import {
+  getOracleData,
+  getAddressPath,
+  processPurchaseApi,
+  getIdAndPubkeyApi,
+  initializeVestingContract
+} from 'src/utils/engagementhub-utils/lift-token'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
 import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
@@ -458,8 +464,6 @@ export default {
       if (this.isProcessing) return
       if (!this.canPurchase) return
 
-      const purchaseTkn = Math.round(Number(this.amountTkn || 0) * 10 ** 2)
-
       if (!this.contractAddress) {
         const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
         raiseNotifyError(message)
@@ -489,6 +493,52 @@ export default {
         } catch (err) {
           console.warn('Failed to refresh oracle data:', err)
         }
+      }
+
+      // Generate BCH address dynamically
+      const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+      const buyerAddress = await generateReceivingAddress({
+        walletIndex: this.$store.getters['global/getWalletIndex'],
+        derivationPath: getDerivationPathForWalletType('bch'),
+        addressIndex: validAddressIndex,
+        isChipnet: this.$store.getters['global/isChipnet']
+      })
+      if (!buyerAddress) {
+        throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+      }
+      const addressPath = await getAddressPath(buyerAddress)
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+      const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+
+      const idPubkeyData = await getIdAndPubkeyApi()
+      if (!idPubkeyData) {
+        console.error('Failed to get ID and pubkey data')
+        const message = this.$t('FailedToGetContractData', {}, 'Failed to get contract data. Please try again later.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
+        return
+      }
+      const { token_id, pubkey } = idPubkeyData
+
+      // compute lockup end based on current date and rsvp.sale_group
+      const year = this.getSaleGroupCode(this.selectedRound) === 'seed' ? 2 : 1
+      const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
+
+      const purchaseTkn = Math.round(Number(this.amountTkn || 0) * 10 ** 2)
+
+      let vestingContract = null
+      try {
+        vestingContract = initializeVestingContract(pubkeyHex, token_id, pubkey, lockupEnd, purchaseTkn)
+      } catch (error) {
+        console.error('Failed to initialize vesting contract:', error)
+        const message = this.$t('FailedToInitializeVestingContract', {}, 'Failed to initialize the vesting contract. Please try again later.')
+        raiseNotifyError(message)
+        this.$emit('purchase', { success: false, errorMessage: message })
+        this.innerVal = false
+        return
       }
 
       const purchase = {
@@ -541,24 +591,8 @@ export default {
           throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment.'))
         }
 
-        // Generate BCH address dynamically
-        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
-        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
-        const buyerAddress = await generateReceivingAddress({
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          derivationPath: getDerivationPathForWalletType('bch'),
-          addressIndex: validAddressIndex,
-          isChipnet: this.$store.getters['global/isChipnet']
-        })
-        if (!buyerAddress) {
-          throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
-        }
-        const addressPath = await getAddressPath(buyerAddress)
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
         const satsWithFee = Math.floor(purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
-        const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
 
         const data = {
           purchased_amount_usd: purchase.usd,
@@ -572,7 +606,9 @@ export default {
           partial_purchase: -1,
           sale_group: this.getSaleGroupCode(this.selectedRound),
           public_key: pubkeyHex,
-          message_timestamp: this.messageTimestamp
+          message_timestamp: this.messageTimestamp,
+          vesting_contract_address: vestingContract.address,
+          lockup_end: lockupEnd,
         }
 
         const isSuccessful = await processPurchaseApi(data)
