@@ -275,10 +275,6 @@ export default {
         }
 
         const isSuccessful = await processPurchaseApi(data)
-        if (!isSuccessful) {
-          throw new Error(this.$t('PurchasePaymentError'))
-        }
-
         if (isSuccessful) {
           this.processingMessage = "";
           this.$refs.confirmDialogRef.$emit("ok");
