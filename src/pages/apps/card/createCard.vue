@@ -159,12 +159,26 @@
                 <div class="text-h6 text-weight-bold q-mb-sm" :class="$q.dark.isActive ? 'text-blue-2' : 'text-primary'">
                   Order your physical card
                 </div>
-                <q-icon  
+
+                <!-- replaced with an actual image of the physical card -->
+                <q-img
+                  src="~assets/paytaca-card.png"
+                  style="max-width: 250px; height: auto;"
+                  class="q-mb-md rounded-borders shadow-2"
+                >
+                  <template v-slot:error>
+                    <div class="absolute-full flex flex-center bg-negative text-white">
+                      Cannot load image
+                    </div>
+                  </template>
+                </q-img>
+
+                <!-- <q-icon  
                   name="style"
                   size="100px"
                   :color="$q.dark.isActive ? 'blue-2' : 'primary'"
                   class="q-mb-md"
-                />
+                /> -->
               </div>
 
               <div class="col-12 col-md-7">
@@ -422,8 +436,39 @@
 
             <q-card-section class="q-pt-none">
               <q-input
-                v-model="merchantSearch" label="Search for Merchant" outlined dense class="q-mb-md"
+                v-model="merchantSearch" 
+                label="Search for Merchant" 
+                outlined 
+                dense 
+                class="q-mb-md"
               />
+
+              <q-list
+                v-if="filteredMerchants.length > 0" 
+                bordered
+                separator
+                class="q-mb-md"
+              >
+                <q-item
+                  v-for="merchant in filteredMerchants"
+                  :key="merchant.id"
+                  clickable
+                  v-ripple
+                  @click="selectMerchant(merchant)"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ merchant.name }}</q-item-label>
+                    <q-item-label caption>{{ merchant.address }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+
+              <div 
+                v-else-if="merchantSearch.length > 0"
+                class="text-caption text-grey q-mb-md"
+              >
+                No merchants found.
+              </div>
 
               <div class="row items-center justify-between q-pa-md border-outlined">
                 <div class="text-subtitle2">Generic Auth NFT</div>
@@ -528,7 +573,6 @@ import { selectedCurrency } from 'src/store/market/getters';
         selectedCurrency: 'PHP',
         // Manage Auth NFT
         showManageAuthNFTdialog: false,
-        merchantSearch: '',
         genericAuthEnabled: false,
         // Transaction History
         showTransactionHistoryDialog: false,
@@ -541,6 +585,9 @@ import { selectedCurrency } from 'src/store/market/getters';
           city: '',
           country: ''
         },
+        // Merchants
+        merchantSearch: '',
+        allMerchants: [],
       }
     },
     
@@ -567,6 +614,11 @@ import { selectedCurrency } from 'src/store/market/getters';
         if (merchants.results.length === 0) {
           console.warn('No merchants found in the merchant list.')
           return
+        }
+        
+        // for merchant search in Manage Auth NFT dialog
+        if (merchants && merchants.results) {
+          this.allMerchants = merchants.results
         }
 
         const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
@@ -614,6 +666,18 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       } catch (error) {
         console.error('Error during mounted lifecycle:', error)
+      }
+    },
+
+    computed: {
+      // merchant search in manage auth nfts
+      filteredMerchants () {
+        if (!this.merchantSearch) return []
+
+        const search = this.merchantSearch.toLowerCase()
+        return this.allMerchants.filter(merchant => {
+          return merchant.name.toLowerCase().includes(search)
+        })
       }
     },
 
@@ -810,15 +874,23 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       editSpendLimit(card){
         this.selectedCard = card;
-        this.tempSpendLimitAmount = card.spendLimitAmount || 0;
         this.showSpendLimitDialog = true;
-        const amount = this.tempSpendLimitAmount;
-        if (amount > actualBalance){
+        const amount = parseFloat(this.tempSpendLimitAmount);
+        if (amount > this.selectedCard.balance){
           this.$q.notify({
             message: 'Spend limit cannot exceed card balance',
             color: 'negative',
             icon: 'warning'
           })
+          return;
+        }
+        if (!amount || amount < 0){
+          this.$q.notify({
+            message: 'Please enter a valid spend limit amount',
+            color: 'negative',
+            icon: 'warning'
+          })
+          return;
         }
         this.selectedCard.spendLimitAmount = amount;
         console.log(`Set spend limit of ${amount} for card:`, this.selectedCard);
