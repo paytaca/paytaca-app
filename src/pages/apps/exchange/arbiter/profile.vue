@@ -1,5 +1,5 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps" class="header-nav" />
+  <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
   <div
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"

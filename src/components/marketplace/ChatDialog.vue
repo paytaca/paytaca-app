@@ -276,7 +276,7 @@ export default defineComponent({
     chatRef: String,
     /**
      * When provided, chat input is disabled after this timestamp.
-     * Used to match P2P Exchange behavior (chat closes 1 hour after order completion/cancellation).
+     * Used to match P2P Ramp behavior (chat closes 1 hour after order completion/cancellation).
      */
     chatCloseAt: { required: false },
     usePrivkey: String,

@@ -40,7 +40,7 @@
                 {{ $t('BuyBCHWithLocalCurrency', {}, 'Buy BCH With Local Currency') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('BuyBCHDescription', {}, 'Purchase Bitcoin Cash through P2P Exchange with your local currency') }}
+                {{ $t('BuyBCHDescription', {}, 'Purchase Bitcoin Cash through P2P Ramp with your local currency') }}
               </div>
             </div>
             <div class="col-auto">

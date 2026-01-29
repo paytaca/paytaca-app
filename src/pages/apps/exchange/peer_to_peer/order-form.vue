@@ -1,5 +1,21 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="'/apps/exchange/peer-to-peer/store'" class="header-nav" />
+  <HeaderNav :title="`P2P Ramp`" :backnavpath="'/apps/exchange/peer-to-peer/store'" class="header-nav">
+    <template #top-right-menu>
+      <q-btn
+        v-if="adShareLinkEnabled !== false && ad?.id"
+        :color="darkMode ? 'white' : 'grey-6'"
+        class="q-mr-sm"
+        padding="0"
+        round
+        flat
+        dense
+        size="1em"
+        icon="share"
+        aria-label="Share ad"
+        @click="openShareDialog()"
+      />
+    </template>
+  </HeaderNav>
   <q-pull-to-refresh @refresh="loadData">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
@@ -39,9 +55,8 @@
         <!-- Form Body -->
         <div v-if="isloaded">
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
-            {{ ad.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
+            {{ ad?.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
           </div>
-          <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
             <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
@@ -58,7 +73,7 @@
                   <div class="row justify-between no-wrap q-mb-sm">
                     <span>{{ $t('PriceType') }}</span>
                     <span class="text-nowrap q-ml-xs">
-                      {{ ad.price_type }}
+                      {{ ad?.price_type }}
                     </span>
                   </div>
                   <div class="row justify-between no-wrap q-mb-sm">
@@ -162,7 +177,7 @@
                     }}
                   </q-btn>
                 </div>
-                <div v-if="ad.trade_type === 'BUY'">
+                <div v-if="ad?.trade_type === 'BUY'">
                   <q-separator :dark="darkMode" class="q-mt-sm"/>
                   <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
                       <span>{{ $t('Fee') }}</span>
@@ -188,14 +203,14 @@
                   unelevated
                   no-caps
                   size="lg"
-                  :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
+                  :label="ad?.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
                   class="full-width q-py-sm text-weight-bold bg-grad button"
                   @click="submit()">
                 </q-btn>
               </div>
 
               <!-- Warning message for when no currency arbiter is available for ad -->
-              <div v-if="!hasArbiters" class="pt-card q-pa-md q-mb-md br-15 warning-card" :class="darkMode ? 'dark' : 'light'">
+              <div v-if="!hasArbiters && !arbiterAuthRequired" class="pt-card q-pa-md q-mb-md br-15 warning-card" :class="darkMode ? 'dark' : 'light'">
                 <div class="row items-center">
                   <q-icon name="warning" color="orange" size="md" class="q-mr-md"/>
                   <div class="text-weight-medium">
@@ -333,6 +348,7 @@ export default {
       },
       marketPrice: 0,
       arbitersAvailable: [],
+      arbiterAuthRequired: false,
       previousRoute: null,
       networkError: false,
       loadSubmitButton: false,
@@ -437,7 +453,7 @@ export default {
     }
   },
   async created () {
-    bus.on('relogged', this.loadData)
+    bus.on('relogged', this.onRelogged)
   },
   async mounted () {
     bus.emit('hide-menu')
@@ -450,6 +466,11 @@ export default {
     getDarkModeClass,
     formatCurrency,
     satoshiToBch,
+    onRelogged () {
+      // Reset auth-related guards after a successful login
+      this.arbiterAuthRequired = false
+      this.loadData()
+    },
     preventPull (e) {
       // Prevent pull-to-refresh from triggering when scrollable element is not at top
       let parent = e.target
@@ -575,7 +596,12 @@ export default {
       this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
-      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}/`, { authorize: true })
+      const adId = this.$route?.params?.ad
+      if (!adId) {
+        console.warn('Ad ID is missing, skipping fetchAd')
+        return
+      }
+      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true })
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {
@@ -664,16 +690,26 @@ export default {
         vm.arbitersAvailable = []
         return
       }
-      await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
+      if (vm.arbiterAuthRequired) return
+      await backend.get('/ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
         .then(response => {
           vm.arbitersAvailable = response.data
         })
         .catch(error => {
+          const status = error?.response?.status
+          const detail = String(error?.response?.data?.detail || '')
+          // If the user isn't authenticated yet, avoid showing "no arbiter" message
+          // and avoid triggering refresh loops. Login flow will handle retry.
+          if ((status === 401 || status === 403) && /no auth credentials/i.test(detail)) {
+            vm.arbitersAvailable = []
+            vm.arbiterAuthRequired = true
+            return
+          }
           this.handleRequestError(error)
         })
     },
     async fetchFees () {
-      const url = `ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.getTradeAmount()}`
+      const url = `/ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.getTradeAmount()}`
       await backend.get(url)
         .then(response => {
           const tempFee = response.data

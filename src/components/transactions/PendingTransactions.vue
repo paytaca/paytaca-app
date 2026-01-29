@@ -30,7 +30,7 @@
 					class="q-mb-sm"
 					style="font-size: 9px; padding: 3px 8px;"
 				>
-					P2P Exchange
+					P2P Ramp
 				</q-badge>
 
 				<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">Order #{{ item.id }}</div>
@@ -206,7 +206,7 @@ export default {
 			this.fetchOrders(true)
 		},
 		seeAllOrders () {
-			// Navigate to P2P Exchange orders page
+			// Navigate to P2P Ramp orders page
 			this.$router.push({ name: 'exchange', query: { tab: 'orders' } })
 		},
 		getStatus (type = 'buy') {

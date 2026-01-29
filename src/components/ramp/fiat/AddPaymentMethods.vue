@@ -1,6 +1,6 @@
 <template>
   <div v-if="type === 'Profile'" class="sticky-header" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="`P2P Exchange`" @click="onBack" />
+    <HeaderNav :title="`P2P Ramp`" @click="onBack" />
   </div>
   <div v-if="type === 'Profile'" :style="{ height: headerOffset + 'px' }"></div>
   <div class="q-mx-md q-mx-none text-bow"

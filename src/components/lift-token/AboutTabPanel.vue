@@ -267,7 +267,7 @@
               {{ $t('FeeDiscounts') }}
             </div>
             <ul class="benefits-ul">
-              <li>{{ $t('Benefit5', {}, 'Reduced P2P exchange fees') }}</li>
+              <li>{{ $t('Benefit5', {}, 'Reduced P2P ramp fees') }}</li>
               <li>{{ $t('Benefit6', {}, 'Lower marketplace commissions') }}</li>
               <li>{{ $t('Benefit7', {}, 'Discounted payment processing fees') }}</li>
             </ul>
