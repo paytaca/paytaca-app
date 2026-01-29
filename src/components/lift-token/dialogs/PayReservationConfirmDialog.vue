@@ -226,7 +226,7 @@ export default {
 
       let vestingContract = null
       try {
-        vestingContract = initializeVestingContract(pubkeyHex, token_id, pubkey, lockupEnd, purchaseTkn)
+        vestingContract = initializeVestingContract(pubkeyHex, token_id, pubkey, lockupEnd, this.purchase.tkn)
       } catch (error) {
         console.error('Failed to initialize vesting contract:', error)
         const message = this.$t('FailedToInitializeVestingContract', {}, 'Failed to initialize the vesting contract. Please try again later.')
