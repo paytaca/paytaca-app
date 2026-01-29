@@ -517,6 +517,75 @@ import { selectedCurrency } from 'src/store/market/getters';
     
     async mounted () {
       console.log("GO!")
+
+      try {
+        const cardUser = await loadCardUser()
+        const cards = await cardUser.fetchCards()
+        if (cards.length === 0) {
+          console.warn('No cards found for the user.')
+          return
+        }
+
+        const card = cards[cards.length - 1] // get the last card for testing
+        console.log('Loaded Cards:', cards)
+        console.log('Using Card:', card)
+
+        await card.getAuthNfts().then(authNfts => {
+          console.log('Card Auth NFTs:', authNfts)
+        })
+
+        const merchants = await card.getMerchantList()
+        if (merchants.results.length === 0) {
+          console.warn('No merchants found in the merchant list.')
+          return
+        }
+
+        const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
+
+        console.log('Merchants:', merchants)
+        console.log('Selected Merchant:', selectedMerchant)
+
+        // // Example: Minting and issuing merchant auth token
+        // const mintParams = {
+        //   authorized: true,
+        //   merchant: {
+        //     id: selectedMerchant.id,
+        //     pubkey: selectedMerchant.pubkey
+        //   }
+        // }
+        // const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
+        // console.log('Mint Result:', mintResult)
+        // console.log('Issue Result:', issueResult)
+
+        // // Example: Mutate global auth token 
+        // // (needs contract funded with some BCH for gas fees)
+        // await card.mutateGlobalAuthToken({
+        //   authorize: false,
+        //   expirationBlock: null, // Optional: can omit if not changing
+        //   spendLimitSats: 50000, // Optional: can omit if not changing
+        //   broadcast: false // Change to true to broadcast to blockchain
+        // })
+
+        // // Example: Mutate merchant auth token 
+        // // (needs contract funded with some BCH for gas fees)
+        // await card.mutateMerchantAuthToken({
+        //   authorize: false,
+        //   merchant: {
+        //     id: selectedMerchant.id,
+        //     pubkey: selectedMerchant.pubkey
+        //   },
+        //   expirationBlock: null, // Optional: can omit if not changing
+        //   spendLimitSats: 50000, // Optional: can omit if not changing
+        //   broadcast: false // Change to true to broadcast to blockchain
+        // })
+
+        await card.getAuthNfts().then(authNfts => {
+          console.log('Card Auth NFTs after mutation:', authNfts)
+        })
+
+      } catch (error) {
+        console.error('Error during mounted lifecycle:', error)
+      }
     },
 
     methods: {
@@ -542,7 +611,7 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
           // initializing the card helper
-          const card = new Card()
+          const card = await Card.createInitialized()
           // execute workflow from card.js
           await card.create()
           const tokenId = card.tokenId
