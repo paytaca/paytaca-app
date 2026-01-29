@@ -80,6 +80,10 @@
                                 <q-item-section>Transaction History</q-item-section>
                               </q-item>
 
+                              <q-item clickable v-ripple @click="editSpendLimit(card)">
+                                <q-item-section>Spend Limit</q-item-section>
+                              </q-item>
+
                               <q-item clickable v-ripple @click="toggleLock(card)">
                                 <q-item-section :class="card.status === 'Locked' ? 'text-positive' : 'text-negative'">
                                   {{ card.status === 'Locked' ? 'Unlock Card' : 'Lock Card' }}
@@ -439,7 +443,7 @@
      </q-dialog>
 
      <!-- Transaction History Popup-->
-     <q-dialog v-model="showTransactionHistory" persistent>
+     <q-dialog v-model="showTransactionHistoryDialog" persistent>
         <q-card style="min-width: 300px" class="br-15 q-pa-sm">
           <q-card-section>
               <div class="text-h6">Transaction History</div>
@@ -455,6 +459,29 @@
 
           <q-card-actions align="right">
               <q-btn flat label="Close" color="primary" v-close-popup />
+          </q-card-actions>
+        </q-card>
+     </q-dialog>
+
+     Spend Limit Pop-up
+     <q-dialog v-model="showSpendLimitDialog" persistent>
+        <q-card style="min-width: 300px" class="br-15 q-pa-sm">
+          <q-card-section>
+            <div class="text-h6">Spend Limit</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <q-input
+              v-model.number="tempSpendLimitAmount"
+              type="number"
+              label="Spend Limit Amount"
+              outlined
+              dense
+            />
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Close" color="primary" v-close-popup />
           </q-card-actions>
         </q-card>
      </q-dialog>
@@ -504,7 +531,9 @@ import { selectedCurrency } from 'src/store/market/getters';
         merchantSearch: '',
         genericAuthEnabled: false,
         // Transaction History
-        showTransactionHistory: false,
+        showTransactionHistoryDialog: false,
+        showSpendLimitDialog: false,
+        tempSpendLimitAmount: 0,
         isSweep: false,
         // Order form
         formData: {
@@ -775,8 +804,24 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       viewTransactionHistory(card) {
         this.selectedCard = card;
-        this.showTransactionHistory = true;
+        this.showTransactionHistoryDialog = true;
         this.transactionSearch = '';
+      },
+
+      editSpendLimit(card){
+        this.selectedCard = card;
+        this.tempSpendLimitAmount = card.spendLimitAmount || 0;
+        this.showSpendLimitDialog = true;
+        const amount = this.tempSpendLimitAmount;
+        if (amount > actualBalance){
+          this.$q.notify({
+            message: 'Spend limit cannot exceed card balance',
+            color: 'negative',
+            icon: 'warning'
+          })
+        }
+        this.selectedCard.spendLimitAmount = amount;
+        console.log(`Set spend limit of ${amount} for card:`, this.selectedCard);
       },
 
       toggleLock(card) {
