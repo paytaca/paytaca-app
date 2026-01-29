@@ -464,6 +464,8 @@ export default {
       if (this.isProcessing) return
       if (!this.canPurchase) return
 
+      this.isProcessing = true
+
       try {
         if (!this.contractAddress) {
           const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
@@ -546,8 +548,6 @@ export default {
           const message = this.$t('BalanceExceeded', {}, 'Insufficient BCH balance to cover amount and fee.')
           throw new Error(message)
         }
-
-        this.isProcessing = true
 
         // Note: Fees are handled automatically by watchtower library (deducted from change output).
         // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
