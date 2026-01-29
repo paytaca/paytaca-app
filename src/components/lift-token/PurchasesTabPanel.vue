@@ -143,8 +143,8 @@
                 <template v-else>
                   {{ $t(
                     'PaidUsingMethod',
-                    { method: purchase.purchase_more_details.payment_method?.toUpperCase() },
-                    `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase()}`
+                    { method: purchase.purchase_more_details.payment_method?.toUpperCase() || 'FIAT' },
+                    `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase() || 'FIAT'}`
                   ) }}
                 </template>
               </span>
