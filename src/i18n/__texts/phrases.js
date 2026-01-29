@@ -2067,6 +2067,8 @@ const phrases = {
       TransactionDisplaySettings: 'Transaction display settings',
       TokenLockupTransactionId: 'Token Lockup Transaction ID',
       PaymentTransactionId: 'Payment Transaction ID',
+      FailedToGetContractData: 'Failed to get contract data. Please try again later.',
+      FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',
     }
   ],
   dynamic: [
