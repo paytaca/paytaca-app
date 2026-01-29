@@ -73,7 +73,7 @@ export class CardUser {
             
             // Save token if provided
             if (loginResp?.token) {
-                await saveAuthToken(loginResp.token);
+                await saveAuthToken(loginResp);
             }
 
         } catch (error) {
@@ -85,7 +85,13 @@ export class CardUser {
     async fetchCards() {
         try {
             const response = await this.backend.get('/cards/');
-            const cards = response.data.results.map(cardData => new Card(cardData));
+            const cards = await Promise.all(
+                response.data.results.map(cardData => (
+                    cardData?.contract_id
+                        ? Card.createInitialized(cardData)
+                        : Card.createWithWallet(cardData)
+                ))
+            );
             return cards;
         } catch (error) {
             console.error('Error fetching card info:', error);
@@ -119,27 +125,69 @@ export async function loadCardUser() {
         return user;
     } catch (error) {
         console.error('Error loading Card User:', error);
+        if (error.response && error.response.status === 404) {
+            console.error('Card User not found for this wallet.');
+            await clearAuthToken();
+        }
         throw error;
     }
 }
 
-export async function getAuthToken () {
+export async function getAuthSession () {
     try {
-        const result = await SecureStoragePlugin.get({ TOKEN_STORAGE_KEY });
-        return result.value;
+        const result = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY });
+        const rawValue = result.value;
+        if (rawValue == null) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(rawValue);
+        } catch {
+            return rawValue;
+        }
     } catch (error) {
         console.error(`Item with key ${TOKEN_STORAGE_KEY} does not exist:`, error);
         return null;
     }
 }
 
+export async function getAuthToken () {
+    const session = await getAuthSession();
+    if (session == null) {
+        return null;
+    }
+
+    if (typeof session === 'object') {
+        return session.token ?? null;
+    }
+
+    return session;
+}
+
 export async function saveAuthToken (value) {
     console.log('Saving auth token...');
     try {
-        const result = await SecureStoragePlugin.set({ TOKEN_STORAGE_KEY, value });
+        const storedValue = typeof value === 'string' ? value : JSON.stringify(value);
+        const result = await SecureStoragePlugin.set({ key: TOKEN_STORAGE_KEY, value: storedValue });
+        const temp = await getAuthToken();
+        console.log('Auth token after saving:', temp);
         return result.value;
     } catch (error) {
         console.error('Failed to save auth token:', error);
+        throw error;
+    }
+}
+
+export async function clearAuthToken () {
+    console.log('Clearing auth token...');
+    try {
+        SecureStoragePlugin.remove({ key: TOKEN_STORAGE_KEY })
+        console.log('Card auth token deleted');
+        const authToken = await getAuthToken();
+        console.log('Auth token after deletion (should be null):', authToken);
+    } catch (error) {
+        console.error('Failed to clear auth token:', error);
         throw error;
     }
 }
