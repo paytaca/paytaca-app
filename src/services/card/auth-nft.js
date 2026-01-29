@@ -19,8 +19,7 @@
 
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
-import { defaultExpirationDeltaMinutes, defaultSpendLimitSats, minTokenValue } from './constants';
-import { convertTimeToBlock } from './utils';
+import { defaultSpendLimitSats, minTokenValue } from './constants';
 
 class AuthNftService {
     constructor(wif) {
@@ -84,13 +83,11 @@ class AuthNftService {
             await this.initWallet();
         }
 
-        // TODO: prevent minting tokens with same terminal id?
         const tokenMintRequests = [];
         for (let i = 0; i < merchants.length; i++) {
             const merchant = merchants[i]
             const commitmentData = {
                 authorized: merchant.authorized !== undefined ? merchant.authorized : true,
-                expirationBlock: merchant.expirationBlock || await defaultExpirationBlock(),
                 spendLimitSats: merchant.spendLimitSats || defaultSpendLimitSats,
             }
 
@@ -204,15 +201,9 @@ class AuthNftService {
     
 }
 
-export async function defaultExpirationBlock() {
-    const expirationDate = Math.floor(Date.now()/1000) + (defaultExpirationDeltaMinutes * 60); // 30 days from now
-    const expirationBlock = await convertTimeToBlock(expirationDate)
-    return expirationBlock
-}
-
 function encodeMerchantHash({ merchantId, merchantPk }) {
     if (!merchantId || !merchantPk) {
-        return ''
+        throw new Error('missing required merchantId or merchantPk')
     }
     
     const merchantIdBuf = Buffer.from(merchantId.toString(), 'utf-8')
@@ -225,22 +216,17 @@ function encodeMerchantHash({ merchantId, merchantPk }) {
     return truncatedHashHex
 }
 
-function encodeCommitment({ authorized, merchant, expirationBlock, spendLimitSats }) {
-    if (!expirationBlock) throw new Error('missing required expiration block')
+function encodeCommitment({ authorized, merchant, spendLimitSats }) {
     if (!spendLimitSats) throw new Error ('missing required spend limit')
 
     // authorized
-    const authorizedBuf = Buffer.from([authorized ? 0x01 : 0x00]);
-
-    // expiration
-    const expirationBuf = Buffer.alloc(4);
-    expirationBuf.writeUInt32LE(expirationBlock);
+    const authorizedBuf = Buffer.from([authorized ? 0x01 : 0x00]); // 1 byte
 
     // spend limit
     const spendLimitBuf = Buffer.alloc(8);
     spendLimitBuf.writeBigInt64LE(BigInt(spendLimitSats)); // 8 bytes
 
-    let commitmentData = [authorizedBuf, expirationBuf, spendLimitBuf]
+    let commitmentData = [authorizedBuf, spendLimitBuf]
 
     // terminal hash
     if (merchant) {
@@ -252,7 +238,7 @@ function encodeCommitment({ authorized, merchant, expirationBlock, spendLimitSat
         commitmentData.push(truncatedHash);
     }
 
-    // structure: authorized + expirationBlock + spendLimit + hash
+    // structure: authorized + spendLimit + hash
     const commitment = Buffer.concat(commitmentData);
 
     return commitment.toString('hex'); 
@@ -262,7 +248,6 @@ function decodeCommitment(hex) {
     const buf = Buffer.from(hex, 'hex');
     return {
         authorized: buf[0] === 1,
-        expirationBlock: buf.readUInt32LE(1),
         spendLimitSats: buf.readBigUInt64LE(5),
         hash: buf.subarray(13, buf.length).toString('hex')
     };

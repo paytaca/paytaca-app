@@ -669,12 +669,14 @@ import { selectedCurrency } from 'src/store/market/getters';
       console.log("GO!")
 
       try {
-        // const cardUser = await loadCardUser()
-        // const cards = await cardUser.fetchCards()
-        // if (cards.length === 0) {
-        //   console.warn('No cards found for the user.')
-        //   return
-        // }
+        const cardUser = await loadCardUser()
+        console.log('Card User loaded:', cardUser)
+
+        const cards = await cardUser.fetchCards()
+        if (cards.length === 0) {
+          console.warn('No cards found for the user.')
+          return
+        }
 
         // const card = cards[cards.length - 1] // get the last card for testing
         // console.log('Loaded Cards:', cards)
@@ -764,6 +766,7 @@ import { selectedCurrency } from 'src/store/market/getters';
           maxWidth: '1100px',
           overflow: 'hidden'
         }
+        console.error('Error during mounted lifecycle:', error.response || error)
       }
     },
 
