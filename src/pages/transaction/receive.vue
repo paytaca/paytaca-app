@@ -612,95 +612,126 @@ export default {
         let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
         // Skip address 0/0 (reserved for message encryption)
         validAddressIndex = this.ensureAddressIndexNotZero(validAddressIndex)
+
+        // Respect the Auto-generate setting:
+        // - If disabled, ALWAYS reuse the lastAddressIndex as-is
+        // - Do NOT check balance of that address
+        // - Do NOT increment lastAddressIndex
+        const autoGenerateAddress = this.$store.getters['global/autoGenerateAddress']
+        if (!autoGenerateAddress) {
+          const subscribeResult = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType(this.walletType),
+            addressIndex: validAddressIndex,
+            isChipnet: this.isChipnet
+          })
+
+          if (!subscribeResult) {
+            throw new Error('Failed to subscribe address to watchtower')
+          }
+
+          // Store regular format for API calls and listeners
+          this.dynamicAddressRegular = subscribeResult
+
+          // Store display format (token format for CashToken, regular for others)
+          if (this.assetId.indexOf('ct/') > -1) {
+            this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
+          } else {
+            this.dynamicAddress = subscribeResult
+          }
+
+          this.generating = false
+          return
+        }
         
         // Generate address from lastAddressIndex
         let address
         
         // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
-          const addressResult = await generateAddressSetWithoutSubscription({
+        const addressResult = await generateAddressSetWithoutSubscription({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType(this.walletType),
+          addressIndex: validAddressIndex,
+          isChipnet: this.isChipnet
+        })
+        
+        if (!addressResult.success) {
+          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+        }
+        
+        address = addressResult.addresses.receiving
+        
+        // Step 2: Check if that address has balance (including token sats)
+        const hasBalance = await this.checkAddressBalance(address, this.walletType)
+        
+        if (!hasBalance) {
+          // Step 3: If balance is zero, subscribe and render that address
+          // Now subscribe the address since we're using it
+          const subscribeResult = await generateReceivingAddress({
             walletIndex: this.$store.getters['global/getWalletIndex'],
             derivationPath: getDerivationPathForWalletType(this.walletType),
             addressIndex: validAddressIndex,
             isChipnet: this.isChipnet
           })
           
-          if (!addressResult.success) {
-            throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
+          if (!subscribeResult) {
+            throw new Error('Failed to subscribe address to watchtower')
           }
           
-          address = addressResult.addresses.receiving
-          
-          // Step 2: Check if that address has balance (including token sats)
-          const hasBalance = await this.checkAddressBalance(address, this.walletType)
-          
-          if (!hasBalance) {
-            // Step 3: If balance is zero, subscribe and render that address
-            // Now subscribe the address since we're using it
-            const subscribeResult = await generateReceivingAddress({
-              walletIndex: this.$store.getters['global/getWalletIndex'],
-              derivationPath: getDerivationPathForWalletType(this.walletType),
-              addressIndex: validAddressIndex,
-              isChipnet: this.isChipnet
-            })
-            
-            if (!subscribeResult) {
-              throw new Error('Failed to subscribe address to watchtower')
-            }
-            
-            // Store regular format for API calls and listeners
-            this.dynamicAddressRegular = subscribeResult
-            
-            // Store display format (token format for CashToken, regular for others)
-            if (this.assetId.indexOf('ct/') > -1) {
-              this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
-            } else {
-              this.dynamicAddress = subscribeResult
-            }
-            this.generating = false
-            return
-          }
-          
-          // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
-          let newAddressIndex = validAddressIndex + 1
-          // Skip address 0/0 (reserved for message encryption)
-          newAddressIndex = this.ensureAddressIndexNotZero(newAddressIndex)
-          
-          // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
-          const newAddress = await generateReceivingAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex'],
-            derivationPath: getDerivationPathForWalletType(this.walletType),
-            addressIndex: newAddressIndex,
-            isChipnet: this.isChipnet
-          })
-          
-          if (!newAddress) {
-            throw new Error('Failed to generate and subscribe new address')
-          }
-          
-          // Update store with new address index
-          const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-          const wallet = new Wallet(mnemonic, this.network)
-          const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
-          const addresses = result.addresses
-          
-          this.$store.commit('global/generateNewAddressSet', {
-            type: this.walletType,
-            lastAddress: addresses.receiving,
-            lastChangeAddress: addresses.change,
-            lastAddressIndex: newAddressIndex
-          })
-          
-          // Step 6: Render that new address in the page
           // Store regular format for API calls and listeners
-          this.dynamicAddressRegular = newAddress
+          this.dynamicAddressRegular = subscribeResult
           
           // Store display format (token format for CashToken, regular for others)
           if (this.assetId.indexOf('ct/') > -1) {
-            this.dynamicAddress = convertCashAddress(newAddress, this.isChipnet, true)
+            this.dynamicAddress = convertCashAddress(subscribeResult, this.isChipnet, true)
           } else {
-            this.dynamicAddress = newAddress
+            this.dynamicAddress = subscribeResult
           }
           this.generating = false
+          return
+        }
+        
+        // Step 4: Else, generate a new address by incrementing the lastAddressIndex by 1
+        let newAddressIndex = validAddressIndex + 1
+        // Skip address 0/0 (reserved for message encryption)
+        newAddressIndex = this.ensureAddressIndexNotZero(newAddressIndex)
+        
+        // Step 5: Generate and subscribe the new address (only subscribe when creating new address)
+        const newAddress = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType(this.walletType),
+          addressIndex: newAddressIndex,
+          isChipnet: this.isChipnet
+        })
+        
+        if (!newAddress) {
+          throw new Error('Failed to generate and subscribe new address')
+        }
+        
+        // Update store with new address index
+        const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
+        const wallet = new Wallet(mnemonic, this.network)
+        const result = await getWalletByNetwork(wallet, this.walletType).getNewAddressSet(newAddressIndex)
+        const addresses = result.addresses
+        
+        this.$store.commit('global/generateNewAddressSet', {
+          type: this.walletType,
+          lastAddress: addresses.receiving,
+          lastChangeAddress: addresses.change,
+          lastAddressIndex: newAddressIndex
+        })
+        
+        // Step 6: Render that new address in the page
+        // Store regular format for API calls and listeners
+        this.dynamicAddressRegular = newAddress
+        
+        // Store display format (token format for CashToken, regular for others)
+        if (this.assetId.indexOf('ct/') > -1) {
+          this.dynamicAddress = convertCashAddress(newAddress, this.isChipnet, true)
+        } else {
+          this.dynamicAddress = newAddress
+        }
+        this.generating = false
       } catch (error) {
         console.error('Error refreshing dynamic address:', error)
         this.generating = false // Stop generating even on error

@@ -2121,6 +2121,12 @@ export default {
         let validAddressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0 ? lastAddressIndex : 1
         validAddressIndex = vm.ensureAddressIndexNotZero(validAddressIndex)
 
+        // Respect the Auto-generate setting:
+        // - If disabled, ALWAYS reuse the lastAddressIndex as-is
+        // - Do NOT check balance of that address
+        // - Do NOT increment lastAddressIndex
+        const autoGenerateAddress = vm.$store.getters['global/autoGenerateAddress']
+
         // IMPORTANT: Address reuse strategy
         // We use lastAddressIndex directly (not lastAddressIndex + 1) to check if the last address
         // has a balance. This allows us to:
@@ -2137,58 +2143,72 @@ export default {
         // All wallets support both BCH and SLP addresses, so we use the asset type being sent
         const derivationPath = getDerivationPathForWalletType(assetType)
 
-        // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
-        const addressResult = await generateAddressSetWithoutSubscription({
-          walletIndex: selectedWallet.index,
-          derivationPath: derivationPath,
-          addressIndex: validAddressIndex,
-          isChipnet: vm.isChipnet
-        })
-        
-        if (!addressResult.success) {
-          throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
-        }
-        
-        const address = addressResult.addresses.receiving
-        
-        // Step 2: Check if that address has balance (including token sats)
-        const hasBalance = await vm.checkAddressBalance(address, assetType)
-        
         let finalAddress = null
 
-        if (!hasBalance) {
-          // Step 3: If balance is zero, subscribe and use that address
+        if (!autoGenerateAddress) {
+          // Auto-generate disabled: always use last index as-is (no balance checks, no increment)
           const subscribeResult = await generateReceivingAddress({
             walletIndex: selectedWallet.index,
             derivationPath: derivationPath,
             addressIndex: validAddressIndex,
             isChipnet: vm.isChipnet
           })
-          
           if (!subscribeResult) {
             throw new Error('Failed to subscribe address to watchtower')
           }
-          
           finalAddress = subscribeResult
         } else {
-          // Step 4: If address has balance (already used), generate a new address by incrementing
-          let newAddressIndex = validAddressIndex + 1
-          // Skip address 0/0 (reserved for message encryption)
-          newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
-          
-          // Step 5: Generate and subscribe the new address
-          const newAddress = await generateReceivingAddress({
+          // Step 1: Generate address from lastAddressIndex WITHOUT subscribing (just to check balance)
+          const addressResult = await generateAddressSetWithoutSubscription({
             walletIndex: selectedWallet.index,
             derivationPath: derivationPath,
-            addressIndex: newAddressIndex,
+            addressIndex: validAddressIndex,
             isChipnet: vm.isChipnet
           })
           
-          if (!newAddress) {
-            throw new Error('Failed to generate and subscribe new address')
+          if (!addressResult.success) {
+            throw new Error('Failed to generate address: ' + (addressResult.error || 'Unknown error'))
           }
           
-          finalAddress = newAddress
+          const address = addressResult.addresses.receiving
+          
+          // Step 2: Check if that address has balance (including token sats)
+          const hasBalance = await vm.checkAddressBalance(address, assetType)
+          
+          if (!hasBalance) {
+            // Step 3: If balance is zero, subscribe and use that address
+            const subscribeResult = await generateReceivingAddress({
+              walletIndex: selectedWallet.index,
+              derivationPath: derivationPath,
+              addressIndex: validAddressIndex,
+              isChipnet: vm.isChipnet
+            })
+            
+            if (!subscribeResult) {
+              throw new Error('Failed to subscribe address to watchtower')
+            }
+            
+            finalAddress = subscribeResult
+          } else {
+            // Step 4: If address has balance (already used), generate a new address by incrementing
+            let newAddressIndex = validAddressIndex + 1
+            // Skip address 0/0 (reserved for message encryption)
+            newAddressIndex = vm.ensureAddressIndexNotZero(newAddressIndex)
+            
+            // Step 5: Generate and subscribe the new address
+            const newAddress = await generateReceivingAddress({
+              walletIndex: selectedWallet.index,
+              derivationPath: derivationPath,
+              addressIndex: newAddressIndex,
+              isChipnet: vm.isChipnet
+            })
+            
+            if (!newAddress) {
+              throw new Error('Failed to generate and subscribe new address')
+            }
+            
+            finalAddress = newAddress
+          }
         }
 
         // Convert address to the appropriate format based on asset type
