@@ -29,8 +29,8 @@
         <!-- Amount Section -->
         <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="row items-center q-mb-sm">
-            <q-icon name="mdi-cash-multiple" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-            <span class="section-title">{{ $t("AmountPurchased") }}</span>
+            <q-icon name="mdi-cash-multiple" size="20px" :color="getThemeColor()" class="q-mr-sm col-auto" />
+            <span class="col-9 section-title">{{ $t("AmountPurchased") }}</span>
           </div>
           <div class="amount-display q-mb-xs">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
@@ -61,8 +61,8 @@
         <!-- Details Section -->
         <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="row items-center q-mb-md">
-            <q-icon name="mdi-information-outline" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-            <span class="section-title">{{ $t("PurchaseDetails") }}</span>
+            <q-icon name="mdi-information-outline" size="20px" :color="getThemeColor()" class="q-mr-sm col-auto" />
+            <span class="col-9 section-title">{{ $t("PurchaseDetails") }}</span>
           </div>
 
           <div class="detail-row q-mb-sm">
@@ -130,8 +130,8 @@
         <!-- Vesting Contract Section -->
         <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="row items-center q-mb-md">
-            <q-icon name="mdi-file" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-            <span class="section-title">{{ $t("ContractDetails") }}</span>
+            <q-icon name="mdi-file" size="20px" :color="getThemeColor()" class="q-mr-sm col-auto" />
+            <span class="col-9 section-title">{{ $t("ContractDetails") }}</span>
           </div>
 
           <div class="detail-row q-mb-sm">
@@ -175,8 +175,8 @@
         >
           <div class="info-card q-pa-md" :class="getDarkModeClass(darkMode)">
             <div class="row items-center q-mb-md">
-              <q-icon name="mdi-chart-timeline-variant" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-              <span class="section-title">{{ $t("VestingProgress") }}</span>
+              <q-icon name="mdi-chart-timeline-variant" size="20px" :color="getThemeColor()" class="q-mr-sm col-2" />
+              <span class="col-9 section-title">{{ $t("VestingProgress") }}</span>
             </div>
 
             <div class="vesting-timeline">
