@@ -2065,6 +2065,10 @@ const phrases = {
       MoreAboutBitcoinCashDescription: 'Educational resources about Bitcoin Cash',
       LIFTPurchaseUnavailable: 'Currently unavailable. Please try again later. Message us if you need help.',
       TransactionDisplaySettings: 'Transaction display settings',
+      TokenLockupTransactionId: 'Token Lockup Transaction ID',
+      PaymentTransactionId: 'Payment Transaction ID',
+      FailedToGetContractData: 'Failed to get contract data. Please try again later.',
+      FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',
     }
   ],
   dynamic: [
