@@ -3,41 +3,13 @@
 		<PromoSearch class="q-px-lg"/>	
 
 		<!-- Selecting Service -->
-		<div  class="q-mt-lg" v-if="step === 0">
-			<q-card v-for="service in services" id="service-card" class="text-center q-my-sm bg-grad" @click="updateFilters('service', service)">
-				<div class="text-capitalize purchase-type text-white text-bold lg-font-size">{{ service.name.toLowerCase() }}</div>
-			</q-card>			
+		<div  class="q-mt-sm" v-if="step === 0">
+			<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Purchase Type</div>
+			<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>		
 		</div>
 
-		<!-- Info Card -->		
-		<q-card v-if="step > 0" class="q-mx-lg br-15 q-pt-sm q-pb-md q-px-lg q-mt-md">
-			<div>
-				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Purchase Type</div>
-
-				<div class="row justify-between">
-					<div class="md-font-size">{{ filters.service.name }}</div>				
-					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('service')"/>
-				</div>				
-			</div>
-
-			<div v-if="step > 1">
-				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Service Provider</div>
-
-				<div class="row justify-between">
-					<div class="md-font-size">{{ filters.serviceGroup.name }}</div>
-					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('serviceGroup')"/>
-				</div>			
-			</div>
-
-			<div v-if="step > 2 && filters.category">
-				<div class="sm-font-size q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Category</div>
-
-				<div class="row justify-between">
-					<div class="md-font-size">{{ filters.category.name }}</div>
-					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('category')"/>
-				</div>
-			</div>	
-		</q-card>
+		<!-- Info Card -->	
+		<promo-info-card v-if="step > 0" class="q-mx-lg q-mt-lg" :filters="filters" :step="step" @update="changeValue"/>
 
 		<!-- Selecting Service Group -->
 		<div>
@@ -144,6 +116,9 @@
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
+import ServiceCard from 'src/components/eload/ServiceCard.vue'
+import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
+
 // Note: service = purchaseType; service-group = serviceProviders
 
 export default {
@@ -195,7 +170,9 @@ export default {
 	    },
 	},
 	components: {
-		PromoSearch
+		PromoSearch,
+		ServiceCard,
+		PromoInfoCard
 	},
 	watch: {
 		'filters.service'(val) {
