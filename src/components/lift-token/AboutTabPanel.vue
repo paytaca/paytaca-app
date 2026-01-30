@@ -201,7 +201,7 @@
                 :vesting-schedule="$t('SeedVesting', {}, '2-year lockup, then 25% released per quarter the following year')"
                 :is-recommended="true"
                 :theme="theme"
-                @reserve="showBuyDialog = true"
+                @reserve="handleNavigateToBuy"
               />
             </div>
             <div class="col-12">
@@ -213,7 +213,7 @@
                 :min-purchase="500000"
                 :vesting-schedule="$t('PrivateVesting', {}, '1-year lockup, then 25% released per quarter the following year')"
                 :theme="theme"
-                @reserve="showBuyDialog = true"
+                @reserve="handleNavigateToBuy"
               />
             </div>
           </div>
@@ -463,7 +463,7 @@ export default {
     },
     handleFAQCTA(action) {
       if (action === 'navigate-to-buy') {
-        this.showBuyDialog = true
+        this.handleNavigateToBuy()
       }
     },
     handlePurchase(result) {
