@@ -8,7 +8,7 @@ import BCHJS from "@psf/bch-js";
 import Watchtower from "watchtower-cash-js"
 
 
-import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContract.json'
+import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContractv3.json'
 
 const bchjs = new BCHJS();
 const watchtower = new Watchtower(false)
