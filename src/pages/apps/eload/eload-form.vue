@@ -1,31 +1,6 @@
 <template>
 	<div class="text-black q-py-md">
-		<div>
-			<q-input
-				class="q-px-lg"
-				dense
-				outlined				
-				v-model="search"
-				placeholder="Seach for Promos..."
-				debounce="500"
-				@update:modelValue="searchPromo"				
-				ref="search"
-			>
-				<q-menu v-model="menu" fit @before-show="$refs.search.focus()"> 
-		    	<q-list style="min-width: 200px"> 
-		    		<q-item v-for="(promo, index) in searchResult" :key="index" clickable @click=""> 
-		    			<q-item-section class="text-black">{{ promo.name }}</q-item-section> 
-		    		</q-item> 
-		    	</q-list> 
-		    </q-menu>
-
-				<template v-slot:append>
-		    	<q-icon name="search" />
-		    </template>		    
-			</q-input>
-
-
-		</div>		
+		<PromoSearch class="q-px-lg"/>	
 
 		<!-- Selecting Service -->
 		<div  class="q-mt-lg" v-if="step === 0">
@@ -168,6 +143,7 @@
 </template>
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
+import PromoSearch from 'src/components/eload/PromoSearch.vue'
 // Note: service = purchaseType; service-group = serviceProviders
 
 export default {
@@ -177,10 +153,7 @@ export default {
 			loading: true,
 			step: 0,				
 
-			search: '', // for search input
-			searchResult: [],
 			selectedPromo: null,
-			menu: true,
 			address: '',		
 
 
@@ -216,6 +189,14 @@ export default {
 			}
 		}
 	},
+	computed: {
+		minHeight () {
+	      return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
+	    },
+	},
+	components: {
+		PromoSearch
+	},
 	watch: {
 		'filters.service'(val) {
 			if (val) {
@@ -241,21 +222,8 @@ export default {
 			if (val === 3) {
 				// Get Promos
 			}
-		},
-		search (val) {
-			this.menu = !!val	
-		},
-		menu (val) {
-			if (val) {
-				this.$refs.search.focus()
-			}
 		}
-	},
-	computed: {
-		minHeight () {
-	      return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
-	    },
-	},
+	},	
 	async mounted () {
 		const vm = this
 
@@ -351,21 +319,6 @@ export default {
 			this.selectedPromo = promo
 
 			this.step++	
-		},
-		async searchPromo (val) {
-			console.log('Searching: ', val)
-
-			let data = {
-				promoName: val
-			}
-
-			let result = await eloadServiceAPI.fetchPromo(data)
-
-
-			console.log('result: ', result)
-			if (result.success) {
-				this.searchResult = result.data.promos
-			}
 		},
 		async fetchServiceGroup() {			
 			let data = {
