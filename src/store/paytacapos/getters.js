@@ -54,3 +54,12 @@ export function paymentOTPCache(state) {
 export function cashoutMerchant (state) {
   return state.cashoutMerchant
 }
+
+/**
+ * Get NFC payments enabled status
+ * @param {*} state 
+ * @returns 
+ */
+export function nfcPaymentsEnabled (state) {
+  return state.nfcPaymentsEnabled
+}
