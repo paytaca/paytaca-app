@@ -42,7 +42,7 @@
                       color="primary"
                       @click="editCardName(card)"
                     >
-                      <q-tooltip>Edit Card Name</q-tooltip>
+                      <q-tooltip>Edit alias</q-tooltip>
                     </q-btn>
 
                     <!-- View Icon -->
@@ -275,7 +275,8 @@
       <!-- Dialog Header -->
        <q-card-section class="row items-center q-pb-sm">
           <div class="text-h6 text-weight-bold text-center">
-            Create Card
+            Edit Card's Name
+            <div class="text-caption text-center">Provide an alias for your card</div>
           </div>
 
           <q-space />
@@ -296,7 +297,7 @@
        <q-card-section>
           <q-input 
             v-model="newCardName" 
-            label="Card Name" 
+            label="Name" 
             outlined 
             dense 
             hint="Max of 15 characters allowed"
@@ -776,7 +777,7 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       editCardName(card){
         this.$q.dialog({
-          title: 'Edit Card Name',
+          title: 'Edit Alias',
           message: 'Maximum of 15 characters allowed',
           prompt: {
             model: card.name,
