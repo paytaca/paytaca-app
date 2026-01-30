@@ -544,9 +544,11 @@ import { selectedCurrency } from 'src/store/market/getters';
 
         const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
 
-        const spendResult = await card.pay({
-          amountSats: 1000,
-          merchantId: selectedMerchant.id})
+        const spendResult = await card.spend(
+          selectedMerchant.id,
+          'bitcoincash:qqzq58ld3w36uyh06uslycszmn7avvc9h5j77xwnym',
+          1000,
+        )
         console.log('spendResult:', spendResult)
 
         // console.log('Merchants:', merchants)

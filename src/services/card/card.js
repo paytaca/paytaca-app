@@ -216,12 +216,12 @@ export class Card {
     return response.data;
   } 
 
-  async spend({ amountSats, merchantId }) {
+  async spend(merchantId, toAddress, amountSats) {
     const response = await backend.post(`/cards/${this.raw.cash_address}/spend/`, {
-      amount_sats: amountSats,
-      merchant_id: merchantId
+      merchant_id: merchantId,
+      to_address: toAddress,
+      amount_sats: amountSats
     });
-    console.log('Payment response:', response.data);
     return response.data;
   }
 
