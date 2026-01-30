@@ -216,8 +216,8 @@ export class Card {
     return response.data;
   } 
 
-  async pay({ amountSats, merchantId }) {
-    const response = await backend.post(`/cards/${this.raw.cash_address}/pay/`, {
+  async spend({ amountSats, merchantId }) {
+    const response = await backend.post(`/cards/${this.raw.cash_address}/spend/`, {
       amount_sats: amountSats,
       merchant_id: merchantId
     });

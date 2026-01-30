@@ -257,3 +257,12 @@ export function removeOldPaymentOTPCache(state, age=86400) {
 export function updateCashoutMerchant (state, data) {
   state.cashoutMerchant = data
 }
+
+/**
+ * Set NFC payments enabled/disabled
+ * @param {*} state 
+ * @param {*} enabled 
+ */
+export function setNfcPaymentsEnabled (state, enabled) {
+  state.nfcPaymentsEnabled = enabled
+}

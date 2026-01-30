@@ -57,6 +57,7 @@ export default function () {
     },
     paymentMethod: {},
     lastPaymentMethod: null,
-    cashoutMerchant: {}
+    cashoutMerchant: {},
+    nfcPaymentsEnabled: false
   }
 }

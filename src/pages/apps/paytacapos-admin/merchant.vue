@@ -369,6 +369,8 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter } from 'vue-router'
+import { backend as cardBackend } from 'src/services/card/backend';
+import { loadWallet as loadCardWallet } from 'src/services/wallet';
 
 const bchjs = new BCHJS()
 
@@ -400,47 +402,33 @@ const walletData = computed(() => {
   return data
 })
 
-// TODO: Enabling card payments shouldn't be necessary as its common practice to accept card payments
-// watch(() => merchantData.value.nfc_payments_enabled, () => enableCardPayments())
-// async function enableCardPayments() {
-//   console.log('Enabling card payments for merchant ID:', merchantId)
-//   if (merchantData.value.nfc_payments_enabled) {
-//     return
-//   }
 
-//   const payload = {
-//     nfc_payments_enabled: true,
-//   }
+onMounted(()=> registerForCardPayments())
+async function registerForCardPayments() {
+  const nfcPaymentsEnabled = $store.getters['paytacapos/nfcPaymentsEnabled']
+  if (nfcPaymentsEnabled) {
+    console.log('NFC payments already enabled. Skipping registration.')
+    return
+  }
 
-//   await posBackend.patch(`paytacapos/merchants/${merchantId}/`, payload)
-//     .then(response => {
-//       console.log('Card payments enabled:', response.data)
-//       $q.notify({
-//         type: 'positive',
-//         message: $t('CardPaymentsEnabled', {}, 'Card payments enabled'),
-//       })
-//       merchantData.value.nfc_payments_enabled = true
-//     })
-//     .catch(error => {
-//       console.error('Failed to enable card payments:', error)
-//       $q.notify({
-//         type: 'negative',
-//         message: $t('FailedToEnableCardPayments', {}, 'Failed to enable card payments'),
-//       })
-//     })
+  console.log('Registering merchant for card payments:', merchantId)
+  const wallet = await loadCardWallet()
+  const payload = {
+    wallet_hash: wallet.walletHash,
+    public_key: wallet.pubkey(), 
+    address_path: wallet.addressPath(),
+    ref_id: merchantId
+  }
 
-//   const network = $store.getters['global/isChipnet'] ? 'chipnet' : 'mainnet';
-//   const addressIndex = 1000;
-//   const terminalPayload = {
-//     wallet_hash: walletData.value.walletHash,
-//     public_key: await getPublicKeyAt('bch', network, addressIndex),
-//     address_path: `0/${addressIndex}`,
-//     name: merchantData.value.name,
-//   }
-//   console.log('Creating terminal with payload:', terminalPayload);
-//   const response = await createTerminal(terminalPayload)
-//   console.log(response)
-// }
+  cardBackend.post('/merchants/', payload)
+    .then(response => {
+      console.log(response.data)
+      $store.commit('paytacapos/setNfcPaymentsEnabled', true)
+    })
+    .catch(error => {
+      console.error('Error registering merchant for card payments:', error.response || error)
+    })
+}
 
 async function initWallet() {
   const _wallet = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
