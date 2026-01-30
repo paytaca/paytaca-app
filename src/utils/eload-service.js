@@ -7,7 +7,7 @@ export const backend = axios.create()
 const baseURL = process.env.ELOAD_SERVICE_API || ''
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
-const TOKEN_STORAGE_KEY = 'gbits-auth-key'
+const TOKEN_STORAGE_KEY = process.env.GBITS_AUTH_KEY || 'gbits-auth-key'
 
 export async function fetchService () {
 	try {
