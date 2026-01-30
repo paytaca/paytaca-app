@@ -72,19 +72,19 @@
                             transition-hide="scale"
                         >
                           <q-list padding style="min-width: 150px">
-                              <q-item clickable v-ripple @click="manageAuthNFTs(card)">
+                              <q-item clickable v-ripple @click="manageAuthNFTs(card)" v-close-popup>
                                 <q-item-section>Manage Auth NFTs</q-item-section>
                               </q-item>
 
-                              <q-item clickable v-ripple @click="viewTransactionHistory(card)">
+                              <q-item clickable v-ripple @click="viewTransactionHistory(card)" v-close-popup>
                                 <q-item-section>Transaction History</q-item-section>
                               </q-item>
 
-                              <q-item clickable v-ripple @click="editSpendLimit(card)">
+                              <q-item clickable v-ripple @click="editSpendLimit(card)" v-close-popup>
                                 <q-item-section>Spend Limit</q-item-section>
                               </q-item>
 
-                              <q-item clickable v-ripple @click="toggleLock(card)">
+                              <q-item clickable v-ripple @click="toggleLock(card)" v-close-popup>
                                 <q-item-section :class="card.status === 'Locked' ? 'text-positive' : 'text-negative'">
                                   {{ card.status === 'Locked' ? 'Unlock Card' : 'Lock Card' }}
                                 </q-item-section>
@@ -101,7 +101,7 @@
                  <q-card-section>
                     <div class="text-caption text-grey">
                       Balance:
-                      <span class="text-h5 text-black"> {{ card.balance.toLocalString() }} BCH</span>
+                      <span class="text-h5 text-black"> {{ card.balance }} BCH</span>
                     </div>
 
                     <div class="text-caption text-grey">
@@ -508,7 +508,7 @@
         </q-card>
      </q-dialog>
 
-     Spend Limit Pop-up
+     <!-- Spend Limit Pop-up -->
      <q-dialog v-model="showSpendLimitDialog" persistent>
         <q-card style="min-width: 300px" class="br-15 q-pa-sm">
           <q-card-section>
@@ -527,6 +527,7 @@
 
           <q-card-actions align="right">
             <q-btn flat label="Close" color="primary" v-close-popup />
+            <q-btn flat label="Save" color="primary" @click="updateSpendLimit" v-close-popup />
           </q-card-actions>
         </q-card>
      </q-dialog>
@@ -552,7 +553,7 @@ import { selectedCurrency } from 'src/store/market/getters';
       return {
         createCardDialog: false,
         subCards: [],
-        contractAddress: 'bchtest:p02aanptmywrtmwt75mckrekkpnrwm0lxc7w6d0ljq4w97mu9uguzfdqshmp8', // dummy
+        contractAddress: '', // dummy
         // For inputs
         newCardName: '',
         // View card dialog
@@ -595,37 +596,37 @@ import { selectedCurrency } from 'src/store/market/getters';
       console.log("GO!")
 
       try {
-        const cardUser = await loadCardUser()
-        const cards = await cardUser.fetchCards()
-        if (cards.length === 0) {
-          console.warn('No cards found for the user.')
-          return
-        }
+        // const cardUser = await loadCardUser()
+        // const cards = await cardUser.fetchCards()
+        // if (cards.length === 0) {
+        //   console.warn('No cards found for the user.')
+        //   return
+        // }
 
-        const card = cards[cards.length - 1] // get the last card for testing
-        console.log('Loaded Cards:', cards)
-        console.log('Using Card:', card)
+        // const card = cards[cards.length - 1] // get the last card for testing
+        // console.log('Loaded Cards:', cards)
+        // console.log('Using Card:', card)
 
-        await card.getAuthNfts().then(authNfts => {
-          console.log('Card Auth NFTs:', authNfts)
-        })
+        // await card.getAuthNfts().then(authNfts => {
+        //   console.log('Card Auth NFTs:', authNfts)
+        // })
 
-        const merchants = await card.getMerchantList()
-        if (merchants.results.length === 0) {
-          console.warn('No merchants found in the merchant list.')
-          return
-        }
+        // const merchants = await card.getMerchantList()
+        // if (merchants.results.length === 0) {
+        //   console.warn('No merchants found in the merchant list.')
+        //   return
+        // }
         
         // for merchant search in Manage Auth NFT dialog
-        if (merchants && merchants.results) {
-          this.allMerchants = merchants.results
-        }
+        // if (merchants && merchants.results) {
+        //   this.allMerchants = merchants.results
+        // }
 
-        const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
+        // const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
 
-        console.log('Merchants:', merchants)
-        console.log('Selected Merchant:', selectedMerchant)
-
+        // console.log('Merchants:', merchants)
+        // console.log('Selected Merchant:', selectedMerchant)
+        //---------------------------------------------------
         // // Example: Minting and issuing merchant auth token
         // const mintParams = {
         //   authorized: true,
@@ -659,14 +660,15 @@ import { selectedCurrency } from 'src/store/market/getters';
         //   spendLimitSats: 50000, // Optional: can omit if not changing
         //   broadcast: false // Change to true to broadcast to blockchain
         // })
-
-        await card.getAuthNfts().then(authNfts => {
-          console.log('Card Auth NFTs after mutation:', authNfts)
-        })
+        // ------------------------------------------
+        // await card.getAuthNfts().then(authNfts => {
+        //   console.log('Card Auth NFTs after mutation:', authNfts)
+        // })
 
       } catch (error) {
-        console.error('Error during mounted lifecycle:', error)
+        // console.error('Error during mounted lifecycle:', error)
       }
+
     },
 
     computed: {
@@ -704,53 +706,53 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
           // initializing the card helper
-          const card = await Card.createInitialized()
-          // execute workflow from card.js
-          await card.create()
-          const tokenId = card.tokenId
+          // const card = await Card.createInitialized()
+          // // execute workflow from card.js
+          // await card.create()
+          // const tokenId = card.tokenId
 
-          // load user from card/auth
-          const user = await loadCardUser()
-          const cards = await user.fetchCards()
-          console.log('Card User: ', user)
+          // // load user from card/auth
+          // const user = await loadCardUser()
+          // const cards = await user.fetchCards()
+          // console.log('Card User: ', user)
 
           // find the specific card we just created in the list
-          const mintedCard = cards.find(c => c.tokenId === tokenId)
-          let actualBalance = 0
-          let contractAddress = 'Pending'
+          // const mintedCard = cards.find(c => c.tokenId === tokenId)
+          // let actualBalance = 0
+          // let contractAddress = 'Pending'
 
-          if (mintedCard) {
-            // fetch real balance
-            const tokenUtxos = await mintedCard.getTokenUtxos()
-            // calculate sum of token amounts in Utxos
-            actualBalance = tokenUtxos.reduce((total, utxo) => {
-              return total + Number(utxo.token.amount)
-            }, 0)
+          // if (mintedCard) {
+          //   // fetch real balance
+          //   const tokenUtxos = await mintedCard.getTokenUtxos()
+          //   // calculate sum of token amounts in Utxos
+          //   actualBalance = tokenUtxos.reduce((total, utxo) => {
+          //     return total + Number(utxo.token.amount)
+          //   }, 0)
 
-            const contract = await mintedCard.getContract()
-            contractAddress = contract.address
-          }
+          //   const contract = await mintedCard.getContract()
+          //   contractAddress = contract.address
+          // }
 
           // print and fetch info for each card
-          for(const cardItem of cards){
-            const tokenUtxos = await cardItem.getTokenUtxos();
-            const bchUtxos = await cardItem.getBchUtxos();
-            const contract = await cardItem.getContract()
+          // for(const cardItem of cards){
+          //   const tokenUtxos = await cardItem.getTokenUtxos();
+          //   const bchUtxos = await cardItem.getBchUtxos();
+          //   const contract = await cardItem.getContract()
 
-            console.log('=====Card Details=====')
-            console.log('Card: ', cardItem);
-            console.log('Card ID: ', cardItem.tokenId)
-            console.log('Card tokenUtxos:', tokenUtxos);
-            console.log('Card bchUtxos:', bchUtxos);
-            console.log('Card contract:', contract);
-          }
+          //   console.log('=====Card Details=====')
+          //   console.log('Card: ', cardItem);
+          //   console.log('Card ID: ', cardItem.tokenId)
+          //   console.log('Card tokenUtxos:', tokenUtxos);
+          //   console.log('Card bchUtxos:', bchUtxos);
+          //   console.log('Card contract:', contract);
+          // }
 
           // Create new subcard object
           const newCard = {
-            id: result.tokenId,
+            // id: result.tokenId,
             name: this.newCardName,
-            contractAddress: contractAddress,
-            balance: actualBalance,
+            // contractAddress: contractAddress,
+            // balance: actualBalance,
             status: 'Active' // by default
           }
 
@@ -758,8 +760,8 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.subCards.push(newCard);
           this.createCardDialog = false; // close dialog
           this.$q.notify({
-            message: `Card "${newCard.name}" created successfully with ${newCard.balance} BCH!`,
-            color: 'positive',
+            // message: `Card "${newCard.name}" created successfully with ${newCard.balance} BCH!`,
+            // color: 'positive',
           });
         } catch (error) {
           console.error('Final Workflow Error: ', error)
@@ -874,26 +876,40 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       editSpendLimit(card){
         this.selectedCard = card;
+        this.tempSpendLimitAmount = card.spendLimitAmount || ''
         this.showSpendLimitDialog = true;
-        const amount = parseFloat(this.tempSpendLimitAmount);
-        if (amount > this.selectedCard.balance){
+      },
+
+      async updateSpendLimit(){
+        const amount = parseFloat(this.tempSpendLimitAmount)
+
+        if(isNaN(amount) || amount <= 0){
+          this.$q.notify({
+            message: 'Please enter a a valid spend limit amount',
+            color: 'negative',
+            icon: 'warning'
+          })
+          return
+        }
+
+        // Check against balance
+        if(amount > this.selectedCard.balance){
           this.$q.notify({
             message: 'Spend limit cannot exceed card balance',
             color: 'negative',
             icon: 'warning'
           })
-          return;
+          return
         }
-        if (!amount || amount < 0){
-          this.$q.notify({
-            message: 'Please enter a valid spend limit amount',
-            color: 'negative',
-            icon: 'warning'
-          })
-          return;
-        }
-        this.selectedCard.spendLimitAmount = amount;
-        console.log(`Set spend limit of ${amount} for card:`, this.selectedCard);
+
+        // if valid, update the card
+        this.selectedCard.spendLimitAmount = amount
+        console.log(`Set spend limit of ${amount} for card: `, this.selectedCard)
+        this.showSpendLimitDialog = false
+        this.$q.notify({
+          message: 'Spend limit updated successfully',
+          color: 'positive'
+        })
       },
 
       toggleLock(card) {
