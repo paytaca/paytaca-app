@@ -23,10 +23,10 @@
         </div>
 
         <!-- Cards Grid -->
-        <div class="row q-col-gutter-md" style="max-width: 2500px; max-height: 300px;">
+        <div class="row q-col-gutter-md">
           <!-- Existing Subcards -->
-            <div v-for="card in subCards" :key="card.id" class="col-12 col-sm-2">
-              <q-card bordered flat class="bg-white full-height">
+            <div v-for="card in subCards" :key="card.id" class="col-8 col-sm-4 col-md-3">
+              <q-card bordered flat class="subcard-item bg-white column justify-between">
                 <!-- Card header: Name + Icons -->
                 <q-card-section class="row items-center justify-between q-pa-sm bg-blue-2">
                   <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 150px;">{{ card.name }}</div>
@@ -125,20 +125,21 @@
             </div>
 
             <!-- Create Card Button opens dialog -->
-             <div class="col-12 col-sm-2">
+             <div class="col-8 col-sm-4 col-md-3">
                 <q-card
                   bordered
                   flat
-                  class="bg-grey-1 flex flex-center cursor-pointer full-height"
+                  class="bg-grey-1 flex flex-center cursor-pointer transition-hover"
                   @click="openCreateCardDialog"
                 >
-                  <q-card-section class="text-center">
+                  <q-card-section class="text-center q-pa-lg">
                     <q-icon
                       name="add_circle_outline"
-                      size="48px"
+                      size="56px"
                       color="primary"
+                      class="q-mb-sm"
                     />
-                    <div class="text-caption q-mt-sm text-primary text-center">
+                    <div class="text-subtitle-1 text-weight-bold text-primary text-center">
                       Create Card
                     </div>
                   </q-card-section>
@@ -150,113 +151,69 @@
     </transition> 
 
     <!-- Order physical card form to be component -->
-     <div class="q-pa-md" style="max-width: 800px;">
-        <q-card flat bordered class="[$q.dark.isActive ? 'bg-grey-10' : 'bg-blue-1', order-card-container]">
-          <q-card-section>
-            <div class="row items-center q-col-gutter-md">
-
-              <div class="col-12 col-md-5 text-center">
-                <div class="text-h6 text-weight-bold q-mb-sm" :class="$q.dark.isActive ? 'text-blue-2' : 'text-primary'">
-                  Order your physical card
+     <div class="q-pa-md flex flex-center full-width">
+        <div
+          class="order-hero-container shadow-10"
+          :style="heroStyle"
+        >
+          <div class="row full-height">
+            
+            <div class="col-12 col-md-7 q-pa-lg flex flex-center">
+              <div class="full-width" style="max-width: 500px">
+                
+                <div class="text-white q-mb-md">
+                  <div class="text-h3 text-weight-bold line-height-tight">
+                    Your new physical Paytaca card awaits.
+                  </div>
+                  <p class="opacity-80 q-mt-sm">Global payments, physical style.</p>
                 </div>
 
-                <!-- replaced with an actual image of the physical card -->
-                <q-img
-                  src="~assets/paytaca-card.png"
-                  style="max-width: 250px; height: auto;"
-                  class="q-mb-md rounded-borders shadow-2"
-                >
-                  <template v-slot:error>
-                    <div class="absolute-full flex flex-center bg-negative text-white">
-                      Cannot load image
-                    </div>
-                  </template>
-                </q-img>
-
-                <!-- <q-icon  
-                  name="style"
-                  size="100px"
-                  :color="$q.dark.isActive ? 'blue-2' : 'primary'"
-                  class="q-mb-md"
-                /> -->
-              </div>
-
-              <div class="col-12 col-md-7">
-                <q-form ref="orderForm" @submit="onSubmit" class="q-gutter-y-sm">
-                  <q-input 
-                    outlined
-                    :dark="$q.dark.isActive"
-                    v-model="formData.fullname"
-                    label="Full Name"
-                    dense
-                    lazy-rules
-                    :rules="[val => !!val || 'Name is required']"
+                <div class="col-12 col-md-5 flex flex-center q-pa-lg bg-white-opacity-10">
+                  <q-img
+                    src="~assets/paytaca-card.png"
+                    class="card-floating"
+                    style="width: 80%; max-width: 350px;"
                   />
+                </div>
 
-                  <div class="row q-col-gutter-sm">
-                    <q-input 
-                      outlined
-                      :dark="$q.dark.isActive"
-                      v-model="formData.city"
-                      label="City"
-                      class="col-6"
-                      dense
-                      lazy-rules
-                      :rules="[val => !!val || 'City is required']"
-                    />
-                    <q-input
-                      outlined
-                      :dark="$q.dark.isActive"
-                      v-model="formData.state"
-                      label="State/Province"
-                      class="col-6"
-                      dense
-                      lazy-rules
-                      :rules="[val => !!val || 'State/Province is required']"
-                    />
-                    <q-input 
-                      outlined
-                      :dark="$q.dark.isActive"
-                      v-model="formData.zip"
-                      label="ZIP/Postal Code"
-                      class="col-6"
-                      dense
-                      lazy-rules
-                      :rules="[val => !!val || 'Zip code is required']"
-                    />
-                    <q-input
-                      outlined
-                      :dark="$q.dark.isActive"
-                      v-model="formData.country"
-                      label="Country"
-                      class="col-6"
-                      dense
-                      lazy-rules
-                      :rules="[val => !!val || 'Country is required']"
-                    />
-                  </div>
 
-                  <div class="q-mt-md">
+                <transition mode="out-in" enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
+                  <div v-if="!showForm" class="text-center">
                     <q-btn 
-                      label="Order Now"
-                      :color="$q.dark.isActive ? 'blue-7' : 'blue-9'"
-                      type="submit"
-                      class="full-width text-bold"
+                      label="Get Started" 
+                      color="white" 
+                      text-color="primary" 
+                      class="q-px-xl text-bold"
                       unelevated
+                      rounded
+                      @click="showForm = true"
                     />
                   </div>
 
-                  <div class="text-caption text-center q-mt-xs" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-8'">
-                    Standard Shipping: 7-10 business days.
+                  <div v-else class="bg-white q-pa-md rounded-borders shadow-2">
+                    <div class="row items-center justify-between q-mb-sm">
+                      <div class="text-subtitle1 text-bold text-primary">Shipping Details</div>
+                      <q-btn icon="close" flat round dense color="grey" @click="showForm = false" />
+                    </div>
+
+                    <q-form @submit="onSubmit" class="q-col-gutter-sm">
+                      <q-input outlined dense v-model="formData.fullname" label="Full Name" />
+                      
+                      <div class="row q-col-gutter-sm">
+                        <q-input outlined dense v-model="formData.city" label="City" class="col-6" />
+                        <q-input outlined dense v-model="formData.state" label="State" class="col-6" />
+                        <q-input outlined dense v-model="formData.zip" label="Zip" class="col-6" />
+                        <q-input outlined dense v-model="formData.country" label="Country" class="col-6" />
+                      </div>
+
+                      <q-btn label="Confirm Order" color="primary" type="submit" class="full-width q-mt-md" unelevated />
+                    </q-form>
                   </div>
-
-                </q-form>
+                </transition>
               </div>
-
             </div>
-          </q-card-section>
-
-        </q-card>
+          </div>
+        </div>
      </div>
   </q-layout>
 
@@ -582,9 +539,12 @@ import { selectedCurrency } from 'src/store/market/getters';
         tempSpendLimitAmount: 0,
         isSweep: false,
         // Order form
+        showForm: false,
         formData: {
           fullName: '',
           city: '',
+          state: '',
+          zip: '',
           country: ''
         },
         // Merchants
@@ -681,6 +641,17 @@ import { selectedCurrency } from 'src/store/market/getters';
         return this.allMerchants.filter(merchant => {
           return merchant.name.toLowerCase().includes(search)
         })
+      },
+
+      heroStyle () {
+        return {
+          background: 'linear-gradient(135deg, #027be3 0%, #26a69a 50%, #9c27b0 100%)',
+          borderRadius: '24px',
+          minHeight: '500px',
+          width: '100%',
+          maxWidth: '1100px',
+          overflow: 'hidden'
+        }
       }
     },
 
@@ -1001,6 +972,8 @@ import { selectedCurrency } from 'src/store/market/getters';
         this.formData = {
           fullName: '',
           city: '',
+          state: '',
+          zip: '',
           country: ''
         }
 
@@ -1043,5 +1016,50 @@ import { selectedCurrency } from 'src/store/market/getters';
   .order-card-container {
     border-radius: 16px;
     border: 1px dashed #1976d2;
+  }
+
+  .line-height-tight {
+    line-height: 1.1;
+  }
+
+  .opacity-80 {
+    opacity: 0.8;
+  }
+
+  .rounded-borders {
+    border-radius: 12px;
+  }
+  .card-floating {
+    /* Subtle animation to make the card feel premium */
+    animation: float 6s ease-in-out infinite;
+    border-radius: 20px;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(2deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+  }
+
+  .form-container {
+    max-width: 450px;
+    animation: slideInUp 0.3s ease-out;
+  }
+
+  /* 1. Sets the default border color to primary when NOT focused */
+  :deep(.q-field--outlined .q-field__control:before) {
+    border: 1px solid var(--q-primary) !important;
+    opacity: 1 !important; /* Quasar sometimes lowers opacity on inactive borders */
+  }
+
+  /* 2. Keeps the border primary and makes it thicker when focused (active) */
+  :deep(.q-field--outlined.q-field--focused .q-field__control:after) {
+    border-color: var(--q-primary) !important;
+    border-width: 2px; /* Standard active thickness */
+  }
+
+  /* 3. Optional: Ensures the label stays primary even when not active */
+  :deep(.q-field--outlined .q-field__label) {
+    color: var(--q-primary);
   }
 </style>
