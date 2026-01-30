@@ -62,11 +62,11 @@
 					<!-- </q-item> -->
 				</div>
 				<div class="col-3 text-right">
-					<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
+					<q-icon name="search" @click="openTxSearch"></q-icon>
 				</div>
 			</div>
 			<div v-else class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
-		              <div v-if="txSearchActive" class="full-width">
+		              <div class="full-width">
 		                <q-input
 		                  ref="tx-search"
 		                  style="margin: 0px 30px 0px; padding-bottom: 3px;"
@@ -84,7 +84,7 @@
 		                    <q-icon name="search" />
 		                  </template>
 		                  <template v-slot:append>
-		                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchQuery = ''; $refs['transaction-list-component'].getTransactions() }" />
+		                    <q-icon name="close" @click="closeTxSearch" />
 		                  </template>
 		                </q-input>
 		              </div>
@@ -213,6 +213,10 @@ export default {
 			denominationTabSelected: 'BCH',
 			txSearchActive: false,
 			txSearchQuery: '',
+			// Coalesce rapid UI toggles / layout recalcs
+			_txSearchClearTimeout: null,
+			_transactionRowHeightRecalcScheduled: false,
+			_transactionRowHeightRaf: null,
 			// Prevent duplicate fetches when query updates multiple keys at once (e.g. txid + reference).
 			lastAppliedRouteTxSearchKey: '',
 			transactionsFilter: 'all',
@@ -357,13 +361,13 @@ export default {
 	},
 	beforeUnmount() {
 	    window.removeEventListener('resize', this.calculateTransactionRowHeight)
+	    if (this._txSearchClearTimeout) clearTimeout(this._txSearchClearTimeout)
+	    if (this._transactionRowHeightRaf) cancelAnimationFrame(this._transactionRowHeightRaf)
 	},
 	watch: {
 	    txSearchActive() {
 	      // Recalculate height when search bar appears/disappears
-	      this.$nextTick(() => {
-	        this.calculateTransactionRowHeight()
-	      })
+	      this.calculateTransactionRowHeight()
 	    },
 	    async '$route.query.assetID' (newAssetID) {
 	      // Update selected asset when route query changes (e.g., when navigating back)
@@ -385,33 +389,34 @@ export default {
 			// - reference: reference-id in either 6-hex or 8-decimal format
 			const q = this.$route?.query || {}
 
-				const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
-				let referenceHex = ''
+			const txid = typeof q.txid === 'string' ? q.txid.trim() : ''
+			let referenceHex = ''
 			if (/^[0-9a-fA-F]{64}$/.test(txid)) {
-					// Prefer txid search when provided.
-					referenceHex = ''
+				// Prefer txid search when provided.
+				referenceHex = ''
 			} else if (typeof q.reference === 'string') {
 				referenceHex = normalizeRefToHex(q.reference)
 			}
 
-				const routeKey = `${txid || ''}|${referenceHex}`
-				if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchQuery || '') === String(txid || (hexToRef(referenceHex) || ''))) {
+			// Only activate search UI when a valid txid or reference is present.
+			const hasValidTxid = /^[0-9a-fA-F]{64}$/.test(txid)
+			const refDecimal = hasValidTxid ? '' : hexToRef(referenceHex)
+			const hasValidReference = !!refDecimal
+
+			if (!hasValidTxid && !hasValidReference) return false
+
+			const routeKey = `${hasValidTxid ? txid : ''}|${hasValidReference ? referenceHex : ''}`
+			const desiredQuery = hasValidTxid ? txid : refDecimal
+
+			if (this.lastAppliedRouteTxSearchKey === routeKey && String(this.txSearchQuery || '') === String(desiredQuery || '')) {
 				// Already applied for this exact deep-link; avoid duplicate fetch.
 				return true
 			}
+
 			this.lastAppliedRouteTxSearchKey = routeKey
-
 			this.txSearchActive = true
-				if (/^[0-9a-fA-F]{64}$/.test(txid)) {
-					this.txSearchQuery = txid
-					this.$nextTick(() => this.executeTxSearch(txid))
-					return true
-				}
-
-				const refDecimal = hexToRef(referenceHex)
-				if (!refDecimal) return false
-				this.txSearchQuery = refDecimal
-				this.$nextTick(() => this.executeTxSearch(refDecimal))
+			this.txSearchQuery = desiredQuery
+			this.$nextTick(() => this.executeTxSearch(desiredQuery))
 			return true
 		},
 		parseAssetDenomination,
@@ -525,41 +530,74 @@ export default {
 			}
 		},
 		calculateTransactionRowHeight() {
+			// Avoid queueing many nextTick + DOM-measure passes when toggling quickly.
+			if (this._transactionRowHeightRecalcScheduled) return
+			this._transactionRowHeightRecalcScheduled = true
 			this.$nextTick(() => {
-				try {
-					const screenHeight = window.innerHeight
-					const fixedSection = this.$refs.fixedSection
-					const footerMenu = this.$refs.footerMenu?.$el
-					
-					if (!fixedSection || !footerMenu) {
-						// Fallback if refs not available
+				this._transactionRowHeightRecalcScheduled = false
+				if (this._transactionRowHeightRaf) cancelAnimationFrame(this._transactionRowHeightRaf)
+				this._transactionRowHeightRaf = requestAnimationFrame(() => {
+					this._transactionRowHeightRaf = null
+					try {
+						const screenHeight = window.innerHeight
+						const fixedSection = this.$refs.fixedSection
+						const footerMenu = this.$refs.footerMenu?.$el
+
+						if (!fixedSection || !footerMenu) {
+							// Fallback if refs not available
+							this.transactionRowHeight = 'calc(100vh - 250px)'
+							return
+						}
+
+						// Calculate the height of everything above the transaction row
+						let heightAbove = 0
+
+						// Get all children of fixedSection before transactionSection
+						const children = Array.from(fixedSection.children)
+						const transactionSectionIndex = children.indexOf(this.$refs.transactionSection)
+
+						for (let i = 0; i < transactionSectionIndex; i++) {
+							heightAbove += children[i].offsetHeight
+						}
+
+						// Add footer menu height
+						const footerHeight = footerMenu.offsetHeight
+
+						// Calculate available height for transaction row
+						const availableHeight = screenHeight - heightAbove - footerHeight
+
+						this.transactionRowHeight = `${availableHeight}px`
+					} catch (error) {
+						console.error('Error calculating transaction row height:', error)
 						this.transactionRowHeight = 'calc(100vh - 250px)'
-						return
 					}
-					
-					// Calculate the height of everything above the transaction row
-					let heightAbove = 0
-					
-					// Get all children of fixedSection before transactionSection
-					const children = Array.from(fixedSection.children)
-					const transactionSectionIndex = children.indexOf(this.$refs.transactionSection)
-					
-					for (let i = 0; i < transactionSectionIndex; i++) {
-						heightAbove += children[i].offsetHeight
-					}
-					
-					// Add footer menu height
-					const footerHeight = footerMenu.offsetHeight
-					
-					// Calculate available height for transaction row
-					const availableHeight = screenHeight - heightAbove - footerHeight
-					
-					this.transactionRowHeight = `${availableHeight}px`
-				} catch (error) {
-					console.error('Error calculating transaction row height:', error)
-					this.transactionRowHeight = 'calc(100vh - 250px)'
-				}
+				})
 			})
+		},
+		openTxSearch () {
+			// Cancel any pending "clear" action if user re-opens quickly
+			if (this._txSearchClearTimeout) {
+				clearTimeout(this._txSearchClearTimeout)
+				this._txSearchClearTimeout = null
+			}
+			this.txSearchActive = true
+		},
+		closeTxSearch () {
+			const hadQuery = !!String(this.txSearchQuery || '').trim()
+			this.txSearchActive = false
+			this.txSearchQuery = ''
+
+			// If there was no query, closing should be purely UI (no refetch).
+			if (!hadQuery) return
+
+			// Debounce the clear/refetch to avoid flooding when user toggles fast.
+			if (this._txSearchClearTimeout) clearTimeout(this._txSearchClearTimeout)
+			this._txSearchClearTimeout = setTimeout(() => {
+				this._txSearchClearTimeout = null
+				// If user re-opened, don't clear the list underneath them.
+				if (this.txSearchActive) return
+				this.executeTxSearch('')
+			}, 150)
 		},
 		handleScrollUp() {
 			// User scrolling up (viewing newer transactions) - show footer

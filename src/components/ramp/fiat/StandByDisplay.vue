@@ -120,7 +120,13 @@
                             @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                         </div>
                         <div v-else>
-                          <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
+                          <span class="text-primary">
+                            {{ (data?.order?.status?.value === 'PD_PN' || data?.order?.status?.value === 'PD' || data?.order?.status?.value === 'RLS')
+                              ? 'Proof of payment not available yet'
+                              : 'Uploading Proof of Payment'
+                            }}
+                            <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/>
+                          </span>
                         </div>
                       </div>
                     </q-card>
@@ -182,7 +188,7 @@
           </div>
 
           <!-- Prominent appeal CTA once available -->
-          <div v-else class="row q-pt-xs q-px-md">
+          <div v-else class="row q-pt-xs q-px-md appeal-cta-wrapper">
             <q-btn
               :loading="loadAppealButton"
               :disable="loadAppealButton"
@@ -397,6 +403,13 @@ export default {
           'StandByDisplayLabelEscrwWithAppeal',
           {},
           'Please wait for the buyer to send and confirm their fiat payment or submit an appeal to release your BCH from the escrow contract.'
+        )
+      }
+      if (status === 'PD_PN' && appealCtaVisible) {
+        return this.$t(
+          'StandByDisplayLabelPdPnWithAppeal',
+          {},
+          'Please wait for the seller to release the funds. If the seller is unresponsive, you may submit an appeal.'
         )
       }
 
@@ -642,6 +655,10 @@ export default {
   letter-spacing: 0.2px;
   box-shadow: 0 6px 18px rgba(237, 95, 89, 0.35);
   animation: appealPulse 1.8s ease-in-out infinite;
+}
+
+.appeal-cta-wrapper {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 }
 
 @keyframes appealPulse {

@@ -157,7 +157,12 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { getOracleData, confirmReservationApi } from 'src/utils/engagementhub-utils/lift-token';
+import {
+  getIdAndPubkeyApi,
+  getOracleData,
+  confirmReservationApi,
+  initializeVestingContract
+} from 'src/utils/engagementhub-utils/lift-token';
 import { parseLiftToken } from 'src/utils/engagementhub-utils/shared';
 import {
   parseFiatCurrency,
@@ -216,14 +221,47 @@ export default {
     async confirmReservation() {
       this.isSliderLoading = true;
 
+      if (this.rsvp.public_key === '' || this.rsvp.public_key === null || this.rsvp.public_key === undefined) {
+        console.error('Public key is empty')
+        raiseNotifyError(this.$t("ConfirmReservationError"))
+        this.isSliderLoading = false
+        return
+      }
+
+      const idPubkeyData = await getIdAndPubkeyApi()
+      if (!idPubkeyData) {
+        console.error('Failed to get ID and pubkey data')
+        raiseNotifyError(this.$t("ConfirmReservationError"))
+        this.isSliderLoading = false
+        return
+      }
+      const { token_id, pubkey } = idPubkeyData
+
+      // compute lockup end based on current date and rsvp.sale_group
+      const year = this.rsvp.sale_group === 'seed' ? 2 : 1
+      const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
+
+      let vestingContract = null
+      try {
+        vestingContract = initializeVestingContract(
+          this.rsvp.public_key, token_id, pubkey, lockupEnd, this.rsvp.reserved_amount_tkn
+        )
+      } catch (error) {
+        console.error('Failed to initialize vesting contract:', error)
+        raiseNotifyError(this.$t("ConfirmReservationError"))
+        this.isSliderLoading = false
+        return
+      }
+
       const oracleData = await getOracleData()
       const data = {
         reservation_id: this.rsvp.id,
-        message_timestamp: oracleData.messageTimestamp
+        message_timestamp: oracleData.messageTimestamp,
+        vesting_contract_address: vestingContract.address,
+        lockup_end: lockupEnd,
       }
 
       const isSuccessful = await confirmReservationApi(data)
-
       if (isSuccessful) {
         this.isSliderLoading = false;
         this.$refs.confirmDialogRef.$emit("ok");

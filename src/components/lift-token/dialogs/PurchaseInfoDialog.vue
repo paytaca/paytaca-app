@@ -29,8 +29,8 @@
         <!-- Amount Section -->
         <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="row items-center q-mb-sm">
-            <q-icon name="mdi-cash-multiple" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-            <span class="section-title">{{ $t("AmountPurchased") }}</span>
+            <q-icon name="mdi-cash-multiple" size="20px" :color="getThemeColor()" class="q-mr-sm col-auto" />
+            <span class="col-9 section-title">{{ $t("AmountPurchased") }}</span>
           </div>
           <div class="amount-display q-mb-xs">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
@@ -44,23 +44,25 @@
                 )
               }}
             </span>
-            <span>•</span>
-            <span>
-              {{
-                getAssetDenomination(
-                  denomination,
-                  purchase.purchased_amount_sats / 10 ** 8
-                )
-              }}
-            </span>
+            <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
+              <span>•</span>
+              <span>
+                {{
+                  getAssetDenomination(
+                    denomination,
+                    purchase.purchased_amount_sats / 10 ** 8
+                  )
+                }}
+              </span>
+            </template>
           </div>
         </div>
 
         <!-- Details Section -->
         <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
           <div class="row items-center q-mb-md">
-            <q-icon name="mdi-information-outline" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-            <span class="section-title">{{ $t("PurchaseDetails") }}</span>
+            <q-icon name="mdi-information-outline" size="20px" :color="getThemeColor()" class="q-mr-sm col-auto" />
+            <span class="col-9 section-title">{{ $t("PurchaseDetails") }}</span>
           </div>
 
           <div class="detail-row q-mb-sm">
@@ -88,7 +90,7 @@
               <q-icon name="mdi-wallet" size="16px" class="q-mr-xs" />
               {{ $t("BchAddress") }}
             </div>
-            <div class="detail-value text-caption">
+            <div class="detail-value tx-address text-caption">
               {{ parseBchAddress(purchase.purchase_more_details.bch_address) }}
             </div>
           </div>
@@ -101,8 +103,8 @@
             <div class="detail-value" style="word-break: auto-phrase;">
               {{ $t(
                 'PaidUsingMethod',
-                { method: purchase.purchase_more_details.payment_method?.toUpperCase() },
-                `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase()}`
+                { method: purchase.purchase_more_details.payment_method?.toUpperCase() || 'FIAT' },
+                `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase() || 'FIAT'}`
               ) }}
             </div>
           </div>
@@ -110,15 +112,57 @@
           <div v-if="purchase.purchase_more_details.payment_method === 'bch'" class="detail-row">
             <div class="detail-label">
               <q-icon name="receipt_long" size="16px" class="q-mr-xs" />
-              {{ $t('TransactionId') }}
+              {{ $t('PaymentTransactionId') }}
             </div>
-            <div class="detail-value">
+            <div class="detail-value tx-address">
               <a
-                :href="`https://explorer.bch.ninja/tx/${purchase.payment_tx_id}`"
+                :href="`https://bchexplorer.info/tx/${purchase.payment_tx_id}`"
                 target="_blank"
                 class="tx-link"
               >
                 {{ parseTxid(purchase.payment_tx_id) }}
+                <q-icon name="mdi-open-in-new" size="14px" class="q-ml-xs" />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vesting Contract Section -->
+        <div class="info-card q-pa-md q-mb-md" :class="getDarkModeClass(darkMode)">
+          <div class="row items-center q-mb-md">
+            <q-icon name="mdi-file" size="20px" :color="getThemeColor()" class="q-mr-sm col-auto" />
+            <span class="col-9 section-title">{{ $t("ContractDetails") }}</span>
+          </div>
+
+          <div class="detail-row q-mb-sm">
+            <div class="detail-label">
+              <q-icon name="mdi-wallet" size="16px" class="q-mr-xs" />
+              {{ $t("ContractAddress") }}
+            </div>
+            <div class="detail-value tx-address text-caption">
+              <a
+                :href="`https://bchexplorer.info/address/${purchase.vesting_contract_address}`"
+                target="_blank"
+                class="tx-link"
+              >
+                {{ parseBchAddress(purchase.vesting_contract_address) }}
+                <q-icon name="mdi-open-in-new" size="14px" class="q-ml-xs" />
+              </a>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <div class="detail-label">
+              <q-icon name="receipt_long" size="16px" class="q-mr-xs" />
+              {{ $t('TokenLockupTransactionId') }}
+            </div>
+            <div class="detail-value tx-address">
+              <a
+                :href="`https://bchexplorer.info/tx/${purchase.swap_tx_id}`"
+                target="_blank"
+                class="tx-link"
+              >
+                {{ parseTxid(purchase.swap_tx_id) }}
                 <q-icon name="mdi-open-in-new" size="14px" class="q-ml-xs" />
               </a>
             </div>
@@ -131,8 +175,8 @@
         >
           <div class="info-card q-pa-md" :class="getDarkModeClass(darkMode)">
             <div class="row items-center q-mb-md">
-              <q-icon name="mdi-chart-timeline-variant" size="20px" :color="getThemeColor()" class="q-mr-sm" />
-              <span class="section-title">{{ $t("VestingProgress") }}</span>
+              <q-icon name="mdi-chart-timeline-variant" size="20px" :color="getThemeColor()" class="q-mr-sm col-2" />
+              <span class="col-9 section-title">{{ $t("VestingProgress") }}</span>
             </div>
 
             <div class="vesting-timeline">
@@ -194,7 +238,7 @@
                     <div v-if="details.tx_id" class="vesting-tx">
                       <q-icon name="receipt_long" size="14px" class="q-mr-xs" />
                       <a
-                        :href="`https://explorer.bch.ninja/tx/${details.tx_id}`"
+                        :href="`https://bchexplorer.info/tx/${details.tx_id}`"
                         target="_blank"
                         class="tx-link"
                       >
@@ -278,6 +322,7 @@ export default {
     },
 
     parseBchAddress(address) {
+      if (!address) return ''
       const addLen = address.length;
       return `${address.substring(0, 17)}...${address.substring(
         addLen - 7,
@@ -285,6 +330,7 @@ export default {
       )}`;
     },
     parseTxid(txId) {
+      if (!txId) return ''
       const txIdLen = txId.length
       return `${txId.substring(0, 10)}...${txId.substring(txIdLen - 10, txIdLen)}`
     }
@@ -381,7 +427,8 @@ export default {
     font-size: 13px;
     font-weight: 600;
     color: #666;
-    min-width: 140px;
+    width: 50%;
+    word-wrap: break-word;
     
     .dark & {
       color: #aaa;
@@ -393,7 +440,12 @@ export default {
     text-align: right;
     font-size: 13px;
     color: #1a1a1a;
-    word-break: break-all;
+    word-wrap: break-word;
+    width: 50%;
+
+    &.tx-address {
+      word-break: break-all;
+    }
     
     .dark & {
       color: #e0e0e0;

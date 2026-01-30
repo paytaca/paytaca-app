@@ -79,9 +79,10 @@ import {
 } from "src/utils/denomination-utils";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
-  generateSignature,
   getAddressPath,
   processPurchaseApi,
+  getIdAndPubkeyApi,
+  initializeVestingContract
 } from "src/utils/engagementhub-utils/lift-token";
 import { getChangeAddress, raiseNotifyError } from "src/utils/send-page-utils";
 import { getWalletByNetwork } from "src/wallet/chipnet";
@@ -174,8 +175,7 @@ export default {
       try {
         if (!this.liftSwapContractAddress) {
           const message = this.$t('ContractAddressUnavailable', {}, 'Unable to resolve the contract address. Please try again later.')
-          raiseNotifyError(message)
-          return
+          throw new Error(message)
         }
 
         const wallet = await this.ensureWallet().catch(error => {
@@ -184,15 +184,52 @@ export default {
         })
         if (!wallet) {
           const message = this.$t('WalletUnavailable', {}, 'Wallet is not ready. Please try again.')
-          raiseNotifyError(message)
-          return
+          throw new Error(message)
         }
 
         if (this.purchase.bch <= 0 || Number.isNaN(this.purchase.bch)) {
           const message = this.$t('InvalidPurchaseAmount', {}, 'Purchase amount is not valid.')
-          raiseNotifyError(message)
-          return
+          throw new Error(message)
         }
+
+        // Generate BCH address dynamically
+        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const buyerAddress = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: validAddressIndex,
+          isChipnet: this.$store.getters['global/isChipnet']
+        })
+        if (!buyerAddress) {
+          throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+        }
+        const addressPath = await getAddressPath(buyerAddress)
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+        const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+
+        const idPubkeyData = await getIdAndPubkeyApi()
+        if (!idPubkeyData) {
+          console.error('Failed to get ID and pubkey data')
+          const message = this.$t('FailedToGetContractData', {}, 'Failed to get contract data. Please try again later.')
+          throw new Error(message)
+        }
+        const { token_id, pubkey } = idPubkeyData
+
+        // compute lockup end based on current date and rsvp.sale_group
+        const year = this.rsvp.sale_group === 'seed' ? 2 : 1
+        const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
+
+        let vestingContract = null
+        try {
+          vestingContract = initializeVestingContract(pubkeyHex, token_id, pubkey, lockupEnd, this.purchase.tkn)
+        } catch (error) {
+          console.error('Failed to initialize vesting contract:', error)
+          const message = this.$t('FailedToInitializeVestingContract', {}, 'Failed to initialize the vesting contract. Please try again later.')
+          throw new Error(message)
+        }
+
         // Note: Fees are handled automatically by watchtower library (deducted from change output).
         // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
         // The 7th parameter is priceId (for BIP21 price tracking), not fee.
@@ -217,26 +254,8 @@ export default {
           throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment.'))
         }
 
-        // Generate BCH address dynamically
-        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
-        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
-        const buyerAddress = await generateReceivingAddress({
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          derivationPath: getDerivationPathForWalletType('bch'),
-          addressIndex: validAddressIndex,
-          isChipnet: this.$store.getters['global/isChipnet']
-        })
-        if (!buyerAddress) {
-          throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
-        }
-        const addressPath = await getAddressPath(buyerAddress)
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
-        const wif = libauthWallet.getPrivateKeyWifAt(addressPath)
-        const signature = await generateSignature(result.txid, wif)
         const satsWithFee = Math.floor(this.purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
-        const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
 
         const data = {
           purchased_amount_usd: this.purchase.usd,
@@ -244,29 +263,28 @@ export default {
           purchased_amount_sats: satsWithFee,
           current_date: new Date().toISOString(),
           tx_id: result.txid,
-          buyer_sig: signature,
           buyer_token_address: tokenAddress,
           buyer_tx_address: buyerAddress,
           reservation: this.rsvp.id,
           partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
           sale_group: this.rsvp.sale_group,
           public_key: pubkeyHex,
-          message_timestamp: this.messageTimestamp
+          message_timestamp: this.messageTimestamp,
+          vesting_contract_address: vestingContract.address,
+          lockup_end: lockupEnd,
         }
 
         const isSuccessful = await processPurchaseApi(data)
-        if (!isSuccessful) {
-          throw new Error(this.$t('PurchasePaymentError', {}, 'Failed to record the purchase.'))
-        }
-
         if (isSuccessful) {
           this.processingMessage = "";
           this.$refs.confirmDialogRef.$emit("ok");
           this.$refs.confirmDialogRef.hide();
-        } else raiseNotifyError(this.$t("PurchasePaymentError"));
+        } else {
+          throw new Error(this.$t("PurchasePaymentError"))
+        }
       } catch (error) {
-        console.error('PayReservationConfirmDialog purchase error:', error)
-        raiseNotifyError(this.$t("PurchasePaymentError"));
+        console.error('PayReservationConfirmDialog purchase error:', error.message)
+        raiseNotifyError(error.message || this.$t("PurchasePaymentError"));
       } finally {
         this.isSliderLoading = false;
       }

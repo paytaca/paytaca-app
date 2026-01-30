@@ -144,7 +144,7 @@ export default {
       }
       // If user not in store, fetch it (non-blocking)
       // Note: This endpoint doesn't require authorization - it's a public endpoint
-      backend.get('ramp-p2p/user').then(response => {
+      backend.get('/ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
         // Store user in Vuex if not already stored
         if (response?.data?.user) {
@@ -175,7 +175,7 @@ export default {
     fetchUnreadCount () {
       // Non-blocking fetch of unread count only
       // Note: This endpoint doesn't require authorization - it's a public endpoint
-      backend.get('ramp-p2p/user').then(response => {
+      backend.get('/ramp-p2p/user').then(response => {
         this.updateUnreadCount(response?.data?.user?.unread_orders_count)
       })
         .catch(error => {

@@ -314,6 +314,8 @@ import DragSlide from 'src/components/drag-slide.vue';
 import CustomInput from 'src/components/CustomInput.vue';
 import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
+import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
+import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 
 /**
  * Typedefs
@@ -933,7 +935,18 @@ export default defineComponent({
             const truncatedId = categoryId.length > 16 
               ? `${categoryId.substring(0, 8)}...${categoryId.substring(categoryId.length - 8)}`
               : categoryId;
-            
+
+            // Special-case LIFT: show a branded "coming soon" dialog instead of generic Not Found.
+            if (String(props.selectTokenId) === String(LIFT_TOKEN_CATEGORY)) {
+              $q.dialog({
+                component: LiftTokenDexComingSoonDialog,
+                componentProps: {
+                  darkMode: Boolean(darkMode.value)
+                }
+              })
+              return
+            }
+
             $q.dialog({
               title: $t('NotFound'),
               message: $t('TokenNotListedInCauldron', { categoryId: truncatedId }, `The token with category ID ${truncatedId} has not been listed in Cauldron DEX.`),

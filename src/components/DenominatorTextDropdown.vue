@@ -30,7 +30,7 @@ export default {
       denominationOptions: [
         { id: 0, value: 'BCH', label: 'BCH' },
         { id: 1, value: 'mBCH', label: 'mBCH' },
-        { id: 2, value: 'Satoshis', label: 'Satoshis' }
+        { id: 2, value: 'sats', label: 'sats' }
       ]
     }
   },

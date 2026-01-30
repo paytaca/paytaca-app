@@ -9,9 +9,6 @@
             {{ $t('SelectAssetToBeReceived') }}
           </p>
         </div>
-        <div class="col-3 q-mt-sm asset-filter-container">
-          <AssetFilter v-if="enableSLP" @filterTokens="isCT => isCashToken = isCT" />
-        </div>
       </div>
       <div class="asset-list-scroll">
         <template
@@ -132,7 +129,6 @@
 <script>
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import HeaderNav from '../../components/header-nav'
-import AssetFilter from '../../components/AssetFilter'
 import { cachedLoadWallet } from 'src/wallet'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { parseAssetDenomination } from 'src/utils/denomination-utils'
@@ -146,8 +142,7 @@ export default {
     walletAssetsMixin
   ],
   components: {
-    HeaderNav,
-    AssetFilter
+    HeaderNav
   },
   data () {
     return {
@@ -162,9 +157,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    enableSLP () {
-      return this.$store.getters['global/enableSLP']
     },
     currentCountry () {
       return this.$store.getters['global/country'].code

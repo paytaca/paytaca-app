@@ -1,6 +1,6 @@
 <template>
     <div class="static-container">
-      <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+      <div id="app-container" class="sticky-header-container multisig-app" :class="getDarkModeClass(darkMode)">
         <HeaderNav
           :title="$t('Import Wallet')"
           backnavpath="/apps"

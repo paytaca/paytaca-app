@@ -148,7 +148,7 @@ const routes = [
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
       { path: 'subscription-details', component: () => import('src/pages/apps/subscription-details.vue'), name: 'app-subscription-details' },
       { path: 'debug', component: () => import('src/pages/apps/debug/index.vue'), name: 'app-debug' },
-      { path: 'debug/tools', component: () => import('src/pages/apps/debug/tools.vue'), name: 'app-debug-tools' },
+      { path: 'debug/address-key-viewer', component: () => import('src/pages/apps/debug/tools.vue'), name: 'app-debug-address-key-viewer' },
       { path: 'debug/console', component: () => import('src/pages/apps/debug/console.vue'), name: 'app-debug-console' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
@@ -187,6 +187,7 @@ const routes = [
         path: 'crypto-swap/',
         name: 'crypto-swap',
         component: () => import('layouts/Transaction.vue'),
+        meta: { disableOnNativeIOS: true },
         children: [
           {
             path: '', 
