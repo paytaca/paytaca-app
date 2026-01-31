@@ -181,12 +181,12 @@ import {
   getAddressPath,
   processPurchaseApi,
   getIdAndPubkeyApi,
-  initializeVestingContract
+  initializeVestingContract,
+  sendCustomPayment
 } from 'src/utils/engagementhub-utils/lift-token'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
-import { getChangeAddress, raiseNotifyError } from 'src/utils/send-page-utils'
-import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { raiseNotifyError } from 'src/utils/send-page-utils'
 import { loadLibauthHdWallet, getMnemonic, Wallet } from 'src/wallet'
 import {
   generateReceivingAddress,
@@ -536,10 +536,10 @@ export default {
         const purchase = {
           tkn: purchaseTkn,
           usd: Number(this.amountUsd || 0),
-          bch: Number(this.amountBch || 0)
+          sats: Number(this.amountBch.toFixed(8) || 0) * 10 ** 8
         }
 
-        if (purchase.bch <= 0 || Number.isNaN(purchase.bch)) {
+        if (purchase.sats <= 0 || Number.isNaN(purchase.sats)) {
           const message = this.$t('InvalidPurchaseAmount', {}, 'Purchase amount is not valid.')
           throw new Error(message)
         }
@@ -549,38 +549,27 @@ export default {
           throw new Error(message)
         }
 
-        // Note: Fees are handled automatically by watchtower library (deducted from change output).
-        // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
-        // The 7th parameter is priceId (for BIP21 price tracking), not fee.
-        // Get change address for BCH transaction
-        const changeAddress = await getChangeAddress('bch')
-        const result = await getWalletByNetwork(wallet, 'bch').sendBch(
-          undefined,
-          '',
-          changeAddress,
-          null,
-          undefined,
-          [
-            {
-              address: this.contractAddress,
-              amount: purchase.bch,
-              tokenAmount: undefined
-            }
-          ],
-          undefined // priceId - not used for this transaction
-        )
-
+        const result = await sendCustomPayment({
+          walletHash: this.wallet._BCH.walletHash,
+          amount: purchase.sats,
+          swapContractAddress: this.contractAddress,
+          libauthWallet,
+          nftData: {
+            isEarlySupporter: this.getSaleGroupCode(this.selectedRound) === 'seed',
+            oracleMessageTimestamp: this.messageTimestamp,
+            bytecode: vestingContract.bytecode
+          }
+        })
         if (!result?.success || !result?.txid) {
           throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment. Please try again later.'))
         }
 
-        const satsWithFee = Math.floor(purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
 
         const data = {
           purchased_amount_usd: purchase.usd,
           purchased_amount_tkn: purchase.tkn,
-          purchased_amount_sats: satsWithFee,
+          purchased_amount_sats: purchase.sats,
           current_date: new Date().toISOString(),
           tx_id: result.txid,
           buyer_token_address: tokenAddress,

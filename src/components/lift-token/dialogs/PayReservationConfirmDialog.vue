@@ -82,10 +82,10 @@ import {
   getAddressPath,
   processPurchaseApi,
   getIdAndPubkeyApi,
-  initializeVestingContract
+  initializeVestingContract,
+  sendCustomPayment
 } from "src/utils/engagementhub-utils/lift-token";
-import { getChangeAddress, raiseNotifyError } from "src/utils/send-page-utils";
-import { getWalletByNetwork } from "src/wallet/chipnet";
+import { raiseNotifyError } from "src/utils/send-page-utils";
 import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards";
 import { loadLibauthHdWallet, getMnemonic, Wallet } from "src/wallet"
 import {
@@ -230,37 +230,29 @@ export default {
           throw new Error(message)
         }
 
-        // Note: Fees are handled automatically by watchtower library (deducted from change output).
-        // estimatedNetworkFeeBch is used only for balance validation to ensure sufficient funds.
-        // The 7th parameter is priceId (for BIP21 price tracking), not fee.
-        // Get change address for BCH transaction
-        const changeAddress = await getChangeAddress('bch')
-        const result = await getWalletByNetwork(wallet, 'bch').sendBch(
-          undefined,
-          '',
-          changeAddress,
-          null,
-          undefined,
-          [
-            {
-              address: this.liftSwapContractAddress,
-              amount: this.purchase.bch,
-              tokenAmount: undefined
-            }
-          ],
-          undefined // priceId - not used for this transaction
-        )
+        const paymentSats = Number(this.purchase.bch.toFixed(8) * 10 ** 8)
+
+        const result = await sendCustomPayment({
+          walletHash: this.wallet._BCH.walletHash,
+          amount: paymentSats,
+          swapContractAddress: this.liftSwapContractAddress,
+          libauthWallet,
+          nftData: {
+            isEarlySupporter: this.rsvp.sale_group === 'seed',
+            oracleMessageTimestamp: this.messageTimestamp,
+            bytecode: vestingContract.bytecode
+          }
+        })
         if (!result?.success || !result?.txid) {
           throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment.'))
         }
 
-        const satsWithFee = Math.floor(this.purchase.bch * 10 ** 8)
         const tokenAddress = await getWalletTokenAddress()
 
         const data = {
           purchased_amount_usd: this.purchase.usd,
           purchased_amount_tkn: this.purchase.tkn,
-          purchased_amount_sats: satsWithFee,
+          purchased_amount_sats: paymentSats,
           current_date: new Date().toISOString(),
           tx_id: result.txid,
           buyer_token_address: tokenAddress,
