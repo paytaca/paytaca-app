@@ -190,3 +190,104 @@ export async function getIdAndPubkeyApi() {
     })
     .catch(_error => { return null } )
 }
+
+// ================================
+// Separate section for the function to send custom payment transaction
+// consolidated BCH + NFT with 38-byte commitment data for swap contract
+// ================================
+
+import { NFTCapability, Wallet } from 'mainnet-js'
+
+export async function sendCustomPayment(data) {
+  // gather needed utxos
+  const utxos = await getUtxosFromWatchtower(data.walletHash, data.amount)
+
+  // get wif from utxos[0] address_path
+  const wif = await data.libauthWallet.getPrivateKeyWifAt(utxos[0].address_path)
+  // generate wallet from wif
+  const wallet = await Wallet.fromWIF(wif)
+  // generate token genesis transaction
+  const genResp = await wallet.tokenGenesis({
+    cashaddr: data.swapContractAddress,
+    amount: 0n,
+    commitment: generateNftCommitment(data.nftData),
+    capability: NFTCapability.mutable,
+    value: BigInt(data.amount),
+  })
+
+  return genResp.txId
+}
+
+async function getUtxosFromWatchtower(walletHash, amount) {
+  // get utxos of wallethash from watchtower
+  const utxos = await watchtower.BCH._api
+    .get(`utxo/wallet/${walletHash}/?is_cashtoken=false`)
+    .then(resp => {
+      const utxos = resp.data.utxos
+      // Group utxos by address_path and filter to only
+      // those belonging to the most common address_path
+      if (!utxos || utxos.length === 0) return []
+      // Count occurrences of each address_path
+      // Only count utxos with vout === 0
+      const counts = utxos.reduce((acc, utxo) => {
+        if (utxo.vout === 0) {
+          acc[utxo.address_path] = (acc[utxo.address_path] || 0) + 1;
+        }
+        return acc;
+      }, {});
+      // Find the address_path with the greatest count
+      const maxCount = Math.max(...Object.values(counts));
+      const mostCommonPaths = Object.entries(counts)
+        .filter(([_, cnt]) => cnt === maxCount)
+        .map(([address_path]) => address_path);
+      // If tie, select the path whose utxo has the highest value
+      // and vout == 0; otherwise pick the first path
+      let selectedPath = mostCommonPaths[0];
+      if (mostCommonPaths.length > 1) {
+        // Find utxos with vout === 0 among most common paths
+        let bestPath = null;
+        let bestValue = -1;
+        for (const path of mostCommonPaths) {
+          const matchingUtxos = utxos.filter(u => u.address_path === path && u.vout === 0);
+          if (matchingUtxos.length > 0) {
+            // Pick highest value utxo for this path
+            const maxValueUtxo = matchingUtxos.reduce(
+              (maxUtxo, u) => u.value > maxUtxo.value ? u : maxUtxo, matchingUtxos[0]
+            );
+            if (maxValueUtxo.value > bestValue) {
+              bestPath = path;
+              bestValue = maxValueUtxo.value;
+            }
+          }
+        }
+        if (bestPath !== null) {
+          selectedPath = bestPath;
+        }
+      }
+      // Filter utxos to only those with the selected address_path
+      const filteredUtxos = utxos
+        .filter(u => u.address_path === selectedPath)
+        .sort((a, b) => b.value - a.value)
+      
+      return filteredUtxos
+    })
+  return utxos
+}
+
+function generateNftCommitment(nftData) {
+  // convert oracleMessageTimestamp to bytes4
+  const buffer = new ArrayBuffer(4);
+  const view = new DataView(buffer);
+  view.setUint32(0, nftData.oracleMessageTimestamp, true);
+  const timestampBytes = new Uint8Array(buffer);
+
+  // convert vesting contract script hash
+  const vestingBytes32 = bchjs.Crypto.hash256(Buffer.from(nftData.bytecode, "hex"));
+
+  return Buffer.from([
+    0x02,
+    nftData.isEarlySupporter ? 0x00 : 0x01,
+    ...vestingBytes32,
+    ...timestampBytes,
+  ]).toString('hex')
+}
