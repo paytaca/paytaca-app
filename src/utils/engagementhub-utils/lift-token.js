@@ -199,23 +199,28 @@ export async function getIdAndPubkeyApi() {
 import { NFTCapability, Wallet } from 'mainnet-js'
 
 export async function sendCustomPayment(data) {
-  // gather needed utxos
-  const utxos = await getUtxosFromWatchtower(data.walletHash, data.amount)
-
-  // get wif from utxos[0] address_path
-  const wif = await data.libauthWallet.getPrivateKeyWifAt(utxos[0].address_path)
-  // generate wallet from wif
-  const wallet = await Wallet.fromWIF(wif)
-  // generate token genesis transaction
-  const genResp = await wallet.tokenGenesis({
-    cashaddr: data.swapContractAddress,
-    amount: 0n,
-    commitment: generateNftCommitment(data.nftData),
-    capability: NFTCapability.mutable,
-    value: BigInt(data.amount),
-  })
-
-  return genResp.txId
+  try {
+    // gather needed utxos
+    const utxos = await getUtxosFromWatchtower(data.walletHash, data.amount)
+  
+    // get wif from utxos[0] address_path
+    const wif = await data.libauthWallet.getPrivateKeyWifAt(utxos[0].address_path)
+    // generate wallet from wif
+    const wallet = await Wallet.fromWIF(wif)
+    // generate token genesis transaction
+    const genResp = await wallet.tokenGenesis({
+      cashaddr: data.swapContractAddress,
+      amount: 0n,
+      commitment: generateNftCommitment(data.nftData),
+      capability: NFTCapability.mutable,
+      value: BigInt(data.amount),
+    })
+  
+    return { success: true, txid: genResp.txId }
+  } catch (error) {
+    console.error('sendCustomPayment error:', error)
+    return { success: false, txid: null }
+  }
 }
 
 async function getUtxosFromWatchtower(walletHash, amount) {
