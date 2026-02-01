@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Paiement remboursé",
   PaymentReleased: "Paiement libéré",
   PaymentRequestIsExpired: "La demande de paiement est expirée",
-  PaymentSendingError: "Quelque chose s'est produit lors de l'envoi de votre paiement.Veuillez réessayer plus tard.Votre solde n'a pas été déduit.",
+  PaymentSendingError: "Un problème est survenu lors de l’envoi de votre paiement. Veuillez réessayer plus tard. Votre solde n’a pas été débité. Pour l’instant, essayez de consolider vos UTXOs.",
   PaymentTransaction: "Opération de paiement",
   PaymentTransactionId: "ID de transaction de paiement",
   PaymentType: "Type de paiement",

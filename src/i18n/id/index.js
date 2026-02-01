@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Pembayaran dikembalikan",
   PaymentReleased: "Pembayaran dilepaskan",
   PaymentRequestIsExpired: "Permintaan pembayaran sudah habis masa berlakunya",
-  PaymentSendingError: "Terjadi sesuatu saat mengirim pembayaran Anda.Silakan coba lagi nanti.Saldo Anda tidak terpotong.",
+  PaymentSendingError: "Terjadi masalah saat mengirim pembayaran Anda. Silakan coba lagi nanti. Saldo Anda tidak terpotong. Untuk saat ini, coba konsolidasikan UTXO Anda.",
   PaymentTransaction: "Transaksi pembayaran",
   PaymentTransactionId: "ID Transaksi Pembayaran",
   PaymentType: "Jenis Pembayaran",

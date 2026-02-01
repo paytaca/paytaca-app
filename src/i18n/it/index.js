@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Pagamento rimborsato",
   PaymentReleased: "Pagamento rilasciato",
   PaymentRequestIsExpired: "La richiesta di pagamento è scaduta",
-  PaymentSendingError: "È successo qualcosa durante l'invio del pagamento.Per favore riprova più tardi.Il tuo saldo non è stato detratto.",
+  PaymentSendingError: "Si è verificato un problema durante l'invio del pagamento. Riprova più tardi. Il tuo saldo non è stato detratto. Per il momento, prova a consolidare i tuoi UTXO.",
   PaymentTransaction: "Transazione di pagamento",
   PaymentTransactionId: "ID della transazione di pagamento",
   PaymentType: "Tipo di pagamento",

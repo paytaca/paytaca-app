@@ -1,0 +1,211 @@
+{
+  "contractName": "VestingContract",
+  "constructorInputs": [
+    {
+      "name": "buyer",
+      "type": "bytes20"
+    },
+    {
+      "name": "tokenId",
+      "type": "bytes32"
+    },
+    {
+      "name": "adminPubkey",
+      "type": "pubkey"
+    },
+    {
+      "name": "lockupEnd",
+      "type": "int"
+    },
+    {
+      "name": "totalTokenAmount",
+      "type": "int"
+    }
+  ],
+  "abi": [
+    {
+      "name": "claim",
+      "inputs": []
+    },
+    {
+      "name": "emergencyTransfer",
+      "inputs": [
+        {
+          "name": "buyerPubkey",
+          "type": "pubkey"
+        },
+        {
+          "name": "buyerSig",
+          "type": "sig"
+        },
+        {
+          "name": "adminSig",
+          "type": "sig"
+        },
+        {
+          "name": "newScriptHash",
+          "type": "bytes32"
+        }
+      ]
+    }
+  ],
+  "bytecode": "OP_5 OP_PICK OP_0 OP_NUMEQUAL OP_IF 50cd00 OP_4 OP_DIV OP_TXLOCKTIME 0065cd1d OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_OUTPOINTINDEX OP_1ADD OP_DUP OP_1 OP_GREATERTHANOREQUAL OP_OVER OP_4 OP_LESSTHANOREQUAL OP_BOOLAND OP_VERIFY OP_5 OP_ROLL OP_OVER OP_3 OP_ROLL OP_MUL OP_ADD OP_CHECKLOCKTIMEVERIFY OP_DROP OP_4 OP_PICK OP_4 OP_DIV OP_5 OP_ROLL OP_4 OP_MOD OP_OVER OP_3 OP_PICK OP_4 OP_NUMEQUAL OP_IF OP_2 OP_PICK OP_2 OP_PICK OP_ADD OP_NIP OP_ENDIF OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCATEGORY OP_6 OP_PICK OP_EQUALVERIFY OP_0 OP_UTXOTOKENAMOUNT OP_OVER OP_NUMEQUALVERIFY OP_1 OP_UTXOVALUE OP_0 OP_GREATERTHAN OP_VERIFY OP_1 OP_UTXOTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY 76a914 OP_5 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_5 OP_ROLL OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_NUMEQUALVERIFY OP_1 OP_OUTPUTVALUE OP_0 OP_GREATERTHAN OP_VERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_ROT OP_4 OP_LESSTHAN OP_IF OP_ACTIVEBYTECODE OP_HASH256 aa20 OP_OVER OP_CAT 87 OP_CAT OP_1 OP_OUTPUTBYTECODE OP_OVER OP_EQUALVERIFY OP_2DROP OP_ENDIF OP_2DROP OP_2DROP OP_1 OP_ELSE OP_5 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_5 OP_PICK OP_HASH160 OP_EQUALVERIFY OP_2ROT OP_CHECKSIGVERIFY OP_4 OP_ROLL OP_ROT OP_CHECKSIGVERIFY OP_TXINPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_UTXOTOKENCATEGORY OP_OVER OP_EQUALVERIFY OP_1 OP_UTXOVALUE OP_0 OP_GREATERTHAN OP_VERIFY OP_1 OP_UTXOTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_EQUALVERIFY OP_1 OP_OUTPUTVALUE OP_0 OP_GREATERTHAN OP_VERIFY OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUALVERIFY aa20 OP_3 OP_ROLL OP_CAT 87 OP_CAT OP_0 OP_OUTPUTBYTECODE OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENCATEGORY OP_0 OP_UTXOTOKENCATEGORY OP_EQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_UTXOTOKENAMOUNT OP_NUMEQUAL OP_NIP OP_NIP OP_ENDIF",
+  "source": "pragma cashscript ^0.11.5;\n\n/**\n * VestingContract (v3)\n *\n * Goal:\n * - Exactly one vesting contract instance (one address/script) per purchase.\n * - The swap produces 4 separate UTXOs to this same contract address (one per quarter/tranche).\n * - `claim()` is permissionless (no buyer signature), but value cannot be redirected due to\n *   strict output constraints.\n *\n * How tranche index is determined:\n * - Each tranche UTXO is expected to be created at a known vout in the swap tx (0..3).\n * - On claim, we require there is exactly 1 input, so `tx.inputs[0]` is the tranche UTXO.\n * - We derive quarter from `tx.inputs[0].outpointIndex + 1`.\n *\n * Params:\n * - buyer: hash160(buyerPubkey)\n * - tokenId: token category id (CashTokens category)\n * - adminPubkey: admin public key\n * - lockupEnd: block height when lockup ends (vesting starts)\n * - totalTokenAmount: total token amount purchased for this vesting schedule (token base units)\n */\ncontract VestingContract(\n    bytes20 buyer,\n    bytes32 tokenId,\n    pubkey adminPubkey,\n    int lockupEnd,\n    int totalTokenAmount\n) {\n    function claim() {\n        int constant BLOCKS_PER_YEAR = 52560;\n        int constant BLOCKS_PER_QUARTER = BLOCKS_PER_YEAR / 4;\n\n        // require that the tx.time is using block height based locktime\n        // extract it from tx.locktime, since tx.time is only used in the syntax\n        // require(tx.time >= <expression>)\n        int locktime = tx.locktime;\n        require(locktime <= 500000000, \"Locktime must be height-based\");\n\n        // Quarter derived from the spent UTXO's previous output index (expected 0..3)\n        int quarter = tx.inputs[0].outpointIndex + 1;\n        require(quarter >= 1 && quarter <= 4, \"Quarter index is invalid\");\n\n        int unlockBlock = lockupEnd + (quarter * BLOCKS_PER_QUARTER);\n        require(tx.time >= unlockBlock, \"Vesting is not yet unlocked\");\n\n        // Compute expected tranche amount (last tranche carries remainder)\n        int base = totalTokenAmount / 4;\n        int remainder = totalTokenAmount % 4;\n        int expected = base;\n        if (quarter == 4) {\n            expected = base + remainder;\n        }\n\n        // Bind tranche selection to the actual spent tranche UTXO by requiring a single input.\n        // Another input is expected to be the BCH UTXO for the network fee\n        require(tx.inputs.length == 2, \"Inputs length is not the same as expected\");\n\n        // require 0th input as the tranche UTXO\n        require(tx.inputs[0].tokenCategory == tokenId, \"input[0] has incorrect token ID\");\n        require(tx.inputs[0].tokenAmount == expected, \"input[0] has incorrect token amount\");\n\n        // require 1st input as the BCH UTXO\n        require(tx.inputs[1].value > 0, \"input[1] has no BCH\");\n        require(tx.inputs[1].tokenAmount == 0, \"input[1] is not BCH\");\n\n        // Strict 2-output structure prevents token/BCH leakage to other outputs.\n        // 0th output is expected to be sent to buyer\n        // 1st output is expected to be sent to vesting contract itself (for quarters 1-3)\n        require(tx.outputs.length == 2, \"Unexpected outputs\");\n\n        bytes25 buyerP2pkh = new LockingBytecodeP2PKH(buyer);\n        require(tx.outputs[0].lockingBytecode == buyerP2pkh, \"output[0] not sent to buyer\");\n        require(tx.outputs[0].tokenCategory == tokenId, \"output[0] has incorrect token ID\");\n        require(tx.outputs[0].tokenAmount == expected, \"output[0] has incorrect token amount\");\n\n        // require 1st output as BCH only\n        require(tx.outputs[1].value > 0, \"output[1] has no BCH\");\n        require(tx.outputs[1].tokenAmount == 0, \"output[1] is not BCH\");\n        if (quarter < 4) {\n            // require 1st, 2nd, and 3rd quarters to send BCH back to vesting\n            // contract itself to prevent token/BCH leakage to other outputs,\n            // thus preventing the vesting process from being completed\n            // due to lack of BCH for network fee\n            bytes32 selfScriptHash = hash256(this.activeBytecode);\n            bytes35 scriptBytecode = new LockingBytecodeP2SH32(selfScriptHash);\n            require(tx.outputs[1].lockingBytecode == scriptBytecode, \"output[1] has incorrect locking bytecode\");\n        }\n    }\n\n    // Buyer+admin emergency migration to a new contract version (P2SH32).\n    function emergencyTransfer(pubkey buyerPubkey, sig buyerSig, sig adminSig, bytes32 newScriptHash) {\n        // Bind buyer identity (prevents \"any signer\" bypass)\n        require(hash160(buyerPubkey) == buyer, \"Only buyer can approve\");\n        require(checkSig(buyerSig, buyerPubkey), \"Invalid buyer signature\");\n        require(checkSig(adminSig, adminPubkey), \"Only admin can approve\");\n\n        // Keep this spend simple and non-leaky\n        // 0th input and output are expected to be the tranche UTXO\n        // 1st input and output are expected to be the BCH UTXO for the network fee\n        require(tx.inputs.length == 2, \"Inputs length is not the same as expected\");\n        require(tx.inputs[0].tokenCategory == tokenId, \"input[0] has incorrect token ID\");\n        require(tx.inputs[1].value > 0, \"input[1] has no BCH\");\n        require(tx.inputs[1].tokenAmount == 0, \"input[1] is not BCH\");\n        require(tx.outputs.length == 2, \"Outputs length is not the same as expected\");\n        require(tx.outputs[0].tokenCategory == tokenId, \"output[0] has incorrect token ID\");\n        require(tx.outputs[1].value > 0, \"output[1] has no BCH\");\n        require(tx.outputs[1].tokenAmount == 0, \"output[1] is not BCH\");\n\n        bytes35 newLock = new LockingBytecodeP2SH32(newScriptHash);\n        require(tx.outputs[0].lockingBytecode == newLock, \"output[0] has incorrect locking bytecode\");\n\n        // Preserve token category and amount when migrating this tranche UTXO\n        require(tx.outputs[0].tokenCategory == tx.inputs[0].tokenCategory, \"output[0] has unequal token ID\");\n        require(tx.outputs[0].tokenAmount == tx.inputs[0].tokenAmount, \"output[0] has unequal token amount\");\n    }\n}\n",
+  "debug": {
+    "bytecode": "5579009c630350cd005496c5040065cd1da16900c98b7651a27854a19a69557a78537a9593b17554795496557a5497785379549c6352795279937768c3529d00ce56798800d0789d51c600a06951d0009dc4529d0376a914557a7e0288ac7e00cd8800d1557a8800d39d51cc00a06951d3009d7b549f63c1aa02aa20787e01877e51cd78886d686d6d5167557a519d5579a98871ad547a7badc3529d00ce788851c600a06951d0009dc4529d00d18851cc00a06951d3009d02aa20537a7e01877e00cd8800d100ce8800d300d09c777768",
+    "sourceMap": "31:4:90:5;;;;;32:39:32:44;33:60:33:61;:42:::1;38:23:38:34:0;39:28:39:37;:16:::1;:8::72;42:32:42:33:0;:22::48:1;:::52;43:16:43:23:0;:27::28;:16:::1;:32::39:0;:43::44;:32:::1;:16;:8::74;45:26:45:35:0;;:39::46;:49::67;;:39:::1;:26::68;46:8:46:71;;49:19:49:35:0;;:38::39;:19:::1;50:24:50:40:0;;:43::44;:24:::1;51:23:51:27:0;52:12:52:19;;:23::24;:12:::1;:26:54:9:0;53:23:53:27;;:30::39;;:23:::1;:12::40;52:26:54:9;58:16:58:32:0;:36::37;:8::84:1;61:26:61:27:0;:16::42:1;:46::53:0;;:8::90:1;62:26:62:27:0;:16::40:1;:44::52:0;:8::93:1;65:26:65:27:0;:16::34:1;:37::38:0;:16:::1;:8::63;66:26:66:27:0;:16::40:1;:44::45:0;:8::70:1;71:16:71:33:0;:37::38;:8::62:1;73:29:73:60:0;:54::59;;:29::60:1;;;74:27:74:28:0;:16::45:1;:8::92;75:27:75:28:0;:16::43:1;:47::54:0;;:8::92:1;76:27:76:28:0;:16::41:1;:8::95;79:27:79:28:0;:16::35:1;:38::39:0;:16:::1;:8::65;80:27:80:28:0;:16::41:1;:45::46:0;:8::72:1;81:12:81:19:0;:22::23;:12:::1;:25:89:9:0;86:45:86:64;:37::65:1;87::87:78:0;:63::77;:37::78:1;;;88:31:88:32:0;:20::49:1;:53::67:0;:12::113:1;81:25:89:9;;31:4:90:5;;;;93::117::0;;;;95:24:95:35;;:16::36:1;:8::73;96:25:96:46:0;:8::76:1;97:25:97:33:0;;:35::46;:8::75:1;102:16:102:32:0;:36::37;:8::84:1;103:26:103:27:0;:16::42:1;:46::53:0;:8::90:1;104:26:104:27:0;:16::34:1;:37::38:0;:16:::1;:8::63;105:26:105:27:0;:16::40:1;:44::45:0;:8::70:1;106:16:106:33:0;:37::38;:8::86:1;107:27:107:28:0;:16::43:1;:8::92;108:27:108:28:0;:16::35:1;:38::39:0;:16:::1;:8::65;109:27:109:28:0;:16::41:1;:45::46:0;:8::72:1;111:26:111:66:0;:52::65;;:26::66:1;;;112:27:112:28:0;:16::45:1;:8::102;115:27:115:28:0;:16::43:1;:57::58:0;:47::73:1;:8::109;116:27:116:28:0;:16::41:1;:55::56:0;:45::69:1;:8::109;93:4:117:5;;24:0:118:1",
+    "logs": [],
+    "requires": [
+      {
+        "ip": 16,
+        "line": 39,
+        "message": "Locktime must be height-based"
+      },
+      {
+        "ip": 27,
+        "line": 43,
+        "message": "Quarter index is invalid"
+      },
+      {
+        "ip": 35,
+        "line": 46,
+        "message": "Vesting is not yet unlocked"
+      },
+      {
+        "ip": 60,
+        "line": 58,
+        "message": "Inputs length is not the same as expected"
+      },
+      {
+        "ip": 65,
+        "line": 61,
+        "message": "input[0] has incorrect token ID"
+      },
+      {
+        "ip": 69,
+        "line": 62,
+        "message": "input[0] has incorrect token amount"
+      },
+      {
+        "ip": 74,
+        "line": 65,
+        "message": "input[1] has no BCH"
+      },
+      {
+        "ip": 78,
+        "line": 66,
+        "message": "input[1] is not BCH"
+      },
+      {
+        "ip": 81,
+        "line": 71,
+        "message": "Unexpected outputs"
+      },
+      {
+        "ip": 90,
+        "line": 74,
+        "message": "output[0] not sent to buyer"
+      },
+      {
+        "ip": 95,
+        "line": 75,
+        "message": "output[0] has incorrect token ID"
+      },
+      {
+        "ip": 98,
+        "line": 76,
+        "message": "output[0] has incorrect token amount"
+      },
+      {
+        "ip": 103,
+        "line": 79,
+        "message": "output[1] has no BCH"
+      },
+      {
+        "ip": 107,
+        "line": 80,
+        "message": "output[1] is not BCH"
+      },
+      {
+        "ip": 122,
+        "line": 88,
+        "message": "output[1] has incorrect locking bytecode"
+      },
+      {
+        "ip": 136,
+        "line": 95,
+        "message": "Only buyer can approve"
+      },
+      {
+        "ip": 138,
+        "line": 96,
+        "message": "Invalid buyer signature"
+      },
+      {
+        "ip": 142,
+        "line": 97,
+        "message": "Only admin can approve"
+      },
+      {
+        "ip": 145,
+        "line": 102,
+        "message": "Inputs length is not the same as expected"
+      },
+      {
+        "ip": 149,
+        "line": 103,
+        "message": "input[0] has incorrect token ID"
+      },
+      {
+        "ip": 154,
+        "line": 104,
+        "message": "input[1] has no BCH"
+      },
+      {
+        "ip": 158,
+        "line": 105,
+        "message": "input[1] is not BCH"
+      },
+      {
+        "ip": 161,
+        "line": 106,
+        "message": "Outputs length is not the same as expected"
+      },
+      {
+        "ip": 164,
+        "line": 107,
+        "message": "output[0] has incorrect token ID"
+      },
+      {
+        "ip": 169,
+        "line": 108,
+        "message": "output[1] has no BCH"
+      },
+      {
+        "ip": 173,
+        "line": 109,
+        "message": "output[1] is not BCH"
+      },
+      {
+        "ip": 182,
+        "line": 112,
+        "message": "output[0] has incorrect locking bytecode"
+      },
+      {
+        "ip": 187,
+        "line": 115,
+        "message": "output[0] has unequal token ID"
+      },
+      {
+        "ip": 193,
+        "line": 116,
+        "message": "output[0] has unequal token amount"
+      }
+    ]
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.11.5"
+  },
+  "updatedAt": "2026-01-30T03:06:24.555Z"
+}

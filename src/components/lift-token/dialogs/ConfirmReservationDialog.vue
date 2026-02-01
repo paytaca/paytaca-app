@@ -267,7 +267,7 @@ export default {
         this.$refs.confirmDialogRef.$emit("ok");
         this.$refs.confirmDialogRef.hide();
       } else {
-        raiseNotifyError(this.$t("ConfirmReservationError"));
+        raiseNotifyError(this.$t("ConfirmReservationError"), 5000);
         this.isSliderLoading = false;
       }
     }

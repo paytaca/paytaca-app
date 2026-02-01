@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Na-refund ang bayad",
   PaymentReleased: "Inilabas ang bayad",
   PaymentRequestIsExpired: "Ang kahilingan sa pagbabayad ay nag-expire na",
-  PaymentSendingError: "May nangyari habang ipinapadala ang iyong bayad.Pakisubukang muli mamaya.Hindi ibinawas ang iyong balanse.",
+  PaymentSendingError: "Nagkaroon ng problema habang ipinapadala ang iyong pagbabayad. Pakisubukang muli mamaya. Hindi nabawasan ang iyong balanse. Subukang pagsamahin muna ang iyong mga UTXO.",
   PaymentTransaction: "Transaksyon sa pagbabayad",
   PaymentTransactionId: "Payment Transaction ID",
   PaymentType: "Uri ng Pagbabayad",
