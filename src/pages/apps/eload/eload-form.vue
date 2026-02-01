@@ -104,20 +104,56 @@
 					outlined 
 					v-model="address" 
 					:placeholder="'Enter ' + addressType(selectedPromo.address_type)"
+					:error="showAddressError"
+					:error-message="addressErrorMessage"
 				/>
 			</q-card>
 
+			<q-card
+				v-if="selectedPromo && isMobileNumberAddress && amountToPayPhp !== null"
+				class="q-mx-lg q-pa-md br-15 q-mt-md"
+			>
+				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+					Amount to pay
+				</div>
+
+				<div class="text-weight-bold text-h6 q-mt-xs" :class="darkMode ? 'text-white' : 'text-grey-9'">
+					{{ formattedAmountToPayPhp }} PHP
+				</div>
+
+				<div v-if="phpBchRateLoading" class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+					Fetching PHP/BCH rate…
+				</div>
+				<div v-else-if="phpBchRateError" class="sm-font-size q-mt-xs text-negative">
+					{{ phpBchRateError }}
+				</div>
+				<div v-else class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+					≈ {{ formattedAmountToPayBch || '—' }} BCH
+				</div>
+			</q-card>
+
 			<div class="q-px-lg">
-				<q-btn :disable="!address" class="full-width button q-my-md" rounded label="BUY"></q-btn>
+				<DragSlide
+					:disableAbsoluteBottom="true"
+					:disable="!canSubmitBuy"
+					:text="$t('SwipeToConfirmLower')"
+					@swiped="onBuySwiped"
+					class="q-my-md"
+				/>
 			</div>			
 		</div>
 	</div>
 </template>
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
 import ServiceCard from 'src/components/eload/ServiceCard.vue'
 import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
+import DragSlide from 'src/components/drag-slide.vue'
+import { cachedLoadWallet, Address } from 'src/wallet'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import * as sendPageUtils from 'src/utils/send-page-utils'
 
 // Note: service = purchaseType; service-group = serviceProviders
 
@@ -130,6 +166,17 @@ export default {
 
 			selectedPromo: null,
 			address: '',		
+			phpBchRate: null,
+			phpBchPriceQuoteId: null,
+			phpBchRateLoading: false,
+			phpBchRateError: '',
+			phpBchRateLastFetchTs: 0,
+			buying: false,
+			wallet: null,
+			txnPreparing: false,
+			txnPrepareError: '',
+			txnRecipientAddress: '',
+			txnPrepareKey: '',
 
 
 			filters:{				
@@ -168,11 +215,133 @@ export default {
 		minHeight () {
 	      return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
 	    },
+		isMobileNumberAddress () {
+			return this.selectedPromo?.address_type === 'MN'
+		},
+		addressMin () {
+			const n = Number(this.selectedPromo?.address_min)
+			return Number.isFinite(n) ? n : null
+		},
+		addressMax () {
+			const n = Number(this.selectedPromo?.address_max)
+			return Number.isFinite(n) ? n : null
+		},
+		normalizedAddress () {
+			return String(this.address || '').trim()
+		},
+		normalizedAddressDigits () {
+			// for MN validation, treat length constraints as digit-count constraints
+			return this.normalizedAddress.replace(/\D/g, '')
+		},
+		isAddressLengthValid () {
+			if (!this.selectedPromo) return false
+			const min = this.addressMin
+			const max = this.addressMax
+			const value = this.isMobileNumberAddress ? this.normalizedAddressDigits : this.normalizedAddress
+			const len = value.length
+			if (!len) return false
+			if (Number.isFinite(min) && len < min) return false
+			if (Number.isFinite(max) && len > max) return false
+			return true
+		},
+		isValidMobileNumber () {
+			if (!this.isMobileNumberAddress) return true
+			if (!this.isAddressLengthValid) return false
+			const v = this.normalizedAddressDigits
+			// Basic sanity check for PH formats: local "09..." or country-code "63..."
+			return /^09\d+$/.test(v) || /^63\d+$/.test(v)
+		},
+		isAddressValid () {
+			if (!this.selectedPromo) return false
+			if (this.isMobileNumberAddress) return this.isValidMobileNumber
+			return this.isAddressLengthValid
+		},
+		showAddressError () {
+			if (!this.selectedPromo) return false
+			if (!this.isMobileNumberAddress) return false
+			// highlight while not filled out with a valid number
+			return !this.isValidMobileNumber
+		},
+		addressErrorMessage () {
+			if (!this.showAddressError) return ''
+			const min = this.addressMin
+			const max = this.addressMax
+			if (!this.normalizedAddressDigits) return 'Enter a valid mobile number'
+			if (Number.isFinite(min) && Number.isFinite(max) && min === max) return `Mobile number must be ${min} digits`
+			if (Number.isFinite(min) && Number.isFinite(max)) return `Mobile number must be ${min}-${max} digits`
+			if (Number.isFinite(min)) return `Mobile number must be at least ${min} digits`
+			if (Number.isFinite(max)) return `Mobile number must be at most ${max} digits`
+			return 'Enter a valid mobile number'
+		},
+		amountToPayPhp () {
+			const raw = this.selectedPromo?.amount
+			const num = typeof raw === 'number' ? raw : parseFloat(String(raw))
+			return Number.isFinite(num) ? num : null
+		},
+		phpPerBchRate () {
+			const localRate = this.phpBchRate
+			const storeRate = this.$store.getters['market/getAssetPrice']?.('bch', 'PHP')
+			const candidate = Number.isFinite(localRate) ? localRate : storeRate
+			const num = typeof candidate === 'number' ? candidate : parseFloat(String(candidate))
+			return Number.isFinite(num) ? num : null
+		},
+		amountToPayBch () {
+			if (!Number.isFinite(this.amountToPayPhp)) return null
+			if (!Number.isFinite(this.phpPerBchRate) || this.phpPerBchRate === 0) return null
+			return this.amountToPayPhp / this.phpPerBchRate
+		},
+		phpBchQuoteId () {
+			const local = this.phpBchPriceQuoteId
+			const storeId = this.$store.getters['market/getAssetPriceId']?.('bch', 'PHP')
+			const candidate = Number.isFinite(local) ? local : storeId
+			const num = typeof candidate === 'number' ? candidate : parseInt(String(candidate))
+			return Number.isFinite(num) ? num : null
+		},
+		bchAmountString () {
+			if (!Number.isFinite(this.amountToPayBch)) return null
+			// API expects decimal/string; keep a stable precision (BCH has 8 decimals)
+			const fixed = Number(this.amountToPayBch).toFixed(8)
+			// trim trailing zeros
+			return fixed.replace(/\.?0+$/, match => (match === '.' ? '' : ''))
+		},
+		addressForPayload () {
+			return this.isMobileNumberAddress ? this.normalizedAddressDigits : this.normalizedAddress
+		},
+		txnPayloadKey () {
+			if (!this.selectedPromo?.id) return ''
+			if (!this.isAddressValid) return ''
+			if (!this.bchAmountString) return ''
+			if (!Number.isFinite(this.phpBchQuoteId)) return ''
+			return [
+				this.selectedPromo.id,
+				this.addressForPayload,
+				this.bchAmountString,
+				this.phpBchQuoteId
+			].join('|')
+		},
+		canPrepareTxn () {
+			return Boolean(this.txnPayloadKey) && !this.txnPreparing
+		},
+		canSubmitBuy () {
+			// Only allow swipe when txn is prepared (recipient address available)
+			if (!this.canPrepareTxn) return false
+			if (!this.txnRecipientAddress) return false
+			return !this.buying && !this.phpBchRateLoading
+		},
+		formattedAmountToPayPhp () {
+			if (!Number.isFinite(this.amountToPayPhp)) return ''
+			return formatWithLocale(this.amountToPayPhp, { max: 2 })
+		},
+		formattedAmountToPayBch () {
+			if (!Number.isFinite(this.amountToPayBch)) return ''
+			return formatWithLocale(this.amountToPayBch, { max: 8 })
+		}
 	},
 	components: {
 		PromoSearch,
 		ServiceCard,
-		PromoInfoCard
+		PromoInfoCard,
+		DragSlide
 	},
 	watch: {
 		'filters.service'(val) {
@@ -195,6 +364,26 @@ export default {
 				// fetch promos
 			}
 		},
+		selectedPromo (val) {
+			// Reset any prepared txn when promo changes
+			this.txnPreparing = false
+			this.txnPrepareError = ''
+			this.txnRecipientAddress = ''
+			this.txnPrepareKey = ''
+			if (val) this.ensurePhpBchRate()
+		},
+		address () {
+			// Reset prepared txn when input changes (will be re-prepared when valid)
+			this.txnPrepareError = ''
+			this.txnRecipientAddress = ''
+			this.txnPrepareKey = ''
+		},
+		txnPayloadKey (val) {
+			// When address becomes valid + we have quote + amount, prepare txn immediately.
+			if (!val) return
+			if (val === this.txnPrepareKey) return
+			this.prepareTxn()
+		},
 		step (val) {
 			if (val === 3) {
 				// Get Promos
@@ -203,6 +392,14 @@ export default {
 	},	
 	async mounted () {
 		const vm = this
+
+		// Preload wallet instance for sending BCH on swipe.
+		try {
+			const walletIndex = vm.$store.getters['global/getWalletIndex']
+			vm.wallet = await cachedLoadWallet('BCH', walletIndex)
+		} catch (e) {
+			console.error('[Eload] Failed to load wallet:', e)
+		}
 
 		let result = await eloadServiceAPI.fetchService()
 
@@ -214,6 +411,158 @@ export default {
 		vm.loading = false
 	},
 	methods: {
+		async prepareTxn () {
+			const vm = this
+			const key = vm.txnPayloadKey
+			if (!key) return
+			if (vm.txnPreparing) return
+			if (vm.txnPrepareKey === key && vm.txnRecipientAddress) return
+
+			vm.txnPreparing = true
+			vm.txnPrepareError = ''
+			vm.txnRecipientAddress = ''
+			vm.txnPrepareKey = key
+
+			try {
+				// Ensure we have a fresh quote id/rate before preparing.
+				await vm.ensurePhpBchRate()
+				const quoteId = vm.phpBchQuoteId
+				const bchAmount = vm.bchAmountString
+				if (!Number.isFinite(quoteId) || !bchAmount) throw new Error('Missing BCH quote/amount')
+
+				const address = vm.addressForPayload
+				const promoSnapshot = { ...(vm.selectedPromo || {}), address }
+
+				const result = await eloadServiceAPI.createOrder({
+					promo: vm.selectedPromo?.id,
+					promo_snapshot: promoSnapshot,
+					bch_amount: bchAmount,
+					bch_price_quote: quoteId
+				})
+				if (!result?.success) throw new Error(result?.error || 'Failed to create txn')
+
+				const recipientAddressRaw =
+					result?.data?.recipient_address ||
+					result?.data?.data?.recipient_address
+
+				if (!recipientAddressRaw) throw new Error('Missing recipient_address from server')
+
+				// Guard: if inputs changed while awaiting, ignore stale response.
+				if (vm.txnPayloadKey !== key) return
+
+				vm.txnRecipientAddress = String(recipientAddressRaw).trim()
+			} catch (error) {
+				console.error('[Eload] prepareTxn failed:', error)
+				// Only show error if still relevant to current input
+				if (vm.txnPayloadKey === key) {
+					vm.txnPrepareError = 'Unable to prepare transaction'
+				}
+			} finally {
+				if (vm.txnPayloadKey === key) {
+					vm.txnPreparing = false
+				} else {
+					// Input changed; allow new prepare to run.
+					vm.txnPreparing = false
+				}
+			}
+		},
+		async onBuySwiped (reset = () => {}) {
+			const vm = this
+			if (!vm.canSubmitBuy) {
+				reset?.()
+				return
+			}
+
+			vm.buying = true
+			try {
+				// Ensure txn is prepared (should already be due to watcher).
+				if (!vm.txnRecipientAddress) {
+					await vm.prepareTxn()
+				}
+
+				const quoteId = vm.phpBchQuoteId
+				const bchAmount = vm.bchAmountString
+				if (!Number.isFinite(quoteId) || !bchAmount) {
+					throw new Error('Missing BCH quote/amount')
+				}
+
+				// Use the server-provided recipient address for the BCH send.
+				const recipientAddressRaw = vm.txnRecipientAddress
+				if (!recipientAddressRaw) throw new Error('Missing recipient_address from server')
+
+				if (!vm.wallet) {
+					const walletIndex = vm.$store.getters['global/getWalletIndex']
+					vm.wallet = await cachedLoadWallet('BCH', walletIndex)
+				}
+				if (!vm.wallet) throw new Error('Wallet not loaded')
+
+				const changeAddress = await sendPageUtils.getChangeAddress('bch')
+				const recipientCashAddr = new Address(String(recipientAddressRaw).trim()).toCashAddress()
+
+				const recipients = [{
+					address: recipientCashAddr,
+					amount: parseFloat(bchAmount)
+				}]
+
+				const fiatAmounts = Number.isFinite(vm.amountToPayPhp) ? [vm.amountToPayPhp] : null
+				const fiatCurrency = fiatAmounts ? 'PHP' : null
+
+				const sendResult = await getWalletByNetwork(vm.wallet, 'bch')
+					.sendBch(
+						0,
+						'',
+						changeAddress,
+						null,
+						undefined,
+						recipients,
+						quoteId,
+						fiatAmounts,
+						fiatCurrency
+					)
+
+				// `sendBch` returns an object; treat falsy/failed response as error.
+				if (!sendResult) throw new Error('Send BCH failed')
+
+				vm.$q?.notify?.({ type: 'positive', message: 'Payment sent' })
+			} catch (error) {
+				console.error('[Eload] Buy failed:', error)
+				vm.$q?.notify?.({ type: 'negative', message: 'Unable to complete purchase' })
+			} finally {
+				vm.buying = false
+				reset?.()
+			}
+		},
+		async ensurePhpBchRate () {
+			const REFRESH_MS = 60 * 1000
+			if (
+				Number.isFinite(this.phpBchRate) &&
+				Number.isFinite(this.phpBchPriceQuoteId) &&
+				this.phpBchRateLastFetchTs &&
+				Date.now() - this.phpBchRateLastFetchTs < REFRESH_MS
+			) return
+
+			this.phpBchRateLoading = true
+			this.phpBchRateError = ''
+
+			try {
+				await this.$store.dispatch('market/updateAssetPrices', { assetId: 'bch', customCurrency: 'PHP' })
+				const rate = this.$store.getters['market/getAssetPrice']?.('bch', 'PHP')
+				const quoteId = this.$store.getters['market/getAssetPriceId']?.('bch', 'PHP')
+				const num = typeof rate === 'number' ? rate : parseFloat(String(rate))
+				if (!Number.isFinite(num)) throw new Error('Missing PHP/BCH rate')
+				const quoteNum = typeof quoteId === 'number' ? quoteId : parseInt(String(quoteId))
+				if (!Number.isFinite(quoteNum)) throw new Error('Missing BCH price quote id')
+
+				this.phpBchRate = num
+				this.phpBchPriceQuoteId = quoteNum
+				this.phpBchRateLastFetchTs = Date.now()
+			} catch (error) {
+				this.phpBchRateError = 'Unable to fetch PHP/BCH rate'
+				console.error('[ensurePhpBchRate] Error:', error)
+			} finally {
+				this.phpBchRateLoading = false
+			}
+		},
 		updateFilters(type, name) {
 			this.filters[type] = name	
 		},
@@ -294,6 +643,7 @@ export default {
 		},
 		selectPromo(promo) {		
 			this.selectedPromo = promo
+			this.ensurePhpBchRate()
 
 			this.step++	
 		},

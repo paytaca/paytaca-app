@@ -5,9 +5,22 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 
 export const backend = axios.create()
 const baseURL = process.env.ELOAD_SERVICE_API || ''
-const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
 const TOKEN_STORAGE_KEY = process.env.GBITS_AUTH_KEY || 'gbits-auth-key'
+
+function getWalletHash () {
+	return Store.getters['global/getWallet']('bch')?.walletHash
+}
+
+function buildTxnUrl () {
+	const trimmed = String(baseURL || '').replace(/\/+$/, '')
+	if (!trimmed) return '/api/txn/'
+	// Support both configurations:
+	// - baseURL = https://server            -> POST https://server/api/txn/
+	// - baseURL = https://server/api        -> POST https://server/api/txn/
+	if (trimmed.endsWith('/api')) return `${trimmed}/txn/`
+	return `${trimmed}/api/txn/`
+}
 
 export async function fetchService () {
 	try {
@@ -133,12 +146,36 @@ export async function fetchPromo (data) {
 
 export async function createOrder (data) {
 	try {
-		let data = {
-			"promo_id": data.promoId,
-			'address': data.address
+		const walletHash = getWalletHash()
+		if (!walletHash) {
+			throw new Error('Wallet hash not available')
 		}
 
-		const response = await backend.post(baseURL + '/txn/', data)
+		let token = await getAuthToken()
+		if (!token) {
+			// Best-effort: authenticate and retry token retrieval.
+			await authUser()
+			token = await getAuthToken()
+		}
+		if (!token) {
+			throw new Error('Auth token not available')
+		}
+
+		const payload = {
+			promo: data.promo,
+			promo_snapshot: data.promo_snapshot,
+			bch_amount: data.bch_amount,
+			bch_price_quote: data.bch_price_quote
+		}
+
+		const response = await backend.post(buildTxnUrl(), payload, {
+			// NOTE: avoid underscore header names (often blocked by proxies/CORS).
+			// Use the same convention used elsewhere in the app (e.g. watchtower/ramp): `wallet-hash`.
+			headers: {
+				'wallet-hash': walletHash,
+				Authorization: `Bearer ${token}`
+			}
+		})
 
 		return {
 			success: true,
@@ -148,7 +185,6 @@ export async function createOrder (data) {
 	} catch (error) {
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to create txn'
 		console.error('[createOrder] Error:', errorMessage)
-		console.log(error)
 
 		return {
 			success: false,
@@ -160,6 +196,7 @@ export async function createOrder (data) {
 
 
 export async function registerUser() {	
+	const walletHash = getWalletHash()
 	if (!walletHash) {
 		console.error('[registerUser] Wallet hash not available')
 		return false
@@ -191,6 +228,7 @@ export async function registerUser() {
 }
 
 export async function authUser() {
+	const walletHash = getWalletHash()
 	if (!walletHash) {
 		console.error('[authUser] Wallet hash not available')
 		return false
