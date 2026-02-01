@@ -230,7 +230,7 @@ export default {
           throw new Error(message)
         }
 
-        const paymentSats = Number(this.purchase.bch.toFixed(8) * 10 ** 8)
+        const paymentSats = Math.floor(Number(this.purchase.bch.toFixed(8) || 0) * 10 ** 8)
 
         const result = await sendCustomPayment({
           walletHash: this.wallet._BCH.walletHash,

@@ -536,7 +536,7 @@ export default {
         const purchase = {
           tkn: purchaseTkn,
           usd: Number(this.amountUsd || 0),
-          sats: Number(this.amountBch.toFixed(8) || 0) * 10 ** 8
+          sats: Math.floor(Number(this.amountBch.toFixed(8) || 0) * 10 ** 8)
         }
 
         if (purchase.sats <= 0 || Number.isNaN(purchase.sats)) {
