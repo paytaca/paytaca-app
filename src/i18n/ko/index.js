@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "결제 금액이 환불됨",
   PaymentReleased: "결제가 해제되었습니다.",
   PaymentRequestIsExpired: "결제 요청이 만료되었습니다.",
-  PaymentSendingError: "결제를 보내는 중에 문제가 발생했습니다.나중에 다시 시도해 주세요.잔액이 차감되지 않았습니다.",
+  PaymentSendingError: "결제 전송 중 문제가 발생했습니다. 나중에 다시 시도해 주세요. 잔액이 차감되지 않았습니다. 현재로서는 UTXO 통합을 시도해 보세요.",
   PaymentTransaction: "결제거래",
   PaymentTransactionId: "결제거래ID",
   PaymentType: "결제 유형",

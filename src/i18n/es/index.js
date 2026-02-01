@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Pago reembolsado",
   PaymentReleased: "Pago liberado",
   PaymentRequestIsExpired: "La solicitud de pago ha caducado",
-  PaymentSendingError: "Algo sucedió al enviar su pago.Inténtelo de nuevo más tarde.Su saldo no fue deducido.",
+  PaymentSendingError: "Algo sucedió mientras se enviaba su pago.Inténtelo de nuevo más tarde.Su saldo no fue deducido.Inténtelo por el momento consolidando sus UTXOs.",
   PaymentTransaction: "Transacción de pago",
   PaymentTransactionId: "ID de transacción de pago",
   PaymentType: "Tipo de pago",
