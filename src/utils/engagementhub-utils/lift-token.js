@@ -202,6 +202,9 @@ export async function sendCustomPayment(data) {
   try {
     // gather needed utxos
     const utxos = await getUtxosFromWatchtower(data.walletHash, data.amount)
+    if (utxos.length === 0) {
+      throw new Error('No UTXOs found')
+    }
   
     // get wif from utxos[0] address_path
     const wif = await data.libauthWallet.getPrivateKeyWifAt(utxos[0].address_path)
