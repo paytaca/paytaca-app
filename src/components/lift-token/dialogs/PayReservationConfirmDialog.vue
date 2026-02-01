@@ -233,7 +233,7 @@ export default {
         const paymentSats = Math.floor(Number(this.purchase.bch.toFixed(8) || 0) * 10 ** 8)
 
         const result = await sendCustomPayment({
-          walletHash: this.wallet._BCH.walletHash,
+          walletHash: wallet._BCH.walletHash,
           amount: paymentSats,
           swapContractAddress: this.liftSwapContractAddress,
           libauthWallet,
