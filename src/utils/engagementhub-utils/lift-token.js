@@ -226,7 +226,7 @@ export async function sendCustomPayment(data) {
   }
 }
 
-async function getUtxosFromWatchtower(walletHash, amount) {
+async function getUtxosFromWatchtower(walletHash) {
   // get utxos of wallethash from watchtower
   const utxos = await watchtower.BCH._api
     .get(`utxo/wallet/${walletHash}/?is_cashtoken=false`)
