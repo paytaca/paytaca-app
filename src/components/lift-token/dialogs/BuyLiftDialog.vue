@@ -561,7 +561,7 @@ export default {
           }
         })
         if (!result?.success || !result?.txid) {
-          throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment. Please try again later.'))
+          throw new Error(this.$t('PaymentSendingError'))
         }
 
         const tokenAddress = await getWalletTokenAddress()
@@ -593,7 +593,7 @@ export default {
       } catch (error) {
         console.error('BuyLiftDialog proceeds error:', error)
         const message = error?.message || this.$t('PurchasePaymentError', {}, 'Failed to complete the purchase. Please try again later.')
-        raiseNotifyError(message)
+        raiseNotifyError(message, 5000);
         this.$emit('purchase', { success: false, errorMessage: message })
       } finally {
         this.isProcessing = false

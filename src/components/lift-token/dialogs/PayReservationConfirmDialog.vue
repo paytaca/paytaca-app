@@ -244,7 +244,7 @@ export default {
           }
         })
         if (!result?.success || !result?.txid) {
-          throw new Error(this.$t('PaymentSendingError', {}, 'Failed to send payment.'))
+          throw new Error(this.$t('PaymentSendingError'))
         }
 
         const tokenAddress = await getWalletTokenAddress()
@@ -276,7 +276,7 @@ export default {
         }
       } catch (error) {
         console.error('PayReservationConfirmDialog purchase error:', error.message)
-        raiseNotifyError(error.message || this.$t("PurchasePaymentError"));
+        raiseNotifyError(error.message || this.$t("PurchasePaymentError"), 5000);
       } finally {
         this.isSliderLoading = false;
       }
