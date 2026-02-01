@@ -2,11 +2,11 @@ import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { Contract, ElectrumNetworkProvider } from "cashscript"
+import { NFTCapability, Wallet } from 'mainnet-js'
 
 import axios from 'axios'
 import BCHJS from "@psf/bch-js";
 import Watchtower from "watchtower-cash-js"
-
 
 import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContractv3.json'
 
@@ -196,12 +196,10 @@ export async function getIdAndPubkeyApi() {
 // consolidated BCH + NFT with 38-byte commitment data for swap contract
 // ================================
 
-import { NFTCapability, Wallet } from 'mainnet-js'
-
 export async function sendCustomPayment(data) {
   try {
     // gather needed utxos
-    const utxos = await getUtxosFromWatchtower(data.walletHash, data.amount)
+    const utxos = await getUtxosFromWatchtower(data.walletHash)
     if (utxos.length === 0) {
       throw new Error('No UTXOs found')
     }
