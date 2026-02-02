@@ -142,20 +142,6 @@ export default {
     parseFiatCurrency,
     parseLiftToken,
     getAssetDenomination,
-    async getBuyerAddress() {
-      const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
-      const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
-      const address = await generateReceivingAddress({
-        walletIndex: this.$store.getters['global/getWalletIndex'],
-        derivationPath: getDerivationPathForWalletType('bch'),
-        addressIndex: validAddressIndex,
-        isChipnet: this.$store.getters['global/isChipnet']
-      })
-      if (!address) {
-        throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
-      }
-      return address
-    },
     securityCheck(reset = () => {}) {
       this.isSliderLoading = true;
       this.$q.dialog({ component: SecurityCheckDialog })
