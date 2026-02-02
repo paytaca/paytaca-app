@@ -2,6 +2,7 @@
   <q-pull-to-refresh
     id="app-container"
     :class="getDarkModeClass(darkMode)"
+    style="padding-bottom:250px;"
     @refresh="refreshPage"
   >
     <HeaderNav
@@ -168,6 +169,17 @@
                   />
                 </div>
               </div>
+
+              <div class="row items-center justify-end q-px-xs q-mb-sm">
+                Balance:
+                <template v-if="isBuyingToken">
+                  {{ formatAmount(bchBalanceSats, 8) }} BCH
+                </template>
+                <template v-else>
+                  {{ formatAmount(selectedTokenBalance, selectedToken?.bcmr?.token?.decimals || 0) }}
+                  {{ isNaN(selectedToken?.bcmr?.token?.decimals) ? $t('Tokens') : tokenSymbol }}
+                </template>
+              </div>
   
               <!-- Amount Input -->
               <div class="q-mb-md">
@@ -303,7 +315,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { ExchangeLab } from '@cashlab/cauldron';
-import { binToHex } from '@bitauth/libauth';
+import { binToHex, decodeTransactionBCH } from '@bitauth/libauth';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex'
@@ -592,10 +604,18 @@ export default defineComponent({
       const output = isSupplyMode.value
         ? tradeResult.value.summary.demand
         : tradeResult.value.summary.supply;
-      
+
+      // trade fee is accounted in tradeResult's summary, and is also included in totalBchFees
+      // We have to subtract the trade fee since it's included twice
+      const unaccountedFees = totalBchFees.value - tradeResult.value.summary.trade_fee;
+
+      let totalOutput = output
+      if (isSupplyMode.value) totalOutput -= unaccountedFees
+      else totalOutput += unaccountedFees
+
       if (!output) return '0';
       const decimals = formattedOutputDecimals.value;
-      return (Number(output) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
+      return (Number(totalOutput) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
     });
 
     const tradeFee = computed(() => {
@@ -641,13 +661,19 @@ export default defineComponent({
       return (feeSats / 10 ** 8).toFixed(8);
     })
 
+    // unaccountedFees are actually the additional fees that is not included in TradeResult
+    const unaccountedFees = computed(() => {
+      if (!tradeResult.value || !selectedToken.value) return 0n;
+      const platformFeeSats = platformFee.value ? platformFee.value.amount : 0n;
+      const txFeeSats = BigInt(Math.floor(Number(estimateTransactionFee.value) * 10 ** 8));
+      return platformFeeSats + txFeeSats;
+    })
+
     // Calculate total BCH fees needed
     const totalBchFees = computed(() => {
       if (!tradeResult.value || !selectedToken.value) return 0n;
       const tradeFeeSats = BigInt(Math.floor(Number(tradeFee.value) * 10 ** 8));
-      const platformFeeSats = platformFee.value ? platformFee.value.amount : 0n;
-      const txFeeSats = BigInt(Math.floor(Number(estimateTransactionFee.value) * 10 ** 8));
-      return tradeFeeSats + platformFeeSats + txFeeSats;
+      return tradeFeeSats + unaccountedFees.value;
     })
 
     // Calculate required supply amount in units
@@ -663,32 +689,17 @@ export default defineComponent({
       }
 
       try {
-        const assets = $store.getters['assets/getAssets'];
-        
         if (isBuyingToken.value) {
           // Need BCH: supply amount + all fees
-          const requiredBchSats = requiredSupplyAmount.value + totalBchFees.value;
-          const bchAsset = assets?.find(asset => asset?.id === 'bch');
-          // Convert BCH balance to satoshis (balance is in BCH units, multiply by 10^8)
-          const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
-          return bchBalanceSats >= requiredBchSats;
+          const requiredBchSats = requiredSupplyAmount.value + unaccountedFees.value;
+          return bchBalanceSats.value >= requiredBchSats;
         } else {
-          // Need Token: supply amount
-          // Need BCH: only fees (not the supply amount since supply is token)
-          const tokenAssetId = `ct/${selectedToken.value.token_id}`;
-          const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
-          const tokenBalance = BigInt(tokenAsset?.balance || 0);
-          
           // Check token balance
-          if (tokenBalance < requiredSupplyAmount.value) {
+          if (selectedTokenBalance.value < requiredSupplyAmount.value) {
             return false;
           }
-          
-          // Check BCH balance for fees
-          const bchAsset = assets?.find(asset => asset?.id === 'bch');
-          // Convert BCH balance to satoshis (balance is in BCH units, multiply by 10^8)
-          const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
-          return bchBalanceSats >= totalBchFees.value;
+
+          return bchBalanceSats.value >= unaccountedFees.value;
         }
       } catch (error) {
         console.error('Error checking balance:', error);
@@ -735,6 +746,38 @@ export default defineComponent({
       }
     })
 
+    const bchBalanceSats = computed(() => {
+      const assets = $store.getters['assets/getAssets'];
+      const bchAsset = assets?.find(asset => asset?.id === 'bch');
+      const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
+      return bchBalanceSats;
+    })
+
+    const selectedTokenBalance = ref(0n);
+    async function updateBalance() {
+      const { bchWallet } = await loadWalletForTrade();
+      const bchBalanceFetch = bchWallet.getBalance().then(response => {
+        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance })
+      })
+
+      const tokenId = selectedToken.value?.token_id
+      let tokenBalanceFetch
+      if (tokenId) {
+        const assets = $store.getters['assets/getAssets'];
+        const tokenAssetId = `ct/${tokenId}`;
+        const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+
+        // Update local variable with balance from store first
+        const tokenBalance = BigInt(tokenAsset?.balance || 0);
+        selectedTokenBalance.value = tokenBalance;
+
+        tokenBalanceFetch = await bchWallet.getBalance(tokenId).then(response => {
+          $store.commit('assets/updateAssetBalance', { id: tokenAssetId, balance: response.balance })
+          selectedTokenBalance.value = response.balance;
+        })
+      }
+      return Promise.all([bchBalanceFetch, tokenBalanceFetch])
+    }
 
     const explorerLink = computed(() => {
       if (!completedTradeData.value.txid) return '';
@@ -743,12 +786,16 @@ export default defineComponent({
 
     // Methods
     function selectToken(token) {
+      const newToken = selectedToken.value?.token_id != token?.token_id;
       selectedToken.value = token;
       showTokenDialog.value = false;
       amountInput.value = 0;
       amountInputString.value = '';
       tradeResult.value = null;
       tradeResultError.value = '';
+      if (newToken) {
+        updateBalance();
+      }
     }
 
     function resetTrade() {
@@ -834,6 +881,19 @@ export default defineComponent({
 
         const txHex = binToHex(tradeTxBuildResult.txbin);
 
+        const decodedTx = decodeTransactionBCH(tradeTxBuildResult.txbin);
+        if (typeof decodedTx === 'string') throw decodedTx
+        const totalOutput = decodedTx.outputs
+          .slice(_tradeResult.entries.length)
+          .filter(out => !out.token)
+          .map(out => out.valueSatoshis)
+          .reduce((a, b) => a + b)
+        const totalInputSats = inputCoins
+          .filter(coin => !coin.output.token)
+          .map(coin => coin.output.amount).reduce((a, b) => a + b);
+        
+        // throw new Error('BLOCK');
+
         dialog.update({ message: $t('BroadcastingTransaction') })
   
         // const userInputs = tradeTxBuildResult.libauth_source_outputs.slice(_tradeResult.entries.length);
@@ -852,11 +912,17 @@ export default defineComponent({
         //   data: { txid: 'test' }
         // }
 
+        const otherFees = (_platformFee?.amount || 0n) + BigInt(txHex.length / 2);
+        let unitsSold = _tradeResult?.summary?.supply || 0n
+        let unitsBought = _tradeResult?.summary?.demand || 0n
+        if (_isBuyingToken) unitsSold += otherFees
+        else unitsBought -= otherFees
+
         completedTradeData.value = {
           txid: broadcastResult?.data?.txid,
           tradeType: _isBuyingToken ? 'token-buy' : 'token-sell',
-          unitsSold: _tradeResult?.summary?.supply || 0n,
-          unitsBought: _tradeResult?.summary?.demand || 0n,
+          unitsSold: unitsSold,
+          unitsBought: unitsBought,
           tokenData: {
             category: _tokenData?.bcmr?.token?.category || '',
             name: _tokenData?.bcmr?.name || '',
@@ -886,6 +952,7 @@ export default defineComponent({
 
         bchWallet.watchtower.BCH._api.post("transactions/attributes/", data).catch(console.error)
         dialog.hide()
+        updateBalance()
       } catch(error) {
         console.error('Error committing trade:', error);
         dialog.update({ title: $t('Error'), message: String(error) })
@@ -929,6 +996,7 @@ export default defineComponent({
             }
             // Setting selectedToken will trigger the watcher which handles setting the buy amount
             selectedToken.value = tokens[0];
+            updateBalance()
           } else {
             // Truncate category ID for display (first 8 + last 8 characters)
             const categoryId = props.selectTokenId || '';
@@ -1007,11 +1075,13 @@ export default defineComponent({
       hasSufficientBalance,
       showInsufficientBalance,
       insufficientBalanceMessage,
+      bchBalanceSats,
+      selectedTokenBalance,
       explorerLink,
 
       showSlider,
       securityCheck,
-
+    
       selectToken,
       formatAmount,
       copyTxid,
