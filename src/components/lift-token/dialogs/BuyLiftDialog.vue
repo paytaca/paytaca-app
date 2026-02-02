@@ -25,7 +25,28 @@
       <div class="q-pa-lg">
         <!-- Sale Round Selection -->
         <div class="q-mb-md">
-          <div class="text-subtitle2 q-mb-sm">{{ $t('SelectRound') }}</div>
+          <!-- Swap Button -->
+          <div class="swap-button-section row flex-center q-mb-md">
+            <q-btn 
+              @click="goToCauldronSwap"
+              class="swap-btn"
+              color="primary"
+              no-caps
+            >
+              <q-icon name="img:cauldron-logo.svg" size="18px" class="q-mr-sm" />
+              <span>{{ $t('BuyOnCauldron') }}</span>
+            </q-btn>
+          </div>
+          
+          <div class="row items-center q-my-md">
+            <q-separator :dark="darkMode" class="col" />
+            <span class="q-px-md text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+              {{ $t('or') }}
+            </span>
+            <q-separator :dark="darkMode" class="col" />
+          </div>
+          
+          <div class="text-subtitle2 text-center text-uppercase q-mb-sm">{{ $t('SelectRound') }}</div>
           <div class="row q-col-gutter-sm">
             <div 
               v-for="round in saleRounds" 
@@ -187,6 +208,7 @@ import {
 import { formatWithLocale } from 'src/utils/denomination-utils'
 import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
 import { raiseNotifyError } from 'src/utils/send-page-utils'
+import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 import { loadLibauthHdWallet, getMnemonic, Wallet } from 'src/wallet'
 import {
   generateReceivingAddress,
@@ -459,6 +481,16 @@ export default {
         this.amountTkn = 0
       }
       this.computeUsdBch()
+    },
+    goToCauldronSwap() {
+      this.$router.push({
+        name: 'app-cauldron',
+        query: {
+          selectTokenId: LIFT_TOKEN_CATEGORY
+        }
+      })
+      // Close the dialog after navigation
+      this.innerVal = false
     },
     async proceedToPurchase() {
       if (this.isProcessing) return
