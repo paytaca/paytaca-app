@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Zahlung zurückerstattet",
   PaymentReleased: "Zahlung freigegeben",
   PaymentRequestIsExpired: "Die Zahlungsanforderung ist abgelaufen",
-  PaymentSendingError: "Beim Verarbeiten Ihrer Zahlung ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut. Ihr Guthaben wurde nicht abgebucht. Versuchen Sie ggf. zunächst, Ihre UTXOs zu konsolidieren.",
+  PaymentSendingError: "Beim Verarbeiten Ihrer Zahlung ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut. Ihr Guthaben wurde nicht abgebucht.",
   PaymentTransaction: "Zahlungsvorgang",
   PaymentTransactionId: "Zahlungstransaktions-ID",
   PaymentType: "Zahlungsart",

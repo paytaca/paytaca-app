@@ -1445,7 +1445,7 @@ export default {
   PaymentRefunded: "Payment refunded",
   PaymentReleased: "Payment released",
   PaymentRequestIsExpired: "Payment request is expired",
-  PaymentSendingError: "Something happened while sending your payment. Please try again later. Your balance was not deducted. For the meantime, try consolidating your UTXOs.",
+  PaymentSendingError: "Something happened while sending your payment. Please try again later. Your balance was not deducted.",
   PaymentTransaction: "Payment transaction",
   PaymentTransactionId: "Payment Transaction ID",
   PaymentType: "Payment Type",

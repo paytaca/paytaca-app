@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "تم رد المبلغ المدفوع",
   PaymentReleased: "تم الافراج عن الدفع",
   PaymentRequestIsExpired: "انتهت صلاحية طلب الدفع",
-  PaymentSendingError: "حدث خطأ أثناء إرسال دفعتك. يرجى المحاولة مرة أخرى لاحقًا. لم يتم خصم رصيدك. إذا استمرت المشكلة، حاول دمج أرصدة UTXO الخاصة بك.",
+  PaymentSendingError: "حدث خطأ أثناء إرسال دفعتك. يرجى المحاولة مرة أخرى لاحقًا. لم يتم خصم رصيدك.",
   PaymentTransaction: "معاملة الدفع",
   PaymentTransactionId: "معرف معاملة الدفع",
   PaymentType: "نوع الدفع",

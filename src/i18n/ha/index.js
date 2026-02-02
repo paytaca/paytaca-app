@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "An dawo da biyan kuɗi",
   PaymentReleased: "An saki biyan kuɗi",
   PaymentRequestIsExpired: "Neman biyan kuɗi ya ƙare",
-  PaymentSendingError: "Wani abu ya faru yayin aikawa da biyan kuɗin ku. Da fatan za a sake gwadawa daga baya. Ba a cire kuɗi daga asusun ku ba. Don yanzu, gwada tattara UTXOs ɗin ku.",
+  PaymentSendingError: "Wani abu ya faru yayin aikawa da biyan kuɗin ku. Da fatan za a sake gwadawa daga baya. Ba a cire kuɗi daga asusun ku ba.",
   PaymentTransaction: "Ma'amalar biyan kuɗi",
   PaymentTransactionId: "ID na Kasuwancin Biyan kuɗi",
   PaymentType: "Nau'in Biyan Kuɗi",

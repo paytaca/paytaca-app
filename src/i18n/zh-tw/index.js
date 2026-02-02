@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "付款已退回",
   PaymentReleased: "付款已釋放",
   PaymentRequestIsExpired: "付款請求已過期",
-  PaymentSendingError: "發送付款時出現問題。請稍後再試。您的餘額未被扣除。建議您先合併UTXO後重試。",
+  PaymentSendingError: "發送付款時出現問題。請稍後再試。您的餘額未被扣除。",
   PaymentTransaction: "支付交易",
   PaymentTransactionId: "支付交易ID",
   PaymentType: "付款方式",

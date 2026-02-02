@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Betaling terugbetaal",
   PaymentReleased: "Betaling vrygestel",
   PaymentRequestIsExpired: "Betalingsversoek het verval",
-  PaymentSendingError: "Iets het verkeerd geloop toe jou betaling verwerk is. Probeer asseblief later weer. Jou saldo is nie afgetrek nie. Probeer voorlopig om jou UTXOs te konsolideer.",
+  PaymentSendingError: "Iets het verkeerd geloop toe jou betaling verwerk is. Probeer asseblief later weer. Jou saldo is nie afgetrek nie.",
   PaymentTransaction: "Betalingstransaksie",
   PaymentTransactionId: "Betalingstransaksie-ID",
   PaymentType: "Tipe betaling",

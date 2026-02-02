@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "Betaling terugbetaald",
   PaymentReleased: "Betaling vrijgegeven",
   PaymentRequestIsExpired: "Payment request is expired",
-  PaymentSendingError: "Er is een probleem opgetreden tijdens het verzenden van uw betaling. Probeer het later opnieuw. Uw saldo is niet afgeschreven. Probeer voorlopig UTXO’s te combineren.",
+  PaymentSendingError: "Er is een probleem opgetreden tijdens het verzenden van uw betaling. Probeer het later opnieuw. Uw saldo is niet afgeschreven.",
   PaymentTransaction: "Betalingstransactie",
   PaymentTransactionId: "Betalingstransactie-ID",
   PaymentType: "Betalingstype",

@@ -1296,7 +1296,7 @@ const phrases = {
       EmptyReservations2: 'Your reservations will appear here once approved.',
       SuccessfulPurchase: 'Purchase processed successfully.',
       PurchasePaymentError: 'Something happened while processing your purchase. Please try again later. Please message us to refund this purchase.',
-      PaymentSendingError: 'Something happened while sending your payment. Please try again later. Your balance was not deducted. For the meantime, try consolidating your UTXOs.',
+      PaymentSendingError: 'Something happened while sending your payment. Please try again later. Your balance was not deducted.',
       EmptyPurchases: 'You do not have any purchases yet.',
       LockupPeriodOver: 'Lockup period is over',
       VestingPeriodOver: 'Vesting period is over',

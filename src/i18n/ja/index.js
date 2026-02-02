@@ -1447,7 +1447,7 @@ export default {
   PaymentRefunded: "支払いが返金されました",
   PaymentReleased: "支払いが解除されました",
   PaymentRequestIsExpired: "支払いリクエストの有効期限が切れています",
-  PaymentSendingError: "お支払いの送信中に問題が発生しました。後でもう一度お試しください。残高は引き落とされていません。今のところ、UTXOの統合をお試しください。",
+  PaymentSendingError: "お支払いの送信中に問題が発生しました。後でもう一度お試しください。残高は引き落とされていません。",
   PaymentTransaction: "支払い取引",
   PaymentTransactionId: "支払いトランザクションID",
   PaymentType: "支払いタイプ",
