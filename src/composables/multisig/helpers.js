@@ -90,6 +90,7 @@ export const useMultisigHelpers = () => {
 
   const getSignerXPrv = async ({ xpub }) => {
     const mnemonic = await getSignerMnemonic({ xpub })
+    if (!mnemonic) return
     const hdKeys = deriveHdKeysFromMnemonic({ mnemonic })
     if (xpub !== hdKeys.hdPublicKey) return
     return hdKeys.hdPrivateKey
