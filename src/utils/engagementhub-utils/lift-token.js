@@ -1,8 +1,10 @@
 import { hexToBin } from "@bitauth/libauth"
 import { OracleData } from "@generalprotocols/price-oracle"
-import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { Contract, ElectrumNetworkProvider } from "cashscript"
 import { NFTCapability, Wallet } from 'mainnet-js'
+import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 
 import axios from 'axios'
 import BCHJS from "@psf/bch-js";
@@ -199,9 +201,17 @@ export async function getIdAndPubkeyApi() {
 export async function sendCustomPayment(data) {
   try {
     // gather needed utxos
-    const utxos = await getUtxosFromWatchtower(data.walletHash)
+    // let utxos = await getUtxosFromWatchtower(data.walletHash)
+    let utxos = []
     if (utxos.length === 0) {
-      throw new Error('No UTXOs found')
+      // throw new Error('No UTXOs found')
+      // consolidate UTXOs in the background
+      await consolidateUtxos(data.wallet, data.spendable)
+      // sleep for 2 seconds to resolve UTXOs after consolidation
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // then gather needed utxos again
+      utxos = await getUtxosFromWatchtower(data.walletHash)
     }
   
     // get wif from utxos[0] address_path
@@ -278,6 +288,29 @@ async function getUtxosFromWatchtower(walletHash) {
       return filteredUtxos
     })
   return utxos
+}
+
+async function consolidateUtxos(wallet, spendable) {
+  const changeAddress = await getChangeAddress('bch')
+  const result = await getWalletByNetwork(wallet, 'bch').sendBch(
+    undefined,
+    '',
+    changeAddress,
+    null,
+    undefined,
+    [
+      {
+        address: changeAddress,
+        amount: spendable - 0.00001,
+        tokenAmount: undefined
+      }
+    ],
+    undefined
+  )
+
+  if (!result?.success) {
+    throw new Error('Failed to consolidate UTXOs')
+  }
 }
 
 function generateNftCommitment(nftData) {

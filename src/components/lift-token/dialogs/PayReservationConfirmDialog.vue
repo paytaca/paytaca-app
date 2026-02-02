@@ -129,6 +129,10 @@ export default {
     },
     denomination () {
       return this.$store.getters['global/denomination']
+    },
+    walletBalance() {
+      const asset = this.$store.getters['assets/getAssets'][0]
+      return asset?.spendable || 0
     }
   },
 
@@ -236,6 +240,8 @@ export default {
           walletHash: wallet._BCH.walletHash,
           amount: paymentSats,
           swapContractAddress: this.liftSwapContractAddress,
+          wallet,
+          spendable: this.walletBalance,
           libauthWallet,
           nftData: {
             isEarlySupporter: this.rsvp.sale_group === 'seed',

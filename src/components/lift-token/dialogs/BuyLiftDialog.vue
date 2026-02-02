@@ -553,6 +553,8 @@ export default {
           walletHash: this.wallet._BCH.walletHash,
           amount: purchase.sats,
           swapContractAddress: this.contractAddress,
+          wallet,
+          spendable: this.walletBalance,
           libauthWallet,
           nftData: {
             isEarlySupporter: this.getSaleGroupCode(this.selectedRound) === 'seed',
