@@ -62,17 +62,17 @@
                         color="primary"
                         @click="viewCard(card)"
                      />
-                    <!-- Triple Dot Icon -->
+                    
                      <q-btn
                         flat
                         dense
                         round
-                        icon="more_vert"
+                        icon="settings"
                         color="primary"
                         @click="openCardMenu($event, card)"
                      >
-                        <q-tooltip>Card Options</q-tooltip>
-                        <!-- Card Options Menu -->
+                        <q-tooltip>Settings and Options</q-tooltip>
+        
                         <q-menu
                             anchor="top right"
                             self="top right"
@@ -112,13 +112,6 @@
                       <span class="text-h5 text-black"> {{ card.balance }} BCH</span>
                     </div>
 
-                    <div class="text-caption text-grey">
-                      <!-- Address:
-                      <span class="text-caption text-black ellipsis"> 
-                        {{ card.contractAddress ? formatContractAddress(card.contractAddress) : 'Fetching...' }} 
-                      </span> -->
-                    </div>
-
                  </q-card-section>
 
               </q-card>
@@ -152,7 +145,7 @@
                   bordered
                   flat
                   class="bg-grey-1 fixed-card-size cursor-pointer transition-hover"
-                  @click="openCreateCardDialog"
+                  @click="cardReplacementDialog=true"
                 >
                   <q-card-section class="text-center q-pa-lg">
                     <q-icon
@@ -337,11 +330,20 @@
 
          <q-separator/>
 
+         <!-- Card design -->
+          <q-card-section class="flex flex-center">
+            <q-img
+              src="~assets/paytaca-card.png"
+              style="width: 80%; max-width: 350px;"
+            />
+          </q-card-section>
+          
          <!-- QR CODE -->
           <q-card-section class="q-pt-md q-pb-md flex flex-center">
+              < QR CODE >
               <qr-code 
-                v-if="selectedCard"
-                :text="selectedCard.contractAddress"
+                v-if="selectedCard && selectedCard.contractAddress"
+                :text="String(selectedCard.contractAddress)"
                 :size="150"
               />
           </q-card-section>
@@ -358,6 +360,23 @@
               />
            </q-card-section>
 
+           <!-- Spend Limit -->
+            <q-card-section class="row justify-start q-gutter-xs q-py-sm">
+                <div class="text-subtitle2 text-grey-5">Spend Limit:</div>
+                <div class="text-subtitle2 text-white text-weight-bold">
+                  {{ selectedCard?.spendLimitAmount ? selectedCard.spendLimitAmount + ' BCH' : 'No Limit Set' }}
+                </div>
+            </q-card-section>
+
+           <!-- Card Status  -->
+            <q-card-section class="row justify-start q-gutter-xs q-py-sm">
+              <div class="text-subtitle2 text-grey-5">Card Status:</div>
+              <div class="text-subtitle2 text-white text-weight-bold">
+                {{  selectedCard.status }}
+              </div> 
+
+            </q-card-section>
+
            <!-- Cash-in button -->
             <q-card-section class="row justify-center q-mt-md">
                 <q-btn
@@ -369,7 +388,6 @@
             </q-card-section>
       </q-card>
    </q-dialog>
-
 
    <!-- CASH IN POP UP -->
    <q-dialog v-model="showCashInDialog" persistent>
@@ -511,6 +529,31 @@
           </q-card-actions>
         </q-card>
      </q-dialog>
+
+     <!-- Card Replacement Dialog -->
+     <q-dialog v-model="cardReplacementDialog" persistent>
+        <q-card style="min-width: 300px" class="br-15 q-pa-sm">
+          <q-card-section>
+            <div class="text-h6">Card Replacement</div>
+            <div class="text-subtitle2">Permanently remove and replace your card.</div>
+          </q-card-section>
+
+          <q-separator/>
+
+          <q-card-section>
+              <div>Choose the card you want to replace:</div>
+              <div>List of cards here</div>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Close" color="primary" v-close-popup />
+            <q-btn flat label="Proceed" color="primary" v-close-popup />
+          </q-card-actions>
+
+        </q-card>
+     </q-dialog>
+
+    
 </template>
 
 <script>
@@ -533,7 +576,7 @@ import { selectedCurrency } from 'src/store/market/getters';
       return {
         createCardDialog: false,
         subCards: [],
-        contractAddress: '', // dummy
+        contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
         // For inputs
         newCardName: '',
         // View card dialog
@@ -572,6 +615,8 @@ import { selectedCurrency } from 'src/store/market/getters';
         // Merchants
         merchantSearch: '',
         allMerchants: [],
+        // Card Replacement
+        cardReplacementDialog: false,
       }
     },
     
@@ -682,6 +727,10 @@ import { selectedCurrency } from 'src/store/market/getters';
       openCreateCardDialog(){
         this.newCardName = '';
         this.createCardDialog = true;
+      },
+
+      cardReplacement(){
+        this.cardReplacementDialog = true;
       },
 
       formatContractAddress(card) {
@@ -870,7 +919,7 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       editSpendLimit(card){
         this.selectedCard = card;
-        this.tempSpendLimitAmount = card.spendLimitAmount || ''
+        this.tempSpendLimitAmount = card.spendLimitAmount || 0
         this.showSpendLimitDialog = true;
       },
 
@@ -1068,13 +1117,11 @@ import { selectedCurrency } from 'src/store/market/getters';
     animation: slideInUp 0.3s ease-out;
   }
 
-
   :deep(.q-field--outlined .q-field__control:before) {
     border: 1px solid var(--q-primary) !important;
     opacity: 1 !important; 
   }
-
-  
+ 
   :deep(.q-field--outlined.q-field--focused .q-field__control:after) {
     border-color: var(--q-primary) !important;
     border-width: 2px; 
@@ -1105,8 +1152,8 @@ import { selectedCurrency } from 'src/store/market/getters';
   }
 
   .fixed-card-size {
-    width: 250px;   /* Fixed width */
-    height: 150px;  /* Fixed height */
+    width: 250px;   
+    height: 150px;  
     transition: transform 0.2s ease-in-out;
   }
  
