@@ -1,5 +1,56 @@
 <template>
 	<div class="text-black q-py-md">
+		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
+			<q-card class="q-pa-lg br-15 text-center">
+				<q-icon name="task_alt" size="64px" class="text-positive" />
+				<div class="text-weight-bold text-h6 q-mt-sm">Payment sent</div>
+
+				<div class="q-mt-md" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+					Your BCH payment has been sent. Please wait a while to receive the order — processing can take a few minutes.
+				</div>
+
+				<q-separator class="q-my-md" />
+
+				<div class="row q-mb-xs success-row">
+					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Promo</div>
+					<div class="col-8 text-weight-bold text-right success-value">{{ selectedPromo?.name || '—' }}</div>
+				</div>
+				<div class="row q-mb-xs success-row">
+					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Amount</div>
+					<div class="col-8 text-weight-bold text-right">{{ formattedAmountToPayPhp }} PHP</div>
+				</div>
+				<div class="row q-mb-xs success-row">
+					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Equivalent</div>
+					<div class="col-8 text-weight-bold text-right">≈ {{ formattedAmountToPayBch || '—' }} BCH</div>
+				</div>
+
+				<div v-if="purchaseTxid" class="q-mt-md">
+					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Transaction ID</div>
+					<div class="text-weight-bold q-mt-xs txid">{{ purchaseTxid }}</div>
+					<div class="q-mt-sm">
+						<q-btn
+							flat
+							dense
+							no-caps
+							class="button button-text-primary"
+							label="View on explorer"
+							@click="openExplorerTx()"
+						/>
+					</div>
+				</div>
+			</q-card>
+
+			<div class="q-mt-md">
+				<q-btn
+					class="full-width button"
+					rounded
+					label="New purchase"
+					@click="resetPurchase()"
+				/>
+			</div>
+		</div>
+
+		<div v-else>
 		<PromoSearch class="q-px-lg"/>	
 
 		<!-- Selecting Service -->
@@ -133,14 +184,33 @@
 			</q-card>
 
 			<div class="q-px-lg">
+				<div v-if="buying" class="row justify-center q-my-md">
+					<div class="column items-center">
+						<q-spinner-dots size="32px" color="primary" />
+						<div class="q-mt-sm sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+							Processing payment…
+						</div>
+					</div>
+				</div>
 				<DragSlide
+					v-else
 					:disableAbsoluteBottom="true"
 					:disable="!canSubmitBuy"
 					:text="$t('SwipeToConfirmLower')"
-					@swiped="onBuySwiped"
+					@swiped="slideToBuy"
 					class="q-my-md"
 				/>
 			</div>			
+		</div>
+
+		<Pin
+			v-model:pin-dialog-action="pinDialogAction"
+			@nextAction="pinDialogNextAction"
+		/>
+		<BiometricWarningAttempt
+			:warning-attempts="warningAttemptsStatus"
+			@closeBiometricWarningAttempts="verifyBiometric(pendingSwipeReset)"
+		/>
 		</div>
 	</div>
 </template>
@@ -154,6 +224,9 @@ import DragSlide from 'src/components/drag-slide.vue'
 import { cachedLoadWallet, Address } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import * as sendPageUtils from 'src/utils/send-page-utils'
+import Pin from 'src/components/pin/index.vue'
+import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
+import { NativeBiometric } from 'capacitor-native-biometric'
 
 // Note: service = purchaseType; service-group = serviceProviders
 
@@ -166,6 +239,8 @@ export default {
 
 			selectedPromo: null,
 			address: '',		
+			purchaseSuccess: false,
+			purchaseTxid: '',
 			phpBchRate: null,
 			phpBchPriceQuoteId: null,
 			phpBchRateLoading: false,
@@ -177,6 +252,9 @@ export default {
 			txnPrepareError: '',
 			txnRecipientAddress: '',
 			txnPrepareKey: '',
+			pinDialogAction: '',
+			warningAttemptsStatus: '',
+			pendingSwipeReset: () => {},
 
 
 			filters:{				
@@ -341,7 +419,9 @@ export default {
 		PromoSearch,
 		ServiceCard,
 		PromoInfoCard,
-		DragSlide
+		DragSlide,
+		Pin,
+		BiometricWarningAttempt
 	},
 	watch: {
 		'filters.service'(val) {
@@ -411,6 +491,64 @@ export default {
 		vm.loading = false
 	},
 	methods: {
+		slideToBuy (reset = () => {}) {
+			// Mirror send-page behavior: require auth before sending BCH.
+			const vm = this
+			vm.pendingSwipeReset = reset
+			vm.executeSecurityChecking(reset)
+		},
+		executeSecurityChecking (reset = () => {}) {
+			const vm = this
+			const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+			if (preferredSecurity === 'pin') {
+				// Reset first to ensure watcher is triggered.
+				vm.pinDialogAction = ''
+				vm.$nextTick(() => {
+					vm.pinDialogAction = 'VERIFY'
+				})
+			} else {
+				vm.verifyBiometric(reset)
+			}
+		},
+		verifyBiometric (reset = () => {}) {
+			const vm = this
+			NativeBiometric.verifyIdentity({
+				reason: vm.$t('NativeBiometricReason2'),
+				title: vm.$t('SecurityAuthentication'),
+				subtitle: vm.$t('NativeBiometricSubtitle'),
+				description: ''
+			}).then(
+				() => {
+					vm.warningAttemptsStatus = 'dismiss'
+					vm.onBuySwiped(reset)
+				},
+				(error) => {
+					vm.warningAttemptsStatus = 'dismiss'
+					const msg = String(error?.message || '')
+					if (
+						msg.includes('Cancel') ||
+						msg.includes('Authentication cancelled') ||
+						msg.includes('Fingerprint operation cancelled')
+					) {
+						reset?.()
+					} else if (msg.includes('Too many attempts. Try again later.')) {
+						vm.warningAttemptsStatus = 'show'
+					} else {
+						reset?.()
+					}
+				}
+			)
+		},
+		pinDialogNextAction (action) {
+			const vm = this
+			if (action === 'proceed') {
+				vm.pinDialogAction = ''
+				vm.onBuySwiped(vm.pendingSwipeReset)
+			} else {
+				vm.pinDialogAction = ''
+				vm.pendingSwipeReset?.()
+			}
+		},
 		async prepareTxn () {
 			const vm = this
 			const key = vm.txnPayloadKey
@@ -521,9 +659,10 @@ export default {
 					)
 
 				// `sendBch` returns an object; treat falsy/failed response as error.
-				if (!sendResult) throw new Error('Send BCH failed')
+				if (!sendResult?.success) throw new Error(sendResult?.error || 'Send BCH failed')
 
-				vm.$q?.notify?.({ type: 'positive', message: 'Payment sent' })
+				vm.purchaseTxid = sendResult?.txid || ''
+				vm.purchaseSuccess = true
 			} catch (error) {
 				console.error('[Eload] Buy failed:', error)
 				vm.$q?.notify?.({ type: 'negative', message: 'Unable to complete purchase' })
@@ -531,6 +670,39 @@ export default {
 				vm.buying = false
 				reset?.()
 			}
+		},
+		openExplorerTx () {
+			if (!this.purchaseTxid) return
+			const url = sendPageUtils.getExplorerLink(this.purchaseTxid)
+			// Prefer Quasar openURL if available, otherwise fallback to window.open
+			if (this.$q?.platform?.is?.capacitor || this.$q?.platform?.is?.cordova) {
+				window.open(url, '_blank')
+			} else {
+				window.open(url, '_blank', 'noopener')
+			}
+		},
+		resetPurchase () {
+			this.purchaseSuccess = false
+			this.purchaseTxid = ''
+			this.buying = false
+
+			// Reset prepared txn state
+			this.txnPreparing = false
+			this.txnPrepareError = ''
+			this.txnRecipientAddress = ''
+			this.txnPrepareKey = ''
+
+			// Reset selections
+			this.selectedPromo = null
+			this.address = ''
+			this.filters.service = null
+			this.filters.serviceGroup = null
+			this.filters.category = null
+			this.services = this.services || []
+			this.serviceGroups = []
+			this.categories = []
+			this.promos = []
+			this.step = 0
 		},
 		async ensurePhpBchRate () {
 			const REFRESH_MS = 60 * 1000
@@ -761,4 +933,18 @@ export default {
  .see-more {
  	cursor: pointer;
  }
+
+.success-row {
+	align-items: flex-start;
+}
+.success-value {
+	white-space: normal;
+	word-break: break-word;
+	overflow-wrap: anywhere;
+}
+.txid {
+	white-space: normal;
+	word-break: break-all;
+	overflow-wrap: anywhere;
+}
 </style>
