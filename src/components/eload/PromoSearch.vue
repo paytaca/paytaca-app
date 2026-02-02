@@ -1,6 +1,7 @@
 <template>
 	<div>
 		<q-input
+			ref="searchInput"
 			dense
 			outlined
 			clearable
@@ -20,13 +21,39 @@
 			<q-menu
 				v-if="searchVal"
 				v-model="showPromos"
-				fit no-focus				
-			>
-				<q-list style="min-width: 200px"> 
+				fit no-focus
+				max-height="60vh;"				
+				class="q-pa-md"
+				:style="{ width: inputWidth + 'px' }"
+			>	
+				<div class="q-pt-sm">
+					<div v-for="(promo, index) in searchResult" :key="index" @click="selectPromo(promo)" :class="darkMode ? 'text-white' : 'text-black'">
+						<div class="md-font-style text-weight-bold text-overflow">{{ promo.name }}</div>
+
+		    			<div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+		    				{{ promo.amount }} PHP
+		    			</div>
+
+		    			<div class="q-gutter-sm q-pt-sm">
+		    				<q-badge class="q-px-sm" rounded outline color="primary" :label="promo.service" />
+		    				<q-badge class="q-px-sm" rounded outline color="primary" :label="promo.service_group" />		    				
+		    			</div>
+		    				
+		    			<q-separator class="q-my-sm" :dark="darkMode"/>
+					</div>
+				</div>
+				<!-- <q-list style="min-width: 200px" class="q-pt-sm"> 
 		    		<q-item v-for="(promo, index) in searchResult" :key="index" clickable @click=""> 
-		    			<q-item-section class="text-black">{{ promo.name }}</q-item-section> 
+		    			<q-item-section  :class="darkMode ? 'text-white' : 'text-black'" class="overflow-text">
+		    				<div class="md-font-style text-weight-bold">{{ promo.name }}</div>
+
+		    				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+		    					{{ promo.amount }} PHP
+		    				</div>
+		    				<q-separator class="q-mt-sm" :dark="darkMode"/>
+		    			</q-item-section> 		    					    			
 		    		</q-item> 
-		    	</q-list> 
+		    	</q-list>  -->
 			</q-menu>
 		</q-input>
 	</div>
@@ -45,9 +72,20 @@ export default {
 			showPromos: false
 		}
 	},
+	computed: {
+		inputWidth() {
+			const el = this.$refs.searchInput.$el
+			if (el) {
+				return el.offsetWidth
+			}
+
+			return 200
+		}
+	},
 	props: {
 		promoName: String
 	},
+	emits: ['selectPromo'],
 	methods: {
 		async search () {
 			this.loading = true
@@ -68,8 +106,31 @@ export default {
 			} else {
 				this.loading = false
 			}
+		},
+		selectPromo (promo) {
+			this.$emit('selectPromo', promo)
+			this.searchVal = ''
 		}
-	}
+	}	
 }
 	
 </script>
+<style lang="scss" scoped>
+  /* ==================== FONT SIZES ==================== */
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+
+/* ==================== CUSTOM STYLE ==================== */
+ .overflow-text {
+ 	white-space: normal; /* allow wrapping */ 
+ 	word-wrap: break-word; /* legacy support */ 
+ 	overflow-wrap: break-word; /* modern browsers */
+ }
+</style>

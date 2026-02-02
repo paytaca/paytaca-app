@@ -51,7 +51,9 @@
 		</div>
 
 		<div v-else>
-		<PromoSearch class="q-px-lg"/>	
+		<PromoSearch class="q-px-lg" @select-promo="(promo) => {
+				selectPromo(promo, true)
+		}"/>	
 
 		<!-- Selecting Service -->
 		<div  class="q-mt-sm" v-if="step === 0">
@@ -813,11 +815,22 @@ export default {
 				this.filters.category = null
 			}						
 		},
-		selectPromo(promo) {		
+		selectPromo(promo, search=false) {		
 			this.selectedPromo = promo
 			this.ensurePhpBchRate()
 
-			this.step++	
+			if (search) {
+				this.filters.service = { name: promo.service }
+				this.filters.serviceGroup = { name: promo.service_group }
+
+				if (promo.category.toLowerCase() !== 'none' || promo.category) {
+					this.filters.category = { name: promo.category }
+				}
+ 
+				this.step = 4
+			} else {
+				this.step++	
+			}			
 		},
 		async fetchServiceGroup() {			
 			let data = {
