@@ -513,7 +513,7 @@ export default {
           throw new Error(message)
         }
 
-        if (!this.messageTimestamp) {
+        if (!this.messageTimestamp || this.messageTimestamp === 0) {
           try {
             const oracleData = await getOracleData()
             this.currentUsdPrice = oracleData.price
