@@ -201,8 +201,7 @@ export async function getIdAndPubkeyApi() {
 export async function sendCustomPayment(data) {
   try {
     // gather needed utxos
-    // let utxos = await getUtxosFromWatchtower(data.walletHash)
-    let utxos = []
+    let utxos = await getUtxosFromWatchtower(data.walletHash)
     if (utxos.length === 0) {
       // throw new Error('No UTXOs found')
       // consolidate UTXOs in the background
