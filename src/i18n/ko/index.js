@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "현지 통화로 BCH 구매",
   BuyLIFTTokens: "LIFT 토큰 구매",
   BuyNow: "지금 구매",
+  BuyOnCauldron: "가마솥에서 구매",
   By: "에 의해",
   ByA: "에 의해",
   ByCity: "도시별",

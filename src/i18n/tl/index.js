@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Bumili ng BCH gamit ang Lokal na Pera",
   BuyLIFTTokens: "Bumili ng LIFT Token",
   BuyNow: "Bumili na",
+  BuyOnCauldron: "Bumili sa Cauldron",
   By: "sa pamamagitan ng",
   ByA: "ni a",
   ByCity: "Sa pamamagitan ng Lungsod",

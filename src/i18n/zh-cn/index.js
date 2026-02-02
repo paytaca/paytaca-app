@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "用当地货币购买BCH",
   BuyLIFTTokens: "购买 LIFT 代币",
   BuyNow: "立即购买",
+  BuyOnCauldron: "在大锅上购买",
   By: "通过",
   ByA: "由一个",
   ByCity: "按城市",

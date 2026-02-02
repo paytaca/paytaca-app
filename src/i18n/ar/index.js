@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "شراء غرفة تبادل معلومات السلامة الأحيائية (BCH) بالعملة المحلية",
   BuyLIFTTokens: "شراء رموز LIFT",
   BuyNow: "اشتري الآن",
+  BuyOnCauldron: "شراء على المرجل",
   By: "بواسطة",
   ByA: "بواسطة أ",
   ByCity: "حسب المدينة",

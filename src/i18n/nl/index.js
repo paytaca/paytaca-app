@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Koop BCH met lokale valuta",
   BuyLIFTTokens: "Koop LIFT-tokens",
   BuyNow: "Koop nu",
+  BuyOnCauldron: "Koop op Cauldron",
   By: "door",
   ByA: "by a",
   ByCity: "Per stad",

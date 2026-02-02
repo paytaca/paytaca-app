@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Sayi BCH tare da Kuɗin Gida",
   BuyLIFTTokens: "Saya LIFT Token",
   BuyNow: "Sayi Yanzu",
+  BuyOnCauldron: "Sayi akan Cauldron",
   By: "ta",
   ByA: "da a",
   ByCity: "By City",

@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Compre BCH com moeda local",
   BuyLIFTTokens: "Compre tokens LIFT",
   BuyNow: "Compre agora",
+  BuyOnCauldron: "Compre no Caldeirão",
   By: "por",
   ByA: "por um",
   ByCity: "Por cidade",

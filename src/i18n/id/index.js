@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Beli BCH dengan Mata Uang Lokal",
   BuyLIFTTokens: "Beli Token LIFT",
   BuyNow: "Beli Sekarang",
+  BuyOnCauldron: "Beli di Kuali",
   By: "oleh",
   ByA: "oleh a",
   ByCity: "Berdasarkan Kota",
