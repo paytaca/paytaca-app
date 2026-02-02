@@ -97,7 +97,7 @@ export class TapToPay {
         console.log('utxos:', utxos)
         console.log('authCategory:', this.contractCreationParams.authCategory)
 
-        const terminalHash = encodeMerchantHash({
+        const {hex: terminalHash} = encodeMerchantHash({
             terminalId: recipient.terminalId,
             terminalPk: terminalPk
         })
@@ -219,7 +219,7 @@ export class TapToPay {
         const outputs = []
         for (let i = 0; i < mutations.length; i++) {
             const mutation = mutations[i]
-            const merchantHash = encodeMerchantHash({ 
+            const { hex: merchantHash } = encodeMerchantHash({ 
                 merchantId: mutation.merchant?.id, 
                 merchantPk: mutation.merchant?.pubkey
             })

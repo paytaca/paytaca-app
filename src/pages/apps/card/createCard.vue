@@ -859,6 +859,18 @@ import { selectedCurrency } from 'src/store/market/getters';
         try {
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
+          const estimatedFees = Card.estimateTotalMintSatsRequirement()
+          console.log('Estimated total sats needed for minting:', estimatedFees)
+          console.log('Wallet balance (sats):', this.walletBalance * 1e8)
+          const balanceSats = BigInt(Math.floor(this.walletBalance * 1e8))
+          if (balanceSats < estimatedFees) {
+            this.$q.notify({
+              message: `Insufficient balance. You need at least ${Number(estimatedFees) / 1e8} BCH to create a card.`,
+              color: 'negative'
+            })
+            return
+          }
+
           // initializing the card helper
           // const card = await Card.createInitialized()
           // // execute workflow from card.js

@@ -237,7 +237,7 @@ export class Card {
     this._assertAuthNftService();
     
     // Check existing vout=0 UTXOs and calculate needed amount
-    const requiredSats = this.estimateGenesisSatsRequirement();
+    const requiredSats = this.estimateMintSatsRequirement();
     const existingSats = await this._checkForVoutZeroUtxos();
     
     if (existingSats < requiredSats) {
@@ -319,7 +319,7 @@ export class Card {
 
     // Guard against minting a duplicate auth token for the same merchant.
     const { merchant_auth_nfts: merchantAuthNfts = [] } = await this.getAuthNfts();
-    const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
+    const { hex: merchantHash } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey });
     const hasExistingToken = merchantAuthNfts.some(
       token => token?.commitment?.decoded?.hash === merchantHash
     );
@@ -550,7 +550,7 @@ export class Card {
     const receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
     
     // Use provided amount or estimate full requirement
-    const satsToSend = amount || this.estimateGenesisSatsRequirement();
+    const satsToSend = amount || this.estimateMintSatsRequirement();
     const bchAmount = Number(satsToSend) / 1e8;
     
     console.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
@@ -566,11 +566,11 @@ export class Card {
   }
 
   /**
-   * Estimates satoshis needed for token genesis operation
+   * Estimates satoshis needed for token mint operation
    * Based on actual mainnet-js transaction requirements
    * @returns {bigint} Estimated satoshis needed
    */
-  estimateGenesisSatsRequirement() {
+  estimateMintSatsRequirement() {
     const tokenOutputValue = minTokenValue; // 1000 sats from constants
     const estimatedTxSize = 500; // More realistic: includes change outputs, token data
     const feeRate = 1.2; // sats/byte
@@ -580,7 +580,7 @@ export class Card {
     
     const total = tokenOutputValue + estimatedFee + dustLimit + buffer;
     
-    console.log('Estimated genesis sats requirement:', {
+    console.log('Estimated mint sats requirement:', {
       tokenOutputValue,
       estimatedFee,
       dustLimit,
@@ -589,6 +589,15 @@ export class Card {
     });
 
     return total;
+  }
+
+  /**
+   * Estimates total satoshis needed for both genesis and global auth token minting
+   * @returns {bigint} Estimated total satoshis needed
+   */
+  static estimateTotalMintSatsRequirement() {
+    const mintSats = new Card().estimateMintSatsRequirement();
+    return mintSats * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
   }
 
   /**

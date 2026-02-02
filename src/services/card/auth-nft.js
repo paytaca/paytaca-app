@@ -211,9 +211,9 @@ function encodeMerchantHash({ merchantId, merchantPk }) {
     const concat = Buffer.concat([merchantIdBuf, merchantPkBuf])
 
     const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
-    const truncatedHash = fullHash.subarray(0, 27)
-    const truncatedHashHex = truncatedHash.toString('hex')
-    return truncatedHashHex
+    const truncatedHashBuf = fullHash.subarray(0, 31) // 31 bytes
+    const truncatedHashHex = truncatedHashBuf.toString('hex')
+    return { buf: truncatedHashBuf, hex: truncatedHashHex };
 }
 
 function encodeCommitment({ authorized, merchant, spendLimitSats }) {
@@ -228,17 +228,13 @@ function encodeCommitment({ authorized, merchant, spendLimitSats }) {
 
     let commitmentData = [authorizedBuf, spendLimitBuf]
 
-    // terminal hash
+    // merchant hash
     if (merchant) {
-        const terminalIdBuf = Buffer.from((merchant.id).toString(), 'utf-8')
-        const terminalPkBuf = Buffer.from(merchant.pubkey, 'hex')
-        const concat = Buffer.concat([terminalIdBuf, terminalPkBuf])
-        const fullHash = createHash('sha256').update(concat).digest(); // Buffer(32)
-        const truncatedHash = fullHash.subarray(0, 27)
-        commitmentData.push(truncatedHash);
+        const { buf: truncatedHashBuf } = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey }); // 31 bytes
+        commitmentData.push(truncatedHashBuf);
     }
 
-    // structure: authorized + spendLimit + hash
+    // commitment (40 bytes): authorized (1 byte) + spendLimit (8 bytes) + merchantHash (31 bytes)
     const commitment = Buffer.concat(commitmentData);
 
     return commitment.toString('hex'); 
