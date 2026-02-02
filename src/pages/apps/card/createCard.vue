@@ -23,14 +23,22 @@
         </div>
 
         <!-- Cards Grid -->
-        <div class="row q-col-gutter-md">
+        <div class="row q-col-gutter-md justify-start items-stretch">
           <!-- Existing Subcards -->
-            <div v-for="card in subCards" :key="card.id" class="col-8 col-sm-4 col-md-3">
-              <q-card bordered flat class="subcard-item bg-white column justify-between">
+            <div v-for="card in subCards" :key="card.id" class="col-auto">
+              <q-card bordered flat class="subcard-item fixed-card-size bg-white column justify-between">
                 <!-- Card header: Name + Icons -->
-                <q-card-section class="row items-center justify-between q-pa-sm bg-blue-2">
-                  <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 150px;">{{ card.name }}</div>
+                <q-card-section class="row items-center justify-between q-pa-sm">
+                  <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 100px;">{{ card.name }}</div>
                   
+                  <q-icon
+                    name="circle"
+                    size="10px"
+                    :class="['q-ml-xs', card.status === 'Locked' ? 'text-negative' : 'status-blink']"
+                  >
+                    <q-tooltip>{{ card.status || 'Active' }}</q-tooltip>
+                  </q-icon>
+
                   <div class="row items-center q-gutter-sm">
                     <!-- Edit Icon -->
                     <q-btn
@@ -105,31 +113,23 @@
                     </div>
 
                     <div class="text-caption text-grey">
-                      Address:
+                      <!-- Address:
                       <span class="text-caption text-black ellipsis"> 
                         {{ card.contractAddress ? formatContractAddress(card.contractAddress) : 'Fetching...' }} 
-                      </span>
+                      </span> -->
                     </div>
 
-                    <div class>
-                      <div class="text-caption text-weight-bold">Status:</div>
-                      <q-badge
-                        :color="card.status === 'Locked' ? 'negative' : 'positive'"
-                        class="q-ml-xs"
-                        :label="card.status || 'Active'"
-                      />
-                    </div>
                  </q-card-section>
 
               </q-card>
             </div>
 
             <!-- Create Card Button opens dialog -->
-             <div class="col-8 col-sm-4 col-md-3">
+             <div class="col-auto">
                 <q-card
                   bordered
                   flat
-                  class="bg-grey-1 flex flex-center cursor-pointer transition-hover"
+                  class="bg-grey-1 fixed-card-size cursor-pointer transition-hover"
                   @click="openCreateCardDialog"
                 >
                   <q-card-section class="text-center q-pa-lg">
@@ -141,6 +141,28 @@
                     />
                     <div class="text-subtitle-1 text-weight-bold text-primary text-center">
                       Create Card
+                    </div>
+                  </q-card-section>
+                </q-card>
+             </div>
+
+             <!-- Card Replacement -->
+             <div class="col-auto">
+                <q-card
+                  bordered
+                  flat
+                  class="bg-grey-1 fixed-card-size cursor-pointer transition-hover"
+                  @click="openCreateCardDialog"
+                >
+                  <q-card-section class="text-center q-pa-lg">
+                    <q-icon
+                      name="swap_horiz"
+                      size="56px"
+                      color="primary"
+                      class="q-mb-sm"
+                    />
+                    <div class="text-subtitle-1 text-weight-bold text-primary text-center">
+                      Card Replacement
                     </div>
                   </q-card-section>
                 </q-card>
@@ -257,12 +279,12 @@
             label="Name" 
             outlined 
             dense 
-            hint="Max of 15 characters allowed"
+            hint="Max of 10 characters allowed"
             counter
-            maxlength="15"
+            maxlength="10"
             :rules="[
               val => (val && val.length > 0) || 'Name is required',
-              val => val.length <= 15 || 'Maximum 15 characters'
+              val => val.length <= 10 || 'Maximum 10 characters'
             ]"
           ></q-input>
        </q-card-section>
@@ -281,7 +303,7 @@
               unelevated
               label="Create"
               color="primary"
-              :disable="!newCardName || newCardName.length > 15"
+              :disable="!newCardName || newCardName.length > 10"
               @click="handleCreateCard"
             />
          </q-card-actions>
@@ -732,8 +754,8 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.subCards.push(newCard);
           this.createCardDialog = false; // close dialog
           this.$q.notify({
-            // message: `Card "${newCard.name}" created successfully with ${newCard.balance} BCH!`,
-            // color: 'positive',
+            message: `Card "${newCard.name}" created successfully!`,
+            color: 'positive',
           });
         } catch (error) {
           console.error('Final Workflow Error: ', error)
@@ -749,19 +771,19 @@ import { selectedCurrency } from 'src/store/market/getters';
       editCardName(card){
         this.$q.dialog({
           title: 'Edit Alias',
-          message: 'Maximum of 15 characters allowed',
+          message: 'Maximum of 10 characters allowed',
           prompt: {
             model: card.name,
             type: 'text',
             attrs: {
-              maxLength: 15, 
+              maxLength: 10, 
             },
-            isValid: val => val.length <= 15 && val.length > 0
+            isValid: val => val.length <= 10 && val.length > 0
           },
           cancel: true,
           persistent: true
         }).onOk(data => {
-          if (data.length <= 15){
+          if (data.length <= 10){
             card.name = data;
           }
         })
@@ -1030,7 +1052,7 @@ import { selectedCurrency } from 'src/store/market/getters';
     border-radius: 12px;
   }
   .card-floating {
-    /* Subtle animation to make the card feel premium */
+  
     animation: float 6s ease-in-out infinite;
     border-radius: 20px;
   }
@@ -1046,20 +1068,46 @@ import { selectedCurrency } from 'src/store/market/getters';
     animation: slideInUp 0.3s ease-out;
   }
 
-  /* 1. Sets the default border color to primary when NOT focused */
+
   :deep(.q-field--outlined .q-field__control:before) {
     border: 1px solid var(--q-primary) !important;
-    opacity: 1 !important; /* Quasar sometimes lowers opacity on inactive borders */
+    opacity: 1 !important; 
   }
 
-  /* 2. Keeps the border primary and makes it thicker when focused (active) */
+  
   :deep(.q-field--outlined.q-field--focused .q-field__control:after) {
     border-color: var(--q-primary) !important;
-    border-width: 2px; /* Standard active thickness */
+    border-width: 2px; 
   }
 
-  /* 3. Optional: Ensures the label stays primary even when not active */
   :deep(.q-field--outlined .q-field__label) {
     color: var(--q-primary);
   }
+
+  .status-blink {
+    color: #21ba45; 
+    animation: pulse-green 2s infinite;
+  }
+
+  @keyframes pulse-green {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(0.8);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .fixed-card-size {
+    width: 250px;   /* Fixed width */
+    height: 150px;  /* Fixed height */
+    transition: transform 0.2s ease-in-out;
+  }
+ 
 </style>
