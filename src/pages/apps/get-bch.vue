@@ -40,7 +40,7 @@
                 {{ $t('BuyBCHWithLocalCurrency', {}, 'Buy BCH With Local Currency') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('BuyBCHDescription', {}, 'Purchase Bitcoin Cash through P2P Exchange with your local currency') }}
+                {{ $t('BuyBCHDescription', {}, 'Purchase Bitcoin Cash through P2P Ramp with your local currency') }}
               </div>
             </div>
             <div class="col-auto">
@@ -51,6 +51,7 @@
 
         <!-- Swap from other Cryptos -->
         <q-card 
+          v-if="showCryptoSwapOption"
           class="get-bch-option-card br-15 cursor-pointer"
           :class="getDarkModeClass(darkMode)"
           @click="goToCryptoSwap"
@@ -161,6 +162,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
+import { isNativeIOS } from 'src/utils/native-platform'
 
 export default {
   name: 'GetBCH',
@@ -170,7 +172,11 @@ export default {
   computed: {
     darkMode() {
       return this.$store.getters['darkmode/getStatus']
-    }
+    },
+    showCryptoSwapOption () {
+      // Hide Crypto Swap only in the native iOS app; keep on Android + web
+      return !isNativeIOS()
+    },
   },
   methods: {
     getDarkModeClass,

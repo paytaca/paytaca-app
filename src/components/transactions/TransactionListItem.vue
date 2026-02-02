@@ -286,9 +286,10 @@ const isNftTransaction = computed(() => {
   if (props.transaction?.asset?.is_nft === true || props.transaction?.asset?.is_nft === 'true') return true
   // Check if asset ID starts with ct/ and has decimals 0 (NFT indicator)
   if (asset.value.id && asset.value.id.startsWith('ct/') && asset.value.decimals === 0) {
-    // Additional check: if amount is 1 or 0 and it's not BCH, likely an NFT
-    const amount = Number(props.transaction?.amount) || 0
-    if (amount <= 1 && asset.value.id !== 'bch') return true
+    // Additional heuristic: NFTs usually transfer exactly 1 unit.
+    // Use absolute amount because outgoing transfers can be negative.
+    const amount = Math.abs(Number(props.transaction?.amount) || 0)
+    if (amount === 1 && asset.value.id !== 'bch') return true
   }
   return false
 })

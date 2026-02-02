@@ -492,7 +492,8 @@ export function setCountry (state, data) {
   state.country.name = data.country.name
   state.country.code = data.country.code
   // Removed PayHero theme forcing for HK - use selected theme
-  state.denomination = !['BCH', 'mBCH', 'Satoshis'].includes(data.denomination) ? 'BCH' : data.denomination
+  const incomingDenom = data.denomination === 'Satoshis' ? 'sats' : data.denomination
+  state.denomination = !['BCH', 'mBCH', 'sats'].includes(incomingDenom) ? 'BCH' : incomingDenom
   // Save to vault
   if (state.vault && state.vault[state.walletIndex]) {
     if (!state.vault[state.walletIndex].settings) {
@@ -602,13 +603,13 @@ export function updateConnectivityStatus (state, online) {
 }
 
 export function setDenomination (state, denomination) {
-  state.denomination = denomination
+  state.denomination = denomination === 'Satoshis' ? 'sats' : denomination
   // Save to vault
   if (state.vault && state.vault[state.walletIndex]) {
     if (!state.vault[state.walletIndex].settings) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
-    state.vault[state.walletIndex].settings.denomination = denomination
+    state.vault[state.walletIndex].settings.denomination = state.denomination
   }
 }
 

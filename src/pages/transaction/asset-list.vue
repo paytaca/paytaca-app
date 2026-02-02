@@ -43,7 +43,7 @@
 	    	</q-list>
 	    </div>
 	    
-		<div :class="darkmode ? 'text-white' : 'text-black'" v-if="isloaded">
+		<div :class="darkmode ? 'text-white' : 'text-black'" v-show="isloaded">
 
 			<div class="row"> 
 				<div class="col">
@@ -267,11 +267,21 @@ export default {
 	    	this.isloaded = false
 	    	this.networkError = false
 
-	    	// register / get auth 
-		    await assetSettings.authToken()
+	    	// register / get auth
+		    // IMPORTANT: favorites endpoints require the correct wallet-hash header AND matching auth token.
+		    // When viewing SLP tokens, authenticate using the SLP wallet hash.
+		    const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+		    if (this.isCashToken) {
+		    	await assetSettings.authToken()
+		    } else if (slpWalletHash) {
+		    	await assetSettings.authTokenForWallet({ walletHash: slpWalletHash })
+		    } else {
+		    	// Fallback to BCH auth (may be insufficient for saving SLP favorites)
+		    	await assetSettings.authToken()
+		    }
 
 		    // Always fetch tokens directly from API - completely ignore Vuex store
-		    // Only CashTokens on BCH network are supported by the fungible API
+		    // Fetch either CashTokens or SLP fungible tokens depending on selector.
 		    if (this.isCashToken) {
 		    	try {
 		    		const directTokens = await this.fetchTokensDirectlyFromAPI()
@@ -284,9 +294,14 @@ export default {
 		    		this.assetList = []
 		    	}
 		    } else {
-		    	// For SLP, the fungible API doesn't support it yet
-		    	// Show empty list instead of using store data
-		    	this.assetList = []
+		    	try {
+		    		const slpTokens = await this.fetchSlpTokensDirectlyFromAPI()
+		    		this.assetList = slpTokens
+		    	} catch (error) {
+		    		console.error('Error fetching SLP tokens from API:', error)
+		    		this.networkError = true
+		    		this.assetList = []
+		    	}
 		    }
 
 		    this.isloaded = true
@@ -322,7 +337,10 @@ export default {
 	    		const allFavoritesData = [...favoritesWithOrder, ...nonFavoritesData]
 	    		
 	    		try {
-	    			await assetSettings.saveFavorites(allFavoritesData)
+	    			const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+	    			await assetSettings.saveFavorites(allFavoritesData, {
+	    				walletHash: this.isCashToken ? undefined : slpWalletHash
+	    			})
 	    		} catch (error) {
 	    			console.error('Error saving favorite order:', error)
 	    		}
@@ -359,13 +377,15 @@ export default {
 	    	if (!wasFavorite) {
 	    			// IMPORTANT:
 	    			// In `/asset/list`, the visible token list is sourced from Watchtower's
-	    			// `/cashtokens/fungible/?has_balance=true&token_type=1...` (see `fetchTokensDirectlyFromAPI`).
+	    			// fungible token list endpoints (see `fetchTokensDirectlyFromAPI` and `fetchSlpTokensDirectlyFromAPI`).
 	    			// Count favorites against the same dataset so we don't block early due to
-	    			// "hidden" favorites (e.g. zero-balance tokens) in the app-setting favorites list.
+	    			// "hidden" favorites in the app-setting favorites list.
 	    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
 	    			let tokenFavoritesIds = new Set()
 	    			try {
-	    				const tokens = await this.fetchTokensDirectlyFromAPI()
+	    				const tokens = this.isCashToken
+	    					? await this.fetchTokensDirectlyFromAPI()
+	    					: await this.fetchSlpTokensDirectlyFromAPI()
 	    				tokenFavoritesIds = new Set(
 	    					(Array.isArray(tokens) ? tokens : [])
 	    						.filter(t => t && t.id && (t.favorite === 1 || t.favorite === true))
@@ -502,7 +522,11 @@ export default {
 	    	await new Promise(resolve => setTimeout(resolve, 100))
 
 	    	// Fetch current favorites from API to get complete state including favorite_order
-	    	currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
+	    	const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+	    	currentFavorites = await assetSettings.fetchFavorites({
+	    		forceRefresh: true,
+	    		walletHash: this.isCashToken ? undefined : slpWalletHash
+	    	})
 	    	if (!Array.isArray(currentFavorites)) {
 	    		currentFavorites = []
 	    	}
@@ -594,7 +618,9 @@ export default {
 		    	}
 		    	
 		    	// Save all assets with favorite_order to preserve ordering
-		    	await assetSettings.saveFavorites(favoritesData)
+		    	await assetSettings.saveFavorites(favoritesData, {
+		    		walletHash: this.isCashToken ? undefined : slpWalletHash
+		    	})
     	} finally {
     		this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: false }
     	}
@@ -696,6 +722,81 @@ export default {
 	    		return allTokens
 	    	} catch (error) {
 	    		console.error('Error fetching tokens from API:', error)
+	    		return []
+	    	}
+	    },
+	    async fetchSlpTokensDirectlyFromAPI () {
+	    	if (this.isCashToken) return []
+
+	    	// Use wallet from component data instead of calling getWallet (which might trigger balance API calls)
+	    	if (!this.wallet) {
+	    		console.warn('Wallet not loaded, cannot fetch SLP tokens')
+	    		return []
+	    	}
+
+	    	const walletHash = this.wallet.SLP?.walletHash || this.wallet.slp?.walletHash
+	    	if (!walletHash) {
+	    		console.warn('SLP wallet hash not available')
+	    		return []
+	    	}
+
+	    	const isChipnet = this.$store.getters['global/isChipnet']
+	    	const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+	    	const filterParams = {
+	    		wallet_hash: walletHash,
+	    		limit: 100
+	    	}
+
+	    	try {
+	    		const url = `${baseUrl}/slp-tokens/fungible/`
+	    		let allTokens = []
+	    		let nextUrl = url
+	    		let params = filterParams
+
+	    		while (nextUrl) {
+	    			const { data } = await axios.get(nextUrl, { params })
+
+	    			if (!Array.isArray(data?.results)) {
+	    				break
+	    			}
+
+	    			const tokens = data.results
+	    				.map(result => {
+	    					const logo = result?.image_url ? convertIpfsUrl(result.image_url) : null
+	    					const tokenId = result?.id
+	    					const assetId = tokenId
+	    						? (String(tokenId).startsWith('slp/') ? String(tokenId) : `slp/${tokenId}`)
+	    						: null
+	    					return {
+	    						// Normalize IDs to match other pages/store usage (`slp/<tokenId>`)
+	    						id: assetId,
+	    						name: result?.name || 'Unknown Token',
+	    						symbol: result?.symbol || '',
+	    						decimals: result?.decimals || 0,
+	    						logo: logo,
+	    						balance: result?.balance !== undefined ? result.balance : 0,
+	    						favorite: result?.favorite === true ? 1 : 0,
+	    						favorite_order: result?.favorite_order !== null && result?.favorite_order !== undefined ? result.favorite_order : null
+	    					}
+	    				})
+	    				.filter(token => token?.id)
+	    				// Match existing behavior of showing tokens with balance
+	    				.filter(token => Number(token.balance) > 0)
+
+	    			allTokens = [...allTokens, ...tokens]
+
+	    			if (data.next) {
+	    				nextUrl = data.next
+	    				params = {} // Don't send params again, URL already has them
+	    			} else {
+	    				nextUrl = null
+	    			}
+	    		}
+
+	    		return allTokens
+	    	} catch (error) {
+	    		console.error('Error fetching SLP tokens from API:', error)
 	    		return []
 	    	}
 	    },

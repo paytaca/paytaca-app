@@ -78,61 +78,60 @@
             class="reservation-card q-pa-md full-width"
             :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
           >
-            <div class="row col-12 q-mb-sm justify-between items-start">
-              <div class="col-7">
-                <div class="lift-amount text-h6 text-weight-bold q-mb-xs">
-                  {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
-                </div>
-                <div class="row items-center q-gutter-xs">
-                  <span class="usd-amount text-subtitle1 text-weight-medium" :class="rsvp.discount > 0 ? 'discounted' : ''">
-                    <span v-if="rsvp.discounted_amount > 0">
-                      {{ parseFiatCurrency(rsvp.discounted_amount, "USD") }}
-                    </span>
-                    <span v-else>
-                      {{ parseFiatCurrency(rsvp.reserved_amount_usd, "USD") }}
-                    </span>
-                  </span>
-                  <template v-if="rsvp.discount > 0">
-                    <q-icon name="info" size="18px" class="cursor-pointer text-blue-6">
-                      <q-menu
-                        touch-position
-                        class="discount-menu q-py-sm q-px-md text-bow"
-                        :class="getDarkModeClass(darkMode)"
-                      >
-                        <div class="discount-info">
-                          <q-icon name="mdi-tag-outline" size="24px" class="q-mr-sm text-green-6" />
-                          <span>
-                            {{
-                              $t(
-                                "DiscountApplied1",
-                                {
-                                  discount: rsvp.discount,
-                                  currency: parseFiatCurrency(
-                                    rsvp.reserved_amount_usd *
-                                      (rsvp.discount / 100),
-                                    "USD"
-                                  ),
-                                },
-                                `A ${rsvp.discount}% discount is applied, saving you ` +
-                                  `${parseFiatCurrency(
-                                    rsvp.reserved_amount_usd *
-                                      (rsvp.discount / 100),
-                                    "USD"
-                                  )}.`
-                              )
-                            }}
-                          </span>
-                        </div>
-                      </q-menu>
-                    </q-icon>
-                  </template>
-                </div>
+            <div class="row justify-center q-mb-sm">
+              <sale-group-badge
+                type="round"
+                :saleGroup="rsvp.sale_group"
+              />
+            </div>
+
+            <div class="row q-mb-sm justify-between items-center">
+              <div class="lift-amount text-h6 text-weight-bold">
+                {{ parseLiftToken(rsvp.reserved_amount_tkn) }}
               </div>
-              <div class="col-5 row justify-end">
-                <sale-group-badge
-                  type="round"
-                  :saleGroup="rsvp.sale_group"
-                />
+              <div class="row items-center">
+                <span class="usd-amount text-subtitle1 text-weight-medium" :class="rsvp.discount > 0 ? 'discounted' : ''">
+                  <span v-if="rsvp.discounted_amount > 0">
+                    {{ parseFiatCurrency(rsvp.discounted_amount, "USD") }}
+                  </span>
+                  <span v-else>
+                    {{ parseFiatCurrency(rsvp.reserved_amount_usd, "USD") }}
+                  </span>
+                </span>
+                <template v-if="rsvp.discount > 0">
+                  <q-icon name="info" size="18px" class="cursor-pointer text-blue-6">
+                    <q-menu
+                      touch-position
+                      class="discount-menu q-py-sm q-px-md text-bow"
+                      :class="getDarkModeClass(darkMode)"
+                    >
+                      <div class="discount-info">
+                        <q-icon name="mdi-tag-outline" size="24px" class="q-mr-sm text-green-6" />
+                        <span>
+                          {{
+                            $t(
+                              "DiscountApplied1",
+                              {
+                                discount: rsvp.discount,
+                                currency: parseFiatCurrency(
+                                  rsvp.reserved_amount_usd *
+                                    (rsvp.discount / 100),
+                                  "USD"
+                                ),
+                              },
+                              `A ${rsvp.discount}% discount is applied, saving you ` +
+                                `${parseFiatCurrency(
+                                  rsvp.reserved_amount_usd *
+                                    (rsvp.discount / 100),
+                                  "USD"
+                                )}.`
+                            )
+                          }}
+                        </span>
+                      </div>
+                    </q-menu>
+                  </q-icon>
+                </template>
               </div>
             </div>
 
@@ -365,13 +364,7 @@ export default {
       if (rsvp.is_paid) {
         this.openConfirmReservationDialog(rsvp)
       } else if (this.liftSwapContractAddress) {
-        // this.openPayReservationDialog(rsvp)
-        this.$q.notify({
-          message: this.$t('ComingSoon'),
-          color: 'positive',
-          icon: 'campaign',
-          timeout: 3000}
-        )
+        this.openPayReservationDialog(rsvp)
       } else {
         this.$q.notify({
           message: this.$t('LIFTPurchaseUnavailable'),

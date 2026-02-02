@@ -32,7 +32,7 @@ export default {
       denominationOptions: [
         { value: 'BCH', label: 'BCH' },
         { value: 'mBCH', label: 'mBCH' },
-        { value: 'Satoshis', label: 'Satoshis' }
+        { value: 'sats', label: 'sats' }
       ]
     }
   },
@@ -85,8 +85,9 @@ export default {
     denomination: {
       get () {
         const currentDenom = this.$store.getters['global/denomination']
+        const normalizedDenom = currentDenom === 'Satoshis' ? 'sats' : currentDenom
         // Return the full option object instead of just the string
-        const found = this.denominationDisplayOptions.find(opt => opt.value === currentDenom)
+        const found = this.denominationDisplayOptions.find(opt => opt.value === normalizedDenom)
         return found || { value: 'BCH', label: 'BCH' }
       },
       set (denom) {
@@ -103,10 +104,10 @@ export default {
         if (this.currentCountry === 'HK' &&
             this.language !== 'zh-tw' &&
             currentDenomValue !== deemValue &&
-            !['BCH', 'mBCH', 'Satoshis'].includes(currentDenomValue)
+            !['BCH', 'mBCH', 'sats'].includes(currentDenomValue)
         ) {
           this.$store.commit('global/setDenomination', 'DEEM')
-        } else if (!['BCH', 'mBCH', 'Satoshis', 'DEEM'].includes(currentDenomValue)) {
+        } else if (!['BCH', 'mBCH', 'sats', 'DEEM'].includes(currentDenomValue)) {
           // Only translate if it's not a standard denomination
           try {
             const translatedDenom = this.$t(currentDenomValue)

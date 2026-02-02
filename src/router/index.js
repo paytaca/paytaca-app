@@ -2,6 +2,7 @@ import { createRouter, createMemoryHistory, createWebHistory, createWebHashHisto
 import { getMnemonic } from '../wallet'
 import routes from './routes'
 import useStore from '../store'
+import { isNativeIOS } from '../utils/native-platform'
 
 /*
  * If not building with SSR mode, you can
@@ -73,6 +74,13 @@ export default function () {
         })
         return
       }
+    }
+
+    // Block routes that must not be accessible in native iOS builds
+    // NOTE: This must run AFTER lock checks so we don't bypass the lock screen.
+    if (isNativeIOS() && to.matched?.some(r => r?.meta?.disableOnNativeIOS)) {
+      next({ name: 'apps-dashboard' })
+      return
     }
 
     if (to.path === '/') {

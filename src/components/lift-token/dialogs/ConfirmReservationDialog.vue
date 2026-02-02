@@ -221,8 +221,16 @@ export default {
     async confirmReservation() {
       this.isSliderLoading = true;
 
+      if (this.rsvp.public_key === '' || this.rsvp.public_key === null || this.rsvp.public_key === undefined) {
+        console.error('Public key is empty')
+        raiseNotifyError(this.$t("ConfirmReservationError"))
+        this.isSliderLoading = false
+        return
+      }
+
       const idPubkeyData = await getIdAndPubkeyApi()
       if (!idPubkeyData) {
+        console.error('Failed to get ID and pubkey data')
         raiseNotifyError(this.$t("ConfirmReservationError"))
         this.isSliderLoading = false
         return
@@ -232,14 +240,6 @@ export default {
       // compute lockup end based on current date and rsvp.sale_group
       const year = this.rsvp.sale_group === 'seed' ? 2 : 1
       const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
-      // const lockupEnd = new Date(new Date().setHours(new Date().getHours() + year))
-
-      if (this.rsvp.public_key === '' || this.rsvp.public_key === null || this.rsvp.public_key === undefined) {
-        console.error('Public key is empty')
-        raiseNotifyError(this.$t("ConfirmReservationError"))
-        this.isSliderLoading = false
-        return
-      }
 
       let vestingContract = null
       try {

@@ -39,14 +39,14 @@ export default {
       const data = {
         fb: { icon: 'fab fa-facebook', url: `https://www.facebook.com/dialog/share?app_id=${fbAppId}&href=${encodedUrl}&display=popup` },
         messenger: { icon: 'fab fa-facebook-messenger', url: `https://facebook.com/share/?url=${encodedUrl}`, },
-        twitter: { icon: 'fab fa-twitter', url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=P2P Exchange Ad&via=_paytaca_&related=_paytaca_` },
-        telegram: { icon: 'telegram', url: `https://t.me/share?url=${encodedUrl}&text=Paytaca P2P Exchange Ad`, },
-        whatsapp: { icon: 'fab fa-whatsapp', url: `https://wa.me/?text=Paytaca P2P Exchange Ad\n${encodedUrl}`, },
-        email: { icon: 'email', url: `mailto:?body=P2P Exchange Ad: ${encodedUrl}` },
+        twitter: { icon: 'fab fa-twitter', url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=P2P Ramp Ad&via=_paytaca_&related=_paytaca_` },
+        telegram: { icon: 'telegram', url: `https://t.me/share?url=${encodedUrl}&text=Paytaca P2P Ramp Ad`, },
+        whatsapp: { icon: 'fab fa-whatsapp', url: `https://wa.me/?text=Paytaca P2P Ramp Ad\n${encodedUrl}`, },
+        email: { icon: 'email', url: `mailto:?body=P2P Ramp Ad: ${encodedUrl}` },
       }
 
       if (this.$q.platform.is.mobile) {
-        data.telegram.url = `tg://msg_url?url=${encodedUrl}&text=P2P Exchange Ad`
+        data.telegram.url = `tg://msg_url?url=${encodedUrl}&text=P2P Ramp Ad`
         data.messenger = {
           icon: 'fab fa-facebook-messenger',
           url: `fb-messenger://share/?link=${encodedUrl}&app_id=${fbAppId}`

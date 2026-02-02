@@ -1,4 +1,4 @@
-describe('P2P Exchange Page', () => {
+describe('P2P Ramp Page', () => {
   beforeEach(() => {
     cy.restoreLocalStorage();
     cy.setPushErrorHandling();
@@ -18,9 +18,9 @@ describe('P2P Exchange Page', () => {
     labels.forEach(label => cy.contains(label).click());
   };
 
-  it('should navigate through P2P Exchange sections and verify elements', () => {
-    // Launch P2P Exchange
-    cy.contains('.pt-app-name', 'P2P Exchange')
+  it('should navigate through P2P Ramp sections and verify elements', () => {
+    // Launch P2P Ramp
+    cy.contains('.pt-app-name', 'P2P Ramp')
       .closest('.pt-app')
       .click();
 

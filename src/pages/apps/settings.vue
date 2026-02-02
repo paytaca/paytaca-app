@@ -196,20 +196,68 @@
                   />
                 </q-item-section>
             </q-item>
+
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                  {{ $t('SelectBCHDenomination') }}
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('SelectBCHDenominationToolTip', {}, 'Select how BCH amounts are displayed') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <DenominatorSelector :darkMode="darkMode" />
+              </q-item-section>
+            </q-item>
           </q-list>
         </div>
 
-        <template v-if="isMobile">
-          <AdvertisementsSettings />
-        </template>
-
         <div class="col-12 q-px-lg q-mt-md">
-          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Developer', {}, 'Developer') }}</p>
+          <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
+            {{ $t('Features', {}, 'Features') }}
+          </p>
           <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+            <q-item>
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                  {{ $t('EnableSlp', {}, 'Enable SLP') }}
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('EnableSlpToolTip', {}, 'Enable SLP token support') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="enableSLP"
+                  :color="toggleColor"
+                  keep-color
+                />
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple @click="autoGenerateAddress = !autoGenerateAddress">
+              <q-item-section>
+                <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
+                  {{ $t('AutoGenerateAddress', {}, 'Generate fresh addresses') }}
+                </q-item-label>
+                <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar>
+                <q-toggle
+                  v-model="autoGenerateAddress"
+                  :color="toggleColor"
+                  keep-color
+                />
+              </q-item-section>
+            </q-item>
+
             <q-item clickable v-ripple @click="isChipnet = !isChipnet">
               <q-item-section>
                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
-                  {{ $t('UseChipnetNetwork') }}
+                  {{ $t('UseChipnetNetwork', {}, 'Use Chipnet Network') }}
                 </q-item-label>
               </q-item-section>
               <q-item-section avatar>
@@ -222,6 +270,10 @@
             </q-item>
           </q-list>
         </div>
+
+        <template v-if="isMobile">
+          <AdvertisementsSettings />
+        </template>
 
         <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
           <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AppInfo') }}</p>
@@ -286,6 +338,7 @@ import LanguageSelector from '../../components/settings/LanguageSelector'
 import CountrySelector from '../../components/settings/CountrySelector'
 import CurrencySelector from '../../components/settings/CurrencySelector'
 import AdvertisementsSettings from 'src/components/settings/AdvertisementsSettings.vue'
+import DenominatorSelector from 'src/components/settings/DenominatorSelector.vue'
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.vue'
@@ -306,7 +359,6 @@ export default {
       pendingLockEnable: false, // Track if lock should be enabled after PIN setup
       appVersion: packageInfo.version,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      isChipnet: this.$store.getters['global/isChipnet'],
       enableStablhedge: this.$store.getters['global/enableStablhedge'],
       currentCountry: this.$store.getters['global/country'].code,
       repoUrl: 'https://github.com/paytaca/paytaca-app',
@@ -322,6 +374,7 @@ export default {
     LanguageSelector,
     CountrySelector,
     CurrencySelector,
+    DenominatorSelector,
     ThemeSelector,
     AdvertisementsSettings,
     RenameDialog,
@@ -361,17 +414,44 @@ export default {
     },
     lockAppEnabled () {
       return this.$store.getters['global/lockApp']
+    },
+    autoGenerateAddress: {
+      get () {
+        return this.$store.getters['global/autoGenerateAddress']
+      },
+      set (value) {
+        const current = this.$store.getters['global/autoGenerateAddress']
+        if (value === current) return
+        this.$store.commit('global/toggleAutoGenerateAddress')
+      }
+    },
+    enableSLP: {
+      get () {
+        return this.$store.getters['global/enableSLP']
+      },
+      set (value) {
+        const current = this.$store.getters['global/enableSLP']
+        if (value === current) return
+        this.$store.commit('global/enableSLP')
+      }
+    },
+    isChipnet: {
+      get () {
+        return this.$store.getters['global/isChipnet']
+      },
+      set (value) {
+        const current = this.$store.getters['global/isChipnet']
+        if (value === current) return
+        this.$store.commit('global/toggleIsChipnet')
+      }
     }
   },
   watch: {
-    isChipnet (n, o) {
-      this.$store.commit('global/toggleIsChipnet')
-    },
     darkMode (newVal, oldVal) {
       this.$store.commit('darkmode/setDarkmodeSatus', newVal)
       // Save to vault for wallet-specific settings
       this.$store.commit('global/saveWalletSetting', { key: 'darkMode', value: newVal })
-    },
+    }
   },
   methods: {
     getDarkModeClass,
