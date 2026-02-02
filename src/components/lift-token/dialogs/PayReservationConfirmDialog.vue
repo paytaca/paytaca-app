@@ -79,6 +79,7 @@ import {
 } from "src/utils/denomination-utils";
 import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
+  getOracleData,
   getAddressPath,
   processPurchaseApi,
   getIdAndPubkeyApi,
@@ -196,6 +197,21 @@ export default {
           throw new Error(message)
         }
 
+        // Validate and fetch oracle data if messageTimestamp is missing or zero
+        let validMessageTimestamp = this.messageTimestamp
+        if (!validMessageTimestamp || validMessageTimestamp === 0) {
+          try {
+            const oracleData = await getOracleData()
+            validMessageTimestamp = oracleData.messageTimestamp || validMessageTimestamp
+            if (!validMessageTimestamp || validMessageTimestamp === 0) {
+              throw new Error(this.$t('FailedToGetOracleData', {}, 'Failed to get oracle data. Please try again later.'))
+            }
+          } catch (err) {
+            console.warn('Failed to refresh oracle data:', err)
+            throw new Error(this.$t('FailedToGetOracleData', {}, 'Failed to get oracle data. Please try again later.'))
+          }
+        }
+
         // Generate BCH address dynamically
         const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
         const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
@@ -245,7 +261,7 @@ export default {
           libauthWallet,
           nftData: {
             isEarlySupporter: this.rsvp.sale_group === 'seed',
-            oracleMessageTimestamp: this.messageTimestamp,
+            oracleMessageTimestamp: validMessageTimestamp,
             bytecode: vestingContract.bytecode
           }
         })
@@ -267,7 +283,7 @@ export default {
           partial_purchase: this.rsvp.reservation_partial_purchase?.id || -1,
           sale_group: this.rsvp.sale_group,
           public_key: pubkeyHex,
-          message_timestamp: this.messageTimestamp,
+          message_timestamp: validMessageTimestamp,
           vesting_contract_address: vestingContract.address,
           lockup_end: lockupEnd,
         }
