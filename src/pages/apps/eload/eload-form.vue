@@ -491,8 +491,6 @@ export default {
 				}					
 
 			} else {
-				console.log(this.filters)
-
 				// add searching service group with name
 				this.fetchServiceGroup()
 			}
@@ -506,7 +504,6 @@ export default {
 				}				
 				// fetch promos
 			} else {
-				console.log(this.filters)
 				this.fetchCategory()
 			}
 		},
@@ -888,9 +885,7 @@ export default {
 
 				setTimeout(() => { 
 					this.isSearch = false
-				}, 500);					
-
-				console.log('Here: ', promo)
+				}, 500);
 
 				this.filters.service = promo.more_info.service
 				this.filters.serviceGroup = promo.more_info.service_group
