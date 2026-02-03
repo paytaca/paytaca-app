@@ -1603,7 +1603,7 @@ static cashAddressToTokenAddress(cashAddress) {
       const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
       const descriptor = new BsmsDescriptor({
         m: this.m,
-        signers: this.signers,
+        signers: this.signers.sort((a, b) => a.xpub.localeCompare(b.xpub)),
         firstAddress: firstAddress
       })
       return descriptor.toString()
