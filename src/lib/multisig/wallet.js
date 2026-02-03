@@ -1258,7 +1258,8 @@ export class MultisigWallet {
     if (!this.options?.resolveMnemonicOfXpub) return
 
     const wallet = structuredClone(this.toJSON())
-    wallet.descriptorId = this.generateBsmsDescriptorId()
+    wallet.walletDescriptorId = this.generateBsmsDescriptorId()
+    wallet.walletHash = this.getWalletHash()
 
     let coordinator = null
     for (const signer of wallet.signers) {
@@ -1436,20 +1437,6 @@ export class MultisigWallet {
     })
     
     return mofn
-  }
-
-
-  toPsbtWallet() {
-    const psbtWallet = new PsbtWallet()
-    psbtWallet.encode(this.export())
-    return psbtWallet.toString()
-  }
-
-  static fromPsbtWallet(psbtWalletBase64) {
-    const psbtWallet = new PsbtWallet()
-    const wallet = new MultisigWallet()
-    psbtWallet.decode(psbtWalletBase64, wallet)
-    return wallet
   }
 
 /**
