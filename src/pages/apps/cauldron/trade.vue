@@ -197,6 +197,11 @@
                   :asset="amountInputAsset"
                   :disable="isSwapping || updatingPool"
                 />
+                <div v-if="formattedMaxAmount" class="row items-center justify-end">
+                  <q-btn flat @click="amountInputString = formattedMaxAmount" class="q-r-mr-md">
+                    {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
+                  </q-btn>
+                </div>
               </div>
 
               <div v-if="amountInput > 0" class="q-mb-md row justify-center">
@@ -376,6 +381,11 @@ export default defineComponent({
 
     /** @type {import("vue").Ref<CauldronTokenData>} */
     const selectedToken = ref()
+    // onMounted(() => {
+    //   mockFetchTokensList().then(response => {
+    //     selectToken(response[0]);
+    //   })
+    // })
     watch(() => selectedToken.value?.token_id, (tokenId) => {
       if (tokenId) {
         debouncedTokenUpdate()
@@ -773,11 +783,62 @@ export default defineComponent({
 
         tokenBalanceFetch = await bchWallet.getBalance(tokenId).then(response => {
           $store.commit('assets/updateAssetBalance', { id: tokenAssetId, balance: response.balance })
-          selectedTokenBalance.value = response.balance;
+          selectedTokenBalance.value = BigInt(response.balance);
         })
       }
       return Promise.all([bchBalanceFetch, tokenBalanceFetch])
     }
+
+
+    const maxAmount = ref(0n);
+    const formattedMaxAmount = computed(() => {
+      let decimals = 8;
+      if ((isBuyingToken.value && !isSupplyMode.value) || (!isBuyingToken.value && isSupplyMode.value)) {
+        decimals = parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
+      }
+      const _maxAmount = Number(maxAmount.value) / 10 ** decimals;
+      if (!_maxAmount) return ''
+      return _maxAmount.toFixed(decimals);
+    })
+
+    const updateMaxAmount = debounce(() => {
+      const poolV0List = poolTracker.microPools
+      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
+      if (!arePoolsCorrect || !poolV0List.length) {
+        maxAmount.value = 0n
+        return
+      }
+
+      const supply = isBuyingToken.value ? bchBalanceSats.value : selectedTokenBalance.value;
+      if (!supply) return
+
+      const supplyingBch = isBuyingToken.value;
+
+      if (!supplyingBch) {
+        maxAmount.value = supply;
+        return;
+      }
+
+      const estimatePlatformFee = supplyingBch ? (supply * 3n / 1000n) : 0n;
+      const estimateTxFee = 10_000n;
+      const baseSupply = supply - estimatePlatformFee - estimateTxFee;
+
+      const tradeResult = attemptTrade({
+        pools: poolV0List,
+        isBuyingToken: isBuyingToken.value,
+        supply: baseSupply,
+      })
+
+      if (isSupplyMode.value) {
+        maxAmount.value = tradeResult.summary.supply;
+      } else {
+        maxAmount.value = tradeResult.summary.demand - 1n;
+      }
+    })
+    poolTracker.on('pool-updated', () => updateMaxAmount())
+    watch(() => [bchBalanceSats.value, selectedTokenBalance.value, isBuyingToken.value, isSupplyMode.value], () => {
+      updateMaxAmount()
+    })
 
     const explorerLink = computed(() => {
       if (!completedTradeData.value.txid) return '';
@@ -1077,6 +1138,8 @@ export default defineComponent({
       insufficientBalanceMessage,
       bchBalanceSats,
       selectedTokenBalance,
+      maxAmount,
+      formattedMaxAmount,
       explorerLink,
 
       showSlider,
