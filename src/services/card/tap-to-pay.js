@@ -15,6 +15,12 @@ const artifact = compileString(source);
 import Watchtower from 'src/lib/watchtower/index.js';
 import { Wallet } from 'mainnet-js';
 
+function reverseHex(hex = '') {
+  if (!hex) return hex;
+  const pairs = hex.match(/.{1,2}/g);
+  return pairs ? pairs.reverse().join('') : hex;
+}
+
 export class TapToPay {
     constructor (contractId) {
         this.contractId = contractId;
@@ -67,106 +73,6 @@ export class TapToPay {
         return utxos.filter(utxo => utxo.token === undefined);
     }
 
-    // - this function is used by the backend
-    // - assumes that we have the terminal's signer details, but in prod 
-    // we'd obtain the terminal signature through multisig means
-    async spend ({ signers, recipient, broadcast = true }) {
-
-        /** TODO: obtain through multisig */
-        
-        const terminalWif = signers?.terminalWif;
-        const terminalSig = new SignatureTemplate(terminalWif)
-        const terminalPk = binToHex(terminalSig.getPublicKey())
-
-        /******** */
-    
-        const backendWif = signers?.backendWif
-        const backendSig = new SignatureTemplate(backendWif)
-        const backendPk = binToHex(backendSig.getPublicKey())
-        const backendPkh = pubkeyToPkHash(backendPk)
-
-        if (backendPkh !== this.contractCreationParams.backendPkh) {
-            throw new Error('Invalid backend public key hash')
-        }
-
-        const contract = this.getContract();
-
-        // find the auth token based on the terminal id
-        const utxos = await contract.getUtxos()
-        const bchUtxos = utxos.filter(utxo => utxo.token === undefined)
-        console.log('utxos:', utxos)
-        console.log('authCategory:', this.contractCreationParams.authCategory)
-
-        const {hex: terminalHash} = encodeMerchantHash({
-            terminalId: recipient.terminalId,
-            terminalPk: terminalPk
-        })
-        console.log('terminalHash:', terminalHash)
-
-        const authNft = utxos.find(utxo => {
-            if (utxo.token?.nft) {
-                const commitment = utxo.token.nft.commitment
-                const decodedCommitment = commitment ? decodeCommitment(commitment) : undefined
-                console.log('decodedCommitment:', decodedCommitment)
-                return utxo.token !== undefined &&
-                    utxo.token.nft !== undefined &&
-                    utxo.token.category === tokenCategory &&
-                    terminalHash === decodedCommitment.hash
-            } else {
-                return false
-            }
-        })
-
-        const encodedTerminalId = Buffer.from(recipient.terminalId.toString(), 'utf8');
-        const unlocker = contract.unlock.spend(
-            encodedTerminalId, 
-            terminalSig, 
-            terminalPk, 
-            backendSig,
-            backendPk
-        )
-
-        const outputs = [
-            {
-                to: convertCashAddressToTokenAddress(contract.address),
-                amount: authNft.satoshis,
-                token: authNft.token // auth token mustn't be mutated
-            },
-            {
-                to: recipient.address,
-                amount: recipient.amount
-            }
-            // change handled automatically
-        ]
-
-        const tx = contract.functions
-            .spend(
-                encodedTerminalId,
-                terminalSig, 
-                terminalPk, 
-                backendSig, 
-                backendPk
-            )
-            .from(authNft, unlocker) // present the NFT to use as authentication
-            .from(bchUtxos, unlocker)
-            .to(outputs)
-
-        let result
-        try {
-            if (broadcast) {
-                console.log('[spend] Broadcasting transaction')
-                result = await tx.send()
-            } else {
-                result = await tx.build()
-            }
-            console.log(result)
-        } catch (error) {
-            console.error(error)
-        }
-        
-        return result
-    }
-
     /**
      * Mutates authorization NFTs held by this contract.
      *
@@ -183,7 +89,6 @@ export class TapToPay {
     async mutate ({ senderWif, mutations, broadcast = true }) {
 
         const contract = this.getContract()
-        const tokenCategory = this.params.authCategory
         const senderSig = new SignatureTemplate(senderWif)
         const senderPk = senderSig.getPublicKey()
         const senderPkh = pubkeyToPkHash(senderPk)
@@ -199,12 +104,16 @@ export class TapToPay {
         const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
         // Get the merchant hashes from the mutations
-        const merchantHashes = mutations.map(e => encodeMerchantHash({ 
-            merchantId: e.merchant?.id, 
-            merchantPk: e.merchant?.pubkey 
-        }))
+        const merchantHashes = mutations.map(e => { 
+            const { hex } = encodeMerchantHash({ 
+                merchantId: e.merchant?.id, 
+                merchantPk: e.merchant?.pubkey 
+            })
+            return hex;
+        })
 
         // Filter UTXOs to only those matching the token category and merchant hashes
+        const tokenCategory = reverseHex(this.contractCreationParams.authCategory)
         const utxosToMutate = utxos.filter(utxo => {
             if (utxo.token?.nft?.commitment) {
                 const commitment = utxo.token?.nft?.commitment
@@ -214,6 +123,8 @@ export class TapToPay {
                 return false
             }
         })
+
+        console.log('utxosToMutate:', utxosToMutate)
 
         // Prepare the outputs for the mutations
         const outputs = []
@@ -235,7 +146,6 @@ export class TapToPay {
             const currCommitment = decodeCommitment(mutxo.token.nft.commitment)
             const newCommitmentData = {
                 authorized: mutation.authorized,
-                expirationBlock: mutation.expirationBlock || currCommitment.expirationBlock,
                 spendLimitSats: mutation.spendLimitSats || currCommitment.spendLimitSats,
                 merchant: mutation.merchant
             }
@@ -331,20 +241,27 @@ export class TapToPay {
         return result
     }
 
-    async sweep ({ senderWif, toAddress, broadcast = false }) {
+    async sweep ({ ownerWif, toAddress, broadcast = false }) {
+        console.log('[sweep] Sweeping to address:', toAddress)
         const contract = this.getContract()
-        const tokenAddr = convertCashAddressToTokenAddress(toAddress, false)
+        const tokenAddr = convertCashAddressToTokenAddress(toAddress)
+        console.log('[sweep] Token address:', tokenAddr)
         
-        const senderSig = new SignatureTemplate(senderWif)
-        const senderPk = binToHex(senderSig.getPublicKey())
-        const senderPkh = pubkeyToPkHash(senderPk)
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+        const ownerPkh = pubkeyToPkHash(ownerPk)
+        console.log('[sweep] Owner PKH:', ownerPkh)
+        console.log('[sweep] ownerPk:', ownerPk)
+        console.log('[sweep] ownerSig:', ownerSig)
 
-        if (senderPkh !== this.contractCreationParams.ownerPkh) {
-            throw new Error('Sender public key hash does not mathc the owner public key hash')
+        if (ownerPkh !== this.contractCreationParams.ownerPkh) {
+            throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
         }
 
         const sweepResult = {}
         const utxos = await contract.getUtxos()
+
+        console.log('[sweep] utxos:', utxos)
 
         const bchUtxos = utxos.filter(utxo => utxo.token == undefined)
         const tokenUtxos = utxos.filter(utxo => utxo.token !== undefined)
@@ -358,35 +275,44 @@ export class TapToPay {
                 }
             })
             const inputs = [...tokenUtxos, ...bchUtxos]
-            const tokenSweepTx = contract.functions
-                .sweep(senderPk, senderSig)
-                .from(inputs, contract.unlock.sweep(senderPk, senderSig))
-                .to(tokenOutputs)        
+
+            console.log('[sweep] Token inputs:', inputs)
+            console.log('[sweep] Token outputs:', tokenOutputs)
+            console.log('[sweep] contract:', contract)
+
+            const tokenSweepTx = contract.functions.sweep(ownerPk, ownerSig)
+                .from(inputs)
+                .to(tokenOutputs)
             
+            console.log('[sweep] tokenSweepTx:', tokenSweepTx)
+
             let tokenSweepResult
             if (broadcast) {
                 console.log('[sweep] Broadcasting transaction')
                 tokenSweepResult = await tokenSweepTx.send()
             } else {
+                console.log('[sweep] Building transaction')
                 tokenSweepResult = await tokenSweepTx.build()
             }
 
-            console.log(tokenSweepResult)
+            console.log('[sweep] Token sweep result:', tokenSweepResult)
             sweepResult.cashtokens = tokenSweepResult
         }
         
         const hardcodedFee = TX_FEE
-        const balance = await contract.getBalance()
+        const balance = bchUtxos.reduce((acc, utxo) => acc + utxo.satoshis, 0n)
+        const amountToSend = balance - BigInt(hardcodedFee)
         const outputs = [
             {
                 to: toAddress,
-                amount: balance - hardcodedFee
+                amount: amountToSend
             }
         ]
 
         const bchSweepTx = contract.functions
-            .sweep(senderPk, senderSig)
+            .sweep(ownerPk, ownerSig)
             .withHardcodedFee(hardcodedFee)
+            .from(bchUtxos)
             .to(outputs)        
         
         let bchSweepResult
@@ -394,11 +320,14 @@ export class TapToPay {
             console.log('[sweep] Broadcasting transaction')
             bchSweepResult = await bchSweepTx.send()
         } else {
+            console.log('[sweep] Building transaction')
             bchSweepResult = await bchSweepTx.build()
         }
 
-        console.log(bchSweepResult)
+        console.log('[sweep] BCH sweep result:', bchSweepResult)
         sweepResult.bch = bchSweepResult
+
+        console.log('[sweep] Sweep result:', sweepResult)
         return sweepResult
 
     }

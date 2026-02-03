@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getAuthToken } from './auth'
+import { getAuthToken } from './user'
 import { loadWallet } from '../wallet';
 
 const API_BASE_URL = process.env.CARD_API_BASE_URL || 'http://localhost:8002/api' 

@@ -22,13 +22,11 @@ import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainn
 import { defaultSpendLimitSats, minTokenValue } from './constants';
 
 class AuthNftService {
-    constructor(wif) {
-        this.wif = wif;
-        this.wallet = null;
-    }
 
-    async initWallet() {
-        this.wallet = await Wallet.fromWIF(this.wif);
+    static async initializeWithWallet(wif) {
+        const service = new AuthNftService(wif);
+        service.wallet = await Wallet.fromWIF(wif);
+        return service;
     }
 
     async getTokenUtxos(tokenId) {
@@ -78,10 +76,15 @@ class AuthNftService {
         return response;
     }
 
-    async mint({ tokenId, merchants }) {
+    async mint({ tokenId, merchants, options }) {
         if (!this.wallet) {
             await this.initWallet();
         }
+
+        console.log(this.wallet.cashaddr)
+        const walletUtxos = await this.wallet.getUtxos()
+        const filteredUtxos = walletUtxos.filter(u => !u.token)
+        console.log('filteredUtxos:', filteredUtxos);
 
         const tokenMintRequests = [];
         for (let i = 0; i < merchants.length; i++) {
@@ -109,7 +112,8 @@ class AuthNftService {
         const response = await this.wallet.tokenMint(
             tokenId,
             tokenMintRequests,
-            false
+            false,
+            options
         );
         console.log(response);
         return response;
@@ -139,71 +143,90 @@ class AuthNftService {
         return result;
     }
 
-    // async mutate({ tokenId, mutations }) {
-    //     if (!this.wallet) {
-    //         await this.initWallet();
-    //     }
+    async mutate({ tokenId, mutations }) {
+        if (!this.wallet) {
+            await this.initWallet();
+        }
 
-    //     const recipients = mutations.map(m => {
-    //         const newCommitment = encodeCommitment({
-    //             authorized: m.authorized,
-    //             expirationBlock: m.expirationBlock,
-    //             spendLimitSats: m.spendLimitSats,
-    //             terminal: {
-    //                 id: m.id,
-    //                 pk: m.pubkey
-    //             }
-    //         })
-    //         console.log('newCommitment:', newCommitment)
-    //         return {
-    //             address: this.wallet.cashaddr,
-    //             tokenId: tokenId,
-    //             capability: NFTCapability.mutable,
-    //             commitment: newCommitment
-    //         }
-    //     })
-    //     console.log('mutating: ', recipients)
-    //     await this.issue({ recipients })
-    // }
+        const recipients = mutations.map(m => {
+            const newCommitment = encodeCommitment({
+                authorized: m.authorized,
+                expirationBlock: m.expirationBlock,
+                spendLimitSats: m.spendLimitSats,
+                terminal: {
+                    id: m.id,
+                    pk: m.pubkey
+                }
+            })
+            console.log('newCommitment:', newCommitment)
+            return {
+                address: this.wallet.cashaddr,
+                tokenId: tokenId,
+                capability: NFTCapability.mutable,
+                commitment: newCommitment
+            }
+        })
+        console.log('mutating: ', recipients)
+        await this.issue({ recipients })
+    }
 
-    // async burn ({ tokenId, terminals }) {
-    //     if (!this.wallet) {
-    //         await this.initWallet();
-    //     }
+    async burn ({ tokenId, merchants, options = { all: false } }) {
+        console.log('burn called with tokenId:', tokenId, 'merchants:', merchants);
+        if (!this.wallet) {
+            await this.initWallet();
+        }
 
-    //     if (terminals.length === 0) return
-    //     const merchantHashes = terminals.map(terminal => 
-    //         encodeMerchantHash({
-    //             merchantId: terminal.id,
-    //             merchantPk: terminal.pubkey
-    //         })
-    //     )
-    //     console.log('merchantHashes:', merchantHashes)
-    //     const utxos = await this.wallet.getTokenUtxos(tokenId)
-    //     console.log(utxos)
-    //     const utxosToBurn = utxos.filter(utxo => {
-    //         const commitment = decodeCommitment(utxo.token.commitment)
-    //         return utxo.token.capability === NFTCapability.mutable &&
-    //                 merchantHashes.includes(commitment.hash)
-    //     })
-    //     console.log('utxosToBurn:', utxosToBurn)
-    //     for(let i = 0; i < utxosToBurn.length; i++) {
-    //         const element = utxosToBurn[i]
-    //         const burnResponse = await this.wallet.tokenBurn({
-    //             tokenId: tokenId, 
-    //             amount: element.amount,
-    //             capability: element.token.capability,
-    //             commitment: element.token.commitment
-    //         }, "burn")
-    //         console.log(burnResponse)
-    //     }
-    // }
+        let merchantHashes = [];
+        if (merchants.length > 0) {
+            merchantHashes = merchants.map(merchant => {
+                
+                const { hex: merchantHash } = encodeMerchantHash({
+                    merchantId: merchant.id,
+                    merchantPk: merchant.pubkey
+                });
+                console.log('hex;', merchantHash);
+                return merchantHash;
+            })
+        } 
+        
+        if (merchantHashes.length === 0 || options.all) {
+            merchantHashes.push(undefined); // Burns global auth tokens without merchant hash
+        }
+
+        console.log('merchantHashes:', merchantHashes)
+        const utxos = await this.wallet.getTokenUtxos(tokenId)
+        const mutableUtxos = utxos.filter(utxo => utxo.token.capability === NFTCapability.mutable);
+        console.log('mutableUtxos:', mutableUtxos)
+
+        const utxosToBurn = mutableUtxos.filter(utxo => {
+            console.log('Checking utxo:', utxo)
+            const commitment = decodeCommitment(utxo.token.commitment)
+            console.log('Decoded commitment:', commitment)
+            return utxo.token.capability === NFTCapability.mutable &&
+                    merchantHashes.includes(commitment.hash)
+        })
+        
+        console.log('utxosToBurn:', utxosToBurn)
+        const burnResponses = [];
+        for(let i = 0; i < utxosToBurn.length; i++) {
+            const element = utxosToBurn[i]
+            const burnResponse = await this.wallet.tokenBurn({
+                tokenId: tokenId, 
+                amount: element.amount,
+                capability: element.token.capability,
+                commitment: element.token.commitment
+            }, "burn")
+            console.log(burnResponse)
+            burnResponses.push(burnResponse);
+        }
+        return burnResponses;
+    }
     
 }
 
 function encodeMerchantHash({ merchantId, merchantPk }) {
     if (!merchantId || !merchantPk) {
-        throw new Error('missing required merchantId or merchantPk')
+        return { buf: null, hex: '' };
     }
     
     const merchantIdBuf = Buffer.from(merchantId.toString(), 'utf-8')
@@ -241,11 +264,12 @@ function encodeCommitment({ authorized, merchant, spendLimitSats }) {
 }
 
 function decodeCommitment(hex) {
+    if (hex.length === 0) return null;
     const buf = Buffer.from(hex, 'hex');
     return {
         authorized: buf[0] === 1,
-        spendLimitSats: buf.readBigUInt64LE(5),
-        hash: buf.subarray(13, buf.length).toString('hex')
+        spendLimitSats: buf.readBigUInt64LE(1),
+        hash: buf.length > 9 ? buf.subarray(9, buf.length).toString('hex') : ''
     };
 }
 

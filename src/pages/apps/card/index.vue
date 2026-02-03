@@ -101,7 +101,7 @@
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { getPrivateKeyAt, getPublicKeyAt } from 'src/utils/wallet';
-import { loadCardUser } from 'src/services/card/auth';
+import { loadCardUser } from 'src/services/card/user';
 import Card from 'src/services/card/card.js';
 
 export default {

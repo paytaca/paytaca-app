@@ -4,7 +4,7 @@ import { TapToPay } from './tap-to-pay';
 import { backend } from './backend';
 import { backend as watchtowerBackend } from 'src/exchange/backend';
 import { loadWallet } from '../wallet';
-import { loadCardUser } from './auth';
+import { loadCardUser } from './user';
 
 export class Card {
   constructor(data) {
@@ -39,7 +39,7 @@ export class Card {
    */
   static async createInitialized(data) {
     const card = await Card.createWithWallet(data);
-    card._initializeAuthNftService();
+    await card._initializeAuthNftService();
     card._initializeContract();
     return card;
   }
@@ -86,9 +86,9 @@ export class Card {
    * @private
    * @returns {void}
    */
-  _initializeAuthNftService() {
+  async _initializeAuthNftService() {
     this._assertWallet();
-    this.authNftService = new AuthNftService(this.wallet.privkey());
+    this.authNftService = await AuthNftService.initializeWithWallet(this.wallet.privkey());
   }
 
   /**
@@ -238,12 +238,12 @@ export class Card {
     
     // Check existing vout=0 UTXOs and calculate needed amount
     const requiredSats = this.estimateMintSatsRequirement();
-    const existingSats = await this._checkForVoutZeroUtxos();
+    const existingSats = await this._checkForFundingUtxos();
     
     if (existingSats < requiredSats) {
       const neededSats = requiredSats - existingSats;
       console.log(`Need ${neededSats} more sats (have ${existingSats}, need ${requiredSats})`);
-      await this._createVoutZeroTransaction(neededSats);
+      await this._createFundingUtxo(neededSats);
       await this._waitForTransaction();
     } else {
       console.log(`Sufficient vout=0 UTXOs available: ${existingSats} sats`);
@@ -312,7 +312,7 @@ export class Card {
    * @returns {Promise<{mintResult: Object, issueResult: Object}>}
    */
   async issueMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}) {
-    
+    console.log('Issuing merchant auth token...');
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');
     }
@@ -343,14 +343,29 @@ export class Card {
    * @param {string} options.merchant.id - Merchant ID
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<Object>}
-   * TODO: Needs testing!
    */
   async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}) {
     console.log('Minting merchant auth token...');
+    this._assertWallet();
     this._assertAuthNftService();
 
     if (!merchant || !merchant.id || !merchant.pubkey) {
       throw new Error('Merchant id and pubkey are required to mint merchant auth token');
+    }
+
+    // First get BCH UTXOs from mainnetcash wallet
+    const walletUtxos = await this.authNftService.wallet.getUtxos();
+    const bchUtxos = walletUtxos.filter(u => !u.token);
+
+    const availableSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis), 0n);
+    const mintSatsRequired = this.estimateCardMintSatsRequirement();
+
+    // If utxos are enough, use them to mint the auth token
+    if (availableSats < mintSatsRequired) {
+      // Otherwise, create a UTXO by sending the required satoshi to the curerent wallet's cashaddress
+      console.log('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
+      await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
+      await this._waitForTransaction();
     }
 
     const result = await this.authNftService.mint({ 
@@ -399,6 +414,15 @@ export class Card {
   // ==================== CONTRACT OPERATIONS ====================
 
   /**
+   * Gets UTXOs for card address
+   * @returns {Promise<Array>}
+   */
+  async getUtxos() {
+    this._assertContract();
+    return await this.contract.getUtxos();
+  }
+
+  /**
    * Gets token UTXOs for card token address
    * @returns {Promise<Array>}
    */
@@ -435,32 +459,7 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async mutateGlobalAuthToken({ authorize = true, spendLimitSats, broadcast = true }) {
-    this._assertContract();
-    this._assertWallet();
-
-    try {
-
-      // Prepare mutation data, leaving out merchant info so mutate function knows 
-      // that we are mutating the global auth token
-      const mutations = [{
-        authorized: authorize,
-        spendLimitSats: spendLimitSats, // (Optional, can omit if not changing)
-      }]
-
-      console.log('Mutating global auth token commitment:', mutations);
-      
-      const privateKey = this.wallet.privkey();
-      const mutateResponse = await this.contract.mutate({
-        senderWif: privateKey,
-        mutations,
-        broadcast
-      });
-
-      return  mutateResponse;
-    } catch (error) { 
-      console.error('Mutation failed:', error);
-      throw error;
-    }
+    return this._mutateAuthToken({ authorize, spendLimitSats, broadcast });
   }
 
   /**
@@ -475,27 +474,47 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async mutateMerchantAuthToken({ authorize = true, spendLimitSats, merchant, broadcast = true }) {
+    return this._mutateAuthToken({ authorize, spendLimitSats, merchant, broadcast });
+  }
+
+  /**
+   * Mutates auth token commitment (global or merchant).
+   * @private
+   * @param {Object} options
+   * @param {boolean} [options.authorize=true] - Whether to authorize
+   * @param {number} [options.spendLimitSats] - Spend limit in satoshis
+   * @param {Object} [options.merchant] - Merchant info (omit for global)
+   * @param {string} [options.merchant.id] - Merchant ID
+   * @param {string} [options.merchant.pubkey] - Merchant public key
+   * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
+   * @returns {Promise<Object>}
+   */
+  async _mutateAuthToken({ authorize = true, spendLimitSats, merchant, broadcast = true } = {}) {
     this._assertContract();
     this._assertWallet();
 
-    if (!merchant || !merchant.id || !merchant.pubkey) {
+    if (merchant && (!merchant.id || !merchant.pubkey)) {
       throw new Error('Merchant id and pubkey are required to mutate merchant auth token');
     }
 
     try {
-
-      // Prepare mutation data including merchant info
-      const mutations = [{
-        merchant: {
-          id: merchant.id,
-          pubkey: merchant.pubkey
-        },
+      const mutation = {
         authorized: authorize,
         spendLimitSats: spendLimitSats,
-      }]
+      };
 
-      console.log('Mutating merchant auth token commitment:', mutations);
-      
+      if (merchant) {
+        mutation.merchant = {
+          id: merchant.id,
+          pubkey: merchant.pubkey
+        };
+      }
+
+      const mutations = [mutation];
+      const mutationTarget = merchant ? 'merchant' : 'global';
+
+      console.log(`Mutating ${mutationTarget} auth token commitment:`, mutations);
+
       const privateKey = this.wallet.privkey();
       const mutateResponse = await this.contract.mutate({
         senderWif: privateKey,
@@ -503,11 +522,29 @@ export class Card {
         broadcast
       });
 
-      return  mutateResponse;
-    } catch (error) { 
+      return mutateResponse;
+    } catch (error) {
       console.error('Mutation failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Sweeps the card's BCH balance to an external address
+   * @returns {Promise<Object>}
+   */
+  async sweepCard() {
+    this._assertContract();
+    this._assertWallet();
+
+    const privateKey = this.wallet.privkey();
+    const sweepResponse = await this.contract.sweep({
+      ownerWif: privateKey,
+      toAddress: this.wallet.address(),
+      broadcast: true
+    });
+
+    return sweepResponse;
   }
 
   // ==================== UTXO MANAGEMENT ====================
@@ -516,7 +553,7 @@ export class Card {
    * Checks for available vout=0 UTXOs and returns total satoshis
    * @returns {Promise<number>} Total satoshis available in vout=0 UTXOs
    */
-  async _checkForVoutZeroUtxos() {
+  async _checkForFundingUtxos() {
     try {
       console.log('Checking for existing vout=0 UTXOs...');
       this._assertWallet();
@@ -541,63 +578,28 @@ export class Card {
    * @param {number} [amount] - Amount in satoshis to send (defaults to full estimated requirement)
    * @returns {Promise<Object>}
    */
-  async _createVoutZeroTransaction(amount) {
-    this._assertWallet();
+  async _createFundingUtxo(amount) {
     console.log('Creating vout=0 transaction...');
-    console.log('Genesis tokens require a UTXO with output index 0 (vout=0)');
-    
-    const wallet = await this.wallet.getRawWallet();
-    const receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
-    
-    // Use provided amount or estimate full requirement
-    const satsToSend = amount || this.estimateMintSatsRequirement();
-    const bchAmount = Number(satsToSend) / 1e8;
-    
-    console.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
-    
-    const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
-    console.log('Transaction sent:', sendResult);
-
-    if (sendResult.success == false) {
-      throw new Error(`Failed to create vout=0 UTXO: ${sendResult.error}`);
-    }
-    
-    return sendResult;
-  }
-
-  /**
-   * Estimates satoshis needed for token mint operation
-   * Based on actual mainnet-js transaction requirements
-   * @returns {bigint} Estimated satoshis needed
-   */
-  estimateMintSatsRequirement() {
-    const tokenOutputValue = minTokenValue; // 1000 sats from constants
-    const estimatedTxSize = 500; // More realistic: includes change outputs, token data
-    const feeRate = 1.2; // sats/byte
-    const estimatedFee = BigInt(Math.ceil(estimatedTxSize * feeRate));
-    const dustLimit = 546n;
-    const buffer = 20000n; // Larger buffer based on actual requirements (~20k sats observed)
-    
-    const total = tokenOutputValue + estimatedFee + dustLimit + buffer;
-    
-    console.log('Estimated mint sats requirement:', {
-      tokenOutputValue,
-      estimatedFee,
-      dustLimit,
-      buffer,
-      total: Number(total)
-    });
-
-    return total;
+    this._assertWallet();
+    return await this.wallet.createFundingUtxo(amount);
   }
 
   /**
    * Estimates total satoshis needed for both genesis and global auth token minting
    * @returns {bigint} Estimated total satoshis needed
    */
-  static estimateTotalMintSatsRequirement() {
-    const mintSats = new Card().estimateMintSatsRequirement();
-    return mintSats * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
+  estimateCardMintSatsRequirement() {
+    this._assertWallet();
+    return this.estimateMintSatsRequirement() * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
+  }
+
+  /**
+   * Estimates satoshis needed for minting a token
+   * @returns {Promise<bigint>} Estimated satoshis needed for minting auth token
+   */
+  estimateMintSatsRequirement() {
+    this._assertWallet();
+    return this.wallet.estimateMintSatsRequirement();
   }
 
   /**

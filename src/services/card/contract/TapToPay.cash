@@ -22,20 +22,21 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
 
         bytes commitment = tx.inputs[0].nftCommitment;
 
-        // obtains the authFlag from the commitment (authFlag is 1 byte)
+        // obtains the authFlag from the commitment (authFlag is 1 byte), 
+        // and checks if payment is enabled
         bytes authFlag, bytes rest = commitment.split(1);
-
-        // obtains the spendLimit from the next 8 bytes of the commitment, 
-        // the rest of the remaining bytes is the expectedMerchantHash
-        bytes spendLimit, bytes expectedMerchantHash = rest.split(8);
-        
-        // checks if payment is enabled
         require(authFlag == 0x01, 'Access denied: Merchant is not authorized');
+
+        // obtains the spendLimit from the next 8 bytes of the commitment (the rest of the remaining bytes is the expectedMerchantHash),
+        // and checks if the send amount is within spend limit
+        bytes spendLimit, bytes expectedMerchantHash = rest.split(8);
+        int actualSendAmount = tx.outputs[1].value;
+        require(actualSendAmount <= int(spendLimit), 'Send amount exceeds spend limit');
 
         // verify that the parameter merchantHash matches expectedMerchantHash from the commitment
         bytes fullHash = sha256(merchantId + merchantPk);
-        bytes merchantHash = fullHash.split(27)[0];
-        require(merchantHash == expectedMerchantHash, 'Access denied: Invalid merchant id');
+        bytes merchantHash = fullHash.split(31)[0];
+        require(expectedMerchantHash == 0x || merchantHash == expectedMerchantHash, 'Access denied: Invalid global auth or merchant hash');
 
         // require that auth NFT commitment is not tampered with after spending
         require(commitment == tx.outputs[0].nftCommitment, 'Auth NFT output commitment should not change');
@@ -49,10 +50,6 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
         bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(merchantPk));
         bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
         require(sendsToRecipient, 'Send amount must send to the recipient');
-
-        // check that send amount is correct
-        int actualSendAmount = tx.outputs[1].value;
-        require(actualSendAmount <= int(spendLimit), 'Send amount exceeds spend limit');
 
         // require that any change (enforced to be at output[2]) is sent back to this contract
         if (tx.outputs.length == 3) {

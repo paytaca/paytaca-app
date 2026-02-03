@@ -606,7 +606,7 @@ import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown
 //import { createCard } from 'src/services/card/backend/api';
 import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
-import { loadCardUser } from 'src/services/card/auth';
+import { loadCardUser } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
 
   
@@ -670,8 +670,6 @@ import { selectedCurrency } from 'src/store/market/getters';
 
       try {
         const cardUser = await loadCardUser()
-        console.log('Card User loaded:', cardUser)
-
         const cards = await cardUser.fetchCards()
         if (cards.length === 0) {
           console.warn('No cards found for the user.')
@@ -714,26 +712,16 @@ import { selectedCurrency } from 'src/store/market/getters';
         // console.log('Mint Result:', mintResult)
         // console.log('Issue Result:', issueResult)
 
-        // // Example: Mutate global auth token 
-        // // (needs contract funded with some BCH for gas fees)
-        // await card.mutateGlobalAuthToken({
-        //   authorize: false,
-        //   expirationBlock: null, // Optional: can omit if not changing
-        //   spendLimitSats: 50000, // Optional: can omit if not changing
-        //   broadcast: false // Change to true to broadcast to blockchain
-        // })
-
-        // // Example: Mutate merchant auth token 
+        // // ============ Mutating Merchant Auth Token =============
         // // (needs contract funded with some BCH for gas fees)
         // await card.mutateMerchantAuthToken({
-        //   authorize: false,
+        //   authorize: true,
         //   merchant: {
         //     id: selectedMerchant.id,
         //     pubkey: selectedMerchant.pubkey
         //   },
-        //   expirationBlock: null, // Optional: can omit if not changing
-        //   spendLimitSats: 50000, // Optional: can omit if not changing
-        //   broadcast: false // Change to true to broadcast to blockchain
+        //   // spendLimitSats: 1000, // Optional: can omit if not changing
+        //   broadcast: true // Change to true to broadcast to blockchain
         // })
         // ------------------------------------------
         // await card.getAuthNfts().then(authNfts => {
@@ -859,7 +847,7 @@ import { selectedCurrency } from 'src/store/market/getters';
         try {
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
-          const estimatedFees = Card.estimateTotalMintSatsRequirement()
+          const estimatedFees = Card.estimateCardMintSatsRequirement()
           console.log('Estimated total sats needed for minting:', estimatedFees)
           console.log('Wallet balance (sats):', this.walletBalance * 1e8)
           const balanceSats = BigInt(Math.floor(this.walletBalance * 1e8))

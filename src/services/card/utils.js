@@ -37,13 +37,18 @@ export function pubkeyToPkHash(pubkey='') {
   return binToHex(ripemd160.hash(hexToBin(sha256(pubkey, 'hex'))))
 }
 
-export function convertCashAddressToTokenAddress (address, isContract = true) {
-  console.log('convertCashAddressToTokenAddress:', address)
+export function convertCashAddressToTokenAddress (address) {
   const decodedAddress = decodeCashAddress(address)
-  console.log('decodedAddress:', decodedAddress)
-  console.log('payload:', decodedAddress.payload)
-  const prefix = CashAddressNetworkPrefix.mainnet
-  const addressType = isContract ? CashAddressType.p2shWithTokens : CashAddressType.p2pkhWithTokens
-  const { address: tokenAddress } = encodeCashAddress(prefix, addressType, decodedAddress.payload)
-  return tokenAddress
+  if (typeof decodedAddress == 'string') throw decodedAddress
+  const addrType = decodedAddress.type
+  const payload = decodedAddress.payload
+  switch(addrType) {
+    case (CashAddressType.p2pkhWithTokens):
+    case (CashAddressType.p2shWithTokens):
+      return address
+    case (CashAddressType.p2pkh):
+      return encodeCashAddress(decodedAddress.prefix, CashAddressType.p2pkhWithTokens, payload)
+    case (CashAddressType.p2sh):
+      return encodeCashAddress(decodedAddress.prefix, CashAddressType.p2shWithTokens, payload)
+  }
 }
