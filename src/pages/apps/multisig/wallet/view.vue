@@ -84,7 +84,7 @@
             </div>
             <q-list>
               <q-separator spaced inset />
-              <q-item v-if="wallet.id">
+              <q-item v-if="wallet.isOnline()">
                 <q-item-section>
                   <q-item-label>{{ $t('WalletId') }}</q-item-label>
                 </q-item-section>
@@ -220,7 +220,7 @@ import {
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import WalletExportOptionsDialog from 'components/multisig/WalletExportOptionsDialog.vue'
+import WalletShareOptionsDialog from 'components/multisig/WalletShareOptionsDialog.vue'
 import WalletQrDialog from 'components/multisig/WalletQrDialog.vue'
 import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
 
@@ -235,7 +235,8 @@ const {
   resolveXprvOfXpub,
   getSignerXPrv, 
   getAssetTokenIdentity,
-  cashAddressNetworkPrefix
+  cashAddressNetworkPrefix,
+  getSignerMnemonic
 } = useMultisigHelpers()
 const balances = ref()
 const balancesTokenIdentities = ref({})
@@ -259,7 +260,8 @@ const wallet = computed(() => {
       store: $store,
       provider: multisigNetworkProvider,
       coordinationServer: multisigCoordinationServer,
-      resolveXprvOfXpub
+      resolveXprvOfXpub,
+      resolveMnemonicOfXpub: getSignerMnemonic,
     })
   }
   return null
@@ -344,40 +346,38 @@ const handleDeleteWalletAction = () => {
   })
 }
 
-const handlExportWalletAction = () => {
+const handlShareWalletAction = () => {
   $q.dialog({
-    component: WalletExportOptionsDialog,
+    component: WalletShareOptionsDialog,
     componentProps: {
       darkMode: darkMode.value,
       wallet: wallet.value,
       cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
     }
-  }).onOk((payload) => {
+  }).onOk(async (payload) => {
     if (payload?.action === 'display-qr') {
       showWalletQrDialog()
     } else if (payload?.action === 'download-wallet') {
       downloadWalletFile(payload.wallet || wallet.value)
+    } else if (payload?.action === 'upload-wallet') {
+      try {
+        walletSyncing.value = true
+        await wallet.value.upload()
+      } catch (error) {
+        $q.notify({
+          type: 'error',
+          color: 'red',
+          message: error.message,
+        })
+      } finally {
+        walletSyncing.value = false
+      }
     } else {
       openWalletActionsDialog()
     }
   }).onCancel(() => {
     // Dialog was closed without action
   })
-}
-
-const handleEnableOnlineCoordinationAction = async () => {
-  try {
-    walletSyncing.value = true
-    await wallet.value.sync()
-  } catch (error) {
-    $q.notify({
-      type: 'error',
-      color: 'red',
-      message: error.message,
-    })
-  } finally {
-    walletSyncing.value = false
-  }
 }
 
 const handleScanWalletUtxosAction = () => {
@@ -393,10 +393,7 @@ const handleWalletActions = async (action) => {
       handleDeleteWalletAction()
     }
     if (action.value === 'export-wallet') {
-      handlExportWalletAction()
-    }
-    if (action.value === 'enable-online-coordination') {
-      await handleEnableOnlineCoordinationAction()
+      handlShareWalletAction()
     }
     if (action.value === 'scan-wallet-utxos') {
       await handleScanWalletUtxosAction()
@@ -425,16 +422,16 @@ const openWalletActionsDialog = () => {
       },
       {
         icon: 'mdi-file-export',
-        label: $t('ExportWallet'),
+        label: $t('ShareWallet'),
         value: 'export-wallet',
         color: 'primary'
       },
-      {
-        icon: 'mdi-cloud-upload',
-        label: $t('EnableOnlineCoordination', {}, 'Enable Online Coordination'),
-        value: 'enable-online-coordination',
-        color: 'primary'
-      },
+      // {
+      //   icon: 'mdi-cloud-upload',
+      //   label: $t('EnableOnlineCoordination', {}, 'Enable Online Coordination'),
+      //   value: 'enable-online-coordination',
+      //   color: 'primary'
+      // },
       {
         icon: 'mdi-database-search-outline',
         label: $t('ScanUTXOs', {}, 'Scan UTXOs'),
@@ -465,8 +462,8 @@ const loadHdPrivateKeys = async (signers) => {
       })
       if (xprv) {
         hdPrivateKeys.value[signer.xpub] = xprv
+        
       }
-      
     } catch (e) {
       console.log('error', e)
     } // getSignerXPrv throws if xprv not found, we'll just ignore
@@ -577,6 +574,8 @@ onMounted(async () => {
   finally {
     balancesRefreshing.value = false
   }
+
+
 })
 
 </script>
