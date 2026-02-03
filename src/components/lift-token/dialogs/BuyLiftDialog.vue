@@ -530,8 +530,7 @@ export default {
           walletBalance: this.walletBalance,
           reservationId: -1,
           partialPurchaseId: -1,
-          getStoreGetter: (path) => this.$store.getters[path],
-          getTranslation: (key, params, fallback) => this.$t(key, params, fallback)
+          getStoreGetter: (path) => this.$store.getters[path]
         })
 
         this.$emit('purchase', { success: true, txId: result.txid })
