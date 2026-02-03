@@ -107,8 +107,15 @@ export default {
 				this.loading = false
 			}
 		},
-		selectPromo (promo) {
-			this.$emit('selectPromo', promo)
+		async selectPromo (promo) {
+			// Fetch Detailed Promo
+
+			const _promo = await eloadServiceAPI.fetchPromoDetails(promo.id)
+
+			if (_promo.success) {
+				this.$emit('selectPromo', _promo.data)	
+			}
+			
 			this.searchVal = ''
 		}
 	}	

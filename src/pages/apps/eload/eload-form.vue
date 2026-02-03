@@ -888,12 +888,15 @@ export default {
 
 				setTimeout(() => { 
 					this.isSearch = false
-				}, 500);				
-				this.filters.service = this.services.find(service => service.name === promo.service);
-				this.filters.serviceGroup = { name: promo.service_group }
+				}, 500);					
 
-				if (promo.category.toLowerCase() !== 'none' || promo.category) {
-					this.filters.category = { name: promo.category }
+				console.log('Here: ', promo)
+
+				this.filters.service = promo.more_info.service
+				this.filters.serviceGroup = promo.more_info.service_group
+
+				if (promo.category.toLowerCase() !== 'none') {
+					this.filters.category = promo.more_info.category
 				}
 				
 				this.step = 4				

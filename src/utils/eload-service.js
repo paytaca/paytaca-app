@@ -144,6 +144,27 @@ export async function fetchPromo (data) {
 	}
 }
 
+export async function fetchPromoDetails(pk) {
+	try {
+		const response = await backend.get(baseURL  +  '/promo/' + pk)
+
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+	} catch (error) {
+		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch promo details'
+		console.error('[fetchPromoDetails] Error:', errorMessage)
+
+		return {
+			success: false,
+			data: null,
+			error: `Network error: ${errorMessage}`
+		}
+	}
+}
+
 export async function createOrder (data) {
 	try {
 		const walletHash = getWalletHash()
