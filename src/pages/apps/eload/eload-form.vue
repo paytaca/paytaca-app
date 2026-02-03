@@ -51,193 +51,213 @@
 		</div>
 
 		<div v-else>
-		<PromoSearch class="q-px-lg" @select-promo="(promo) => {
-				selectPromo(promo, true)
-		}"/>	
+			<PromoSearch v-if="!loading && step === 0" class="q-px-lg" @select-promo="(promo) => {
+					selectPromo(promo, true)
+			}"/>	
+			<div v-else class="q-mx-lg q-pt-sm">
+				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
+			</div>
 
-		<!-- Selecting Service -->
-		<div  class="q-mt-sm" v-if="step === 0">
-			<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Purchase Type</div>
-			<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>		
-		</div>
-
-		<!-- Info Card -->	
-		<promo-info-card v-if="step > 0" class="q-mx-lg q-mt-lg" :filters="filters" :step="step" @update="changeValue"/>
-
-		<!-- Selecting Service Group -->
-		<div>
-			<!-- Service Group Selection -->
-			<div v-if="step === 1">
+			<!-- Selecting Service -->
+			<div  class="q-mt-sm" v-if="step === 0">
 				<div v-if="!loading">
-					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
+					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Purchase Type</div>
+					<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>
+				</div>
+
+				<div v-else class="q-mx-lg">
+					<!-- "Select Purchase Type" label -->
+					<q-skeleton animation="wave" type="text" width="190px" class="q-mb-md" />
+
+					<!-- Service cards (stacked like the home page) -->
+					<q-skeleton
+						v-for="i in 3"
+						:key="'svc-' + i"
+						animation="wave"
+						type="rect"
+						height="118px"
+						class="br-15 q-mb-md"
+					/>
+				</div>		
+			</div>
+
+			<!-- Info Card -->	
+			<promo-info-card v-if="step > 0" class="q-mx-lg q-mt-lg" :filters="filters" :step="step" @update="changeValue"/>
+
+			<!-- Selecting Service Group -->
+			<div>
+				<!-- Service Group Selection -->
+				<div v-if="step === 1">
+					<div v-if="!loading">
+						<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
+
+						<div class="q-px-lg">
+						    <div class="row q-col-gutter-sm">
+						    	<div
+						    		v-for="(group, index) in serviceGroups"
+						    		:key="index"
+						    		class="col-4 col-sm-4"
+						     	>
+							        <q-card outlined class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('serviceGroup', group)"> 
+							        	<div class="sm-font-size text-weight-bold service-group-text">{{ group.name }}</div>			          
+							        </q-card>
+						      	</div>
+						    </div>
+						</div>
+					</div>
+
+					<div class="q-px-lg q-pt-md" v-else>
+						<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
+
+						<div class="row q-col-gutter-md">
+				      <div class="col-4" v-for="n in 9" :key="n">
+				        <q-skeleton type="rect" class="full-width br-15" height="50px" />
+				      </div>
+				    </div>
+					</div>
+
+				</div>
+			</div>
+
+			<!-- Category Selection -->
+			<div v-if="step === 2">
+				<div v-if="!loading">
+					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
 
 					<div class="q-px-lg">
-					    <div class="row q-col-gutter-sm">
-					    	<div
-					    		v-for="(group, index) in serviceGroups"
-					    		:key="index"
-					    		class="col-4 col-sm-4"
-					     	>
-						        <q-card outlined class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('serviceGroup', group)"> 
-						        	<div class="sm-font-size text-weight-bold service-group-text">{{ group.name }}</div>			          
-						        </q-card>
-					      	</div>
-					    </div>
+						<div class="row q-col-gutter-sm">
+							<div
+								v-for="(category, index) in categories"
+						    	:key="index"
+						    	class="col-4 col-sm-4"
+							>
+								<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
+							    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
+								</q-card>
+							</div>
+						</div>
 					</div>
+
+					<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-if="!isLastPage('category')" @click="nextPage('category')">See More</div>
 				</div>
 
 				<div class="q-px-lg q-pt-md" v-else>
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<div class="row q-col-gutter-md">
-			      <div class="col-4" v-for="n in 9" :key="n">
-			        <q-skeleton type="rect" class="full-width br-15" height="50px" />
-			      </div>
-			    </div>
+				  	<div class="col-4" v-for="n in 9" :key="n">
+				    	<q-skeleton type="rect" class="full-width br-15" height="50px" />
+				  	</div>
+				  </div>
 				</div>
-
 			</div>
-		</div>
 
-		<!-- Category Selection -->
-		<div v-if="step === 2">
-			<div v-if="!loading">
-				<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
+			<!-- Select Promo -->
+			<div v-if="step === 3">
+				<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
+
+				<!-- <q-card class="br-15 q-mx-lg"> -->
+					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 250}px`" ref="scrollTarget">
+						<q-card 
+							class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
+							v-ripple 
+							v-for="(promo, index) in promos"
+							:key="index" 
+							style="overflow: auto;"
+							@click="selectPromo(promo)"
+						>
+							<!-- <q-item-section class="q-pb-sm"> -->
+								<div class="md-font-size text-bold">{{ promo.name }}</div>
+								<!-- <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'"> -->
+									<div>{{ promo.amount }} PHP</div>
+									<div class="sm-font-size">{{ promo.validity }}</div>
+								<!-- </div>						 -->
+							<!-- </q-item-section> -->
+						</q-card>
+
+						<div class="text-center text-grad q-pt-sm md-font-size text-bold see-more" v-if="!isLastPage('promo')" @click="nextPage('promo')">See More</div>		
+					</q-list>
+				<!-- </q-card>-->			
+			</div>
+
+			<div v-if="step > 3" class="q-mt-md">
+				<q-card class="q-mx-lg q-pa-md br-15">
+					<div class="row justify-between">
+						<div class="text-weight-bold md-font-size">{{ selectedPromo.name }}</div>
+						<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('promo')"/>
+					</div>			
+				<!-- </div> -->
+					<!-- <div class="md-font-size text-bold"></div> -->
+					<div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.amount }} PHP</div>
+					<div class="q-py-sm">{{ selectedPromo.description }}</div>
+					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.validity }}</div>
+
+				</q-card>
+
+				<q-card class="q-mx-lg q-pa-md br-15 q-mt-md">
+					<!-- <div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ addressType(selectedPromo.address_type) }}</div> -->
+
+					<q-input 
+						dense 
+						outlined 
+						v-model="address" 
+						:placeholder="'Enter ' + addressType(selectedPromo.address_type)"
+						:error="showAddressError"
+						:error-message="addressErrorMessage"
+					/>
+				</q-card>
+
+				<q-card
+					v-if="selectedPromo && isMobileNumberAddress && amountToPayPhp !== null"
+					class="q-mx-lg q-pa-md br-15 q-mt-md"
+				>
+					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+						Amount to pay
+					</div>
+
+					<div class="text-weight-bold text-h6 q-mt-xs" :class="darkMode ? 'text-white' : 'text-grey-9'">
+						{{ formattedAmountToPayPhp }} PHP
+					</div>
+
+					<div v-if="phpBchRateLoading" class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+						Fetching PHP/BCH rate…
+					</div>
+					<div v-else-if="phpBchRateError" class="sm-font-size q-mt-xs text-negative">
+						{{ phpBchRateError }}
+					</div>
+					<div v-else class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+						≈ {{ formattedAmountToPayBch || '—' }} BCH
+					</div>
+				</q-card>
 
 				<div class="q-px-lg">
-					<div class="row q-col-gutter-sm">
-						<div
-							v-for="(category, index) in categories"
-					    	:key="index"
-					    	class="col-4 col-sm-4"
-						>
-							<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
-						    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
-							</q-card>
+					<div v-if="buying" class="row justify-center q-my-md">
+						<div class="column items-center">
+							<q-spinner-dots size="32px" color="primary" />
+							<div class="q-mt-sm sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+								Processing payment…
+							</div>
 						</div>
 					</div>
-				</div>
-
-				<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-if="!isLastPage('category')" @click="nextPage('category')">See More</div>
-			</div>
-
-			<div class="q-px-lg q-pt-md" v-else>
-				<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
-
-				<div class="row q-col-gutter-md">
-			  	<div class="col-4" v-for="n in 9" :key="n">
-			    	<q-skeleton type="rect" class="full-width br-15" height="50px" />
-			  	</div>
-			  </div>
-			</div>
-		</div>
-
-		<!-- Select Promo -->
-		<div v-if="step === 3">
-			<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
-
-			<!-- <q-card class="br-15 q-mx-lg"> -->
-				<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 250}px`" ref="scrollTarget">
-					<q-card 
-						class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
-						v-ripple 
-						v-for="(promo, index) in promos"
-						:key="index" 
-						style="overflow: auto;"
-						@click="selectPromo(promo)"
-					>
-						<!-- <q-item-section class="q-pb-sm"> -->
-							<div class="md-font-size text-bold">{{ promo.name }}</div>
-							<!-- <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'"> -->
-								<div>{{ promo.amount }} PHP</div>
-								<div class="sm-font-size">{{ promo.validity }}</div>
-							<!-- </div>						 -->
-						<!-- </q-item-section> -->
-					</q-card>
-
-					<div class="text-center text-grad q-pt-sm md-font-size text-bold see-more" v-if="!isLastPage('promo')" @click="nextPage('promo')">See More</div>		
-				</q-list>
-			<!-- </q-card>-->			
-		</div>
-
-		<div v-if="step > 3" class="q-mt-md">
-			<q-card class="q-mx-lg q-pa-md br-15">
-				<div class="row justify-between">
-					<div class="text-weight-bold md-font-size">{{ selectedPromo.name }}</div>
-					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('promo')"/>
+					<DragSlide
+						v-else
+						:disableAbsoluteBottom="true"
+						:disable="!canSubmitBuy"
+						:text="$t('SwipeToConfirmLower')"
+						@swiped="slideToBuy"
+						class="q-my-md"
+					/>
 				</div>			
-			<!-- </div> -->
-				<!-- <div class="md-font-size text-bold"></div> -->
-				<div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.amount }} PHP</div>
-				<div class="q-py-sm">{{ selectedPromo.description }}</div>
-				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.validity }}</div>
+			</div>
 
-			</q-card>
-
-			<q-card class="q-mx-lg q-pa-md br-15 q-mt-md">
-				<!-- <div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ addressType(selectedPromo.address_type) }}</div> -->
-
-				<q-input 
-					dense 
-					outlined 
-					v-model="address" 
-					:placeholder="'Enter ' + addressType(selectedPromo.address_type)"
-					:error="showAddressError"
-					:error-message="addressErrorMessage"
-				/>
-			</q-card>
-
-			<q-card
-				v-if="selectedPromo && isMobileNumberAddress && amountToPayPhp !== null"
-				class="q-mx-lg q-pa-md br-15 q-mt-md"
-			>
-				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-					Amount to pay
-				</div>
-
-				<div class="text-weight-bold text-h6 q-mt-xs" :class="darkMode ? 'text-white' : 'text-grey-9'">
-					{{ formattedAmountToPayPhp }} PHP
-				</div>
-
-				<div v-if="phpBchRateLoading" class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-					Fetching PHP/BCH rate…
-				</div>
-				<div v-else-if="phpBchRateError" class="sm-font-size q-mt-xs text-negative">
-					{{ phpBchRateError }}
-				</div>
-				<div v-else class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-					≈ {{ formattedAmountToPayBch || '—' }} BCH
-				</div>
-			</q-card>
-
-			<div class="q-px-lg">
-				<div v-if="buying" class="row justify-center q-my-md">
-					<div class="column items-center">
-						<q-spinner-dots size="32px" color="primary" />
-						<div class="q-mt-sm sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-							Processing payment…
-						</div>
-					</div>
-				</div>
-				<DragSlide
-					v-else
-					:disableAbsoluteBottom="true"
-					:disable="!canSubmitBuy"
-					:text="$t('SwipeToConfirmLower')"
-					@swiped="slideToBuy"
-					class="q-my-md"
-				/>
-			</div>			
-		</div>
-
-		<Pin
-			v-model:pin-dialog-action="pinDialogAction"
-			@nextAction="pinDialogNextAction"
-		/>
-		<BiometricWarningAttempt
-			:warning-attempts="warningAttemptsStatus"
-			@closeBiometricWarningAttempts="verifyBiometric(pendingSwipeReset)"
-		/>
+			<Pin
+				v-model:pin-dialog-action="pinDialogAction"
+				@nextAction="pinDialogNextAction"
+			/>
+			<BiometricWarningAttempt
+				:warning-attempts="warningAttemptsStatus"
+				@closeBiometricWarningAttempts="verifyBiometric(pendingSwipeReset)"
+			/>
 		</div>
 	</div>
 </template>
