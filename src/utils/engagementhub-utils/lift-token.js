@@ -371,7 +371,7 @@ export async function executePurchaseFlow(params) {
 // consolidated BCH + NFT with 38-byte commitment data for swap contract
 // ================================
 
-export async function sendCustomPayment(data) {
+async function sendCustomPayment(data) {
   try {
     // gather needed utxos
     let utxos = await getUtxosFromWatchtower(data.walletHash)
