@@ -270,10 +270,10 @@ export async function executePurchaseFlow(params) {
   const addressIndex = getStoreGetter('global/getLastAddressIndex')('bch')
   const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
   const buyerAddress = await generateReceivingAddress({
-    walletIndex: getStoreGetter('global/getWalletIndex')(),
+    walletIndex: getStoreGetter('global/getWalletIndex'),
     derivationPath: getDerivationPathForWalletType('bch'),
     addressIndex: validAddressIndex,
-    isChipnet: getStoreGetter('global/isChipnet')()
+    isChipnet: getStoreGetter('global/isChipnet')
   })
   if (!buyerAddress) {
     throw new Error('FailedToGenerateAddress')
@@ -281,7 +281,7 @@ export async function executePurchaseFlow(params) {
 
   // Get address path and pubkey
   const addressPath = await getAddressPath(buyerAddress)
-  const walletIndex = getStoreGetter('global/getWalletIndex')()
+  const walletIndex = getStoreGetter('global/getWalletIndex')
   const { loadLibauthHdWallet } = await import('src/wallet')
   const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
   const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
