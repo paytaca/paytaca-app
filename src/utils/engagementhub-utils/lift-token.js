@@ -356,14 +356,7 @@ export async function executePurchaseFlow(params) {
     throw new Error('PurchasePaymentError')
   }
 
-  return {
-    success: true,
-    txid: result.txid,
-    data,
-    vestingContract,
-    buyerAddress,
-    pubkeyHex
-  }
+  return { success: true, txid: result.txid }
 }
 
 // ================================
