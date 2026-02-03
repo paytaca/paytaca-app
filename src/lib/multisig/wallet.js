@@ -50,6 +50,7 @@
  * @property {Object.<string, any>} [store.state]
  * @property {Object.<string, any>} [store.getters]
  * @property {(param: { xpub: string }) => Promise<string>} [resolveXprvOfXpub] - Function that resolves to xprv given an xpub
+ * @property {(param: { xpub: string }) => Promise<string>} [resolveMnemonicOfXpub] - Function that resolves to wallet's mnemonic given an xpub
  * 
  */
  
@@ -1254,15 +1255,18 @@ export class MultisigWallet {
    */
   async upload(enablePrivacy = true) {
 
+    if (!this.options?.resolveMnemonicOfXpub) return
+
     const wallet = structuredClone(this.toJSON())
+    wallet.descriptorId = this.generateBsmsDescriptorId()
 
     let coordinator = null
     for (const signer of wallet.signers) {
       if (!coordinator) {
-        const xprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub })
-        if (xprv) {
+        const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+        if (mnemonic) {
           coordinator = signer 
-          coordinator.xprv = xprv
+          coordinator.mnemonic = mnemonic
         }
       }
       if (enablePrivacy) {
@@ -1272,7 +1276,7 @@ export class MultisigWallet {
           unencryptedBsmsDescriptor
         )
         
-        signer.path = signer.path || signer.derivationPath || `m/44'/145'/0'`
+        signer.derivationPath = signer.path || signer.derivationPath || `m/44'/145'/0'`
         signer.publicKey = binToHex(MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub))
         signer.walletDescriptor = encryptedBsmsDescriptor 
         if (coordinator &&signer.xpub === coordinator.xpub) {
@@ -1285,13 +1289,13 @@ export class MultisigWallet {
     if (!coordinator) {
       throw new Error('You must be a cosigner with a private key on this device to upload the multisig wallet setup!')
     }
-    const xprv = coordinator.xprv
+    const mnemonic = coordinator.mnemonic
     wallet.signers.forEach(s => {
-      delete s.xprv
+      delete s.mnemonic
     })
     const uploadResponse = await this.options?.coordinationServer?.uploadWallet(
       wallet, 
-      generateCoordinationServerCredentialsFromXprv({ xprv })
+      generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
     )
 
     if (uploadResponse?.wallet) {
@@ -1609,6 +1613,10 @@ static cashAddressToTokenAddress(cashAddress) {
       return descriptor.toString()
   }
 
+  generateBsmsDescriptorId() {
+    return binToHex(sha256.hash(utf8ToBin(this.generateBsmsDescriptor())))
+  }
+
   /**
    * Parse a BSMS 1.0 descriptor record (multi-line string)
    *
@@ -1616,7 +1624,7 @@ static cashAddressToTokenAddress(cashAddress) {
    * @returns {Object} Parsed data
    * @throws {Error} If invalid format or version
    */
-  static parseBSMSRecord(bsmsText) {
+  static parseBsmsDescriptor(bsmsText) {
     if (typeof bsmsText !== 'string') {
       throw new Error('BSMS record must be a string');
     }
