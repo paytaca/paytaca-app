@@ -68,43 +68,68 @@
 		<div>
 			<!-- Service Group Selection -->
 			<div v-if="step === 1">
-				<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
+				<div v-if="!loading">
+					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Service Provider</div>
 
-				<div class="q-px-lg">
-				    <div class="row q-col-gutter-sm">
-				    	<div
-				    		v-for="(group, index) in serviceGroups"
-				    		:key="index"
-				    		class="col-4 col-sm-4"
-				     	>
-					        <q-card outlined class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('serviceGroup', group)"> 
-					        	<div class="sm-font-size text-weight-bold service-group-text">{{ group.name }}</div>			          
-					        </q-card>
-				      	</div>
-				    </div>
+					<div class="q-px-lg">
+					    <div class="row q-col-gutter-sm">
+					    	<div
+					    		v-for="(group, index) in serviceGroups"
+					    		:key="index"
+					    		class="col-4 col-sm-4"
+					     	>
+						        <q-card outlined class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('serviceGroup', group)"> 
+						        	<div class="sm-font-size text-weight-bold service-group-text">{{ group.name }}</div>			          
+						        </q-card>
+					      	</div>
+					    </div>
+					</div>
 				</div>
+
+				<div class="q-px-lg q-pt-md" v-else>
+					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
+
+					<div class="row q-col-gutter-md">
+			      <div class="col-4" v-for="n in 9" :key="n">
+			        <q-skeleton type="rect" class="full-width br-15" height="50px" />
+			      </div>
+			    </div>
+				</div>
+
 			</div>
 		</div>
 
 		<!-- Category Selection -->
 		<div v-if="step === 2">
-			<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
+			<div v-if="!loading">
+				<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
 
-			<div class="q-px-lg">
-				<div class="row q-col-gutter-sm">
-					<div
-						v-for="(category, index) in categories"
-				    	:key="index"
-				    	class="col-4 col-sm-4"
-					>
-						<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
-					    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
-						</q-card>
+				<div class="q-px-lg">
+					<div class="row q-col-gutter-sm">
+						<div
+							v-for="(category, index) in categories"
+					    	:key="index"
+					    	class="col-4 col-sm-4"
+						>
+							<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
+						    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
+							</q-card>
+						</div>
 					</div>
 				</div>
+
+				<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-if="!isLastPage('category')" @click="nextPage('category')">See More</div>
 			</div>
 
-			<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-if="!isLastPage('category')" @click="nextPage('category')">See More</div>
+			<div class="q-px-lg q-pt-md" v-else>
+				<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
+
+				<div class="row q-col-gutter-md">
+			  	<div class="col-4" v-for="n in 9" :key="n">
+			    	<q-skeleton type="rect" class="full-width br-15" height="50px" />
+			  	</div>
+			  </div>
+			</div>
 		</div>
 
 		<!-- Select Promo -->
@@ -287,7 +312,8 @@ export default {
 					limit: 9,
 					page: 1,
 					totalPages: 0
-				}
+				},
+				isSearch: false
 			}
 		}
 	},
@@ -429,21 +455,38 @@ export default {
 		'filters.service'(val) {
 			if (val) {
 				this.step++
-				this.fetchServiceGroup()
+
+				if (!this.isSearch) {
+					this.fetchServiceGroup()
+				}
 			}
 		},
 		'filters.serviceGroup'(val) {
 			if (val) {
 				this.step++
-				this.fetchCategory()
 
+				if (!this.isSearch) {
+					this.fetchCategory()
+				}					
+
+			} else {
+				console.log(this.filters)
+
+				// add searching service group with name
+				this.fetchServiceGroup()
 			}
 		},
 		'filters.category'(val) {
 			if (val) {
 				this.step++
-				this.fetchPromos()
+
+				if (!this.isSearch) {
+					this.fetchPromos()
+				}				
 				// fetch promos
+			} else {
+				console.log(this.filters)
+				this.fetchCategory()
 			}
 		},
 		selectedPromo (val) {
@@ -815,24 +858,30 @@ export default {
 				this.filters.category = null
 			}						
 		},
-		selectPromo(promo, search=false) {		
+		async selectPromo(promo, search=false) {		
 			this.selectedPromo = promo
 			this.ensurePhpBchRate()
 
 			if (search) {
-				this.filters.service = { name: promo.service }
+				this.isSearch = true 
+
+				setTimeout(() => { 
+					this.isSearch = false
+				}, 500);				
+				this.filters.service = this.services.find(service => service.name === promo.service);
 				this.filters.serviceGroup = { name: promo.service_group }
 
 				if (promo.category.toLowerCase() !== 'none' || promo.category) {
 					this.filters.category = { name: promo.category }
 				}
- 
-				this.step = 4
+				
+				this.step = 4				
 			} else {
 				this.step++	
 			}			
 		},
-		async fetchServiceGroup() {			
+		async fetchServiceGroup() {		
+			this.loading = true	
 			let data = {
 				service: this.filters.service,
 				limit: 10,
@@ -844,9 +893,12 @@ export default {
 				this.serviceGroups = result.data.service_group
 				this.paginationSettings.serviceGroup.totalPages = result.data.total_pages
 			}
+
+			this.loading = false
 		},
 		async fetchCategory(overflow=false) {
 			const vm = this
+			vm.loading = true
 			const setting = vm.paginationSettings.category
 			
 			let data = {
@@ -869,7 +921,9 @@ export default {
 					this.step++
 					this.fetchPromos()
 				}				
-			}			
+			}
+
+			vm.loading = false			
 
 		},
 		async fetchPromos (overflow=false) {
