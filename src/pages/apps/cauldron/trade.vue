@@ -320,7 +320,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
 import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { ExchangeLab } from '@cashlab/cauldron';
-import { binToHex, decodeTransactionBCH } from '@bitauth/libauth';
+import { binToHex } from '@bitauth/libauth';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex'
@@ -810,7 +810,10 @@ export default defineComponent({
       }
 
       const supply = isBuyingToken.value ? bchBalanceSats.value : selectedTokenBalance.value;
-      if (!supply) return
+      if (!supply) {
+        maxAmount.value = 0n;
+        return
+      }
 
       const supplyingBch = isBuyingToken.value;
 
@@ -822,6 +825,10 @@ export default defineComponent({
       const estimatePlatformFee = supplyingBch ? (supply * 3n / 1000n) : 0n;
       const estimateTxFee = 10_000n;
       const baseSupply = supply - estimatePlatformFee - estimateTxFee;
+      if (!baseSupply || baseSupply <= 0n) {
+        maxAmount.value = 0n;
+        return;
+      }
 
       const tradeResult = attemptTrade({
         pools: poolV0List,
@@ -942,30 +949,7 @@ export default defineComponent({
 
         const txHex = binToHex(tradeTxBuildResult.txbin);
 
-        const decodedTx = decodeTransactionBCH(tradeTxBuildResult.txbin);
-        if (typeof decodedTx === 'string') throw decodedTx
-        const totalOutput = decodedTx.outputs
-          .slice(_tradeResult.entries.length)
-          .filter(out => !out.token)
-          .map(out => out.valueSatoshis)
-          .reduce((a, b) => a + b)
-        const totalInputSats = inputCoins
-          .filter(coin => !coin.output.token)
-          .map(coin => coin.output.amount).reduce((a, b) => a + b);
-        
-        // throw new Error('BLOCK');
-
         dialog.update({ message: $t('BroadcastingTransaction') })
-  
-        // const userInputs = tradeTxBuildResult.libauth_source_outputs.slice(_tradeResult.entries.length);
-        // const totalUserInputs = userInputs.reduce((acc, input) => {
-        //   acc += input.valueSatoshis;
-        //   return acc;
-        // }, 0n);
-        // console.log('Total user inputs', totalUserInputs);
-        // console.log('Tx size', tradeTxBuildResult.txbin.byteLength);
-        // console.log('User inputs', userInputs);
-        // console.log('Payouts', tradeTxBuildResult.payouts_info);
 
         const broadcastResult = await bchWallet.watchtower.BCH.broadcastTransaction(txHex)
         if (broadcastResult.data?.error) throw new Error(broadcastResult?.data?.error)
