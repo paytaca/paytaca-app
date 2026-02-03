@@ -781,9 +781,11 @@ export default defineComponent({
         const tokenBalance = BigInt(tokenAsset?.balance || 0);
         selectedTokenBalance.value = tokenBalance;
 
-        tokenBalanceFetch = await bchWallet.getBalance(tokenId).then(response => {
+        tokenBalanceFetch = bchWallet.getBalance(tokenId).then(response => {
           $store.commit('assets/updateAssetBalance', { id: tokenAssetId, balance: response.balance })
-          selectedTokenBalance.value = BigInt(response.balance);
+          if (selectedToken.value?.token_id == tokenId) {
+            selectedTokenBalance.value = BigInt(response.balance);
+          }
         })
       }
       return Promise.all([bchBalanceFetch, tokenBalanceFetch])
