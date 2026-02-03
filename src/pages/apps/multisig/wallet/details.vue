@@ -77,12 +77,13 @@
                             </q-item-label>
                             <q-item-label caption>
                                 <div class="flex nowrap justify-between q-ma-sm">
-                                    <div class="text-bold">Can Sign On This Device?</div>
+                                    <div class="text-bold">{{ $t('CanSignOnThisDevice', {}, 'Can Sign On This Device') }}</div>
                                     <div>{{ hdPrivateKeys?.[signer.xpub] ? 'Yes' : 'No' }}</div>
                                 </div>
                             </q-item-label>
-                            <div class="flex nowrap justify-end q-my-md q-mx-sm">
-                                <CopyButton :text="JSON.stringify(signer)" :label="$t('CopySignerDetails', {}, 'Copy Signer Details')" />
+                            <div class="flex  justify-end q-my-md q-mx-sm q-gutter-x-sm">
+                              <q-btn v-if="hdPrivateKeys?.[signer.xpub]" @click="openCreateServerIdentityDialog(signer)" text-color="primary" rounded no-caps dense>{{ $t('CreateMultisigServerIdentity', {}, 'Create Server Identity') }}</q-btn> 
+                              <CopyButton :text="JSON.stringify(signer)" :label="$t('CopySignerDetails', {}, 'Copy Signer Details')" outline/>
                             </div>
                         </q-list>
                     </q-item-section>
@@ -101,7 +102,7 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-              <q-item>
+              <q-item v-if="wallet.isOnline()">
                 <q-item-section>
                   <q-item-label caption>{{ $t('WalletSetupOnlineId', {}, 'Wallet Setup Online Id') }}</q-item-label>
                   <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
@@ -145,16 +146,21 @@ import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'src/components/CopyButton.vue'
+import { generateCoordinatorServerIdentityFromMnemonic } from 'src/lib/multisig/wallet'
+import { generateCoordinationServerCredentialsFromMnemonic } from 'src/lib/multisig/wallet'
 
+
+const { t: $t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const route = useRoute()
-const { multisigNetworkProvider, resolveXprvOfXpub, getSignerXPrv} = useMultisigHelpers()
+const { multisigNetworkProvider, resolveXprvOfXpub, getSignerXPrv, getSignerMnemonic, multisigCoordinationServer } = useMultisigHelpers()
 
 const hdPrivateKeys = ref()
 
@@ -167,6 +173,7 @@ const wallet = computed(() => {
     return MultisigWallet.importFromObject(storedWallet, {
       store: $store,
       provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer,
       resolveXprvOfXpub: resolveXprvOfXpub
     })
   }
@@ -177,22 +184,78 @@ const loadHdPrivateKeys = async (signers) => {
   if (!hdPrivateKeys.value) {
     hdPrivateKeys.value = {}
   }
-  console.log('SIGNERS', signers)
   for (const signer of signers) {
-    try {
-      console.log('signer', signer.xpub)
-      const xprv = await getSignerXPrv({
-        xpub: signer.xpub
-      })
-      console.log('xprv', xprv)
-      if (xprv) {
-        hdPrivateKeys.value[signer.xpub] = xprv
-      }
-      
-    } catch (e) {
-      console.log('error', e)
-    } // getSignerXPrv throws if xprv not found, we'll just ignore
+    const xprv = await getSignerXPrv({
+      xpub: signer.xpub
+    })
+    if (xprv) {
+      hdPrivateKeys.value[signer.xpub] = xprv
+    } 
   }
+}
+
+const onProceedCreateServerIdentity = async (name, xpub) => {
+  const mnemonic = await getSignerMnemonic({
+    xpub
+  })
+
+  console.log('wallet.value.provider.network,', wallet.value.options)
+  if (mnemonic) {
+    const serverIdentity = generateCoordinatorServerIdentityFromMnemonic({
+      name,
+      mnemonic,
+      network: wallet.value.options?.provider?.network
+    })
+    
+    const authCredentials = await generateCoordinationServerCredentialsFromMnemonic({ 
+      mnemonic,
+      network: wallet.value.options?.provider?.network
+    })
+
+    
+    const response = await wallet.value.options.coordinationServer.createServerIdentity(serverIdentity, authCredentials)
+    console.log('RESPONSE', response)
+  }
+}
+
+const openCreateServerIdentityDialog = (signer) => {
+  const firstLineIndentStyle = 'text-indent: 2em; margin-top: 0;text-align: justify;';
+  const messageHtml = `
+    <p style="${firstLineIndentStyle}">
+      ${$t('CreateMultisigServerIdentityConfirmation', {}, 'This action will create a multisig server identity for this wallet.')}
+    </p>
+    <p style="${firstLineIndentStyle}">
+      ${$t('WhatIsAServerIdentity', {}, 'The multisig Server-Identity contains the name, a public key derived from this wallet using a different derivation path from the wallet that holds your funds. This is used when interacting with Paytaca\'s multisig coordination server.')}
+    </p>
+    <p style="${firstLineIndentStyle}">
+      ${$t('NoPrivateKeyIsUploadedGuarantee', {}, 'This action is safe, as no private key is uploaded to the server.')}
+    </p>
+    <p style="${firstLineIndentStyle}">
+      ${$t('DoYouWantToProceed', {}, 'Do you want to proceed?')}
+    </p>
+  `;
+  
+  $q.dialog({
+    message: messageHtml,
+    ok: { 
+      label: $t('Yes'),
+      color: 'primary',
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)}`,
+    },
+    cancel: { 
+      label: $t('No'),
+      color: 'default',
+      outline: true,
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)} `,
+    },
+    html: true,
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+  }).onOk(() => {
+    onProceedCreateServerIdentity(signer.name, signer.xpub)
+  })
+
 }
 
 const openRenameDialog = () => {
@@ -205,9 +268,9 @@ const openRenameDialog = () => {
 }
 
 onMounted(async () => {
-  console.log('wallet.value', wallet.value)
   await loadHdPrivateKeys(wallet.value?.signers)
 })
+
 </script>
 
 <style lang="scss" scoped>
