@@ -168,8 +168,7 @@ export default {
           walletBalance: this.walletBalance,
           reservationId: this.rsvp.id,
           partialPurchaseId: this.rsvp.reservation_partial_purchase?.id || -1,
-          getStoreGetter: (path) => this.$store.getters[path],
-          getTranslation: (key, params, fallback) => this.$t(key, params, fallback)
+          getStoreGetter: (path) => this.$store.getters[path]
         })
 
         this.processingMessage = "";
