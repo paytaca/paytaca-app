@@ -51,12 +51,13 @@
 		</div>
 
 		<div v-else>
-			<PromoSearch v-if="!loading && step === 0" class="q-px-lg" @select-promo="(promo) => {
-					selectPromo(promo, true)
-			}"/>	
-			<div v-else class="q-mx-lg q-pt-sm">
+			<div v-if="loading && step === 0" class="q-mx-lg q-pt-sm">
 				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
 			</div>
+			<PromoSearch v-else class="q-px-lg" @select-promo="(promo) => {
+					selectPromo(promo, true)
+			}"/>	
+			
 
 			<!-- Selecting Service -->
 			<div  class="q-mt-sm" v-if="step === 0">
