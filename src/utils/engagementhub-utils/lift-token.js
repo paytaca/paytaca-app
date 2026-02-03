@@ -194,6 +194,179 @@ export async function getIdAndPubkeyApi() {
 }
 
 // ================================
+// Purchase flow utility function
+// ================================
+
+/**
+ * Executes the complete purchase flow for LIFT tokens
+ * Consolidates duplicated logic from PayReservationConfirmDialog and BuyLiftDialog
+ * @param {Object} params - Purchase flow parameters
+ * @param {Object} params.purchase - Purchase data { tkn, usd, bch } or { tkn, usd, sats }
+ * @param {string} params.liftSwapContractAddress - Contract address
+ * @param {string} params.saleGroup - Sale group code ('seed', 'priv', etc.)
+ * @param {number} params.messageTimestamp - Oracle message timestamp (optional, will fetch if missing/zero)
+ * @param {Object} params.wallet - Wallet instance
+ * @param {number} params.walletBalance - Wallet balance in BCH
+ * @param {number} params.reservationId - Reservation ID (optional, -1 for direct purchases)
+ * @param {number} params.partialPurchaseId - Partial purchase ID (optional, -1 for direct purchases)
+ * @param {Function} params.getStoreGetter - Function to access Vuex store getters: (path) => value
+ * @returns {Promise<Object>} { success: boolean, txid: string, data: Object, vestingContract: Object, buyerAddress: string, pubkeyHex: string }
+ */
+export async function executePurchaseFlow(params) {
+  const {
+    purchase,
+    liftSwapContractAddress,
+    saleGroup,
+    messageTimestamp: providedMessageTimestamp,
+    wallet,
+    walletBalance,
+    reservationId = -1,
+    partialPurchaseId = -1,
+    getStoreGetter,
+  } = params
+
+  // Validate contract address
+  if (!liftSwapContractAddress) {
+    throw new Error('ContractAddressUnavailable')
+  }
+
+  // Validate wallet
+  if (!wallet) {
+    throw new Error('WalletUnavailable')
+  }
+
+  // Calculate payment amount in sats
+  let paymentSats
+  if (purchase.sats !== undefined) {
+    paymentSats = purchase.sats
+  } else if (purchase.bch !== undefined) {
+    paymentSats = Math.floor(Number(purchase.bch.toFixed(8) || 0) * 10 ** 8)
+  } else {
+    throw new Error('InvalidPurchaseAmount')
+  }
+
+  // Validate purchase amount
+  if (paymentSats <= 0 || Number.isNaN(paymentSats)) {
+    throw new Error('InvalidPurchaseAmount')
+  }
+
+  // Validate and fetch oracle data if messageTimestamp is missing or zero
+  let validMessageTimestamp = providedMessageTimestamp
+  if (!validMessageTimestamp || validMessageTimestamp === 0) {
+    try {
+      const oracleData = await getOracleData()
+      validMessageTimestamp = oracleData.messageTimestamp || validMessageTimestamp
+      if (!validMessageTimestamp || validMessageTimestamp === 0) {
+        throw new Error('FailedToGetOracleData')
+      }
+    } catch (err) {
+      console.warn('Failed to refresh oracle data:', err)
+      throw new Error('FailedToGetOracleData')
+    }
+  }
+
+  // Generate BCH address dynamically
+  const { generateReceivingAddress, getDerivationPathForWalletType } = await import('src/utils/address-generation-utils.js')
+  const addressIndex = getStoreGetter('global/getLastAddressIndex')('bch')
+  const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+  const buyerAddress = await generateReceivingAddress({
+    walletIndex: getStoreGetter('global/getWalletIndex')(),
+    derivationPath: getDerivationPathForWalletType('bch'),
+    addressIndex: validAddressIndex,
+    isChipnet: getStoreGetter('global/isChipnet')()
+  })
+  if (!buyerAddress) {
+    throw new Error('FailedToGenerateAddress')
+  }
+
+  // Get address path and pubkey
+  const addressPath = await getAddressPath(buyerAddress)
+  const walletIndex = getStoreGetter('global/getWalletIndex')()
+  const { loadLibauthHdWallet } = await import('src/wallet')
+  const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+  const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+
+  // Get contract data
+  const idPubkeyData = await getIdAndPubkeyApi()
+  if (!idPubkeyData) {
+    console.error('Failed to get ID and pubkey data')
+    throw new Error('FailedToGetContractData')
+  }
+  const { token_id, pubkey } = idPubkeyData
+
+  // Compute lockup end based on current date and sale group
+  const year = saleGroup === 'seed' ? 2 : 1
+  const lockupEnd = new Date(new Date().setFullYear(new Date().getFullYear() + year))
+
+  // Get token amount (ensure it's in the correct format)
+  const purchaseTkn = purchase.tkn || 0
+
+  // Initialize vesting contract
+  let vestingContract = null
+  try {
+    vestingContract = initializeVestingContract(pubkeyHex, token_id, pubkey, lockupEnd, purchaseTkn)
+  } catch (error) {
+    console.error('Failed to initialize vesting contract:', error)
+    throw new Error('FailedToInitializeVestingContract')
+  }
+
+  // Send custom payment
+  const result = await sendCustomPayment({
+    walletHash: wallet._BCH.walletHash,
+    amount: paymentSats,
+    swapContractAddress: liftSwapContractAddress,
+    wallet,
+    spendable: walletBalance,
+    libauthWallet,
+    nftData: {
+      isEarlySupporter: saleGroup === 'seed',
+      oracleMessageTimestamp: validMessageTimestamp,
+      bytecode: vestingContract.bytecode
+    }
+  })
+  if (!result?.success || !result?.txid) {
+    throw new Error('PaymentSendingError')
+  }
+
+  // Get token address
+  const { getWalletTokenAddress } = await import('src/utils/engagementhub-utils/rewards')
+  const tokenAddress = await getWalletTokenAddress()
+
+  // Prepare API data
+  const data = {
+    purchased_amount_usd: purchase.usd || 0,
+    purchased_amount_tkn: purchaseTkn,
+    purchased_amount_sats: paymentSats,
+    current_date: new Date().toISOString(),
+    tx_id: result.txid,
+    buyer_token_address: tokenAddress,
+    buyer_tx_address: buyerAddress,
+    reservation: reservationId,
+    partial_purchase: partialPurchaseId,
+    sale_group: saleGroup,
+    public_key: pubkeyHex,
+    message_timestamp: validMessageTimestamp,
+    vesting_contract_address: vestingContract.address,
+    lockup_end: lockupEnd,
+  }
+
+  // Process purchase via API
+  const isSuccessful = await processPurchaseApi(data)
+  if (!isSuccessful) {
+    throw new Error('PurchasePaymentError')
+  }
+
+  return {
+    success: true,
+    txid: result.txid,
+    data,
+    vestingContract,
+    buyerAddress,
+    pubkeyHex
+  }
+}
+
+// ================================
 // Separate section for the function to send custom payment transaction
 // consolidated BCH + NFT with 38-byte commitment data for swap contract
 // ================================
