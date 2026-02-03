@@ -1243,7 +1243,7 @@ export class MultisigWallet {
     if (otherWallet.version < (this.version ?? 0)) return this
     if (this.isOnline() && otherWallet.id !== this.id) return this
     if (this.walletHash !== otherWallet.walletHash) return this
-    if (!this.id) {
+    if (!this.isOnline()) {
       this.id = otherWallet.id
     }
     this.name = otherWallet.walletName || otherWallet.name
@@ -1294,13 +1294,13 @@ export class MultisigWallet {
     wallet.signers.forEach(s => {
       delete s.mnemonic
     })
-    const uploadResponse = await this.options?.coordinationServer?.uploadWallet(
+    const uploadedWallet = await this.options?.coordinationServer?.uploadWallet(
       wallet, 
       generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
     )
 
-    if (uploadResponse?.wallet) {
-      this.merge(uploadResponse?.wallet)
+    if (uploadedWallet?.id) {
+      this.merge(uploadedWallet)
       this.save()
     }
     return this
