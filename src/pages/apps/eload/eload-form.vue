@@ -155,9 +155,9 @@
 
 			<!-- Select Promo -->
 			<div v-if="step === 3">
-				<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
+				<div v-if="!loading">
+					<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
 
-				<!-- <q-card class="br-15 q-mx-lg"> -->
 					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 250}px`" ref="scrollTarget">
 						<q-card 
 							class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
@@ -167,18 +167,29 @@
 							style="overflow: auto;"
 							@click="selectPromo(promo)"
 						>
-							<!-- <q-item-section class="q-pb-sm"> -->
 								<div class="md-font-size text-bold">{{ promo.name }}</div>
 								<!-- <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'"> -->
 									<div>{{ promo.amount }} PHP</div>
 									<div class="sm-font-size">{{ promo.validity }}</div>
-								<!-- </div>						 -->
-							<!-- </q-item-section> -->
 						</q-card>
 
 						<div class="text-center text-grad q-pt-sm md-font-size text-bold see-more" v-if="!isLastPage('promo')" @click="nextPage('promo')">See More</div>		
-					</q-list>
-				<!-- </q-card>-->			
+					</q-list>					
+				</div>
+
+				<div v-else class="q-mx-lg q-pt-md">
+					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
+
+					<q-skeleton
+						v-for="i in 4"
+						:key="'svc-' + i"
+						animation="wave"
+						type="rect"
+						height="80px"
+						class="br-15 q-mb-md"
+					/>
+				</div>
+			
 			</div>
 
 			<div v-if="step > 3" class="q-mt-md">
@@ -947,6 +958,7 @@ export default {
 		},
 		async fetchPromos (overflow=false) {
 			const vm = this
+			vm.loading = true
 			const setting = vm.paginationSettings.promo
 
 			let data = {
@@ -970,7 +982,8 @@ export default {
 				}				
 			}
 
-			this.paginationSettings.promo.totalPages = result.data.total_pages			
+			this.paginationSettings.promo.totalPages = result.data.total_pages		
+			vm.loading = false	
 		},
 		preventPull (e) {
 	      let parent = e.target
