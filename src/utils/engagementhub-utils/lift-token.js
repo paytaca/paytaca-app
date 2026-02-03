@@ -399,59 +399,66 @@ async function sendCustomPayment(data) {
   }
 }
 
+/**
+ * Selects UTXOs by filtering to the most common address_path.
+ * If multiple paths have the same count, selects the path with the highest value UTXO.
+ * @param {Array} utxos - Array of UTXO objects with address_path, vout, and value properties
+ * @returns {Array} Filtered and sorted UTXOs (by value, descending)
+ */
+function selectUtxosByAddressPath(utxos) {
+  // Group utxos by address_path and filter to only
+  // those belonging to the most common address_path
+  if (!utxos || utxos.length === 0) return []
+  // Count occurrences of each address_path
+  // Only count utxos with vout === 0
+  const counts = utxos.reduce((acc, utxo) => {
+    if (utxo.vout === 0) {
+      acc[utxo.address_path] = (acc[utxo.address_path] || 0) + 1;
+    }
+    return acc;
+  }, {});
+  // Find the address_path with the greatest count
+  const maxCount = Math.max(...Object.values(counts));
+  const mostCommonPaths = Object.entries(counts)
+    .filter(([_, cnt]) => cnt === maxCount)
+    .map(([address_path]) => address_path);
+  // If tie, select the path whose utxo has the highest value
+  // and vout == 0; otherwise pick the first path
+  let selectedPath = mostCommonPaths[0];
+  if (mostCommonPaths.length > 1) {
+    // Find utxos with vout === 0 among most common paths
+    let bestPath = null;
+    let bestValue = -1;
+    for (const path of mostCommonPaths) {
+      const matchingUtxos = utxos.filter(u => u.address_path === path && u.vout === 0);
+      if (matchingUtxos.length > 0) {
+        // Pick highest value utxo for this path
+        const maxValueUtxo = matchingUtxos.reduce(
+          (maxUtxo, u) => u.value > maxUtxo.value ? u : maxUtxo, matchingUtxos[0]
+        );
+        if (maxValueUtxo.value > bestValue) {
+          bestPath = path;
+          bestValue = maxValueUtxo.value;
+        }
+      }
+    }
+    if (bestPath !== null) {
+      selectedPath = bestPath;
+    }
+  }
+  // Filter utxos to only those with the selected address_path
+  const filteredUtxos = utxos
+    .filter(u => u.address_path === selectedPath)
+    .sort((a, b) => b.value - a.value)
+  
+  return filteredUtxos
+}
+
 async function getUtxosFromWatchtower(walletHash) {
   // get utxos of wallethash from watchtower
   const utxos = await watchtower.BCH._api
     .get(`utxo/wallet/${walletHash}/?is_cashtoken=false`)
-    .then(resp => {
-      const utxos = resp.data.utxos
-      // Group utxos by address_path and filter to only
-      // those belonging to the most common address_path
-      if (!utxos || utxos.length === 0) return []
-      // Count occurrences of each address_path
-      // Only count utxos with vout === 0
-      const counts = utxos.reduce((acc, utxo) => {
-        if (utxo.vout === 0) {
-          acc[utxo.address_path] = (acc[utxo.address_path] || 0) + 1;
-        }
-        return acc;
-      }, {});
-      // Find the address_path with the greatest count
-      const maxCount = Math.max(...Object.values(counts));
-      const mostCommonPaths = Object.entries(counts)
-        .filter(([_, cnt]) => cnt === maxCount)
-        .map(([address_path]) => address_path);
-      // If tie, select the path whose utxo has the highest value
-      // and vout == 0; otherwise pick the first path
-      let selectedPath = mostCommonPaths[0];
-      if (mostCommonPaths.length > 1) {
-        // Find utxos with vout === 0 among most common paths
-        let bestPath = null;
-        let bestValue = -1;
-        for (const path of mostCommonPaths) {
-          const matchingUtxos = utxos.filter(u => u.address_path === path && u.vout === 0);
-          if (matchingUtxos.length > 0) {
-            // Pick highest value utxo for this path
-            const maxValueUtxo = matchingUtxos.reduce(
-              (maxUtxo, u) => u.value > maxUtxo.value ? u : maxUtxo, matchingUtxos[0]
-            );
-            if (maxValueUtxo.value > bestValue) {
-              bestPath = path;
-              bestValue = maxValueUtxo.value;
-            }
-          }
-        }
-        if (bestPath !== null) {
-          selectedPath = bestPath;
-        }
-      }
-      // Filter utxos to only those with the selected address_path
-      const filteredUtxos = utxos
-        .filter(u => u.address_path === selectedPath)
-        .sort((a, b) => b.value - a.value)
-      
-      return filteredUtxos
-    })
+    .then(resp => selectUtxosByAddressPath(resp.data.utxos))
   return utxos
 }
 
