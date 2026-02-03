@@ -1274,7 +1274,7 @@ export class MultisigWallet {
         
         signer.path = signer.path || signer.derivationPath || `m/44'/145'/0'`
         signer.publicKey = binToHex(MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub))
-        signer.walleDescriptor = encryptedBsmsDescriptor 
+        signer.walletDescriptor = encryptedBsmsDescriptor 
         if (coordinator &&signer.xpub === coordinator.xpub) {
           signer.coordinator = true
         }
