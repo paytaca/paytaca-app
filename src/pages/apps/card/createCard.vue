@@ -535,14 +535,59 @@
         <q-card style="min-width: 300px" class="br-15 q-pa-sm">
           <q-card-section>
             <div class="text-h6">Card Replacement</div>
-            <div class="text-subtitle2">Permanently remove and replace your card.</div>
+            <div class="text-subtitle3">Permanently remove and replace your card.</div>
           </q-card-section>
 
           <q-separator/>
 
           <q-card-section>
-              <div>Choose the card you want to replace:</div>
-              <div>List of cards here</div>
+              <div class="q-mb-sm text-weight-medium">Choose the card you want to replace:</div>
+              <div class="row q-col-gutter-sm justify-start">
+                <div
+                  v-for="card in subCards"
+                  :key="card.id"
+                  class="col-6 col-sm-4"
+                >
+                  <q-card
+                    bordered
+                    flat
+                    class="cursor-pointer transition-hover q-pa-sm text-center"
+                    :class="selectedCardToReplace?.id === card.id ? 'bg-blue-1 border-primary' : 'bg-white'"
+                    @click="selectedCardToReplace = card"
+                  >
+                    <div class="text-subtitle2 text-weight-bold text-black ellipsis">
+                      {{ card.name }}
+                    </div>
+
+                    <div class="row items-center justify-center q-mt-xs">
+                      <q-icon
+                        name="circle"
+                        size="8px"
+                        :class="card.status === 'Locked' ? 'text-negative' : 'status-blink'"
+                      />
+                      <span class="text-caption q-ml-xs text-grey-7">{{ card.status }}</span>
+                    </div>
+
+                    <div
+                      v-if="selectedCardToReplace?.id === card.id"
+                      class="absolute-top-right q-pa-xs"
+                    >
+                      <q-btn
+                        round
+                        dense
+                        unelevated
+                        size="xs"
+                        color="primary"
+                        icon="sync"
+                        class="rotate-animation"
+                      >
+                        <q-tooltip>Select card for replacement</q-tooltip>
+                      </q-btn>
+
+                    </div>
+                  </q-card>
+                </div>
+              </div>
           </q-card-section>
 
           <q-card-actions align="right">
@@ -617,6 +662,7 @@ import { selectedCurrency } from 'src/store/market/getters';
         allMerchants: [],
         // Card Replacement
         cardReplacementDialog: false,
+        selectedCardToReplace: null,
       }
     },
     
@@ -1155,6 +1201,14 @@ import { selectedCurrency } from 'src/store/market/getters';
     width: 250px;   
     height: 150px;  
     transition: transform 0.2s ease-in-out;
+  }
+
+  .border-primary {
+    border: 2px solid var(--q-primary) !important;
+  }
+
+  .transition-hover:hover {
+    background-color: #f0f4ff !important;
   }
  
 </style>
