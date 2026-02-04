@@ -212,7 +212,7 @@
                     </div>
 
                     <q-form @submit="onSubmit" class="q-col-gutter-sm">
-                      <q-input outlined dense v-model="formData.fullname" label="Full Name" />
+                      <q-input outlined dense v-model="formData.fullName" label="Full Name" />
                       
                       <div class="row q-col-gutter-sm">
                         <q-input outlined dense v-model="formData.city" label="City" class="col-6" />
@@ -552,8 +552,8 @@
                     bordered
                     flat
                     class="cursor-pointer transition-hover q-pa-sm text-center"
-                    :class="selectedCardToReplace?.id === card.id ? 'bg-blue-1 border-primary' : 'bg-white'"
-                    @click="selectedCardToReplace = card"
+                    :class="isCardSelected(card) ? 'selected-card-active' : 'unselected-card'"
+                    @click="toggleSelection(card)"
                   >
                     <div class="text-subtitle2 text-weight-bold text-black ellipsis">
                       {{ card.name }}
@@ -569,7 +569,7 @@
                     </div>
 
                     <div
-                      v-if="selectedCardToReplace?.id === card.id"
+                      v-if="isCardSelected(card)"
                       class="absolute-top-right q-pa-xs"
                     >
                       <q-btn
@@ -579,7 +579,6 @@
                         size="xs"
                         color="primary"
                         icon="sync"
-                        class="rotate-animation"
                       >
                         <q-tooltip>Select card for replacement</q-tooltip>
                       </q-btn>
@@ -592,7 +591,7 @@
 
           <q-card-actions align="right">
             <q-btn flat label="Close" color="primary" v-close-popup />
-            <q-btn flat label="Proceed" color="primary" v-close-popup />
+            <q-btn flat label="Proceed" color="primary" @click="handleCardReplacement"/>
           </q-card-actions>
 
         </q-card>
@@ -776,7 +775,70 @@ import { selectedCurrency } from 'src/store/market/getters';
       },
 
       cardReplacement(){
-        this.cardReplacementDialog = true;
+        this.cardReplacementDialog = true
+      },
+
+      toggleSelection (card) {
+        // if clicking the same card, deselect it
+        // otherwise, select the new card
+        if (this.selectedCardToReplace && this.selectedCardToReplace.id === card.id){
+          this.selectedCardToReplace = null
+        }
+        else {
+          this.selectedCardToReplace = card
+        }
+        console.log('Selected Card: ', this.selectedCardToReplace)
+      },
+
+      isCardSelected (card) {
+        return this.selectedCardToReplace && this.selectedCardToReplace.id === card.id
+      },
+
+      async handleCardReplacement () {
+        if(!this.selectedCardToReplace){
+          this.$q.notify({
+            message: 'Please select a card to replace first',
+            color: 'warning'
+          })
+          this.cardReplacementDialog = true
+          return
+        }
+
+        const cardToReplace = this.selectedCardToReplace
+
+        this.$q.loading.show({
+          message: `Deactivating ${cardToReplace.name}...`
+        })
+
+        try{
+          // card.deactivateCard(id)
+          // await card.replaceMerchantCard(cardToReplace.id)
+
+          await new Promise(resolve => setTimeout(resolve, 1500))
+          this.subCards = this.subCards.filter(c => c.id !== cardToReplace.id)
+
+          // Success
+          this.$q.notify({
+            message: `${cardToReplace.name} has been successfully deactivated.`,
+            color: 'positive',
+            icon: 'check_circle'
+          })
+
+          // Open the 'order physical card' form automatically
+          // reset selection
+          this.selectedCardToReplace = null
+          this.cardReplacementDialog = false
+
+          this.showForm = true
+        } catch(error){
+          console.error('Replacement failed: ', error)
+          this.$q.notify({
+            message: 'Could not process replacement. Please try again.',
+            color: 'negative'
+          })
+        } finally {
+          this.$q.loading.hide()
+        }
       },
 
       formatContractAddress(card) {
@@ -1210,5 +1272,16 @@ import { selectedCurrency } from 'src/store/market/getters';
   .transition-hover:hover {
     background-color: #f0f4ff !important;
   }
+
+  .unselected-card {
+    background-color: white !important;
+    color: #9e9e9e;
+  }
+
+  .selected-card-active {
+    background-color: white !important; 
+    border: 1px solid #027be3 !important;
+  }
+
  
 </style>
