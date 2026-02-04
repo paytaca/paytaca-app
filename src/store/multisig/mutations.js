@@ -51,7 +51,7 @@ export function saveWallet (state, wallet) {
 
 export function deleteWallet (state, { multisigWallet }) {
   const index = state.wallets.findIndex((wallet) => {
-    return wallet.id == multisigWallet.id
+    return getWalletHash(wallet) == getWalletHash(multisigWallet)
   })
   if (index === -1) return
   state.wallets.splice(index, 1)
