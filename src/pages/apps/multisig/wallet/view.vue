@@ -18,7 +18,7 @@
                 <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px; color:white">
                   <div class="flex justify-between items-center q-ma-md">
                     <div class="flex items-center q-gutter-x-sm">
-                      <q-icon name="mdi-wallet-outline" size="sm"></q-icon>
+                      <q-icon name="wallet" size="sm"></q-icon>
                       <span class="text-bold text-h5">{{wallet.name}}</span>
                     </div>
                     <q-icon v-if="wallet.isOnline()" name="mdi-cloud-check" size="sm" flat></q-icon>
@@ -123,7 +123,6 @@
                   <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
                     <q-chip v-for="signer, i in wallet.signers.slice(0, 3)" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat>
                       <q-avatar>
-                        
                         <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
                         <q-icon v-else name="person" size="sm"></q-icon>
                       </q-avatar>
@@ -335,9 +334,20 @@ const downloadWalletFile = (walletToExport) => {
 const handleDeleteWalletAction = () => {
   $q.dialog({
     message: $t('AreYouSureDeleteWallet'),
-    ok: { label: $t('Yes') },
-    cancel: { label: $t('No') },
-    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+    ok: { 
+      label: $t('Yes'),
+      color: 'primary',
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)}`,
+    },
+    cancel: { 
+      label: $t('No'),
+      color: 'default',
+      outline: true,
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)} `,
+    },
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
   }).onOk(() => {
     wallet.value.delete({ sync: false })
     router.push({ name: 'app-multisig' })
