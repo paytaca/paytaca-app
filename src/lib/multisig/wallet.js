@@ -1466,6 +1466,25 @@ async generateAuthCredentials(xpub) {
   return null
 }
 
+async loadSignersServerIdentity() {
+  if (!this.options?.coordinationServer) return
+  let modified = false
+  for (const signer of this.signers) {
+    const authCredentials = await this.generateAuthCredentials(signer.xpub)
+    if (!authCredentials) continue
+    const serverIdentity = await this.options.coordinationServer.getServerIdentity({ 
+      publicKey: authCredentials['X-Auth-PubKey'], 
+      authCredentialsGenerator: this 
+    })
+    if (serverIdentity) {
+      signer.serverIdentityId = serverIdentity.id
+      modified = true
+    }
+  }
+  if (!modified) return
+  this.save()
+}
+
 static cashAddressToTokenAddress(cashAddress) {
   return lockingBytecodeToCashAddress({ 
     bytecode: cashAddressToLockingBytecode(cashAddress).bytecode,
