@@ -89,16 +89,18 @@
           </div> -->
           <div class="col-xs-12 row justify-center q-gutter-y-xl">
             <div class="col-xs-12 text-center">
-              <q-btn @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                <q-icon class="default-text-color"  size="lg" name="qr_code" />
+              <q-btn @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+                <q-icon class="default-text-color" name="qr_code" />
               </q-btn>
               <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
+              <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('CreateNewWalletDescription', {}, `Setup a new multisig wallet`) }}</div>
             </div>
             <div class="col-xs-12 text-center">
-              <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                <q-icon class="default-text-color" size="lg" name="download" />
+              <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round>
+                <q-icon class="default-text-color" name="download" />
               </q-btn>
               <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
+              <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportWalletDescripition', {}, `Import a multisig wallet setup/config from different sources`) }}</div>
             </div>
           </div>
       </div>

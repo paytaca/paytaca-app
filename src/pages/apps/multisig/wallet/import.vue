@@ -11,7 +11,7 @@
               <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>{{ $t('ImportMultisigWalletConfiguration') }}
             </q-banner>
           </div>
-          <div class="flex column text-center q-gutter-y-xl q-mt-lg">
+          <div class="flex column text-center q-gutter-y-xl">
               <div>
                 <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
                   <q-icon class="default-text-color"  name="qr_code" />
