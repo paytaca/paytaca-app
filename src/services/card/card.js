@@ -108,7 +108,6 @@ export class Card {
    */
   async _ensureCardUserAuthenticated() {
     const user = await loadCardUser();
-    console.log('Loaded Card User for authentication:', user);
   }
 
   // ==================== WORKFLOWS ====================
@@ -237,7 +236,7 @@ export class Card {
     this._assertAuthNftService();
     
     // Check existing vout=0 UTXOs and calculate needed amount
-    const requiredSats = this.estimateMintSatsRequirement();
+    const requiredSats = this.estimateTokenOpSatsRequirement();
     const existingSats = await this._checkForFundingUtxos();
     
     if (existingSats < requiredSats) {
@@ -358,12 +357,12 @@ export class Card {
     const bchUtxos = walletUtxos.filter(u => !u.token);
 
     const availableSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis), 0n);
-    const mintSatsRequired = this.estimateCardMintSatsRequirement();
+    const mintSatsRequired = this.estimateTokenOpSatsRequirement();
 
     // If utxos are enough, use them to mint the auth token
     if (availableSats < mintSatsRequired) {
       // Otherwise, create a UTXO by sending the required satoshi to the curerent wallet's cashaddress
-      console.log('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
+      console.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
       await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
       await this._waitForTransaction();
     }
@@ -524,7 +523,6 @@ export class Card {
 
       return mutateResponse;
     } catch (error) {
-      console.error('Mutation failed:', error);
       throw error;
     }
   }
@@ -533,7 +531,7 @@ export class Card {
    * Sweeps the card's BCH balance to an external address
    * @returns {Promise<Object>}
    */
-  async sweepCard() {
+  async sweep() {
     this._assertContract();
     this._assertWallet();
 
@@ -559,7 +557,6 @@ export class Card {
       this._assertWallet();
       
       const resp = await this.wallet.getBchUtxos()
-      console.log('UTXO response:', resp);
       const utxos = resp.utxos || [];
       const voutZeroUtxos = utxos.filter(utxo => utxo.tx_pos === 0);
       
@@ -588,18 +585,18 @@ export class Card {
    * Estimates total satoshis needed for both genesis and global auth token minting
    * @returns {bigint} Estimated total satoshis needed
    */
-  estimateCardMintSatsRequirement() {
+  estimateCreateCardSatsRequirement() {
     this._assertWallet();
-    return this.estimateMintSatsRequirement() * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
+    return this.estimateTokenOpSatsRequirement() * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
   }
 
   /**
    * Estimates satoshis needed for minting a token
    * @returns {Promise<bigint>} Estimated satoshis needed for minting auth token
    */
-  estimateMintSatsRequirement() {
+  estimateTokenOpSatsRequirement() {
     this._assertWallet();
-    return this.wallet.estimateMintSatsRequirement();
+    return this.wallet.estimateTokenOpSatsRequirement();
   }
 
   /**

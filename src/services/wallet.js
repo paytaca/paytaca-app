@@ -159,10 +159,10 @@ export class Wallet {
   }
 
   /**
-   * Create a funding UTXO for cashtoken genesis minting (vout=0 utxo).
-   * @param {*} satsAmount amount of satoshis to send
-   * @param {*} receivingAddress receiving address for the funding UTXO, if null uses the wallet's first receiving address
-   * @returns {Promise} API response with transaction details
+   * Create a funding UTXO (vout=0) for NFT-related operations.
+   * @param {number|bigint} [satsAmount] - Amount in satoshis to send.
+   * @param {string|null} [receivingAddress] - Destination address; defaults to the wallet's first receiving address.
+   * @returns {Promise<Object>} API response with transaction details.
    */
   async createFundingUtxo (satsAmount, receivingAddress = null) {
     const wallet = await this.getRawWallet();
@@ -171,7 +171,7 @@ export class Wallet {
     }
     
     // Use provided amount or estimate full requirement
-    const satsToSend = satsAmount || this.estimateMintSatsRequirement();
+    const satsToSend = satsAmount || this.estimateTokenOpSatsRequirement();
     const bchAmount = Number(satsToSend) / 1e8;
     
     console.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
@@ -187,11 +187,12 @@ export class Wallet {
   }
 
   /**
-   * Estimates satoshis needed for token mint operation
+   * Estimates satoshis needed for token-related operation
    * Based on actual mainnet-js transaction requirements
+   * NB: Fragile estimation; should implement dynamic fee calculation
    * @returns {bigint} Estimated satoshis needed
    */
-  estimateMintSatsRequirement () {
+  estimateTokenOpSatsRequirement () {
     const tokenOutputValue = minTokenValue; // 1000 sats from constants
     const estimatedTxSize = 500; // More realistic: includes change outputs, token data
     const feeRate = 1.2; // sats/byte
@@ -201,7 +202,7 @@ export class Wallet {
     
     const total = tokenOutputValue + estimatedFee + dustLimit + buffer;
     
-    console.log('Estimated mint sats requirement:', {
+    console.log('Estimated token operation sats requirement:', {
       tokenOutputValue,
       estimatedFee,
       dustLimit,

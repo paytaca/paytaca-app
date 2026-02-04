@@ -1,69 +1,76 @@
 
-
-/**
- * Authentication Token Manager for Card Services
- * 
- * This module manages the creation, minting, issuance, mutation, and burning of authentication tokens
- * in the Paytaca card system. It provides functionality to:
- * - Generate genesis tokens with minting capabilities
- * - Mint NFT tokens with terminal-specific commitments (authorization, expiration, spend limits)
- * - Issue tokens to recipients with specific capabilities
- * - Mutate token commitments (update authorization, expiration, spend limits)
- * - Burn tokens associated with specific terminals
- * 
- * The module uses mainnet-js Wallet to interact with the Bitcoin Cash blockchain and employs
- * commitment encoding/decoding to embed terminal metadata (ID, public key, authorization state,
- * expiration block, and spend limit) into token commitments for validation and access control.
- * 
- */
-
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
 import { defaultSpendLimitSats, minTokenValue } from './constants';
 
+/**
+ * Service wrapper for issuing and managing authorization NFTs using mainnet-js.
+ *
+ * Provides helpers to initialize a wallet, mint/issue/mutate/burn NFTs, and
+ * query balances and token UTXOs for a given token category.
+ */
 class AuthNftService {
 
+    /**
+     * Creates a service instance and initializes a wallet from WIF.
+     * @param {string} wif
+     * @returns {Promise<AuthNftService>}
+     */
     static async initializeWithWallet(wif) {
         const service = new AuthNftService(wif);
         service.wallet = await Wallet.fromWIF(wif);
         return service;
     }
 
-    async getTokenUtxos(tokenId) {
+    /**
+     * Ensures a wallet instance is available.
+     * @private
+     * @throws {Error} When wallet is not initialized.
+     */
+    _assertWallet() {
         if (!this.wallet) {
-            await this.initWallet();
+            throw new Error('Wallet not initialized. Call initWallet() first.');
         }
+    }
 
+    /**
+     * Fetches token UTXOs for a token category.
+     * @param {string} tokenId
+     * @returns {Promise<Array>}
+     */
+    async getTokenUtxos(tokenId) {
+        this._assertWallet();
         const utxos = await this.wallet.getTokenUtxos(tokenId);
         return utxos;
     }
 
+    /**
+     * Fetches mutable token UTXOs for a token category.
+     * @param {string} tokenId
+     * @returns {Promise<Array>}
+     */
     async getMutableTokens(tokenId) {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
-
+        this._assertWallet();
         const utxos = await this.wallet.getTokenUtxos(tokenId);
         return utxos.filter(utxo => utxo.token.capability === 'mutable')
     }
 
+    /**
+     * Returns the wallet BCH balance.
+     * @returns {Promise<Object>}
+     */
     async getBalance() {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
-
+        this._assertWallet();
         const balance = await this.wallet.getBalance();
         return balance;
     }
 
     /**
-     * Mint a token with minting capability
-     * @returns {Promise} API response with created genesis token
+     * Mints a genesis token with minting capability.
+     * @returns {Promise<Object>} API response with created genesis token
      */
     async genesis() {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
+        this._assertWallet();
 
         // Create a genesis token
         const response = await this.wallet.tokenGenesis({
@@ -72,19 +79,20 @@ class AuthNftService {
             capability: NFTCapability.minting,
             value: minTokenValue,
         });
-        console.log(response);
+
         return response;
     }
 
+    /**
+     * Mints mutable authorization NFTs for the provided merchants.
+     * @param {Object} params
+     * @param {string} params.tokenId
+     * @param {Array<Object>} params.merchants
+     * @param {Object} [params.options]
+     * @returns {Promise<Object>}
+     */
     async mint({ tokenId, merchants, options }) {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
-
-        console.log(this.wallet.cashaddr)
-        const walletUtxos = await this.wallet.getUtxos()
-        const filteredUtxos = walletUtxos.filter(u => !u.token)
-        console.log('filteredUtxos:', filteredUtxos);
+        this._assertWallet();
 
         const tokenMintRequests = [];
         for (let i = 0; i < merchants.length; i++) {
@@ -119,10 +127,14 @@ class AuthNftService {
         return response;
     }
 
+    /**
+     * Issues token send requests to recipients.
+     * @param {Object} params
+     * @param {Array<Object>} params.recipients
+     * @returns {Promise<Object>}
+     */
     async issue({ recipients }) {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
+        this._assertWallet();
 
         const sendRequests = [];
         for (let i = 0; i < recipients.length; i++) {
@@ -143,10 +155,15 @@ class AuthNftService {
         return result;
     }
 
+    /**
+     * Rewrites commitments for mutable NFTs by re-issuing them to the wallet.
+     * @param {Object} params
+     * @param {string} params.tokenId
+     * @param {Array<Object>} params.mutations
+     * @returns {Promise<void>}
+     */
     async mutate({ tokenId, mutations }) {
-        if (!this.wallet) {
-            await this.initWallet();
-        }
+        this._assertWallet();
 
         const recipients = mutations.map(m => {
             const newCommitment = encodeCommitment({
@@ -158,7 +175,6 @@ class AuthNftService {
                     pk: m.pubkey
                 }
             })
-            console.log('newCommitment:', newCommitment)
             return {
                 address: this.wallet.cashaddr,
                 tokenId: tokenId,
@@ -166,15 +182,23 @@ class AuthNftService {
                 commitment: newCommitment
             }
         })
-        console.log('mutating: ', recipients)
         await this.issue({ recipients })
     }
 
+    /**
+     * Burns mutable authorization NFTs for global auth, specific merchants, or all.
+     *
+     * If `merchants` is empty or `options.all` is true, a blank merchant hash
+     * (`""`) is added to target the global auth token.
+     *
+     * @param {Object} params
+     * @param {string} params.tokenId
+     * @param {Array<Object>} params.merchants
+     * @param {{ all?: boolean }} [params.options]
+     * @returns {Promise<Array>}
+     */
     async burn ({ tokenId, merchants, options = { all: false } }) {
-        console.log('burn called with tokenId:', tokenId, 'merchants:', merchants);
-        if (!this.wallet) {
-            await this.initWallet();
-        }
+        this._assertWallet();
 
         let merchantHashes = [];
         if (merchants.length > 0) {
@@ -184,29 +208,23 @@ class AuthNftService {
                     merchantId: merchant.id,
                     merchantPk: merchant.pubkey
                 });
-                console.log('hex;', merchantHash);
                 return merchantHash;
             })
         } 
         
         if (merchantHashes.length === 0 || options.all) {
-            merchantHashes.push(undefined); // Burns global auth tokens without merchant hash
+            merchantHashes.push(""); // Burns global auth tokens without merchant hash
         }
 
-        console.log('merchantHashes:', merchantHashes)
         const utxos = await this.wallet.getTokenUtxos(tokenId)
         const mutableUtxos = utxos.filter(utxo => utxo.token.capability === NFTCapability.mutable);
-        console.log('mutableUtxos:', mutableUtxos)
 
         const utxosToBurn = mutableUtxos.filter(utxo => {
-            console.log('Checking utxo:', utxo)
             const commitment = decodeCommitment(utxo.token.commitment)
-            console.log('Decoded commitment:', commitment)
             return utxo.token.capability === NFTCapability.mutable &&
                     merchantHashes.includes(commitment.hash)
         })
         
-        console.log('utxosToBurn:', utxosToBurn)
         const burnResponses = [];
         for(let i = 0; i < utxosToBurn.length; i++) {
             const element = utxosToBurn[i]
@@ -224,6 +242,13 @@ class AuthNftService {
     
 }
 
+/**
+ * Encodes a merchant identifier into a truncated SHA-256 hash.
+ * @param {Object} params
+ * @param {string|number} params.merchantId
+ * @param {string} params.merchantPk - Merchant public key (hex).
+ * @returns {{ buf: Buffer|null, hex: string }}
+ */
 function encodeMerchantHash({ merchantId, merchantPk }) {
     if (!merchantId || !merchantPk) {
         return { buf: null, hex: '' };
@@ -239,6 +264,14 @@ function encodeMerchantHash({ merchantId, merchantPk }) {
     return { buf: truncatedHashBuf, hex: truncatedHashHex };
 }
 
+/**
+ * Encodes authorization data into an NFT commitment (hex).
+ * @param {Object} params
+ * @param {boolean} params.authorized
+ * @param {{ id: string|number, pubkey: string }} [params.merchant]
+ * @param {string|number|bigint} params.spendLimitSats
+ * @returns {string} Hex commitment.
+ */
 function encodeCommitment({ authorized, merchant, spendLimitSats }) {
     if (!spendLimitSats) throw new Error ('missing required spend limit')
 
@@ -263,6 +296,11 @@ function encodeCommitment({ authorized, merchant, spendLimitSats }) {
     return commitment.toString('hex'); 
 }
 
+/**
+ * Decodes an NFT commitment hex into its fields.
+ * @param {string} hex
+ * @returns {{ authorized: boolean, spendLimitSats: bigint, hash: string }|null}
+ */
 function decodeCommitment(hex) {
     if (hex.length === 0) return null;
     const buf = Buffer.from(hex, 'hex');

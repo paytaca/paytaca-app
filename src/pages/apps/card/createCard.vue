@@ -608,6 +608,8 @@ import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
 import { loadCardUser } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
+import { get } from 'http';
+import { ca } from 'date-fns/locale';
 
   
   export default {
@@ -669,96 +671,210 @@ import { selectedCurrency } from 'src/store/market/getters';
       console.log("GO!")
 
       try {
-        const cardUser = await loadCardUser()
-        const cards = await cardUser.fetchCards()
-        if (cards.length === 0) {
-          console.warn('No cards found for the user.')
-          return
-        }
 
-        // const card = cards[cards.length - 1] // get the last card for testing
-        // console.log('Loaded Cards:', cards)
-        // console.log('Using Card:', card)
+        const card = await this.getCard()
+        console.log('Card:', card)
+        console.log('Card address:', card.raw.cash_address)
+        await card.getAuthNfts().then(authNfts => {
+          console.log('Card Auth NFTs:', authNfts)
+        })
 
-        // await card.getAuthNfts().then(authNfts => {
-        //   console.log('Card Auth NFTs:', authNfts)
-        // })
+        await card.getUtxos().then(utxos => {
+          console.log('Card UTXOs:', utxos)
+        })
 
-        // const merchants = await card.getMerchantList()
-        // if (merchants.results.length === 0) {
-        //   console.warn('No merchants found in the merchant list.')
-        //   return
-        // }
-        
-        // for merchant search in Manage Auth NFT dialog
-        // if (merchants && merchants.results) {
-        //   this.allMerchants = merchants.results
-        // }
-
-        // const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
-
-        // console.log('Merchants:', merchants)
-        // console.log('Selected Merchant:', selectedMerchant)
-        //---------------------------------------------------
-        // // Example: Minting and issuing merchant auth token
-        // const mintParams = {
-        //   authorized: true,
-        //   merchant: {
-        //     id: selectedMerchant.id,
-        //     pubkey: selectedMerchant.pubkey
-        //   }
-        // }
-        // const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
-        // console.log('Mint Result:', mintResult)
-        // console.log('Issue Result:', issueResult)
-
-        // // ============ Mutating Merchant Auth Token =============
-        // // (needs contract funded with some BCH for gas fees)
-        // await card.mutateMerchantAuthToken({
-        //   authorize: true,
-        //   merchant: {
-        //     id: selectedMerchant.id,
-        //     pubkey: selectedMerchant.pubkey
-        //   },
-        //   // spendLimitSats: 1000, // Optional: can omit if not changing
-        //   broadcast: true // Change to true to broadcast to blockchain
-        // })
-        // ------------------------------------------
-        // await card.getAuthNfts().then(authNfts => {
-        //   console.log('Card Auth NFTs after mutation:', authNfts)
-        // })
+        // this.burnMerchantAuthToken()
+        // this.burnGlobalAuthToken()
+        // await this.mutateGlobalAuthToken()
+        // await this.mintMerchantAuthToken()
+        // await this.mutateMerchantAuthToken()
+        // await this.spend(1000)
+        // await this.sweep()
 
       } catch (error) {
-        // console.error('Error during mounted lifecycle:', error)
-      }
-
-    },
-
-    computed: {
-      // merchant search in manage auth nfts
-      filteredMerchants () {
-        if (!this.merchantSearch) return []
-
-        const search = this.merchantSearch.toLowerCase()
-        return this.allMerchants.filter(merchant => {
-          return merchant.name.toLowerCase().includes(search)
-        })
-      },
-
-      heroStyle () {
-        return {
-          background: 'linear-gradient(135deg, #027be3 0%, #26a69a 50%, #9c27b0 100%)',
-          borderRadius: '24px',
-          minHeight: '500px',
-          width: '100%',
-          maxWidth: '1100px',
-          overflow: 'hidden'
-        }
         console.error('Error during mounted lifecycle:', error.response || error)
       }
     },
 
     methods: {
+      async getCardUser() {
+        const cardUser = await loadCardUser()
+        console.log('CardUser:', cardUser)
+        return cardUser
+      },
+
+      async getCard() {
+        const cardUser = await this.getCardUser()
+        const cards = await cardUser.fetchCards()
+        if (cards.length === 0) {
+          console.warn('No cards found for the user.')
+          return
+        }
+        const card = cards[cards.length - 1] // get the last card for testing
+        return card
+      },
+
+      async getMerchant() {
+        // Fetching merchant list and selecting one for testing
+        const card = await this.getCard()
+        const merchants = await card.getMerchantList()
+        if (merchants.results.length === 0) {
+          console.warn('No merchants found in the merchant list.')
+          return
+        }
+        const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
+        console.log('Selected Merchant:', selectedMerchant)
+        return selectedMerchant
+      },
+
+      async mutateGlobalAuthToken() {
+        try {
+          const card = await this.getCard()
+          const result = await card.mutateGlobalAuthToken({
+            authorize: true,
+            spendLimitSats: 1000, // Optional: can omit if not changing
+            broadcast: true 
+          })
+          console.log('Mutate Global Auth Token result:', result)
+        } catch(error) {
+          const satsNeeded = this.parseSatoshisNeeded(error.message)
+          if (satsNeeded !== null) {
+            console.error("Insufficient funds in contract:", error.message)
+          } else {
+            console.error(error)
+          }
+        }
+      },
+
+      async mutateMerchantAuthToken() {
+        try {
+          const card = await this.getCard()
+          const selectedMerchant = await this.getMerchant()
+          const result = await card.mutateMerchantAuthToken({
+            authorize: false,
+            merchant: {
+              id: selectedMerchant.id,
+              pubkey: selectedMerchant.pubkey
+            },
+            spendLimitSats: 1000, // Optional: can omit if not changing
+            broadcast: true 
+          })
+          console.log('Mutate Merchant Auth Token result:', result)
+        } catch(error) {
+          const satsNeeded = this.parseSatoshisNeeded(error.message)
+          if (satsNeeded !== null) {
+            console.error("Insufficient funds in contract:", error.message)
+          } else {
+            console.error(error)
+          }
+        }
+      },
+
+      async mintMerchantAuthToken() {
+        const card = await this.getCard()
+        const selectedMerchant = await this.getMerchant()
+        const mintParams = {
+          authorized: true,
+          merchant: {
+            id: selectedMerchant.id,
+            pubkey: selectedMerchant.pubkey
+          }
+        }
+        const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
+        console.log('Mint Result:', mintResult)
+        console.log('Issue Result:', issueResult)
+      },
+
+      async spend(amountSats = 1000) {
+        const card = await this.getCard()
+        const toAddress = card.wallet.address()
+        const selectedMerchant = await this.getMerchant()
+        const spendResult = await card.spend(
+          selectedMerchant.id,
+          toAddress,
+          amountSats,
+        )
+        console.log('spendResult:', spendResult)
+      },
+
+      async sweep() {
+        const card = await this.getCard()
+        await card.getUtxos().then(utxos => {
+          console.log('Card UTXOs (before sweep):', utxos)
+        })
+
+        const result = await card.sweep()
+        console.log('sweep result:', result)
+
+        await card.getUtxos().then(utxos => {
+          console.log('Card UTXOs (after sweep):', utxos)
+        })
+      },
+
+      async burnMerchantAuthToken({ retryOnFundFailure = true } = {}) {
+        try {
+          const cardUser = await this.getCardUser()
+          const card = await this.getCard()
+          const selectedMerchant = await this.getMerchant()
+          const tokenId = card.raw.category
+          const result = await cardUser.burnMerchantAuthToken(tokenId, selectedMerchant.id, selectedMerchant.pubkey)
+          console.log('Burn Tokens result:', result)
+
+          await cardUser.fetchAuthTokens(tokenId).then(authTokens => {
+            console.log('[CardUser] Auth Tokens:', authTokens)
+          })
+        } catch (error) {
+          console.error('Error burning merchant auth token:', error)
+          if (retryOnFundFailure)
+            await this.createFundingUtxoAndCallback(error, this.burnMerchantAuthToken)
+        }
+      },
+
+      async burnGlobalAuthToken( { retryOnFundFailure = true } = {}) {
+        try {
+          const cardUser = await this.getCardUser()
+          const card = await this.getCard()
+          const tokenId = card.raw.category
+          const result = await cardUser.burnGlobalAuthToken(tokenId)
+          console.log('Burn Global Auth Token result:', result)
+
+          await cardUser.fetchAuthTokens(tokenId).then(authTokens => {
+            console.log('[CardUser] Auth Tokens:', authTokens)
+          })
+        } catch (error) {
+          console.error('Error burning global auth token:', error)
+          if (retryOnFundFailure)
+            await this.createFundingUtxoAndCallback(error, this.burnGlobalAuthToken)
+        }
+      },
+
+      async createFundingUtxoAndCallback(error, operationCallback) {
+        console.error(error)
+        const satsNeeded = this.parseSatoshisNeeded(error.message)
+        console.log('Satoshis needed for operation:', satsNeeded)
+        if (satsNeeded !== null) {
+          const cardUser = await this.getCardUser()
+          const result = await cardUser.wallet.createFundingUtxo(satsNeeded)
+          console.log('Funding UTXO created:', result)
+          console.log('Retrying operation...')
+          await operationCallback({retryOnFundFailure: false})
+        }
+      },
+
+      parseSatoshisNeeded(message) {
+        const patterns = [
+          /(\d+)\s+satoshis\s+needed/i,
+          /needed\s*\((\d+)\)/i
+        ];
+
+        for (const pattern of patterns) {
+          const match = message.match(pattern);
+          if (match) return Number(match[1]);
+        }
+
+        return null;
+      },
+
       // Open dialog
       openCreateCardDialog(){
         this.newCardName = '';
@@ -847,7 +963,9 @@ import { selectedCurrency } from 'src/store/market/getters';
         try {
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
-          const estimatedFees = Card.estimateCardMintSatsRequirement()
+          // initializing the card helper
+          const card = await Card.createInitialized()
+          const estimatedFees = card.estimateCreateCardSatsRequirement()
           console.log('Estimated total sats needed for minting:', estimatedFees)
           console.log('Wallet balance (sats):', this.walletBalance * 1e8)
           const balanceSats = BigInt(Math.floor(this.walletBalance * 1e8))
@@ -859,11 +977,9 @@ import { selectedCurrency } from 'src/store/market/getters';
             return
           }
 
-          // initializing the card helper
-          // const card = await Card.createInitialized()
-          // // execute workflow from card.js
-          // await card.create()
-          // const tokenId = card.tokenId
+          // execute workflow from card.js
+          await card.create()
+          const tokenId = card.tokenId
 
           // // load user from card/auth
           // const user = await loadCardUser()

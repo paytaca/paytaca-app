@@ -189,7 +189,6 @@ export class CardUser {
      * @returns {Promise<Array<Card>>}
      */
     async fetchCards() {
-        console.log('Fetching card info for user...');
         try {
             const response = await backend.get('/cards/');
             const cards = await Promise.all(
@@ -256,7 +255,7 @@ export class CardUser {
      * @param {string} tokenId Token ID/category to burn.
      * @returns {Promise<void>}
      */
-    async burnGlobalAuthTokens(tokenId) {
+    async burnGlobalAuthToken(tokenId) {
         return await this._burnAuthTokens({ tokenId });
     }
 
@@ -330,8 +329,6 @@ export async function loadCardUser() {
     try {
         const wallet = await loadWallet();
         const user = await fetchCardUser(wallet);
-        
-        console.log('[user.js] Loaded Card User:', user);
         
         if (!user.is_authenticated) {
             await user.login();

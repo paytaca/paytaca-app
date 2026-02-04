@@ -5,7 +5,6 @@ import {
   hexToBin,
   decodeCashAddress,
   encodeCashAddress,
-  CashAddressNetworkPrefix,
   CashAddressType
 } from "@bitauth/libauth"
 import { BLOCK_TIME_SEC } from './constants.js'
