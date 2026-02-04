@@ -696,6 +696,29 @@ import { ca } from 'date-fns/locale';
       }
     },
 
+    computed: {
+      // merchant search in manage auth nfts
+      filteredMerchants () {
+        if (!this.merchantSearch) return []
+
+        const search = this.merchantSearch.toLowerCase()
+        return this.allMerchants.filter(merchant => {
+          return merchant.name.toLowerCase().includes(search)
+        })
+      },
+
+      heroStyle () {
+        return {
+          background: 'linear-gradient(135deg, #027be3 0%, #26a69a 50%, #9c27b0 100%)',
+          borderRadius: '24px',
+          minHeight: '500px',
+          width: '100%',
+          maxWidth: '1100px',
+          overflow: 'hidden'
+        }
+      }
+    },
+
     methods: {
       async getCardUser() {
         const cardUser = await loadCardUser()
