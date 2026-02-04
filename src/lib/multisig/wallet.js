@@ -1294,10 +1294,9 @@ export class MultisigWallet {
     wallet.signers.forEach(s => {
       delete s.mnemonic
     })
-    const uploadedWallet = await this.options?.coordinationServer?.uploadWallet(
-      wallet, 
-      generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
-    )
+    const uploadedWallet = await this.options?.coordinationServer?.uploadWallet({ 
+      wallet, authCredentialsGenerator: this 
+    })
 
     if (uploadedWallet?.id) {
       this.merge(uploadedWallet)
@@ -1452,20 +1451,19 @@ export class MultisigWallet {
  * Resolves with authentication credentials including the signed message and xpub used.
  */
 async generateAuthCredentials(xpub) {
-  if (!this.options.resolveXprvOfXpub) return null
-  
   if (xpub) {
-    const xprv = await this.options?.resolveXprvOfXpub({ xpub })
-    if (!xprv) return null
-    return MultisigWallet.generateAuthCredentials({ xprv, xpub })
+    const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub })
+    if (!mnemonic) return null
+    return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
   }
-  
-  for (const s of this.signers) {
-    const xprv = await this.options?.resolveXprvOfXpub({ xpub: s.xpub })
-    if (xprv) {
-      return MultisigWallet.generateAuthCredentials({ xprv, xpub: s.xpub })
+  for (const signer of this.signers) {
+    // use first mnemonic found
+    const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+    if (mnemonic) {
+      return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
     }
-  } 
+  }
+  return null
 }
 
 static cashAddressToTokenAddress(cashAddress) {
