@@ -1215,7 +1215,7 @@ export class MultisigWallet {
   async save(saveOptions) {
     if (this.options?.store ) {
       if (this.options?.store?.commit) {
-        this.options.store.commit('multisig/saveWallet', this)
+        this.options.store.commit('multisig/saveWallet', this.toJSON())
       }
       if (this.options?.store?.dispatch && saveOptions?.sync) {
         return await this.upload()
@@ -1311,8 +1311,8 @@ export class MultisigWallet {
    */
   async delete(deleteOptions) {
     if (this.options?.store) {
-      if (this.options?.store?.dispatch) {
-        this.options.store.dispatch('multisig/deleteWallet', { multisigWallet: this, ...deleteOptions})
+      if (this.options?.store?.commit) {
+        this.options.store.commit('multisig/deleteWallet', { multisigWallet: this, ...deleteOptions})
       }
     }
   }
