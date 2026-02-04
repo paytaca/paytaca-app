@@ -236,7 +236,7 @@ const {
   getSignerXPrv, 
   getAssetTokenIdentity,
   cashAddressNetworkPrefix,
-  getSignerMnemonic
+  resolveMnemonicOfXpub
 } = useMultisigHelpers()
 const balances = ref()
 const balancesTokenIdentities = ref({})
@@ -261,7 +261,7 @@ const wallet = computed(() => {
       provider: multisigNetworkProvider,
       coordinationServer: multisigCoordinationServer,
       resolveXprvOfXpub,
-      resolveMnemonicOfXpub: getSignerMnemonic,
+      resolveMnemonicOfXpub
     })
   }
   return null

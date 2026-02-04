@@ -81,7 +81,7 @@ export const useMultisigHelpers = () => {
     return { wallet, vaultIndex }
   }
 
-  const getSignerMnemonic = async ({ xpub }) => {
+  const resolveMnemonicOfXpub = async ({ xpub }) => {
     const signerWallet = getSignerWalletFromVault({ xpub })
     if (!signerWallet) return
     const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
@@ -89,7 +89,7 @@ export const useMultisigHelpers = () => {
   }
 
   const getSignerXPrv = async ({ xpub }) => {
-    const mnemonic = await getSignerMnemonic({ xpub })
+    const mnemonic = await resolveMnemonicOfXpub({ xpub })
     if (!mnemonic) return
     const hdKeys = deriveHdKeysFromMnemonic({ mnemonic })
     if (xpub !== hdKeys.hdPublicKey) return
@@ -154,7 +154,7 @@ export const useMultisigHelpers = () => {
   return {
     localWallets,
     getSignerWalletFromVault,
-    getSignerMnemonic,
+    resolveMnemonicOfXpub,
     getSignerXPrv,
     cashAddressNetworkPrefix,
     multisigWallets,

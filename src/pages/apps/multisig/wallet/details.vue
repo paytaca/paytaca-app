@@ -77,7 +77,7 @@
                             </q-item-label>
                             <q-item-label caption>
                                 <div class="flex nowrap justify-between q-ma-sm">
-                                    <div class="text-bold">{{ $t('CanSignOnThisDevice', {}, 'Can Sign On This Device') }}</div>
+                                    <div class="text-bold">{{ $t('CanSignOnThisDevice', {}, 'Can Sign On This Device?') }}</div>
                                     <div>{{ hdPrivateKeys?.[signer.xpub] ? 'Yes' : 'No' }}</div>
                                 </div>
                             </q-item-label>
@@ -160,7 +160,7 @@ const { t: $t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const route = useRoute()
-const { multisigNetworkProvider, resolveXprvOfXpub, getSignerXPrv, getSignerMnemonic, multisigCoordinationServer } = useMultisigHelpers()
+const { multisigNetworkProvider, resolveXprvOfXpub, getSignerXPrv, resolveMnemonicOfXpub, multisigCoordinationServer } = useMultisigHelpers()
 
 const hdPrivateKeys = ref()
 
@@ -174,7 +174,8 @@ const wallet = computed(() => {
       store: $store,
       provider: multisigNetworkProvider,
       coordinationServer: multisigCoordinationServer,
-      resolveXprvOfXpub: resolveXprvOfXpub
+      resolveXprvOfXpub,
+      resolveMnemonicOfXpub
     })
   }
   return null
@@ -195,11 +196,10 @@ const loadHdPrivateKeys = async (signers) => {
 }
 
 const onProceedCreateServerIdentity = async (name, xpub) => {
-  const mnemonic = await getSignerMnemonic({
+  const mnemonic = await resolveMnemonicOfXpub({
     xpub
   })
 
-  console.log('wallet.value.provider.network,', wallet.value.options)
   if (mnemonic) {
     const serverIdentity = generateCoordinatorServerIdentityFromMnemonic({
       name,
@@ -207,14 +207,10 @@ const onProceedCreateServerIdentity = async (name, xpub) => {
       network: wallet.value.options?.provider?.network
     })
     
-    const authCredentials = await generateCoordinationServerCredentialsFromMnemonic({ 
-      mnemonic,
-      network: wallet.value.options?.provider?.network
+    const response = await wallet.value.options.coordinationServer.createServerIdentity({ 
+      serverIdentity, 
+      authCredentialsGenerator: wallet.value 
     })
-
-    
-    const response = await wallet.value.options.coordinationServer.createServerIdentity(serverIdentity, authCredentials)
-    console.log('RESPONSE', response)
   }
 }
 
