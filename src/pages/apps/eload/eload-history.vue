@@ -20,7 +20,7 @@
 		<!-- Order List -->
 		<div v-if="!loading" class="scroll q-mt-md" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
-				<div v-for="order in orders" class="pointer">
+				<div v-for="order in orders" class="pointer" @click="selectOrder(order)">
 					<div class="row justify-between q-pa-sm">
 						<div class="col-8">						
 							<div class="text-weight-bold md-font-size">
@@ -114,11 +114,14 @@ export default {
 	    },
 	    getPromoSnapshotData(snapshot, key) {
 	    	return snapshot[key]
-	    },
+	    },	  
 	    nextPage() {
 	    	this.paginationSettings.page++
 
 	    	this.fetchOrders()
+	    },
+	    selectOrder (order) {	    	
+	    	this.$router.push({ name: 'eload-service-order-details', params: { orderId: order?.id } })
 	    },
 	    async refresh(done) {
 	    	await this.fetchOrders(true)

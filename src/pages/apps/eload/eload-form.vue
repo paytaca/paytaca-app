@@ -2,7 +2,7 @@
 	<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
 			<template v-slot:top-right-menu>
 				<div class="q-mr-sm">
-					<q-btn flat round @click="$router.push({ name: 'eload-service-history' })">
+					<q-btn flat round @click="$router.push({ name: 'eload-service-orders' })">
 						<q-icon name="receipt_long" size="30px"/>
 					</q-btn>					
 				</div>	        	

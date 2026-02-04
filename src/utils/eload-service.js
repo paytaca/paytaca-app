@@ -215,6 +215,7 @@ export async function createOrder (data) {
 	}
 }
 
+// Fetching Order List
 export async function fetchOrders (data) {
 	try {		
 		const walletHash = getWalletHash()
@@ -245,9 +246,9 @@ export async function fetchOrders (data) {
 		}
 
 		let headers = {
-				'wallet-hash': walletHash,
-				Authorization: `Bearer ${token}`
-			}
+			'wallet-hash': walletHash,
+			Authorization: `Bearer ${token}`
+		}
 		
 		const response = await backend.get(baseURL + '/txn/', {
 			params: params,		
@@ -273,6 +274,48 @@ export async function fetchOrders (data) {
 	}
 }
 
+// Fetching a Specific Order Details
+export async function fetchOrderDetails (pk) {
+	try {
+		const walletHash = getWalletHash()
+		if (!walletHash) {
+			throw new Error('Wallet hash not available')
+		}
+
+		let token = await getAuthToken()
+		if (!token) {
+			// Best-effort: authenticate and retry token retrieval.
+			await authUser()
+			token = await getAuthToken()
+		}
+		if (!token) {
+			throw new Error('Auth token not available')
+		}
+
+		let headers = {
+			'wallet-hash': walletHash,
+			Authorization: `Bearer ${token}`
+		}
+
+		const response = await backend.get(baseURL + '/txn/' + pk, { headers: headers })
+
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+
+	} catch (error) {
+		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn details'
+		console.error('[fetchOrderDetails] Error:', errorMessage)
+
+		return {
+			success: false,
+			data: null,
+			error: `Network error: ${errorMessage}`
+		}
+	}
+}
 
 export async function registerUser() {	
 	const walletHash = getWalletHash()
