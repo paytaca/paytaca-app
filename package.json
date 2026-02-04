@@ -40,6 +40,7 @@
     "@jsonforms/vue": "^3.1.0",
     "@jsonforms/vue-vanilla": "^3.1.0",
     "@keystonehq/bc-ur-registry": "^0.7.1",
+    "@mainnet-cash/contract": "^2.7.34",
     "@ngraveio/bc-ur": "^1.1.13",
     "@noble/secp256k1": "^2.0.0",
     "@psf/bch-js": "^4.18.0",

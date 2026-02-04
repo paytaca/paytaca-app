@@ -1,15 +1,12 @@
 
 
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
-import { SignatureTemplate, Contract } from 'cashscript0.11.x';
+import { SignatureTemplate, Contract } from 'cashscript';
 import { defaultNetwork, TX_FEE } from './constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { convertCashAddressToTokenAddress, pubkeyToPkHash } from './utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from './auth-nft.js';
-import { compileString } from 'cashc0.11.x';
-import source from './contract/TapToPay.cash';
-const artifact = compileString(source);
-
+import artifact from './contract/TapToPay.json';
 import Watchtower from 'src/lib/watchtower/index.js';
 
 
