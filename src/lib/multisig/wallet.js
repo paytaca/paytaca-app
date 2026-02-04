@@ -1472,13 +1472,17 @@ async loadSignersServerIdentity() {
   for (const signer of this.signers) {
     const authCredentials = await this.generateAuthCredentials(signer.xpub)
     if (!authCredentials) continue
-    const serverIdentity = await this.options.coordinationServer.getServerIdentity({ 
-      publicKey: authCredentials['X-Auth-PubKey'], 
-      authCredentialsGenerator: this 
-    })
-    if (serverIdentity) {
-      signer.serverIdentityId = serverIdentity.id
-      modified = true
+    try {
+      const serverIdentity = await this.options.coordinationServer.getServerIdentity({ 
+        publicKey: authCredentials['X-Auth-PubKey'], 
+        authCredentialsGenerator: this 
+      })
+      if (serverIdentity) {
+        signer.serverIdentityId = serverIdentity.id
+        modified = true
+      }  
+    } catch (error) {
+      // ignore unresolved server identity
     }
   }
   if (!modified) return
@@ -1703,7 +1707,7 @@ static cashAddressToTokenAddress(cashAddress) {
 
       return {
         masterFingerprint: masterFingerprint.toLowerCase(),
-        path: `m${originPath.trim().replace(/\/+$/, '')}`,
+        path: `m/${originPath.trim().replace(/\/+$/, '')}`,
         xpub: xpub.trim(),
         branchRange: branchRange.trim()
       };
