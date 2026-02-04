@@ -38,13 +38,24 @@
                   <q-icon name="wallet" color="grad" size="md" class="q-mr-sm"></q-icon>
                   <div class="text-weight-bold text-h6">{{ wallet.name }}</div>
                 </div>
-                <div class="flex items-center">
-                  <q-icon name="group" class="q-mr-sm" size="sm"></q-icon>
-                  <div class="text-body2">
+                <div class="flex items-center q-ml-md text-caption">
+                  <q-icon name="group" class="q-mr-sm" size="xs"></q-icon>
+                  <div class="text-caption">
                     <span v-for="(signer, signerIndex) in wallet?.signers" :key="`signer-${i}-${signerIndex}`">
                       {{ signer.name }}<span v-if="signerIndex < wallet.signers.length - 1">, </span>
                     </span>
                   </div>
+                </div>
+                <div v-if="wallet.id" class="flex items-center q-ml-md text-caption">
+                  <q-icon name="mdi-identifier" class="q-mr-sm" size="xs"></q-icon>
+                  <div class="text-caption">
+                    <span>
+                      {{wallet.id}}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center q-ml-md text-caption">
+                  <div>Wallet Hash: {{ shortenString(wallet.walletHash, 20) }}</div>
                 </div>
               </q-card-section>
             </q-card>
@@ -78,7 +89,7 @@
           </div> -->
           <div class="col-xs-12 row justify-center q-gutter-y-xl">
             <div class="col-xs-12 text-center">
-              <q-btn size="lg"  @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+              <q-btn @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
                 <q-icon class="default-text-color"  size="lg" name="qr_code" />
               </q-btn>
               <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
@@ -115,6 +126,7 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
+import { shortenString } from 'src/lib/multisig/utils'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
