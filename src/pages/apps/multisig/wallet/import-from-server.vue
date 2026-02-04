@@ -11,8 +11,8 @@
       class="apps-header"
     />
     <div class="row justify-center">
-      <div class="col-xs-12 q-px-xs q-gutter-y-md">
-          <q-list >
+      <div class="col-xs-12 q-gutter-y-md">
+          <q-list>
             <q-item>
              <q-item-section overline>
               <q-item-label>These are the wallets that you can import from the server.</q-item-label>
@@ -22,29 +22,36 @@
              </q-item-section>
             </q-item>
             <q-separator spaced/>
-	    <q-item v-if="multisigWalletsFromServer?.filter(w => !w.enabled).length === 0">
-		<q-item-section>
-		 <q-item-label>No Data</q-item-label>
-		</q-item-section>
-	    </q-item>	
-            <q-item v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)">
-               <q-item-section>
-                 <q-item-label>{{ wallet.name }}</q-item-label>
-                 <q-item-label caption lines="2">
-                  <div class="flex items-center">
-                      <q-icon name="group" class="q-mr-sm"></q-icon>
-                      <span v-for="signer, i in wallet?.signers" :key="`signer-${i}`" class="q-mr-xs">
-                        {{signer.name}} {{ i < wallet.signers.length - 1? ',' : ''}}
-                      </span>
-                    </div>
-                 </q-item-label>
-               </q-item-section>
-               <q-item-section side top> 
-                   <q-btn color="primary" icon="cloud_download" @click="downloadWallet(wallet)"  flat no-caps dense></q-btn>
-               </q-item-section>               
+              <q-item v-if="multisigWalletsFromServer?.filter(w => !w.enabled).length === 0">
+            <q-item-section>
+            <q-item-label>No Data</q-item-label>
+            </q-item-section>
+            </q-item>	
+            <q-item v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)" clickable v-ripple class="q-my-md">
+              <q-item-section>
+                <q-item-label class="text-bold text-h6 q-mb-sm" >
+                  <q-icon name="wallet" size="md" color="primary"></q-icon>
+                  {{ wallet.name }}
+                </q-item-label>
+                <div class="q-ml-md">
+                  <div class="flex items-center text-subtitle2 flex items-center">
+                    <q-icon name="group" class="q-mr-sm" size="xs"></q-icon> :
+                    <span v-for="signer, i in wallet?.signers" :key="`signer-${i}`" class="q-ml-xs text-caption">
+                      {{signer.name}} {{ i < wallet.signers.length - 1? ',' : ''}}
+                    </span>
+                  </div>
+                  <div class="text-subtitle2 flex items-center">
+                    <q-icon name="mdi-identifier" class="q-mr-sm" size="xs"></q-icon>
+                    <span class="text-caption">: {{ wallet.id }}</span>
+                  </div>
+                </div>
+              </q-item-section>
+              <q-item-section side top> 
+                  <q-btn color="primary" icon="mdi-cloud-download-outline" @click="downloadWallet(wallet)" dense round size="md"></q-btn>
+              </q-item-section>               
             </q-item>
-            
-          </q-list>
+            <q-separator></q-separator>
+        </q-list>
       </div>
     </div>
   </q-pull-to-refresh>
@@ -61,16 +68,16 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import { WatchtowerCoordinationServer, WatchtowerNetwork } from 'src/lib/multisig/network'
 import { decryptECIESMessage } from 'src/lib/multisig/ecies'
-import { decodeHdPrivateKey } from 'bitauth-libauth-v3'
+import { binToHex, decodeHdPrivateKey, decodeHdPublicKey } from 'bitauth-libauth-v3'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const router = useRouter()
 const {
   localWallets,
-  resolveXprvOfXpub
+  resolveXprvOfXpub,
+  multisigCoordinationServer
 } = useMultisigHelpers()
 
 const multisigWalletsFromServer = ref([])
@@ -101,7 +108,6 @@ const downloadWallet = (multisigWallet) => {
 
 const fetchWallets = async () => {
 
-
   for (const localWallet of localWallets.value) {
 
     if (localWallet?.deleted) continue 
@@ -113,36 +119,31 @@ const fetchWallets = async () => {
     
     if (!xprv) continue
 
-    const multisigCoordinationServer = new WatchtowerCoordinationServer({
-      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-    })
-
-    const pubkeyZero = MultisigWallet.extractPublicKeyZeroFromXpub(xpub)
-
-    const onlineWallets = await multisigCoordinationServer.fetchSignerWallets({ 
-        authCredentials: MultisigWallet.generateAuthCredentials({ xprv, xpub }),
-        pubkeyZero
-      })
+    const publicKey = binToHex(decodeHdPublicKey(xpub).node.publicKey)
+    const onlineWallets = await multisigCoordinationServer.getSignerWallets({ publicKey })
     
+    onlineWallets?.forEach(async (wallet) => {
 
-    onlineWallets.forEach(async (wallet) => {
-
-      const signer = wallet.signers.find((s) => s.pubkeyZero === pubkeyZero)
+      const signer = wallet.signers.find((s) => s.publicKey === publicKey)
 
       if (!signer) return
 
       const privateKey = decodeHdPrivateKey(xprv).node.privateKey
-      const bsmsDescriptor = await decryptECIESMessage(privateKey, signer.walletBsmsDescriptor)
-      const parsedBsmsDescriptor = MultisigWallet.parseBSMSRecord(bsmsDescriptor)
+      const bsmsDescriptor = await decryptECIESMessage(privateKey, signer.walletDescriptor)
+
+      if (!bsmsDescriptor?.includes(xpub)) return
+
+      const parsedBsmsDescriptor = MultisigWallet.parseBsmsDescriptor(bsmsDescriptor)
       const signers = parsedBsmsDescriptor.signers.map(s => {
+        const name = wallet.signers.find((ws) => ws.publicKey === binToHex(decodeHdPublicKey(s.xpub).node.publicKey))?.name
         return {
           ...s,
-          name: wallet.signers.find((ws) => MultisigWallet.extractPublicKeyZeroFromXpub(s.xpub) === ws.pubkeyZero)?.name
+          name
         }
       })
       const onlineMultisigWallet = new MultisigWallet({
         id: wallet.id,
-        name: wallet.walletName,
+        name: wallet.name,
         m: parsedBsmsDescriptor.m,
         signers,
         networks: {
@@ -152,11 +153,8 @@ const fetchWallets = async () => {
       })
 
       if (multisigWalletsFromServerHashSet.value?.has(onlineMultisigWallet.walletHash)) return
-
       const existingWallet = $store.getters['multisig/getWalletByHash'](onlineMultisigWallet.walletHash)
-      
       if (existingWallet) return
-
       multisigWalletsFromServer.value.push(onlineMultisigWallet)
       multisigWalletsFromServerHashSet.value.add(onlineMultisigWallet.walletHash)
 
@@ -172,5 +170,38 @@ onMounted(async () => {
 <style scoped>
 .light {
   color: #141414;
+}
+
+.multisig-wallet-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  
+  &.dark {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.16);
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  &:active {
+    background-color: rgba(255, 255, 255, 0.65);
+    border-color: rgba(0, 0, 0, 0.14);
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+  }
 }
 </style>i

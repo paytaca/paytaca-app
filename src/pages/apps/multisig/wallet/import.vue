@@ -1,6 +1,6 @@
 <template>
     <div class="static-container">
-      <div id="app-container" class="sticky-header-container multisig-app" :class="getDarkModeClass(darkMode)">
+      <div id="app-container" class="sticky-header-container multisig-app text-bow" :class="getDarkModeClass(darkMode)">
         <HeaderNav
           :title="$t('Import Wallet')"
           backnavpath="/apps"
@@ -11,27 +11,30 @@
               <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>{{ $t('ImportMultisigWalletConfiguration') }}
             </q-banner>
           </div>
-          <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
+          <div class="flex column text-center q-gutter-y-xl q-mt-lg">
               <div>
-                <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                  <q-icon class="default-text-color"  size="lg" name="qr_code" />
+                <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+                  <q-icon class="default-text-color"  name="qr_code" />
                 </q-btn>
-                <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ScanWalletQRCode') }}</div>
+                <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('ScanWalletQRCode') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ScanWalletQRCodeDescription', {}, 'Ask one of your cosigners to show you the multisig wallet QR code then scan it') }}</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                  <q-icon class="default-text-color"  size="lg" name="upload_file" @click="importWalletFromFile"/>
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+                  <q-icon class="default-text-color"  name="upload_file" @click="importWalletFromFile"/>
                 </q-btn>
-                <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('FromFile') }}</div>
+                <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('FromFile') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('FromFileDescription', {}, 'Browse and import a wallet file from your device') }}</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                  <q-icon class="default-text-color"  size="lg" name="mdi-cloud-download-outline" @click="importWalletFromServer"/>
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+                  <q-icon class="default-text-color"  name="mdi-cloud-download-outline" @click="importWalletFromServer"/>
                 </q-btn>
-                <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('FromServer') }}</div>
+                <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('FromServer', {}, 'From Server') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('FromServerDescription', {}, 'Download wallet from Paytaca\'s Multisig Coordinator Server') }}</div>
               </div>
               <div>
-                <q-btn size="lg" :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
+                <q-btn :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>
           </div>
        </div>
@@ -99,10 +102,8 @@ const onUpdateWalletFileModelValue = (file) => {
 onMounted(() => {
     if (route.query.data) {
       const base64 = decodeURIComponent(route.query.data)
-      console.log('base64', base64)
       const decoded = cborDecode(base64ToBin(base64))
       const wallet = MultisigWallet.import(decoded)
-      console.log('imported wallet', wallet)
       wallet.setStore($store)
       wallet.save()
       router.push({
