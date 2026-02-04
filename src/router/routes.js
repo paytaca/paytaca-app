@@ -164,6 +164,7 @@ const routes = [
         name: 'app-eload',
         children: [          
           { path: 'form', component: () => import('src/pages/apps/eload/eload-form.vue'), name: 'eload-service-form' },
+          { path: 'history', component: () => import('src/pages/apps/eload/eload-history.vue'), name: 'eload-service-history' },
         ]
       },
 

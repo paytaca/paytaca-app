@@ -215,6 +215,64 @@ export async function createOrder (data) {
 	}
 }
 
+export async function fetchOrders (data) {
+	try {		
+		const walletHash = getWalletHash()
+		if (!walletHash) {
+			throw new Error('Wallet hash not available')
+		}
+
+		let token = await getAuthToken()
+		if (!token) {
+			// Best-effort: authenticate and retry token retrieval.
+			await authUser()
+			token = await getAuthToken()
+		}
+		if (!token) {
+			throw new Error('Auth token not available')
+		}
+
+		let params = {
+			limit: data.limit,
+			page: data.page
+		}
+
+		// add filters
+		params['sort-type'] = data.filters.sort_type
+
+		if (data.filters.service !== 'ALL') {
+			params['service'] = data.filters.service
+		}
+
+		let headers = {
+				'wallet-hash': walletHash,
+				Authorization: `Bearer ${token}`
+			}
+		
+		const response = await backend.get(baseURL + '/txn/', {
+			params: params,		
+			headers: headers
+		})
+
+		return {
+			success: true,
+			data: response.data,
+			error: null
+		}
+
+
+	} catch (error) {
+		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn'
+		console.error('[fetchOrders] Error:', errorMessage)
+
+		return {
+			success: false,
+			data: null,
+			error: `Network error: ${errorMessage}`
+		}
+	}
+}
+
 
 export async function registerUser() {	
 	const walletHash = getWalletHash()

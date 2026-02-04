@@ -1,4 +1,13 @@
 <template>
+	<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
+			<template v-slot:top-right-menu>
+				<div class="q-mr-sm">
+					<q-btn flat round @click="$router.push({ name: 'eload-service-history' })">
+						<q-icon name="receipt_long" size="30px"/>
+					</q-btn>					
+				</div>	        	
+	    	</template>
+		</HeaderNav>
 	<div class="text-black q-py-md">
 		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center">
@@ -279,6 +288,7 @@ import { formatWithLocale } from 'src/utils/denomination-utils'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
 import ServiceCard from 'src/components/eload/ServiceCard.vue'
 import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
+import HeaderNav from 'src/components/header-nav.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import { cachedLoadWallet, Address } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -480,6 +490,7 @@ export default {
 		ServiceCard,
 		PromoInfoCard,
 		DragSlide,
+		HeaderNav,
 		Pin,
 		BiometricWarningAttempt
 	},
@@ -498,7 +509,7 @@ export default {
 				this.step++
 
 				if (!this.isSearch) {
-					this.fetchCategory()
+					this.fetchCategory(true)
 				}					
 
 			} else {
@@ -511,11 +522,11 @@ export default {
 				this.step++
 
 				if (!this.isSearch) {
-					this.fetchPromos()
+					this.fetchPromos(true)
 				}				
 				// fetch promos
 			} else {
-				this.fetchCategory()
+				this.fetchCategory(true)
 			}
 		},
 		selectedPromo (val) {
@@ -838,8 +849,7 @@ export default {
 			}		
 
 			this.resetPagination('category')
-			this.resetPagination('promo')
-			// this.fetchCategory()
+			this.resetPagination('promo')			
 		},
 		getTotalPages (type) {
 			return this.paginationSettings[type].totalPages
@@ -854,9 +864,9 @@ export default {
 			this.paginationSettings[type].page++
 
 			if (type === 'category') {
-				this.fetchCategory(true)	
+				this.fetchCategory()	
 			} else if (type === 'promo') {
-				this.fetchPromos(true)
+				this.fetchPromos()
 			}
 			
 		},
@@ -926,7 +936,7 @@ export default {
 
 			this.loading = false
 		},
-		async fetchCategory(overflow=false) {
+		async fetchCategory(overwrite=false) {
 			const vm = this
 			vm.loading = true
 			const setting = vm.paginationSettings.category
@@ -940,23 +950,23 @@ export default {
 			let result = await eloadServiceAPI.fetchCategory(data)
 
 			if (result.success) {
-				if (overflow) {
-					this.categories.push(...result.data.category)
-				} else {
+				if (overwrite) {
 					this.categories = result.data.category
+				} else {
+					this.categories.push(...result.data.category)					
 				}
 				this.paginationSettings.category.totalPages = result.data.total_pages
 
 				if (this.categories.length <= 1) {
 					this.step++
-					this.fetchPromos()
+					this.fetchPromos(true)
 				}				
 			}
 
 			vm.loading = false			
 
 		},
-		async fetchPromos (overflow=false) {
+		async fetchPromos (overwrite=false) {
 			const vm = this
 			vm.loading = true
 			const setting = vm.paginationSettings.promo
@@ -975,10 +985,10 @@ export default {
 			let result = await eloadServiceAPI.fetchPromo(data)
 
 			if (result.success) {
-				if (overflow) {
-					this.promos.push(...result.data.promos)
-				} else {
+				if (overwrite) {
 					this.promos = result.data.promos
+				} else {					
+					this.promos.push(...result.data.promos)
 				}				
 			}
 

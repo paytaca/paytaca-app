@@ -1,25 +1,36 @@
 <template>
 	<div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
-		<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav" />
 		<router-view v-if="isloaded" :key="$route.path"></router-view>
 
-		<div v-else-if="!errorMsg" class="eload-skeleton q-pa-lg full-width">
-			<!-- Search input -->
-			<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
+		<div v-else-if="!errorMsg">
+			<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
+				<template v-slot:top-right-menu v-if="$route.name !== 'eload-service-history'">
+					<div class="q-mr-sm">
+						<q-btn flat round disable>
+							<q-icon name="receipt_long" size="30px"/>
+						</q-btn>					
+					</div>	        	
+		    	</template>
+			</HeaderNav>
 
-			<!-- "Select Purchase Type" label -->
-			<q-skeleton animation="wave" type="text" width="190px" class="q-mb-md" />
+			<div class="eload-skeleton q-pa-lg full-width">			
+				<!-- Search input -->
+				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
 
-			<!-- Service cards (stacked like the home page) -->
-			<q-skeleton
-				v-for="i in 3"
-				:key="'svc-' + i"
-				animation="wave"
-				type="rect"
-				height="118px"
-				class="br-15 q-mb-md"
-			/>
-		</div>
+				<!-- "Select Purchase Type" label -->
+				<q-skeleton animation="wave" type="text" width="190px" class="q-mb-md" />
+
+				<!-- Service cards (stacked like the home page) -->
+				<q-skeleton
+					v-for="i in 3"
+					:key="'svc-' + i"
+					animation="wave"
+					type="rect"
+					height="118px"
+					class="br-15 q-mb-md"
+				/>
+			</div>
+		</div>		
 
 		<div v-if="errorMsg" class="q-pa-lg full-width">
 			<div class="text-center" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
@@ -39,6 +50,17 @@ export default{
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			isloaded: false, // change later			
 			errorMsg: ''
+		}
+	},
+	computed: {
+		backnav () {
+			console.log(this.$route.name)
+			if (this.$route.name === 'eload-service-history') {
+				return '/apps/eload'
+			}
+			
+			return '/apps'
+						
 		}
 	},
 	components: {
