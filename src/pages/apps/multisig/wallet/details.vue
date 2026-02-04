@@ -81,6 +81,12 @@
                                     <div>{{ hdPrivateKeys?.[signer.xpub] ? 'Yes' : 'No' }}</div>
                                 </div>
                             </q-item-label>
+                            <q-item-label caption v-if="hdPrivateKeys?.[signer.xpub]">
+                                <div class="flex nowrap justify-between q-ma-sm">
+                                    <div class="text-bold">{{ $t('SignerServerIdentityId', {}, `Signer's Server Identity ID`) }}:</div>
+                                    <div>{{ signer.serverIdentityId || 'None' }}</div>
+                                </div>
+                            </q-item-label>
                             <div class="flex  justify-end q-my-md q-mx-sm q-gutter-x-sm">
                               <q-btn v-if="hdPrivateKeys?.[signer.xpub]" @click="openCreateServerIdentityDialog(signer)" text-color="primary" rounded no-caps dense>{{ $t('CreateMultisigServerIdentity', {}, 'Create Server Identity') }}</q-btn> 
                               <CopyButton :text="JSON.stringify(signer)" :label="$t('CopySignerDetails', {}, 'Copy Signer Details')" outline/>
@@ -153,14 +159,19 @@ import { MultisigWallet, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'src/components/CopyButton.vue'
 import { generateCoordinatorServerIdentityFromMnemonic } from 'src/lib/multisig/wallet'
-import { generateCoordinationServerCredentialsFromMnemonic } from 'src/lib/multisig/wallet'
 
 
 const { t: $t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const route = useRoute()
-const { multisigNetworkProvider, resolveXprvOfXpub, getSignerXPrv, resolveMnemonicOfXpub, multisigCoordinationServer } = useMultisigHelpers()
+const { 
+  multisigNetworkProvider, 
+  resolveXprvOfXpub, 
+  getSignerXPrv, 
+  resolveMnemonicOfXpub, 
+  multisigCoordinationServer 
+} = useMultisigHelpers()
 
 const hdPrivateKeys = ref()
 
@@ -207,10 +218,11 @@ const onProceedCreateServerIdentity = async (name, xpub) => {
       network: wallet.value.options?.provider?.network
     })
     
-    const response = await wallet.value.options.coordinationServer.createServerIdentity({ 
+    await wallet.value.options.coordinationServer.createServerIdentity({ 
       serverIdentity, 
       authCredentialsGenerator: wallet.value 
     })
+    await wallet.value.loadSignersServerIdentity()
   }
 }
 
@@ -251,7 +263,6 @@ const openCreateServerIdentityDialog = (signer) => {
   }).onOk(() => {
     onProceedCreateServerIdentity(signer.name, signer.xpub)
   })
-
 }
 
 const openRenameDialog = () => {
@@ -265,6 +276,7 @@ const openRenameDialog = () => {
 
 onMounted(async () => {
   await loadHdPrivateKeys(wallet.value?.signers)
+  await wallet.value?.loadSignersServerIdentity()
 })
 
 </script>
