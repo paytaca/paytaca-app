@@ -426,12 +426,6 @@ const openWalletActionsDialog = () => {
         value: 'export-wallet',
         color: 'primary'
       },
-      // {
-      //   icon: 'mdi-cloud-upload',
-      //   label: $t('EnableOnlineCoordination', {}, 'Enable Online Coordination'),
-      //   value: 'enable-online-coordination',
-      //   color: 'primary'
-      // },
       {
         icon: 'mdi-database-search-outline',
         label: $t('ScanUTXOs', {}, 'Scan UTXOs'),
@@ -456,17 +450,12 @@ const loadHdPrivateKeys = async (signers) => {
     hdPrivateKeys.value = {}
   }
   for (const signer of signers) {
-    try {
-      const xprv = await getSignerXPrv({
-        xpub: signer.xpub
-      })
-      if (xprv) {
-        hdPrivateKeys.value[signer.xpub] = xprv
-        
-      }
-    } catch (e) {
-      console.log('error', e)
-    } // getSignerXPrv throws if xprv not found, we'll just ignore
+    const xprv = await getSignerXPrv({
+      xpub: signer.xpub
+    })
+    if (xprv) {
+      hdPrivateKeys.value[signer.xpub] = xprv
+    } 
   }
 }
 
@@ -503,11 +492,13 @@ const refreshBalance = async () => {
 
 const refreshPage = async (done) => {
   try {
+    balancesRefreshing.value = true
     await refreshBalance()
     await loadCashtokenIdentitiesToBalances()
   } catch (_) {
     // ignore; pull-to-refresh should always resolve
   } finally {
+    balancesRefreshing.value = false
     if (typeof done === 'function') done()
   }
 }
@@ -556,26 +547,16 @@ watch(wallet, async (newWallet) => {
 onMounted(async () => {
   try {
     await loadHdPrivateKeys(wallet.value?.signers)
-
-    balancesRefreshing.value = true
-    balances.value = await wallet.value.getWalletBalances()
     await refreshBalance()
-
-    if (balances.value) {
-      balances.value = sortObjectKeys(balances.value)
-    }
-    
     await loadCashtokenIdentitiesToBalances()
-
   } 
   catch (error) {
-    // ! Notify warning
+    $q.notify({
+      type: 'warning',
+      message: `Warning: ${error.message}`,
+      color: 'warning'
+    })
   }
-  finally {
-    balancesRefreshing.value = false
-  }
-
-
 })
 
 </script>
