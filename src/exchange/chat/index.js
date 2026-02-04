@@ -1,10 +1,10 @@
-import { updatePubkey, saveKeypair, generateKeypair, sha256, getKeypair } from './keys'
-import { loadWallet } from 'src/wallet'
+import { updatePubkey, sha256 } from './keys'
 import { Store } from 'src/store'
 import { backend } from '../backend'
 import { chatBackend } from './backend'
 import { loadRampWallet, wallet } from 'src/exchange/wallet'
 import { ChatIdentityManager } from './objects'
+import { getEncryptionKeypairFromMnemonic, getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 
 export const chatIdentityManager = new ChatIdentityManager()
 
@@ -60,10 +60,14 @@ export async function loadChatIdentity (usertype, params = { name: null, chat_id
 
 export function updateOrderChatSessionRef (orderId, chatRef) {
   return new Promise((resolve, reject) => {
+    if (!orderId) {
+      console.warn('Order ID is missing, skipping updateOrderChatSessionRef')
+      resolve(null)
+      return
+    }
     const payload = { chat_session_ref: chatRef }
     backend.patch(`/ramp-p2p/order/${orderId}/`, payload, { authorize: true })
       .then(response => {
-        console.log('Updated order chat_session_ref:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -82,7 +86,6 @@ export async function updateChatIdentityId (userType, id) {
     const payload = { chat_identity_id: id }
     backend.patch(`/ramp-p2p/${userType}/`, payload, { authorize: true })
       .then(response => {
-        console.log('Updated chat identity id:', response.data)
         resolve(response)
       })
       .catch(error => {
@@ -185,11 +188,18 @@ export async function createChatSession (orderId, chatRef) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to create chat session:', error.response)
+          // 403 means chat identity not found - this is expected if identity isn't created yet
+          if (error.response.status === 403) {
+            // Don't reject - let caller handle gracefully
+            resolve(null)
+          } else {
+            console.error('Failed to create chat session:', error.response)
+            reject(error)
+          }
         } else {
           console.error('Failed to create chat session:', error)
+          reject(error)
         }
-        reject(error)
       })
   })
 }
@@ -203,11 +213,17 @@ export async function checkChatSessionAdmin (chatRef) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to check chat admin:', error.response)
+          // 403 means chat identity not found - this is expected if identity isn't created yet
+          if (error.response.status === 403) {
+            resolve(null)
+          } else {
+            console.error('Failed to check chat admin:', error.response)
+            reject(error)
+          }
         } else {
           console.error('Failed to check chat admin:', error)
+          reject(error)
         }
-        reject(error)
       })
   })
 }
@@ -220,8 +236,22 @@ export async function fetchChatSession (chatRef) {
         resolve(response)
       })
       .catch(error => {
-        console.error('Failed to fetch chat session:', error)
-        reject(error)
+        if (error.response) {
+          // 403 means chat identity not found - this is expected if identity isn't created yet
+          if (error.response.status === 403) {
+            // Resolve with null to indicate session doesn't exist yet
+            resolve(null)
+          } else if (error.response.status === 404) {
+            // 404 means session doesn't exist - this is fine
+            resolve(null)
+          } else {
+            console.error('Failed to fetch chat session:', error.response)
+            reject(error)
+          }
+        } else {
+          console.error('Failed to fetch chat session:', error)
+          reject(error)
+        }
       })
   })
 }
@@ -239,11 +269,18 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to add chat members:', error.response)
+          // 403 means chat identity not found - this is expected if identity isn't created yet
+          if (error.response.status === 403) {
+            // Resolve instead of reject to allow graceful handling
+            resolve(null)
+          } else {
+            console.error('Failed to add chat members:', error.response)
+            reject(error)
+          }
         } else {
           console.error('Failed to add chat members:', error)
+          reject(error)
         }
-        reject(error)
       })
   })
 }
@@ -305,9 +342,10 @@ export function sendChatMessage (data, signData) {
 export function fetchChatMessages (chatRef, offset = null, limit = 10) {
   return new Promise((resolve, reject) => {
     let url = `chat/messages/?chat_ref=${chatRef}&limit=${limit}`
-    if (offset) {
+    if (offset !== null && offset !== undefined) {
       url += `&offset=${offset}`
     }
+    // console.log(`[fetchChatMessages] Requesting: ${url}`)
     chatBackend.get(url, { forceSign: true })
       .then(response => {
         // console.log('Messages: ', response)
@@ -334,50 +372,52 @@ export function fetchChatPubkeys (chatRef) {
       })
       .catch(error => {
         if (error.response) {
-          console.error('Failed to fetch chat pubkeys:', error.response)
+          // 403 means chat identity not found - this is expected if identity isn't created yet
+          if (error.response.status === 403) {
+            console.log('Chat pubkeys fetch failed - chat identity not ready yet')
+            resolve([]) // Return empty array instead of rejecting
+          } else {
+            console.error('Failed to fetch chat pubkeys:', error.response)
+            reject(error)
+          }
         } else {
           console.error('Failed to fetch chat pubkeys:', error)
+          reject(error)
         }
-        reject(error)
       })
   })
 }
 
-async function getKeypairSeed () {
-  const wallet = await loadWallet('BCH', Store.getters['global/getWalletIndex'])
-  const privkey = await wallet.BCH.getPrivateKey('0')
-  return privkey
-}
-
+/**
+ * Gets encryption keypair derived from mnemonic (address 0/0)
+ * Always derives fresh from mnemonic to ensure cross-platform consistency
+ * Optionally updates the pubkey on the server
+ * @param {boolean} update - Whether to update pubkey on server
+ * @returns {Promise<{privkey: string, pubkey: string}>}
+ */
 export async function updateOrCreateKeypair (update = true) {
-  console.log('Updating chat encryption keypair')
-  const seed = await getKeypairSeed()
-  const keypair = generateKeypair({ seed: seed })
+  const walletIndex = Store.getters['global/getWalletIndex']
+  
+  // Always derive fresh from mnemonic (no storage for cross-platform consistency)
+  const keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
 
-  try {
-    const storedKeypair = await getKeypair()
-    if (storedKeypair.pubkey === keypair.pubkey && storedKeypair.privkey === keypair.privkey) {
-      console.log('Chat encryption keypair still updated')
-      return
-    }
-
-  } catch (error) {
-    console.error(error)
+  if (!keypair || !keypair.privkey || !keypair.pubkey) {
+    throw new Error('Failed to generate keypair from mnemonic')
   }
 
+  // Update pubkey on server if requested
   if (update) {
     await updatePubkey(keypair.pubkey)
       .catch(error => {
-        console.error(error.response || error)
+        // Don't log 403 errors - they're expected when not authenticated yet
+        // The error will be handled by the calling code
+        if (error?.response?.status !== 403) {
+          console.error(error.response || error)
+        }
+        // Still reject, but with a more informative message
         return Promise.reject('Failed to create/update chat pubkey to server')
       })
   }
-
-  await saveKeypair(keypair.privkey)
-    .catch(error => {
-      console.error(error)
-      return Promise.reject('Failed to save chat privkey')
-    })
 
   return keypair
 }

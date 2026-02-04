@@ -1,20 +1,59 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
-    <router-view :key="$route.path"></router-view>
+    <router-view v-if="isloaded" :key="$route.path"></router-view>
+    
+    <!-- Skeleton Loading State for Initial Auth -->
+    <div v-else class="full-width">
+      <!-- Header (visible during loading) -->
+      <HeaderNav title="P2P Ramp" backnavpath="/apps" class="header-nav" />
+      
+      <!-- Content Skeletons -->
+      <div class="q-px-md">
+        <!-- Tab Buttons Skeleton -->
+        <div class="row justify-center q-mb-md">
+          <q-skeleton type="rect" width="70%" height="48px" style="border-radius: 24px;" />
+        </div>
+        
+        <!-- Listing Skeletons -->
+        <q-list>
+        <q-item v-for="n in 5" :key="n" class="q-mb-sm">
+          <q-item-section>
+            <div class="q-pb-sm">
+              <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+              <div class="row q-mb-xs">
+                <q-skeleton type="rect" width="100px" height="16px" />
+                <q-skeleton type="text" width="40px" height="16px" class="q-ml-xs" />
+              </div>
+              <q-skeleton type="text" width="60%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="50%" height="22px" class="q-mb-xs" />
+              <q-skeleton type="text" width="70%" height="14px" class="q-mb-xs" />
+              <q-skeleton type="text" width="65%" height="14px" class="q-mb-sm" />
+              <div class="row q-gutter-sm">
+                <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                <q-skeleton type="rect" width="90px" height="24px" style="border-radius: 12px;" />
+              </div>
+            </div>
+          </q-item-section>
+        </q-item>
+      </q-list>
+      </div>
+    </div>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>
 </template>
 <script>
+import HeaderNav from 'src/components/header-nav.vue'
 import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
 
 export default {
   components: {
+    HeaderNav,
     OngoingMaintenanceDialog
   },
   data () {
@@ -37,33 +76,49 @@ export default {
   },
   watch: {
     $route (to, from) {
-      if (from.path.includes('apps/exchange')) {
+      if (from.path.includes('apps/exchange')) {        
         if ('ad_id' in to.query) {
           this.$router?.push({ name: 'p2p-store', query: to.query })
-        }        
-      }
+        }             
+      }      
     },
     continue (val) {
       if (val) {
         this.goToMainPage()
       }
-    },
-    isloaded (val) {
-      if (val) {
-        this.$q.loading.hide()
-      }
     }
   },
-  async mounted () {    
-    this.$q.loading.show()
-
+  async mounted () {
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
     } else {
-      await this.checkVersionUpdate()
-      await loadRampWallet()
-      await this.getUser()
+      // Ensure wallet state is initialized before accessing getters
+      const wallet = this.$store.getters['global/getWallet']('bch')
+      const walletHash = wallet?.walletHash
+      if (walletHash) {
+        // Initialize wallet-specific state if not already initialized
+        this.$store.commit('ramp/initializeWalletState', walletHash)
+        this.$store.commit('paytacapos/initializeWalletState', walletHash)
+      }
+      
+      // Parallelize independent operations
+      const [versionCheckResult, rampWallet, userResult] = await Promise.allSettled([
+        this.checkVersionUpdate(),
+        loadRampWallet(),
+        this.getUser()
+      ])
+      
+      // Store wallet instance in Vuex to avoid duplicate loading
+      if (rampWallet.status === 'fulfilled') {
+        this.$store.commit('ramp/updateWallet', rampWallet.value)
+      }
+      
+      // Handle version check errors gracefully (non-blocking)
+      if (versionCheckResult.status === 'rejected') {
+        console.error('Version check failed:', versionCheckResult.reason)
+      }
+      
       if (this.$route.name === 'exchange') {
         this.goToMainPage()
       }
@@ -71,30 +126,40 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     async getUser () {
       await backend.get('auth')
         .then(async (response) => {
           this.user = response.data
+          // Store user in Vuex for use by other components
+          this.$store.commit('ramp/updateUser', response.data)
           this.continue = true
+          // Set isloaded earlier - don't wait for version check
           this.isloaded = true
         })
         .catch(error => {
-          if (error.response.data.error === 'user does not exist') {
+          if (error.response?.data?.error === 'user does not exist') {
             this.continue = true
           } else {
             console.error(error.response || error)
           }
+          // Set isloaded even on error so UI can render
           this.isloaded = true
         })
     },
     goToMainPage () {
       this.$store.commit('ramp/updateUser', this.user)
       if (this.user?.is_arbiter) {
-        this.$router?.push({ name: 'arbiter-appeals' })
+        if ('appeal_id' in this.$route.query) {
+          this.$router?.push({ name: 'arbiter-appeals', query: this.$route.query})
+        } else {
+          this.$router?.push({ name: 'arbiter-appeals' })
+        }        
       } else {
         if ('ad_id' in this.$route.query) {
           this.$router?.push({ name: 'p2p-store', query: this.$route.query })
+        }
+        else if ('order_id' in this.$route.query) {
+          this.$router?.push({ name: 'p2p-orders', query: this.$route.query })
         } else {
           this.$router?.push({ name: 'p2p-store' })
         }
@@ -121,8 +186,8 @@ export default {
       }
 
       if (platform) {
-        // fetching version check
-        await backend.get(`ramp-p2p/version/check/${platform}/`)
+        // fetching version check - non-blocking, don't prevent UI from showing
+        backend.get(`/ramp-p2p/version/check/${platform}/`)
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
@@ -163,9 +228,8 @@ export default {
             }
           })
           .catch(error => {
-            console.error(error)
-            this.appDisabled = true
-            this.isloaded = true
+            console.error('Version check failed:', error)
+            // Don't set appDisabled or isloaded here - version check is non-critical
           })
       }
     }

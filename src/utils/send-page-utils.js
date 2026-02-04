@@ -7,7 +7,11 @@ import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { isValidTokenAddress } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { CashAddressType, decodeCashAddress, decodeCashAddressFormatWithoutPrefix, encodeCashAddress } from '@bitauth/libauth'
+import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
+import {
+  generateChangeAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 const { t: $t } = i18n.global
 
@@ -79,13 +83,71 @@ export function getWallet (type) {
   return Store.getters['global/getWallet'](type)
 }
 
-export function getChangeAddress (walletType) {
-  return Store.getters['global/getChangeAddress'](walletType)
+/**
+ * Dynamically generates change address from mnemonic instead of retrieving from store
+ * This prevents address mixup issues in multi-wallet scenarios
+ * 
+ * IMPORTANT: This function subscribes the address to watchtower before returning.
+ * If subscription fails, it will throw an error to prevent using unsubscribed addresses.
+ * 
+ * @param {string} walletType - 'bch' or 'slp'
+ * @returns {Promise<string>} The change address
+ * @throws {Error} If address generation or subscription fails
+ */
+export async function getChangeAddress (walletType) {
+  try {
+    let addressIndex = Store.getters['global/getLastAddressIndex'](walletType)
+    const walletIndex = Store.getters['global/getWalletIndex']
+    const isChipnetVal = isChipnet()
+    
+    // Validate and fix addressIndex - it should never be negative
+    // New wallets start with -1, so default to 0 for the first change address
+    if (addressIndex === undefined || addressIndex === null || addressIndex < 0) {
+      addressIndex = 0
+    }
+    
+    // Generate change address dynamically from mnemonic (includes watchtower subscription)
+    const changeAddr = await generateChangeAddress({
+      walletIndex: walletIndex,
+      derivationPath: getDerivationPathForWalletType(walletType),
+      addressIndex: addressIndex,
+      isChipnet: isChipnetVal
+    })
+    
+    // Check if subscription failed (returns null)
+    if (!changeAddr) {
+      // Try to get the address from the store as fallback
+      const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
+      if (fallbackAddr) {
+        return fallbackAddr
+      }
+      throw new Error('Failed to subscribe change address to watchtower. Please check your internet connection and try again.')
+    }
+    
+    return changeAddr
+  } catch (error) {
+    console.error('[getChangeAddress] Error generating change address dynamically:', error)
+    
+    // Fallback to store-retrieved change address if dynamic generation fails
+    // Note: This is only for backward compatibility and shouldn't normally be used
+    try {
+      const fallbackAddr = Store.getters['global/getChangeAddress'](walletType)
+      if (fallbackAddr) {
+        return fallbackAddr
+      }
+    } catch (fallbackError) {
+      console.error('[getChangeAddress] Fallback also failed:', fallbackError)
+    }
+    
+    // Provide a more helpful error message
+    const errorMessage = error.message || 'Unknown error'
+    throw new Error(`Failed to get change address: ${errorMessage}`)
+  }
 }
 
 export function getExplorerLink (txid, isCashToken) {
-  let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-  if (isCashToken) url = 'https://explorer.bitcoinunlimited.info/tx/'
+  let url = 'https://explorer.paytaca.com/tx/'
+  if (isCashToken) url = 'https://explorer.paytaca.com/tx/'
   if (isChipnet()) url = 'https://chipnet.chaingraph.cash/tx/'
   return `${url}${txid}`
 }
@@ -110,14 +172,27 @@ export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice) {
 }
 
 export function adjustWalletBalance (asset, amountArray) {
-  const isToken = asset.id.startsWith('ct/')
-  const decimals = asset.decimals ?? 8
-  const tokenDenominator = 10 ** asset.decimals
+  const assetId = String(asset?.id || '')
+  const isCashToken = assetId.startsWith('ct/')
+  // IMPORTANT:
+  // - BCH should always be treated as 8 decimals for send/balance math.
+  // - Some navigation paths pass an `asset` object with `decimals: 0` for BCH,
+  //   which would round values like 0.09 BCH down to 0 when using `toFixed(0)`.
+  const decimals = assetId === 'bch' ? 8 : (asset?.decimals ?? 8)
+  const tokenDenominator = 10 ** decimals
 
-  const totalAmount = amountArray.reduce((acc, curr) => acc + curr, 0).toFixed(decimals)
-  const walletBalance = isToken ? asset.balance / tokenDenominator : asset.balance
-  const currentWalletBalance = parseFloat((walletBalance - totalAmount).toFixed(decimals))
+  const totalAmountNumber = amountArray.reduce((acc, curr) => acc + (Number(curr) || 0), 0)
+  const totalAmount = Number(totalAmountNumber.toFixed(decimals))
 
+  // For BCH, "spendable" is the amount the user can actually send (and is what MAX uses).
+  // Prefer it for the balance display to avoid showing 0 when `balance` is stale/missing.
+  const walletBalance = isCashToken
+    ? (Number(asset?.balance) || 0) / tokenDenominator
+    : (assetId === 'bch'
+        ? (Number.isFinite(Number(asset?.spendable)) ? Number(asset?.spendable) : (Number(asset?.balance) || 0))
+        : (Number(asset?.balance) || 0))
+
+  const currentWalletBalance = Number((walletBalance - totalAmount).toFixed(decimals))
   return currentWalletBalance
 }
 
@@ -139,6 +214,8 @@ export function validateAddress (address, walletType, isCashToken) {
         ) {
           formattedAddress = addressObj.toCashAddress(address)
         }
+
+        new Address(address).toCashAddress()
       } else {
         addressIsValid = isTokenAddress(address.split('?c=')[0])
         formattedAddress = address
@@ -167,7 +244,9 @@ export function parseAddressWithoutPrefix(prefixlessAddress) {
   if (typeof prefixlessAddress !== 'string') return {valid: false, error: 'Invalid address' }
 
   const resultWPrefix = decodeCashAddress(prefixlessAddress)
-  if (typeof resultWPrefix !== 'string') return { valid: true, address: prefixlessAddress }
+  if (typeof resultWPrefix !== 'string') {
+    return { valid: true, address: prefixlessAddress }
+  }
 
   const result = decodeCashAddressFormatWithoutPrefix(prefixlessAddress)
   if (typeof result === 'string') return { valid: false, error: result }
@@ -242,37 +321,25 @@ function checkIfWalletAddress (address, walletAddress, isLegacy) {
   return address === walletAddress
 }
 
-export function addRemoveInputFocus (index, isFocus, inputFocus) {
-  let element = null
-
-  if (isFocus) {
-    if (inputFocus === 'bch') {
-      const bchInput = document.getElementsByClassName('bch-input-field')
-      element = bchInput[index]
-    } else if (inputFocus === 'fiat') {
-      const fiatInput = document.getElementsByClassName('fiat-input-field')
-      element = fiatInput[index]
-    }
-
-    addRemoveClass(element, isFocus)
+export function addRemoveInputFocus (index, inputFocus) {
+  const bchInput = document.getElementsByClassName('bch-input-field')
+  const fiatInput = document.getElementsByClassName('fiat-input-field')
+  
+  if (inputFocus === 'bch') {
+    addRemoveClass(bchInput[index], true)
+    addRemoveClass(fiatInput[index], false)
+  } else if (inputFocus === 'fiat') {
+    addRemoveClass(bchInput[index], false)
+    addRemoveClass(fiatInput[index], true)
   } else {
-    const bchInput = document.getElementsByClassName('bch-input-field')
-    element = bchInput[index]
-    addRemoveClass(element, isFocus)
-
-    const fiatInput = document.getElementsByClassName('fiat-input-field')
-    element = fiatInput[index]
-    addRemoveClass(element, isFocus)
+    addRemoveClass(bchInput[index], false)
+    addRemoveClass(fiatInput[index], false)
   }
 }
 
 function addRemoveClass (element, isFocus) {
-  if (isFocus) {
-    element?.classList.add('q-field--focused')
-    element?.classList.add('q-field--highlighted')
-    element?.classList.add('q-field--float')
-  } else {
-    element?.classList.remove('q-field--focused')
-    element?.classList.remove('q-field--highlighted')
-  }
+  if (isFocus)
+    element?.classList.add('q-field--focused', 'q-field--highlighted')
+  else
+    element?.classList.remove('q-field--focused', 'q-field--highlighted')
 }

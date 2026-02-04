@@ -9,14 +9,41 @@
         v-ripple
         :class="[
           'rounded-borders',
-          openLiquidityPoolOptsForm.selected === pool.value ? 'text-weight-medium': null,
+          pool.disabled ? 'disabled-pool-option' : null,
+          openLiquidityPoolOptsForm.selected === pool.value ? 'selected-pool-option text-weight-medium' : null,
         ]"
         @click="
-          openLiquidityPoolOptsForm.selected = openLiquidityPoolOptsForm.selected != pool.value ? pool.value : null
+          (pool.disabled)
+            ? showTemporarilyDisabledTooltip(index)
+            : (openLiquidityPoolOptsForm.selected = pool.value)
         "
       >
         <q-item-section>
-          <q-item-label>{{ pool.label }}</q-item-label>
+          <div class="row items-center no-wrap">
+            <q-item-label class="q-space">{{ pool.label }}</q-item-label>
+            <q-badge
+              v-if="pool.disabled"
+              class="q-ml-sm"
+              color="warning"
+              outline
+            >
+              {{ $t('TemporarilyDisabled', {}, 'Temporarily disabled') }}
+            </q-badge>
+            <q-icon
+              v-else-if="openLiquidityPoolOptsForm.selected === pool.value"
+              name="check_circle"
+              color="positive"
+              size="sm"
+              class="q-ml-sm"
+            />
+          </div>
+          <q-item-label
+            v-if="pool.disabled"
+            caption
+            class="q-mt-xs"
+          >
+            {{ $t('PeerToPeerTemporarilyDisabled', {}, 'Peer-to-peer is temporarily disabled.') }}
+          </q-item-label>
           <q-slide-transition>
             <q-item-label
               v-if="pool.description && openLiquidityPoolOptsForm.selected == pool.value"
@@ -26,6 +53,22 @@
             </q-item-label>
           </q-slide-transition>
         </q-item-section>
+
+        <!-- Tooltip for disabled options (shown on tap) -->
+        <q-popup-proxy
+          v-if="pool.disabled"
+          :ref="(el) => setDisabledPoolPopupRef(el, index)"
+          :breakpoint="0"
+          transition-show="jump-down"
+          transition-hide="jump-up"
+        >
+          <div
+            class="q-px-md q-py-sm text-caption pt-card"
+            :class="getDarkModeClass(darkMode)"
+          >
+            {{ $t('TemporarilyDisabled', {}, 'Temporarily disabled') }}
+          </div>
+        </q-popup-proxy>
       </q-item>
     </q-list>
 
@@ -113,7 +156,7 @@
           <q-btn
             flat padding="xs"
             class="text-section"
-            :text-color="darkMode ? 'blue' : 'brandblue'"
+            text-color="pt-primary1"
             :label="getAssetDenomination(denomination, spendableBch)"
             :disable="loading"
             @click="onBalanceClick"
@@ -580,7 +623,8 @@ const oracles = computed(() => {
 
 const openLiquidityPoolOptsForm = ref({
   show: true,
-  selected: null,
+  // Default to BCH Bull
+  selected: 'anyhedge_LP',
 })
 
 const liquidityPoolOpts = ref([
@@ -592,7 +636,10 @@ const liquidityPoolOpts = ref([
   {
     label: 'Peer-to-peer',
     value: 'watchtower_P2P',
-    description: $t('P2PDescription')
+    description: $t('P2PDescription'),
+    // Temporarily disabled in AnyHedge app
+    disabled: true,
+    disable: true
   },
 ])
 
@@ -605,11 +652,47 @@ const createHedgeForm = ref({
   isSimpleHedge: true,
 
   autoMatch: true,
-  autoMatchPoolTarget: '',
+  // Default to BCH Bull (Liquidity Pool)
+  autoMatchPoolTarget: 'anyhedge_LP',
   p2pMatch: {
     similarity: 50,
   }
 })
+
+// Enforce disabled pool selections at runtime (defensive; covers toggles, persisted state, etc.)
+watch(
+  () => createHedgeForm.value.autoMatchPoolTarget,
+  (val) => {
+    if (val === 'watchtower_P2P') {
+      createHedgeForm.value.autoMatchPoolTarget = 'anyhedge_LP'
+    }
+  }
+)
+watch(
+  () => openLiquidityPoolOptsForm.value.selected,
+  (val) => {
+    if (val === 'watchtower_P2P') {
+      openLiquidityPoolOptsForm.value.selected = 'anyhedge_LP'
+    }
+  }
+)
+
+// Show a tooltip when user taps the disabled option.
+const disabledPoolPopupRefs = ref([])
+function setDisabledPoolPopupRef (el, index) {
+  if (!el) return
+  disabledPoolPopupRefs.value[index] = el
+}
+function showTemporarilyDisabledTooltip (index) {
+  const popup = disabledPoolPopupRefs.value[index]
+  if (!popup?.show) return
+  try {
+    popup.show()
+    setTimeout(() => popup.hide?.(), 1200)
+  } catch (_) {
+    // ignore
+  }
+}
 const createHedgeFormMetadata = computed(() => {
   const data = {
     isSimpleHedge: true,
@@ -768,45 +851,25 @@ const loadingMsg = ref('')
 const mainError = ref('')
 const errors = ref([])
 
-async function getAddressesFromStore() {
-  const response = { success: false, addressSet: { change: '', receiving: '', pubkey: '', index: 0, privateKey: '' } }
-  try {
-    const bchWalletInfo = $store.getters['global/getWallet']('bch')
-    if (bchWalletInfo) {
-      const { lastAddress, lastChangeAddress, lastAddressIndex } = bchWalletInfo
-      if (lastAddress && lastChangeAddress && lastAddressIndex >= 0 ) {
-        response.addressSet.receiving = lastAddress
-        response.addressSet.change = lastChangeAddress
-        response.addressSet.pubkey = await props.wallet.BCH.getPublicKey(`0/${lastAddressIndex}`)
-        response.addressSet.index = lastAddressIndex
-        response.addressSet.privateKey = await props.wallet.BCH.getPrivateKey(`0/${lastAddressIndex}`)
-        response.success = true
-      }
-    }
-  } catch(error) {
-    console.error(error)
-  }
-
-  return response
-}
-
+/**
+ * Gets addresses from the current wallet using the latest address index
+ * Generates dynamically to avoid address mixup issues in multi-wallet scenarios
+ */
 async function getAddresses() {
   const response = { success: false, error: null, addressSet: { change: '', receiving: '', pubkey: '', index: 0, privateKey: ''} }
   try {
     loadingMsg.value = $t('GenerateReceivingAddress')
     loading.value = true
 
-    const getAddressesFromStoreResponse = await getAddressesFromStore()
-    if (getAddressesFromStoreResponse.success) {
-      response.addressSet = getAddressesFromStoreResponse.addressSet
-      response.success = true
-      return response
-    }
-
-    const addressIndex = 0
+    // Get the current address index from store
+    const lastAddressIndex = $store.getters['global/getLastAddressIndex']('bch')
+    
+    // Generate addresses dynamically using the wallet's methods
+    const addressIndex = lastAddressIndex >= 0 ? lastAddressIndex : 0
     const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
     const addressSet = result.addresses
     if (!addressSet?.receiving) throw new Error('Expected receiving address')
+    
     response.addressSet = addressSet
     response.addressSet.index = addressIndex
     response.addressSet.privateKey = await props.wallet.BCH.getPrivateKey(`0/${addressIndex}`)
@@ -1091,7 +1154,7 @@ async function createHedgePosition() {
           ok: $t('OK'),
           seamless: true,
           cancel: $t('Cancel'),
-          color: 'brandblue',
+          color: 'pt-primary1',
           class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
         })
         misc.isPositionOffer = true
@@ -1509,5 +1572,14 @@ function amountRules (val) {
 }
 .slide-group-leave-to {
   opacity: 0;
+}
+
+.selected-pool-option {
+  border: 1px solid rgba(33, 186, 69, 0.4);
+  background: rgba(33, 186, 69, 0.06);
+}
+
+.disabled-pool-option {
+  opacity: 0.65;
 }
 </style>

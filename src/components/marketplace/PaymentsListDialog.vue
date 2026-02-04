@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="innerVal" ref="dialogRef" @hide="onDialogHide" position="bottom">
-    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+    <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="row items-center q-pb-sm">
           <div class="text-h5 q-space">{{ $t('Payments') }}</div>
@@ -76,6 +76,7 @@
         :escrow-contract="escrowContractDialog.escrowContract"
         :bch-price="escrowContractDialog.bchPrice"
         :currency="escrowContractDialog.currency"
+        :token-prices="escrowContractDialog.tokenPrices"
       />
 
     </q-card>
@@ -165,6 +166,7 @@ export default defineComponent({
       show: false,
       escrowContract: EscrowContract.parse(),
       bchPrice: BchPrice.parse(),
+      tokenPrices: [].map(BchPrice.parse),
       currency: '',
     })
     async function displayPaymentEscrowContract(payment=Payment.parse()) {
@@ -174,6 +176,7 @@ export default defineComponent({
 
       escrowContractDialog.value.escrowContract = payment.escrowContract
       escrowContractDialog.value.bchPrice = payment.bchPrice
+      escrowContractDialog.value.tokenPrices = payment.tokenPrices
       escrowContractDialog.value.currency = payment.currency.symbol
       escrowContractDialog.value.show = true
     }

@@ -89,7 +89,7 @@
                 padding="xs sm"
                 no-caps
                 target="_blank"
-                color="brandblue"
+                color="pt-primary1"
                 class="float-right q-mt-sm q-mx-sm"
                 :href="storefront?.location?.gmapsDirectionUrl"
               >
@@ -102,7 +102,7 @@
               <q-btn
                 padding="xs sm"
                 no-caps
-                color="brandblue"
+                color="pt-primary1"
                 class="q-mt-sm q-mx-sm"
                 @click="() => showMap = true"
               >
@@ -233,7 +233,7 @@
           readonly
           max="5"
           :model-value="orderReview?.rating * (5 / 100)"
-          color="brandblue"
+          color="pt-primary1"
           icon-half="star_half"
         />
         <div v-if="orderReview?.imagesUrls?.length" class="text-caption text-grey top bottom">
@@ -246,13 +246,13 @@
       <div v-else-if="canReviewOrder" class="q-mx-xs q-my-sm">
         <q-btn
           no-caps label="Leave a review"
-          color="brandblue"
+          color="pt-primary1"
           class="full-width"
           @click="() => rateOrder()"
         />
       </div>
       <q-dialog v-model="openOrderReviewDialog" position="bottom">
-        <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+        <q-card class="pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <div class="row items-center no-wrap">
               <div class="text-h5 q-space">Order Review</div>
@@ -620,7 +620,8 @@
     <div class="fixed-bottom q-pl-sm q-pb-sm">
       <OrderChatButton
         ref="chatButton"
-        :order-id="orderId"  
+        :order-id="orderId"
+        :order="order"
       >
         <template v-if="order?.inProgress || orderDispute?.id" v-slot:before-messages>
           <div class="row item-center q-r-mt-sm q-pb-xs">
@@ -642,7 +643,7 @@
     </div>
     <OrderPaymentsDialog v-model="showPaymentsDialog" :payments="payments"/>
     <q-dialog v-model="showPaymentDialog" position="bottom">
-      <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
         <q-card-section>
           <div class="row no-wrap items-center justify-center">
             <div class="text-h6 q-mt-sm">Payment</div>
@@ -702,7 +703,7 @@
           <div v-if="canReviewOrder">
             <q-btn
               no-caps label="Leave a review"
-              color="brandblue"
+              color="pt-primary1"
               padding="2px md"
               class="q-mt-md"
               v-close-popup
@@ -712,7 +713,7 @@
           <q-btn
             :flat="canReviewOrder"
             no-caps label="Go to marketplace"
-            color="brandblue"
+            color="py-primary1"
             padding="2px md"
             class="q-mt-md"
             v-close-popup
@@ -748,6 +749,10 @@ import OrderDisputeFormDialog from 'src/components/marketplace/order/OrderDisput
 import { loadWallet, Wallet } from 'src/wallet'
 import { TransactionListener, asyncSleep } from 'src/wallet/transaction-listener'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateChangeAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 
 import customerLocationPin from 'src/assets/marketplace/customer_map_marker.png'
 import riderLocationPin from 'src/assets/marketplace/rider_map_marker_2.png'
@@ -1086,6 +1091,7 @@ const bchPaymentData = computed(() => {
   const data = {
     escrowContract: payment.value?.escrowContract,
     bchPrice: payment.value?.bchPrice,
+    tokenPrices: payment.value?.tokenPrices,
     address: payment.value?.escrowContract?.address || payment.value?.escrowContractAddress,
     bchAmount: parseFloat(payment.value?.escrowContract?.bchAmounts?.total),
     fiatAmount: 0,
@@ -1171,7 +1177,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
   const dialog = $q.dialog({
     title: 'Verifying payment',
     message: 'Payment received',
-    progress: { color: 'brandblue' },
+    progress: { color: 'pt-primary1' },
     persistent: true,
     ok: false,
     cancel: false,
@@ -1195,7 +1201,7 @@ function savePaymentFundingTx(txData=txListener.value.parseWebsocketDataReceived
       return Promise.reject(error)
     })
     .finally(() => {
-      dialog.update({ persistent: false, ok: { color: 'brandblue' } })
+      dialog.update({ persistent: false, ok: { color: 'pt-primary1' } })
       creatingPayment.value = false
     })
 }
@@ -1219,20 +1225,41 @@ const wallet = ref([].map(() => new Wallet())[0])
 async function initWallet () {
   wallet.value = await loadWallet(undefined, $store.getters['global/getWalletIndex'])
 }
-function getChangeAddress(opts={chipnet: false}) {
-  const walletTypes = opts?.chipnet
-    ? $store.getters['global/getAllChipnetTypes']
-    : $store.getters['global/getAllWalletTypes']
+/**
+ * Dynamically generates change address from mnemonic instead of retrieving from store
+ * This prevents address mixup issues in multi-wallet scenarios
+ */
+async function getChangeAddress(opts={chipnet: false}) {
+  try {
+    const addressIndex = $store.getters['global/getLastAddressIndex']('bch')
+    const walletIndex = $store.getters['global/getWalletIndex']
+    
+    // Generate change address dynamically from mnemonic
+    const changeAddr = await generateChangeAddress({
+      walletIndex: walletIndex,
+      derivationPath: getDerivationPathForWalletType('bch'),
+      addressIndex: addressIndex,
+      isChipnet: opts?.chipnet || false
+    })
+    
+    return changeAddr
+  } catch (error) {
+    console.error('Error generating change address dynamically:', error)
+    // Fallback to store-retrieved change address if dynamic generation fails
+    const walletTypes = opts?.chipnet
+      ? $store.getters['global/getAllChipnetTypes']
+      : $store.getters['global/getAllWalletTypes']
 
-  const bchWalletData = walletTypes?.bch
-  return bchWalletData?.lastChangeAddress
+    const bchWalletData = walletTypes?.bch
+    return bchWalletData?.lastChangeAddress
+  }
 }
 
 async function sendBchPayment() {
   const amount = bchPaymentData.value.bchAmount
   const address = bchPaymentData.value.address
   const chipnet = address.indexOf('bchtest:') >= 0
-  const changeAddress = getChangeAddress({ chipnet })
+  const changeAddress = await getChangeAddress({ chipnet })
   // const changeAddress = 'bchtest:qq4sh33hxw2v23g2hwmcp369tany3x73wuveuzrdz5'
   if (!wallet.value) await initWallet()
 
@@ -1341,7 +1368,7 @@ function confirmCancelOrder() {
   $q.dialog({
     title: 'Cancel order',
     message: 'Are you sure?',
-    color: 'brandblue',
+    color: 'pt-primary1',
     ok: { noCaps: true, label: 'Cancel Order', color: 'red' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(() => cancelOrder())
@@ -1353,7 +1380,7 @@ function cancelOrder() {
     title: 'Cancelling order',
     progress: true,
     persistent: true,
-    color: 'brandblue',
+    color: 'pt-primary1',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
 
@@ -1619,7 +1646,7 @@ async function rateOrder() {
       $q.dialog({
         title: 'Review Submitted',
         message: 'Thank you for your response!',
-        color: 'brandblue',
+        color: 'pt-primary1',
         class: `br-15 pt-card text-bow ${getDarkModeClass(darkMode.value)}`
       })
     }

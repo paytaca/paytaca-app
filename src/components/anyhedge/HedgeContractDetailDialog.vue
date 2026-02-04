@@ -27,7 +27,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.address"
+              :href="'https://explorer.paytaca.com/address/' + contract.address"
               target="_blank"
             />
           </div>
@@ -82,7 +82,7 @@
                 icon="launch"
                 size="xs" padding="xs"
                 class="q-ml-sm"
-                :href="'https://blockchair.com/bitcoin-cash/transaction/' + contract.fundingTxHash"
+                :href="'https://explorer.paytaca.com/tx/' + contract.fundingTxHash"
                 target="_blank"
               />
             </div>
@@ -252,7 +252,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.shortPayoutAddress"
+              :href="'https://explorer.paytaca.com/address/' + contract.metadata.shortPayoutAddress"
               target="_blank"
             />
           </div>
@@ -265,7 +265,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/address/' + contract.metadata.longPayoutAddress"
+              :href="'https://explorer.paytaca.com/address/' + contract.metadata.longPayoutAddress"
               target="_blank"
             />
           </div>
@@ -301,7 +301,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/transaction/' + settlementMetadata.txid"
+              :href="'https://explorer.paytaca.com/tx/' + settlementMetadata.txid"
               target="_blank"
             />
           </div>
@@ -397,7 +397,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://blockchair.com/bitcoin-cash/transaction/' + mutualRedemptionData.txHash"
+              :href="'https://explorer.paytaca.com/tx/' + mutualRedemptionData.txHash"
               target="_blank"
             />
           </div>
@@ -696,41 +696,22 @@ function resolveColor(changePctg) {
   return 'grey-7'
 }
 
-async function getAddressesFromStore() {
-  const response = { success: false, addressSet: { change: '', receiving: '', pubkey: '', index: 0 } }
-  try {
-    const bchWalletInfo = store.getters['global/getWallet']('bch')
-    if (bchWalletInfo) {
-      const { lastAddress, lastChangeAddress, lastAddressIndex } = bchWalletInfo
-      if (lastAddress && lastChangeAddress && lastAddressIndex >= 0 ) {
-        response.addressSet.receiving = lastAddress
-        response.addressSet.change = lastChangeAddress
-        response.addressSet.pubkey = await props.wallet.BCH.getPublicKey(`0/${lastAddressIndex}`)
-        response.addressSet.index = lastAddressIndex
-        response.success = true
-      }
-    }
-  } catch(error) {
-    console.error(error)
-  }
-
-  return response
-}
-
+/**
+ * Gets addresses from the current wallet using the latest address index
+ * Generates dynamically to avoid address mixup issues in multi-wallet scenarios
+ */
 async function getAddresses() {
   const response = { success: false, error: null, addressSet: { change: '', receiving: '', pubkey: '', index: 0 } }
   try {
-    const getAddressesFromStoreResponse = await getAddressesFromStore()
-    if (getAddressesFromStoreResponse.success) {
-      response.addressSet = getAddressesFromStoreResponse.addressSet
-      response.success = true
-      return response
-    }
-
-    const addressIndex = 0
+    // Get the current address index from store
+    const lastAddressIndex = store.getters['global/getLastAddressIndex']('bch')
+    
+    // Generate addresses dynamically using the wallet's methods
+    const addressIndex = lastAddressIndex >= 0 ? lastAddressIndex : 0
     const result = await props.wallet.BCH.getNewAddressSet(addressIndex)
-    const addressSet = result.adddresses
+    const addressSet = result.addresses
     if (!addressSet?.receiving) throw new Error('Expected receiving address')
+    
     response.addressSet = addressSet
     response.addressSet.index = addressIndex
     response.addressSet.pubkey = await props.wallet.BCH.getPublicKey(`0/${addressIndex}`)

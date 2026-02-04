@@ -11,6 +11,16 @@ const routes = [
         component: () => import('pages/transaction/index.vue')
       },
       {
+        path: 'transaction/list',
+        name: 'transaction-list',
+        component: () => import('pages/transaction/transactions.vue')
+      },
+      {
+        path: 'asset/list',
+        name: 'asset-list',
+        component: () => import('pages/transaction/asset-list.vue')
+      },
+      {
         path: 'receive/select-asset',
         name: 'transaction-receive-select-asset',
         component: () => import('pages/transaction/select-asset-receive.vue')
@@ -84,7 +94,28 @@ const routes = [
     path: '/accounts',
     component: () => import('layouts/Accounts.vue'),
     children: [
-      { path: '', component: () => import('pages/registration/accounts.vue'), name: 'create-account', props: route => route.query }
+      { path: '', component: () => import('pages/registration/accounts.vue'), name: 'create-account', props: route => route.query },
+      { path: 'create/step-1', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-1', props: route => route.query },
+      { path: 'create/step-2', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-2', props: route => route.query },
+      { path: 'create/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-3', props: route => route.query },
+      { path: 'create/step-4', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-4', props: route => route.query },
+      { path: 'restore/step-1', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-1', props: route => route.query },
+      { path: 'restore/step-2', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-2', props: route => route.query },
+      { path: 'restore/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-3', props: route => route.query },
+      { path: 'restore/step-4', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-4', props: route => route.query },
+      { path: 'restore/step-5', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-5', props: route => route.query }
+    ]
+  },
+  {
+    path: '/lock',
+    component: () => import('layouts/Accounts.vue'),
+    children: [
+      { 
+        path: '', 
+        name: 'lock-screen',
+        component: () => import('src/components/LockScreen.vue'),
+        props: route => route.query
+      }
     ]
   },
   {
@@ -92,26 +123,41 @@ const routes = [
     component: () => import('layouts/Apps.vue'),
     children: [
       { path: '', component: () => import('pages/apps/index.vue'), name: 'apps-dashboard' },
+      { path: 'cauldron', component: () => import('src/pages/apps/cauldron/trade.vue'), name: 'app-cauldron', props: route => route.query },
+      { path: 'cauldron/pools', component: () => import('src/pages/apps/cauldron/pools.vue'), name: 'app-cauldron-pools', props: route => route.query },
+      { path: 'cauldron/add-pool', component: () => import('src/pages/apps/cauldron/add-pool.vue'), name: 'app-cauldron-add-pool', props: route => route.query },
+      { path: 'cauldron/pool', component: () => import('src/pages/apps/cauldron/pool.vue'), name: 'app-cauldron-pool', props: route => route.query },
       { path: 'stablehedge', component: () => import('src/pages/apps/stablehedge/StablehedgePage.vue'), name: 'app-stablehedge', props: route => route.query },
+      { path: 'stablehedge/wallet', component: () => import('src/pages/apps/stablehedge/StablehedgeWalletPage.vue'), name: 'app-stablehedge-wallet', props: route => route.query },
       { path: 'map', component: () => import('src/pages/apps/map.vue'), name: 'app-map', props: route => route.query },
+      { path: 'spend-bch', component: () => import('src/pages/apps/spend-bch.vue'), name: 'spend-bch' },
+      { path: 'get-bch', component: () => import('src/pages/apps/get-bch.vue'), name: 'app-get-bch' },
+      { path: 'accept-bch-payments', component: () => import('src/pages/apps/accept-bch-payments.vue'), name: 'app-accept-bch-payments' },
+      { path: 'workhippo', component: () => import('src/pages/apps/workhippo.vue'), name: 'app-workhippo' },
+      { path: 'purelypeer', component: () => import('src/pages/apps/purelypeer.vue'), name: 'app-purelypeer' },
       { path: 'anyhedge', component: () => import('src/pages/apps/anyhedge.vue'), name: 'app-any-hedge', props: route => route.query },
-      { path: 'pos-admin', component: () => import('src/pages/apps/paytacapos-admin/index.vue'), name: 'app-pos-admin', props: route => route.query },
-      { path: 'pos-admin/merchant', component: () => import('src/pages/apps/paytacapos-admin/merchant.vue'), name: 'app-pos-merchant', props: route => route.query },
-      { path: 'pos-admin/merchant/cashout', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/index.vue'), name: 'app-pos-cashout', props: route => route.query },
-      { path: 'pos-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
+      { path: 'merchant-admin', component: () => import('src/pages/apps/paytacapos-admin/index.vue'), name: 'app-pos-admin', props: route => route.query },
+      { path: 'merchant-admin/merchant', component: () => import('src/pages/apps/paytacapos-admin/merchant.vue'), name: 'app-pos-merchant', props: route => route.query },
+      { path: 'merchant-admin/merchant/cashout', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/index.vue'), name: 'app-pos-cashout', props: route => route.query },
+      { path: 'merchant-admin/merchant/cashout/order', component: () => import('src/pages/apps/paytacapos-admin/merchant-cashout/order-form.vue'), name: 'app-pos-cashout-form', props: route => route.query },
       { path: 'wallet-connect', component: () => import('src/pages/apps/wallet-connect2.vue'), name: 'app-wallet-connect', props: route => route.query },
-      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-wallet-info' },
-      { path: 'bridge', component: () => import('src/pages/apps/bridge.vue'), name: 'app-bridge' },
+      { path: 'wallet-info', component: () => import('src/pages/apps/wallet-info.vue'), name: 'app-support' },
       { path: 'asset-swap', component: () => import('src/pages/apps/asset-swap.vue'), name: 'app-asset-swap' },
       { path: 'sweep', component: () => import('src/pages/apps/sweep.vue'), name: 'app-sweep', props: route => Object.assign({}, route.params, route.query) },
       { path: 'collectibles', component: () => import('src/pages/apps/collectibles.vue'), name: 'app-collectibles' },
       { path: 'settings', component: () => import('src/pages/apps/settings.vue'), name: 'app-settings' },
-      { path: 'settings/ignored-tokens', component: () => import('src/pages/apps/ignored-tokens-list.vue'), name: 'ignored-tokens-list' },
+      { path: 'subscription-details', component: () => import('src/pages/apps/subscription-details.vue'), name: 'app-subscription-details' },
+      { path: 'debug', component: () => import('src/pages/apps/debug/index.vue'), name: 'app-debug' },
+      { path: 'debug/address-key-viewer', component: () => import('src/pages/apps/debug/tools.vue'), name: 'app-debug-address-key-viewer' },
+      { path: 'debug/console', component: () => import('src/pages/apps/debug/console.vue'), name: 'app-debug-console' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
       { path: 'gifts/claim', props: route => route.query, component: () => import('src/pages/apps/gifts/claim-gift.vue'), name: 'claim-gift' },
+      { path: 'learn', component: () => import('src/pages/apps/learn.vue'), name: 'app-learn' },
       { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
+      { path: 'wallet-backup/seed-phrase', component: () => import('src/pages/apps/wallet-backup/view-seed-phrase.vue'), name: 'app-wallet-backup-seed-phrase' },
+      { path: 'wallet-backup/shards', component: () => import('src/pages/apps/wallet-backup/view-shards.vue'), name: 'app-wallet-backup-shards' },
       {
         path: 'marketplace',
         component: () => import('src/layouts/MarketplaceLayout.vue'),
@@ -128,7 +174,35 @@ const routes = [
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },
-      { path: 'ramp/crypto', component: () => import('src/pages/apps/ramp-crypto.vue'), name: 'ramp-crypto' },
+      {
+        path: 'crypto-swap/',
+        name: 'crypto-swap',
+        component: () => import('layouts/Transaction.vue'),
+        meta: { disableOnNativeIOS: true },
+        children: [
+          {
+            path: '', 
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue'), 
+            name: 'crypto-swap-form'
+          },
+          {
+            path: 'history/tx/:id',
+            name: 'crypto-swap-history-details',
+            props: route => Object.assign({}, route.params, route.query),
+            component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history-details.vue'),
+          }
+        ]
+      },
+      // { 
+      //   path: 'ramp/crypto', 
+      //   name: 'ramp-crypto',
+      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto.vue')      
+      // },
+      // {
+      //   path: 'ramp/crypto/history/',
+      //   name: 'crypto-swap-history',
+      //   component: () => import('src/pages/apps/crypto-swap/ramp-crypto-history.vue'),
+      // },
       {
         path: 'exchange/',
         name: 'exchange',
@@ -244,13 +318,51 @@ const routes = [
           { path: 'wallet', component: () => import('src/pages/apps/multisig/wallet/index.vue'), name: 'app-multisig-wallets' },
           { path: 'wallet/synced', component: () => import('src/pages/apps/multisig/wallet/synced.vue'), name: 'app-multisig-wallets-synced' },
           { path: 'wallet/create', component: () => import('src/pages/apps/multisig/wallet/create.vue'), name: 'app-multisig-wallet-create' },
+          { path: 'wallet/import', component: () => import('src/pages/apps/multisig/wallet/import.vue'), name: 'app-multisig-wallet-import' },
           { path: 'wallet/signer/qrcode', component: () => import('src/pages/apps/multisig/wallet/signer/qrcode.vue'), name: 'app-multisig-signer-qrcode' },
-          { path: 'wallet/:address', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
-          { path: 'wallet/:address/send', component: () => import('src/pages/apps/multisig/wallet/send.vue'), name: 'app-multisig-wallet-send' },
-          { path: 'wallet/:address/transaction', component: () => import('src/pages/apps/multisig/wallet/transaction/index.vue'), name: 'app-multisig-wallet-transactions' },
-          { path: 'wallet/:address/transaction/:hash', component: () => import('src/pages/apps/multisig/wallet/transaction/view.vue'), name: 'app-multisig-wallet-transaction-view' },
-          { path: 'wallet/:address/transaction/create', component: () => import('src/pages/apps/multisig/wallet/transaction/create.vue'), name: 'app-multisig-wallet-transaction-create' },
-          { path: 'wallet/:address/transaction/send-bch', component: () => import('src/pages/apps/multisig/wallet/transaction/create-send-bch-proposal.vue'), name: 'app-multisig-wallet-transaction-send-bch' }
+          { path: 'wallet/:wallethash', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
+          { 
+            path: 'wallet/:wallethash/asset',
+            component: () => import('src/pages/apps/multisig/wallet/asset.vue'),
+            name: 'app-multisig-wallet-asset',
+            meta: {
+              /**
+               * @type {{ asset: 'bch'|string }} - Either 'bch' or a token category
+               */
+              queryType: {}
+            }
+          },
+          { 
+            path: 'wallet/:wallethash/addresses',
+            component: () => import('src/pages/apps/multisig/wallet/addresses.vue'),
+            name: 'app-multisig-wallet-addresses'
+          },
+          {
+            path: 'wallet/:wallethash/transaction/send',
+            component: () => import('src/pages/apps/multisig/wallet/transaction/send.vue'),
+            name: 'app-multisig-wallet-transaction-send',
+            meta: {
+              /**
+               * @type {{ asset: 'bch'|string }} - Either 'bch' or a token category
+               */
+              queryType: {}
+            }
+          },
+          {
+            path: 'wallet/:wallethash/psts',
+            component: () => import('src/pages/apps/multisig/wallet/pst/index.vue'),
+            name: 'app-multisig-wallet-psts'
+          },
+          {
+            path: 'wallet/:wallethash/pst/:unsignedtransactionhash/import',
+            component: () => import('src/pages/apps/multisig/wallet/pst/import.vue'),
+            name: 'app-multisig-wallet-pst-import'
+          },
+          {
+            path: 'wallet/:wallethash/pst/:unsignedtransactionhash',
+            component: () => import('src/pages/apps/multisig/wallet/pst/view.vue'),
+            name: 'app-multisig-wallet-pst-view'
+          }
         ]
       },
       {
@@ -280,6 +392,18 @@ const routes = [
       }
     ]
   },
+  {
+    path: '/transaction/tx/:txid',
+    component: () => import('layouts/Transaction.vue'),
+    children: [
+      {
+        path: '',
+        name: 'transaction-detail',
+        props: route => Object.assign({}, route.params, route.query),
+        component: () => import('src/pages/transactions/TransactionDetail.vue')
+      }
+    ]
+  },  
   // Always leave this as last one,
   // but you can also remove it
   {

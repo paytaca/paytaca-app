@@ -1,6 +1,5 @@
-import escrowSrcCode from 'src/cashscripts/escrow.cash'
+import EscrowArtifact from 'src/cashscripts/escrow.json'
 import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript'
-import { compileString } from 'cashc'
 import { Store } from 'src/store'
 import BCHJS from '@psf/bch-js'
 import CryptoJS from 'crypto-js'
@@ -36,7 +35,6 @@ export class RampContract {
    * generating the contract parameters, and creating a new Contract instance.
    */
   initialize () {
-    const artifact = compileString(escrowSrcCode)
     let provider = new ElectrumNetworkProvider()
     if (this.network === 'chipnet') provider = new ElectrumNetworkProvider(this.network)
 
@@ -62,7 +60,7 @@ export class RampContract {
       BigInt(parseInt(this.fees.arbitrationFee)),
       this.hash
     ]
-    this.contract = new Contract(artifact, contractParams, { provider })
+    this.contract = new Contract(EscrowArtifact, contractParams, { provider })
   }
 
   /**
@@ -90,14 +88,17 @@ export class RampContract {
   async getBalance (address = '', retry = false) {
     if (!address) address = this.contract.address
     let balance = 0
+    let watchtowerErrored = false
     try {
       const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
       balance = response?.data?.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
-      retry = true
+      watchtowerErrored = true
     }
-    if (retry && balance === 0) {
+    // Only fallback to CashScript/Electrum when Watchtower fails (errors),
+    // not when Watchtower returns a legitimate 0 balance.
+    if (retry && watchtowerErrored) {
       console.warn('Refetched contract balance from cashscript built-in method getBalance()')
       const rawBal = await this.contract.getBalance()
       balance = bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))
@@ -229,9 +230,13 @@ export class RampContract {
     return result
   }
 
-  async broadcastTransaction (txHex) {
+  async broadcastTransaction (txHex, priceId) {
     try {
-      const response = await watchtower.BCH._api.post('broadcast/', { transaction: txHex })
+      const broadcastData = { transaction: txHex }
+      if (priceId) {
+        broadcastData.price_id = priceId
+      }
+      const response = await watchtower.BCH._api.post('broadcast/', broadcastData)
       return response.data
     } catch (error) {
       console.error(error.response || error)

@@ -5,8 +5,8 @@
     @hide="onDialogHide"
   >
     <q-card
-      class="br-15 pt-card-2 text-bow"
-      :class="getDarkModeClass(darkMode)"
+      class="br-15 text-bow pt-card"
+      :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark' : 'bg-pt-light']"
       style="width: 350px; max-width: 90vw;"
     >
       <div class="row no-wrap items-center justify-center q-pl-md q-pr-sm q-pt-sm">
@@ -23,6 +23,29 @@
       </div>
       <q-card-section style="max-height:75vh;overflow-y:auto;">
         <q-form @submit="() => onSubmit()">
+          <!-- Currency Selection (match Freeze dialog UX) -->
+          <div v-if="availableCurrencies?.length > 1" class="q-mb-md">
+            <div class="text-body2 q-mb-sm text-weight-medium">
+              {{ $t('SelectCurrency', {}, 'Select Currency') }}
+            </div>
+            <div class="row q-gutter-sm">
+              <q-btn
+                v-for="currency in availableCurrencies"
+                :key="currency"
+                :label="currency"
+                :color="selectedCurrency === currency ? 'primary' : 'grey-7'"
+                :outline="selectedCurrency !== currency"
+                :flat="selectedCurrency !== currency"
+                unelevated
+                no-caps
+                rounded
+                class="col"
+                :class="selectedCurrency === currency ? 'text-white' : ''"
+                @click="selectCurrency(currency)"
+              />
+            </div>
+          </div>
+
           <div class="row items-center q-my-sm">
             <div class="text-body1 q-space">{{ $t('InputAmountToUnfreeze') }}</div>
             <q-btn
@@ -40,7 +63,10 @@
             >
               <div v-if="pricePerPairText[index]" class="row items-center text-grey q-mb-md">
                 <div class="q-space">{{ $t('CurrentPrice') }}:</div>
-                <div>{{ pricePerPairText[index] }} {{ tokenDataPerPair[index]?.currency }} / {{ denomination }}</div>
+                <div>
+                  {{ formatWithLocale(pricePerPairText[index], { max: 8 }) }}
+                  {{ tokenDataPerPair[index]?.currency }} / {{ denomination }}
+                </div>
                 <q-menu
                   v-if="priceTimestampPerPair[index]"
                   anchor="bottom right" self="top end"
@@ -50,44 +76,44 @@
                   <div class="text-caption text-grey">{{ formatDateRelative(priceTimestampPerPair[index]) }}</div>
                 </q-menu>
               </div>
-              <q-input
-                outlined
+              <CustomInput
                 v-model="amounts[index]"
-                :suffix="denomination"
-                :rules="[
-                  val => parseFloat(val) > 0 || $t('InvalidAmount'),
-                  val => parseFloat(val) <= maxDenominatedRedeemableBchPerPair[index] ||
+                :inputSymbol="denomination"
+                :decimalObj="{ min: 0, max: denominationDecimals }"
+                :inputRules="[
+                  () => amount > 0 || $t('InvalidAmount'),
+                  val => parseFloat(val || 0) <= maxDenominatedRedeemableBchPerPair[index] ||
                     $t('MustBeLessThan', { amount: maxDenominatedRedeemableBchPerPair[index] + ' ' + denomination }),
                 ]"
-              >
-                <template v-slot:hint>
-                  <div v-if="tokenAmounts[index]" class="text-grey">
-                    {{ tokenAmounts[index] }}
-                    {{ tokenDataPerPair[index]?.currency }}
-                  </div>
-                </template>
-              </q-input>
-  
+              />
+              <div v-if="tokenAmounts[index]" class="q-px-xs text-grey">
+                {{ formatWithLocale(tokenAmounts[index], { max: tokenDataPerPair[index]?.decimals }) }}
+                {{ tokenDataPerPair[index]?.currency }}
+              </div>
+
               <div
                 v-if="Number.isFinite(maxDenominatedRedeemableBchPerPair[index])"
                 class="q-pl-xs row items-center text-grey"
               >
-                <div class="text-body2 q-space">{{ maxDenominatedRedeemableBchPerPair[index] }} {{ denomination }}</div>
+                <div class="text-body2 q-space">
+                  {{ formatWithLocale(maxDenominatedRedeemableBchPerPair[index], { max: 8 }) }}
+                  {{ denomination }}
+                </div>
                 <q-btn
                   flat
                   :label="$t('MAX')"
                   class="q-r-mr-md text-body2"
-                  @click="() => amounts[index] = maxDenominatedRedeemableBchPerPair[index]"
+                  @click="() => amounts[index] = String(maxDenominatedRedeemableBchPerPair[index])"
                 />
               </div> 
             </div>
           </div>
           <div v-else>
-            <q-input
-              outlined
+            <CustomInput
               v-model="denominatedAmount"
-              :suffix="denomination"
-              :rules="[
+              :inputSymbol="denomination"
+              :decimalObj="{ min: 0, max: denominationDecimals }"
+              :inputRules="[
                 val => parseFloat(val) > 0 || $t('InvalidAmount'),
                 val => parseFloat(val) <= totalDenominatedRedeemableBch ||
                   $t('MustBeLessThan', { amount: totalDenominatedRedeemableBch + ' ' + denomination }),
@@ -97,7 +123,10 @@
               v-if="Number.isFinite(totalDenominatedRedeemableBch)"
               class="q-mb-md q-pl-xs row items-center text-grey"
             >
-              <div class="text-body2 q-space">{{ totalDenominatedRedeemableBch }} {{ denomination }}</div>
+              <div class="text-body2 q-space">
+                {{ formatWithLocale(totalDenominatedRedeemableBch, { max: 8 }) }}
+                {{ denomination }}
+              </div>
               <q-btn
                 flat
                 :label="$t('MAX')"
@@ -118,7 +147,7 @@
             />
             <q-btn
               no-caps :label="$t('OK')"
-              color="brandblue"
+              color="pt-primary1"
               rounded
               class="col-5 col-sm-3"
               type="submit"
@@ -131,16 +160,20 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { getAssetDenomination } from 'src/utils/denomination-utils';
+import { formatWithLocale, getDenomDecimals } from 'src/utils/denomination-utils';
 import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import { satoshisToToken, tokenToSatoshis } from 'src/wallet/stablehedge/token-utils';
 import { useValueFormatters } from 'src/composables/stablehedge/formatters';
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex';
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import CustomInput from '../CustomInput.vue';
 
 export default defineComponent({
   name: 'RedeemDialog',
+  components: {
+    CustomInput,
+  },
   emits: [
     'update:modelValue',
     ...useDialogPluginComponent.emits,
@@ -181,15 +214,23 @@ export default defineComponent({
     const denomination = computed(() => {
       return props.selectedDenomination || $store.getters['global/denomination'] || 'BCH'
     })
+    const denominationDecimals = computed(() => {
+      const currentDenomination = denomination.value || 'BCH'
+      const { decimal } = getDenomDecimals(currentDenomination)
+      return decimal
+    })
     const denominationPerBchRate = computed(() => {
       const currentDenomination = denomination.value || 'BCH'
-      return parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+      const { convert } = getDenomDecimals(currentDenomination)
+      return convert;
     })
 
-    const redemptionContracts = computed(() => props.redemptionContracts)
+    const redemptionContracts = computed(() => {
+      return Array.isArray(props.redemptionContracts) ? props.redemptionContracts : []
+    })
     const tokenBalances = computed(() => $store.getters['stablehedge/tokenBalances'])
-    const tokenBalanceContractPairs = computed(() => {
-      const results = redemptionContracts.value.map(redemptionContract => {
+    const allTokenBalanceContractPairs = computed(() => {
+      const results = (redemptionContracts.value || []).map(redemptionContract => {
         const tokenBalance = tokenBalances.value
           .find(tokenBalance => redemptionContract?.fiat_token?.category == tokenBalance?.category)
 
@@ -200,11 +241,64 @@ export default defineComponent({
         // ...results,
       ]
     })
+
+    const allTokenDataPerPair = computed(() => {
+      return allTokenBalanceContractPairs.value.map(pair => {
+        return $store.getters['stablehedge/token'](pair?.tokenBalance?.category)
+      })
+    })
+
+    const availableCurrencies = computed(() => {
+      const currencies = allTokenDataPerPair.value
+        .map(token => token?.currency)
+        .filter(Boolean)
+      return [...new Set(currencies)].sort()
+    })
+
+    const selectedMarketCurrency = computed(() => {
+      const currency = $store.getters['market/selectedCurrency']
+      return currency?.symbol
+    })
+    const preferredStablehedgeCurrency = computed(() => {
+      return selectedMarketCurrency.value === 'PHP' ? 'PHP' : 'USD'
+    })
+
+    const selectedCurrency = ref('')
+    watch([innerVal, availableCurrencies], () => {
+      if (!innerVal.value) return
+      if (selectedCurrency.value && availableCurrencies.value.includes(selectedCurrency.value)) return
+      if (preferredStablehedgeCurrency.value && availableCurrencies.value.includes(preferredStablehedgeCurrency.value)) {
+        selectedCurrency.value = preferredStablehedgeCurrency.value
+      } else {
+        // If wallet currency doesn't match any Stablehedge currency, default to USD (SUSD).
+        if (availableCurrencies.value.includes('USD')) selectedCurrency.value = 'USD'
+        else selectedCurrency.value = availableCurrencies.value?.[0] || ''
+      }
+    }, { immediate: true })
+
+    function selectCurrency(currency) {
+      if (!currency || selectedCurrency.value === currency) return
+      selectedCurrency.value = currency
+      // Reset amounts when switching currency (match Freeze dialog behavior)
+      expandAmounts.value = false
+      amounts.value = []
+      denominatedAmountInner.value = ''
+    }
+
+    const tokenBalanceContractPairs = computed(() => {
+      if (!selectedCurrency.value) return allTokenBalanceContractPairs.value
+      return allTokenBalanceContractPairs.value.filter((pair, index) => {
+        return allTokenDataPerPair.value[index]?.currency === selectedCurrency.value
+      })
+    })
+
     const tokenDataPerPair = computed(() => {
+      // keep in sync with filtered pairs
       return tokenBalanceContractPairs.value.map(pair => {
         return $store.getters['stablehedge/token'](pair?.tokenBalance?.category)
       })
     })
+
     const priceTimestampPerPair = computed(() => {
       return tokenDataPerPair.value.map(token => token?.priceMessage?.messageTimestamp * 1000)
     })
@@ -310,11 +404,19 @@ export default defineComponent({
         amounts.value = newDenominatedAmounts
       }
     })
+
+    const denominatedAmountInner = ref('');
     const denominatedAmount = computed({
       get() {
-        return amount.value * denominationPerBchRate.value
+        const computedValue = amount.value * denominationPerBchRate.value;
+        const parsedInner = parseFloat(denominatedAmountInner.value);
+        if (parsedInner !== computedValue) {
+          denominatedAmountInner.value = computedValue;
+        }
+        return denominatedAmountInner.value;
       },
       set(value) {
+        denominatedAmountInner.value = value;
         amount.value = value / denominationPerBchRate.value
       }
     })
@@ -344,7 +446,12 @@ export default defineComponent({
       dialogRef, onDialogCancel, onDialogHide, onDialogOK,
       innerVal,
 
+      availableCurrencies,
+      selectedCurrency,
+      selectCurrency,
+
       denomination,
+      denominationDecimals,
       tokenBalanceContractPairs,
       tokenDataPerPair,
       priceTimestampPerPair,
@@ -362,6 +469,7 @@ export default defineComponent({
 
       formatDateRelative,
       formatTimestampToText,
+      formatWithLocale,
     }
   }
 })

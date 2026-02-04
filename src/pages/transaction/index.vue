@@ -1,68 +1,35 @@
 <template>
-  <div id="app-container" class="scroll-y" :class="getDarkModeClass(darkMode)">
+  <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="onRefresh">
     <div>
-      <q-pull-to-refresh @refresh="refresh">
-        <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+      <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
-          <div :class="{'pt-header home-header' : isNotDefaultTheme(theme)}">
+          <div >
             <connected-dialog v-if="$q.platform.is.bex" @click="() => $refs['connected-dialog'].show()" ref="connected-dialog"></connected-dialog>
 
             <div
               class="row q-px-sm q-pt-sm"
-              :style="{'margin-top': $q.platform.is.ios ? '55px' : '0px'}"
             >
-              <MultiWalletDropdown ref="multi-wallet-component" />
-              <NotificationButton
-                @hide-multi-wallet-dialog="hideMultiWalletDialog"
-                @find-and-open-transaction="findAndOpenTransaction"
-              />
+              <div data-tour="wallet-opener" class="col">
+                <MultiWalletDropdown ref="multi-wallet-component"/>
+              </div>
+              <div class="row items-center justify-end q-gutter-md">
+                <q-btn
+                  flat
+                  round
+                  icon="lightbulb"
+                  class="text-bow"
+                  :class="getDarkModeClass(darkMode)"
+                  data-tour="home-tour-trigger"
+                  @click="startHomeTour(false)"
+                />
+                <NotificationButton
+                  @hide-multi-wallet-dialog="hideMultiWalletDialog"
+                  @find-and-open-transaction="findAndOpenTransaction"
+                />
+              </div>
             </div>
 
-            <div class="row" :class="enableSmartBCH || enableStablhedge ? 'q-pt-lg': 'q-pt-sm'">
-              <template v-if="enableStablhedge">
-                <q-tabs
-                  class="col-12 q-px-sm q-pb-md"
-                  v-model="stablehedgeTab"
-                  style="margin-top: -25px;"
-                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
-                >
-                  <q-tab
-                    name="bch"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    label="BCH"
-                  />
-                  <q-tab
-                    name="stablehedge"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="$t('Stablehedge')"
-                  />
-                </q-tabs>
-              </template>
-              <template v-if="enableSmartBCH">
-                <q-tabs
-                  class="col-12 q-px-sm q-pb-md"
-                  :modelValue="selectedNetwork"
-                  @update:modelValue="changeNetwork"
-                  style="margin-top: -25px;"
-                  :indicator-color="(isNotDefaultTheme(theme) && denomination !== $t('DEEM')) ? 'transparent' : ''"
-                >
-                  <q-tab
-                    name="BCH"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="networks.BCH.name"
-                  />
-                  <q-tab
-                    name="sBCH"
-                    class="network-selection-tab"
-                    :class="[getDarkModeClass(darkMode), {'transactions-page': denomination === $t('DEEM')}]"
-                    :label="networks.sBCH.name"
-                    :disable="isChipnet"
-                  />
-                </q-tabs>
-              </template>
+            <div class="row q-pt-sm">
               <template v-if="isDenominationTabEnabled">
                 <q-tabs
                   inline-label
@@ -70,12 +37,12 @@
                   :model-value="denominationTabSelected"
                   @update:model-value="onDenominationTabSelected"
                   style="margin-top: -15px;"
-                  :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+                  indicator-color=""
                 >
                   <q-tab
                     name="BCH"
-                    class="network-selection-tab denominations-tab"
-                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                    class="network-selection-tab denominations-tab main-tab"
+                    :class="[getDarkModeClass(darkMode)]"
                     label="BCH &#x1F30F;"
                   />
                   <q-icon
@@ -87,8 +54,8 @@
                   />
                   <q-tab
                     :name="$t('DEEM')"
-                    class="network-selection-tab denominations-tab"
-                    :class="[getDarkModeClass(darkMode), {'main-tab': !enableSmartBCH}]"
+                    class="network-selection-tab denominations-tab main-tab"
+                    :class="[getDarkModeClass(darkMode)]"
                   >
                     <template v-slot:default>
                       <div class="q-tab__content">
@@ -105,184 +72,138 @@
               </template>
             </div>
             <div class="row q-mt-xs">
-              <div class="col text-white" @click="selectBch">
-                <q-card id="bch-card">
+              <div class="col text-white" @click="selectBch" v-touch-hold.mouse="() => showAssetInfo(bchAsset)">
+                <q-card id="bch-card" data-tour="bch-card">
                   <q-card-section horizontal>
-                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px">
-                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" class="bch-skeleton">
-                        <q-skeleton class="text-h5" type="rect"/>
-                      </div>
-                      <div v-else>
-                        <p class="q-mb-none">
-                          <!-- <q-icon v-if="stablehedgeView" name="ac_unit" class="text-h5" style="margin-top:-0.40em;"/> -->
-                          <span ellipsis class="text-h5" :class="{'text-grad' : isNotDefaultTheme(theme)}">
-                            {{ bchBalanceText }}
-                          </span>
-                        </p>
-                        <div v-if="stablehedgeView && stablehedgeWalletData?.balancesWithoutSats?.length">
-                          + 
-                          <template v-if="stablehedgeWalletData?.balancesWithoutSats?.length === 1">
-                            <template v-for="tokenBalance in stablehedgeWalletData?.balancesWithoutSats">
-                              {{ tokenBalance?.standardizedAmount }}
-                              {{ tokenBalance?.currency || 'UNITS' }}
-                            </template>
-                          </template>
-                          <template v-else>
-                            {{ stablehedgeWalletData?.balancesWithoutSats?.length }}
-                            {{ $t('Tokens') }}
-                          </template>
+                    <q-card-section class="col flex items-center" style="padding: 10px 5px 10px 16px; min-height: 80px; min-width: 0;">
+                      <div v-if="!balanceLoaded && selectedAsset.id === 'bch'" style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
+                        <div>
+                          <q-skeleton type="rect" width="120px" height="24px" class="q-mb-xs" />
+                          <q-skeleton type="rect" width="100px" height="16px" class="q-mb-xs" />
                         </div>
-                        <div v-else>{{ getAssetMarketBalance(bchAsset) }}</div>
-                        <q-badge
-                          rounded
-                          class="flex justify-start items-center yield-container"
-                          v-if="walletYield"
-                        >
-                          <q-icon
-                            size="sm"
-                            :name="walletYield > 0 ? 'arrow_drop_up' : 'arrow_drop_down'"
-                            :color="walletYield > 0 ? 'green-5' : 'red-5'"
-                          />
-                          <span class="yield text-weight-bold" :class="walletYield > 0 ? 'positive' : 'negative'">
-                            {{ `${walletYield} ${selectedMarketCurrency}` }}
-                          </span>
-                        </q-badge>
-                        <StablehedgeButtons
-                          v-if="stablehedgeView"
-                          class="q-mt-xs"
-                          :selectedDenomination="selectedDenomination"
-                          @deposit="onStablehedgeTransaction"
-                          @redeem="onStablehedgeTransaction"
-                        />
-                        <div v-else-if="hasCashin">
-                          <q-btn class="cash-in q-mt-xs" padding="0" no-caps rounded dense @click.stop="openCashIn">
-                            <q-icon size="1.25em" name="add" style="padding-left: 5px;"/>
-                            <div style="padding-right: 10px;">Cash In</div>
-                            <q-badge v-if="hasCashinAlert" align-left floating rounded color="red"/>
-                          </q-btn>
+                        <div>
+                          <q-skeleton type="rect" width="180px" height="24px" />
+                        </div>
+                      </div>
+                      <div v-else style="min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; width: 100%;">
+                        <div>
+                          <p class="q-mb-none">
+                            <span class="text-h5 bch-balance-text">
+                              {{ bchBalanceText }}
+                            </span>
+                          </p>
+                          <div v-if="getAssetMarketBalance(bchAsset)" class="bch-fiat-text">
+                            {{ getAssetMarketBalance(bchAsset) }}
+                          </div>
+                          <div v-else-if="loadingBchPrice" class="row justify-start">
+                            <q-skeleton type="rect" width="100px" height="16px" />
+                          </div>
+                        </div>
+                        <div class="bch-card-controls row items-center no-wrap">
+                          <div @click.stop style="display: inline-block;">
+                            <q-select
+                              :model-value="bchBalanceMode"
+                              :options="balanceModeOptions"
+                              :dark="darkMode"
+                              label-color="white"
+                              option-label="label"
+                              option-value="value"
+                              emit-value
+                              map-options
+                              dense
+                              borderless
+                              class="balance-mode-selector q-mt-xs"
+                              :popup-content-class="`text-bow ${getDarkModeClass(darkMode)}`"
+                              style="max-width: 200px; font-size: 12px; height: 24px;"
+                              @update:model-value="onBalanceModeChange"
+                            />
+                          </div>
+                          <q-badge
+                            rounded
+                            class="flex justify-start items-center yield-container"
+                            v-if="walletYield"
+                          >
+                            <q-icon
+                              size="sm"
+                              :name="walletYield > 0 ? 'arrow_drop_up' : 'arrow_drop_down'"
+                              :color="walletYield > 0 ? 'green-5' : 'red-5'"
+                            />
+                            <span class="yield text-weight-bold" :class="walletYield > 0 ? 'positive' : 'negative'">
+                              {{ `${walletYield} ${selectedMarketCurrency}` }}
+                            </span>
+                          </q-badge>
                         </div>
                       </div>
                     </q-card-section>
-                    <q-card-section class="col-4 flex items-center justify-end" style="padding: 10px 16px">
-                      <div v-if="selectedNetwork === 'sBCH'">
-                        <img src="sep20-logo.png" alt="" style="height: 75px;"/>
-                      </div>
-                      <div v-else>
-                        <img
-                          :src="denominationTabSelected === $t('DEEM')
-                            ? 'assets/img/theme/payhero/deem-logo.png'
-                            : stablehedgeView ? 'assets/img/stablehedge/stablehedge-bch.svg' : 'bch-logo.png'
-                          "
-                          alt=""
-                          style="height: 75px;"
-                        />
-                      </div>
+                    <q-card-section class="col-auto flex items-center justify-end bch-card-icon" style="padding: 10px 16px; height: 100%;">
+                      <img
+                        :src="denominationTabSelected === $t('DEEM') ? 'assets/img/theme/payhero/deem-logo.png' : 'bch-logo.png'"
+                        alt=""
+                        class="asset-icon"
+                        style="height: 75px;"
+                        @contextmenu.prevent
+                        @selectstart.prevent
+                      />
                     </q-card-section>
                   </q-card-section>
                 </q-card>
               </div>
             </div>
           </div>
-          <div
-            v-if="!showTokens"
-            class="text-center button button-text-primary show-tokens-label"
-            :class="getDarkModeClass(darkMode)"
-            @click.native="toggleShowTokens"
-          >
-            {{ $t(isHongKong(currentCountry) ? 'ShowPoints' : 'ShowTokens') }}
-          </div>
-          <div class="row q-mt-sm" v-if="showTokens">
-            <div class="col">
-              <p
-                class="q-ml-lg q-mb-sm q-gutter-x-sm button button-text-primary"
-                style="font-size: 20px;"
-                :class="getDarkModeClass(darkMode)"
-              >
-                <template v-if="stablehedgeView"> {{ $t('Stablehedge') }}</template>
-                {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
-                <q-btn
-                  flat
-                  padding="none"
-                  v-if="manageAssets"
-                  size="sm"
-                  icon="close"
-                  class="settings-button"
-                  :style="assetsCloseButtonColor"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="toggleManageAssets"
-                />
-                <q-btn
-                  v-if="!stablehedgeView"
-                  flat
-                  padding="none"
-                  size="sm"
-                  class="settings-button"
-                  :icon="settingsButtonIcon"
-                  :class="getDarkModeClass(darkMode)"
-                  @click="updateTokenMenuPosition"
-                >
-                  <q-menu
-                    ref="tokenMenu"
-                    class="text-bow token-menu"
-                    :class="getDarkModeClass(darkMode)"
-                  >
-                    <q-list class="pt-card token-menu-list" :class="getDarkModeClass(darkMode)">
-                      <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleManageAssets">
-                          {{ $t(isHongKong(currentCountry) ? 'ManagePoints' : 'ManageTokens') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section @click="checkMissingAssets({autoOpen: true})">
-                          {{ $t(isHongKong(currentCountry) ? 'ScanForPoints' : 'ScanForTokens') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section @click="toggleShowTokens">
-                          {{ $t(isHongKong(currentCountry) ? 'HidePoints' : 'HideTokens') }}
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn>
-              </p>
-            </div>
 
-            <div
-              v-show="selectedNetwork === networks.BCH.name"
-              class="col-3 q-mt-sm"
-              style="margin-top: -5px !important;"
-            >
-              <AssetFilter v-if="!stablehedgeView" @filterTokens="isCT => isCashToken = isCT" />
-              <KeepAlive>
-                <div v-if="stablehedgeView" class="row items-center q-px-lg">
-                  <q-space/>
-                  <q-btn
-                    flat
-                    no-caps
-                    icon="query_stats"
-                    padding="sm"
-                    class="button button-text-primary"
-                    :class="getDarkModeClass(darkMode)"
-                    @click="() => openStablehedgeMarketsDialog = true"
-                  />
-                  <StablehedgeMarketsDialog v-model="openStablehedgeMarketsDialog"/>
-                </div>
-              </KeepAlive>
+          <asset-options 
+            data-tour="quick-actions"
+            :loaded="balanceLoaded"
+            :selectedDenomination="selectedDenomination"
+            @spend-bch="openSpendBch()"
+          />
+          <div class="row items-center justify-between q-mb-sm q-mt-sm">
+            <div class="q-ml-lg button button-text-primary" style="font-size: 20px;">
+              {{ $t(isHongKong(currentCountry) ? 'Points' : 'Tokens') }}
+              <q-btn
+                flat
+                padding="none"
+                v-if="manageAssets"
+                size="sm"
+                icon="close"
+                class="settings-button"
+                :style="assetsCloseButtonColor"
+                :class="getDarkModeClass(darkMode)"
+                @click="toggleManageAssets"
+              />
+            </div>
+            <div class="row items-center q-gutter-sm">
+              <AssetFilter 
+                v-if="hasAssetFilter" 
+                @filterTokens="isCT => isCashToken = isCT" 
+              />
+              <q-btn
+                flat
+                dense
+                no-caps
+                :label="$t('Manage')"
+                :color="darkMode ? 'blue-4' : 'blue-6'"
+                @click="goToAssetList"
+                padding="4px 8px"
+                class="q-mr-md"
+              />
             </div>
           </div>
-          <asset-info v-if="showTokens" ref="asset-info" :network="selectedNetwork"></asset-info>
+          <asset-info ref="asset-info" :network="selectedNetwork"></asset-info>
           <!-- Cards without drag scroll on mobile -->
-          <template v-if="showTokens && $q.platform.is.mobile">
+          <template v-if="$q.platform.is.mobile">
             <asset-cards
-              :assets="assets"
+              data-tour="token-cards"
+              :assets="tokenCardsAssets"
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
+              :refreshing-token-ids="refreshingTokenIds"
               :network="selectedNetwork"
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -292,17 +213,20 @@
             </asset-cards>
           </template>
           <!-- Cards with drag scroll on other platforms -->
-          <template v-if="showTokens && !$q.platform.is.mobile">
+          <template v-if="!$q.platform.is.mobile">
             <asset-cards
-              :assets="assets"
+              data-tour="token-cards"
+              :assets="tokenCardsAssets"
               :manage-assets="manageAssets"
               :selected-asset="selectedAsset"
               :balance-loaded="balanceLoaded"
+              :refreshing-token-ids="refreshingTokenIds"
               v-dragscroll.x="true"
               :network="selectedNetwork"
               :wallet="wallet"
               :isCashToken="isCashToken"
               :currentCountry="currentCountry"
+              :is-loading-initial="isLoadingAssets && !hasTokensButNoFavorites"
               @select-asset="asset => setSelectedAsset(asset)"
               @show-asset-info="asset => showAssetInfo(asset)"
               @hide-asset-info="hideAssetInfo()"
@@ -311,10 +235,104 @@
             >
             </asset-cards>
           </template>
-          <div v-if="showTokens && assets.length == 0" style="height: 10px;"></div>
+
+          <div v-if="!isCashToken && enableSLP" class="q-px-lg q-mt-sm text-center">
+            <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.
+            </div>
+          </div>
+
+          <div v-if="isCashToken && assets.length == 0 && !isLoadingAssets" style="margin-bottom: 10px;">
+            <div class="text-center">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="qr_code"
+                padding="xs md"
+                label="Receive Tokens"
+                @click="$router.push({ name: 'transaction-receive', query: { assetId: 'ct/unlisted', network: 'BCH' } })"
+              />
+            </div>
+          </div>
+
+          <div v-if="hasTokensButNoFavorites" class="q-px-lg q-py-md" :class="darkMode ? 'text-light' : 'text-dark'">
+            <div class="text-center q-pa-md" :class="getDarkModeClass(darkMode)">
+              <q-icon name="star_outline" size="48px" :color="darkMode ? 'grey-6' : 'grey-7'" class="q-mb-sm"/>
+              <p class="text-body1 q-mb-md" :class="getDarkModeClass(darkMode)">
+                {{ $t('MarkTokensAsFavorites', {}, 'Mark tokens as favorites to show them here') }}
+              </p>
+              <q-btn
+                flat
+                no-caps
+                :color="darkMode ? 'blue-4' : 'blue-6'"
+                :label="$t('Manage')"
+                icon-right="arrow_forward"
+                @click="goToAssetList"
+                padding="xs md"
+                class="br-15"
+              />
+            </div>
+          </div>
+
+          <PendingTransactions :key="pendingTransactionsKey"/>
+
+          <LatestTransactions 
+            v-if="wallet"
+            ref="latest-transactions"
+            :wallet="wallet"
+            :denominationTabSelected="denominationTabSelected"
+            data-tour="transactions"
+            :tutorialMode="homeTour.active"
+            :tutorialStepId="homeTour.steps?.[homeTour.stepIndex]?.id"
+          />
         </div>
-      </q-pull-to-refresh>
-      <div ref="transactionSection" class="row transaction-row">
+
+      <!-- Backup Reminder Dialog -->
+      <q-dialog
+        v-model="showBackupAlert"
+        persistent
+        no-backdrop-dismiss
+        :class="getDarkModeClass(darkMode)"
+      >
+        <q-card class="backup-reminder-dialog pt-card br-15 text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; max-width: 400px;">
+          <q-card-section class="q-pb-sm">
+            <div class="row items-center q-gutter-sm">
+              <q-icon name="shield" size="32px" class="backup-dialog-icon" color="primary" />
+              <div class="col">
+                <div class="text-h6 text-weight-medium">{{ $t('BackupYourWallet', {}, 'Backup Your Wallet') }}</div>
+              </div>
+            </div>
+          </q-card-section>
+          
+          <q-card-section class="q-pt-sm">
+            <div class="text-body2">
+              {{ $t('BackupYourRecoveryPhraseToProtectFunds', {}, 'Backup your recovery phrase to protect your funds') }}
+            </div>
+          </q-card-section>
+          
+          <q-card-actions align="right" class="q-pa-md q-gutter-sm">
+            <q-btn
+              flat
+              no-caps
+              :label="$t('NotNow')"
+              class="backup-dialog-button"
+              @click="dismissAlertForSession"
+              padding="sm md"
+            />
+            <q-btn
+              unelevated
+              no-caps
+              :label="$t('ShowMeHow')"
+              class="backup-dialog-button backup-dialog-button-primary"
+              @click="goToBackupPage"
+              padding="sm md"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+      <!-- <div ref="transactionSection" class="row transaction-row">
         <transaction
           ref="transaction"
           :wallet="wallet"
@@ -335,11 +353,16 @@
                 <q-input
                   ref="tx-search"
                   style="margin-left: -20px; padding-bottom: 22px;"
-                  maxlength="6"
+                  maxlength="8"
                   label="Search by Reference ID"
                   v-model="txSearchReference"
                   debounce="200"
-                  @update:model-value="(val) => { txSearchReference = val.toUpperCase().slice(0, 6); executeTxSearch(val) }"
+                  placeholder="00000000"
+                  @update:model-value="(val) => { 
+                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
+                    txSearchReference = cleaned;
+                    executeTxSearch(txSearchReference);
+                  }"
                 >
                   <template v-slot:prepend>
                     <q-icon name="search" />
@@ -349,24 +372,6 @@
                   </template>
                 </q-input>
               </div>
-              <template v-if="selectedAsset.symbol.toLowerCase() === 'bch' && !txSearchActive">
-                <q-btn
-                  v-if="isNotDefaultTheme(theme) && darkMode"
-                  unelevated
-                  @click="openPriceChart"
-                  icon="img:assets/img/theme/payhero/price-chart.png"
-                />
-                <q-btn
-                  v-else
-                  round
-                  color="blue-9"
-                  padding="xs"
-                  icon="mdi-chart-line-variant"
-                  class="q-ml-md"
-                  :class="getDarkModeClass(darkMode, '', 'price-chart-icon')"
-                  @click="openPriceChart"
-                />
-              </template>
             </div>
           </div>
           <div
@@ -386,92 +391,141 @@
               {{ transactionFilterOpt?.label }}
             </button>
           </div>
-          <KeepAlive>
-            <StablehedgeHistory
-              v-if="stablehedgeView && selectedNetwork === 'BCH'"
-              ref="transaction-list-component"
-              :selectedAssetId="selectedAsset?.id"
-              :transactionsFilter="transactionsFilter"
-              :selectedDenomination="selectedDenomination"
-              @resolved-transaction="onStablehedgeTransaction"
-            />
-            <TransactionList
-              v-else
-              ref="transaction-list-component"
-              :selectedAssetProps="selectedAsset"
-              :denominationTabSelected="denominationTabSelected"
-              :wallet="wallet"
-              :selectedNetworkProps="selectedNetwork"
-              @on-show-transaction-details="showTransactionDetails"
-            />
-          </KeepAlive>
+          <TransactionList
+            ref="transaction-list-component"
+            :selectedAssetProps="selectedAsset"
+            :denominationTabSelected="denominationTabSelected"
+            :wallet="wallet"
+            :selectedNetworkProps="selectedNetwork"
+            @on-show-transaction-details="showTransactionDetails"
+          />
         </div>
-      </div>
-      <footer-menu ref="footerMenu" />
+      </div> -->
+      <footer-menu ref="footerMenu" data-tour="main-menus" />
     </div>
 
     <securityOptionDialog :security-option-dialog-status="securityOptionDialogStatus" v-on:preferredSecurity="setPreferredSecurity" />
     <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="executeActionTaken" />
 
-    <TokenSuggestionsDialog
-      ref="tokenSuggestionsDialog"
-      v-model="showTokenSuggestionsDialog"
-      :bch-wallet-hash="getWallet('bch').walletHash"
-      :slp-wallet-hash="getWallet('slp').walletHash"
-      :sbch-address="getWallet('sbch').lastAddress"
-    />
-  </div>
+    <teleport to="body">
+      <div v-if="homeTour.active" class="home-tour-overlay" @click.self="endHomeTour">
+        <div
+          v-if="homeTour.scrims && homeTour.targetRect"
+          v-for="(rect, key) in homeTour.scrims"
+          :key="key"
+          class="home-tour-scrim"
+          :style="{
+            top: rect.top + 'px',
+            left: rect.left + 'px',
+            width: rect.width + 'px',
+            height: rect.height + 'px',
+          }"
+        />
+
+        <div
+          v-if="homeTour.targetRect"
+          class="home-tour-highlight"
+          :style="{
+            top: homeTour.targetRect.top + 'px',
+            left: homeTour.targetRect.left + 'px',
+            width: homeTour.targetRect.width + 'px',
+            height: homeTour.targetRect.height + 'px',
+          }"
+        />
+
+        <div
+          class="home-tour-tooltip pt-card text-bow"
+          :class="getDarkModeClass(darkMode)"
+          :style="{
+            top: homeTour.tooltipPos.top + 'px',
+            left: homeTour.tooltipPos.left + 'px',
+          }"
+        >
+          <div class="text-subtitle1 text-weight-medium q-mb-xs">
+            {{ homeTour.steps[homeTour.stepIndex]?.title }}
+          </div>
+          <div class="text-body2">
+            {{ homeTour.steps[homeTour.stepIndex]?.body }}
+          </div>
+
+          <div class="row items-center justify-between q-mt-md">
+            <q-btn
+              flat
+              no-caps
+              :label="$t('Skip', {}, 'Skip')"
+              @click="endHomeTour"
+            />
+            <div class="row items-center q-gutter-sm">
+              <q-btn
+                flat
+                no-caps
+                :disable="homeTour.stepIndex === 0"
+                :label="$t('Back', {}, 'Back')"
+                @click="prevHomeTourStep"
+              />
+              <q-btn
+                unelevated
+                color="primary"
+                no-caps
+                :label="homeTour.stepIndex === homeTour.steps.length - 1 ? $t('Done', {}, 'Done') : $t('Next', {}, 'Next')"
+                @click="nextHomeTourStep"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+  </q-pull-to-refresh>
 </template>
 
 <script>
 import { mapState } from 'vuex'
 import Watchtower from 'watchtower-cash-js'
-import stablehedgePriceTracker from 'src/wallet/stablehedge/price-tracker'
 import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 import { markRaw } from '@vue/reactivity'
 import { bus } from 'src/wallet/event-bus'
 import { getMnemonic } from '../../wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
-import { parseTransactionTransfer } from 'src/wallet/sbch/utils'
 import { dragscroll } from 'vue-dragscroll'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { sha256 } from 'js-sha256'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { getBackendWsUrl, backend } from 'src/exchange/backend'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { debounce } from 'quasar'
+import { refToHex } from 'src/utils/reference-id-utils'
+import { buildHomeTourSteps, HOME_TOUR_SEEN_KEY } from 'src/utils/home-tour'
 
-import TokenSuggestionsDialog from '../../components/TokenSuggestionsDialog'
 import Transaction from '../../components/transaction'
 import AssetCards from '../../components/asset-cards'
 import AssetInfo from '../../pages/transaction/dialog/AssetInfo.vue'
-import PriceChart from '../../pages/transaction/dialog/PriceChart.vue'
+import AddNewAsset from 'src/pages/transaction/dialog/AddNewAsset'
 import securityOptionDialog from '../../components/authOption'
 import pinDialog from '../../components/pin'
 import connectedDialog from '../connect/connectedDialog.vue'
 import AssetFilter from '../../components/AssetFilter'
 import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
-import CashIn from 'src/components/cash-in/CashinIndex.vue'
-import StablehedgeButtons from 'src/components/stablehedge/StablehedgeButtons.vue'
-import StablehedgeHistory from 'src/components/stablehedge/StablehedgeHistory.vue'
-import StablehedgeMarketsDialog from 'src/components/stablehedge/dashboard/StablehedgeMarketsDialog.vue'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
+import AssetOptions from 'src/components/asset-options.vue'
+import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
+import LatestTransactions from 'src/components/transactions/LatestTransactions.vue'
+import * as assetSettings from 'src/utils/asset-settings'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
-
-const sep20IdRegexp = /sep20\/(.*)/
+import axios from 'axios'
+import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
 
 export default {
   name: 'Transaction-page',
   components: {
     TransactionList,
-    TokenSuggestionsDialog,
     Transaction,
     AssetInfo,
     AssetCards,
@@ -480,10 +534,11 @@ export default {
     connectedDialog,
     AssetFilter,
     MultiWalletDropdown,
-    StablehedgeButtons,
-    StablehedgeHistory,
-    StablehedgeMarketsDialog,
-    NotificationButton
+    NotificationButton,
+    AssetOptions,
+    PendingTransactions,
+    LatestTransactions,
+    AddNewAsset
   },
   directives: {
     dragscroll
@@ -494,10 +549,6 @@ export default {
   data () {
     return {
       hideBalances: false,
-      networks: {
-        BCH: { name: 'BCH' },
-        sBCH: { name: 'SmartBCH' }
-      },
       selectedAsset: {
         id: 'bch',
         symbol: 'BCH',
@@ -505,32 +556,48 @@ export default {
         logo: 'bch-logo.png',
         balance: 0
       },
-      stablehedgeView: false,
       txSearchActive: false,
       txSearchReference: '',
-      openStablehedgeMarketsDialog: false,
       transactionsFilter: 'all',
       activeBtn: 'btn-all',
       balanceLoaded: false,
+      refreshingTokenIds: [],
       wallet: null,
+      isLoadingAssets: true,
       manageAssets: false,
       assetInfoShown: false,
       pinDialogAction: '',
       securityOptionDialogStatus: 'dismiss',
       prevPath: null,
-      showTokenSuggestionsDialog: false,
-      showTokens: this.$store.getters['global/showTokens'],
       isCashToken: true,
       settingsButtonIcon: 'settings',
       assetsCloseButtonColor: 'color: #3B7BF6;',
       denominationTabSelected: 'BCH',
       parsedBCHBalance: '0',
       walletYield: null,
-      hasCashin: false,
-      hasCashinAlert: false,
-      availableCashinFiat: null,
-      isPriceChartDialogShown: false,
-      websocketManager: null
+      websocketManager: null,
+      assetClickTimer: null,
+      assetClickCounter: 0 ,
+      pendingTransactionsKey: 0,
+      loadingBchPrice: false,
+      bchBalanceMode: localStorage.getItem('bchBalanceMode') || 'bch-only',
+      favoriteTokenIds: [], // Store favorite token IDs for synchronous access (deprecated, kept for compatibility)
+      allTokensFromAPI: [], // Store all tokens fetched from API with balances (includes favorites)
+      allSlpTokensFromAPI: [], // Store all SLP tokens fetched from API (includes favorites)
+      showBackupAlert: false,
+      alertDismissedForSession: false,
+      backupAlertTimeout: null,
+
+      homeTour: {
+        active: false,
+        auto: false,
+        stepIndex: 0,
+        steps: [],
+        targetRect: null,
+        scrims: null,
+        tooltipPos: { top: 0, left: 0 },
+        lastAutoScrollStepIndex: null,
+      },
     }
   },
 
@@ -538,8 +605,22 @@ export default {
     online(newValue, oldValue) {
       this.onConnectivityChange(newValue)
     },
-    showTokens (n, o) {
-      this.$store.commit('global/showTokens')
+    lastBackupTimestamp (newValue, oldValue) {
+      // Auto-start the home tour only after backup reminder is no longer needed.
+      // This prevents the tour from competing with the backup reminder UI.
+      if (!oldValue && newValue) {
+        this._maybeAutoStartHomeTourAfterBackup()
+      }
+    },
+    async isCashToken (newValue, oldValue) {
+      // Refetch token list when token type changes
+      if (newValue) {
+        // Switching to CashTokens
+        await this.fetchAllTokensFromAPI()
+      } else {
+        // Switching to SLP
+        await this.fetchSlpTokensFromServer()
+      }
     },
     'assets.length': {
       handler(before, after) {
@@ -548,6 +629,13 @@ export default {
         const assetsWasEmpty = before == 0
         const assetsIsEmpty = after == 0
         if (assetsWasEmpty !== assetsIsEmpty) this.adjustTransactionsDivHeight({ timeout: 100 })
+        
+        // Mark assets as loaded once they're available
+        if (this.isLoadingAssets) {
+          this.$nextTick(() => {
+            this.isLoadingAssets = false
+          })
+        }
       }
     },
     manageAssets() {
@@ -562,9 +650,6 @@ export default {
       if (val) {
         this.formatBCHCardBalance(this.denomination)
       }
-    },
-    selectedNetwork (value) {
-      this.checkCashinAvailable()
     }
   },
 
@@ -572,6 +657,9 @@ export default {
     ...mapState('global', ['online']),
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    lastBackupTimestamp () {
+      return this.$store.getters['global/lastBackupTimestamp']
     },
     currentCountry () {
       return this.$store.getters['global/country'].code
@@ -590,32 +678,21 @@ export default {
     isChipnet () {
       return this.$store.getters['global/isChipnet']
     },
-    stablehedgeTab: {
-      get() {
-        return this.stablehedgeView ? 'stablehedge' : 'bch'
-      },
-      set(value) {
-        this.stablehedgeView = value === 'stablehedge'
-        this.$nextTick(() => {
-          this.$refs['transaction-list-component'].resetValues(null, null, this.selectedAsset)
-          this.$refs['transaction-list-component'].getTransactions()
-        })
-      }
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
     },
-    enableStablhedge () {
-      return this.$store.getters['global/enableStablhedge']
-    },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
+    hasAssetFilter () {
+      return this.enableSLP
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
     isDenominationTabEnabled () {
-      return (isNotDefaultTheme(this.theme) &&
-        (this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
-        this.selectedNetwork !== 'sBCH')
+      return ((this.denomination === this.$t('DEEM') || this.denomination === 'BCH') &&
+        this.currentCountry === 'HK' &&
+        this.selectedMarketCurrency === 'HKD')
     },
+
     selectedNetwork: {
       get () {
         return this.$store.getters['global/network']
@@ -625,23 +702,17 @@ export default {
       }
     },
     bchAsset () {
-      if (this.selectedNetwork === 'sBCH') {
-        return this.$store.getters['sep20/getAssets'][0]
-      }
-
       const asset = this.$store.getters['assets/getAssets'][0]
       return asset
     },
     bchBalanceText() {
       if (!this.balanceLoaded && this.selectedAsset?.id === this?.bchAsset?.id) return '0'
       const currentDenomination = this.selectedDenomination
-      const balance = this.stablehedgeView
-        ? this.stablehedgeWalletData.balance
+      
+      // Use aggregated balance if mode is 'bch+favorites', otherwise use BCH balance only
+      const balance = this.bchBalanceMode === 'bch+favorites' 
+        ? this.aggregatedBchBalance 
         : this.bchAsset.balance
-
-      if (this.selectedNetwork === 'sBCH') {
-        return `${String(balance).substring(0, 10)} ${selectedNetwork}`
-      }
 
       const parsedBCHBalance = getAssetDenomination(currentDenomination, balance)
 
@@ -655,54 +726,97 @@ export default {
 
       return parsedBCHBalance
     },
-    stablehedgeWalletData() {
-      const sats = this.$store.getters['stablehedge/totalTokenBalancesInSats']
-      const balance = sats / 10 ** 8
-      const tokenBalances = this.$store.getters['stablehedge/tokenBalancesWithSats']
-      const balancesWithoutSats = tokenBalances.filter(tokenBalance => {
-        return !Number.isFinite(tokenBalance?.satoshis)
-      }).map(tokenBalance => {
-        const token = this.$store.getters['stablehedge/token']?.(tokenBalance?.category)
-        const decimals = parseInt(token?.decimals) || 0
-
-        return {
-          ...tokenBalance,
-          decimals: decimals,
-          currency: token?.currency,
-          standardizedAmount: tokenBalance?.amount / 10 ** decimals,
-        }
-      })
-      return {
-        balance,
-        tokenBalances,
-        balancesWithoutSats,
-      }
-    },
     mainchainAssets() {
       return this.$store.getters['assets/getAssets'].filter(function (item) {
         if (item && item.id !== 'bch') return item
       })
     },
-    smartchainAssets() {
-      return this.$store.getters['sep20/getAssets'].filter(function (item) {
-        if (item && item.id !== 'bch') return item
-      })
-    },
     assets () {
       const vm = this
-      if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
-      
-      if (vm.stablehedgeView) {
-        return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
+
+      // Token cards should display favorite tokens only.
+      // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
+      // because the API includes `favorite` and `favorite_order`.
+      if (vm.isCashToken) {
+        return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
       }
 
-      return vm.mainchainAssets.filter(token => {
-        const assetId = token.id?.split?.('/')?.[0]
-        return (
-          vm.isCashToken && assetId === 'ct' ||
-          !vm.isCashToken && assetId === 'slp'
-        )
-      })
+      return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+    },
+    tokenCardsAssets () {
+      // Show temporary dummy tokens ONLY while the tutorial is active
+      // and ONLY when the token cards would otherwise be empty.
+      if (!this.homeTour?.active) return this.assets
+      // Only show dummy token cards when the tour is highlighting token cards.
+      if (this.homeTour.steps?.[this.homeTour.stepIndex]?.id !== 'token-cards') return this.assets
+      if (this.isLoadingAssets) return this.assets
+      if (this.hasTokensButNoFavorites) return this.assets
+
+      if (Array.isArray(this.assets) && this.assets.length === 0) {
+        // Dummy favorites (uses `favorite` field so `asset-cards` will render them).
+        return [
+          {
+            id: 'ct/tutorial-lift',
+            symbol: 'LIFT',
+            name: 'LIFT',
+            decimals: 8,
+            balance: 4200000000, // 42
+            logo: null,
+            favorite: 1,
+          },
+          {
+            id: 'ct/tutorial-spice',
+            symbol: 'SPICE',
+            name: 'SPICE',
+            decimals: 8,
+            balance: 12345000000, // 123.45
+            logo: null,
+            favorite: 1,
+          },
+          {
+            id: 'ct/tutorial-musd',
+            symbol: 'MUSD',
+            name: 'MUSD',
+            decimals: 6,
+            balance: 125750000, // 125.75
+            logo: null,
+            favorite: 1,
+          },
+        ]
+      }
+
+      return this.assets
+    },
+    hasTokensButNoFavorites () {
+      // Check if there are tokens (excluding BCH) but no favorites
+      // Only show this message when:
+      // 1. There are tokens available from API (not from Vuex store)
+      // 2. No favorites are set (check allTokensFromAPI directly since favoriteTokens might be empty for SLP)
+      // 3. Balance is loaded (indicates assets have been processed)
+
+      // For CashTokens, use API data exclusively - never use Vuex store
+      let hasTokens = false
+      if (this.isCashToken) {
+        hasTokens = this.allTokensFromAPI && this.allTokensFromAPI.length > 0
+      } else {
+        hasTokens = this.allSlpTokensFromAPI && this.allSlpTokensFromAPI.length > 0
+      }
+
+      // Check if there are favorites in allTokensFromAPI (uses API data exclusively)
+      // For CashTokens, filter favorites from allTokensFromAPI
+      let hasFavorites = false
+      if (this.isCashToken) {
+        const favorites = (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+        hasFavorites = favorites.length > 0
+      } else {
+        const favorites = (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+        hasFavorites = favorites.length > 0
+      }
+
+      const assetsLoaded = this.balanceLoaded // Use balanceLoaded as indicator that assets are ready
+      const result = hasTokens && !hasFavorites && assetsLoaded
+
+      return result
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
@@ -714,29 +828,714 @@ export default {
       return currency && currency.symbol
     },
     transactionsFilterOpts() {
-      if (this.stablehedgeView) {
-        return [
-          { label: this.$t('All'), value: 'all' },
-          { label: this.$t('Freeze'), value: 'freeze' },
-          { label: this.$t('Unfreeze'), value: 'unfreeze' },  
-        ]
-      }
       return [
         { label: this.$t('All'), value: 'all' },
         { label: this.$t('Sent'), value: 'sent' },
         { label: this.$t('Received'), value: 'received' },
       ]
+    },
+    balanceModeOptions () {
+      return [
+        { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
+        { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' }
+      ]
+    },
+    favoriteTokens () {
+      // Always use API data only - never use Vuex store for favorite tokens
+      if (this.isCashToken) {
+        return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+      }
+
+      return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+    },
+    aggregatedBchBalance () {
+      // If mode is 'bch-only', just return BCH balance in satoshis
+      if (this.bchBalanceMode !== 'bch+favorites') {
+        return Number(this.bchAsset?.balance || 0)
+      }
+
+      // Get BCH price in fiat
+      const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      if (!bchPriceInFiat || bchPriceInFiat === 0) {
+        // If BCH price not available, return BCH balance only
+        return Number(this.bchAsset?.balance || 0)
+      }
+
+      // Get BCH balance - balance is already in BCH units
+      const bchBalanceInBch = Number(this.bchAsset?.balance || 0)
+      let totalBalanceInBch = bchBalanceInBch
+
+      // Get favorite tokens
+      const favoriteAssets = this.favoriteTokens
+
+      // Calculate aggregated balance - sum all values in BCH
+      for (const token of favoriteAssets) {
+        try {
+          // Get token balance and account for decimals
+          let tokenBalance = Number(token.balance || 0)
+          if (token.decimals) {
+            const decimals = parseInt(token.decimals) || 0
+            if (decimals > 0) {
+              tokenBalance = tokenBalance / (10 ** decimals)
+            }
+          }
+
+          // Get token price in fiat
+          const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
+          if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
+            // Skip tokens without prices
+            continue
+          }
+
+          // Calculate token value in BCH: (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
+          const tokenValueInBch = (tokenBalance * tokenPriceInFiat) / bchPriceInFiat
+          
+          // Add to total in BCH
+          totalBalanceInBch += tokenValueInBch
+        } catch (error) {
+          // Skip tokens with errors
+          console.debug('Error calculating token value for aggregated balance:', token.id, error)
+          continue
+        }
+      }
+
+      // Return total in BCH (balance is already in BCH units)
+      return totalBalanceInBch
+    },
+    aggregatedFiatValue () {
+      if (this.bchBalanceMode !== 'bch+favorites') {
+        return this.getAssetMarketBalance(this.bchAsset)
+      }
+
+      // Start with BCH balance fiat conversion
+      const bchBalance = Number(this.bchAsset?.balance || 0)
+      const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
+      
+      if (!bchPriceInFiat || bchPriceInFiat === 0) {
+        return ''
+      }
+
+      // BCH balance is already in BCH units, not satoshis
+      const bchBalanceInBch = bchBalance
+      const bchFiatValue = bchBalanceInBch * Number(bchPriceInFiat)
+      let totalFiatValue = bchFiatValue
+
+      // Get favorite tokens
+      const favoriteAssets = this.favoriteTokens
+
+      // Add fiat conversion of each token balance directly
+      for (const token of favoriteAssets) {
+        try {
+          // Get token balance and account for decimals
+          let tokenBalance = Number(token.balance || 0)
+          if (token.decimals) {
+            const decimals = parseInt(token.decimals) || 0
+            if (decimals > 0) {
+              tokenBalance = tokenBalance / (10 ** decimals)
+            }
+          }
+
+          // Get token price in fiat
+          const tokenPriceInFiat = this.$store.getters['market/getAssetPrice'](token.id, this.selectedMarketCurrency)
+          if (!tokenPriceInFiat || tokenPriceInFiat === 0) {
+            // Skip tokens without prices
+            continue
+          }
+
+          // Calculate token value in fiat directly: tokenBalance * tokenPriceInFiat
+          const tokenValueInFiat = tokenBalance * tokenPriceInFiat
+          
+          totalFiatValue += tokenValueInFiat
+        } catch (error) {
+          // Skip tokens with errors
+          console.debug('Error calculating token fiat value for aggregated balance:', token.id, error)
+          continue
+        }
+      }
+
+      return parseFiatCurrency(totalFiatValue.toFixed(2), this.selectedMarketCurrency)
     }
   },
   methods: {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isNotDefaultTheme,
     isHongKong,
+
+    // ---- Home guided tour (no dependency) ----
+    async startHomeTour (auto = false) {
+      const vm = this
+
+      if (auto && localStorage.getItem(HOME_TOUR_SEEN_KEY) === 'true') return
+      if (vm.homeTour.active) return
+
+      vm.homeTour.auto = auto
+      vm.homeTour.steps = buildHomeTourSteps((...args) => vm.$t(...args))
+      vm.homeTour.stepIndex = 0
+      vm.homeTour.active = true
+
+      await vm.$nextTick()
+      vm._homeTourBindListeners()
+      await vm._homeTourGoTo(0)
+    },
+
+    _maybeAutoStartHomeTourAfterBackup () {
+      // Only auto-run once backup is confirmed (lastBackupTimestamp exists).
+      // If the reminder is currently showing/scheduled, do nothing.
+      if (!this.lastBackupTimestamp) return
+      if (this.showBackupAlert) return
+      if (this.backupAlertTimeout) return
+
+      // Let the UI settle first (assets + layout).
+      setTimeout(() => {
+        this.startHomeTour(true)
+      }, 800)
+    },
+
+    endHomeTour () {
+      this.homeTour.active = false
+      this._homeTourUnbindListeners()
+      localStorage.setItem(HOME_TOUR_SEEN_KEY, 'true')
+    },
+
+    nextHomeTourStep () {
+      this._homeTourGoTo(this.homeTour.stepIndex + 1)
+    },
+
+    prevHomeTourStep () {
+      this._homeTourGoTo(this.homeTour.stepIndex - 1)
+    },
+
+    async _homeTourGoTo (index) {
+      const vm = this
+      if (!vm.homeTour.active) return
+      if (index < 0) return
+      if (index >= vm.homeTour.steps.length) {
+        vm.endHomeTour()
+        return
+      }
+
+      vm.homeTour.stepIndex = index
+
+      // Wait briefly for targets to exist (assets, etc.)
+      for (let i = 0; i < 10; i++) {
+        const el = vm._homeTourGetTargetEl()
+        if (el) break
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 150))
+      }
+
+      // If the target is off-screen (e.g. footer/main menus), scroll it into view first.
+      const step = vm.homeTour.steps[vm.homeTour.stepIndex]
+      const targetEl = vm._homeTourGetTargetEl()
+
+      // Ensure footer is visible before measuring/highlighting.
+      // The footer can auto-hide while scrolling, which makes the rect (and highlight) drift.
+      if (step?.id === 'main-menus') {
+        try {
+          vm.$refs?.footerMenu?.showFooter?.()
+        } catch (_) {}
+        await vm.$nextTick()
+        // Wait for the footer transition to settle.
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(r => setTimeout(r, 350))
+      }
+
+      if (targetEl && vm.homeTour.lastAutoScrollStepIndex !== index) {
+        vm.homeTour.lastAutoScrollStepIndex = index
+        vm._homeTourEnsureVisible(targetEl, step?.scroll)
+        // Give the scroll a moment to settle before measuring/highlighting.
+        await new Promise(r => setTimeout(r, 350))
+      }
+
+      vm._homeTourRecalc()
+    },
+
+    _homeTourGetTargetEl () {
+      const step = this.homeTour.steps[this.homeTour.stepIndex]
+      if (!step?.selector) return null
+      return document.querySelector(step.selector)
+    },
+
+    _homeTourEnsureVisible (el, scrollMode = 'auto') {
+      if (!el?.getBoundingClientRect) return
+
+      if (scrollMode === 'top') {
+        const scroller = document.scrollingElement || document.documentElement
+        try {
+          scroller.scrollTo({ top: 0, behavior: 'smooth' })
+        } catch (_) {
+          scroller.scrollTop = 0
+        }
+        return
+      }
+
+      const rect = el.getBoundingClientRect()
+      const margin = 72
+
+      const verticallyVisible = rect.top >= margin && rect.bottom <= (window.innerHeight - margin)
+      const horizontallyVisible = rect.left >= 0 && rect.right <= window.innerWidth
+
+      if (verticallyVisible && horizontallyVisible) return
+
+      // Use center so the highlight fits comfortably inside the viewport.
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      } catch (_) {
+        // Older browsers
+        el.scrollIntoView(true)
+      }
+    },
+
+    _homeTourRecalc () {
+      const step = this.homeTour.steps[this.homeTour.stepIndex]
+      const el = this._homeTourGetTargetEl()
+      if (!el) {
+        this.homeTour.targetRect = null
+        this.homeTour.scrims = null
+        this.homeTour.tooltipPos = { top: 24, left: 24 }
+        return
+      }
+
+      // Use bounding rect of the target element.
+      // Note: getBoundingClientRect() does NOT include visually protruding children
+      // (e.g. absolutely positioned elements with negative offsets).
+      // For the footer menu tour step, include the floating QR button in the highlight.
+      let rect = el.getBoundingClientRect()
+      if (step?.id === 'main-menus') {
+        const qrEl = el.querySelector?.('#qr-button') || document.querySelector?.('#qr-button')
+        if (qrEl?.getBoundingClientRect) {
+          const qrRect = qrEl.getBoundingClientRect()
+          const left = Math.min(rect.left, qrRect.left)
+          const top = Math.min(rect.top, qrRect.top)
+          const right = Math.max(rect.right, qrRect.right)
+          const bottom = Math.max(rect.bottom, qrRect.bottom)
+          rect = {
+            left,
+            top,
+            right,
+            bottom,
+            width: right - left,
+            height: bottom - top,
+          }
+        }
+      }
+      const pad = 8
+      const targetRect = {
+        top: Math.max(0, rect.top - pad),
+        left: Math.max(0, rect.left - pad),
+        width: Math.min(window.innerWidth, rect.width + pad * 2),
+        height: Math.min(window.innerHeight, rect.height + pad * 2),
+      }
+      this.homeTour.targetRect = targetRect
+
+      // Scrims: 4 rectangles around the highlight. This lets us dim + blur the
+      // rest of the page while keeping the target area clear.
+      const bottomTop = targetRect.top + targetRect.height
+      const rightLeft = targetRect.left + targetRect.width
+      this.homeTour.scrims = {
+        top: {
+          top: 0,
+          left: 0,
+          width: window.innerWidth,
+          height: Math.max(0, targetRect.top),
+        },
+        bottom: {
+          top: bottomTop,
+          left: 0,
+          width: window.innerWidth,
+          height: Math.max(0, window.innerHeight - bottomTop),
+        },
+        left: {
+          top: targetRect.top,
+          left: 0,
+          width: Math.max(0, targetRect.left),
+          height: targetRect.height,
+        },
+        right: {
+          top: targetRect.top,
+          left: rightLeft,
+          width: Math.max(0, window.innerWidth - rightLeft),
+          height: targetRect.height,
+        },
+      }
+
+      // Tooltip placement
+      const tooltipW = 320
+      const tooltipH = 160
+      const margin = 12
+
+      const availableBottom = window.innerHeight - (targetRect.top + targetRect.height)
+      const availableTop = targetRect.top
+
+      let place = step?.prefer || 'bottom'
+      if (place === 'bottom' && availableBottom < tooltipH + margin && availableTop > availableBottom) place = 'top'
+      if (place === 'top' && availableTop < tooltipH + margin && availableBottom > availableTop) place = 'bottom'
+
+      let top = place === 'top'
+        ? (targetRect.top - tooltipH - margin)
+        : (targetRect.top + targetRect.height + margin)
+      top = Math.max(margin, Math.min(window.innerHeight - tooltipH - margin, top))
+
+      let left = targetRect.left + (targetRect.width / 2) - (tooltipW / 2)
+      left = Math.max(margin, Math.min(window.innerWidth - tooltipW - margin, left))
+
+      this.homeTour.tooltipPos = { top, left }
+    },
+
+    _homeTourBindListeners () {
+      if (this._homeTourListenersBound) return
+      this._homeTourListenersBound = true
+      this._homeTourOnResize = () => this._homeTourRecalc()
+      this._homeTourOnScroll = () => this._homeTourRecalc()
+      window.addEventListener('resize', this._homeTourOnResize)
+      window.addEventListener('scroll', this._homeTourOnScroll, true)
+    },
+
+    _homeTourUnbindListeners () {
+      if (!this._homeTourListenersBound) return
+      this._homeTourListenersBound = false
+      window.removeEventListener('resize', this._homeTourOnResize)
+      window.removeEventListener('scroll', this._homeTourOnScroll, true)
+      this._homeTourOnResize = null
+      this._homeTourOnScroll = null
+    },
+    serializeTransaction (tx) {
+      if (!tx) return null
+      
+      // Create a serializable copy of the transaction
+      // Remove functions, circular references, and non-serializable objects
+      try {
+        const serialized = JSON.parse(JSON.stringify(tx, (key, value) => {
+          // Skip functions
+          if (typeof value === 'function') {
+            return undefined
+          }
+          // Skip symbols
+          if (typeof value === 'symbol') {
+            return undefined
+          }
+          // Convert BigNumber-like objects to strings if they have toString
+          if (value && typeof value === 'object' && 'toString' in value && typeof value.toString === 'function') {
+            try {
+              return value.toString()
+            } catch (e) {
+              return undefined
+            }
+          }
+          return value
+        }))
+        return serialized
+      } catch (error) {
+        console.error('Error serializing transaction:', error)
+        // Fallback: return only essential properties
+        return {
+          txid: tx.txid || tx.tx_hash || tx.hash,
+          asset: tx.asset,
+          record_type: tx.record_type,
+          amount: tx.amount,
+          date_created: tx.date_created,
+          block: tx.block,
+          from: tx.from,
+          to: tx.to,
+          senders: tx.senders,
+          recipients: tx.recipients
+        }
+      }
+    },
+    onBalanceModeChange (value) {
+      // Save to localStorage for persistence
+      localStorage.setItem('bchBalanceMode', value)
+      this.bchBalanceMode = value
+    },
+    async fetchAllTokensFromAPI () {
+      // Fetch favorite tokens directly from API for the home page tokens section
+      if (!this.isCashToken) {
+        // This method is CashTokens-only. For SLP, use `fetchSlpTokensFromServer()`.
+        return []
+      }
+
+      if (!this.wallet) {
+        console.warn('Wallet not loaded, cannot fetch tokens')
+        return []
+      }
+
+      const walletHash = this.wallet.BCH?.walletHash || this.wallet.bch?.walletHash
+      if (!walletHash) {
+        console.warn('Wallet hash not available')
+        return []
+      }
+
+      const isChipnet = this.$store.getters['global/isChipnet']
+      const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+      const filterParams = {
+        has_balance: true,
+        token_type: 1,
+        wallet_hash: walletHash,
+        favorites_only: true,
+        limit: 100 // Fetch more tokens per page
+      }
+
+      try {
+        const url = `${baseUrl}/cashtokens/fungible/`
+        let allTokens = []
+        let nextUrl = url
+        let params = filterParams
+
+        // Fetch all pages if there are more results
+        while (nextUrl) {
+          const response = await axios.get(nextUrl, { params })
+          const data = response?.data
+
+          // Check if response data exists and has results array
+          if (!data) {
+            console.warn('API response has no data:', response)
+            break
+          }
+
+          if (!Array.isArray(data.results)) {
+            console.warn('API response results is not an array:', data)
+            break
+          }
+
+          // Map API response to asset format expected by the component
+          const tokens = data.results.map(result => {
+            if (!result || !result.id) {
+              console.warn('Invalid token result:', result)
+              return null
+            }
+
+            const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
+
+            return {
+              id: result.id,
+              name: result.name || 'Unknown Token',
+              symbol: result.symbol || '',
+              decimals: result.decimals || 0,
+              logo: logo,
+              balance: result.balance !== undefined ? result.balance : 0,
+              favorite: result.favorite === true ? 1 : 0,
+              favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
+            }
+          }).filter(Boolean) // Remove any null entries from invalid results
+
+          allTokens = [...allTokens, ...tokens]
+
+          // Check if there's a next page
+          if (data.next) {
+            nextUrl = data.next
+            params = {} // Don't send params again, URL already has them
+          } else {
+            nextUrl = null
+          }
+        }
+
+        // Store the result in the component data for computed property access
+        this.allTokensFromAPI = allTokens
+
+        // Update favoriteTokenIds for backward compatibility (filter favorites from allTokens)
+        const favorites = allTokens.filter(token => token.favorite === 1 || token.favorite === true)
+        this.favoriteTokenIds = favorites.map(token => token.id).filter(id => id !== 'bch')
+
+        // Update store assets with balances and metadata (including icons) from API
+        allTokens.forEach(token => {
+          // Update balance
+          this.$store.commit('assets/updateAssetBalance', {
+            id: token.id,
+            balance: token.balance
+          })
+          
+          // Update metadata including icon - API provides the latest icon
+          // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
+          if (token.logo) {
+            // Update full metadata
+            this.$store.commit('assets/updateAssetMetadata', {
+              id: token.id,
+              name: token.name,
+              symbol: token.symbol,
+              decimals: token.decimals,
+              logo: token.logo // Use icon from API (always up-to-date)
+            })
+            // Also update icon URL directly (works even if asset doesn't exist in store yet)
+            this.$store.commit('assets/updateAssetImageUrl', {
+              assetId: token.id,
+              imageUrl: token.logo
+            })
+          }
+        })
+
+        console.log(`Fetched ${allTokens.length} tokens from API for wallet ${walletHash}`)
+        return allTokens
+      } catch (error) {
+        console.error('Error fetching all tokens from API:', error)
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url,
+          params: error.config?.params
+        })
+        this.allTokensFromAPI = []
+        return []
+      }
+    },
+
+    async fetchSlpTokensFromServer () {
+      // Trigger Watchtower request for SLP tokens with balance and add any missing tokens to the store.
+      // This ensures switching the home page filter to SLP will fetch the wallet's SLP token list.
+      if (this.isCashToken) return []
+
+      const slpWalletHash = this.getWallet('slp')?.walletHash
+      if (!slpWalletHash) {
+        console.warn('SLP wallet hash not available')
+        return []
+      }
+
+      try {
+        // IMPORTANT: Fetch SLP fungible tokens for this wallet.
+        // Use the dedicated endpoint instead of `/tokens/` (which is generic and may not include the same shape).
+        const isChipnet = this.$store.getters['global/isChipnet']
+        const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+        const filterParams = {
+          wallet_hash: slpWalletHash,
+          limit: 100
+        }
+
+        let allTokens = []
+        let nextUrl = `${baseUrl}/slp-tokens/fungible/`
+        let params = filterParams
+
+        while (nextUrl) {
+          const response = await axios.get(nextUrl, { params })
+          const data = response?.data
+          if (!data || !Array.isArray(data.results)) break
+
+          allTokens = [...allTokens, ...data.results]
+          if (data.next) {
+            nextUrl = data.next
+            params = {} // next URL already includes params
+          } else {
+            nextUrl = null
+          }
+        }
+
+        if (!allTokens.length) {
+          this.allSlpTokensFromAPI = []
+          return []
+        }
+
+        // Normalize to the same asset shape used by the token cards.
+        const mappedTokens = allTokens
+          .map(token => {
+            const tokenId = token?.id
+            if (!tokenId) return null
+            const assetId = String(tokenId).startsWith('slp/') ? String(tokenId) : `slp/${tokenId}`
+            const logoRaw = token?.image_url || token?.logo || ''
+            const logo = logoRaw ? convertIpfsUrl(logoRaw) : ''
+            return {
+              id: assetId,
+              name: token?.name || 'Unknown Token',
+              symbol: token?.symbol || '',
+              decimals: token?.decimals || 0,
+              logo: logo,
+              balance: token?.balance !== undefined ? token.balance : 0,
+              favorite: token?.favorite === true ? 1 : 0,
+              favorite_order: token?.favorite_order !== null && token?.favorite_order !== undefined ? token.favorite_order : null
+            }
+          })
+          .filter(Boolean)
+
+        // Store raw list for computed favorites + "has tokens" checks
+        this.allSlpTokensFromAPI = mappedTokens
+
+        // Merge into store for rendering in token cards (respect removed tokens locally).
+        const assets = this.$store.getters['assets/getAssets'] || []
+        const assetsId = assets.map(a => a.id)
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const removedAssetIdsGetter = this.$store.getters['assets/getRemovedAssetIds']
+        const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+
+        mappedTokens.forEach(token => {
+          const assetId = token?.id
+          if (!assetId) return
+          if (vaultRemovedAssetIds.includes(assetId)) return
+
+          // Update balance/metadata if it already exists
+          if (assetsId.includes(assetId)) {
+            this.$store.commit('assets/updateAssetBalance', { id: assetId, balance: token.balance })
+            // If server provides basic metadata, keep it fresh
+            this.$store.commit('assets/updateAssetMetadata', {
+              id: assetId,
+              name: token?.name,
+              symbol: token?.symbol,
+              decimals: token?.decimals,
+              logo: token?.logo || ''
+            })
+            if (token?.logo) {
+              this.$store.commit('assets/updateAssetImageUrl', { assetId, imageUrl: token.logo })
+            }
+            return
+          }
+
+          // Add new asset for tokens not yet in store
+          this.$store.commit('assets/addNewAsset', {
+            id: assetId,
+            name: token?.name,
+            symbol: token?.symbol,
+            decimals: token?.decimals,
+            logo: token?.logo || '',
+            balance: token?.balance,
+            is_nft: false
+          })
+          if (token?.logo) this.$store.commit('assets/updateAssetImageUrl', { assetId, imageUrl: token.logo })
+          this.$store.commit('assets/moveAssetToBeginning')
+        })
+
+        return mappedTokens
+      } catch (error) {
+        console.error('Error fetching SLP tokens:', error)
+        this.allSlpTokensFromAPI = []
+        return []
+      }
+    },
+    async onRefresh (done) {
+      try {
+        // Refresh wallet balances and token icons
+        await this.onConnectivityChange(true)
+        
+        // Fetch favorite tokens from API (includes balances for CashTokens)
+        await this.refreshFavoriteTokenBalances()
+        
+        // Refresh prices for all favorite tokens + BCH
+        await this.refreshFavoriteTokenPrices()
+        
+        // Refresh transaction list
+        if (this.$refs['transaction-list-component']) {
+          await this.$refs['transaction-list-component'].getTransactions(1)
+        }
+        
+        // Refresh pending transactions
+        this.pendingTransactionsKey++
+        
+        // Refresh latest transactions
+        if (this.$refs['latest-transactions']) {
+          await this.$refs['latest-transactions'].refresh()
+        }
+      } catch (error) {
+        console.error('Error refreshing:', error)
+      } finally {
+        done()
+      }
+    },
     executeTxSearch (value) {
-      if (String(value).length == 0 || String(value).length >= 6) {
-        const opts = {txSearchReference: value}
+      const valueStr = String(value || '')
+      // Allow empty or 8-digit decimal
+      if (valueStr.length === 0 || valueStr.length === 8) {
+        // Convert decimal reference to hex before API call
+        const hexRef = valueStr && valueStr.length === 8 ? refToHex(valueStr) : valueStr
+        const opts = {txSearchReference: hexRef}
         this.$refs['tx-search'].blur()
         this.$refs['transaction-list-component'].getTransactions(1, opts)
       }
@@ -745,142 +1544,29 @@ export default {
       this.adjustTransactionsDivHeight({ timeout: 50 })
       this.$refs['transaction-list-component']?.computeTransactionsListHeight?.()
     }, 500),
-    toggleStablehedgeView() {
-      this.stablehedgeView = !this.stablehedgeView
-      this.$nextTick(() => this.setTransactionsFilter(this.transactionsFilter))
-    },
-    /**
-     * @typedef {Object} RedemptionTransactionResult
-     * @property {Number} id
-     * @property {String} redemptionContractAddress
-     * @property {String} txType
-     * @property {String} category
-     * @property {Number} satoshis
-     * @property {Number} bch
-     * @property {Number} amount
-     * @property {String} status
-     * @property {String} txid
-     * @property {String} resultMessage
-     * 
-     * @param {RedemptionTransactionResult[]} data
-     */
-    onStablehedgeTransaction(data) {
-      this.setTransactionsFilter(this.transactionsFilter)
-      this.$store.dispatch('stablehedge/updateTokenBalances')
-
-      data.map(txData => txData?.category)
-        .map(category => {
-          return this.assets.find(asset => asset?.id?.includes(category))?.id
-        })
-        .filter(Boolean)
-        .map(assetId => updateAssetBalanceOnLoad(assetId, this.wallet, this.$store))
-    },
     handleRampNotif (notif) {
       // console.log('Handling Ramp Notification')
       this.$router.push({ name: 'ramp-fiat', query: notif })
     },
-    openPriceChart () {
-      if (!this.isPriceChartDialogShown) {
-        this.isPriceChartDialogShown = true
-        this.$q.dialog({
-          component: PriceChart
-        })
-          .onDismiss(() => {
-            this.isPriceChartDialogShown = false
-          })
-      }
+    openSpendBch () {
+      this.$router.push({ name: 'spend-bch' })
     },
-    async openCashIn () {
-      await this.checkCashinAvailable()
-      this.$q.dialog({
-        component: CashIn,
-        componentProps: {
-          fiatCurrencies: this.availableCashinFiat
-        }
-      })
-    },
-    async checkCashinAvailable () {
-      this.hasCashin = false
-      // check network
-      if (this.selectedNetwork === 'BCH') {
-        // check availableCashinFiat is empty to avoid duplicate requests
-        if (this.availableCashinFiat) {
-          this.hasCashin = true
-        } else {
-          let fetchCurrency = false
-
-          await backend.get('/auth')
-            .then(response => {
-              const user = response.data
-
-              if (!user?.is_arbiter) {
-                fetchCurrency = true
-              }
-            })
-            .catch(error => {
-              if (error.response?.status === 404) {
-                fetchCurrency = true
-              }
-            })
-
-          if (fetchCurrency) {
-            backend.get('/ramp-p2p/currency/fiat')
-              .then(response => {
-                this.availableCashinFiat = response.data
-                const selectedFiat = this.$store.getters['market/selectedCurrency']
-                const fiatSymbol = this.availableCashinFiat.map(item => item.symbol)
-
-                this.hasCashin = fiatSymbol.includes(selectedFiat.symbol)
-              })
-              .catch(error => {
-                console.error(error)
-              })
-          }
-        }
-      } else {
-        this.hasCashin = false
-      }
-    },
-    async checkCashinAlert () {
-      if (this.hasCashin) {
-        const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-        await backend.get('/ramp-p2p/order/cash-in/alerts/', { params: { wallet_hash: walletHash } })
-          .then(response => {
-            this.hasCashinAlert = response.data.has_cashin_alerts
-          })
-          .catch(error => {
-            console.log(error.response || error)
-          })
-      }
-    },
-    setupCashinWebSocket () {
-      this.closeCashinWebSocket()
-      const walletHash = this.$store.getters['global/getWallet']('bch').walletHash
-      const url = `${getBackendWsUrl()}${walletHash}/cash-in/`
-      this.websocketManager = new WebSocketManager()
-      this.websocketManager.setWebSocketUrl(url)
-      this.websocketManager.subscribeToMessages((message) => {
-        if (message?.type === 'ConnectionMessage') return
-        bus.emit('cashin-alert', true)
-      })
-    },
-    closeCashinWebSocket () {
-      this.websocketManager?.closeConnection()
+    goToAssetList () {
+      this.$router.push({ name: 'asset-list' })
     },
     async updateTokenMenuPosition () {
       await this.$nextTick()
       this.$refs.tokenMenu.updatePosition()
-    },
-    toggleShowTokens () {
-      this.showTokens = !this.showTokens
-      this.adjustTransactionsDivHeight()
     },
     adjustTransactionsDivHeight (opts={timeout: 500}) {
       const vm = this
       let timeout = opts?.timeout
       if (Number.isNaN(timeout)) timeout = 500
       setTimeout(() => {
-        const sectionHeight = vm.$refs.fixedSection.clientHeight
+        const fixedSection = vm.$refs?.fixedSection
+        if (!fixedSection) return
+        
+        const sectionHeight = fixedSection.clientHeight
         const clientWidth = document.body.clientWidth
         const elem = vm.$refs.transactionSection
         if (!elem?.style) return
@@ -899,40 +1585,59 @@ export default {
         if (setAsset?.id && vm.assets.find(asset => asset?.id == setAsset?.id)) {
           vm.selectedAsset = setAsset
         }
-        vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
+        // vm.$refs['transaction-list-component'].resetValues(null, newNetwork, setAsset)
         vm.assets.map(function (asset) {
           return vm.getBalance(asset.id)
         })
-        vm.$refs['transaction-list-component'].getTransactions()
+        // vm.$refs['transaction-list-component'].getTransactions()
       }
     },
-    selectBch () {
+    selectBch (event) {     
       const vm = this
-      vm.selectedAsset = this.bchAsset
-      vm.getBalance(this.bchAsset.id)
-      vm.txSearchActive = false
-      vm.txSearchReference = ''
       
-      vm.$nextTick(() => {
-        vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
-        vm.$refs['transaction-list-component'].getTransactions()
-      })
+      // Check if click is on the dropdown or its menu
+      if (event && event.target) {
+        const target = event.target
+        const isDropdownClick = target.closest('.balance-mode-selector') || 
+                                target.closest('.q-menu') ||
+                                target.closest('.q-select__dropdown-icon') ||
+                                target.classList.contains('balance-mode-selector')
+        
+        if (isDropdownClick) {
+          return // Don't handle click if it's on the dropdown
+        }
+      }
+      
+      // vm.selectedAsset = this.bchAsset
+      // vm.getBalance(this.bchAsset.id)
+      // vm.txSearchActive = false
+      // vm.txSearchReference = ''
+      
+      // vm.$nextTick(() => {
+        // vm.$refs['transaction-list-component'].resetValues(null, null, vm.selectedAsset)
+        // vm.$refs['transaction-list-component'].getTransactions()
+      // })
       vm.assetClickCounter += 1
-      if (vm.assetClickCounter >= 2) {
+      if (vm.assetClickCounter >= 2) {        
         vm.showAssetInfo(this.bchAsset)
         vm.assetClickTimer = setTimeout(() => {
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
         }, 600)
-      } else {
-        vm.hideAssetInfo()
-        vm.assetClickTimer = setTimeout(() => {
+      } else {        
+        // vm.hideAssetInfo()
+        vm.assetClickTimer = setTimeout(() => {          
+          if (vm.assetClickCounter === 1) {
+            this.$router.push({ name: 'transaction-list', query: { assetID: 'bch' }}) 
+          }            
           clearTimeout(vm.assetClickTimer)
           vm.assetClickTimer = null
           vm.assetClickCounter = 0
-        }, 600)
+        }, 600)       
       }
+
+      // this.$router.push({ name: 'transaction-list'})
     },
     toggleManageAssets () {
       const vm = this
@@ -941,15 +1646,15 @@ export default {
     getAssetMarketBalance (asset) {
       if (!asset?.id) return ''
 
+      // If BCH and mode is 'bch+favorites', return aggregated fiat value
+      if (asset.id === 'bch' && this.bchBalanceMode === 'bch+favorites') {
+        return this.aggregatedFiatValue
+      }
+
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
       if (!assetPrice) return ''
 
       let balance = Number(asset.balance || 0)
-      if (asset?.id === 'bch' && this.stablehedgeView) {
-        const stablehedgeWalletBalance = this.$store.getters['stablehedge/totalTokenBalancesInSats'] / 10 ** 8
-        balance = stablehedgeWalletBalance || 0
-      }
-
       const computedBalance = balance * Number(assetPrice)
       this.computeWalletYield()
 
@@ -978,14 +1683,14 @@ export default {
       const vm = this
       vm.hideMultiWalletDialog()
       vm.hideAssetInfo()
-      const txCheck = setInterval(function () {
-        if (transaction) {
-          if (!transaction?.asset) transaction.asset = vm.selectedAsset
-          vm.$refs.transaction.show(transaction)
-          vm.hideBalances = true
-          clearInterval(txCheck)
-        }
-      }, 100)
+      // const txCheck = setInterval(function () {
+      //   if (transaction) {
+      //     if (!transaction?.asset) transaction.asset = vm.selectedAsset
+      //     vm.$refs.transaction.show(transaction)
+      //     vm.hideBalances = true
+      //     clearInterval(txCheck)
+      //   }
+      // }, 100)
     },
     setSelectedAsset(asset) {
       const assetExists = this.assets.find(a => a?.id == asset?.id)
@@ -993,47 +1698,18 @@ export default {
       this.$refs['asset-info'].hide()
       this.selectedAsset = asset
       this.getBalance(asset.id)
-      this.$nextTick(() => {
-        this.$refs['transaction-list-component'].resetValues(null, null, asset)
-        this.$refs['transaction-list-component'].getTransactions()
-      })
+      // this.$nextTick(() => {
+      //   this.$refs['transaction-list-component'].resetValues(null, null, asset)
+      //   this.$refs['transaction-list-component'].getTransactions()
+      // })
       this.$store.dispatch('assets/getAssetMetadata', asset.id)
+
+      this.$router.push({name: 'transaction-list', query: { assetID: asset.id }})
     },
     getBalance (id) {
       const vm = this
       vm.balanceLoaded = false
-      if (vm.selectedNetwork === 'sBCH') return vm.getSbchBalance(id, vm)
       return vm.getBchBalance(id, vm)
-    },
-    getSbchBalance (id, vm) {
-      if (!id) {
-        id = vm.selectedAsset.id
-      }
-      const parsedId = String(id)
-
-      const address = vm.$store.getters['global/getAddress']('sbch')
-      if (sep20IdRegexp.test(parsedId)) {
-        const contractAddress = parsedId.match(sep20IdRegexp)[1]
-        return vm.wallet.sBCH.getSep20TokenBalance(contractAddress, address)
-          .then(balance => {
-            const commitName = 'sep20/updateAssetBalance'
-            vm.$store.commit(commitName, {
-              id: parsedId,
-              balance: balance
-            })
-            vm.balanceLoaded = true
-          })
-      } else {
-        return vm.wallet.sBCH.getBalance(address)
-          .then(balance => {
-            const commitName = 'sep20/updateAssetBalance'
-            vm.$store.commit(commitName, {
-              id: parsedId,
-              balance: balance
-            })
-            vm.balanceLoaded = true
-          })
-      }
     },
     async getBchBalance (id, vm) {
       if (!id) {
@@ -1041,24 +1717,15 @@ export default {
       }
       vm.transactionsPageHasNext = false
       await updateAssetBalanceOnLoad(id, vm.wallet, vm.$store)
-      if (id == 'bch' && vm.stablehedgeView) {
-        await vm.$store.dispatch('stablehedge/updateTokenBalances')
-          .then(() => vm.$store.dispatch('stablehedge/updateTokenPrices', { minAge: 60 * 1000 }))
-          .catch(console.error)
-      }
       vm.balanceLoaded = true
     },
-    refresh (done) {
-      try {
-        this.checkCashinAlert()
-        this.assets.map((asset) => {
-          return this.getBalance(asset.id)
-        })
-        this.transactions = []
-        this.$refs['transaction-list-component'].getTransactions()
-      } finally {
-        done()
-      }
+    resetAndRefetchData () {
+      this.assets.map((asset) => {
+        return this.getBalance(asset.id)
+      })
+      this.transactions = []
+      this.pendingTransactionsKey++
+        // this.$refs['transaction-list-component'].getTransactions()
     },
     setTransactionsFilter(value) {
       const transactionsFilters = this.transactionsFilterOpts.map(opt => opt?.value)
@@ -1118,7 +1785,8 @@ export default {
     },
 
     verifyOrSetupPIN () {
-      if (this.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+      const preferredSecurity = this.$store.getters['global/preferredSecurity']
+      if (preferredSecurity === 'pin') {
         this.setVerifyDialogAction()
       } else {
         this.setPreferredSecurity('pin')
@@ -1141,7 +1809,7 @@ export default {
         })
     },
     setPreferredSecurity (auth) {
-      this.$q.localStorage.set('preferredSecurity', auth)
+      this.$store.commit('global/setPreferredSecurity', auth)
       if (auth === 'pin') {
         this.pinDialogAction = 'SET UP'
       } else {
@@ -1159,13 +1827,21 @@ export default {
     },
 
     getWallet (type) {
-      return this.$store.getters['global/getWallet'](type)
-    },
-
-    async checkMissingAssets (opts = { autoOpen: false }) {
-      if (!this.$refs.tokenSuggestionsDialog) return Promise.reject()
-      this.showTokenSuggestionsDialog = Boolean(opts && opts.autoOpen)
-      return this.$refs.tokenSuggestionsDialog.updateList(opts)
+      const wallet = this.$store.getters['global/getWallet'](type)
+      // Return wallet if it exists, otherwise return a safe default object
+      if (!wallet) {
+        // Return a minimal wallet object to prevent errors
+        return {
+          walletHash: '',
+          derivationPath: '',
+          xPubKey: '',
+          lastAddress: '',
+          lastChangeAddress: '',
+          lastAddressIndex: 0,
+          subscribed: false
+        }
+      }
+      return wallet
     },
 
     async loadWallets () {
@@ -1185,6 +1861,8 @@ export default {
         // console.log('Wallet index:', this.$store.getters['global/getWalletIndex'])
         console.log('Wallet index:', walletIndex)
         this.$store.commit('global/updateCurrentWallet', walletIndex)
+        // Sync settings to darkmode and market modules
+        this.$store.dispatch('global/syncSettingsToModules')
         // location.reload()
       }
 
@@ -1256,19 +1934,18 @@ export default {
           if (!selectedAssetExists) vm.selectedAsset = vm.bchAsset
         }
 
-        const balancePromise = vm.getBalance(vm.selectedAsset.id)
-        const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
+        // Fetch favorite tokens from API (includes balances for CashTokens)
+        const favoriteRefreshPromise = vm.refreshFavoriteTokenBalances()
 
-        let tokenIconUpdatePromise
-        if (this.selectedNetwork === 'sBCH') {
-          tokenIconUpdatePromise = vm.$store.dispatch('sep20/updateTokenIcons', { all: false })
-        } else {
-          tokenIconUpdatePromise = vm.$store.dispatch('assets/updateTokenIcons', { all: false })
-        }
+        const balancePromise = vm.getBalance(vm.selectedAsset.id)
+        // const txFetchPromise = vm.$refs['transaction-list-component'].getTransactions()
+
+        const tokenIconUpdatePromise = vm.$store.dispatch('assets/updateTokenIcons', { all: false })
 
         return Promise.allSettled([
           balancePromise,
-          txFetchPromise,
+          favoriteRefreshPromise,
+          // txFetchPromise,
           tokenIconUpdatePromise,
         ])
       } else {
@@ -1276,6 +1953,100 @@ export default {
         vm.transactionsLoaded = true
       }
       this.adjustTransactionsDivHeight()
+    },
+    async refreshFavoriteTokenBalances() {
+      const vm = this
+      try {
+        // Always use API for favorite tokens - never use Vuex store
+        // For CashTokens on BCH network, fetch from API (balances already included)
+        if (vm.isCashToken) {
+          // Add tokens to refreshing array to show skeleton loaders
+          const currentFavoriteIds = vm.favoriteTokenIds
+          const tokensToRefresh = [...new Set([...currentFavoriteIds, 'bch'])]
+          
+          tokensToRefresh.forEach(tokenId => {
+            if (!vm.refreshingTokenIds.includes(tokenId)) {
+              vm.refreshingTokenIds.push(tokenId)
+            }
+          })
+
+          // Fetch all tokens from API (includes favorites and balances)
+          // No need for separate favorites call - allTokensFromAPI includes favorite field
+          await vm.fetchAllTokensFromAPI()
+          
+          // Remove tokens from refreshing array
+          tokensToRefresh.forEach(tokenId => {
+            const index = vm.refreshingTokenIds.indexOf(tokenId)
+            if (index > -1) {
+              vm.refreshingTokenIds.splice(index, 1)
+            }
+          })
+
+          // Still need to refresh BCH balance separately
+          return vm.getBalance('bch')
+            .catch(error => {
+              console.error('Error refreshing BCH balance:', error)
+              return null
+            })
+        } else {
+          // For SLP, refresh token list from Watchtower and refresh BCH balance.
+          await vm.fetchSlpTokensFromServer()
+          if (!vm.refreshingTokenIds.includes('bch')) {
+            vm.refreshingTokenIds.push('bch')
+          }
+          
+          return vm.getBalance('bch')
+            .catch(error => {
+              console.error('Error refreshing BCH balance:', error)
+              return null
+            })
+            .finally(() => {
+              const index = vm.refreshingTokenIds.indexOf('bch')
+              if (index > -1) {
+                vm.refreshingTokenIds.splice(index, 1)
+              }
+            })
+        }
+      } catch (error) {
+        console.error('Error refreshing favorite token balances:', error)
+        vm.refreshingTokenIds = []
+        return Promise.resolve()
+      }
+    },
+    async refreshFavoriteTokenPrices() {
+      const vm = this
+      try {
+        // Always use API data only - never use Vuex store for favorite tokens
+        let favoriteTokenIds = []
+        
+        if (vm.isCashToken) {
+          // Use token IDs from API data - filter favorites from allTokensFromAPI
+          const favorites = (vm.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+          favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
+        } else {
+          const favorites = (vm.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+          favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
+        }
+
+        // Always include BCH (id: 'bch')
+        const tokensToRefresh = [...new Set([...favoriteTokenIds, 'bch'])]
+
+        // Refresh prices for all favorite tokens + BCH using unified API
+        const pricePromises = tokensToRefresh.map(assetId => {
+          return vm.$store.dispatch('market/updateAssetPrices', {
+            assetId: assetId,
+            clearExisting: false
+          }).catch(error => {
+            console.error(`Error refreshing price for ${assetId}:`, error)
+            return null
+          })
+        })
+
+        return Promise.allSettled(pricePromises)
+      } catch (error) {
+        console.error('Error refreshing favorite token prices:', error)
+        return Promise.resolve()
+      }
     },
     async handleOpenedNotification() {
       const openedNotification = this.$store.getters['notification/openedNotification']
@@ -1286,11 +2057,6 @@ export default {
           const txid = openedNotification?.data?.txid
           const tokenId = openedNotification?.data?.token_id
           this.findAndOpenTransaction({txid, tokenId, chain: 'BCH' })
-        } else if (openedNotification?.data?.type === notificationTypes.SBCH_TRANSACTION) {
-          const txid = openedNotification?.data?.txid
-          const tokenId = openedNotification?.data?.token_address
-          const logIndex = openedNotification?.data?.log_index
-          this.findAndOpenTransaction({ txid, tokenId, logIndex, chain: 'sBCH' })
         } else if (Object.prototype.hasOwnProperty.call(openedNotification?.data, 'order_id')) {
           this.handleRampNotif(openedNotification?.data)
         }
@@ -1308,9 +2074,9 @@ export default {
         asset = this.mainchainAssets.find(asset => asset?.id === assetId)
       } else {
         const isToken = tokenId && String(tokenId) !== 'bch'
-        const tokenPrefix = chain === 'sBCH' ? 'sep20' : 'slp'
+        const tokenPrefix = 'slp'
         assetId = isToken ? `${tokenPrefix}/${tokenId}` : 'bch'
-        const assets = chain === 'sBCH' ? this.smartchainAssets : this.mainchainAssets
+        const assets = this.mainchainAssets
         asset = isToken ? assets.find(asset => asset?.id === assetId) : this.bchAsset
       }
 
@@ -1327,9 +2093,35 @@ export default {
       }
 
       if (!asset?.id && tokenId.startsWith('ct/')) {
-        asset = await this.wallet.BCH.getTokenDetails(tokenId.split('/')[1])
-        this.$store.commit(`assets/addNewAsset`, asset)
-        this.$store.commit(`assets/moveAssetToBeginning`)
+        // Fetch token metadata from cashtokens/fungible API instead of BCMR
+        // The API already provides all the metadata we need
+        try {
+          const tokenCategory = tokenId.split('/')[1]
+          const isChipnet = this.$store.getters['global/isChipnet']
+          const baseUrl = getWatchtowerApiUrl(isChipnet)
+          const { data } = await axios.get(`${baseUrl}/cashtokens/fungible/${tokenCategory}/`)
+          
+          asset = {
+            'id': data.id || tokenId,
+            'name': data.name || 'Unknown Token',
+            'symbol': data.symbol || '',
+            'decimals': parseInt(data.decimals) || 0,
+            'logo': data.image_url ? convertIpfsUrl(data.image_url) : '',
+            'balance': 0,
+            'is_nft': false
+          }
+          
+          this.$store.commit(`assets/addNewAsset`, asset)
+          this.$store.commit(`assets/moveAssetToBeginning`)
+        } catch (error) {
+          console.error('Error fetching token from API:', error)
+          // Fallback: if API fails, try BCMR as last resort
+          asset = await this.wallet.BCH.getTokenDetails(tokenId.split('/')[1])
+          if (asset) {
+            this.$store.commit(`assets/addNewAsset`, asset)
+            this.$store.commit(`assets/moveAssetToBeginning`)
+          }
+        }
       }
 
       if (asset?.id) {
@@ -1344,49 +2136,61 @@ export default {
           id: assetId,
         }
       }
-      this.showTransactionDetails(transaction)
+
+      // Navigate to transaction detail page instead of opening dialog
+      const finalAssetId = String(asset?.id || assetId || 'bch')
+      const query = (() => {
+        // BCH: no category
+        if (finalAssetId === 'bch' || (finalAssetId.startsWith('bch') && !finalAssetId.includes('/'))) {
+          return {}
+        }
+        // Token: extract category from ct/{category} or slp/{category}
+        const parts = finalAssetId.split('/')
+        if (parts.length === 2 && (parts[0] === 'ct' || parts[0] === 'slp')) {
+          return { category: parts[1] }
+        }
+        return {}
+      })()
+
+      if (!transaction.asset && asset) {
+        transaction.asset = asset
+      }
+
+      // Serialize transaction object to avoid DataCloneError
+      const serializedTx = this.serializeTransaction(transaction)
+
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid },
+        query,
+        state: { tx: serializedTx }
+      })
     },
     async findTransaction(data = {txid, assetId, logIndex, chain: 'BCH'}) {
       if (!data) return
-      const { txid, assetId, chain, logIndex } = data
+      const { txid, assetId } = data
       const transaction = this.transactions?.find?.(tx => (tx?.txid || tx?.tx_hash) === txid)
       if (transaction) return transaction
 
       const watchtower = new Watchtower()
-      if (chain === 'sBCH') {
-        return watchtower.BCH._api(`smartbch/transactions/${txid}/transfers/`)
-          .then(response => {
-            const txTransfer = response?.data?.find?.(tx => {
-              if (typeof logIndex === 'number') return tx?.log_index === logIndex
-              return true
-            })
-            const address = this.$store.getters['global/getAddress']('sbch')
-            return parseTransactionTransfer(txTransfer, { address })
-          })
-          .catch(error => {
-            console.error(error)
-            return null
-          })
+      let tokenId = ''
+      let walletHash = ''
+      let apiPath = ''
+      if (assetId.split('/')[0] === 'ct') {
+        tokenId = assetId.split('/')[1]
+        walletHash = this.getWallet('bch')?.walletHash
+        apiPath = `history/wallet/${walletHash}/${tokenId}/`
       } else {
-        let tokenId = ''
-        let walletHash = ''
-        let apiPath = ''
-        if (assetId.split('/')[0] === 'ct') {
-          tokenId = assetId.split('/')[1]
-          walletHash = this.getWallet('bch')?.walletHash
-          apiPath = `history/wallet/${walletHash}/${tokenId}/`
-        } else {
-          const isToken = assetId !== 'bch'
-          tokenId = isToken ? assetId.split('/')[1] : assetId
-          walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
-          apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
-        }
-
-        return watchtower.BCH._api(apiPath, { params: { txids: txid } })
-          .then(response => {
-            return response?.data?.history?.find?.(tx => tx?.txid === txid)
-          })
+        const isToken = assetId !== 'bch'
+        tokenId = isToken ? assetId.split('/')[1] : assetId
+        walletHash = isToken ? this.getWallet('slp')?.walletHash : this.getWallet('bch')?.walletHash
+        apiPath = isToken ? `history/wallet/${walletHash}/${tokenId}/` : `history/wallet/${walletHash}/`
       }
+
+      return watchtower.BCH._api(apiPath, { params: { txids: txid } })
+        .then(response => {
+          return response?.data?.history?.find?.(tx => tx?.txid === txid)
+        })
     },
     formatBCHCardBalance (currentDenomination, currentBalance = 0) {
       const balance = currentBalance || this.bchAsset?.balance || 0
@@ -1444,16 +2248,6 @@ export default {
 
       return mainchainTokens
     },
-    async getSmartchainTokens () {
-      const tokens = await this.$store.dispatch(
-        'sep20/getMissingAssets',
-        {
-          address: this.getWallet('sbch').lastAddress,
-          icludeIgnoredTokens: false
-        }
-      )
-      return tokens
-    },
     /**
      * Returns boolean if app update prompt is shown
      */
@@ -1474,32 +2268,41 @@ export default {
         platform = 'web'
       }
 
-      if (platform) {
+      if (!platform) return false
+
+      try {
         // fetching version check
-        await backend.get(`version/check/${platform}/`)
-          .then(response => {
-            if (!('error' in response.data)) {
-              const latestVer = response.data?.latest_version
-              const minReqVer = response.data?.min_required_version
+        const response = await backend.get(`version/check/${platform}/`)
+        if (!response?.data || ('error' in response.data)) return false
 
-              if (appVer !== latestVer) {
-                const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
+        const latestVer = response.data?.latest_version
+        const minReqVer = response.data?.min_required_version
+        if (!latestVer || !minReqVer) return false
 
-                // open version update dialog
-                if (openVersionUpdate) {
-                  this.$q.dialog({
-                    component: versionUpdate,
-                    componentProps: {
-                      data: response.data
-                    }
-                  })
-                  return true
-                }
-              }
-            }
-          })
+        if (appVer === latestVer) return false
+
+        const openVersionUpdate = this.checkOutdatedVersion(appVer, minReqVer)
+        if (!openVersionUpdate) return false
+
+        // open version update dialog
+        try {
+          sessionStorage.setItem('appUpdateDialogActive', '1')
+          sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
+        } catch (_) {}
+        const dlg = this.$q.dialog({
+          component: versionUpdate,
+          componentProps: {
+            data: response.data
+          }
+        })
+        dlg?.onOk?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        dlg?.onCancel?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        dlg?.onDismiss?.(() => { try { sessionStorage.removeItem('appUpdateDialogActive'); sessionStorage.removeItem('appUpdateDialogActiveAt') } catch (_) {} })
+        return true
+      } catch (error) {
+        console.error('Error checking version update:', error)
+        return false
       }
-      return false
     },
     checkOutdatedVersion (appVer, minReqVer) {
       let isOutdated = false
@@ -1528,7 +2331,7 @@ export default {
     async checkSecurityPreferenceSetup() {
       const vm = this
       // Check if preferredSecurity and if it's set as PIN
-      const preferredSecurity = this.$q.localStorage.getItem('preferredSecurity')
+      const preferredSecurity = this.$store.getters['global/preferredSecurity']
       let forceRecreate = false
       if (preferredSecurity === null) {
         forceRecreate = true
@@ -1564,13 +2367,82 @@ export default {
 
       return !forceRecreate
     },
-    resetCashinOrderPagination () {
-      this.$store.commit('ramp/resetCashinOrderList')
-      this.$store.commit('ramp/resetCashinOrderListPage')
-      this.$store.commit('ramp/resetCashinOrderListTotalPage')
-    },
     hideMultiWalletDialog () {
       this.$refs['multi-wallet-component'].$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+    },
+    addNewAsset () {
+      const vm = this
+      vm.$q.dialog({
+        // need both in passing props for now for backwards compatibility
+        componentProps: {
+          network: vm.selectedNetwork,
+          darkMode: vm.darkMode,
+          isCashToken: vm.isCashToken,
+          wallet: vm.wallet,
+          currentCountry: vm.currentCountry
+        },
+        component: AddNewAsset
+      }).onOk((asset) => {        
+        // vm.assetList = this.assets
+        this.$router.push({ name: 'asset-list' })
+        // if (asset.data?.id) vm.selectAsset(null, asset.data)
+      })
+    },
+    dismissAlertForSession () {
+      // Store dismissal timestamp in sessionStorage
+      // This persists during app runtime but gets cleared when app is fully closed and reopened
+      sessionStorage.setItem('backupReminderDismissedTimestamp', Date.now().toString())
+      this.alertDismissedForSession = true
+      this.showBackupAlert = false
+    },
+    goToBackupPage () {
+      this.showBackupAlert = false
+      this.$router.push('/apps/wallet-backup')
+    },
+    checkAndShowBackupAlert () {
+      // If an app update dialog is active, don't show backup reminder (avoid competing dialogs).
+      try {
+        if (sessionStorage.getItem('appUpdateDialogActive') === '1') {
+          const activeAt = Number(sessionStorage.getItem('appUpdateDialogActiveAt'))
+          const maxAgeMs = 10 * 60 * 1000
+          // If the flag is stale (e.g. crash / unexpected close), clear it and continue.
+          if (!Number.isFinite(activeAt) || Date.now() - activeAt > maxAgeMs) {
+            sessionStorage.removeItem('appUpdateDialogActive')
+            sessionStorage.removeItem('appUpdateDialogActiveAt')
+          } else {
+            return
+          }
+        }
+      } catch (_) {}
+
+      // Don't show if lastBackupTimestamp is already set for this wallet (user has confirmed backup)
+      // Each wallet is tracked independently
+      if (this.lastBackupTimestamp) {
+        return
+      }
+
+      // Check if user dismissed for this session (app runtime)
+      // The dismissal is cleared in App.vue on mount (fresh app start)
+      const dismissedTimestamp = sessionStorage.getItem('backupReminderDismissedTimestamp')
+      if (dismissedTimestamp) {
+        this.alertDismissedForSession = true
+        return
+      }
+
+      // Check if this is a newly created wallet
+      const isNewWallet = this.$route.query.newWallet === 'true'
+      
+      if (isNewWallet) {
+        // Show after delay for newly created wallets (4 seconds)
+        this.backupAlertTimeout = setTimeout(() => {
+          this.showBackupAlert = true
+          // Clear the query parameter after showing
+          this.$router.replace({ query: {} }).catch(() => {})
+        }, 4000)
+      } else {
+        // Show immediately for existing wallets
+        this.showBackupAlert = true
+      }
     }
   },
 
@@ -1582,105 +2454,303 @@ export default {
 
   unmounted () {
     bus.off('handle-push-notification', this.handleOpenedNotification)
-    this.closeCashinWebSocket()
-    stablehedgePriceTracker.unsubscribe('main-page')
+    if (this.backupAlertTimeout) {
+      clearTimeout(this.backupAlertTimeout)
+    }
   },
   created () {
-    bus.on('cashin-alert', (value) => { this.hasCashinAlert = value })
     bus.on('handle-push-notification', this.handleOpenedNotification)
   },
   beforeMount () {
     const vm = this
-    stablehedgePriceTracker.subscribe('main-page')
 
-    if (isNotDefaultTheme(vm.theme) && vm.darkMode) {
-      vm.settingsButtonIcon = 'img:assets/img/theme/payhero/settings.png'
-      vm.assetsCloseButtonColor = 'color: #ffbf00;'
-    } else {
-      vm.settingsButtonIcon = 'settings'
-      vm.assetsCloseButtonColor = 'color: #3B7BF6;'
-    }
+    // Removed PayHero theme icon customization
+    vm.settingsButtonIcon = 'settings'
+    vm.assetsCloseButtonColor = 'color: #3B7BF6;'
 
   },
   async mounted () {
-    const vm = this
-    let walletLoadPromise
-    if (navigator.onLine) {
-      walletLoadPromise = vm.onConnectivityChange(true)
-    } else {
-      walletLoadPromise = vm.loadWallets()
-    }
-    await Promise.race([ asyncSleep(500), walletLoadPromise ])
-
-    this.checkVersionUpdate()
-      .catch(error => {
-        console.error('Error checking version update:', error)
-        return false
-      })
-      .then(updatePromptShown => {
-        if (updatePromptShown) return true
-        this.checkSecurityPreferenceSetup()
-      })
-
-    // Only handle notifications that were just received
-    const openedNotification = this.$store.getters['notification/openedNotification']
-    if (openedNotification?.id) {
-      this.handleOpenedNotification()
-    }
-
     try {
-      await Promise.all([
-        this.checkCashinAvailable(),
-        this.setupCashinWebSocket(),
-        this.resetCashinOrderPagination(),
-        this.checkCashinAlert(),
-      ])
-    } catch(error) {
-      console.error(error)
-    }
+      const vm = this
+      let walletLoadPromise
+      if (navigator.onLine) {
+        walletLoadPromise = vm.onConnectivityChange(true)
+      } else {
+        walletLoadPromise = vm.loadWallets()
+      }
+      // Wait for wallet loading to complete (with timeout to prevent hanging)
+      // onConnectivityChange() already calls refreshFavoriteTokenBalances() which calls fetchAllTokensFromAPI()
+      // so we don't need to call it again, avoiding duplicate API calls
+      await Promise.race([ asyncSleep(500), walletLoadPromise ])
 
-    // refactored to fetch tokens in batch by 3 instead of all at once
-    const assets = vm.$store.getters['assets/getAssets']
-    for (var i = 0; i < assets.length; i = i + 3) {
-      const chunk = assets.slice(i, i + 3).map(a => {
-        return vm.$store.dispatch('assets/getAssetMetadata', a.id)
+      // IMPORTANT: Check for version update BEFORE backup reminder.
+      // If update dialog is shown, do not show backup reminder (avoid competing dialogs).
+      const updatePromptShown = await this.checkVersionUpdate()
+      if (!updatePromptShown) {
+        await this.checkSecurityPreferenceSetup()
+      }
+
+      // Only handle notifications that were just received
+      const openedNotification = this.$store.getters['notification/openedNotification']
+      if (openedNotification?.id) {
+        this.handleOpenedNotification()
+      }
+
+
+      // Note: No need to fetch metadata from BCMR indexer here because
+      // the cashtokens/fungible endpoint already provides all the metadata
+      // (name, symbol, decimals, image_url) which is used to update the store
+
+      // Note: fetchAllTokensFromAPI() is already called by refreshFavoriteTokenBalances()
+      // in onConnectivityChange() when online, so we don't need to call it again here
+      // to avoid duplicate API calls. If offline, loadWallets() handles loading from cache.
+
+      // check if newly-received token is already stored in vuex store,
+      // if not, then add it to the very first of the list
+      try {
+        const assets = vm.$store.getters['assets/getAssets'] || []
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        const removedAssetIdsGetter = vm.$store.getters['assets/getRemovedAssetIds']
+        const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+        const assetsId = assets.map(a => a.id)
+
+        if (vm.isCashToken) {
+          // For CashTokens, use tokens already fetched from fetchAllTokensFromAPI()
+          // No need to call getMissingAssets() - the API already provided all the data
+          const allTokensFromAPI = vm.allTokensFromAPI || []
+          const newTokens = allTokensFromAPI.filter(token => 
+            !assetsId.includes(token.id) && 
+            !vaultRemovedAssetIds.includes(token.id)
+          )
+
+          newTokens.forEach(token => {
+            // Convert API token format to asset format expected by addNewAsset
+            vm.$store.commit('assets/addNewAsset', {
+              id: token.id,
+              name: token.name,
+              symbol: token.symbol,
+              decimals: token.decimals,
+              logo: token.logo,
+              balance: token.balance,
+              is_nft: false
+            })
+            vm.$store.commit('assets/moveAssetToBeginning')
+          })
+        } else {
+          // For SLP tokens, fetch directly from Watchtower.
+          // `fetchSlpTokensFromServer()` already normalizes and merges tokens into the store.
+          await vm.fetchSlpTokensFromServer()
+        }
+      } catch (error) {
+        console.error('Error loading tokens:', error)
+      }
+
+      // Fetch prices for all favorite tokens + BCH using unified API
+      // Only show loading if price is not already available
+      try {
+        const existingBchPrice = vm.$store.getters['market/getAssetPrice']('bch', vm.selectedMarketCurrency)
+        if (!existingBchPrice) {
+          vm.loadingBchPrice = true
+        }
+        vm.refreshFavoriteTokenPrices()
+          .then(() => {
+            vm.loadingBchPrice = false
+          })
+          .catch(() => {
+            vm.loadingBchPrice = false
+          })
+      } catch (error) {
+        console.error('Error refreshing token prices:', error)
+        vm.loadingBchPrice = false
+      }
+
+      try {
+        vm.computeWalletYield()
+      } catch (error) {
+        console.error('Error computing wallet yield:', error)
+      }
+
+      // Set loading to false after initial mount operations complete
+      // If assets exist, the watcher will handle it, otherwise set it after a delay
+      this.$nextTick(() => {
+        if (this.assets.length === 0) {
+          // If no assets, still mark as loaded after a brief delay
+          setTimeout(() => {
+            this.isLoadingAssets = false
+          }, 500)
+        }
       })
-      await Promise.allSettled(chunk)
+
+      // Check and show backup reminder alert
+      if (!updatePromptShown) {
+        this.checkAndShowBackupAlert()
+        // Auto-run home tour only after backup is confirmed.
+        this._maybeAutoStartHomeTourAfterBackup()
+      }
+    } catch (error) {
+      console.error('Error in mounted hook:', error)
+      // Ensure loading state is reset even on error
+      this.isLoadingAssets = false
+      this.loadingBchPrice = false
     }
-
-    // check if newly-received token is already stored in vuex store,
-    // if not, then add it to the very first of the list
-    const tokens = vm.selectedNetwork === 'sBCH' ? await vm.getSmartchainTokens() : await vm.getMainchainTokens()
-    const walletIndex = vm.$store.getters['global/getWalletIndex']
-    const vaultRemovedAssetIds = vm.$store.getters['assets/getRemovedAssetIds'][walletIndex].removedAssetIds ?? []
-
-    if (tokens.length > 0) {
-      const assetsId = assets.map(a => a.id)
-      const newTokens = tokens.filter(b => !assetsId.includes(b.id) && !vaultRemovedAssetIds.includes(b.id))
-
-      newTokens.forEach(token => {
-        vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/addNewAsset`, token)
-        vm.$store.commit(`${token.isSep20 ? 'sep20' : 'assets'}/moveAssetToBeginning`)
-      })
-    }
-
-    vm.$store.dispatch('market/updateAssetPrices', {})
-    vm.computeWalletYield()
-  }
+  },
 }
 </script>
 
 <style lang="scss" scoped>
+  :global(.home-tour-overlay) {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+  }
+
+  :global(.home-tour-scrim) {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.55);
+    /* Blur underlying content to emphasize the highlighted element */
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: none;
+  }
+
+  :global(.home-tour-highlight) {
+    position: fixed;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.75);
+    pointer-events: none;
+  }
+
+  /* Pulse/glow to emphasize the current highlighted target */
+  :global(.home-tour-highlight)::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 16px;
+    pointer-events: none;
+    /* Keep border always visible; animate glow intensity only */
+    border: 2px solid rgba(59, 123, 246, 0.95);
+    box-shadow: 0 0 10px 1px rgba(59, 123, 246, 0.25);
+    animation: homeTourGlow 1.6s ease-in-out infinite;
+  }
+
+  @keyframes homeTourGlow {
+    0% {
+      box-shadow:
+        0 0 10px 1px rgba(59, 123, 246, 0.22),
+        0 0 0 0 rgba(59, 123, 246, 0);
+    }
+    50% {
+      box-shadow:
+        0 0 18px 3px rgba(59, 123, 246, 0.38),
+        0 0 34px 10px rgba(59, 123, 246, 0.18);
+    }
+    100% {
+      box-shadow:
+        0 0 10px 1px rgba(59, 123, 246, 0.22),
+        0 0 0 0 rgba(59, 123, 246, 0);
+    }
+  }
+
+  :global(.home-tour-tooltip) {
+    position: fixed;
+    width: min(320px, calc(100vw - 24px));
+    padding: 12px 14px;
+    border-radius: 14px;
+    z-index: 100000;
+  }
+
+  /* Hide scrollbar completely on all platforms */
+  #app-container {
+    padding-bottom: 30px; // Increased bottom padding to ensure clickable elements near the bottom are visible and clickable
+    
+    &::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      -webkit-appearance: none !important;
+    }
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   #bch-card {
     margin: 0px 20px 10px 20px;
     border-radius: 15px;
+    height: 108px;
     .bch-skeleton {
       height: 53px;
       width: 100%
     }
+
+    // Prevent the BCH card from growing/overflowing when strings are long.
+    // Keep layout stable: text truncates, controls stay on one line, logo remains centered.
+    .bch-balance-text,
+    .bch-fiat-text {
+      display: block;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bch-card-controls {
+      width: 100%;
+      gap: 6px;
+      justify-content: space-between;
+      min-width: 0;
+
+      // Allow the select to shrink so it doesn't push the badge or wrap.
+      > div {
+        min-width: 0;
+      }
+
+      .balance-mode-selector {
+        max-width: 170px !important;
+      }
+
+      // Force single-line selection label.
+      .balance-mode-selector .q-field__native,
+      .balance-mode-selector .q-field__native > .ellipsis {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+    }
+
+    // Responsive BCH logo sizing: shrink on tighter layouts so it doesn't crowd text.
+    // Ensure the horizontal section stretches to full card height so centering works reliably.
+    .q-card__section--horiz {
+      height: 100%;
+      align-items: stretch;
+    }
+
+    .bch-card-icon {
+      flex: 0 0 auto;
+      width: clamp(72px, 22vw, 96px);
+      min-width: 72px;
+      height: 100%;
+      align-items: center !important; // center when at max size / roomy layouts
+    }
+
+    .bch-card-icon .asset-icon {
+      // Override inline height="75px" with a responsive clamp.
+      height: clamp(52px, 18vw, 75px) !important;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      display: block; // avoid baseline alignment quirks
+    }
+
+    // When the logo begins shrinking (narrow screens), anchor it to the top.
+    @media (max-width: 420px) {
+      .bch-card-icon {
+        align-items: flex-start !important;
+      }
+    }
   }
   .fixed-container {
-    position: fixed;
+    
     top: 0 !important;
     right: 0;
     left: 0;
@@ -1749,19 +2819,21 @@ export default {
       }
     }
   }
-  .show-tokens-label {
-    margin-top: 0px;
-    font-size: 13px;
-    padding-bottom: 15px;
-  }
   .cash-in {
     background-color: #ECF3F3;
     color: #3b7bf6;
   }
 </style>
 
-<style>
+<style lang="scss">
 .q-notifications__list--bottom {
   margin-bottom: 70px;
+}
+.balance-mode-selector {
+  .q-field__inner
+  .q-field__control .q-field__control-container
+  .q-field__native > .ellipsis, .q-field__append .q-icon {
+    color: white !important;
+  }
 }
 </style>

@@ -4,206 +4,238 @@
     @decode="onScannerDecode"
   />
   <div
-    class="q-mx-md q-mb-lg text-bow"
+    class="q-mx-sm q-mb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     v-if="isloaded && state === 'form' && !error"
   >
-    <div class="row items-center justify-end q-mr-lg">
-      <q-btn
-        round
-        padding="xs"
-        icon="mdi-history"
-        class="q-ml-md button"
-        @click="openHistory"
-      />
-    </div>
-    <div class="text-center q-pb-md q-mt-sm">
-      {{ $t('SwapFrom') }}:
-    </div>
+    <div class="q-mx-md">
+      <!-- Swap Setting Card -->
+      <div class="pt-card q-pa-md q-my-sm br-15" :class="darkMode ? 'dark' : 'light'">
+        
+        <div class="q-mt-sm text-h5 text-center text-weight-bold lg-font-size text-grad">
+          {{ $t('SwapFrom') }}:
+        </div>
 
-    <q-item clickable class="q-mx-md">
-      <q-item-section avatar class="items-center" @click="selectSourceToken">
-        <div class="q-mb-sm currency-icon" v-html="deposit.icon"></div>
-        <q-item-label>
-          {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
-        </q-item-label>
-        <q-item-label class="text-center currency-name">
-          {{getNetwork(deposit)}}
-        </q-item-label>
-      </q-item-section>
-      <q-item-section>
-        <q-input
-          dense
-          filled
-          :dark="darkMode"
-          v-model="shiftAmount"
-          @update:modelValue="function(){
-              updateConvertionRate()
-            }"
-        />
-        <q-item-label
-          class="text-right q-mt-sm"
-          caption
-          :class="darkMode ? 'text-grey-6' : ''"
-          v-if="deposit.coin==='BCH'"
-        >
-          {{ $t('Balance') }}: {{ bchBalance }}
-        </q-item-label>
-          <q-item-label
-            class="text-right q-mt-sm"
-            caption
-            style="color:red"
-            v-if="errorMsg"
-          >
-            {{ errorMsg }}
-          </q-item-label>
-      </q-item-section>
-    </q-item>
-    <div class="q-px-md q-my-xs row items-center justify-center">
-      <q-btn
-        icon="mdi-swap-vertical"
-        round
-        text-color="blue-9"
-        color="grey-4"
-        unelevated
-        @click="swapCoin"
-      />
-    </div>
+        <q-item clickable>
+          <q-item-section avatar class="items-center" @click="selectSourceToken">
+            <div class="q-mb-sm currency-icon" v-html="deposit.icon"></div>
+            <q-item-label>
+              {{deposit.coin }}<q-icon v-show="!isFromBCH" name="expand_more"/>
+            </q-item-label>
+            <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+              {{getNetwork(deposit)}}
+            </q-item-label> -->
+          </q-item-section>
+          <q-item-section>
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              inputmode="none"
+              v-model="shiftAmount"
+              :readonly="readonlyState"
+              @focus="openCustomKeyboard(true)"
+              @update:modelValue="function(){
+                  updateConvertionRate()
+                }"              
+            />
+            <q-item-label
+              class="text-right q-mt-sm"
+              caption
+              :class="darkMode ? 'text-grey-6' : ''"
+              v-if="deposit.coin==='BCH'"
+            >
+              {{ $t('Balance') }}: {{ bchBalance }}
+            </q-item-label>
+              <q-item-label
+                class="text-right q-mt-sm"
+                caption
+                style="color:red"
+                v-if="errorMsg"
+              >
+                {{ errorMsg }}
+              </q-item-label>
+          </q-item-section>
+        </q-item>
 
-    <div class="full-width text-center q-mt-md">
-      {{ $t('SwapTo') }}:
-    </div>
-
-    <q-item class="q-mx-md q-mb-lg">
-      <q-item-section avatar class="item-center" @click="selectSettleToken">
-        <div class="q-mb-sm currency-icon" v-html="settle.icon"></div>
-        <q-item-label class="">
-          {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
-        </q-item-label>
-        <q-item-label class="text-center currency-name">
-          {{ getNetwork(settle) }}
-        </q-item-label>
-      </q-item-section>
-
-      <q-item-section>
-        <q-skeleton v-if="!amountLoaded && shiftAmount" type="rect"/>
-        <q-input
-            v-else
-            disable
-            dense
-            filled
-            :dark="darkMode"
-            :modelValue="settleAmount"
+        <div class="q-px-md q-my-xs row items-center justify-center">
+          <q-btn
+            icon="mdi-swap-vertical"
+            round          
+            class="button bg-grad"          
+            @click="swapCoin"
+            unelevated
           />
-          <q-item-label
-            class="text-right q-mt-sm"
-            caption
-            :class="darkMode ? 'text-grey-6' : ''"
-            v-if="settleAmount && shiftAmount"
-          >
-            <i>1 {{ deposit.coin }} = {{ convertionRate }} {{ settle.coin }}</i>
-          </q-item-label>
-      </q-item-section>
-    </q-item>
-    <q-separator spaced class="q-mx-lg" :color="darkMode ? 'white' : 'gray'"/>
-    <q-item class="q-mx-md q-pt-lg" v-show="!isToBCH">
-      <q-item-section class="justify-center">
-        <div class="q-pb-sm q-pl-sm">
-          {{ $t('ReceivingAddress') }}
         </div>
-        <q-input
-          dense
-          filled
-          :dark="darkMode"
-          v-model="settleAddress"
-        >
-          <template v-slot:append>
-            <q-icon name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
-            <q-icon
-              name="mdi-qrcode-scan"
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              @click="displayScanner('receive')"
-            />
-          </template>
-       </q-input>
-      </q-item-section>
-    </q-item>
-    <q-item class="q-mx-md q-pt-lg" v-show="!isFromBCH">
-      <q-item-section class="justify-center">
-        <div class="q-pb-sm q-pl-sm">
-          {{ $t('RefundAddress') }}
+
+        <div class="q-mt-md text-h5 text-center text-weight-bold lg-font-size text-grad">
+          {{ $t('SwapTo') }}:
         </div>
-        <q-input
-          dense
-          filled
-          :dark="darkMode"
-          v-model="refundAddress"
-        >
-          <template v-slot:append>
-            <q-icon name="close" class="close-button" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
-            <q-icon
-              name="mdi-qrcode-scan"
-              class="button button-text-primary"
-              :class="getDarkModeClass(darkMode)"
-              @click="displayScanner('refund')"
-            />
-          </template>
-       </q-input>
-      </q-item-section>
-    </q-item>
-    <div class="row justify-center q-mt-md" style="color: gray;">
+
+        <q-item class="q-mb-lg">
+          <q-item-section avatar class="item-center" @click="selectSettleToken">
+            <div class="q-mb-sm currency-icon" v-html="settle.icon"></div>
+            <q-item-label class="">
+              {{ settle.coin }} <q-icon  v-show="!isToBCH" name="expand_more"/>
+            </q-item-label>
+            <!-- <q-item-label class="text-center sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-6'">
+              {{ getNetwork(settle) }}
+            </q-item-label> -->
+          </q-item-section>
+
+          <q-item-section>
+            <q-skeleton v-if="!amountLoaded && shiftAmount" type="rect"/>
+            <q-input
+                v-else
+                disable
+                dense
+                filled
+                :dark="darkMode"
+                :modelValue="settleAmount"
+              />
+              <q-item-label
+                class="text-right q-mt-sm"
+                caption
+                :class="darkMode ? 'text-grey-6' : ''"
+                v-if="settleAmount && shiftAmount && convertionRate"
+              >
+                <i>1 {{ deposit.coin }} = {{ parseFloat(convertionRate).toFixed(8) }} {{ settle.coin }}</i>
+              </q-item-label>
+          </q-item-section>
+        </q-item>
+      </div>    
+
+      <div class="pt-card q-pa-md q-mt-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
+        <q-item class="q-pt-sm" v-show="!isToBCH">
+          <q-item-section class="justify-center">
+            <div class="q-pb-sm q-pl-sm text-weight-bold">
+              {{ $t('ReceivingAddress') }}
+            </div>
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="settleAddress"
+            >
+              <template v-slot:append>
+                <q-icon name="close" class="close-button" @click="settleAddress = ''"/>&nbsp;
+                <q-icon
+                  name="mdi-qrcode-scan"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="displayScanner('receive')"
+                />
+              </template>
+           </q-input>
+          </q-item-section>
+        </q-item>
+        <q-item class="q-pt-sm" v-show="!isFromBCH">
+          <q-item-section class="justify-center">
+            <div class="q-pb-sm q-pl-sm text-weight-bold">
+              {{ $t('RefundAddress') }}
+            </div>
+            <q-input
+              dense
+              filled
+              :dark="darkMode"
+              v-model="refundAddress"
+            >
+              <template v-slot:append>
+                <q-icon name="close" class="close-button" @click="refundAddress = ''; checkErrorMsg()"/>&nbsp;
+                <q-icon
+                  name="mdi-qrcode-scan"
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="displayScanner('refund')"
+                />
+              </template>
+           </q-input>
+          </q-item-section>
+        </q-item>  
+      </div>
+    </div>
+    
+    
+    <div class="row justify-center q-mt-md text-grey-6">
       <span>{{ $t('PoweredBy') }} SideShift.ai</span>
     </div>
-    <div class="row q-mx-md q-py-lg">
+    <div class="row q-mx-md q-py-md">
       <q-btn
         :disable="hasError || !shiftAmount || !settleAddress || !amountLoaded || !refundAddress"
-        rounded
-        no-caps
+        rounded        
         :label="$t('Submit')"
-        class="q-space button"
+        class="full-width q-py-sm text-weight-bold bg-grad button"
         @click="checkData()"
       />
     </div>
   </div>
-  <div class="row justify-center q-py-lg" style="margin-top: 50%" v-if="!isloaded && !error">
-    <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+  <div class="q-mx-sm" v-if="!isloaded && !error">
+
+    <!-- Swap Info -->
+    <div class="q-mx-md q-mb-sm">
+      <q-skeleton type="rect" height="300px" style="border-radius: 15px;" />
+    </div>
+
+    <!-- Address Input -->
+    <div class="q-mx-md q-mt-md">
+      <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+    </div>
+
+    <div class="row q-mx-md q-py-md text-center justify-center">
+      <q-skeleton type="text" width="50%" />
+    </div>    
+
+    <!-- Action Button Skeleton -->
+    <div class="q-mx-md">
+      <q-skeleton type="rect" height="50px" style="border-radius: 25px;" />
+    </div>    
   </div>
   <div v-if="state === 'confirmation'">
     <RampDisplayConfirmation
       :info="settleInfo"
       type="confirmation"
       v-on:close="updateState('form')"
-      v-on:confirmed="openDepositInfo"
+      v-on:confirmed="shiftCreated"
       v-on:retry="updateState('form')"
     />
+  </div>
+  <div class="text-center col q-mt-sm pt-internet-required" v-if="error">
+    {{ $t('BackendDown') }} &#128533;
   </div>
 
   <div v-if="state === 'deposit'">
     <RampDepositInfo
       :shiftData="shiftData"
       :refundAddress="refundAddress"
-      :type="depositInfoState"
+      :type="depositInfoState"      
       v-on:retry="updateState('form')"
       v-on:done="reset()"
     />
   </div>
-  <div class="text-center col q-mt-sm pt-internet-required" v-if="error">
-    {{ $t('BackendDown') }} &#128533;
-  </div>
+  <div style="position: fixed; z-index: 10;">
+    <customKeyboard
+      :custom-keyboard-state="customKeyboardState"
+      v-on:addKey="setAmount"
+      v-on:makeKeyAction="makeKeyAction"
+    />
+    </div>
 </template>
 
 <script>
 import RampShiftTokenSelectDialog from './RampShiftTokenSelectDialog.vue'
 import RampDisplayConfirmation from './RampDisplayConfirmation.vue'
 import RampDepositInfo from './RampDepositInfo.vue'
-import RampHistoryDialog from './RampHistoryDialog.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus.js'
 import { isConformingNamespaces } from '@walletconnect/utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 // import { anyhedgeBackend } from 'src/wallet/anyhedge/backend'
 // import { ConsensusCommon, vmNumberToBigInt } from '@bitauth/libauth'
 
@@ -212,7 +244,7 @@ export default {
     ProgressLoader,
     RampDisplayConfirmation,
     RampDepositInfo,
-    RampHistoryDialog,
+    CustomKeyboard,
     QrScanner
   },
   data () {
@@ -249,7 +281,9 @@ export default {
       convertionRate: '',
       addrType: '',
       depositInfoState: 'created',
-      prefix: ['ethereum']
+      prefix: ['ethereum'],
+      readonlyState: false,
+      customKeyboardState: 'dismiss'      
     }
   },
   watch: {
@@ -257,9 +291,72 @@ export default {
       bus.emit('update-state', val)
     }
   },
+  emits: ['deposit'],
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
+    shiftCreated (data) {
+      const vm = this
+      vm.updateState('deposit')
+      vm.shiftData = data
+      // const jsonString = JSON.stringify(data)
+      // vm.$router.push({
+      //   name: 'crypto-swap-history-details',
+      //   params: { id: data.shift_id },
+      //   state: { details: jsonString}
+      // })
+    },
+    openCustomKeyboard (state) {
+      this.readonlyState = state
+
+      if (state) {
+        this.customKeyboardState = 'show'
+      } else {
+        this.customKeyboardState = 'dismiss'
+      }
+    },
+    setAmount (key) {      
+      let receiveAmount, finalAmount, tempAmountFormatted = ''
+      let proceed = false
+      receiveAmount = this.shiftAmount
+
+      receiveAmount = receiveAmount === null ? '' : receiveAmount
+        if (key === '.' && receiveAmount === '') {
+          finalAmount = '0.'
+        } else {
+          finalAmount = receiveAmount.toString()
+          const hasPeriod = finalAmount.indexOf('.')
+          if (hasPeriod < 1) {
+            if (Number(finalAmount) === 0 && Number(key) > 0) {
+              finalAmount = key
+            } else {
+              // Check amount if still zero
+              if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
+                finalAmount = 0
+              } else {
+                finalAmount += key.toString()
+              }
+            }
+          } else {
+            finalAmount += key !== '.' ? key.toString() : ''
+          }
+        }
+        this.shiftAmount = finalAmount
+        this.updateConvertionRate()        
+    },
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        // Backspace
+        this.shiftAmount = String(this.shiftAmount).slice(0, -1)
+        this.updateConvertionRate()        
+      } else if (action === 'delete') {
+        // Delete
+        this.shiftAmount = '0'
+        this.updateConvertionRate()        
+      } else {
+        this.customKeyboardState = 'dismiss'
+        this.readonlyState = false
+      }
+    },
     selectSourceToken () {
       if (!this.isFromBCH) {
         this.$q.dialog({
@@ -305,16 +402,6 @@ export default {
           })
       }
       this.setBCHAddress()
-    },
-    openHistory () {
-      this.$q.dialog({
-        component: RampHistoryDialog
-      })
-        .onOk(data => {
-          this.depositInfoState = 'history'
-          this.shiftData = data
-          this.state = 'deposit'
-        })
     },
     displayScanner (type = '') {
       const vm = this
@@ -398,6 +485,10 @@ export default {
     },
     updateState (state) {
       this.state = state
+
+      if (this.state === 'deposit') {
+        // this.$emit('deposit')
+      }
     },
     openDepositInfo (info) {
       this.updateState('deposit')
@@ -421,16 +512,41 @@ export default {
         vm.refundAddress = content
       }
     },
-    setBCHAddress () {
-      const vm = this
-      if (vm.deposit.coin === 'BCH') {
-        vm.refundAddress = vm.bchAddress
-      }
-      if (vm.settle.coin === 'BCH') {
-        vm.settleAddress = vm.bchAddress
+    async getBchAddress () {
+      try {
+        const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const address = await generateReceivingAddress({
+          walletIndex: this.$store.getters['global/getWalletIndex'],
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: validAddressIndex,
+          isChipnet: this.$store.getters['global/isChipnet']
+        })
+        return address
+      } catch (error) {
+        console.error('Error generating BCH address:', error)
+        return null
       }
     },
-    checkErrorMsg () {
+    async setBCHAddress () {
+      const vm = this
+      const bchAddress = await vm.getBchAddress()
+      if (!bchAddress) {
+        vm.$q.notify({
+          message: vm.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+        return
+      }
+      if (vm.deposit.coin === 'BCH') {
+        vm.refundAddress = bchAddress
+      }
+      if (vm.settle.coin === 'BCH') {
+        vm.settleAddress = bchAddress
+      }
+    },
+    async checkErrorMsg () {
       const vm = this
       const min = parseFloat(vm.minimum)
       const max = parseFloat(vm.maximum)
@@ -446,9 +562,12 @@ export default {
       if (max < amount) {
         vm.errorMsg = 'Maximum ' + vm.maximum + ' ' + vm.deposit.coin
       }
-      // balance checking
-      if (amount > vm.bchBalance && vm.refundAddress === vm.$store.getters['global/getAddress']('bch') && vm.deposit.coin === 'BCH') {
-        vm.errorMsg = 'Wallet Balance not enough'
+      // balance checking - compare with dynamically generated address
+      if (vm.deposit.coin === 'BCH') {
+        const bchAddress = await vm.getBchAddress()
+        if (bchAddress && amount > vm.bchBalance && vm.refundAddress === bchAddress) {
+          vm.errorMsg = 'Wallet Balance not enough'
+        }
       }
 
       if (vm.errorMsg) {
@@ -461,37 +580,58 @@ export default {
       vm.invalidAmount = false
       vm.amountLoaded = false
       vm.hasError = false
+      vm.error = false
       // vm.errorMsg = ''
 
       //check if valid amount
-      if (vm.shiftAmount) {
+      if (vm.shiftAmount) {        
         if (vm.isAmountValid(vm.shiftAmount)) {
           vm.invalidAmount = false
           vm.convertionRate = 0.0
 
           // check exchange rate
           const url = 'https://sideshift.ai/api/v2/pair/' + vm.deposit.coin + '-' + vm.deposit.network + '/' + vm.settle.coin + '-' + vm.settle.network
-          const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
+          const resp = await vm.$axios.get(url).catch(function () { 
+            vm.error = true
+            vm.amountLoaded = true // Set to true even on error to stop skeleton loader
+            return null
+          })
 
-          if (resp.status === 200 || resp.status === 201) {
-            vm.convertionRate = parseFloat(resp.data.rate)
-            const shift = parseFloat(vm.shiftAmount)
+          if (resp && !vm.error) {
+            if (resp.status === 200 || resp.status === 201) {
+              vm.convertionRate = parseFloat(resp.data.rate)
+              const shift = parseFloat(vm.shiftAmount)
 
-            vm.settleAmount = shift * vm.convertionRate
-            vm.settleAmount = vm.settleAmount.toFixed(8)
-            vm.minimum = resp.data.min
-            vm.maximum = resp.data.max
+              vm.settleAmount = shift * vm.convertionRate
+              vm.settleAmount = vm.settleAmount.toFixed(8)
+              vm.minimum = resp.data.min
+              vm.maximum = resp.data.max
 
+              vm.amountLoaded = true
+            } else {
+              // Non-200/201 status - set amountLoaded to true to stop skeleton loader
+              vm.amountLoaded = true
+              // Clear conversion rate and settle amount to prevent displaying misleading 0.00000000 rate
+              vm.convertionRate = ''
+              vm.settleAmount = ''
+            }
+          } else if (vm.error) {
+            // Error case - ensure amountLoaded is true to stop skeleton loader
             vm.amountLoaded = true
-          }
+            // Clear conversion rate and settle amount to prevent displaying misleading 0.00000000 rate
+            vm.convertionRate = ''
+            vm.settleAmount = ''
+          }          
         } else {
           vm.invalidAmount = true
           vm.settleAmount = ''
+          vm.amountLoaded = true // Set to true to stop skeleton loader for invalid amounts
         }
       } else {
         vm.settleAmount = ''
+        vm.amountLoaded = true // Set to true to stop skeleton loader when shiftAmount is empty
       }
-      vm.checkErrorMsg()
+      await vm.checkErrorMsg()
       vm.setBCHAddress()
     }, 500),
     async loadIcon () {
@@ -556,9 +696,12 @@ export default {
       const vm = this
       const url = 'https://sideshift.ai/api/v2/coins'
 
-      const resp = await vm.$axios.get(url).catch(function () { vm.error = true })
+      const resp = await vm.$axios.get(url).catch(function () { 
+        vm.error = true
+        return null
+      })
 
-      if (resp.status === 200 || resp.status === 201) {
+      if (resp && (resp.status === 200 || resp.status === 201)) {
         for (const item in resp.data) {
           const coinData = resp.data[item]
 
@@ -647,9 +790,6 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    bchAddress () {
-      return this.$store.getters['global/getAddress']('bch')
-    },
     bchBalance () {
       return this.$store.getters['assets/getAssets'][0].balance
     },
@@ -675,7 +815,10 @@ export default {
     vm.deposit.icon = await vm.getCoinImage(vm.deposit.coin, vm.deposit.network)
     vm.settle.icon = await vm.getCoinImage(vm.settle.coin, vm.settle.network)
 
-    vm.settleAddress = this.bchAddress
+    const bchAddress = await vm.getBchAddress()
+    if (bchAddress) {
+      vm.settleAddress = bchAddress
+    }
 
     vm.getTokenList()
   }
@@ -697,5 +840,128 @@ export default {
   .currency-name {
     font-size: 10px;
     color: gray;
+  }
+  /* ==================== FONT SIZES ==================== */
+  .sm-font-size {
+    font-size: small;
+  }
+  .md-font-size {
+    font-size: medium;
+  }
+  .lg-font-size {
+    font-size: large;
+  }
+
+  /* ==================== UTILITIES ==================== */
+  .subtext {
+    opacity: .5;
+  }
+
+  .br-15 {
+    border-radius: 15px;
+  }
+
+  /* ==================== GLASSMORPHIC ENHANCEMENTS ==================== */
+  .pt-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInUp 0.4s ease-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .bg-grad.button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-3px);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(-1px);
+    }
+  }
+
+
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+  @media (max-width: 599px) {
+    .pt-card {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 </style>

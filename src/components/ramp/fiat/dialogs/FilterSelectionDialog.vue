@@ -1,7 +1,7 @@
 <!-- Individual Filtering in Store Page -->
 <template>
   <q-dialog ref="dialog" full-width position="top" transition-show="slide-down" @before-hide="customKeyboard = 'dismiss'" no-shake>
-    <q-card class="br-15 pt-card-2 text-bow">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
       <div class="text-right q-pr-lg q-pt-md">
         <q-icon size="sm" color="red" name="close" @click="closeDialog()"/>
       </div>
@@ -13,7 +13,7 @@
             rounded
             outlined
             v-model="amount"
-            placeholder="Enter Amount"
+            :placeholder="$t('EnterAmount')"
             @focus="openCustomKeyboard(true)"
             :readonly="readonlyState"
             >
@@ -66,12 +66,20 @@
         <div class="text-center q-pt-md q-gutter-sm">
           <q-btn
             outline rounded
-            class="text-center q-mt-sm"
-            color="blue"
+            class="text-center q-mt-sm button button-text-primary"
+            :class="getDarkModeClass(darkMode)"
             :disable="disableUnselectBtn"
-            :label="type === 'amount' ? 'clear' : 'unselect all'"
+            :label="type === 'amount' ? $t('Clear') : $t('UnselectAll')"
             @click="onClearClick"/>
-          <q-btn :loading="loadFilterButton" :disable="loadFilterButton" rounded class="text-center q-mt-sm" color="blue" label="filter" @click="onOKClick"/>
+          <q-btn
+            rounded
+            :loading="loadFilterButton"
+            :disable="loadFilterButton"
+            class="text-center q-mt-sm button"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('Filter')"
+            @click="onOKClick"
+          />
         </div>
       </div>
     </q-card>
@@ -84,7 +92,7 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import customKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import customKeyboard from 'src/components/CustomKeyboard.vue';
 
 export default {
   data () {
@@ -107,7 +115,7 @@ export default {
       return this.loadFilterButton || (this.type === 'type' && !this.amount) || (this.type === 'paymentTypes' && this.filter.payment_types.length === 0)
     },
     filterTypeText () {
-      return this.type === 'amount' ? 'Filter Ad by Order Amount' : 'Select Payment Type'
+      return this.type === 'amount' ? this.$t('FilterAdOrderAmount') : this.$t('SelectPaymentType')
     },
     paymentTypeAllSelected () {
       return this.paymentTypes.length === this.filter.payment_types.length

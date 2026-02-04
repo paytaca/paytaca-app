@@ -12,13 +12,15 @@
             :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
             <button
               class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-buy-btn': transactionType == 'BUY'}"
+              :class="buyAdsButtonClass"
+              :style="transactionType === 'BUY' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
               @click="transactionType='BUY'">
               {{ $t('BuyAds') }}
             </button>
             <button
               class="col-grow br-15 btn-custom fiat-tab q-mt-none"
-              :class="{'dark': darkMode, 'active-sell-btn': transactionType == 'SELL'}"
+              :class="sellAdsButtonClass"
+              :style="transactionType === 'SELL' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
               @click="transactionType='SELL'">
               {{ $t('SellAds') }}
             </button>
@@ -30,7 +32,8 @@
               padding="sm"
               icon="add"
               :disable="disableCreateBtn"
-              :class="transactionType === 'BUY'? 'buy-add-btn': 'sell-add-btn'"
+              class="add-btn"
+              :style="`background-color: ${getThemeColor()}; color: #fff;`"
               @click="onCreateAd()"
             />
           </div>
@@ -43,15 +46,40 @@
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
           <div v-else>
-            <div class="row justify-center" v-if="loading">
-              <q-spinner-dots color="primary" size="40px" />
+            <!-- Skeleton loader for empty list -->
+            <div v-if="loading" class="q-px-md">
+              <div v-for="n in 3" :key="n" class="skeleton-ad-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="q-pa-md">
+                  <div class="row">
+                    <div class="col">
+                      <q-skeleton type="text" width="25%" height="14px" class="q-mb-xs" />
+                      <div class="row q-gutter-md q-mb-xs">
+                        <q-skeleton type="text" width="80px" height="12px" />
+                        <q-skeleton type="text" width="100px" height="12px" />
+                      </div>
+                      <q-skeleton type="text" width="40%" height="20px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="35%" height="14px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="45%" height="14px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="50%" height="12px" class="q-mb-sm" />
+                      <div class="row q-gutter-sm">
+                        <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                        <q-skeleton type="rect" width="70px" height="24px" style="border-radius: 12px;" />
+                      </div>
+                    </div>
+                    <div class="col-auto text-right">
+                      <div class="row q-gutter-xs q-mb-sm">
+                        <q-skeleton type="rect" width="40px" height="40px" style="border-radius: 20px;" />
+                        <q-skeleton type="rect" width="40px" height="40px" style="border-radius: 20px;" />
+                      </div>
+                      <q-skeleton type="rect" width="85px" height="32px" style="border-radius: 16px;" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div v-else>
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
-          </div>
           <q-pull-to-refresh @refresh="refreshData">
             <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 90}px`" style="overflow:auto;">
               <div v-for="(listing, index) in listings" :key="index">
@@ -80,8 +108,8 @@
                               {{
                                 $t(
                                   'CompletionPercentage',
-                                  { percentage: Number(listing.completion_rate.toFixed(2)) },
-                                  `${ Number(listing.completion_rate.toFixed(2)) }% completion`
+                                  { percentage: Number(listing.completion_rate?.toFixed(2)) },
+                                  `${ Number(listing.completion_rate?.toFixed(2)) }% completion`
                                 )
                               }}
                             </span>
@@ -148,7 +176,9 @@
                         </div>
                       </div>
                       <div class="q-gutter-sm q-pt-xs">
-                        <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'" :label="method" />
+                        <q-badge v-for="(method, index) in listing.payment_methods" :key="index" rounded outline :color="darkMode ? 'white': 'black'">
+                          {{ typeof(method) === 'object' ? method?.payment_type?.short_name : method }}
+                        </q-badge>
                       </div>
                     </div>
                   </q-item-section>
@@ -237,6 +267,23 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    buyAdsButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'BUY',
+        [`theme-${this.theme}`]: true
+      }
+    },
+    sellAdsButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'SELL',
+        [`theme-${this.theme}`]: true
+      }
+    },
     buyListings () {
       return this.$store.getters['ramp/getAdsBuyListings']
     },
@@ -257,6 +304,15 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     async getFiatCurrencies () {
       try {
         const { data: currencies } = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: this.transactionType }, authorize: true })
@@ -269,7 +325,7 @@ export default {
     checkAdLimit () {
       const showAdLimitMessage = this.$store.getters['ramp/showAdLimitMessage']
       if (showAdLimitMessage) {
-        backend.get('ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
+        backend.get('/ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
           .then(response => {
             console.log(response)
             if (response.data?.exceeds_limit) {
@@ -333,9 +389,9 @@ export default {
     async toggleAdVisibility (ad, index) {
       if (!ad) return
       this.visibilityLoading[ad.id] = true
-      await backend.put(`ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
+      await backend.put(`/ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
-          this.listings[index] = response.data
+          this.listings[index].is_public = response.data.is_public
         })
         .catch(error => {
           this.handleRequestError(error)
@@ -373,10 +429,30 @@ export default {
     },
     async resetAndRefetchListings () {
       const vm = this
+      
+      // Reset displayEmptyList to show skeleton
       vm.displayEmptyList = false
+      
+      // Clear current listings immediately to show skeleton
+      vm.listings = []
+      
       vm.$store.commit('ramp/resetAdsPagination')
       vm.loading = true
+      
+      // Ensure minimum loading time for skeleton visibility
+      const startTime = Date.now()
+      const minLoadingTime = 500 // 500ms minimum
+      
       await vm.fetchAds(true)
+      
+      // Calculate remaining time to reach minimum loading time
+      const elapsedTime = Date.now() - startTime
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime)
+      
+      // Wait for remaining time if needed
+      if (remainingTime > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingTime))
+      }
 
       setTimeout(() => {
         vm.displayEmptyList = true
@@ -502,32 +578,62 @@ export default {
   transition: .2s;
   font-weight: 500;
   }
-  .btn-custom:hover {
+  .btn-custom:not(.active-theme-btn):hover {
   background-color: rgb(242, 243, 252);
   color: #4C4F4F;
   }
-  .btn-custom.active-buy-btn {
-  background-color: rgb(60, 100, 246) !important;
-  color: #fff;
-  }
-  .btn-custom.active-sell-btn {
-  background-color: #ed5f59 !important;
-  color: #fff;
+  .btn-custom.dark:not(.active-theme-btn):hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
   .btn-custom.dark {
-    background-color: #1c2833;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Theme-based active button styles */
+  button.btn-custom.fiat-tab.active-theme-btn {
+    color: #fff !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+  
+  /* Dark mode active button */
+  button.btn-custom.fiat-tab.active-theme-btn.dark {
+    color: #fff !important;
+  }
+  
+  /* Active button hover effects - slightly darken */
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   .col-transaction {
     padding-top: 2px;
     font-weight: 500;
   }
-  .buy-add-btn {
-    background-color: rgb(60, 100, 246);
-    color: white;
+  .add-btn {
+    transition: opacity 0.2s;
   }
-  .sell-add-btn {
-    background-color: #ed5f59;
-    color: white;
+  .add-btn:hover:not(:disabled) {
+    opacity: 0.85;
   }
   .back-btn {
     background-color: transparent;
@@ -535,5 +641,20 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  
+  /* Skeleton loader styles */
+  .skeleton-ad-card {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
   }
   </style>

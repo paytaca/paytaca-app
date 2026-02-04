@@ -1,13 +1,55 @@
 <template>
   <!-- <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="pageName && pageName != 'main'" @click="customBack"></div> -->
   <div v-if="!$route.query?.edit">
-    <HeaderNav :title="`P2P Exchange`" :backnavpath="previousRoute"/>
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="previousRoute" class="header-nav" />
     <div class="q-mx-md q-mb-lg q-pb-lg text-bow"
       :class="getDarkModeClass(darkMode)"
       :style="`height: ${minHeight}px;`">
-      <div v-if="!isloaded">
-        <div class="row justify-center q-py-lg" style="margin-top: 50px">
-          <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <div v-if="!isloaded" class="q-mx-md q-pt-lg">
+        <!-- Avatar -->
+        <div class="row justify-center q-mt-md">
+          <q-skeleton type="circle" style="width: 64px; height: 64px;" />
+        </div>
+        <!-- Name & action icons -->
+        <div class="row justify-center q-mt-sm">
+          <q-skeleton type="text" style="width: 40%; height: 22px;" />
+        </div>
+        <!-- Edit payment methods button -->
+        <div class="row q-mx-lg q-px-md q-pt-md" v-if="true">
+          <q-skeleton type="rect" class="q-space q-mx-md" style="height: 36px; border-radius: 24px;" />
+        </div>
+        <!-- Rating row -->
+        <div class="row justify-center q-mt-sm q-gutter-xs">
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px;" />
+          <q-skeleton type="text" style="width: 60px; height: 16px; margin-left: 8px;" />
+        </div>
+        <!-- Trade count and completion -->
+        <div class="row justify-center q-mt-xs q-gutter-md">
+          <q-skeleton type="text" style="width: 90px; height: 14px;" />
+          <q-skeleton type="text" style="width: 110px; height: 14px;" />
+        </div>
+        <!-- Tabs -->
+        <div class="row q-mt-md q-mb-sm br-15 pt-card md-font-size" :class="getDarkModeClass(darkMode)" style="padding: 4px; margin-left: 10%; margin-right: 10%;">
+          <q-skeleton type="rect" class="col" style="height: 30px; border-radius: 20px; margin-right: 6px;" />
+          <q-skeleton type="rect" class="col" style="height: 30px; border-radius: 20px; margin-left: 6px;" />
+        </div>
+        <!-- List items placeholder -->
+        <div class="q-mx-lg q-px-md">
+          <div v-for="i in 3" :key="i" class="q-pt-md">
+            <q-skeleton type="text" style="width: 40%; height: 16px;" />
+            <q-skeleton type="text" style="width: 30%; height: 12px; opacity: .6;" />
+            <div class="q-mt-xs q-gutter-xs">
+              <q-skeleton type="rect" style="width: 18px; height: 18px; border-radius: 4px; display: inline-block;" />
+              <q-skeleton type="text" style="width: 40px; height: 14px; display: inline-block; margin-left: 6px;" />
+            </div>
+            <q-skeleton type="text" style="width: 90%; height: 14px;" />
+            <q-skeleton type="text" style="width: 70%; height: 14px;" />
+            <q-separator :dark="darkMode" class="q-mt-md" />
+          </div>
         </div>
       </div>
       <div v-else>
@@ -123,7 +165,7 @@
             {{ $t('ADS') }}
           </button>
         </div>
-        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;">
+        <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
           <!-- Reviews tab -->
           <div v-if="activeTab === 'reviews'">
             <div v-if="!loadingReviews && reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
@@ -252,7 +294,7 @@ import FeedbackDialog from 'src/components/ramp/fiat/dialogs/FeedbackDialog.vue'
 import { updateChatIdentity } from 'src/exchange/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
 import { loadLibauthHdWallet } from 'src/wallet'
 
@@ -337,7 +379,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     async loadWallet () {
       const isChipnet = this.$store.getters['global/isChipnet']
       const walletIndex = this.$store.getters['global/getWalletIndex']
@@ -604,6 +657,8 @@ export default {
     margin-left: 10%;
     margin-right: 10%;
     margin-top: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
   }
   .btn-custom {
     height: 30px;
@@ -614,16 +669,18 @@ export default {
     background-color: transparent;
     outline:0;
     cursor: pointer;
-    transition: .2s;
+    transition: all 0.3s ease;
     font-weight: 500;
   }
   .btn-custom:hover {
     background-color: rgb(242, 243, 252);
     color: #4C4F4F;
+    transform: translateY(-1px);
   }
   .btn-custom.active-btn {
     background-color: rgb(60, 100, 246) !important;
     color: #fff !important;
+    box-shadow: 0 2px 8px rgba(60, 100, 246, 0.3);
   }
   .btn-custom.dark {
     background-color: #1c2833;
@@ -638,5 +695,29 @@ export default {
     width: 70px;
     z-index: 1;
     left: 10px;
+  }
+  
+  /* Enhanced styling for profile elements */
+  .q-icon[name='o_account_circle'] {
+    transition: transform 0.3s ease;
+  }
+  .q-icon[name='o_account_circle']:hover {
+    transform: scale(1.05);
+  }
+  
+  /* Better spacing for review items */
+  .q-pt-md {
+    transition: all 0.2s ease;
+  }
+  
+  /* Improved ad card styling */
+  .q-item {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .q-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 </style>

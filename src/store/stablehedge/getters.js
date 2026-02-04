@@ -15,7 +15,9 @@ export function tokenBalances(state, getters, rootState, rootGetters) {
   if(!balance) return []
   if(balance.walletHash !== walletData?.walletHash) return []
 
-  return chipnet ? balance.chipnet : balance.mainnet
+  const results = chipnet ? balance.chipnet : balance.mainnet
+  if (!Array.isArray(results)) return []
+  return results
 }
 
 export function tokenBalancesAsAssets(state, getters, rootState, rootGetters) {
@@ -25,20 +27,31 @@ export function tokenBalancesAsAssets(state, getters, rootState, rootGetters) {
   return tokenBalances.map(tokenBalance => {
     const assetId = `ct/${tokenBalance?.category}`
     const asset = assets?.find?.(asset => asset?.id === assetId)
-    const token = getters['token']?.(tokenBalance?.category)
+    const token = getters.token?.(tokenBalance?.category)
 
-    let symbol = asset?.symbol
-    let decimals = asset?.decimals
-    if (token?.currency && parseInt(token?.decimals)) {
-      symbol = token?.currency
-      decimals = parseInt(token?.decimals)
+    // NOTE: Dynamic <img :src="..."> does NOT get webpack URL transforms.
+    // Any public asset path must be absolute (start with '/'), otherwise it
+    // becomes relative to the current route and 404s.
+    const normalizeLogo = (logo) => {
+      if (typeof logo !== 'string') return logo
+      if (logo.startsWith('assets/')) return `/${logo}`
+      return logo
     }
+
+    const currency = token?.currency
+    const stablehedgeSymbol = currency ? `S${currency}` : undefined
+    const decimals = Number.isFinite(asset?.decimals) ? asset.decimals : token?.decimals
+
     return {
       ...asset,
       id: assetId,
-      logo: asset?.logo || 'assets/img/stablehedge/stablehedge-bch.svg',
-      symbol: symbol,
-      decimals: decimals,
+      symbol: asset?.symbol || stablehedgeSymbol,
+      name: asset?.name || stablehedgeSymbol || currency || tokenBalance?.category || assetId,
+      // Prefer any known asset logo, else Stablehedge generic icon
+      logo: normalizeLogo(asset?.logo) || '/assets/img/stablehedge/stablehedge-icon.svg',
+      // Stablehedge balances are returned in raw token units, so we must provide decimals
+      // for UI formatters (e.g. `parseAssetDenomination`) to display correctly.
+      decimals: Number.isFinite(decimals) ? decimals : (parseInt(decimals) || 0),
       balance: tokenBalance?.amount,
       spendable: tokenBalance?.amount,
     }

@@ -61,8 +61,19 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="https" />
-                <data android:host="gifts.paytaca.com" pathPrefix="/claim"/>
-                <data android:host="p2p.paytaca.com" pathPrefix="/ad"/>
+                <data android:host="gifts.paytaca.com" android:pathPrefix="/claim"/>
+                <data android:host="p2p.paytaca.com" android:pathPrefix="/ad"/>
+                <data android:host="explorer.paytaca.com" android:pathPrefix="/tx"/>
+            </intent-filter>
+
+            <!-- Non-verified fallback for http explorer links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:host="explorer.paytaca.com" android:pathPrefix="/tx" />
             </intent-filter>
         </activity>
 

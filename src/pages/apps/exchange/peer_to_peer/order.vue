@@ -1,27 +1,117 @@
 <template>
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps/exchange/peer-to-peer/orders"/>
-    <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50%">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
-    <div v-if="isloaded" class="text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="text-center text-weight-bold">
-          <div padding="none none" class="lg-font-size" flat dense>{{ headerTitle.toUpperCase() }}</div>
-        <div class="text-center subtext sm-font-size q-mb-sm">
-          {{
-            $t(
-              'OrderIdNo2',
-              { ID: order?.id },
-              `ORDER ID: ${ order?.id }`
-            )
-          }}
-        </div>
-        <q-btn :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat @click="showStatusHistory=true" dense size="1em" icon="notifications" :style="$q.platform.is.ios ? 'top: 110px' : 'top: 80px'" style="position: fixed; right: 40px;">
-          <q-badge v-if="order?.has_unread_status" floating rounded color="red"/>
-        </q-btn>
+    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/orders" class="header-nav" />
+    
+    <!-- Skeleton Loader -->
+    <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
+      <!-- Order Header Skeleton -->
+      <div class="skeleton-header">
+        <q-skeleton type="text" width="150px" height="20px" class="q-mb-xs" style="margin: 0 auto;" />
+        <q-skeleton type="text" width="100px" height="14px" style="margin: 0 auto;" />
       </div>
-      <div :style="`height: ${scrollHeight}px`" style="overflow:auto;">
-        <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
-          <div class="q-mx-lg q-px-sm q-mb-sm">
+
+      <!-- Pill Tabs Skeleton -->
+      <div class="skeleton-tabs-wrapper">
+        <div class="skeleton-tabs-container" :class="getDarkModeClass(darkMode)">
+          <q-skeleton type="rect" width="100px" height="44px" class="skeleton-pill-tab" />
+          <q-skeleton type="rect" width="100px" height="44px" class="skeleton-pill-tab" />
+          <q-skeleton type="rect" width="100px" height="44px" class="skeleton-pill-tab" />
+        </div>
+      </div>
+
+      <!-- Content Skeleton -->
+      <div class="skeleton-content q-pa-md">
+        <!-- Trade Info Card Skeleton -->
+        <q-skeleton type="rect" height="140px" class="q-mb-md q-mt-md" style="border-radius: 15px;" />
+        
+        <!-- Payment/Status Card Skeleton -->
+        <div class="q-mb-md">
+          <q-skeleton type="text" width="30%" height="14px" class="q-mb-sm" />
+          <q-skeleton type="rect" height="100px" style="border-radius: 12px;" />
+        </div>
+
+        <!-- Details Section Skeleton -->
+        <div class="q-mb-md">
+          <q-skeleton type="text" width="40%" height="16px" class="q-mb-sm" />
+          <q-skeleton type="text" width="100%" height="18px" class="q-mb-xs" />
+          <q-skeleton type="text" width="90%" height="18px" class="q-mb-xs" />
+          <q-skeleton type="text" width="80%" height="18px" />
+        </div>
+
+        <!-- Action Button Skeleton -->
+        <q-skeleton type="rect" height="50px" class="q-mt-lg" style="border-radius: 25px;" />
+      </div>
+    </div>
+
+    <div v-if="isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
+      <!-- Order Header -->
+      <div class="order-header" :class="getDarkModeClass(darkMode)">
+        <div class="order-title">{{ headerTitle }}</div>
+        <div class="order-id">{{ $t('OrderIdNo2', { ID: order?.id }, `Order #${ order?.id }`) }}</div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-wrapper q-mb-md">
+        <div 
+          class="order-tabs-container" 
+          :class="getDarkModeClass(darkMode)"
+        >
+          <button
+            class="order-tab-btn"
+            :class="[
+              darkMode ? 'dark' : '',
+              activeTab === 'details' ? 'active-tab-btn' : '',
+              `theme-${theme}`
+            ]"
+            :style="activeTab === 'details' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="activeTab = 'details'"
+          >
+            {{ $t('Details', {}, 'Details') }}
+          </button>
+          <button
+            class="order-tab-btn"
+            :class="[
+              darkMode ? 'dark' : '',
+              activeTab === 'history' ? 'active-tab-btn' : '',
+              `theme-${theme}`
+            ]"
+            :style="activeTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="activeTab = 'history'"
+          >
+            {{ $t('History', {}, 'History') }}
+            <q-badge v-if="order?.has_unread_status" color="red" floating rounded />
+          </button>
+          <button
+            v-if="showChatTab"
+            class="order-tab-btn"
+            :class="[
+              darkMode ? 'dark' : '',
+              activeTab === 'chat' ? 'active-tab-btn' : '',
+              `theme-${theme}`
+            ]"
+            :style="activeTab === 'chat' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="activeTab = 'chat'"
+          >
+            {{ $t('Chat', {}, 'Chat') }}
+            <q-badge v-if="isChatEnabled && unreadChatCount > 0" color="red" floating rounded>
+              {{ unreadChatCount }}
+            </q-badge>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Panels -->
+      <q-tab-panels
+        v-model="activeTab"
+        animated
+        :style="`height: ${scrollHeight}px`"
+        class="order-tab-panels"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <!-- DETAILS Tab -->
+        <q-tab-panel name="details" class="q-pa-none">
+          <div class="tab-content-wrapper details-tab-content scroll-y" @touchstart="preventPull">
+            <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
+            <div class="q-mx-md q-px-sm q-mb-sm">
             <TradeInfoCard
               :key="tradeInfoCardKey"
               :order="order"
@@ -29,9 +119,9 @@
               type="order"
               @view-ad="showAdSnapshot=true"
               @view-peer="onViewPeer"
-              @view-reviews="showReviews=true"
-              @view-chat="openChat=true"/>
+              @view-reviews="showReviews=true"/>
           </div>
+          <div class="component-wrapper">
           <EscrowTransfer
             ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
@@ -76,12 +166,291 @@
               @refresh="refreshPage"
             />
           </div>
-          <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
-            <q-spinner-ios size="1.5em"/>
           </div>
-        </q-pull-to-refresh>
-      </div>
+              <div v-if="reconnectingWebSocket" class="fixed" style="right: 50px;" :style="$q.platform.is.ios? 'top: 130px' : 'top: 100px;'">
+                <q-spinner-ios size="1.5em"/>
+              </div>
+            </q-pull-to-refresh>
+          </div>
+        </q-tab-panel>
+
+        <!-- HISTORY Tab -->
+        <q-tab-panel name="history" class="q-pa-none">
+          <div class="tab-content-wrapper">
+          <div v-if="statusHistory.length === 0" class="q-pa-md">
+            <q-card flat bordered v-for="n in 3" :key="n" class="status-card q-mb-md" :class="getDarkModeClass(darkMode)">
+              <q-card-section class="q-pa-md">
+                <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+                <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+                <q-skeleton type="text" width="50%" height="12px" />
+              </q-card-section>
+            </q-card>
+          </div>
+          <div v-else>
+            <div v-for="(status, index) in statusHistory" :key="index" class="q-pb-sm">
+              <q-card flat bordered class="status-card" :class="[getDarkModeClass(darkMode), !isStatusRead(status) ? 'unread-status' : '']">
+                <q-card-section class="row q-pa-md">
+                  <q-badge v-if="!isStatusRead(status)" color="red" rounded floating/>
+                  <div class="col q-pr-sm">
+                    <div class="text-weight-medium text-body1">{{ formatOrderStatus(status.status) }}</div>
+                    <div class="text-caption text-grey q-mt-xs">{{ formatDate(status.created_at, false) }}</div>
+                    <div class="text-caption q-mt-xs status-relative-time">{{ formatDate(status.created_at, true) }}</div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </div>
+          </div>
+        </q-tab-panel>
+
+        <!-- CHAT Tab -->
+        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel" :class="{ 'input-hidden': isChatInputHidden }">
+          <div class="tab-content-wrapper chat-tab-content">
+          <!-- Chat Disabled Notice (Before Escrow) -->
+          <div v-if="!isChatEnabled" class="chat-disabled-notice">
+            <q-banner class="chat-disabled-banner" :class="getDarkModeClass(darkMode)">
+              <template v-slot:avatar>
+                <q-icon name="chat_bubble_outline" color="grey-6" size="48px"/>
+              </template>
+              <div class="chat-disabled-content">
+                <div class="text-h6 q-mb-sm">{{ $t('ChatNotYetActive', {}, 'Chat Not Yet Active') }}</div>
+                <div class="text-body2">
+                  {{ $t('ChatActivationMessage', {}, 'The chat window will be activated once BCH funds have been sent to escrow. Please wait for the seller to escrow the funds.') }}
+                </div>
+              </div>
+            </q-banner>
+          </div>
+          
+          <!-- Chat Loading -->
+          <div v-else-if="chatMessages.length === 0 && !chatLoaded" class="q-pa-md">
+            <div v-for="n in 4" :key="n" class="chat-message-skeleton q-mb-md">
+              <div class="row items-start q-gutter-sm">
+                <q-skeleton type="circle" size="32px" />
+                <div class="col">
+                  <q-skeleton type="text" width="30%" height="12px" class="q-mb-xs" />
+                  <q-skeleton type="rect" width="70%" height="60px" style="border-radius: 12px;" />
+                  <q-skeleton type="text" width="20%" height="10px" class="q-mt-xs" />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Chat Content (Active) -->
+          <div v-else class="chat-container">
+            <!-- Messages area (flex-grows to push input down) -->
+            <div class="chat-messages-area" @click="handleChatAreaClick">
+              <!-- Chat messages -->
+              <div class="chat-messages-wrapper" ref="chatScrollTarget" :class="{ 'new-message-glow': newMessageGlow }">
+              <!-- Encrypted message notice -->
+              <q-banner class="encrypted-banner" :class="getDarkModeClass(darkMode)">
+                <template v-slot:avatar>
+                  <q-icon name="lock" color="positive" size="20px"/>
+                </template>
+                <span class="encrypted-banner-text">{{ $t('EncryptedChatMsg', {}, 'Messages are protected with end-to-end encryption. Only you and the intended recipient can read the content.') }}</span>
+              </q-banner>
+              
+              <!-- Messages list -->
+              <q-infinite-scroll
+                :scroll-target="chatScrollTarget"
+                ref="infiniteScroll"
+                @load="loadMoreChatData"
+                :offset="50"
+                :disable="!hasMoreChatMessages || !chatLoaded || !userHasScrolled || justLoadedMessages"
+                reverse
+                class="chat-messages-scroll"
+              >
+                <template v-slot:loading>
+                  <div class="row justify-center q-my-md">
+                    <q-spinner-dots color="primary" size="32px" />
+                  </div>
+                </template>
+
+                <div v-if="chatMessages.length === 0" class="empty-chat-state">
+                  <q-icon name="chat_bubble_outline" size="48px" class="text-grey-5"/>
+                  <div class="text-grey-6 q-mt-sm">{{ $t('NoMessages', {}, 'No messages yet') }}</div>
+                  <div class="text-caption text-grey-6">{{ $t('StartConversation', {}, 'Start the conversation') }}</div>
+                </div>
+
+                <div v-else class="chat-messages-list" :key="chatMessagesKey">
+                  <!-- Beginning of conversation indicator -->
+                  <div v-if="!hasMoreChatMessages && chatMessages.length > 0" class="row justify-center q-py-md">
+                    <div class="text-caption text-grey-6">
+                      <q-icon name="chat" size="xs" class="q-mr-xs"/>
+                      {{ $t('BeginningOfConversation', {}, 'Beginning of conversation') }}
+                    </div>
+                  </div>
+                  
+                  <div v-for="message in chatMessages" :key="message.id" class="chat-message-wrapper">
+                    <q-chat-message
+                      :name="userName(message.chatIdentity?.name)"
+                      :avatar="`https://ui-avatars.com/api/?background=random&name=${message.chatIdentity?.name}&color=fff&size=128`"
+                      :stamp="formatChatDate(message.createdAt)"
+                      :sent="message.chatIdentity?.is_user"
+                      bg-color="transparent"
+                      :text-color="getDarkModeClass(darkMode) === 'dark' ? 'white' : 'black'"
+                      class="professional-chat-message"
+                      :class="getDarkModeClass(darkMode)"
+                    >
+                      <div v-if="message.message || message._decryptedMessage" class="message-text">
+                        <span v-if="message._decryptedMessage">{{ message._decryptedMessage }}</span>
+                        <span v-else-if="!message.encrypted">{{ message.message }}</span>
+                        <span v-else class="text-grey-6 text-italic">
+                          {{ $t('MessageDecryptionFailed', {}, 'Unable to decrypt message') }}
+                        </span>
+                      </div>
+                    </q-chat-message>
+                    
+                    <!-- Image attachment -->
+                    <div v-if="message.hasAttachment || message.attachment || message.encryptedAttachmentUrl || message.attachmentUrl" class="row q-px-lg q-mx-lg q-pt-sm" :class="message.chatIdentity?.is_user ? 'justify-end' : ''">
+                      <img
+                        v-if="message?.decryptedAttachmentFile?.url"
+                        class="q-px-sm cursor-pointer chat-message-image"
+                        :src="message?.decryptedAttachmentFile?.url"
+                        @click="openImageDialog(message?.decryptedAttachmentFile?.url)"
+                        alt="attachment"
+                      />
+                      <div 
+                        v-else 
+                        class="row items-center q-pa-sm encrypted-attachment"
+                      >
+                        <div class="text-grey-6">
+                          <q-icon name="image" size="sm" class="q-mr-xs"/>
+                          {{ $t('DecryptingAttachment', {}, 'Decrypting attachment...') }}
+                          <q-spinner v-if="message?.$state?.decryptingAttachment" size="sm" class="q-ml-xs"/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </q-infinite-scroll>
+              </div>
+            </div>
+
+            <!-- Chat input -->
+            <div 
+              class="chat-input-wrapper" 
+              :class="[getDarkModeClass(darkMode), { 'chat-input-hidden': isChatInputHidden }]"
+            >
+              <!-- 1-hour grace period countdown after release/cancel/refund -->
+              <div v-if="chatGraceCountdownActive" class="chat-close-countdown" :class="getDarkModeClass(darkMode)">
+                {{ $t('ChatClosesIn', { time: chatGraceCountdownText }, `Chat closes in ${chatGraceCountdownText}`) }}
+              </div>
+
+              <q-banner
+                v-else-if="chatClosedAfterGrace"
+                class="chat-closed-notice"
+                :class="getDarkModeClass(darkMode)"
+                rounded
+              >
+                <template v-slot:avatar>
+                  <q-icon name="info" color="info" />
+                </template>
+                <div class="text-weight-medium">
+                  {{ $t('ChatClosed', {}, 'Chat closed') }}
+                </div>
+                <div class="text-caption">
+                  {{
+                    $t(
+                      'ChatClosedExplanation',
+                      {},
+                      'Chat is no longer available for this order.'
+                    )
+                  }}
+                </div>
+              </q-banner>
+
+              <div v-if="canSendChatMessages" class="chat-input-container">
+                <q-btn
+                  v-if="!chatAttachmentUrl"
+                  flat
+                  round
+                  icon="attach_file"
+                  size="md"
+                  @click="openFileAttachmentField"
+                  class="attach-button"
+                  :class="darkMode ? 'text-grey-3' : 'text-grey-7'"
+                />
+                
+                <q-input
+                  ref="chatInput"
+                  v-model="chatMessageInput"
+                  outlined
+                  rounded
+                  dense
+                  autogrow
+                  :placeholder="$t('TypeMessage', {}, 'Type a message...')"
+                  :dark="darkMode"
+                  :disable="!canSendChatMessages"
+                  @keyup.enter.exact="sendChatMessage"
+                  class="chat-input"
+                  :maxlength="1000"
+                >
+                  <template v-slot:append>
+                    <q-btn 
+                      round 
+                      unelevated
+                      color="primary" 
+                      :icon="sendingMessage ? 'sync' : 'send'" 
+                      size="sm"
+                      @click="sendChatMessage" 
+                      :disable="!chatMessageInput.trim() || sendingMessage || !canSendChatMessages"
+                      :loading="sendingMessage"
+                      class="send-button"
+                    />
+                  </template>
+                </q-input>
+              </div>
+              
+              <!-- Hidden file picker -->
+              <q-file
+                v-show="false"
+                ref="fileAttachmentField"
+                :dark="darkMode"
+                borderless
+                v-model="chatAttachment"
+                :filter="files => files.filter(file => file.type?.match(/image\/.*/))"
+                @update:modelValue="resizeChatAttachment"
+              />
+              
+              <!-- Image preview -->
+              <div v-if="chatAttachmentUrl" class="row items-start no-wrap q-my-sm q-mx-md attachment-preview">
+                <img
+                  :src="chatAttachmentUrl"
+                  class="cursor-pointer image-attachment"
+                  @click="openFileAttachmentField"
+                  alt="attachment"
+                >
+                <q-btn
+                  flat 
+                  round
+                  dense
+                  icon="cancel"
+                  size="sm"
+                  @click.prevent="chatAttachment = null; chatAttachmentUrl = null"
+                  class="remove-attachment-btn"
+                />
+              </div>
+            </div>
+          </div>
+          </div>
+        </q-tab-panel>
+      </q-tab-panels>
     </div>
+    
+    <!-- Image Dialog -->
+    <q-dialog v-model="showImageDialog" maximized>
+      <q-card class="bg-black">
+        <q-card-section class="row items-center q-pb-none">
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup color="white" />
+        </q-card-section>
+        <q-card-section class="flex flex-center" style="height: 90vh;">
+          <img :src="selectedImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+    
+    
     <!-- Dialogs -->
     <div v-if="openDialog" >
       <MiscDialogs
@@ -94,35 +463,36 @@
     </div>
     <AdSnapshotDialog :key="adSnapshotDialogKey" v-if="showAdSnapshot" :order-id="order?.id" @back="showAdSnapshot=false"/>
     <UserProfileDialog :key="userProfileDialogKey" v-if="showPeerProfile" :user-info="peerInfo" @back="showPeerProfile=false"/>
-    <ChatDialog :key="chatDialogKey" v-if="openChat" :order="order" @close="openChat=false"/>
     <ContractProgressDialog v-if="showContractLoading" :message="contractLoadingMessage"/>
-    <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" :trader-type="userTraderType" @back="showStatusHistory=false; order.has_unread_status=false" />
     <NoticeBoardDialog v-if="showNoticeDialog" :type="noticeType" action="orders" :message="errorMessage" @hide="showNoticeDialog = false"/>
   </template>
 <script>
-import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
+import { bchToFiat, formatCurrency, formatDate, satoshiToBch, formatOrderStatus } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
-import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef } from 'src/exchange/chat'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef, fetchChatMessages, fetchChatMembers, fetchChatPubkeys, sendChatMessage as sendChatMessageAPI, updateLastRead, generateChatIdentityRef, loadChatIdentity } from 'src/exchange/chat'
+import { ChatMessage } from 'src/exchange/chat/objects'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
+import { resizeImage } from 'src/marketplace/chat/attachment'
+import { getEncryptionKeypairFromMnemonic } from 'src/utils/memo-key-utils'
+import { Store } from 'src/store'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
+import { wallet } from 'src/exchange/wallet'
 import NoticeBoardDialog from 'src/components/ramp/fiat/dialogs/NoticeBoardDialog.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import RampContract from 'src/exchange/contract'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-// import ReceiveOrder from 'src/components/ramp/fiat/ReceiveOrder.vue'
 import EscrowTransfer from 'src/components/ramp/fiat/EscrowTransfer.vue'
 import VerifyTransaction from 'src/components/ramp/fiat/VerifyTransaction.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
-import ChatDialog from 'src/components/ramp/fiat/dialogs/ChatDialog.vue'
 import StandByDisplay from 'src/components/ramp/fiat/StandByDisplay.vue'
 import PaymentConfirmation from 'src/components/ramp/fiat/PaymentConfirmation.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
-import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDialog.vue'
 
 export default {
   data () {
@@ -182,7 +552,54 @@ export default {
       verifyingTx: false,
       showStatusHistory: false,
       noticeType: 'info',
-      showNoticeDialog: false
+      showNoticeDialog: false,
+
+      // Tabs
+      activeTab: 'details',
+      
+      // History Tab
+      statusHistory: [],
+
+      // Chat Tab
+      chatLoaded: false,
+      chatMessages: [],
+      chatMessageInput: '',
+      chatAttachment: null,
+      chatAttachmentUrl: null,
+      chatIdentity: null,
+      keypair: {},
+      chatMembers: [],
+      chatPubkeys: [],
+      sendingMessage: false,
+      addingNewMessage: false,
+      arbiterIdentity: null,
+      chatMessagesKey: 0,
+      chatMessagesOffset: 0,
+      hasMoreChatMessages: true,
+      loadingMoreMessages: false,
+      lastLoadTime: 0,
+      userHasScrolled: false,
+      justLoadedMessages: false,
+      hasScrolledAwayFromTop: false,
+      scrollHeightBeforeLoad: 0,
+      scrollTopBeforeLoad: 0,
+      
+      // Chat input scroll behavior
+      lastChatScrollY: 0,
+      isChatInputHidden: false,
+      chatScrollThreshold: 10,
+      unreadChatCount: 0,
+      
+      // New message alert
+      newMessageGlow: false,
+      
+      // Image dialog
+      showImageDialog: false,
+      selectedImageUrl: null,
+
+      // Chat-close countdown state (1-hour grace after release/cancel/refund)
+      chatCloseNowMs: Date.now(),
+      chatCloseCountdownIntervalId: null,
     }
   },
   components: {
@@ -192,13 +609,11 @@ export default {
     EscrowTransfer,
     VerifyTransaction,
     PaymentConfirmation,
-    ChatDialog,
     TradeInfoCard,
     AdSnapshotDialog,
     UserProfileDialog,
     ContractProgressDialog,
     HeaderNav,
-    OrderStatusDialog,
     NoticeBoardDialog
   },
   props: {
@@ -207,7 +622,12 @@ export default {
       default: ''
     }
   },
+  // REMOVED: Duplicate created() hook - merged into the one below
+  // The new-message listener is now registered in the main created() hook
   computed: {
+    chatScrollTarget () {
+      return this.$refs.chatScrollTarget
+    },
     userTraderType () {
       const user = this.$store.getters['ramp/getUser']
       if (this.order?.owner?.id === user.id) {
@@ -228,13 +648,107 @@ export default {
       return ''
     },
     scrollHeight () {
-      let height = this.$q.platform.is.ios ? this.$q.screen.height - 180 : this.$q.screen.height - 150
+      let height = this.$q.platform.is.ios ? this.$q.screen.height - 230 : this.$q.screen.height - 200
       if (this.sendingBch || this.verifyingTx) {
         height = height - 40
       } else if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
       }
+      
+      // When on chat tab and input is hidden, extend height to bottom of screen
+      if (this.activeTab === 'chat' && this.isChatInputHidden) {
+        height = height + 100 // Add back the space normally reserved for input
+      }
+      
       return height
+    },
+    showChatTab () {
+      // Show chat tab from confirmation onwards
+      // Include CNCL so users can still view chat history and see the grace-period/closed notice.
+      const chatVisibleStatuses = ['CNF', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL', 'CNCL']
+      return chatVisibleStatuses.includes(this.order?.status?.value)
+    },
+    isChatEnabled () {
+      // Chat is only functional when funds are escrowed
+      const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
+      const status = this.order?.status?.value
+      if (escrowedStatuses.includes(status)) return true
+
+      // If the order is cancelled but a chat session exists, keep chat readable (and allow grace-period sending).
+      if (status === 'CNCL' && this.order?.chat_session_ref) return true
+
+      return false
+    },
+
+    /**
+     * P2P chat should close 1 hour after order is marked as released/cancelled/refunded.
+     * We derive the timestamp from status history when available, and fall back to order timestamps if not.
+     */
+    chatCloseStatusAtMs () {
+      const finalStatuses = ['RLS', 'CNCL', 'RFN']
+      const current = this.order?.status?.value
+      const isFinal = finalStatuses.includes(current)
+
+      // Prefer status history entry timestamps (server-authoritative)
+      if (Array.isArray(this.statusHistory) && this.statusHistory.length) {
+        const candidates = this.statusHistory
+          .filter(s => finalStatuses.includes(s?.status))
+          .map(s => new Date(s?.created_at).getTime())
+          .filter(ts => Number.isFinite(ts))
+        if (candidates.length) return Math.max(...candidates)
+      }
+
+      // Fallback to order-provided timestamps if we are already in a final state
+      if (isFinal) {
+        const t1 = new Date(this.order?.status?.updated_at).getTime()
+        if (Number.isFinite(t1)) return t1
+        const t2 = new Date(this.order?.updated_at).getTime()
+        if (Number.isFinite(t2)) return t2
+        const t3 = new Date().getTime()
+        if (Number.isFinite(t3)) return t3
+      }
+
+      return null
+    },
+
+    chatGraceDeadlineMs () {
+      if (!Number.isFinite(this.chatCloseStatusAtMs)) return null
+      return this.chatCloseStatusAtMs + (60 * 60 * 1000)
+    },
+
+    chatGraceRemainingMs () {
+      if (!Number.isFinite(this.chatGraceDeadlineMs)) return null
+      return this.chatGraceDeadlineMs - this.chatCloseNowMs
+    },
+
+    chatGraceCountdownActive () {
+      return Number.isFinite(this.chatGraceRemainingMs) && this.chatGraceRemainingMs > 0
+    },
+
+    chatClosedAfterGrace () {
+      return Number.isFinite(this.chatGraceRemainingMs) && this.chatGraceRemainingMs <= 0
+    },
+
+    chatGraceCountdownText () {
+      if (!Number.isFinite(this.chatGraceRemainingMs)) return ''
+      const totalSec = Math.max(0, Math.ceil(this.chatGraceRemainingMs / 1000))
+      const hours = Math.floor(totalSec / 3600)
+      const minutes = Math.floor((totalSec % 3600) / 60)
+      const seconds = totalSec % 60
+      const mm = String(minutes).padStart(2, '0')
+      const ss = String(seconds).padStart(2, '0')
+      if (hours > 0) {
+        const hh = String(hours).padStart(2, '0')
+        return `${hh}:${mm}:${ss}`
+      }
+      return `${mm}:${ss}`
+    },
+
+    canSendChatMessages () {
+      // If order isn't released/cancelled, normal chat rules apply.
+      if (!Number.isFinite(this.chatCloseStatusAtMs)) return this.isChatEnabled
+      // If there is a closure timestamp, only allow sending during the grace period.
+      return this.isChatEnabled && this.chatGraceCountdownActive
     },
     headerTitle () {
       switch (this.state) {
@@ -242,7 +756,11 @@ export default {
         case 'standby-view':
           if (this.order?.status?.value === 'CNF') {
             return 'Escrow Pending'
-          } else { return this.order?.status?.label }
+          } else {
+            const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
+            // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
+            return formattedStatus || this.order?.status?.label || ''
+          }
         case 'escrow-bch':
           return 'Escrow bch'
         case 'tx-confirmation':
@@ -333,7 +851,7 @@ export default {
       const expiryDate = new Date(vm.order.expires_at)
       const exception = [
         this.$t('Released'),
-        this.$t('Canceled')
+        this.$t('Cancelled')
       ]
       if (expiryDate < now && vm.order.expires_at && !exception.includes(vm.order.status.label)) {
         return true
@@ -351,24 +869,118 @@ export default {
       if (val === 'tx-confirmation') {
         this.onSendingBCH(false)
       }
+    },
+    activeTab (newTab, oldTab) {
+      if (newTab === 'history') {
+        this.readOrderStatus()
+      } else if (newTab === 'chat') {
+        // Only load chat if escrow is complete
+        if (!this.isChatEnabled) {
+          console.log('Chat is not yet enabled - waiting for escrow')
+          return
+        }
+        
+        // Re-establish chat websocket connection when entering chat tab
+        // This ensures both parties can receive messages even if one joined later
+        if (this.chatRef && this.websockets.chat) {
+          console.log('Re-establishing chat websocket connection...')
+          this.websockets.chat.closeConnection()
+          this.websockets.chat = new WebSocketManager()
+          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+          this.websockets.chat.subscribeToMessages(message => {
+            if (message?.type === 'new_message') {
+              const messageData = message.data
+              bus.emit('last-read-update')
+              bus.emit('new-message', messageData)
+            }
+          })
+        }
+        
+        if (!this.chatLoaded) {
+          this.loadChatData()
+        } else {
+          // Update last read when switching to chat tab
+          updateLastRead(this.chatRef, this.chatMessages)
+            .then(() => {
+              bus.emit('last-read-update')
+              // Refresh unread count after marking as read
+              this.fetchChatUnread(this.chatRef)
+            })
+            .catch(error => {
+              console.error('Error updating last read:', error)
+            })
+        }
+        
+        // Attach scroll listener for chat input hide/show
+        this.$nextTick(() => {
+          const scrollTarget = this.$refs.chatScrollTarget
+          if (scrollTarget) {
+            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
+          }
+        })
+      } else if (oldTab === 'chat') {
+        // When leaving chat tab, refresh unread count (only if chat was enabled)
+        if (this.isChatEnabled) {
+          this.fetchChatUnread(this.chatRef)
+        }
+        
+        // Remove scroll listener when leaving chat
+        const scrollTarget = this.$refs.chatScrollTarget
+        if (scrollTarget) {
+          scrollTarget.removeEventListener('scroll', this.handleChatScroll)
+        }
+        
+        // Reset input visibility
+        this.isChatInputHidden = false
+      }
     }
   },
   created () {
     bus.emit('hide-menu')
     bus.on('relogged', this.refreshPage)
     bus.on('update-status', this.handleNewStatus)
+    
+    // Register chat message listener
+    bus.on('new-message', this.onNewMessage)
   },
   async mounted () {
     await this.loadData()
     this.setupWebSocket()
+    this.ensureChatCloseCountdownTimer()
   },
   beforeUnmount () {
     this.closeWSConnection()
+
+    if (this.chatCloseCountdownIntervalId) {
+      clearInterval(this.chatCloseCountdownIntervalId)
+      this.chatCloseCountdownIntervalId = null
+    }
+    
+    // Remove bus listeners
+    bus.off('new-message', this.onNewMessage)
+    
+    // Remove chat scroll listener if it exists
+    const scrollTarget = this.$refs.chatScrollTarget
+    if (scrollTarget) {
+      scrollTarget.removeEventListener('scroll', this.handleChatScroll)
+    }
   },
   methods: {
     formatDate,
+    formatOrderStatus,
     getDarkModeClass,
-    isNotDefaultTheme,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
 
     async loadData () {
       try {
@@ -379,16 +991,971 @@ export default {
         }
         await vm.fetchAd()
         await vm.fetchFeedback()
-        if (this.notifType === 'new_message') { this.openChat = true }
+        await vm.fetchStatusList() // Load status history
+        vm.ensureChatCloseCountdownTimer()
+        if (this.notifType === 'new_message') { 
+          this.activeTab = 'chat'
+        }
         vm.isloaded = true
       } catch (error) {
         console.error(error)
       }
     },
 
+    // Status History Tab Methods
+    async fetchStatusList () {
+      if (!this.order?.id) return
+      try {
+        const response = await backend.get(`/ramp-p2p/order/${this.order.id}/status/`, { authorize: true })
+        this.statusHistory = response.data
+        this.ensureChatCloseCountdownTimer()
+      } catch (error) {
+        this.handleRequestError(error)
+      }
+    },
+
+    async readOrderStatus () {
+      if (!this.order?.id || !this.userTraderType) return
+      try {
+        await backend.patch(`/ramp-p2p/order/${this.order.id}/status/`, null, { authorize: true })
+        this.order.has_unread_status = false
+        setTimeout(() => {
+          this.fetchStatusList()
+        }, 1000)
+      } catch (error) {
+        this.handleRequestError(error)
+      }
+    },
+
+    isStatusRead (status) {
+      if (!this.userTraderType) return true
+      return (this.userTraderType === 'SELLER' && !!status.seller_read_at) || 
+             (this.userTraderType === 'BUYER' && !!status.buyer_read_at)
+    },
+
+    // Chat Tab Methods
+    async loadKeyPair () {
+      try {
+        // Always derive fresh from mnemonic for cross-platform consistency
+        const walletIndex = Store.getters['global/getWalletIndex']
+        this.keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+      } catch (error) {
+        console.error('Failed to load keypair from mnemonic:', error)
+        this.keypair = {}
+      }
+    },
+
+    async loadChatIdentity () {
+      const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
+      this.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
+      
+      if (!this.chatIdentity) {
+        const user = this.$store.getters['ramp/getUser']
+        const identity = await loadChatIdentity('peer', { 
+          name: user?.name, 
+          chat_identity_id: user?.chat_identity_id 
+        }).catch(console.error)
+        
+        if (identity) {
+          this.chatIdentity = identity
+          this.$store.commit('ramp/updateChatIdentity', { 
+            ref: identity.ref, 
+            chatIdentity: identity 
+          })
+        }
+      }
+    },
+
+    async loadChatData () {
+      if (!this.chatRef || this.chatLoaded) return
+      
+      try {
+        await this.loadKeyPair()
+        await this.loadChatIdentity()
+
+        // Fetch chat members
+        const members = await fetchChatMembers(this.chatRef).catch(() => [])
+        if (members?.length) {
+          this.chatMembers = members.map(member => ({
+            id: member.chat_identity.id,
+            name: member.chat_identity.name,
+            ref: member.chat_identity.ref,
+            is_ad_owner: member.chat_identity.id === this.order?.ad?.owner?.chat_identity_id,
+            is_order_owner: member.chat_identity.id === this.order?.owner?.chat_identity_id,
+            is_arbiter: member.chat_identity.id === this.arbiterIdentity?.chat_identity_id || false,
+            pubkeys: member.chat_identity.pubkeys
+          }))
+        }
+
+        // Fetch chat pubkeys
+        const pubkeys = await fetchChatPubkeys(this.chatRef).catch(() => [])
+        if (pubkeys?.length) {
+          this.chatPubkeys = pubkeys
+        }
+
+        // Fetch and decrypt messages
+        const response = await fetchChatMessages(this.chatRef, 0, 10)
+        // console.log('[Chat Pagination] API response:', { 
+        //   count: response?.count, 
+        //   next: response?.next, 
+        //   previous: response?.previous,
+        //   resultsLength: response?.results?.length 
+        // })
+        if (response?.results) {
+          // Convert to ChatMessage instances
+          this.chatMessages = response.results.reverse().map(msgData => {
+            // Normalize attachment field names before parsing
+            // Only copy if attachment is a string (URL), not a boolean
+            if (msgData.attachment && typeof msgData.attachment === 'string' && 
+                !msgData.encrypted_attachment_url && !msgData.attachment_url) {
+              msgData.encrypted_attachment_url = msgData.attachment
+            }
+            return ChatMessage.parse(msgData)
+          })
+          
+          await this.decryptChatMessages(this.chatMessages)
+          
+          // Decrypt attachments
+          await this.decryptChatAttachments()
+          
+          // Set pagination state
+          this.chatMessagesOffset = this.chatMessages.length
+          // Check if there are more messages: either next exists OR count > current loaded
+          this.hasMoreChatMessages = !!response.next || (response.count && response.count > this.chatMessages.length)
+          
+          // console.log(`[Chat Pagination] Initial load: ${this.chatMessages.length} messages, offset set to ${this.chatMessagesOffset}, hasMore: ${this.hasMoreChatMessages}, total count: ${response.count}`)
+        }
+        
+        this.chatLoaded = true
+        
+        // Initialize flags for scroll-based loading
+        this.hasScrolledAwayFromTop = false
+        this.userHasScrolled = false
+        this.justLoadedMessages = false
+        
+        // Re-establish chat websocket connection after loading chat data
+        // This ensures fresh connection for receiving new messages
+        if (this.chatRef && this.websockets.chat) {
+          console.log('Re-establishing chat websocket after loading chat data...')
+          this.websockets.chat.closeConnection()
+          this.websockets.chat = new WebSocketManager()
+          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+          this.websockets.chat.subscribeToMessages(message => {
+            if (message?.type === 'new_message') {
+              const messageData = message.data
+              bus.emit('last-read-update')
+              bus.emit('new-message', messageData)
+            }
+          })
+        }
+
+        // Scroll to bottom with multiple attempts and stop infinite scroll if no more messages
+        this.$nextTick(() => {
+          this.scrollChatToBottom()
+          
+          // If no more messages, stop the infinite scroll
+          if (!this.hasMoreChatMessages && this.$refs.infiniteScroll) {
+            // console.log('[Chat Pagination] Stopping infinite scroll - no more messages')
+            this.$refs.infiniteScroll.stop()
+          }
+          setTimeout(() => {
+            this.scrollChatToBottom()
+          }, 200)
+          setTimeout(() => {
+            this.scrollChatToBottom()
+          }, 500)
+          
+          // Attach scroll listener for chat input hide/show
+          const scrollTarget = this.$refs.chatScrollTarget
+          if (scrollTarget) {
+            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
+          }
+        })
+      } catch (error) {
+        console.error('Error loading chat:', error)
+        this.chatLoaded = true
+      }
+    },
+
+    async loadMoreChatData (index, done) {
+      // Don't load if chat isn't loaded yet, already loading, or no more messages
+      if (!this.chatLoaded || this.loadingMoreMessages || !this.hasMoreChatMessages) {
+        // console.log(`[Chat Pagination] Skipping load - chatLoaded: ${this.chatLoaded}, loading: ${this.loadingMoreMessages}, hasMore: ${this.hasMoreChatMessages}`)
+        done()
+        return
+      }
+
+      // Cooldown: Prevent loading too quickly (minimum 2 seconds between loads)
+      const now = Date.now()
+      if (now - this.lastLoadTime < 2000) {
+        console.log('[Chat Pagination] Cooldown active, waiting...')
+        done()
+        return
+      }
+
+      try {
+        this.loadingMoreMessages = true
+        this.lastLoadTime = now
+        
+        // Save scroll position before loading
+        const scrollTarget = this.$refs.chatScrollTarget
+        if (scrollTarget) {
+          this.scrollHeightBeforeLoad = scrollTarget.scrollHeight
+          this.scrollTopBeforeLoad = scrollTarget.scrollTop
+        }
+        
+        // console.log(`[Chat Pagination] Loading more messages with offset: ${this.chatMessagesOffset}, current message count: ${this.chatMessages.length}`)
+        
+        // Fetch older messages
+        const response = await fetchChatMessages(this.chatRef, this.chatMessagesOffset, 10)
+        
+        // console.log('[Chat Pagination] Load more API response:', { 
+        //   count: response?.count, 
+        //   next: response?.next, 
+        //   previous: response?.previous,
+        //   resultsLength: response?.results?.length 
+        // })
+        
+        if (response?.results && response.results.length > 0) {
+          // Convert to ChatMessage instances
+          const newMessages = response.results.reverse().map(msgData => {
+            // Normalize attachment field names before parsing
+            if (msgData.attachment && typeof msgData.attachment === 'string' && 
+                !msgData.encrypted_attachment_url && !msgData.attachment_url) {
+              msgData.encrypted_attachment_url = msgData.attachment
+            }
+            return ChatMessage.parse(msgData)
+          })
+          
+          // Filter out any duplicates (in case of race conditions with websocket)
+          const existingIds = new Set(this.chatMessages.map(msg => msg.id))
+          const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg.id))
+          
+          // console.log(`[Chat Pagination] Loaded ${response.results.length} messages, ${uniqueNewMessages.length} are unique, ${newMessages.length - uniqueNewMessages.length} duplicates filtered`)
+          
+          if (uniqueNewMessages.length === 0) {
+            // All messages were duplicates, no more unique messages to load
+            // console.log('[Chat Pagination] All loaded messages were duplicates, stopping pagination')
+            this.hasMoreChatMessages = false
+            // Stop the infinite scroll component from further attempts
+            if (this.$refs.infiniteScroll) {
+              this.$refs.infiniteScroll.stop()
+            }
+            done()
+            return
+          }
+          
+          // Decrypt messages
+          await this.decryptChatMessages(uniqueNewMessages)
+          
+          // Decrypt attachments in the new messages
+          for (const message of uniqueNewMessages) {
+            if (message.hasAttachment || message.attachment || message.encryptedAttachmentUrl) {
+              await this.decryptMessageAttachment(message)
+            }
+          }
+          
+          // Prepend new messages to the beginning (older messages)
+          this.chatMessages = [...uniqueNewMessages, ...this.chatMessages]
+          
+          // Update pagination state - use the API response count, not uniqueNewMessages count
+          // This ensures offset stays in sync with the API's pagination
+          this.chatMessagesOffset += response.results.length
+          // Check if there are more messages: either next exists OR count > current loaded
+          this.hasMoreChatMessages = !!response.next || (response.count && response.count > this.chatMessages.length)
+          
+          // console.log(`[Chat Pagination] New offset: ${this.chatMessagesOffset}, hasMore: ${this.hasMoreChatMessages}, total messages in UI: ${this.chatMessages.length}, API count: ${response.count}`)
+          
+          // Force re-render
+          this.chatMessagesKey++
+          
+          // Set flag to prevent immediate re-trigger
+          // User must scroll away from top and back to trigger next load
+          this.justLoadedMessages = true
+          this.userHasScrolled = false
+          
+          // Restore scroll position to keep user at the same visual position
+          this.$nextTick(() => {
+            const scrollTarget = this.$refs.chatScrollTarget
+            if (scrollTarget) {
+              // Calculate how much the content grew
+              const scrollHeightAfterLoad = scrollTarget.scrollHeight
+              const heightDifference = scrollHeightAfterLoad - this.scrollHeightBeforeLoad
+              
+              // Adjust scroll position to maintain the same view
+              // Add the height difference to keep looking at the same message
+              scrollTarget.scrollTop = this.scrollTopBeforeLoad + heightDifference
+              
+              // console.log(`[Chat Scroll] Adjusted scroll position by ${heightDifference}px`)
+            }
+          })
+        } else {
+          // No more messages
+          // console.log('[Chat Pagination] No more messages returned from API')
+          this.hasMoreChatMessages = false
+          // Stop the infinite scroll component
+          if (this.$refs.infiniteScroll) {
+            this.$refs.infiniteScroll.stop()
+          }
+        }
+      } catch (error) {
+        console.error('Error loading more chat messages:', error)
+        this.$q.notify({
+          message: this.$t('FailedToLoadMessages', {}, 'Failed to load older messages'),
+          color: 'negative',
+          icon: 'error'
+        })
+      } finally {
+        this.loadingMoreMessages = false
+        done()
+      }
+    },
+
+    handleChatAreaClick (event) {
+      // Blur the chat input when clicking elsewhere in the chat area
+      // This will hide the mobile keyboard
+      if (this.$refs.chatInput) {
+        const inputElement = this.$refs.chatInput.$el
+        // Check if the click target is not the input or its children
+        if (!inputElement.contains(event.target)) {
+          this.$refs.chatInput.blur()
+        }
+      }
+    },
+
+    async sendChatMessage () {
+      const vm = this
+
+      if (!vm.canSendChatMessages) {
+        vm.$q.notify({
+          type: 'warning',
+          message: vm.$t('ChatClosed', {}, 'Chat closed'),
+          position: 'top',
+          timeout: 2500
+        })
+        return
+      }
+      
+      // Validate message is not empty
+      if (!vm.chatMessageInput.trim()) {
+        if (vm.chatAttachment) {
+          vm.$q.notify({
+            type: 'warning',
+            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty. Please add text with your attachment.'),
+            position: 'top',
+            timeout: 3000
+          })
+        } else {
+          vm.$q.notify({
+            type: 'warning',
+            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
+            position: 'top',
+            timeout: 3000
+          })
+        }
+        return
+      }
+      
+      if (vm.sendingMessage) return
+      
+      try {
+        vm.sendingMessage = true
+        const originalMessage = vm.chatMessageInput.trim()
+        let attachment = vm.chatAttachment
+        let useFormData = false
+        
+        console.log('Sending message:', originalMessage, 'with attachment:', !!attachment)
+        
+        let message = originalMessage
+
+        // Encrypt message if present
+        if (message && vm.keypair.privkey && vm.chatPubkeys.length) {
+          // Ensure our own pubkey is included for multi-recipient encryption
+          // This allows us to decrypt our own messages
+          const pubkeysForEncryption = [...new Set([vm.keypair.pubkey, ...vm.chatPubkeys])]
+          
+          const encryptedMessage = encryptMessage({
+            data: message,
+            privkey: vm.keypair.privkey,
+            pubkeys: pubkeysForEncryption
+          })
+          message = compressEncryptedMessage(encryptedMessage)
+        }
+
+        // Encrypt attachment if present
+        if (attachment && vm.keypair.privkey && vm.chatPubkeys.length) {
+          // Ensure our own pubkey is included for multi-recipient encryption
+          const pubkeysForEncryption = [...new Set([vm.keypair.pubkey, ...vm.chatPubkeys])]
+          
+          const encryptedAttachment = await encryptImage({
+            file: attachment,
+            privkey: vm.keypair.privkey,
+            pubkeys: pubkeysForEncryption
+          })
+          attachment = await compressEncryptedImage(encryptedAttachment)
+          useFormData = true
+        }
+
+        let data = null
+        if (useFormData) {
+          const formData = new FormData()
+          formData.append('chat_session_ref', vm.chatRef)
+          if (message) formData.append('message', message)
+          if (attachment) formData.append('attachment', attachment, 'image.png')
+          formData.append('encrypted', 'true')
+          data = formData
+        } else {
+          data = {
+            chat_session_ref: vm.chatRef,
+            message: message,
+            encrypted: true
+          }
+        }
+
+        // Store attachment URL before clearing
+        const tempAttachmentUrl = vm.chatAttachmentUrl
+        const hasAttachment = !!vm.chatAttachment
+        
+        // Clear inputs immediately for better UX
+        vm.chatMessageInput = ''
+        vm.chatAttachment = null
+        vm.chatAttachmentUrl = null
+        
+        // Create optimistic message immediately before API call completes
+        const tempMessageId = `temp_${Date.now()}`
+        const optimisticTempMessage = {
+          id: tempMessageId,
+          message: originalMessage,
+          _decryptedMessage: originalMessage,
+          encrypted: false,
+          created_at: new Date().toISOString(),
+          chatIdentity: {
+            id: vm.chatIdentity?.chat_identity_id || vm.chatIdentity?.id,
+            name: vm.chatIdentity?.name || 'You',
+            ref: vm.chatIdentity?.ref,
+            is_user: true
+          },
+          $tempMessage: true
+        }
+        
+        // Add attachment URL if present
+        if (hasAttachment && tempAttachmentUrl) {
+          optimisticTempMessage._decryptedAttachmentFile = {
+            url: tempAttachmentUrl
+          }
+        }
+        
+        // Add temporary message to chat immediately
+        const tempChatMessage = ChatMessage.parse(optimisticTempMessage)
+        tempChatMessage._decryptedMessage = originalMessage
+        if (!tempChatMessage.chatIdentity) {
+          tempChatMessage.chatIdentity = {}
+        }
+        tempChatMessage.chatIdentity.is_user = true
+        
+        // Add to UI before API response
+        vm.addMessageToChat(tempChatMessage)
+        
+        // Send message to API
+        const response = await sendChatMessageAPI(data, originalMessage)
+        
+        // Extract the actual data from axios response
+        const responseData = response?.data || response
+        
+        // Replace temporary message with real one
+        if (responseData) {
+          // Remove temp message
+          vm.chatMessages = vm.chatMessages.filter(msg => msg.id !== tempMessageId)
+          const messageId = responseData.id || Date.now()
+          
+          const optimisticMessageData = {
+            id: messageId,
+            message: originalMessage,
+            encrypted: false,
+            created_at: responseData.created_at || new Date().toISOString(),
+            chat_identity: {
+              id: vm.chatIdentity?.chat_identity_id || vm.chatIdentity?.id,
+              name: vm.chatIdentity?.name || 'You',
+              ref: vm.chatIdentity?.ref,
+              is_user: true
+            }
+          }
+          
+          // Add attachment URL if present
+          if (hasAttachment) {
+            // Try all possible field names
+            let attachmentUrl = responseData.encrypted_attachment_url || 
+                               responseData.encryptedAttachmentUrl ||
+                               responseData.attachment_url ||
+                               responseData.attachmentUrl
+            
+            // Only use 'attachment' if it's a string (URL), not a boolean
+            if (!attachmentUrl && responseData.attachment && typeof responseData.attachment === 'string') {
+              attachmentUrl = responseData.attachment
+            }
+            
+            // Set the field that ChatMessage expects
+            if (attachmentUrl) {
+              optimisticMessageData.encrypted_attachment_url = attachmentUrl
+            }
+          }
+          
+          // Convert to ChatMessage instance
+          const optimisticMessage = ChatMessage.parse(optimisticMessageData)
+          optimisticMessage._decryptedMessage = originalMessage
+          
+          // Ensure chatIdentity exists and set is_user
+          if (!optimisticMessage.chatIdentity) {
+            optimisticMessage.chatIdentity = {}
+          }
+          optimisticMessage.chatIdentity.is_user = true
+          
+          // Add decrypted attachment if present
+          if (hasAttachment && tempAttachmentUrl) {
+            // Set _decryptedAttachmentFile directly to bypass the setter
+            // The setter expects a File/Blob and tries to create an object URL,
+            // but we already have a preview URL
+            optimisticMessage._decryptedAttachmentFile = {
+              url: tempAttachmentUrl
+            }
+          }
+          
+          // Check if message already exists
+          const exists = vm.chatMessages.some(msg => msg.id === messageId)
+          
+          if (!exists) {
+            vm.addMessageToChat(optimisticMessage)
+          }
+        } else {
+          console.error('No response from API!')
+        }
+      } catch (error) {
+        console.error('Error sending message:', error)
+      } finally {
+        vm.sendingMessage = false
+      }
+    },
+
+    ensureChatCloseCountdownTimer () {
+      // Only run countdown when we have a known deadline and still within the 1-hour grace window.
+      const hasDeadline = Number.isFinite(this.chatGraceDeadlineMs)
+      if (!hasDeadline || this.chatClosedAfterGrace) {
+        if (this.chatCloseCountdownIntervalId) {
+          clearInterval(this.chatCloseCountdownIntervalId)
+          this.chatCloseCountdownIntervalId = null
+        }
+        // Keep "now" fresh for immediate UI update (e.g., on status change)
+        this.chatCloseNowMs = Date.now()
+        return
+      }
+
+      if (this.chatCloseCountdownIntervalId) return
+
+      this.chatCloseNowMs = Date.now()
+      this.chatCloseCountdownIntervalId = setInterval(() => {
+        this.chatCloseNowMs = Date.now()
+        // Stop ticking once grace is over
+        if (this.chatClosedAfterGrace) {
+          clearInterval(this.chatCloseCountdownIntervalId)
+          this.chatCloseCountdownIntervalId = null
+        }
+      }, 1000)
+    },
+
+    async onNewMessage (messageData) {
+      const vm = this
+      
+      if (!messageData || vm.addingNewMessage) return
+      
+      // Ensure chat is initialized
+      if (!vm.chatIdentity || !vm.keypair.privkey) {
+        await vm.loadKeyPair()
+        await vm.loadChatIdentity()
+      }
+      
+      // Check if message already exists
+      const messageId = messageData.id
+      const exists = vm.chatMessages.some(msg => msg.id === messageId)
+      if (exists) return
+    
+      try {
+        vm.addingNewMessage = true
+        
+        // Normalize attachment field names - only if attachment is a URL string
+        if (messageData.attachment && typeof messageData.attachment === 'string' &&
+            !messageData.encrypted_attachment_url && !messageData.attachment_url) {
+          messageData.encrypted_attachment_url = messageData.attachment
+        }
+        
+        const chatMessage = new ChatMessage(messageData)
+        const decryptedMessage = await vm.decryptMessage(chatMessage)
+        
+        if (decryptedMessage) {
+          const ref = vm.chatIdentity?.ref
+          decryptedMessage.chatIdentity.is_user = decryptedMessage.chatIdentity.ref === ref
+          
+          const added = vm.addMessageToChat(decryptedMessage)
+
+          if (added) {
+            // Decrypt attachment if present
+            if (decryptedMessage.hasAttachment || decryptedMessage.attachment || decryptedMessage.encryptedAttachmentUrl) {
+              await vm.decryptMessageAttachment(decryptedMessage)
+            }
+            
+            // Trigger glow animation for messages from other party
+            if (!decryptedMessage.chatIdentity.is_user) {
+              vm.triggerNewMessageGlow()
+            }
+            
+            // Only update last read if user is on chat tab
+            if (vm.activeTab === 'chat') {
+              await updateLastRead(vm.chatRef, vm.chatMessages)
+              bus.emit('last-read-update')
+            } else if (!decryptedMessage.chatIdentity.is_user) {
+              // If not on chat tab and message is from other party, refresh unread count
+              vm.fetchChatUnread(vm.chatRef)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error adding new message:', error)
+      } finally {
+        vm.addingNewMessage = false
+      }
+    },
+
+    async decryptMessage (message = ChatMessage.parse()) {
+      if (!this.keypair.privkey) await this.loadKeyPair()
+      if (!this.keypair.privkey) return null
+      
+      // If message is not encrypted, return as-is
+      if (!message.encrypted) {
+        return message
+      }
+      
+      try {
+        // decryptMessage returns `this` if encrypted, or undefined if not encrypted
+        const decryptedMessage = await message.decryptMessage(this.keypair.privkey, false)
+        // If decryption succeeded, _decryptedMessage should be set
+        // Return the message with decrypted content
+        return decryptedMessage || message
+      } catch (error) {
+        console.error('Error decrypting message:', error)
+        // On decryption failure, mark the message to indicate decryption failed
+        // Don't return the message with encrypted content visible
+        // Return null or the message with _decryptedMessage explicitly set to indicate failure
+        message._decryptionFailed = true
+        message._decryptedMessage = undefined
+        return message
+      }
+    },
+
+    async decryptChatMessages (messages) {
+      if (!this.keypair.privkey) await this.loadKeyPair()
+      if (!this.keypair.privkey) return
+
+      try {
+        const decryptedMessages = await Promise.all(
+          messages.map(msg => this.decryptMessage(msg))
+        )
+        
+        const ref = this.chatIdentity?.ref
+        
+        decryptedMessages.forEach((item, index) => {
+          if (item) {
+            // Ensure chatIdentity exists
+            if (!item.chatIdentity) {
+              item.chatIdentity = {}
+            }
+            
+            item.chatIdentity.is_user = item.chatIdentity.ref === ref
+            messages[index] = item
+          }
+        })
+      } catch (error) {
+        console.error('Error decrypting messages:', error)
+      }
+    },
+
+    addMessageToChat (message) {
+      // Check if message already exists
+      const exists = this.chatMessages.some(msg => msg.id === message.id)
+      if (exists) return false
+      
+      // Add message using Vue's reactivity
+      this.chatMessages = [...this.chatMessages, message]
+      this.chatMessagesKey++
+      
+      // Don't increment chatMessagesOffset here!
+      // New messages are more recent, not older. The offset only tracks
+      // how many older messages we've loaded via pagination.
+      // The API handles new messages separately.
+      
+      // console.log(`[Chat Pagination] New message added. Total messages: ${this.chatMessages.length}, offset remains: ${this.chatMessagesOffset}`)
+      
+      // Force update
+      this.$forceUpdate()
+      
+      // Scroll to bottom with multiple attempts to ensure it works
+      this.$nextTick(() => {
+        this.scrollChatToBottom()
+      })
+      
+      setTimeout(() => {
+        this.scrollChatToBottom()
+      }, 250)
+      
+      setTimeout(() => {
+        this.scrollChatToBottom()
+      }, 500)
+      
+      return true
+    },
+
+    scrollChatToBottom () {
+      // Scroll the window to bottom
+      const scrollWindowToBottom = () => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: 'smooth'
+        })
+      }
+      
+      // Try scrolling the chat messages wrapper
+      const scrollTarget = this.$refs.chatScrollTarget
+      if (scrollTarget) {
+        scrollTarget.scrollTo({
+          top: scrollTarget.scrollHeight,
+          behavior: 'smooth'
+        })
+        scrollTarget.scrollTop = scrollTarget.scrollHeight
+      }
+      
+      // Find and scroll the tab panel
+      const tabPanel = document.querySelector('.q-tab-panel')
+      if (tabPanel) {
+        tabPanel.scrollTo({
+          top: tabPanel.scrollHeight,
+          behavior: 'smooth'
+        })
+        tabPanel.scrollTop = tabPanel.scrollHeight
+      }
+      
+      // Execute all scroll methods
+      scrollWindowToBottom()
+      
+      // Repeat with delays to ensure it works
+      setTimeout(scrollWindowToBottom, 100)
+      setTimeout(scrollWindowToBottom, 300)
+      setTimeout(scrollWindowToBottom, 500)
+    },
+
+    triggerNewMessageGlow () {
+      // Trigger glow animation
+      this.newMessageGlow = true
+      
+      // Remove glow after animation completes (3 pulses × 0.6s = 1.8s)
+      setTimeout(() => {
+        this.newMessageGlow = false
+      }, 2000)
+    },
+
+    handleChatScroll () {
+      const scrollTarget = this.$refs.chatScrollTarget
+      if (!scrollTarget) return
+      
+      const currentScrollY = scrollTarget.scrollTop
+      const scrollHeight = scrollTarget.scrollHeight
+      const clientHeight = scrollTarget.clientHeight
+      
+      // Check if user is near the top (within 100px)
+      const isNearTop = currentScrollY <= 100
+      
+      // Handle scroll position for infinite scroll logic
+      if (this.justLoadedMessages) {
+        // After loading messages, user must scroll away from top first
+        if (!isNearTop) {
+          // User scrolled away from top - allow next load on return to top
+          this.justLoadedMessages = false
+          this.hasScrolledAwayFromTop = true
+          this.userHasScrolled = false // Reset to require another scroll to top
+        }
+      } else {
+        // Normal scroll handling
+        if (isNearTop && this.hasScrolledAwayFromTop) {
+          // User scrolled back to top - enable loading
+          this.userHasScrolled = true
+        } else if (!isNearTop) {
+          // User is away from top
+          this.hasScrolledAwayFromTop = true
+          this.userHasScrolled = false
+        }
+      }
+      
+      // If at the bottom of chat, always show input
+      if (currentScrollY + clientHeight >= scrollHeight - 10) {
+        this.isChatInputHidden = false
+        this.lastChatScrollY = currentScrollY
+        return
+      }
+      
+      // If at the top of chat, hide input (reading old messages)
+      if (currentScrollY <= 10) {
+        this.isChatInputHidden = true
+        this.lastChatScrollY = currentScrollY
+        return
+      }
+      
+      // Only hide/show if scrolled past threshold
+      if (Math.abs(currentScrollY - this.lastChatScrollY) < this.chatScrollThreshold) {
+        return
+      }
+      
+      if (currentScrollY < this.lastChatScrollY) {
+        // Scrolling up (to older messages) - hide input
+        this.isChatInputHidden = true
+      } else if (currentScrollY > this.lastChatScrollY) {
+        // Scrolling down (to newer messages) - show input
+        this.isChatInputHidden = false
+      }
+      
+      this.lastChatScrollY = currentScrollY
+    },
+
+    openFileAttachmentField () {
+      this.$refs.fileAttachmentField.$el.click()
+    },
+
+    async resizeChatAttachment () {
+      if (!this.chatAttachment) {
+        this.chatAttachmentUrl = null
+        return
+      }
+      
+      try {
+        // Resize the image with proper options
+        const resizedImage = await resizeImage({
+          file: this.chatAttachment,
+          maxWidthHeight: 1024 // Max dimension in pixels
+        })
+        
+        // Create preview URL
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.chatAttachmentUrl = e.target.result
+        }
+        reader.readAsDataURL(resizedImage)
+        
+        // Replace the original file with the resized one
+        this.chatAttachment = resizedImage
+      } catch (error) {
+        console.error('Error resizing image:', error)
+        this.$q.notify({
+          message: 'Failed to process image',
+          color: 'negative',
+          icon: 'error'
+        })
+        this.chatAttachment = null
+        this.chatAttachmentUrl = null
+      }
+    },
+
+    openImageDialog (imageUrl) {
+      this.selectedImageUrl = imageUrl
+      this.showImageDialog = true
+    },
+
+    async decryptMessageAttachment (message) {
+      if (!this.keypair.privkey) await this.loadKeyPair()
+      if (!this.keypair.privkey) return
+      if (message.decryptedAttachmentFile?.url) return
+      
+      try {
+        if (!message.$state) {
+          message.$state = {}
+        }
+        message.$state.decryptingAttachment = true
+        
+        // Set encryptedAttachmentUrl if it's missing but attachmentUrl exists
+        // The API returns the encrypted file URL as 'attachment_url', but decryption expects 'encryptedAttachmentUrl'
+        if (!message.encryptedAttachmentUrl) {
+          if (message.encrypted_attachment_url) {
+            message.encryptedAttachmentUrl = message.encrypted_attachment_url
+          } else if (message.attachmentUrl) {
+            message.encryptedAttachmentUrl = message.attachmentUrl
+          }
+        }
+        
+        if (typeof message.decryptAttachment === 'function') {
+          await message.decryptAttachment(this.keypair.privkey, false)
+        }
+        
+        message.$state.decryptingAttachment = false
+        
+        // Force Vue reactivity update - critical for iOS
+        // Increment key to force re-render of the entire chat messages list
+        this.chatMessagesKey++
+        
+        // Recreate the array to trigger reactivity
+        this.chatMessages = [...this.chatMessages]
+        
+        // Force update as additional safeguard
+        this.$forceUpdate()
+      } catch (error) {
+        console.error('Error decrypting attachment:', error)
+        message.$state.decryptingAttachment = false
+        // Force update even on error to clear the loading state
+        this.chatMessagesKey++
+        this.chatMessages = [...this.chatMessages]
+        this.$forceUpdate()
+      }
+    },
+
+    async decryptChatAttachments () {
+      // Decrypt all message attachments
+      const messagesWithAttachments = this.chatMessages.filter(msg => 
+        (msg.attachment || msg.encryptedAttachmentUrl || msg.encrypted_attachment_url || msg.hasAttachment) && 
+        !msg.decryptedAttachmentFile?.url
+      )
+      
+      for (const message of messagesWithAttachments) {
+        await this.decryptMessageAttachment(message)
+      }
+      
+      // Force a complete re-render
+      // Note: decryptMessageAttachment already updates chatMessagesKey and recreates the array
+      // but we add an extra update here as a safeguard
+      this.chatMessagesKey++
+      this.chatMessages = [...this.chatMessages]
+      this.$forceUpdate()
+    },
+
+    chatMemberType (chatIdentityId) {
+      const members = this.order?.members
+      for (const type in members) {
+        if (members[type]?.chat_identity_id === chatIdentityId) {
+          return type.charAt(0).toUpperCase() + type.slice(1)
+        }
+      }
+      return 'User'
+    },
+
+    userName (name) {
+      return name || 'Anonymous'
+    },
+
+    formatChatDate (date) {
+      return formatDate(date, true)
+    },
+
     async fetchOrder () {
       const vm = this
-      const url = `/ramp-p2p/order/${this.$route.params?.order}/`
+      const orderId = this.$route.params?.order
+      if (!orderId) {
+        console.warn('Order ID is missing from route params, skipping fetchOrder')
+        return
+      }
+      const url = `/ramp-p2p/order/${orderId}/`
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.order = response.data
@@ -397,18 +1964,25 @@ export default {
           const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
           const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
           vm.chatRef = chatRef
-          if (vm.order?.chat_session_ref !== chatRef) {
-            updateOrderChatSessionRef(vm.order?.id, chatRef)
+          if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
+            updateOrderChatSessionRef(vm.order.id, chatRef)
             fetchChatSession(chatRef)
-              .then(res => {
-                vm.hasUnread = res.data.unread_count > 0
-              })
               .catch(error => {
-                if (error.response?.status === 404) {
-                  vm.createGroupChat(vm.order?.id, chatRef)
+                if (error.response?.status === 404 && vm.order?.id) {
+                  vm.createGroupChat(vm.order.id, chatRef)
+                } else if (error.response?.status === 403) {
+                  // 403 means chat identity not ready - silently ignore
+                  // Don't call handleRequestError for chat-related 403s
+                } else {
+                  this.handleRequestError(error)
                 }
-                this.handleRequestError(error)
               })
+          }
+          
+          // Fetch unread count from chat members (only if chat is enabled)
+          const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
+          if (escrowedStatuses.includes(vm.order?.status?.value)) {
+            vm.fetchChatUnread(chatRef)
           }
         })
         .catch(error => {
@@ -416,11 +1990,33 @@ export default {
         })
     },
 
-    async generateContract () {
+    async fetchChatUnread (chatRef) {
+      if (!chatRef) return
+      
+      const user = this.$store.getters['ramp/getUser']
+      
+      await fetchChatMembers(chatRef).then(response => {
+        const userMember = response?.filter(member => {
+          return user?.chat_identity_id === member?.chat_identity?.id
+        })[0]
+        
+        this.unreadChatCount = userMember?.unread_count || 0
+        this.hasUnread = this.unreadChatCount > 0
+      }).catch(error => {
+        console.error('Error fetching chat unread:', error?.response || error)
+      })
+    },
+
+    async generateContract (shouldReloadChildren = false) {
       const vm = this
       await vm.fetchFees()
       await vm.fetchContract()
-      if (vm.escrowContract || !vm.contract) return
+      
+      // Skip if no contract data, but allow regeneration if shouldReloadChildren is true
+      // (happens when websocket receives contract updates after initial load)
+      if (!vm.contract) return
+      if (vm.escrowContract && !shouldReloadChildren) return
+      
       const publicKeys = vm.contract.pubkeys
       const addresses = vm.contract.addresses
       const fees_ = {
@@ -430,11 +2026,20 @@ export default {
       }
       const timestamp = vm.contract.timestamp
       vm.escrowContract = new RampContract(publicKeys, fees_, addresses, timestamp, vm.isChipnet)
-      vm.reloadChildComponents()
+      
+      // Only reload children when explicitly requested (e.g., from websocket updates)
+      // This prevents annoying reload on initial page load
+      if (shouldReloadChildren) {
+        vm.reloadChildComponents()
+      }
     },
 
     async fetchAd () {
       const vm = this
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping fetchAd')
+        return
+      }
       const url = `/ramp-p2p/order/${vm.order.id}/ad/snapshot/`
       await backend.get(url, { authorize: true })
         .then(response => {
@@ -475,7 +2080,12 @@ export default {
     async updateOrderReadAt () {
       const vm = this
       if (vm.order?.read_at) return
-      const url = `/ramp-p2p/order/${vm.order?.id || vm.$route.params?.order}/members/`
+      const orderId = vm.order?.id || vm.$route.params?.order
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping updateOrderReadAt')
+        return
+      }
+      const url = `/ramp-p2p/order/${orderId}/members/`
       backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
     },
 
@@ -485,16 +2095,36 @@ export default {
       const members = await vm.fetchOrderMembers(orderId)
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       createChatSession(orderId, chatRef)
-        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
-        .catch(console.error)
+        .then(chatRef => {
+          if (chatRef) {
+            // Only update members if session was created successfully
+            updateChatMembers(chatRef, chatMembers).catch(error => {
+              // Silently handle errors - chat identity might not be ready
+              if (error.response?.status !== 403) {
+                console.error('Failed to update chat members:', error)
+              }
+            })
+          }
+        })
+        .catch(error => {
+          // Silently handle 403 errors - chat identity not ready yet
+          if (error.response?.status !== 403) {
+            console.error('Failed to create chat session:', error)
+          }
+        })
     },
 
     async fetchOrderMembers (orderId) {
+      if (!orderId) {
+        console.warn('Order ID is missing, skipping fetchOrderMembers')
+        return []
+      }
       try {
         const response = await backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
         return response.data
       } catch (error) {
         this.handleRequestError(error)
+        return []
       }
     },
 
@@ -656,6 +2286,10 @@ export default {
 
     async cancelOrder () {
       const vm = this
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping cancelOrder')
+        return
+      }
       const url = `/ramp-p2p/order/${vm.order.id}/cancel/`
       await backend.post(url, {}, { authorize: true })
         .then(response => {
@@ -670,7 +2304,11 @@ export default {
 
     async fetchFees () {
       const vm = this
-      const url = `/ramp-p2p/order/${vm.order?.id}/contract/fees/`
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping fetchFees')
+        return
+      }
+      const url = `/ramp-p2p/order/${vm.order.id}/contract/fees/`
       await backend.get(url, { authorize: true })
         .then(response => {
           vm.fees = response.data
@@ -681,8 +2319,12 @@ export default {
     },
 
     async fetchContract () {
+      if (!this.order?.id) {
+        console.warn('Order ID is missing, skipping fetchContract')
+        return
+      }
       try {
-        const url = `/ramp-p2p/order/${this.order?.id}/contract/`
+        const url = `/ramp-p2p/order/${this.order.id}/contract/`
         const response = await backend.get(url, { authorize: true })
         this.contract = response.data
       } catch (error) {
@@ -718,6 +2360,10 @@ export default {
 
     addArbiterToChat () {
       const vm = this
+      if (!vm.order?.id) {
+        console.warn('Order ID is missing, skipping addArbiterToChat')
+        return
+      }
       const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
@@ -812,6 +2458,10 @@ export default {
     setupWebSocket () {
       this.closeWSConnection()
       // Subscribe to order updates
+      if (!this.order?.id) {
+        console.warn('Order ID is missing, skipping WebSocket setup')
+        return
+      }
       this.websockets.order = new WebSocketManager()
       this.websockets.order.setWebSocketUrl(`${getBackendWsUrl()}order/${this.order.id}/`)
       this.websockets.order.subscribeToMessages(async (message) => {
@@ -822,7 +2472,8 @@ export default {
           }
           await this.fetchOrder()
           if (message?.contract_address) {
-            await this.fetchContract()
+            // Regenerate contract and reload children to update contract balance
+            await this.generateContract(true)
             this.escrowTransferKey++
           }
         } else {
@@ -838,15 +2489,12 @@ export default {
       // Subscribe to chat
       this.websockets.chat = new WebSocketManager()
       this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
+      
       this.websockets.chat.subscribeToMessages(message => {
         if (message?.type === 'new_message') {
           const messageData = message.data
-          // RECEIVE MESSAGE
-          console.log('Received a new message:', messageData)
           bus.emit('last-read-update')
-          if (this.openChat) {
-            bus.emit('new-message', messageData)
-          }
+          bus.emit('new-message', messageData)
         }
       })
     },
@@ -868,6 +2516,16 @@ export default {
 
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+
+    getThemeColor() {
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[this.theme] || '#42a5f5'
     }
   }
 }
@@ -888,5 +2546,980 @@ export default {
   }
   .subtext {
     opacity: .5;
+  }
+
+  // Page Container
+  .order-page-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 100vw;
+    overflow: hidden;
+  }
+
+  // Skeleton Loader Styles
+  .skeleton-header {
+    flex-shrink: 0;
+    padding: 16px 20px;
+    text-align: center;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .skeleton-tabs-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 0 8px 16px 8px;
+  }
+
+  .skeleton-tabs-container {
+    display: inline-flex;
+    gap: 8px;
+    background-color: rgb(242, 243, 252);
+    border-radius: 28px;
+    padding: 6px;
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .skeleton-pill-tab {
+    border-radius: 22px;
+  }
+
+  .skeleton-content {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  // Order Header
+  .order-header {
+    flex-shrink: 0;
+    padding: 16px 20px;
+    text-align: center;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .order-title {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 2px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .order-id {
+    font-size: 12px;
+    opacity: 0.5;
+    font-weight: 400;
+    letter-spacing: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  // Tabs Styling - Pill Button Style
+  .tabs-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 0 8px;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .order-tabs-container {
+    display: inline-flex;
+    gap: 8px;
+    background-color: rgb(242, 243, 252);
+    border-radius: 28px;
+    padding: 6px;
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  .order-tab-btn {
+    min-width: 100px;
+    height: 44px;
+    border-radius: 22px;
+    border: none;
+    color: #4C4F4F;
+    background-color: transparent;
+    outline: 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    
+    &:hover:not(.active-tab-btn) {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    &.dark {
+      color: rgba(255, 255, 255, 0.7);
+      
+      &:hover:not(.active-tab-btn) {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+    
+    // Badge positioning
+    :deep(.q-badge--floating) {
+      top: -4px;
+      right: -8px;
+      font-size: 10px;
+      min-width: 18px;
+      min-height: 18px;
+      padding: 2px 5px;
+    }
+  }
+
+  // Theme-based active tab styles
+  .order-tab-btn.active-tab-btn {
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+
+  // Dark mode active tab
+  .order-tab-btn.active-tab-btn.dark {
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  // Active tab hover effects
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+
+  .order-tab-btn.active-tab-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
+  }
+
+  .order-tab-panels {
+    background: transparent;
+    overflow: hidden;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+
+    :deep(.q-tab-panel) {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100%;
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .tab-content-wrapper {
+    padding: 16px 12px 12px 12px;
+    min-height: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .details-tab-content {
+    padding: 16px 0 8px 0;
+    
+    // Ensure child components are constrained
+    > * {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+  }
+
+  .component-wrapper {
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    
+    // Target all child components
+    :deep(> *) {
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+      box-sizing: border-box !important;
+    }
+    
+    // Ensure containers, cards, and forms are responsive
+    :deep(.q-card),
+    :deep(.q-list),
+    :deep(.q-form),
+    :deep(.container),
+    :deep(div[class*="row"]) {
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+      box-sizing: border-box !important;
+    }
+  }
+
+  // Status Card Styling
+  .status-card {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    
+    &.unread-status {
+      border: 1px solid rgba(33, 150, 243, 0.3);
+      background: rgba(33, 150, 243, 0.04);
+      box-shadow: 0 1px 4px rgba(33, 150, 243, 0.12);
+    }
+
+    &:hover {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .status-relative-time {
+    opacity: 0.5;
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  // Chat Styling
+  .chat-tab-panel {
+    :deep(.tab-content-wrapper) {
+      padding: 0 !important;
+      margin: 0 !important;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+      height: 100%;
+    }
+    
+    :deep(.q-tab-panel__content) {
+      padding: 0 !important;
+      margin: 0 !important;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    
+    // When input is hidden, make everything transparent
+    &.input-hidden {
+      background: transparent !important;
+      
+      :deep(.tab-content-wrapper) {
+        background: transparent !important;
+      }
+      
+      :deep(.q-tab-panel__content) {
+        background: transparent !important;
+      }
+    }
+  }
+
+  .chat-disabled-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    padding: 24px;
+  }
+
+  .chat-disabled-banner {
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border: 2px solid rgba(255, 152, 0, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-banner 2s ease-in-out infinite;
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-banner 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    :deep(.q-banner__avatar),
+    :deep(.q-banner__content) {
+      position: relative;
+      z-index: 2;
+    }
+  }
+
+  .chat-disabled-banner.dark {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
+    border: 2px solid rgba(255, 152, 0, 0.5);
+    
+    &::before {
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.15) 40%,
+        rgba(255, 255, 255, 0.35) 50%,
+        rgba(255, 255, 255, 0.15) 60%,
+        transparent 70%
+      );
+    }
+  }
+
+  .chat-disabled-content {
+    text-align: center;
+    padding: 16px;
+  }
+
+  .chat-disabled-content .text-h6 {
+    font-weight: 600;
+    font-size: 18px;
+    color: inherit;
+    opacity: 0.9;
+  }
+
+  .chat-disabled-content .text-body2 {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.7;
+    color: inherit;
+  }
+
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .chat-messages-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: transparent;
+    min-height: 0;
+  }
+
+  .encrypted-banner {
+    margin: 12px 12px 8px 12px;
+    border-radius: 12px;
+    background: rgba(76, 175, 80, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(76, 175, 80, 0.25);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.08);
+    
+    &.dark {
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+    }
+
+    :deep(.q-banner__avatar) {
+      align-self: center;
+      display: flex;
+      align-items: center;
+      margin-right: 8px; /* add space between icon and text */
+    }
+
+    :deep(.q-banner__content) {
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .encrypted-banner-text {
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 400;
+    opacity: 0.9;
+  }
+
+  /* Glassmorphic info banner for closed chat */
+  .chat-closed-notice {
+    margin: 10px 12px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    color: rgba(0, 0, 0, 0.87);
+
+    &.dark {
+      background: rgba(26, 30, 38, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    :deep(.q-banner__avatar) {
+      align-self: flex-start;
+      margin-right: 10px;
+    }
+
+    :deep(.q-banner__content) {
+      padding: 0;
+    }
+  }
+
+  .chat-messages-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 0 100px 0;
+    margin: 0;
+    -webkit-overflow-scrolling: touch;
+    
+    // Hide scrollbar
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  // New message glow animation
+  .new-message-glow {
+    animation: messageGlow 0.6s ease-in-out 3;
+  }
+
+  @keyframes messageGlow {
+    0%, 100% {
+      box-shadow: none;
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(33, 186, 69, 0.5),
+                  0 0 40px rgba(33, 186, 69, 0.3),
+                  0 0 60px rgba(33, 186, 69, 0.2),
+                  inset 0 0 20px rgba(33, 186, 69, 0.1);
+    }
+  }
+
+  // Dark mode glow
+  .dark .new-message-glow {
+    animation: messageGlowDark 0.6s ease-in-out 3;
+  }
+
+  @keyframes messageGlowDark {
+    0%, 100% {
+      box-shadow: none;
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(76, 217, 100, 0.6),
+                  0 0 40px rgba(76, 217, 100, 0.4),
+                  0 0 60px rgba(76, 217, 100, 0.3),
+                  inset 0 0 20px rgba(76, 217, 100, 0.15);
+    }
+  }
+
+  .chat-messages-scroll {
+    min-height: auto;
+    padding: 0 8px;
+  }
+
+  .chat-messages-list {
+    padding: 0;
+    min-height: auto;
+  }
+
+  .empty-chat-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px 20px;
+    opacity: 0.4;
+  }
+
+  .chat-message-wrapper {
+    margin-bottom: 12px;
+  }
+
+  .professional-chat-message {
+    :deep(.q-message-text) {
+      border-radius: 18px;
+      padding: 10px 14px;
+      min-width: 60px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    :deep(.q-message-text--sent) {
+      background: rgba(255, 255, 255, 0.3) !important;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+    }
+
+    :deep(.q-message-text--received) {
+      background: rgba(0, 0, 0, 0.04) !important;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    :deep(.q-message-avatar) {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      min-height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    :deep(.q-message-name) {
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0.6;
+      margin-bottom: 4px;
+      letter-spacing: 0.3px;
+    }
+
+    :deep(.q-message-stamp) {
+      font-size: 10px;
+      opacity: 0.45;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    .message-text {
+      line-height: 1.5;
+      word-break: break-word;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    // Dark mode variants
+    &.dark {
+      :deep(.q-message-text) {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      :deep(.q-message-text--sent) {
+        background: rgba(255, 255, 255, 0.18) !important;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+      }
+
+      :deep(.q-message-text--received) {
+        background: rgba(255, 255, 255, 0.12) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      :deep(.q-message-avatar) {
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+      
+      :deep(.q-message-name) {
+        opacity: 0.75;
+      }
+
+      :deep(.q-message-stamp) {
+        opacity: 0.6;
+      }
+      
+      .message-text {
+        color: rgba(255, 255, 255, 0.95);
+      }
+    }
+  }
+
+  .chat-input-wrapper {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 600px;
+    border-radius: 20px;
+    z-index: 100;
+    background: transparent;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  }
+  
+  // iOS specific - raise input higher from bottom
+  @supports (-webkit-touch-callout: none) {
+    .chat-input-wrapper {
+      bottom: 32px;
+    }
+  }
+  
+  .chat-input-hidden {
+    transform: translateX(-50%) translateY(120px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .chat-input-container {
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-end;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  
+  .chat-input-wrapper.dark .chat-input-container {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 
+                0 2px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .chat-input {
+    flex: 1;
+
+    :deep(.q-field__control) {
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 2px 12px;
+      min-height: 40px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      
+      &:before {
+        display: none;
+      }
+    }
+
+    :deep(.q-field__native) {
+      padding: 8px 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    :deep(.q-field--outlined.q-field--focused) {
+      .q-field__control {
+        border-color: currentColor;
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+      }
+    }
+
+    &.dark {
+      :deep(.q-field__control) {
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      
+      :deep(.q-field__native) {
+        color: rgba(255, 255, 255, 0.95);
+      }
+      
+      :deep(.q-field--outlined.q-field--focused) {
+        .q-field__control {
+          box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+  }
+
+  .attach-button {
+    margin-right: 8px;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .send-button {
+    margin-left: 8px;
+    width: 36px;
+    height: 36px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  .attachment-preview {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 8px;
+    
+    .image-attachment {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    
+    .remove-attachment-btn {
+      margin-left: 8px;
+    }
+  }
+  
+  .dark .attachment-preview {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  
+  .chat-message-image {
+    border-radius: 12px;
+    max-width: 250px;
+    max-height: 250px;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    
+    &:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+      transition: all 0.2s ease;
+    }
+  }
+  
+  .encrypted-attachment {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    
+    .dark & {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  // Mobile Responsive Adjustments
+  @media (max-width: 600px) {
+    .order-header, .skeleton-header {
+      padding: 12px 16px;
+    }
+
+    .order-tabs-container, .skeleton-tabs-container {
+      gap: 6px;
+      padding: 5px;
+    }
+    
+    .order-tab-btn, .skeleton-pill-tab {
+      min-width: 90px;
+      height: 40px;
+      font-size: 13px;
+      padding: 0 12px;
+    }
+
+    .tab-content-wrapper {
+      padding: 12px 8px 8px 8px;
+    }
+
+    .details-tab-content {
+      padding: 12px 0 4px 0;
+    }
+
+    .encrypted-banner {
+      margin: 8px;
+    }
+
+    .chat-input-container {
+      padding: 8px 12px;
+    }
+    
+    .chat-tab-panel {
+      :deep(.tab-content-wrapper) {
+        padding: 0 !important;
+        margin: 0 !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        height: 100%;
+      }
+      
+      :deep(.q-tab-panel__content) {
+        padding: 0 !important;
+        margin: 0 !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+      }
+      
+      // When input is hidden, make everything transparent
+      &.input-hidden {
+        background: transparent !important;
+        
+        :deep(.tab-content-wrapper) {
+          background: transparent !important;
+        }
+        
+        :deep(.q-tab-panel__content) {
+          background: transparent !important;
+        }
+      }
+    }
+  }
+
+  // Extra small screens
+  @media (max-width: 400px) {
+    .order-header, .skeleton-header {
+      padding: 10px 12px;
+    }
+
+    .order-title {
+      font-size: 14px;
+    }
+
+    .order-id {
+      font-size: 11px;
+    }
+
+    .tabs-wrapper, .skeleton-tabs-wrapper {
+      padding: 0 4px;
+    }
+    
+    .order-tabs-container, .skeleton-tabs-container {
+      gap: 4px;
+      padding: 4px;
+    }
+
+    .order-tab-btn, .skeleton-pill-tab {
+      min-width: 80px;
+      height: 38px;
+      font-size: 12px;
+      padding: 0 10px;
+    }
+
+    .tab-content-wrapper {
+      padding: 10px 6px 6px 6px;
+    }
+    
+    .chat-tab-panel {
+      :deep(.tab-content-wrapper) {
+        padding: 0 !important;
+        margin: 0 !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        height: 100%;
+      }
+      
+      :deep(.q-tab-panel__content) {
+        padding: 0 !important;
+        margin: 0 !important;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+      }
+      
+      // When input is hidden, make everything transparent
+      &.input-hidden {
+        background: transparent !important;
+        
+        :deep(.tab-content-wrapper) {
+          background: transparent !important;
+        }
+        
+        :deep(.q-tab-panel__content) {
+          background: transparent !important;
+        }
+      }
+    }
+  }
+  
+  // Animation keyframes for prominent alerts
+  @keyframes sparkle-banner {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-banner {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
   </style>

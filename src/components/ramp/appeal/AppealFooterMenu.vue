@@ -35,9 +35,6 @@ export default {
     data: Object
   },
   computed: {
-    isNotDefaultTheme () {
-      return this.$store.getters['global/theme'] !== 'default'
-    }
   },
   methods: {
     expandBex () {

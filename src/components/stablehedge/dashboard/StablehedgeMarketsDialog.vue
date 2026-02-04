@@ -26,7 +26,8 @@
           <q-space/>
           <q-btn
             flat
-            no-caps label="Go to page"
+            no-caps
+            :label="$t('GoToPage')"
             icon-right="keyboard_arrow_right"
             class="q-r-mr-lg"
             :to="{ name: 'app-stablehedge' }"

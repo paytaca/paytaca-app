@@ -47,14 +47,18 @@ module.exports = defineConfig((ctx) => {
       'gravatar',
       'websocket',
       'walletconnect',
-      'confetti',
       'keyboard',
+      'deep-link',
+      'directives',
     ],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: [
       'app.sass',
-      'default.scss',
+      'glassmorphic-blue.scss',
+      'glassmorphic-red.scss',
+      'glassmorphic-green.scss',
+      'glassmorphic-gold.scss',
       'payhero.scss',
       'shared.scss'
     ],
@@ -264,7 +268,8 @@ module.exports = defineConfig((ctx) => {
         'Loading',
         'LocalStorage',
         'Notify',
-        'Dialog'
+        'Dialog',
+        'BottomSheet'
       ],
       components: [
         'QBanner'

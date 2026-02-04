@@ -1,16 +1,64 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" :backnavpath="'/apps/exchange/peer-to-peer/store'"/>
+  <HeaderNav :title="`P2P Ramp`" :backnavpath="'/apps/exchange/peer-to-peer/store'" class="header-nav">
+    <template #top-right-menu>
+      <q-btn
+        v-if="adShareLinkEnabled !== false && ad?.id"
+        :color="darkMode ? 'white' : 'grey-6'"
+        class="q-mr-sm"
+        padding="0"
+        round
+        flat
+        dense
+        size="1em"
+        icon="share"
+        aria-label="Share ad"
+        @click="openShareDialog()"
+      />
+    </template>
+  </HeaderNav>
   <q-pull-to-refresh @refresh="loadData">
     <div v-if="state !== 'order-process'">
       <div v-if="state === 'initial'" class="q-mx-md q-mx-none text-bow" :class="getDarkModeClass(darkMode)" :style="`height: ${minHeight}px;`">
+        <!-- Skeleton Loader -->
+        <div v-if="!isloaded" class="skeleton-form-container q-pa-md">
+          <!-- Title Skeleton -->
+          <div class="text-center q-py-md">
+            <q-skeleton type="text" width="200px" height="28px" style="margin: 0 auto;" />
+          </div>
+          
+          <!-- Trade Info Card Skeleton -->
+          <div class="q-mx-md q-mb-sm">
+            <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Ad Info Card Skeleton -->
+          <div class="q-mx-md q-mt-md q-mb-md">
+            <q-skeleton type="rect" height="200px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Input Card Skeleton -->
+          <div class="q-mx-md q-mb-md">
+            <q-skeleton type="rect" height="140px" style="border-radius: 15px;" />
+          </div>
+
+          <!-- Action Button Skeleton -->
+          <div class="q-mx-md q-py-md">
+            <q-skeleton type="rect" height="50px" style="border-radius: 25px;" />
+          </div>
+
+          <!-- Warning Card Skeleton (if applicable) -->
+          <div class="q-mx-md">
+            <q-skeleton type="rect" height="80px" style="border-radius: 15px;" />
+          </div>
+        </div>
+        
         <!-- Form Body -->
         <div v-if="isloaded">
-          <div class="q-mx-lg q-py-xs text-h5 text-center text-weight-bold lg-font-size">
-            {{ ad.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
+          <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
+            {{ ad?.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
           </div>
-          <q-btn v-if="adShareLinkEnabled !== false" :color="darkMode ? 'white' : 'grey-6'" padding="0" round flat dense size="1em" icon="share" :style="$q.platform.is.ios ? 'top: 105px' : 'top: 75px'" style="position: fixed; right: 50px;" @click="openShareDialog()"/>
-          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;">
-            <div class="q-mx-lg q-px-xs q-mb-sm">
+          <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
+            <div class="q-mx-md q-mb-sm">
               <TradeInfoCard
                 :order="order"
                 :ad="ad"
@@ -18,42 +66,52 @@
                 @view-peer="onViewPeer"
                 @view-reviews="showReviews=true"/>
             </div>
-            <div class="q-mx-md">
-              <!-- Ad Info -->
-              <div class="q-pt-sm sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('PriceType') }}</span>
-                  <span class="text-nowrap q-ml-xs">
-                    {{ ad.price_type }}
-                  </span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MinTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>{{ $t('MaxTradeLimit') }}</span>
-                  <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
-                </div>
-                <div class="row justify-between no-wrap q-mx-lg">
-                  <span>
-                    {{
-                      $t(
-                        'AppealableAfterCooldown',
-                        { cooldown: appealCooldown.label },
-                        `Appealable after ${ appealCooldown.label }`
-                      )
-                    }}
-                  </span>
-                </div>
-                <div class="q-mx-lg">
-                  <div class="row">Payment types</div>
-                  <q-badge outline :color="ad.trade_type === 'SELL' ? 'blue' : 'red'" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+            <div class="q-mx-md q-mt-md">
+              <!-- Ad Info Card -->
+              <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
+                <div class="sm-font-size pt-label" :class="getDarkModeClass(darkMode)">
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('PriceType') }}</span>
+                    <span class="text-nowrap q-ml-xs">
+                      {{ ad?.price_type }}
+                    </span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('MinTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs"> {{ tradeFloor }} {{ tradeLimitsCurrency(ad) }}</span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>{{ $t('MaxTradeLimit') }}</span>
+                    <span class="text-nowrap q-ml-xs">{{ tradeCeiling }} {{ tradeLimitsCurrency(ad) }}</span>
+                  </div>
+                  <div class="row justify-between no-wrap q-mb-sm">
+                    <span>
+                      {{
+                        $t(
+                          'AppealableAfterCooldown',
+                          { cooldown: appealCooldown.label },
+                          `Appealable after ${ appealCooldown.label }`
+                        )
+                      }}
+                    </span>
+                  </div>
+                  <div class="q-mb-sm">
+                    <div class="row q-mb-xs">Payment types</div>
+                    <q-badge outline :color="themeColor" v-for="payment, index in ad?.payment_methods" :key="index" class="col q-mr-xs">{{ !isOwner ? payment : payment?.payment_type?.short_name }}</q-badge>
+                  </div>
+                  <!-- Display Description on Order Form -->
+                  <div v-if="ad?.description" class="q-mt-md q-mb-sm">
+                    <q-separator class="q-my-sm"/>
+                    <div class="row q-mb-xs">{{ $t('Description') }}</div>
+                    <div class="description sm-font-size" :class="darkMode ? 'text-white' : 'text-grey-8'">
+                      {{ ad?.description }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Input -->
-              <div class="q-mt-md q-mx-md" v-if="!isOwner">
+              <!-- Input Card -->
+              <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'" v-if="!isOwner">
                 <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
                 <q-input
                   class="q-pb-xs"
@@ -119,7 +177,7 @@
                     }}
                   </q-btn>
                 </div>
-                <div v-if="ad.trade_type === 'BUY'">
+                <div v-if="ad?.trade_type === 'BUY'">
                   <q-separator :dark="darkMode" class="q-mt-sm"/>
                   <div :style="balanceExceeded ? 'color: red': ''" class="row justify-between no-wrap q-mx-lg sm-font-size q-pt-sm">
                       <span>{{ $t('Fee') }}</span>
@@ -137,47 +195,53 @@
               </div>
 
               <!-- create order btn -->
-              <div v-if="!isOwner && hasArbiters && createOrdersEnabled !== false" class="row q-mx-lg q-py-md">
+              <div v-if="!isOwner && hasArbiters && createOrdersEnabled !== false" class="row q-py-md">
                 <q-btn
                   :disabled="!isValidInputAmount(amount) || !hasArbiters || loadSubmitButton || isZeroTradeLimits()"
                   :loading="loadSubmitButton"
                   rounded
+                  unelevated
                   no-caps
-                  :label="ad.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
-                  :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-                  class="q-space"
+                  size="lg"
+                  :label="ad?.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
+                  class="full-width q-py-sm text-weight-bold bg-grad button"
                   @click="submit()">
                 </q-btn>
               </div>
 
               <!-- Warning message for when no currency arbiter is available for ad -->
-              <div v-if="!hasArbiters" class="info-box q-mx-md q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
-                There’s currently no arbiter assigned for transactions related to this ad in its currency ({{ this.ad.fiat_currency.symbol }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+              <div v-if="!hasArbiters && !arbiterAuthRequired" class="pt-card q-pa-md q-mb-md br-15 warning-card" :class="darkMode ? 'dark' : 'light'">
+                <div class="row items-center">
+                  <q-icon name="warning" color="orange" size="md" class="q-mr-md"/>
+                  <div class="text-weight-medium">
+                    There's currently no arbiter assigned for transactions related to this ad in its currency ({{ ad?.fiat_currency?.symbol || '—' }}). {{ isOwner ? 'Orders cannot be placed for this ad until an arbiter is assigned.' : 'Please try again later.'}}
+                  </div>
+                </div>
               </div>
 
-              <div v-if="createOrdersEnabled === false" class="info-box q-mx-md q-my-sm" :class="darkMode ? 'info-box-dark' : 'info-box-light'">
-                This feature is temporarily disabled. We appreciate your patience as we make improvements.
+              <div v-if="createOrdersEnabled === false" class="pt-card q-pa-md q-mb-md br-15 info-card" :class="darkMode ? 'dark' : 'light'">
+                <div class="row items-center">
+                  <q-icon name="info" color="blue" size="md" class="q-mr-md"/>
+                  <div class="text-weight-medium">
+                    This feature is temporarily disabled. We appreciate your patience as we make improvements.
+                  </div>
+                </div>
               </div>
 
               <!-- edit ad button: For ad owners only -->
-              <div class="row q-mx-lg q-py-sm" v-if="isOwner">
+              <div class="row q-py-sm" v-if="isOwner">
                 <q-btn
                   rounded
+                  unelevated
                   no-caps
+                  size="lg"
                   :label="$t('EditAd')"
-                  :color="ad.trade_type === 'SELL' ? 'blue-6' : 'red-6'"
-                  class="q-space"
+                  class="full-width q-py-sm text-weight-bold bg-grad button"
                   @click="onEditAd">
                 </q-btn>
               </div>
             </div>
           </q-scroll-area>
-        </div>
-        <!-- Progress Loader -->
-        <div v-else>
-          <div class="row justify-center q-py-lg" style="margin-top: 50px">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-          </div>
         </div>
         <!-- Dialogs -->
         <div v-if="openDialog">
@@ -216,18 +280,17 @@
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
-import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import { bchToSatoshi, satoshiToBch, fiatToBch, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { createChatSession, updateChatMembers, generateChatRef } from 'src/exchange/chat'
 import { backend, getBackendWsUrl } from 'src/exchange/backend'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { fetchUser } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
@@ -248,7 +311,6 @@ export default {
   },
   components: {
     CustomKeyboard,
-    ProgressLoader,
     AddPaymentMethods,
     MiscDialogs,
     TradeInfoCard,
@@ -286,6 +348,7 @@ export default {
       },
       marketPrice: 0,
       arbitersAvailable: [],
+      arbiterAuthRequired: false,
       previousRoute: null,
       networkError: false,
       loadSubmitButton: false,
@@ -298,11 +361,20 @@ export default {
   },
   beforeRouteEnter (to, from, next) {
     next(vm => {
-      vm.previousRoute = from.path || '/apps/exchange/peer-to-peer/store'
+      vm.previousRoute = from.path
     })
   },
-  emits: ['back', 'orderCanceled', 'updatePageName'],
+  emits: ['back', 'orderCancelled', 'updatePageName'],
   computed: {
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      return themeMap[this.theme] || 'blue-6'
+    },
     tradeFloor () {
       let floor = this.ad?.trade_floor
       const ceiling = this.ad?.trade_ceiling
@@ -381,7 +453,7 @@ export default {
     }
   },
   async created () {
-    bus.on('relogged', this.loadData)
+    bus.on('relogged', this.onRelogged)
   },
   async mounted () {
     bus.emit('hide-menu')
@@ -392,9 +464,25 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatCurrency,
     satoshiToBch,
+    onRelogged () {
+      // Reset auth-related guards after a successful login
+      this.arbiterAuthRequired = false
+      this.loadData()
+    },
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     closeWebSocketConnection () {
       this.websockets?.ad?.closeConnection()
       this.websockets?.marketPrice?.closeConnection()
@@ -414,7 +502,11 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
-      await vm.fetchArbiters()
+      // Only fetch arbiters if ad was successfully loaded with fiat_currency
+      if (vm.ad && vm.ad.fiat_currency) {
+        await vm.fetchArbiters()
+      }
+      // Websocket subscriptions require fiat currency symbol
       vm.setupWebSocket()
       vm.$store.dispatch('ramp/fetchFeatureToggles')
       vm.isloaded = true
@@ -504,7 +596,12 @@ export default {
       this.title = this.$t('ConfirmOrder')
     },
     async fetchAd () {
-      await backend.get(`/ramp-p2p/ad/${this.$route.params.ad}/`, { authorize: true })
+      const adId = this.$route?.params?.ad
+      if (!adId) {
+        console.warn('Ad ID is missing, skipping fetchAd')
+        return
+      }
+      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true })
         .then(response => {
           this.ad = response.data
           if (!this.isloaded) {
@@ -570,6 +667,11 @@ export default {
     },
     fetchOrderMembers (orderId) {
       return new Promise((resolve, reject) => {
+        if (!orderId) {
+          console.warn('Order ID is missing, skipping fetchOrderMembers')
+          resolve([])
+          return
+        }
         backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: true })
           .then(response => {
             resolve(response.data)
@@ -582,16 +684,32 @@ export default {
     },
     async fetchArbiters () {
       const vm = this
-      await backend.get('ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
+      // Check if ad and fiat_currency are available before making the request
+      if (!vm.ad || !vm.ad.fiat_currency || !vm.ad.fiat_currency.symbol) {
+        console.warn('Cannot fetch arbiters: ad or fiat_currency is not available')
+        vm.arbitersAvailable = []
+        return
+      }
+      if (vm.arbiterAuthRequired) return
+      await backend.get('/ramp-p2p/arbiter/', { params: { currency: vm.ad.fiat_currency.symbol }, authorize: true })
         .then(response => {
           vm.arbitersAvailable = response.data
         })
         .catch(error => {
+          const status = error?.response?.status
+          const detail = String(error?.response?.data?.detail || '')
+          // If the user isn't authenticated yet, avoid showing "no arbiter" message
+          // and avoid triggering refresh loops. Login flow will handle retry.
+          if ((status === 401 || status === 403) && /no auth credentials/i.test(detail)) {
+            vm.arbitersAvailable = []
+            vm.arbiterAuthRequired = true
+            return
+          }
           this.handleRequestError(error)
         })
     },
     async fetchFees () {
-      const url = `ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.getTradeAmount()}`
+      const url = `/ramp-p2p/utils/calculate-fees/?sats_trade_amount=${this.getTradeAmount()}`
       await backend.get(url)
         .then(response => {
           const tempFee = response.data
@@ -616,8 +734,23 @@ export default {
       const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at, _members)
       createChatSession(orderId, chatRef)
-        .then(chatRef => { updateChatMembers(chatRef, chatMembers) })
-        .catch(console.error)
+        .then(chatRef => {
+          if (chatRef) {
+            // Only update members if session was created successfully
+            updateChatMembers(chatRef, chatMembers).catch(error => {
+              // Silently handle errors - chat identity might not be ready
+              if (error.response?.status !== 403) {
+                console.error('Failed to update chat members:', error)
+              }
+            })
+          }
+        })
+        .catch(error => {
+          // Silently handle 403 errors - chat identity not ready yet
+          if (error.response?.status !== 403) {
+            console.error('Failed to create chat session:', error)
+          }
+        })
     },
     isValidInputAmount (value = this.amount) {
       let valid = true
@@ -771,7 +904,7 @@ export default {
       return Math.floor(amount * decimals) / decimals
     },
     tradeLimitsCurrency (ad) {
-      return (ad.trade_limits_in_fiat ? ad.fiat_currency.symbol : ad.crypto_currency.symbol)
+      return (ad?.trade_limits_in_fiat ? ad?.fiat_currency?.symbol : ad?.crypto_currency?.symbol) || ''
     },
     minTradeAmount (ad) {
       let tradeAmount = parseFloat(ad.trade_amount)
@@ -805,8 +938,8 @@ export default {
     onBack () {
       this.$emit('back')
     },
-    onOrderCanceled () {
-      this.$emit('orderCanceled')
+    onOrderCancelled () {
+      this.$emit('orderCancelled')
     },
     recievePaymentMethods (item) {
       this.$refs.addPaymentMethodsRef.loadSubmitButton = true
@@ -843,10 +976,15 @@ export default {
       this.showPeerProfile = true
     },
     setupWebSocket () {
+      // Guard: ad may still be loading or missing fiat_currency
+      const fiatSymbol = this.ad?.fiat_currency?.symbol
+      const adId = this.ad?.id
+      if (!fiatSymbol || !adId) return
+
       // Subscribe to market price updates
       this.closeWebSocketConnection()
       this.websockets.marketPrice = new WebSocketManager()
-      this.websockets.marketPrice.setWebSocketUrl(`${getBackendWsUrl()}market-price/${this.ad.fiat_currency.symbol}/`)
+      this.websockets.marketPrice.setWebSocketUrl(`${getBackendWsUrl()}market-price/${fiatSymbol}/`)
       this.websockets.marketPrice.subscribeToMessages((message) => {
         const price = parseFloat(message.price)
         if (price) {
@@ -857,7 +995,7 @@ export default {
       // Subscribe to ad updates
       this.websockets.ad = new WebSocketManager()
       this.websockets.ad.setWebSocketUrl(
-        `${getBackendWsUrl()}ad/${this.ad.id}/`
+        `${getBackendWsUrl()}ad/${adId}/`
       )
       this.websockets.ad.subscribeToMessages((message) => {
         // Refresh the ad data
@@ -908,6 +1046,7 @@ export default {
 }
 </script>
   <style lang="scss" scoped>
+  /* ==================== FONT SIZES ==================== */
   .sm-font-size {
     font-size: small;
   }
@@ -917,35 +1056,241 @@ export default {
   .lg-font-size {
     font-size: large;
   }
-  .buy-color {
-    color: rgb(60, 100, 246);
-  }
-  .sell-color {
-    color: #ed5f59;
-  }
+
+  /* ==================== UTILITIES ==================== */
   .subtext {
     opacity: .5;
   }
-  .info-box {
-    padding: 10px;
-    border-radius: 5px;
+
+  .description {
+    text-align: justify;
+    text-align-last: left;
+    white-space: pre-wrap;
+    font-size: 15px;
+    line-height: 1.6;
   }
-  .warning-box-light {
-    background-color: #fff9c4; /* Light yellow background */
-    border: 1px solid #fbc02d; /* Border color */
+
+  .br-15 {
+    border-radius: 15px;
   }
-  .warning-box-dark {
-    background-color: #333; /* Dark mode background color */
-    color: #fff; /* Text color for dark mode */
-    border: 1px solid #fbc02d; /* Border color */
+
+  /* ==================== GLASSMORPHIC ENHANCEMENTS ==================== */
+  .pt-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInUp 0.4s ease-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
   }
-  .info-box-light {
-    background-color: #c4ffff; /* Light yellow background */
-    border: 1px solid #2dd5fb; /* Border color */
+
+  .bg-grad.button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-3px);
+    }
+    
+    &:active:not(:disabled) {
+      transform: translateY(-1px);
+    }
   }
-  .info-box-dark {
-    background-color: #333; /* Dark mode background color */
-    color: #fff; /* Text color for dark mode */
-    border: 1px solid #2dd5fb; /* Border color */
+
+  .warning-card {
+    border-left: 4px solid #ff9800 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-warning 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.2) 40%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.15) 40%,
+          rgba(255, 255, 255, 0.35) 50%,
+          rgba(255, 255, 255, 0.15) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%) !important;
+    }
+  }
+
+  .info-card {
+    border-left: 4px solid #2196f3 !important;
+    position: relative;
+    overflow: hidden;
+    animation: pulse-info 2s ease-in-out infinite;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle-card 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Ensure content is above sparkle
+    .row, q-icon, div {
+      position: relative;
+      z-index: 2;
+    }
+    
+    &.dark {
+      background: rgba(33, 150, 243, 0.12) !important;
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.1) 40%,
+          rgba(255, 255, 255, 0.25) 50%,
+          rgba(255, 255, 255, 0.1) 60%,
+          transparent 70%
+        );
+      }
+    }
+    
+    &.light {
+      background: rgba(33, 150, 243, 0.08) !important;
+    }
+  }
+
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sparkle-card {
+    0% {
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+      transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+  }
+
+  @keyframes pulse-warning {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  @keyframes pulse-info {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    50% {
+      transform: scale(1.015);
+      box-shadow: 0 6px 20px rgba(33, 150, 243, 0.25);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+  @media (max-width: 599px) {
+    .pt-card {
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+
+  /* ==================== SKELETON LOADER STYLES ==================== */
+  .skeleton-form-container {
+    animation: fadeIn 0.3s ease-out;
+    
+    .q-skeleton {
+      animation: shimmer 1.5s infinite;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 </style>

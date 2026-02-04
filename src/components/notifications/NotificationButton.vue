@@ -1,11 +1,12 @@
 <template>
-  <div class="col-2 flex justify-end" v-if="isMobile">
+  <div class="col-2 flex justify-end" v-if="!isChipnet">
     <q-btn
       flat
       round
       icon="notifications"
       class="text-bow"
       :class="getDarkModeClass(darkMode)"
+      data-tour="notifications"
       @click="openNotificationsDialog"
     >
       <q-badge color="red" floating v-if="notifsCount > 0">{{ notifsCount }}</q-badge>
@@ -41,6 +42,9 @@ export default {
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
     },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
+    },
     currentWalletHash () {
       return this.$store.getters['global/getWallet']('bch')?.walletHash
     }
@@ -49,13 +53,11 @@ export default {
   async mounted () {
     const vm = this
 
-    if (this.isMobile) {
-      vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
-      vm.notifSocket = new WebSocket(
-        `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
-      )
-      vm.addListenersToSocket()
-    }
+    vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
+    vm.notifSocket = new WebSocket(
+      `${process.env.ENGAGEMENT_HUB_WS_URL}notifications/${vm.currentWalletHash}/`
+    )
+    vm.addListenersToSocket()
   },
 
   methods: {
@@ -68,9 +70,7 @@ export default {
         component: Notifications,
         componentProps: { onOpenTransaction: this.findAndOpenTransaction }
       }).onDismiss(async () => {
-        if (this.isMobile) {
-          vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
-        }
+        vm.notifsCount = await getWalletUnreadNotifs(vm.currentWalletHash)
       })
     },
     addListenersToSocket () {

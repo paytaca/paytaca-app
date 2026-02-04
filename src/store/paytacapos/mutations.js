@@ -1,9 +1,77 @@
+import { Store } from 'src/store'
+import { getInitialWalletState } from './state'
+
+/**
+ * Get current wallet hash from global store
+ * @returns {string|null} Current wallet hash
+ */
+function getCurrentWalletHash() {
+  try {
+    const wallet = Store.getters['global/getWallet']('bch')
+    return wallet?.walletHash || null
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * Get or initialize wallet-specific state
+ * @param {Object} state - PaytacaPOS store state
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {Object} Wallet-specific state
+ */
+function getOrInitWalletState(state, walletHash = null) {
+  const hash = walletHash || getCurrentWalletHash()
+  if (!hash) {
+    console.warn('No wallet hash available for paytacapos state')
+    return null
+  }
+  
+  // Ensure byWallet exists
+  if (!state.byWallet) {
+    state.byWallet = {}
+  }
+  
+  if (!state.byWallet[hash]) {
+    state.byWallet[hash] = getInitialWalletState()
+  }
+  
+  return state.byWallet[hash]
+}
+
+/**
+ * Initialize wallet state for a specific wallet hash
+ * @param {Object} state - PaytacaPOS store state
+ * @param {string} walletHash - Wallet hash
+ */
+export function initializeWalletState(state, walletHash) {
+  if (!walletHash) {
+    console.warn('initializeWalletState: walletHash is required')
+    return
+  }
+  
+  // Ensure byWallet exists
+  if (!state.byWallet) {
+    state.byWallet = {}
+  }
+  
+  if (!state.byWallet[walletHash]) {
+    state.byWallet[walletHash] = getInitialWalletState()
+  }
+}
+
 export function updatePaymentMethod (state, data) {
-  state.paymentMethod = data
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.paymentMethod = data
+  }
 }
 
 export function updateLastPaymentMethod (state, data) {
-  state.lastPaymentMethod = data
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.lastPaymentMethod = data
+  }
 }
 
 /**
@@ -53,13 +121,17 @@ function parseMerchantData(data) {
  * @param {Object[]} data
  */
 export function storeMerchantsListInfo(state, data) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  
   data?.forEach(rawMerchantData => {
     const merchantData = parseMerchantData(rawMerchantData)
     if (!merchantData.id || !merchantData.walletHash) return
 
-    const index = state?.merchants?.findIndex(_merchantData => _merchantData?.id == merchantData.id)
-    if (index >= 0) state.merchants[0] = merchantData
-    else state.merchants.push(merchantData)
+    if (!Array.isArray(walletState.merchants)) walletState.merchants = []
+    const index = walletState.merchants.findIndex(_merchantData => _merchantData?.id == merchantData.id)
+    if (index >= 0) walletState.merchants[index] = merchantData
+    else walletState.merchants.push(merchantData)
   })
 }
 
@@ -68,12 +140,16 @@ export function storeMerchantsListInfo(state, data) {
  * @param {Number} merchantId
  */
 export function removeMerchantInfo(state, merchantId) {
-  if (!Array.isArray(state.merchants)) return
-  state.merchants = state.merchants.filter(merchantData => merchantData?.id !== merchantId)
+  const walletState = getOrInitWalletState(state)
+  if (!walletState || !Array.isArray(walletState.merchants)) return
+  walletState.merchants = walletState.merchants.filter(merchantData => merchantData?.id !== merchantId)
 }
 
-export function clearMerchantsInfo(state) {
-  state.merchants = []
+export function clearMerchantsInfo(state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (walletState) {
+    walletState.merchants = []
+  }
 }
 
 /**
@@ -97,7 +173,9 @@ export function clearMerchantsInfo(state) {
  */
  export function updateBranchInfo(state, data) {
   if (!data?.id) return
-  if (!Array.isArray(state.branches)) state.branches = []
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!Array.isArray(walletState.branches)) walletState.branches = []
 
   const _branchInfo = {
     id: data?.id,
@@ -117,11 +195,11 @@ export function clearMerchantsInfo(state) {
   }
 
   Object.assign(_branchInfo, data)
-  const index = state.branches.findIndex(branchInfo => branchInfo?.id === _branchInfo?.id)
-  if (index >=0) state.branches[index] = _branchInfo
-  else state.branches.push(_branchInfo)
+  const index = walletState.branches.findIndex(branchInfo => branchInfo?.id === _branchInfo?.id)
+  if (index >=0) walletState.branches[index] = _branchInfo
+  else walletState.branches.push(_branchInfo)
 
-  if (_branchInfo?.isMain) state.branches.forEach(branch => {
+  if (_branchInfo?.isMain) walletState.branches.forEach(branch => {
     if (_branchInfo?.id != branch?.id) branch.isMain = false
   })
 }
@@ -131,12 +209,16 @@ export function clearMerchantsInfo(state) {
  * @param {Number} branchId
  */
 export function removeBranchInfo(state, branchId) {
-  if (!Array.isArray(state.branches)) return
-  state.branches = state.branches.filter(branchInfo => branchInfo?.id !== branchId)
+  const walletState = getOrInitWalletState(state)
+  if (!walletState || !Array.isArray(walletState.branches)) return
+  walletState.branches = walletState.branches.filter(branchInfo => branchInfo?.id !== branchId)
 }
 
-export function clearBranchInfo(state) {
-  state.branches = []
+export function clearBranchInfo(state, walletHash = null) {
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (walletState) {
+    walletState.branches = []
+  }
 }
 
 /**
@@ -151,7 +233,9 @@ export function clearBranchInfo(state) {
  */
 export function saveLinkCode(state, data) {
   if (!data.walletHash || !data.code || !data.expiresAt || !data.decryptKey || !Number.isSafeInteger(data.nonce)) return
-  if (!Array.isArray(state.linkCodes)) state.linkCodes = []
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!Array.isArray(walletState.linkCodes)) walletState.linkCodes = []
 
   const _linkCode = {
     walletHash: data?.walletHash || '',
@@ -162,12 +246,12 @@ export function saveLinkCode(state, data) {
     nonce: data?.nonce || 0,
   }
 
-  const index = state.linkCodes.findIndex(
+  const index = walletState.linkCodes.findIndex(
     linkCode => linkCode?.walletHash === _linkCode.walletHash && linkCode?.posid === _linkCode?.posid
   )
 
-  if (index >= 0) state.linkCodes[index] = _linkCode
-  else state.linkCodes.push(_linkCode)
+  if (index >= 0) walletState.linkCodes[index] = _linkCode
+  else walletState.linkCodes.push(_linkCode)
 }
 
 /**
@@ -178,9 +262,10 @@ export function saveLinkCode(state, data) {
  * @param {Number} [data.posid]
  */
 export function removeLinkCode(state, data) {
-  if (!Array.isArray(state.linkCodes)) return
+  const walletState = getOrInitWalletState(state)
+  if (!walletState || !Array.isArray(walletState.linkCodes)) return
 
-  state.linkCodes = state.linkCodes
+  walletState.linkCodes = walletState.linkCodes
     .filter(linkCode => {
       if (data?.code && data?.code === linkCode?.code) return false
       if (data?.walletHash && isFinite(data?.posid)) {
@@ -198,14 +283,18 @@ export function removeLinkCode(state, data) {
  * @param {Number} [data.lastActive]
  */
 export function setDeviceLastActive(state, data) {
-  const index = state.devicesLastActive.findIndex(
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
+  if (!Array.isArray(walletState.devicesLastActive)) walletState.devicesLastActive = []
+  
+  const index = walletState.devicesLastActive.findIndex(
     deviceLastActive => deviceLastActive?.walletHash === data.walletHash && deviceLastActive?.posid === data?.posid
   )
 
-  if (index >= 0) state.devicesLastActive[index].lastActive = data?.lastActive
-  else state.devicesLastActive.push(data)
+  if (index >= 0) walletState.devicesLastActive[index].lastActive = data?.lastActive
+  else walletState.devicesLastActive.push(data)
 
-  state.devicesLastActive = state.devicesLastActive.filter(deviceLastActive => deviceLastActive?.lastActive)
+  walletState.devicesLastActive = walletState.devicesLastActive.filter(deviceLastActive => deviceLastActive?.lastActive)
 }
 
 /**
@@ -219,9 +308,11 @@ export function setDeviceLastActive(state, data) {
  */
 export function saveOTPCache(state, data) {
   if (!data?.txid || !data?.otp || !data?.otpTimestamp || !data?.rawPaymentUri) return
+  const walletState = getOrInitWalletState(state)
+  if (!walletState) return
 
-  if (!state.paymentOTPCache) state.paymentOTPCache = {}
-  state.paymentOTPCache[data.txid] = {
+  if (!walletState.paymentOTPCache) walletState.paymentOTPCache = {}
+  walletState.paymentOTPCache[data.txid] = {
     _added_at: Math.floor(Date.now()/1000),
     otp: data.otp,
     otpTimestamp: data.otpTimestamp,
@@ -235,9 +326,10 @@ export function saveOTPCache(state, data) {
  * @param {String} txid
  */
 export function removeTxOTPCache(state, txid) {
-  if (!state.paymentOTPCache) return
+  const walletState = getOrInitWalletState(state)
+  if (!walletState || !walletState.paymentOTPCache) return
 
-  delete state.paymentOTPCache?.[txid]
+  delete walletState.paymentOTPCache?.[txid]
 }
 
 
@@ -246,16 +338,22 @@ export function removeTxOTPCache(state, txid) {
  * @param {Number} age seconds
  */
 export function removeOldPaymentOTPCache(state, age=86400) {
+  const walletState = getOrInitWalletState(state)
+  if (!walletState || !walletState.paymentOTPCache) return
+  
   const now = Math.floor(Date.now()/1000)
   const cutoffTimestamp = now - age
-  for (const txid in state.paymentOTPCache) {
-    const timestamp = state.paymentOTPCache?.[txid]?._added_at
-    if (cutoffTimestamp > timestamp || !Number.isSafeInteger(timestamp)) delete state.paymentOTPCache?.[txid]
+  for (const txid in walletState.paymentOTPCache) {
+    const timestamp = walletState.paymentOTPCache?.[txid]?._added_at
+    if (cutoffTimestamp > timestamp || !Number.isSafeInteger(timestamp)) delete walletState.paymentOTPCache?.[txid]
   }
 }
 
 export function updateCashoutMerchant (state, data) {
-  state.cashoutMerchant = data
+  const walletState = getOrInitWalletState(state)
+  if (walletState) {
+    walletState.cashoutMerchant = data
+  }
 }
 
 /**

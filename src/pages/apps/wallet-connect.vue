@@ -4,7 +4,7 @@
       v-model="scanner.show"
       @decode="onScannerDecode"
     />
-    <div id="app-container" :class="getDarkModeClass(darkMode)">
+    <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <HeaderNav
         :title="$t('WalletConnect')"
         backnavpath="/apps"
@@ -47,7 +47,7 @@
           </div>
           <template v-if="handshakeOnProgress">
             <div class="row items-center justify-center">
-              <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+              <ProgressLoader />
             </div>
             <div v-if="pendingConnector" class="row items-center justify-center">
               <q-btn
@@ -198,7 +198,7 @@ import HeaderNav from '../../components/header-nav'
 import ProgressLoader from '../../components/ProgressLoader.vue'
 import WalletConnectConfirmDialog from '../../components/walletconnect/WalletConnectConfirmDialog.vue'
 import WalletConnectCallRequestDialog from '../../components/walletconnect/WalletConnectCallRequestDialog.vue'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 const ago = require('s-ago')
 
 export default {
@@ -274,7 +274,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     ellipsisText (value) {
       if (typeof value !== 'string') return ''
       if (value.length <= 20) return value
@@ -312,9 +311,9 @@ export default {
       // Test site: https://example.walletconnect.org/
       // use `chainId: 1`
       // const chainId = 1
-      await this.wallet.sBCH.getOrInitWallet()
-      const chainId = await this.wallet.sBCH._wallet.getChainId()
-      const accounts = [this.wallet.sBCH._wallet.address]
+      // SmartBCH support removed
+      const chainId = null
+      const accounts = []
 
       const connector = createConnector(uri)
       this.pendingConnector = connector
@@ -494,7 +493,8 @@ export default {
     acceptCallRequest (callRequest) {
       if (!callRequest || !callRequest.payload) return Promise.reject()
 
-      return callRequestHandler(this.connector, callRequest.payload, this.wallet.sBCH._wallet)
+      // SmartBCH support removed
+      return Promise.reject(new Error('SmartBCH not supported'))
         .then(response => {
           this.removeCallRequest(callRequest)
           return Promise.resolve(response)

@@ -1,12 +1,12 @@
 <template>
-  <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
+  <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
   <div
     class="q-mx-md q-mb-lg q-pb-lg text-bow"
     :class="getDarkModeClass(darkMode)"
     :style="`height: ${minHeight}px;`">
     <div v-if="!isloaded">
       <div class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader />
       </div>
     </div>
     <div v-else>
@@ -63,7 +63,7 @@
         REVIEWS
       </div>
 
-      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;">
+      <q-scroll-area :style="`height: ${ minHeight - 280 }px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
         <div v-if="!loadingReviews">
           <div v-if="reviewsList?.length === 0" class="text-center q-pt-md text-italized xm-font-size">
             No Reviews Yet
@@ -122,7 +122,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { formatDate } from 'src/exchange'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { updateChatIdentity } from 'src/exchange/chat'
 import { wallet } from 'src/exchange/wallet'
 
@@ -176,7 +176,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
+    preventPull (e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
     refreshContent (done) {
       this.fetchArbiter()
       this.fetchFeedback()

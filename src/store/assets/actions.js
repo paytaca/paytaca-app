@@ -135,7 +135,6 @@ export async function getMissingAssets (
   }
 
   let url = getWatchtowerApiUrl(context.rootGetters['global/isChipnet'])
-  const balanceUrl = `${url}/balance/wallet/${walletHash}`
 
   if (isCashToken) {
     url += '/cashtokens/fungible/'
@@ -147,22 +146,24 @@ export async function getMissingAssets (
   if (!Array.isArray(data.results)) return []
 
   if (isCashToken) {
+    // The cashtokens/fungible endpoint already provides all metadata (name, symbol, decimals, image_url)
+    // No need to call BCMR indexer - construct token details directly from API response
     const finalData = []
-    const mnemonic = await getMnemonic(context.rootGetters['global/getWalletIndex'])
-    let wallet = new Wallet(mnemonic, context.rootGetters['global/network'])
-    wallet = getWalletByNetwork(wallet, 'bch')
     
     for (const result of data.results) {
-      const tokenId = result.id.split('/')[1]
-      const tokenDetails = await wallet.getTokenDetails(tokenId)
-      
-      // exclude tokens without metadata
-      if (tokenDetails !== null) {
-        const finalBalUrl = `${balanceUrl}/${tokenId}/`
-        const response = await axiosInstance.get(finalBalUrl)
-        tokenDetails.balance = response.data.balance
-        finalData.push(tokenDetails)
+      // Construct token details directly from API response
+      // API provides: id, name, symbol, decimals, image_url, balance
+      const tokenDetails = {
+        'id': result.id,
+        'name': result.name || 'Unknown Token',
+        'symbol': result.symbol || '',
+        'decimals': parseInt(result.decimals) || 0,
+        'logo': result.image_url ? convertIpfsUrl(result.image_url) : '',
+        'balance': result.balance !== undefined ? result.balance : 0,
+        'is_nft': false // fungible tokens from this endpoint are not NFTs
       }
+      
+      finalData.push(tokenDetails)
     }
     return finalData
   }
@@ -243,6 +244,23 @@ export async function getAssetMetadata (context, assetId) {
 
   if (tokenType !== 'ct') return
 
+  // Ensure the asset exists before updating metadata.
+  // `updateAssetMetadata` is a no-op if the asset doesn't exist yet.
+  const normalizedAssetId = `ct/${tokenId}`
+  const existing = context.getters.getAsset?.(normalizedAssetId)
+  if (!Array.isArray(existing) || existing.length === 0) {
+    context.commit('addNewAsset', {
+      id: normalizedAssetId,
+      name: '',
+      symbol: '',
+      decimals: 0,
+      logo: '',
+      balance: 0,
+      spendable: 0,
+      is_nft: false,
+    })
+  }
+
   const url = 'tokens/' + tokenId + '/'
   const response = await getBcmrBackend().get(url)
   const _metadata = response.data
@@ -258,7 +276,7 @@ export async function getAssetMetadata (context, assetId) {
       imageUrl = _metadata.uris.icon || ''
     }
     data = {
-      'id': 'ct/' + tokenId,
+      'id': normalizedAssetId,
       'isNft': _metadata.is_nft,
       'name': _metadata.name,
       // 'description': _metadata.description,
@@ -273,3 +291,29 @@ export async function getAssetMetadata (context, assetId) {
     return data
   }
 }
+
+// REMOVED: filterFavoriteAssets - Never use Vuex state for displaying favorites
+// Favorites should always be fetched from the backend API to avoid showing outdated data
+// export function filterFavoriteAssets (context, assets) {
+//   let temp = []
+//   console.log('here: ', assets)
+//   return assets.filter(asset => asset.favorite === 1)
+// }
+
+// REMOVED: initializeFavorites - Never update favorites in Vuex state
+// Favorites should only be stored in the backend API, not in Vuex
+// Components should fetch favorites from the API using assetSettings.fetchFavorites()
+// export async function initializeFavorites (context, assets) {  
+//   let iterate = assets.length > 10 ? 10 : assets.length
+//   const isInitialized = context.getters.initializedFavorites  
+//   if (!isInitialized) {    
+//     for (let i = 0; i < iterate; i++) {
+//       let temp = {
+//         id: assets[i].id,
+//         favorite: 1
+//       }  
+//      context.commit('updateAssetFavorite', temp)
+//     }
+//     context.commit('initializeFavorites', true)    
+//   }  
+// }

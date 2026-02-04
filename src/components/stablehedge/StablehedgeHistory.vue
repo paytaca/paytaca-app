@@ -1,5 +1,5 @@
 <template>
-  <div class="stablehedge-history-list" :style="{height: transactionsListHeight}">
+  <div class="stablehedge-history-list scroll-y" @scroll="onScroll" @touchstart="preventPull">
     <template v-if="fetchingHistory">
       <TransactionListItemSkeleton v-for="i in 4" :key="i"/>
     </template>
@@ -88,6 +88,8 @@ export default defineComponent({
   },
   emits: [
     'resolved-transaction',
+    'scroll-up',
+    'scroll-down'
   ],
   props: {
     autoFetch: Boolean,
@@ -117,6 +119,39 @@ export default defineComponent({
     const fetchingHistory = ref(false)
     const historyPagination = ref({ offset: 0, limit: 10, count: 0})
     const history = ref([].map(parseStablehedgeHistory))
+    
+    // Scroll tracking for footer hide/show
+    const lastScrollTop = ref(0)
+    const scrollThreshold = 50
+    
+    function preventPull(e) {
+      // Prevent pull-to-refresh from triggering when scrollable element is not at top
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    }
+    
+    function onScroll(event) {
+      const element = event.target
+      const scrollTop = element.scrollTop
+      
+      if (Math.abs(scrollTop - lastScrollTop.value) > scrollThreshold) {
+        if (scrollTop > lastScrollTop.value && scrollTop > 100) {
+          // Scrolling down - hide footer
+          $emit('scroll-down')
+        } else if (scrollTop < lastScrollTop.value) {
+          // Scrolling up - show footer
+          $emit('scroll-up')
+        }
+        lastScrollTop.value = scrollTop
+      }
+    }
 
     const filterOpts = computed(() => {
       const walletData = $store.getters['global/getWallet']?.('bch')
@@ -201,21 +236,6 @@ export default defineComponent({
         offset: 0, limit: 0, count: 0,
       }
       history.value = []
-    }
-    const showTokens = computed(() => $store.getters['global/showTokens'])
-    watch(showTokens, () => computeTransactionsListHeight())
-    onMounted(() => computeTransactionsListHeight())
-    const transactionsListHeight = ref(undefined);
-    function computeTransactionsListHeight () {
-      const fixedSection = vm.parent?.parent?.refs?.fixedSection
-      const footerMenu = vm.parent?.parent?.refs?.footerMenu?.$el
-      if (!fixedSection || !footerMenu) {
-        transactionsListHeight.value = undefined
-      }
-      const screenHeight = $q.screen.height
-      const fixedSectionHeight = fixedSection?.clientHeight || 0
-      const footerMenuHeight = footerMenu?.clientHeight || 0
-      transactionsListHeight.value = `${screenHeight - (fixedSectionHeight + footerMenuHeight)}px`
     }
     /** stuff relating to parent component(main page) -- end */
 
@@ -329,13 +349,13 @@ export default defineComponent({
 
       getTransactions,
       resetValues,
-      transactionsListHeight,
-      computeTransactionsListHeight,
 
       formatBCH,
       formatDate,
       formatTokenUnits,
       parseFiatCurrency,
+      onScroll,
+      preventPull
     }
   },
 })
@@ -356,9 +376,33 @@ body.body--dark .history-record {
 <style scoped lang="scss">
 .stablehedge-history-list {
   position: relative;
-
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  // overflow set by parent
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 20vh;
+  
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
 }
 .stablehedge-history-pagination.sticky {
   position: sticky;
@@ -376,7 +420,9 @@ body.body--dark .history-record {
   }
 }
 .no-transaction-img {
-  width: 75px;
-  fill: gray;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 12px;
+  opacity: 0.6;
 }
 </style>

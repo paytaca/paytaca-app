@@ -72,3 +72,7 @@ export function getAllAssets (state) {
 export function getRemovedAssetIds (state) {
   return state.vault
 }
+
+export function initializedFavorites(state) {
+  return state.initializedFavorites
+}

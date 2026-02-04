@@ -1,4 +1,5 @@
 import { Store } from 'src/store'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 
 const LIFT_DECIMALS = 2
 
@@ -19,20 +20,23 @@ export function getBchWallet () {
 // ==============================
 
 export function parseLocaleDate (date, isDayIncluded = true) {
-  const d = new Date(date)
-  const options = {
-    year: 'numeric',
-    month: 'long'
+  if (date) {
+    const d = new Date(date)
+    const options = {}
+    const langs = [Store.getters['global/language'], 'en-US']
+  
+    if (isDayIncluded) {
+      options.dateStyle = "medium"
+      options.timeStyle = "short"
+    }
+    return new Intl.DateTimeFormat(langs, options).format(d)
   }
-
-  if (isDayIncluded) options.day = 'numeric'
-
-  return d.toLocaleDateString(undefined, options)
+  return '---'
 }
 
 export function parseLiftToken (amount) {
   const newAmount = amount / (10 ** LIFT_DECIMALS)
-  const finalAmount = Number(newAmount).toLocaleString()
+  const finalAmount = formatWithLocale(newAmount, { max: LIFT_DECIMALS })
 
   return `${finalAmount} LIFT`
 }

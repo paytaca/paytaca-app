@@ -10,8 +10,6 @@
       class="apps-header"
     />
     <q-tabs
-      :active-color="isNotDefaultTheme(theme) ? 'rgba(0, 0, 0, 0.5)' : 'brandblue'"
-      :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : 'brandblue'"
       class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
       v-model="selectedAccountType"
       style="padding-bottom: 16px;"
@@ -354,9 +352,9 @@ import HedgeContractDetailDialog from 'src/components/anyhedge/HedgeContractDeta
 import HedgeContractsList from 'src/components/anyhedge/HedgeContractsList.vue'
 import HedgeOffersList from 'src/components/anyhedge/HedgeOffersList.vue'
 import HedgeOffersFilterFormDialog from 'src/components/anyhedge/HedgeOffersFilterFormDialog.vue'
-import CustomKeyboard from '../transaction/dialog/CustomKeyboard.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useI18n } from 'vue-i18n'
 
 const { getScrollTarget, setVerticalScrollPosition } = scroll

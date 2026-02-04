@@ -18,6 +18,7 @@
       ref="chatDialog"
       v-model="openChatDialog"
       :chat-ref="orderChatSession?.ref"
+      :chat-close-at="chatCloseAt"
     >
       <template v-slot:before-messages>
         <slot name="before-messages"></slot>
@@ -29,7 +30,7 @@
 import { backend } from 'src/marketplace/backend'
 import { ChatSession } from 'src/marketplace/objects'
 import { debounce } from 'quasar'
-import { defineComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import ChatDialog from 'src/components/marketplace/ChatDialog.vue'
 
 export default defineComponent({
@@ -39,6 +40,7 @@ export default defineComponent({
   },
   props: {
     orderId: [Number, String],
+    order: { type: Object, required: false },
   },
   setup(props) {
     onMounted(() => refresh())
@@ -68,6 +70,20 @@ export default defineComponent({
 
     const chatDialog = ref()
 
+    const chatCloseAt = computed(() => {
+      const order = props.order
+      if (!order) return null
+      const status = order?.status || order?.raw?.status
+      const isFinal = status === 'completed' || status === 'cancelled'
+      if (!isFinal) return null
+
+      const updatedAt = order?.updatedAt || (order?.raw?.updated_at ? new Date(order.raw.updated_at) : null)
+      const updatedAtMs = updatedAt instanceof Date ? updatedAt.getTime() : NaN
+      if (!Number.isFinite(updatedAtMs)) return null
+
+      return new Date(updatedAtMs + 60 * 60 * 1000)
+    })
+
     function reset() {
       orderChatSession.value = null
     }
@@ -85,6 +101,7 @@ export default defineComponent({
       fetchOrderChatSession,
 
       chatDialog,
+      chatCloseAt,
 
       reset,
       refresh,

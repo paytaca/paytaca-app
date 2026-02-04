@@ -54,12 +54,35 @@ a {
   user-select: none;
 }
 
+/* Disable iOS image context menu globally for all images */
+img {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  -khtml-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Ensure asset images don't capture touch events - let them bubble to parent */
+.asset-card img,
+.method-cards img,
+.transaction-item img,
+q-avatar img,
+.asset-icon {
+  /* pointer-events: none; - Removed to allow event handlers to work */
+}
+
 .bg-grad {
-  background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  background-image: linear-gradient(to right bottom, rgba(59, 123, 246, 0.85), rgba(54, 129, 232, 0.85), rgba(49, 139, 218, 0.85), rgba(44, 149, 204, 0.85), rgba(39, 159, 190, 0.85));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(31, 38, 135, 0.12);
 }
 
 .text-grad {
-  background: -webkit-linear-gradient(-70deg, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
+  background: -webkit-linear-gradient(-70deg, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -68,8 +91,30 @@ a {
 
 #registration-container {
   min-height: 100vh;
-  background-image: linear-gradient(to right bottom, #3b7bf6, #a866db, #da53b2, #ef4f84, #ed5f59);
   position: relative !important;
+  /* Default gradient background for backward compatibility */
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe);
+}
+
+#registration-container.dark {
+  background: #273746 !important;
+}
+
+#registration-container.light {
+  background-color: #ecf3f3 !important;
+}
+
+#registration-container.grad {
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe) !important;
+  background: none !important;
+}
+
+/* When using default theme (body doesn't have a glassmorphic theme class), 
+   preserve gradient even when .dark or .light classes are present */
+body:not([class*="theme-glassmorphic"]):not([class*="theme-payhero"]) #registration-container.dark,
+body:not([class*="theme-glassmorphic"]):not([class*="theme-payhero"]) #registration-container.light {
+  background-image: linear-gradient(to right bottom, #3b7bf6, #3681e8, #318bda, #2c95cc, #279fbe) !important;
+  background: none !important;
 }
 
 .pt-brand {
@@ -119,8 +164,49 @@ a {
   color: #fff !important;
 }
 
-.pt-dark-box-shadow {
-  box-shadow: 2px 2px 2px 2px #212F3D !important;
+/* Hide scrollbar on main pages */
+body::-webkit-scrollbar,
+html::-webkit-scrollbar,
+.scroll-y::-webkit-scrollbar,
+#app-container::-webkit-scrollbar,
+#apps-page-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none !important;
+}
+
+body,
+html,
+.scroll-y,
+#app-container,
+#apps-page-container {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.scroll-y {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Additional iOS and macOS scrollbar hiding */
+*::-webkit-scrollbar {
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  -webkit-appearance: none !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+  -webkit-appearance: none !important;
 }
 
 .bex.q-body--prevent-scroll {

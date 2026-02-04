@@ -1,6 +1,6 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent v-show="showDialog" seamless>
-    <q-card class="br-15 pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
+    <q-card v-show="displayDialogCard" class="br-15 pt-card-3 text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-center q-mb-sm">
           {{ $t('SecurityCheck') }}
@@ -10,9 +10,9 @@
           <q-btn rounded :label="$t('Cancel')" class="button" @click="onCancelClick()" />
         </div>
       </q-card-section>
-      <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
-      <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="verifyBiometric()" />
     </q-card>
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
+    <biometricWarningAttmepts :warning-attempts="warningAttemptsStatus" v-on:closeBiometricWarningAttempts="verifyBiometric()" />
   </q-dialog>
 </template>
 <script>
@@ -39,11 +39,11 @@ export default {
     biometricWarningAttmepts
   },
   props: {
-    darkMode: {
-      type: Boolean,
-      default: false
+    securityCheckingDelay: {
+      type: Number,
+      default: 50,
     },
-    showDialog: {
+    displayDialogCard: {
       type: Boolean,
       default: false,
     }
@@ -54,22 +54,46 @@ export default {
       warningAttemptsStatus: 'dismiss'
     }
   },
+  computed: {
+    darkMode() {
+      return this.$store.getters['darkmode/getStatus']
+    },
+  },
+  watch: {
+    pinDialogAction (newVal, oldVal) {
+      console.log('[SecurityCheckDialog] pinDialogAction changed from', oldVal, 'to', newVal)
+    }
+  },
   methods: {
     getDarkModeClass,
     async executeSecurityChecking () {
       const vm = this
+      console.log('[SecurityCheckDialog] executeSecurityChecking called')
+      console.log('[SecurityCheckDialog] $store available:', !!vm.$store)
+      console.log('[SecurityCheckDialog] preferredSecurity:', vm.$store?.getters?.['global/preferredSecurity'])
 
       setTimeout(() => {
-        if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+        const preferredSecurity = vm.$store?.getters?.['global/preferredSecurity']
+        console.log('[SecurityCheckDialog] Setting security check, preferredSecurity:', preferredSecurity)
+        if (preferredSecurity === 'pin') {
+          console.log('[SecurityCheckDialog] Setting pinDialogAction to VERIFY')
           vm.pinDialogAction = 'VERIFY'
+          console.log('[SecurityCheckDialog] pinDialogAction after set:', vm.pinDialogAction)
         } else {
+          console.log('[SecurityCheckDialog] Calling verifyBiometric')
           vm.verifyBiometric()
         }
-      }, 500)
+      }, this.securityCheckingDelay)
     },
     pinDialogNextAction (action) {
-      if (action === 'proceed') this.onOKClick()
-      else this.hide()
+      console.log('[SecurityCheckDialog] pinDialogNextAction called with action:', action)
+      if (action === 'proceed') {
+        console.log('[SecurityCheckDialog] Proceeding with onOKClick')
+        this.onOKClick()
+      } else {
+        console.log('[SecurityCheckDialog] Hiding dialog')
+        this.hide()
+      }
     },
     verifyBiometric () {
       // Authenticate using biometrics before logging the user in
@@ -99,8 +123,19 @@ export default {
     // following method is REQUIRED
     // (don't change its name --> "show")
     show () {
-      this.$refs.dialog.show()
-      this.executeSecurityChecking()
+      console.log('[SecurityCheckDialog] show() method called')
+      console.log('[SecurityCheckDialog] $refs.dialog exists:', !!this.$refs.dialog)
+      if (this.$refs.dialog) {
+        console.log('[SecurityCheckDialog] Calling $refs.dialog.show()')
+        this.$refs.dialog.show()
+      } else {
+        console.error('[SecurityCheckDialog] ERROR: $refs.dialog is not available!')
+      }
+      // Execute security checking after dialog is shown
+      this.$nextTick(() => {
+        console.log('[SecurityCheckDialog] $nextTick callback, calling executeSecurityChecking')
+        this.executeSecurityChecking()
+      })
     },
 
     // following method is REQUIRED

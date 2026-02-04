@@ -1,21 +1,19 @@
 <template>
   <q-select
-    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="denomination"
-    :options="denominationOptions"
+    :options="denominationDisplayOptions"
     :dark="darkMode"
-    @filter="filterDenominationSelection"
-    popup-content-style="color: black;"
+    :color="themeColor"
     dense
-    use-input
-    fill-input
-    borderless
-    hide-selected
+    outlined
+    rounded
+    hide-bottom-space
+    class="glass-input"
   >
     <template v-slot:option="scope">
       <q-item v-bind="scope.itemProps">
         <q-item-section>
-          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+          <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
             {{ scope.opt.label }}
           </q-item-label>
         </q-item-section>
@@ -34,33 +32,8 @@ export default {
       denominationOptions: [
         { value: 'BCH', label: 'BCH' },
         { value: 'mBCH', label: 'mBCH' },
-        { value: 'Satoshis', label: 'Satoshis' }
-      ],
-      filteredDenominationOptions: []
-    }
-  },
-  methods: {
-    filterDenominationSelection (val, update) {
-      if (!val) {
-        this.filteredDenominationOptions = this.hkSelection(this.denominationOptions)
-      } else {
-        const needle = String(val).toLowerCase()
-        this.filteredDenominationOptions = this.hkSelection(this.denominationOptions)
-          .filter(denom => String(denom?.label).toLowerCase().indexOf(needle) >= 0)
-      }
-      update()
-    },
-    hkSelection (options) {
-      // get rid of duplicate DEEM entry from language switching
-      if (options.length > 3) {
-        options.pop()
-      }
-      if (this.currentCountry === 'HK' && !options.some((a) => a.value === this.$t('DEEM'))) {
-        options.push({ value: this.$t('DEEM'), label: this.$t('DEEM') })
-      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === this.$t('DEEM'))) {
-        options.pop()
-      }
-      return options
+        { value: 'sats', label: 'sats' }
+      ]
     }
   },
   computed: {
@@ -70,9 +43,52 @@ export default {
     language () {
       return this.$store.getters['global/language'].value
     },
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      const currentTheme = this.$store.getters['global/theme']
+      return themeMap[currentTheme] || 'blue-6'
+    },
+    denominationDisplayOptions () {
+      let options = [...this.denominationOptions]
+      // Handle Hong Kong specific DEEM option
+      // Only add DEEM if i18n is available and country is HK
+      if (this.currentCountry === 'HK' && this.$i18n && this.$i18n.global) {
+        try {
+          const deemValue = this.$t('DEEM')
+          if (deemValue && deemValue !== 'DEEM' && !options.some((a) => a.value === deemValue)) {
+            options.push({ value: deemValue, label: deemValue })
+          }
+        } catch (error) {
+          // i18n might not be initialized yet, skip DEEM option
+          console.warn('Could not translate DEEM:', error)
+        }
+      } else if (this.currentCountry !== 'HK') {
+        // Remove DEEM option if country is not HK
+        try {
+          if (this.$i18n && this.$i18n.global) {
+            const deemValue = this.$t('DEEM')
+            if (deemValue) {
+              options = options.filter(a => a.value !== deemValue)
+            }
+          }
+        } catch (error) {
+          // Ignore if i18n not available
+        }
+      }
+      return options
+    },
     denomination: {
       get () {
-        return this.$store.getters['global/denomination']
+        const currentDenom = this.$store.getters['global/denomination']
+        const normalizedDenom = currentDenom === 'Satoshis' ? 'sats' : currentDenom
+        // Return the full option object instead of just the string
+        const found = this.denominationDisplayOptions.find(opt => opt.value === normalizedDenom)
+        return found || { value: 'BCH', label: 'BCH' }
       },
       set (denom) {
         const newDenomination = denom.value
@@ -82,15 +98,27 @@ export default {
   },
   watch: {
     language () {
-      if (this.currentCountry === 'HK' &&
-          this.language !== 'zh-tw' &&
-          this.denomination !== this.$t('DEEM') &&
-          !['BCH', 'mBCH', 'Satoshis'].includes(this.denomination)
-      ) {
-        this.$store.commit('global/setDenomination', 'DEEM')
-      } else {
-        const translatedDenom = this.$t(this.denomination)
-        this.$store.commit('global/setDenomination', translatedDenom)
+      try {
+        const currentDenomValue = this.denomination.value
+        const deemValue = this.$t('DEEM')
+        if (this.currentCountry === 'HK' &&
+            this.language !== 'zh-tw' &&
+            currentDenomValue !== deemValue &&
+            !['BCH', 'mBCH', 'sats'].includes(currentDenomValue)
+        ) {
+          this.$store.commit('global/setDenomination', 'DEEM')
+        } else if (!['BCH', 'mBCH', 'sats', 'DEEM'].includes(currentDenomValue)) {
+          // Only translate if it's not a standard denomination
+          try {
+            const translatedDenom = this.$t(currentDenomValue)
+            this.$store.commit('global/setDenomination', translatedDenom)
+          } catch (error) {
+            // If translation fails, keep current denomination
+            console.warn('Could not translate denomination:', currentDenomValue, error)
+          }
+        }
+      } catch (error) {
+        console.warn('Error in language watcher:', error)
       }
     }
   }

@@ -1,34 +1,43 @@
 <template>
   <q-dialog
     ref="notifs-dialog"
-    full-width
     full-height
-    seamless
+    position="right"
     class="no-click-outside"
+    maximized
   >
-    <q-card class="q-px-md q-pt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center">
-        <span class="text-bold text-h6" style="color: #ed5f59;">
-          {{ $t('Notifications') }}
-        </span>
-        <q-space/>
-        <q-btn
-          flat
-          round
-          padding="xs"
-          icon="close"
-          align="right"
-          class="close-button"
-          v-close-popup
-        />
+    <q-card
+      class="notifs-card wallet-card"
+      :class="getDarkModeClass(darkMode)"
+      :style="sidebarCardStyle"
+    >
+      <!-- Fixed Header -->
+      <div class="fixed-header" :class="getDarkModeClass(darkMode)">
+        <div class="row justify-between items-center q-px-lg q-py-sm">
+          <div class="notifs-title text-weight-bold text-grad">
+            {{ $t('Notifications') }}
+          </div>
+          <q-btn
+            round
+            flat
+            dense
+            :color="darkMode ? 'white' : 'black'"
+            icon="keyboard_double_arrow_right"
+            class="default-text-color"
+            v-close-popup
+          />
+        </div>
       </div>
 
-      <div>
-        <div class="row justify-end items-center q-mb-sm q-gutter-x-md">
+      <!-- Scrollable Content -->
+      <div class="scrollable-notifs-content" :class="getDarkModeClass(darkMode)">
+        <div class="q-px-md q-pt-md">
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-sm">
           <q-btn
             v-if="isCheckboxClicked"
             flat
             round
+            color="primary"
             :disable="isLoading"
             icon="cancel"
             @click="isCheckboxClicked = false"
@@ -38,12 +47,13 @@
             round
             :disable="isLoading || notifsList.length === 0"
             :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
-            :color="isCheckboxClicked ? 'red' : 'white'"
+            :color="isCheckboxClicked ? 'red' : 'primary'"
             @click="massDeleteNotifs"
           />
           <q-btn
             flat
             round
+            color="primary"
             icon="refresh"
             :disable="isLoading"
             @click="refreshNotifsList()"
@@ -51,6 +61,7 @@
           <q-btn
             flat
             round
+            color="primary"
             icon="mark_chat_read"
             :disable="isLoading || notifsList.length === 0"
             @click="markAllAsRead()"
@@ -58,6 +69,7 @@
           <q-btn
             flat
             round
+            color="primary"
             :disable="isLoading"
             icon="filter_alt"
             @click="openFilterDialog"
@@ -66,7 +78,7 @@
 
         <template v-if="isLoading">
           <q-card-section class="q-pt-sm flex flex-center">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </q-card-section>
         </template>
 
@@ -74,7 +86,8 @@
           <div v-if="notifsList.length > 0">
             <div
               class="q-pb-sm q-gutter-y-sm col-12"
-              style="height: 70vh; overflow-y: scroll;"
+              style="overflow-y: scroll;"
+              :style="{ 'height': $q.platform.is.ios ? '67vh' : '75vh'}"
             >
               <template v-if="isCheckboxClicked">
                 <div
@@ -174,6 +187,7 @@
             {{ $t('NoNotifications') }}
           </div>
         </template>
+        </div>
       </div>
     </q-card>
   </q-dialog>
@@ -182,7 +196,7 @@
 <script>
 import ago from 's-ago'
 
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   getWalletNotifications,
   parseNotifType,
@@ -227,6 +241,19 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    sidebarCardStyle () {
+      // Keep sidebar content below the OS status bar/cutouts on native builds.
+      // iOS already looks correct; Android needs the safe-area top padding.
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+
+      if (this.$q.platform.is.android) {
+        return { paddingTop: safeTop }
+      }
+      if (this.$q.platform.is.ios) {
+        return { paddingTop: '20px' }
+      }
+      return { paddingTop: '0px' }
+    },
     theme () {
       return this.$store.getters['global/theme']
     },
@@ -246,7 +273,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     parseNotifType,
 
     async refreshNotifsList (done) {
@@ -263,7 +289,7 @@ export default {
         vm.maxPages = respData.max
         this.resetCheckboxList()
         vm.isLoading = false
-      } catch (error) {
+      } catch {
         // fallback when an error occurs after deleting last remaining notif
         vm.notifsList = []
         vm.maxPages = 0
@@ -278,12 +304,14 @@ export default {
       setTimeout(async () => {
         const deletedItem = vm.notifsList.splice(index, 1)
         // call to engagement-hub to hide idth notif
-        await hideItemUpdate(deletedItem[0].id).then(async () => {
-          if (vm.notifsList.length === 0) {
-            vm.notifsPage -= 1
-            await this.refreshNotifsList(null)
-          }
-        })
+        await hideItemUpdate(deletedItem[0].id)
+        
+        if (vm.notifsList.length === 0) {
+          vm.notifsPage = vm.notifsPage === vm.maxPages 
+            ? vm.notifsPage - 1 
+            : vm.notifsPage
+          await this.refreshNotifsList(null)
+        }
       }, 250)
     },
     async openFilterDialog () {
@@ -417,5 +445,62 @@ export default {
   }
   .q-card.light {
     background-color: $grey-2 !important;
+  }
+  .notifs-card {
+    height: 100vh;
+    width: 90vw;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    
+    @media (max-width: 600px) {
+      width: 90vw;
+    }
+  }
+
+  .fixed-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    
+    &.dark {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    
+    &.light {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .notifs-title {
+    font-size: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .scrollable-notifs-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    /* Custom scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
   }
 </style>

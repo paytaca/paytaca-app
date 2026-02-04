@@ -6,13 +6,13 @@ import BigNumber from 'bignumber.js'
 import { parsePOSLabel } from 'src/wallet/pos'
 import { Wallet } from './index'
 import { decodeBIP0021URI } from 'src/wallet/bch'
-import { decodeEIP681URI } from 'src/wallet/sbch/utils'
 import { sha256 } from "@psf/bch-js/src/crypto"
 import Watchtower from 'watchtower-cash-js';
 import { getWalletByNetwork } from './chipnet'
 import SingleWallet from './single-wallet'
 import { TransactionBalancer } from './stablehedge/transaction-utils'
-import { SignatureTemplate } from 'cashscript'
+import { toTokenAddress } from 'src/utils/crypto'
+import { watchtowerUtxoToCashscriptP2pkh } from 'src/utils/utxo-utils'
 
 const bchjs = new BCHJS()
 /**
@@ -42,7 +42,7 @@ const bchjs = new BCHJS()
  *
  *  opts = opt [ "&" opt ]
  *  opt   = [ name / message / asset / pos / ts / otherparams ]
- *  asset = "asset=" [sbch | bch | "sep20/" slpid | "sep20/" contractAddress ]
+ *  asset = "asset=" [bch | "slp/" slpid | "ct/" category ]
  *  pos = "pos=" wallethash "-" posid
  *  ts = "ts=" unix_timestamp
  *  otherparams = paramname [ "=" paramvalue ]
@@ -154,9 +154,6 @@ export function parsePaytacaPaymentUri(paymentUri = '') {
  * @returns {{ chain: 'main' | 'smart', assetId: String }}
  */
 function resolvePaymentUriAssetParam(paramValue='') {
-  if (paramValue === 'sbch') return { chain: 'smartbch', assetId: 'bch' }
-  if (paramValue.startsWith('sep20/')) return  { chain: 'smart', assetId: paramValue }
-
   if (paramValue.startsWith('slp/')) return  { chain: 'main', assetId: paramValue }
   return { chain: 'main', assetId: 'bch' }
 }
@@ -189,7 +186,11 @@ export function parsePaymentUri(content, opts) {
 
   let bip0021Decoded, bip0021DecodeError 
   if (opts?.chain === 'main') {
-    try { bip0021Decoded = decodeBIP0021URI(content, opts) } catch(err) { bip0021DecodeError = err }
+    try { 
+      bip0021Decoded = decodeBIP0021URI(content, opts)
+    } catch(err) { 
+      bip0021DecodeError = err
+    }
   }
   let eip681Decoded, eip681DecodeError
   if (opts?.chain === 'smart') {
@@ -290,6 +291,13 @@ export class JSONPaymentProtocol {
    * @typedef {Object} PaymentRequestOutput
    * @property {String} address
    * @property {Number} amount
+   * @property {Object} [token]
+   * @property {String} token.category
+   * @property {Number} token.amount
+   * @property {Object} [token.nft]
+   * @property {Object} token.nft
+   * @property {String} token.nft.capability
+   * @property {String} token.nft.commitment
    * 
    * @param {Object} data
    * @param {String} [data.chain]
@@ -317,7 +325,7 @@ export class JSONPaymentProtocol {
 
   get expired() {
     let now = Date.now() 
-    if (opts?.networkTimeDiff) now += opts?.networkTimeDiff
+    if (this.opts?.networkTimeDiff) now += this.opts.networkTimeDiff
     return now > this.parsed.expires
   }
 
@@ -327,7 +335,14 @@ export class JSONPaymentProtocol {
       network: this._data?.network || '',
       currency: this._data?.currency || '',
       requiredFeePerByte: this._data?.requiredFeePerByte || 0,
-      outputs: [{ address: '', amount: 0 }],
+      outputs: [{
+        address: '', amount: 0,
+        token: {
+          category: '',
+          amount: 0,
+          nft: { capability: '', commitment: '' },
+        }
+      }],
       time: new Date(this._data?.time),
       expires: new Date(this._data?.expires),
       memo: this._data?.memo || '',
@@ -376,6 +391,27 @@ export class JSONPaymentProtocol {
     return this.parsed.outputs.reduce((subtotal, output) => subtotal + output.amount, 0)
   }
 
+  get tokenAmounts() {
+    const tokenAmountsMap = new Map();
+    for (const output of this.parsed.outputs) {
+      const category = output?.token?.category;
+      if (!category || output?.token?.nft?.capability) continue
+      const amount = output?.token?.amount;
+      const subtotal = tokenAmountsMap.get(category) || 0;
+      tokenAmountsMap.set(category, subtotal + amount);
+    }
+    const result = [];
+    tokenAmountsMap.forEach((amount, category) => {
+      result.push({ category, amount })
+    })
+    return result
+  }
+
+  get nfts () {
+    return this.parsed.outputs.filter(output => output.token?.nft?.capability)
+      .map(output => output?.token)
+  }
+
   get paymentData() {
     if (!this._data?.payment) return
 
@@ -389,55 +425,36 @@ export class JSONPaymentProtocol {
 
   /**
    * @param {Wallet | SingleWallet} wallet 
+   * @param {String} [category]
+   * @param {{ capability: String, commitment: String }} [nft]
    */
-  async getUtxosFromWallet(wallet) {
-    const utxoOpts = {
+  async getUtxosFromWallet(wallet, category, nft) {
+    const params = {
       confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
+      is_cashtoken: category ? true : undefined,
+      is_cashtoken_nft: nft?.capability ? true : undefined,
     }
-    let handle
-    let watchtower
+
+    /** @type {import("watchtower-cash-js").BCH} */
+    const bchWallet = wallet instanceof SingleWallet
+      ? wallet.watchtower?.BCH
+      : getWalletByNetwork(wallet, 'bch')?.watchtower?.BCH
+
+    let urlPath
     if (wallet instanceof SingleWallet) {
-      handle = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
-      watchtower = wallet.watchtower
+      let address = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
+      if (category) urlPath = `utxo/ct/${toTokenAddress(address)}/${category}/`
+      else urlPath = `utxo/bch/${address}/`
     } else {
-      handle = `wallet:${getWalletByNetwork(wallet, 'bch').walletHash}`
-      watchtower = getWalletByNetwork(wallet, 'bch').watchtower
+      const walletHash = getWalletByNetwork(wallet, 'bch')?.walletHash
+      urlPath = `utxo/wallet/${walletHash}/`
+      if (category) urlPath += category + `/`
     }
-    const bchUtxos = await watchtower.BCH.getBchUtxos(
-      handle,
-      this.totalSendAmountSats,
-      utxoOpts,
-    )
 
-    if (bchUtxos.cumulativeValue < this.totalSendAmountSats && utxoOpts.confirmed) {
-      console.log('Insufficient balance from confirmed utxos, checking usable unconfirmed utxos')
-      const unconfirmedBchUtxos = await watchtower.BCH.getBchUtxos(
-        handle,
-        this.totalSendAmountSats,
-        { confirmed: false },
-      )
-      const confirmedTxHashes = {}
-      for (let i = 0; i < unconfirmedBchUtxos.utxos.length; i++ ) {
-        const utxo = unconfirmedBchUtxos.utxos[i];
-        const txHash = utxo.tx_hash
-        console.log('Checking unconfirmed utxo', utxo)
-        if (!confirmedTxHashes[txHash]) {
-          const txStatus = await JSONPaymentProtocol.isTxConfirmed(utxo.tx_hash)
-            .catch(() => Object({ confirmed: false }))
-          confirmedTxHashes[txHash] = txStatus.confirmed
-        }
-
-        console.log('Is', txHash, 'confirmed', confirmedTxHashes[txHash])
-        if (!confirmedTxHashes[txHash]) continue
-
-        bchUtxos.utxos.push(utxo)
-        bchUtxos.cumulativeValue += utxo.value
-        console.log('Added utxo', utxo)
-        console.log('New cumulative value', bchUtxos.cumulativeValue)
-        if (bchUtxos.cumulativeValue >= totalSendAmountSats) break
-      }
-    }
-    return bchUtxos
+    const utxoFetchResp = await bchWallet._api.get(urlPath, { params })
+    /** @type {import('src/utils/utxo-utils').WatchtowerUtxo[]} */
+    const utxos = utxoFetchResp.data?.utxos;
+    return utxos;
   }
 
   /**
@@ -448,42 +465,6 @@ export class JSONPaymentProtocol {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
-    const bchUtxos = await this.getUtxosFromWallet(wallet);
-    if (bchUtxos.cumulativeValue < this.totalSendAmountSats) {
-      throw JsonPaymentProtocolError('Not enough balance')
-    }
-    const txBuilder = new TransactionBalancer()
-    txBuilder.feePerByte = this.parsed.requiredFeePerByte || 1.1
-
-    for (let i = 0; i < bchUtxos.utxos.length; i++ ) {
-      const utxo = bchUtxos.utxos[i]
-
-      let utxoPkWif
-      if (wallet instanceof SingleWallet) {
-        utxoPkWif = wallet.wif
-      } else {
-        const addressPath = utxo?.address_path || utxo.wallet_index
-        utxoPkWif = await getWalletByNetwork(wallet, 'bch').getPrivateKey(addressPath)
-      }
-
-      const template = new SignatureTemplate(utxoPkWif)
-      txBuilder.inputs.push({
-        txid: utxo.tx_hash,
-        vout: utxo.tx_pos,
-        satoshis: utxo.value,
-        template: template,
-      })
-    }
-
-    for (let i = 0; i < this.parsed.outputs.length; i++) {
-      const output = this.parsed.outputs[i]
-      const sendAmount = new BigNumber(output.amount)
-      txBuilder.outputs.push({
-        to: output.address,
-        amount: BigInt(sendAmount),
-      })
-    }
-
     if (!changeAddress) {
       if (wallet instanceof SingleWallet) {
         changeAddress = wallet.isChipnet ? wallet.testnetAddress : wallet.cashAddress
@@ -492,12 +473,127 @@ export class JSONPaymentProtocol {
       }
     }
 
-    if (txBuilder.excessSats > 546n) {
-      const changeOutput = { to: changeAddress, amount: txBuilder.excessSats }
-      txBuilder.outputs.push(changeOutput)
-      changeOutput.amount += txBuilder.excessSats
+    const txBuilder = new TransactionBalancer()
+    txBuilder.feePerByte = this.parsed.requiredFeePerByte || 1.1
+
+    for (let i = 0; i < this.parsed.outputs.length; i++) {
+      const output = this.parsed.outputs[i]
+      const sendAmount = new BigNumber(output.amount)
+      txBuilder.outputs.push({
+        to: output.address,
+        amount: BigInt(sendAmount),
+        token: !output.token ? undefined : {
+          category: output.token.category,
+          amount: BigInt(output.token.amount),
+          nft: output.token.nft,
+        }
+      })
     }
-  
+
+    const nftOutputs = txBuilder.outputs.filter(output => output?.token?.nft)
+    const ftCatagories = txBuilder.outputs
+      .filter(output => output?.token && !output?.token?.nft)
+      .map(output => output.token.category)
+      .filter((element, index, list) => list.indexOf(element) === index)
+
+    const utxosMap = new Map();
+    await Promise.all(nftOutputs.map(async nftOutput => {
+      const utxos = await this.getUtxosFromWallet(
+        wallet, nftOutput.token.category, nftOutput.token.nft
+      )
+      const utxo = utxos.find(utxo => {
+        return utxo.tokenid == nftOutput.token.category &&
+          utxo.capability == nftOutput.token.nft.capability &&
+          utxo.commitment == nftOutput.token.nft.commitment && 
+          !utxosMap.has(`${utxo.txid}:${utxo.vout}`)
+      })
+      if (!utxo) throw JsonPaymentProtocolError('Not enough token NFT balance')
+      utxosMap.set(`${utxo.txid}:${utxo.vout}`, 1)
+
+      const parsedUtxo = watchtowerUtxoToCashscriptP2pkh(utxo, wallet);
+      txBuilder.inputs.push(parsedUtxo)
+    }))
+
+    await Promise.all(ftCatagories.map(async category => {
+      const ftUtxos = await this.getUtxosFromWallet(wallet, category)
+      for (const ftUtxo of ftUtxos) {
+        if (txBuilder.tokenChange(category) >= 0n) break
+
+        if (utxosMap.has(`${ftUtxo.txid}:${ftUtxo.vout}`)) continue
+        utxosMap.set(`${ftUtxo.txid}:${ftUtxo.vout}`, 1)
+
+        const parsedUtxo = watchtowerUtxoToCashscriptP2pkh(ftUtxo, wallet);
+        txBuilder.inputs.push(parsedUtxo)
+      }
+
+      const excessTokens = txBuilder.tokenChange(category);
+      if (excessTokens < 0n) {
+        console.error('Not enough balance for token', category, '. Need', excessTokens)
+        throw JsonPaymentProtocolError('Not enough token balance')
+      }
+      if (excessTokens > 0n) {
+        txBuilder.outputs.push({
+          to: toTokenAddress(changeAddress),
+          amount: 1000n,
+          token: { category, amount: excessTokens },
+        })
+      }
+    }))
+
+    const bchUtxos = await this.getUtxosFromWallet(wallet);
+    for (const bchUtxo of bchUtxos) {
+      if (txBuilder.excessSats >= 0n) break
+
+      if (utxosMap.has(`${bchUtxo.txid}:${bchUtxo.vout}`)) continue
+      utxosMap.set(`${bchUtxo.txid}:${bchUtxo.vout}`, 1)
+
+      const parsedUtxo = watchtowerUtxoToCashscriptP2pkh(bchUtxo, wallet);
+      txBuilder.inputs.push(parsedUtxo)
+    }
+
+    const changeOutput = { to: changeAddress, amount: 546n }
+    txBuilder.outputs.push(changeOutput)
+
+    // Iteratively adjust change output to ensure correct fee
+    // This handles any rounding issues in fee calculation with multiple inputs
+    let iterations = 0
+    const maxIterations = 20
+    let previousExcess = null
+    
+    while (iterations < maxIterations) {
+      const excess = txBuilder.excessSats
+      
+      if (excess < 0n) {
+        // Not enough funds even with change output, remove it
+        txBuilder.outputs = txBuilder.outputs.filter(output => output !== changeOutput)
+        break
+      } else if (excess === 0n) {
+        // Perfect balance, we're done
+        break
+      } else if (excess > 0n && excess < 10n && previousExcess !== null && previousExcess === excess) {
+        // If we're stuck with a small positive excess (1-9 satoshis) that isn't changing,
+        // add it to the fee by reducing the change output by that amount
+        changeOutput.amount -= excess
+        if (changeOutput.amount < 546n) {
+          // If change becomes dust, remove it and accept the slight overpayment
+          txBuilder.outputs = txBuilder.outputs.filter(output => output !== changeOutput)
+        }
+        break
+      } else {
+        // Add excess to change output
+        previousExcess = excess
+        changeOutput.amount += excess
+      }
+      
+      iterations++
+    }
+    
+    // Final validation: ensure we're not underpaying
+    const finalExcess = txBuilder.excessSats
+    if (finalExcess < 0n) {
+      throw JsonPaymentProtocolError('Insufficient funds for transaction including fees')
+    }
+
     this.preparedTx = { builder: txBuilder, verified: false }
     return this.preparedTx
   }

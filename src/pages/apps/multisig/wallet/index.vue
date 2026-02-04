@@ -1,8 +1,8 @@
 <template>
     <div class="static-container">
-      <div id="app-container" :class="getDarkModeClass(darkMode)">
+      <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
         <HeaderNav
-          :title="$t('Multisig Wallet')"
+          :title="$t('MultisigWallet')"
           backnavpath="/apps"
           class="q-px-sm apps-header gift-app-header"
         />
@@ -12,7 +12,7 @@
                   no-caps
                   icon="add"
                   color="primary"
-                  :label="$t('Create Wallet')"
+                  :label="$t('CreateWallet')"
                   class="button"
                   :to="{ name: 'app-multisig-wallet-create'}"
                 />
@@ -20,7 +20,7 @@
                   no-caps
                   icon="add"
                   color="primary"
-                  :label="$t('Delete All Wallets')"
+                  :label="$t('DeleteAllWallets')"
                   class="button"
                   @click="deleteAllWallets"
                 />
@@ -28,7 +28,7 @@
                   no-caps
                   icon="qr_code_2"
                   color="primary"
-                  :label="$t('QR Code')"
+                  :label="$t('QRCode')"
                   class="button"
                   :to="{ name: 'app-multisig-signer-qrcode'}"
                 />

@@ -2,6 +2,7 @@
   <div id="transaction">
     <q-dialog ref="dialog" @hide="hide" persistent seamless class="no-click-outside">
       <q-card
+        id="scrollArea"
         ref="card"
         v-if="transaction && transaction.asset"
         style="padding: 20px 10px 5px 0; max-height:85vh;"
@@ -9,7 +10,7 @@
         :class="getDarkModeClass(darkMode)"
       >
         <div class="close-button-container row items-center justify-end">
-          <q-btn icon="close" flat round dense v-close-popup class="close-button" />
+          <q-btn icon="close" flat round dense v-close-popup class="close-button" @click="showMemo = false"/>
         </div>
         <div class="text-h6 text-uppercase text-center">
           <template v-if="stablehedgeTxView">{{ stablehedgeTxData?.transactionTypeText }}</template>
@@ -31,52 +32,29 @@
                 :src="getImageUrl(transaction.asset)"
                 alt="asset-logo"
                 height="30"
+                class="asset-icon"
+                @contextmenu.prevent
+                @selectstart.prevent
               />
             </q-item-section>
             <q-item-section>
               <q-item-label>
-                <template v-if="stablehedgeTxView">
-                  {{ `${parseAssetDenomination(
-                    denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                    ...transaction.asset,
-                    balance: stablehedgeTxData?.bch
-                  })}` }}
-                </template>
-                <template v-else-if="transaction.record_type === 'outgoing'">
-                  <template v-if="transaction.asset.id.startsWith('ct/')">
-                    {{ formatTokenAmount(transaction) }}
-                  </template>
-                  <template v-else>
-                    {{ `${parseAssetDenomination(
-                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                      ...transaction.asset,
-                      balance: transaction.amount
-                    })}` }}
-                  </template>
-                </template>
-                <template v-else>
-                  <template v-if="transaction.asset.id.startsWith('ct/')">
-                    {{ formatTokenAmount(transaction) }}
-                  </template>
-                  <template v-else>
-                    {{ `${parseAssetDenomination(
-                      denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
-                      ...transaction.asset,
-                      balance: transaction.amount
-                    })}` }}
-                  </template>
-                </template>
+                {{ `${parseAssetDenomination(
+                  denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
+                  ...transaction.asset,
+                  balance: stablehedgeTxView ? stablehedgeTxData?.bch : transaction.amount
+                })}` }}
               </q-item-label>
-              <q-item-label v-if="transactionAmountMarketValue" class="row items-center text-caption">
+              <q-item-label v-if="displayFiatAmount !== null && displayFiatAmount !== undefined" class="row items-center text-caption">
                 <template v-if="stablehedgeTxView">
                   {{ `${parseFiatCurrency(stablehedgeTxData?.amount, stablehedgeTxData?.currency)}` }}
                 </template>
                 <template v-else>
                   <template v-if="transaction.record_type === 'outgoing'">
-                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                    {{ `${parseFiatCurrency(displayFiatAmount, selectedMarketCurrency)}` }}
                   </template>
                   <template v-else>
-                    {{ `${parseFiatCurrency(transactionAmountMarketValue, selectedMarketCurrency)}` }}
+                    {{ `${parseFiatCurrency(displayFiatAmount, selectedMarketCurrency)}` }}
                   </template>
                   <q-icon v-if="historicalMarketPrice" name="info" class="q-ml-sm" size="1.5em">
                     <q-popup-proxy v-if="historicalMarketPrice" :breakpoint="0">
@@ -118,7 +96,7 @@
                   </q-badge>
                 </template>
               </q-item-label>
-              <div v-if="!transaction.asset.id.startsWith('bch')">
+              <div v-if="showTokenTypeBadge">
                 <TokenTypeBadge :assetId="transaction.asset.id" abbreviate />
               </div>
             </q-item-section>
@@ -148,12 +126,12 @@
               v-ripple
               style="overflow-wrap: anywhere;"
               v-if="!isSep20Tx && (transaction.asset.id.startsWith('bch') || transaction.asset.id.startsWith('ct/'))"
-              @click="copyToClipboard(isSep20Tx ? transaction.hash.substring(0, 6).toUpperCase() : transaction.txid.substring(0, 6).toUpperCase())"
+              @click="copyToClipboard(hexToRef(isSep20Tx ? transaction.hash.substring(0, 6) : transaction.txid.substring(0, 6)))"
             >
               <q-item-section>
                 <q-item-label class="text-gray" caption>{{ $t('ReferenceId') }}</q-item-label>
                 <q-item-label>
-                  {{ transaction.txid.substring(0, 6).toUpperCase() }}
+                  {{ hexToRef(transaction.txid.substring(0, 6)) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -460,6 +438,77 @@
                 </q-item>
               </div>
             </q-slide-transition>
+
+            <!-- Memo Section -->
+            <div class="memo-section q-mt-md q-px-md">
+              <div v-if="hasMemo || showMemo" class="text-grey text-weight-medium text-caption q-mb-sm">{{ $t('Memo') }}</div>
+              <q-slide-transition>
+                <div v-if="!showMemo">
+                  <div v-if="hasMemo" class="memo-display-container">
+                    <div 
+                      class="memo-content-container"
+                      :class="getDarkModeClass(darkMode)"
+                    >
+                      <div class="memo-text">{{ memo.note }}</div>
+                      <div class="memo-actions">
+                        <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
+                        <q-separator vertical :dark="darkMode"/>
+                        <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else>
+                    <q-item-section class="q-pt-sm">
+                      <q-btn
+                        outline
+                        no-caps
+                        :label="$t('AddMemo', {}, 'Add memo')"
+                        icon="add"
+                        color="grey-7"
+                        class="br-15"
+                        padding="xs md"
+                        :disable="networkError"
+                        @click="openMemo()"
+                      />
+                      <div v-if="networkError" class="row justify-between q-pt-xs q-px-sm">
+                        <div class="text-grey-5 text-italic" style="font-size: 12px;">
+                          {{ $t('NetworkError', {}, 'Network error. Try again later.') }}
+                        </div>
+                        <div>
+                          <q-btn flat padding="none" color="grey-7" size="sm" icon="refresh" @click="show(transaction)"/>
+                        </div>
+                      </div>
+                    </q-item-section>
+                  </div>
+                </div>
+                <q-item v-else style="overflow-wrap: anywhere;">
+                  <q-item-section>
+                    <q-item-label>
+                      <div class="row items-start">
+                        <div class="col q-pr-sm">
+                          <input
+                            ref="memoInput"
+                            v-model="memo.note"
+                            type="text"
+                            class="memo-input"
+                            :class="darkMode ? 'memo-input-dark' : 'memo-input-light'"
+                            :placeholder="$t('AddNoteForThisTransaction', {}, 'Enter memo...')"
+                            style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;"
+                            @keyup.enter="saveMemo()"
+                            @keyup.esc="showMemo = false"
+                          />
+                        </div>
+                        <div class="row items-center no-wrap">
+                          <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memo.note" @click="saveMemo()"/>
+                          <q-separator vertical :dark="darkMode"/>
+                          <q-btn flat icon="close" size="sm" padding="xs sm" @click="showMemo = false"/>
+                        </div>
+                      </div>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-slide-transition>
+            </div>
           </q-list>
         </q-card-section>
       </q-card>
@@ -479,9 +528,15 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
+import * as memoService from 'src/utils/memo-service'
+import { compressEncryptedMessage, encryptMessage, compressEncryptedImage, encryptImage } from 'src/marketplace/chat/encryption'
+import { ref } from 'vue'
+import { hexToRef } from 'src/utils/reference-id-utils'
+
 
 export default {
   name: 'transaction',
+  emits: ['memo-updated'],
   props: {
     wallet: Object,
     denominationTabSelected: String,
@@ -501,7 +556,13 @@ export default {
       transaction: {},
       stablehedgeTxView: false,
       displayRawAttributes: false,
-      denomination: this.$store.getters['global/denomination']
+      denomination: this.$store.getters['global/denomination'],
+      showMemo: false,
+      memo: {
+        note: ''
+      },
+      hasMemo: false,
+      networkError: false
     }
   },
   computed: {
@@ -513,13 +574,10 @@ export default {
     },
     explorerLink () {
       const txid = this.transaction.txid
-      let url = 'https://blockchair.com/bitcoin-cash/transaction/'
-
-      if (this.transaction.asset.id.split('/')[0] === 'ct')
-        url = 'https://explorer.bitcoinunlimited.info/tx/'
+      let url = 'https://explorer.paytaca.com/tx/'
 
       if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash/tx/'
+        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
       }
 
       return `${url}${txid}`
@@ -527,6 +585,19 @@ export default {
     isSep20Tx () {
       const hash = String(this.transaction && this.transaction.hash)
       return /^0x[0-9a-f]{64}/i.test(hash)
+    },
+    enableSLP () {
+      return this.$store.getters['global/enableSLP']
+    },
+    isCTAsset () {
+      const id = String(this.transaction?.asset?.id || '')
+      return id.startsWith('ct/')
+    },
+    showTokenTypeBadge () {
+      const id = String(this.transaction?.asset?.id || '')
+      if (id.startsWith('bch')) return false
+      if (this.isCTAsset && !this.enableSLP) return false
+      return true
     },
     fallbackAssetLogo () {
       if (!this.transaction || !this.transaction.asset) return ''
@@ -558,6 +629,17 @@ export default {
       }
 
       return (Number(transaction.amount) * Number(this.marketAssetPrice)).toFixed(5)
+    },
+    // Prefer provided fiat_amounts for the selected fiat currency; otherwise fallback
+    // to the computed market value. Accept zero values as valid.
+    fiatAmountOverride () {
+      const code = this.selectedMarketCurrency
+      const provided = code && this.transaction?.fiat_amounts ? this.transaction.fiat_amounts[code] : undefined
+      const numeric = Number(provided)
+      return Number.isFinite(numeric) ? numeric : null
+    },
+    displayFiatAmount () {
+      return this.fiatAmountOverride ?? this.transactionAmountMarketValue
     },
     txFeeMarketValue () {
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
@@ -607,6 +689,7 @@ export default {
     getAssetDenomination,
     parseAssetDenomination,
     parseFiatCurrency,
+    hexToRef,
     getDarkModeClass,
     convertCashAddress,
     concatenate (array) {
@@ -620,15 +703,142 @@ export default {
         return addresses.join(', ')
       }
     },
-    show (transaction) {
+    async show (transaction) {
+      this.memo = {
+        note: ''
+      }
       try {
         this.transaction = transaction
+
+        // Use memo service to load and decrypt memo
+        const result = await memoService.loadMemo(this.transaction.txid)
+
+        if (result.success) {
+          if (result.memo) {
+            // Memo successfully decrypted
+            this.memo = {
+              note: result.memo
+            }
+            this.hasMemo = true
+            this.networkError = false
+          } else {
+            // No memo found (not an error)
+            this.hasMemo = false
+            this.networkError = false
+          }
+        } else {
+          // Error loading/decrypting memo
+          console.error('[transaction] show error:', result.error)
+          this.hasMemo = false
+          this.networkError = true
+        }
+
         this.$refs.dialog.show()
-      } catch (err) {}
+      } catch (err) {
+        console.error('[transaction] show: Unexpected error:', err)
+        this.networkError = true
+      }
     },
     hide () {
       this.$refs.dialog.hide()
-      this.$parent.toggleHideBalances()
+      // Only call if parent has the method
+      if (this.$parent && typeof this.$parent.toggleHideBalances === 'function') {
+        this.$parent.toggleHideBalances()
+      }
+    if (typeof this.hideCallback === 'function') {
+      try { this.hideCallback() } catch (e) {}
+    }
+    },
+    openMemo () {
+      this.showMemo = true
+
+
+        setTimeout(() => {
+          const content = document.getElementById('scrollArea')    
+          content.scrollTop = content.scrollHeight + 100  
+
+          this.$refs.memoInput.focus()      
+        }, 200)     
+    },
+    async saveMemo() {
+      try {
+        const trimmedMemo = String(this.memo.note || '').trim()
+        if (!trimmedMemo) {
+          this.showMemo = false
+          return
+        }
+
+        // Use memo service to save memo
+        const result = await memoService.saveMemo(this.transaction.txid, trimmedMemo, this.hasMemo)
+
+        if (result.success) {
+          this.memo = {
+            note: trimmedMemo
+          }
+          this.hasMemo = true
+          this.networkError = false
+          
+          // Emit memo updated event with the actual encrypted memo
+          this.$emit('memo-updated', {
+            txid: this.transaction.txid,
+            encrypted_memo: result.encrypted_memo || null
+          })
+        } else {
+          this.hasMemo = false
+          this.networkError = true
+        }
+
+        this.showMemo = false
+      } catch (error) {
+        console.error('[transaction] saveMemo: Unexpected error:', error)
+        this.networkError = true
+        this.showMemo = false
+      }
+    },
+    confirmDelete () {
+      this.$q.dialog({
+        title: 'Deleting this Memo',  
+        message: '',      
+        dark: this.darkMode,
+        ok: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+        cancel: {
+          push: true,
+          color: 'primary',
+          flat: true
+        },
+
+        persistent: true,
+        class: this.darkMode ? 'text-white' : 'text-black'
+      }).onOk(async () => {
+        try {
+          const result = await memoService.deleteMemo(this.transaction.txid)
+
+          if (result.success) {
+            this.showMemo = false
+            this.hasMemo = false
+            this.memo = {
+              note: ''
+            }
+            
+            // Emit memo updated event (with null to indicate deletion)
+            this.$emit('memo-updated', {
+              txid: this.transaction.txid,
+              encrypted_memo: null
+            })
+          } else {
+            console.error('[transaction] confirmDelete error:', result.error)
+            this.networkError = true
+          }
+        } catch (error) {
+          console.error('[transaction] confirmDelete: Unexpected error:', error)
+          this.networkError = true
+        }
+      }).onCancel(() => {        
+      })
     },
     formatDate (date) {
       const dateObj = new Date(date)
@@ -755,7 +965,7 @@ export default {
   mounted () {
     document.addEventListener('backbutton', () => {
       this.$refs.dialog.hide()
-    })
+    })    
   }
 }
 </script>
@@ -795,5 +1005,75 @@ export default {
   }
   .text-gray {
     color: gray;
+  }
+  
+  .memo-input {
+    transition: all 0.2s ease;
+    
+    &:focus {
+      box-shadow: 0 0 0 2px rgba(var(--q-primary-rgb), 0.2);
+    }
+  }
+  
+  .memo-input-light {
+    color: rgba(0, 0, 0, 0.87);
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    
+    &:focus {
+      background-color: rgba(0, 0, 0, 0.06);
+      border-color: var(--q-primary);
+    }
+    
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.4);
+    }
+  }
+  
+  .memo-input-dark {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    
+    &:focus {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: var(--q-primary);
+    }
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  .memo-display-container {
+    display: flex;
+    margin-bottom: 12px;
+  }
+
+  .memo-content-container {
+    cursor: default;
+    padding: 12px 20px;
+    border-radius: 12px;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(128, 128, 128, 0.08);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    max-width: 100%;
+    
+    .memo-text {
+      flex: 1;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .memo-actions {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
   }
 </style>

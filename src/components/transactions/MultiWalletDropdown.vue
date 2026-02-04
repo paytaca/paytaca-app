@@ -1,20 +1,21 @@
 <template>
   <q-btn
     flat
-    :class="isMobile ? 'col-10' : 'col-12'"
+    ref="walletButton"
+    :class="isMobile && !isChipnet ? 'col-10' : 'col-12'"
     align="left"
     @click="showMultiWalletDialog"
   >
     <template v-slot:default>
       <div class="row">
         <q-icon
-          :name="arrowIcon"
+          name="keyboard_double_arrow_right"
           class="col-1 text-bow"
           :class="getDarkModeClass(darkMode)"
         />
         <span
-          class="text-bold text-h6 wallet-name-label col-11"
-          :class="!darkMode && isNotDefaultTheme(theme) ? 'text-black' : 'text-grad'"
+          class="text-bold text-h6 wallet-name-label col-11 text-grad"
+          ref="walletLabel"
         >
           {{ walletNameLabel }}
         </span>
@@ -31,7 +32,7 @@
 
 <script>
 import MultiWallet from 'src/components/multi-wallet/index'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MultiWalletDropdown',
@@ -42,7 +43,6 @@ export default {
 
   data () {
     return {
-      arrowIcon: 'arrow_drop_down',
       isShow: false
     }
   },
@@ -62,41 +62,37 @@ export default {
     },
     walletNameLabel () {
       if (this.walletName) return this.walletName
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      return `Personal Wallet #${walletIndex + 1}`
+      return 'Personal Wallet'
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    isChipnet () {
+      return this.$store.getters['global/isChipnet']
     }
   },
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     showMultiWalletDialog () {
-      if (!this.isShow) {
-        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
-        this.arrowIcon = 'arrow_drop_up'
+      if (this.isShow) {
+        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
         this.isShow = true
       } else {
-        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].hide()
+        this.$refs['multi-wallet-parent'].$refs['multi-wallet'].show()
         this.isShow = false
-        this.arrowIcon = 'arrow_drop_down'
       }
     },
     onDialogHide () {
       this.isShow = false
-      this.arrowIcon = 'arrow_drop_down'
     }
   },
 
-  // Commented out due to redundant api call done inside child component `MultiWallet`
-  // mounted () {
-  //   this.$store.dispatch(
-  //     'global/syncWalletName',
-  //     { walletIndex: this.walletIndex }
-  //   )
-  // }
+  mounted () {
+    const buttonEl = this.$refs.walletButton.$el
+    const labelEl = this.$refs.walletLabel
+    labelEl.style.maxWidth = `${Math.floor(buttonEl.clientWidth * 0.9)}px`
+  }
 }
 </script>
 

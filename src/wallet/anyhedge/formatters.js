@@ -1,9 +1,9 @@
-import { AnyHedgeManager, SettlementType, castContractDataV1toContractDataV2 } from '@generalprotocols/anyhedge'
+import { AnyHedgeManager, SettlementType } from '@generalprotocols/anyhedge'
 import { AnyHedgeArtifacts } from '@generalprotocols/anyhedge-contracts';
-import { AnyHedgeManager as AnyHedgeManagerOld } from '@generalprotocols/anyhedge-old';
 import ago from 's-ago'
 import { capitalize } from 'vue'
 import { castBigIntSafe } from './utils'
+import { createUnsupportedContract } from './backwards';
 
 export function formatPositionOfferStatus(value='') {
   if (!value) return ''
@@ -363,16 +363,8 @@ export async function parseHedgePositionData(data) {
 
 export async function compileContract(contractCreationParameters, contractVersion) {
   if (contractVersion && !AnyHedgeArtifacts[contractVersion]) {
-    const _castedCreationParams = Object.assign({}, contractCreationParameters)
-    if (_castedCreationParams?.takerSide === 'short') _castedCreationParams.takerSide = 'hedge'
-    if (_castedCreationParams?.makerSide === 'short') _castedCreationParams.makerSide = 'hedge'
-    _castedCreationParams.maturityTimestamp = parseInt(_castedCreationParams?.maturityTimestamp)
-    _castedCreationParams.enableMutualRedemption = parseInt(_castedCreationParams?.enableMutualRedemption)
-    _castedCreationParams.hedgeMutualRedeemPublicKey = _castedCreationParams?.shortMutualRedeemPublicKey
-    _castedCreationParams.hedgePayoutAddress = _castedCreationParams?.shortPayoutAddress
-    const managerOld = new AnyHedgeManagerOld({ contractVersion: contractVersion })
-    const contractDataV1 = await managerOld.createContract(_castedCreationParams)
-    const contractDataV2 = castContractDataV1toContractDataV2(contractDataV1)
+    const manager = new AnyHedgeManager();
+    const contractDataV2 = await createUnsupportedContract(contractCreationParameters, contractVersion, manager.networkProvider);
     return contractDataV2
   }
 

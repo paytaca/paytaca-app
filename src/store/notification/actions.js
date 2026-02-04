@@ -1,25 +1,50 @@
 import { bus } from 'src/wallet/event-bus'
 import { types } from './getters'
 import Router from 'src/router'
+import { getCurrentWalletHash } from 'src/utils/wallet-storage'
 
 const NotificationTypes = types()
 
 export async function handleOpenedNotification(context) {
   const $router = Router()
   const openedNotification = context.getters['openedNotification']
-  const route = await context.dispatch('getOpenedNotificationRoute')
-
-  const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
-  const currentWalletIndex = context.rootGetters['global/getWalletIndex']
-
-  if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
-    console.log(
-      'current wallet index:', currentWalletIndex,
-      'push notification wallet index:', multiWalletIndex,
-      'redirecting to push notification page',
-    )
+  
+  // Check if app is locked
+  const lockAppEnabled = context.rootGetters['global/lockApp']
+  const isUnlocked = context.rootGetters['global/isUnlocked']
+  
+  if (lockAppEnabled && !isUnlocked) {
+    // Store the notification for later processing after unlock
+    // The notification will be processed after unlock via push-notification-router
     $router.push($router.resolve({ name: 'push-notification-router' }))
     return
+  }
+  
+  const route = await context.dispatch('getOpenedNotificationRoute')
+
+  // Check for wallet_hash first (newer wallets)
+  const notificationWalletHash = openedNotification?.data?.wallet_hash
+  const currentWalletHash = getCurrentWalletHash()
+
+  if (notificationWalletHash && typeof notificationWalletHash === 'string') {
+    // Compare wallet hashes (normalize by trimming)
+    const normalizedNotificationHash = notificationWalletHash.trim()
+    const normalizedCurrentHash = currentWalletHash ? currentWalletHash.trim() : null
+
+    if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
+      $router.push($router.resolve({ name: 'push-notification-router' }))
+      return
+    }
+    // If wallet hashes match, continue with routing
+  } else {
+    // Fall back to multi_wallet_index for backward compatibility (old wallets)
+    const multiWalletIndex = parseInt(openedNotification?.data?.multi_wallet_index)
+    const currentWalletIndex = context.rootGetters['global/getWalletIndex']
+
+    if (Number.isSafeInteger(multiWalletIndex) && multiWalletIndex !== currentWalletIndex) {
+      $router.push($router.resolve({ name: 'push-notification-router' }))
+      return
+    }
   }
 
   if (route) await $router.push(route)
@@ -33,12 +58,10 @@ export function emitOpenedNotification(context) {
 export function getOpenedNotificationRoute(context) {
   const $router = Router()
   const openedNotification = context.getters['openedNotification']
-  console.log('openedNotification', openedNotification)
 
   let route = null
   switch(openedNotification?.data?.type) {
     case(NotificationTypes.MAIN_TRANSACTION):
-    case(NotificationTypes.SBCH_TRANSACTION):
       route = { name: 'transaction-index' }
       break
     case(NotificationTypes.ANYHEDGE_MATURED):
@@ -96,7 +119,6 @@ export function getOpenedNotificationRoute(context) {
   }
 
   try {
-    console.log('route', route)
     return $router.resolve(route)
   } catch (error) { console.error(error) }
   return null

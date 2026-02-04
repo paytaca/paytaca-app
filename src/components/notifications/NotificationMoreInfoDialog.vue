@@ -1,7 +1,6 @@
 <template>
   <q-dialog
     persistent
-    seamless
     class="no-click-outside"
   >
     <q-card class="q-pa-md pt-card-2 full-width text-bow" :class="getDarkModeClass(darkMode)">

@@ -1,91 +1,95 @@
 <template>
   <div class="static-container">
-    <div id="app-container" :class="getDarkModeClass(darkMode)" class="text-bow">
+    <div id="app-container" class="sticky-header-container text-bow multisig-app" :class="getDarkModeClass(darkMode)">
       <HeaderNav
-        :title="$t('Multisig Wallets')"
-        backnavpath="/apps"
-        class="q-px-sm apps-header gift-app-header"
-      >
-      <!-- <template v-slot:top-right-menu>
-        <div class="flex items-center justify-end" >
-          <q-btn icon="settings" :to="{ name: 'app-multisig-settings'}" flat style="margin-left: -10px; margin-top: -5px;" size="lg" dense></q-btn>
+          :title="$t('MultisigWallets', {}, 'Multisig Wallets')"
+          backnavpath="/apps"
+          class="header-nav q-px-sm apps-header gift-app-header"
+        >
+      </HeaderNav>
+      <div class="row justify-center">
+        <div class="col-xs-12">
+          <q-banner class="q-ma-lg rounded text-caption text-justify q-pa-md" :class="getDarkModeClass(darkMode)" style="word-break: auto-phrase; border-radius: 15px;">
+            <q-icon name="warning" color="warning" size="sm" class="q-mr-sm"></q-icon>
+            {{ $t('MultisigWalletsBetaDisclaimerMessage') }}
+          </q-banner>
         </div>
-      </template> -->
-    </HeaderNav>
-      <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center">
+      </div>
+      <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center q-mb-lg">
           <div class="col-xs-12 q-px-xs q-gutter-y-sm">
-            <q-list v-if="multisigWallets" separator :class="getDarkModeClass(darkMode)">
-              <q-item>
-                <q-item-section></q-item-section>
-                <q-item-section side top>
-                  <q-btn
-                    no-caps
-                    icon="more_vert"
-                    flat
-                    dense
-                    size="md"
-                    @click="openMainActionsDialog"
-                  />
-                </q-item-section>
-              </q-item>
-              <q-separator inset />
-              <q-item
-                v-for="wallet, i in multisigWallets"
-                :key="i"
-                :to="{ name: 'app-multisig-wallet-view', params: { address: wallet.address } }"
-                class="q-py-md"
-                clickable
-                >
-                <q-item-section>
-                  <q-item-label class="text-weight-bold flex items-center">
-                    <q-icon name="mdi-wallet-outline" color="grad" class="q-mr-sm"></q-icon><span>{{ wallet.template.name }}</span>
-                  </q-item-label>
-                  <q-item-label caption class="text-subtitle1">
-                    {{ shortenString(wallet.address, 18) }}
-                  </q-item-label>
-                  <q-item-label caption lines="2" class="text-subtitle1">
-                    <span v-for="signerEntityKey in Object.keys(wallet.template.entities)" :key="`signer-${signerEntityKey}`" class="q-mr-sm">
-                      {{ signerEntityKey}}: {{ wallet.template.entities[signerEntityKey].name }},
+            <div v-if="multisigWallets" class="q-mb-sm">
+              <div class="row justify-end q-gutter-x-sm q-mb-md">
+                <q-btn color="primary" icon="add" @click="onCreateWalletClick" round dense outline></q-btn>
+                <q-btn color="primary" icon="download" @click="onImportWalletClick" round dense outline></q-btn>
+                <q-btn color="red" icon="mdi-delete-sweep-outline" @click="onDeleteAllWalletsClick" round dense outline></q-btn>
+              </div>
+            </div>
+            <q-card
+              v-for="wallet, i in multisigWallets"
+              :key="i"
+              flat
+              class="q-mb-sm multisig-wallet-card"
+              :class="`${getDarkModeClass(darkMode)} ${$q.screen.gt.xs ? 'q-mx-lg': ''}`"
+              clickable
+              @click="router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })"
+            >
+              <q-card-section class="q-pa-md">
+                <div class="flex items-center q-mb-sm">
+                  <q-icon name="wallet" color="grad" size="md" class="q-mr-sm"></q-icon>
+                  <div class="text-weight-bold text-h6">{{ wallet.name }}</div>
+                </div>
+                <div class="flex items-center">
+                  <q-icon name="group" class="q-mr-sm" size="sm"></q-icon>
+                  <div class="text-body2">
+                    <span v-for="(signer, signerIndex) in wallet?.signers" :key="`signer-${i}-${signerIndex}`">
+                      {{ signer.name }}<span v-if="signerIndex < wallet.signers.length - 1">, </span>
                     </span>
-                  </q-item-label>
-                </q-item-section>
-                <!--q-item-section side top>
-                  <q-btn
-                    icon="close"
-                    @click.stop="(e) => { e.preventDefault(); deleteWallet(wallet.address) }"
-                    flat
-                    dense
-                  >
-                  </q-btn>
-                </q-item-section-->
-              </q-item>
-            </q-list>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
           </div>
       </div>
-      <div v-else class="row justify-center items-center" style="height: 80vh">
-        <div class="col-10 text-center q-gutter-lg">
-         <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
-        <div>
-        <q-btn
-          no-caps
-          icon="mdi-wallet-plus-outline"
-          :to="{ name: 'app-multisig-wallet-create'}"
-          dense
-          size="lg"
-          label="Create Wallet"
-          color="primary"
-        />
-        </div>
-       <div>
-        <q-btn
-          no-caps
-          icon="mdi-wallet-plus"
-          dense
-          size="lg"
-          label="Import Wallet"
-          @click="importWallet"
-          color="primary"
-        /></div></div>
+      <div v-else class="row justify-center items-center q-mt-lg">
+          <!-- <div class="col-10 text-center q-gutter-lg">
+            <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
+            <div>
+            <q-btn
+              no-caps
+              icon="mdi-wallet-plus-outline"
+              :to="{ name: 'app-multisig-wallet-create'}"
+              dense
+              size="lg"
+              label="Create Wallet"
+              color="primary"
+            />
+            </div>
+          <div>
+            <q-btn
+              no-caps
+              icon="mdi-wallet-plus"
+              dense
+              size="lg"
+              label="Import Wallet"
+              @click="importWallet"
+              color="primary"
+            />
+          </div>
+          </div> -->
+          <div class="col-xs-12 row justify-center q-gutter-y-xl">
+            <div class="col-xs-12 text-center">
+              <q-btn size="lg"  @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+                <q-icon class="default-text-color"  size="lg" name="qr_code" />
+              </q-btn>
+              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
+            </div>
+            <div class="col-xs-12 text-center">
+              <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round size="lg">
+                <q-icon class="default-text-color" size="lg" name="download" />
+              </q-btn>
+              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
+            </div>
+          </div>
       </div>
       <q-file
         ref="walletFileElementRef"
@@ -95,31 +99,31 @@
         @update:model-value="onUpdateWalletFileModelValue">
       </q-file>
       <!-- display created wallets  -->
-     </div>
     </div>
+  </div>
 </template>
 
 <script setup>
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { shortenString, importMultisigWallet, getMultisigCashAddress } from 'src/lib/multisig'
+import { MultisigWallet } from 'src/lib/multisig'
 import HeaderNav from 'components/header-nav'
-import ImportWalletDialog from 'components/multisig/ImportWalletDialog.vue'
-import MainActionsDialog from 'components/multisig/MainActionsDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
+const route = useRoute()
 const { t: $t } = useI18n()
 const {
   multisigWallets,
-  cashAddressNetworkPrefix
 } = useMultisigHelpers()
+const { ensureCanPerformAction } = useTieredLimitGate()
 
 const walletFileElementRef = ref()
 const walletFileModel = ref()
@@ -129,52 +133,56 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-// const wallets = computed(() => {
-//   return MultisigWallet.createInstanceFromObjects($store.getters['multisig/getWallets'])
-// })
+const onCreateWalletClick = async () => {
+  const allowed = await ensureCanPerformAction('multisigWallets', { darkMode: darkMode.value })
+  if (!allowed) return
+  router.push({ name: 'app-multisig-wallet-create' })
+}
 
-const importWallet = () => {
+const onImportWalletClick = async () => {
+  const allowed = await ensureCanPerformAction('multisigWallets', { darkMode: darkMode.value })
+  if (!allowed) return
+  importWallet()
+}
+
+const onDeleteAllWalletsClick = async () => {
   $q.dialog({
-    component: ImportWalletDialog,
-    componentProps: {
-      darkMode: darkMode.value,
-      onImportFromFile: () => walletFileElementRef.value.pickFiles(),
-      onImportFromServer: async () => {
-        router.push({ name: 'app-multisig-wallets-synced' })
-      }
-    }
+    message: $t('AreYouSureDeleteAllWallets'),
+    ok: { 
+      label: $t('Yes'),
+      color: 'primary',
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)}`,
+    },
+    cancel: { 
+      label: $t('No'),
+      color: 'default',
+      outline: true,
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)} `,
+    },
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1`,
+  }).onOk(() => {
+    $store.commit('multisig/deleteAllWallets')
   })
 }
 
-const openMainActionsDialog = () => {
-  $q.dialog({
-    component: MainActionsDialog,
-    componentProps: {
-      darkMode: darkMode.value,
-      onCreateWallet: () => {
-        router.push({ name: 'app-multisig-wallet-create' })
-      },
-      onImportWallet: async () => {
-        importWallet()
-      }
-    }
-  })
+const importWallet = () => {
+  router.push({ name: 'app-multisig-wallet-import' })
 }
 
 const onUpdateWalletFileModelValue = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      walletInstance.value = importMultisigWallet(reader.result)
-      const defaultAddress = getMultisigCashAddress({
-        lockingData: walletInstance.value.lockingData,
-        template: walletInstance.value.template,
-        cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+      walletInstance.value = MultisigWallet.fromBase64(reader.result, {
+        store: $store
       })
-      $store.dispatch('multisig/createWallet', walletInstance.value)
+      walletInstance.value.save({ sync: false })
+      // $store.dispatch('multisig/createWallet', walletInstance.value)
       router.push({
         name: 'app-multisig-wallet-view',
-        params: { address: defaultAddress }
+        params: { wallethash: walletInstance.value.getWalletHash() }
       })
     }
     reader.onerror = (err) => {
@@ -183,4 +191,74 @@ const onUpdateWalletFileModelValue = (file) => {
     reader.readAsText(file)
   }
 }
+
+
+// Check for importData in query params when component mounts
+onMounted(() => {
+  const importData = route.query.importData
+  if (importData) {
+    // Handle multi-part QR codes if needed
+    const part = route.query.part
+    const total = route.query.total
+    
+    if (part && total && parseInt(total) > 1) {
+      // Multi-part handling - you'd need to collect all parts
+      console.log(`Multi-part QR: part ${part} of ${total}`)
+      // For now, just import the single part
+    }
+    
+    // Import the wallet from base64 data
+    try {
+      walletInstance.value = MultisigWallet.fromBase64(importData, {
+        store: $store
+      })
+      walletInstance.value.save({ sync: false })
+      router.push({
+        name: 'app-multisig-wallet-view',
+        params: { wallethash: walletInstance.value.getWalletHash() }
+      })
+    } catch (error) {
+      console.error('Error importing wallet from QR:', error)
+      $q.notify({
+        message: $t('FailedToImportWalletFromQR'),
+        color: 'red'
+      })
+    }
+  }
+})
 </script>
+
+<style lang="scss" scoped>
+.multisig-wallet-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  
+  &.dark {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.16);
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  &:active {
+    background-color: rgba(255, 255, 255, 0.65);
+    border-color: rgba(0, 0, 0, 0.14);
+    
+    &.dark {
+      background-color: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+  }
+}
+</style>

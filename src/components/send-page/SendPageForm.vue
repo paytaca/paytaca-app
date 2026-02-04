@@ -12,8 +12,18 @@
         @focus="onInputFocus(index, '')"
         @blur="onEmptyRecipient"
         class="recipient-input"
-        :error="emptyRecipient"
-        :error-message="emptyRecipient ? $t('EmptyRecipient') : ''"
+        :error="emptyRecipient || inputExtras.incorrectAddress"
+        :error-message="
+          emptyRecipient
+            ? $t('EmptyRecipient')
+            : inputExtras.incorrectAddress
+              ? $t(
+                  'InvalidRecipient',
+                  { walletType: walletType.toUpperCase() },
+                  `Recipient should be a valid ${walletType.toUpperCase()} address`
+                )
+              : ''
+        "
         :dark="darkMode"
         :key="[
           recipient.recipientAddress,
@@ -100,11 +110,11 @@
         :key="inputExtras.amountFormatted"
       >
         <template v-slot:append>
-          {{ asset.id === 'bch' ? selectedDenomination : asset.symbol }}
+          {{ asset?.id === 'bch' ? selectedDenomination : (asset?.symbol || '') }}
           <DenominatorTextDropdown
             v-if="!recipient.fixedAmount"
             @on-selected-denomination="onSelectedDenomination"
-            :selectedNetwork="asset.symbol"
+            :selectedNetwork="asset?.symbol"
             :darkMode="darkMode"
             :theme="theme"
             :currentCountry="currentCountry"
@@ -114,13 +124,13 @@
     </div>
   </div>
 
-  <div class="row" v-if="!isNFT && asset.id === 'bch'">
+  <div class="row" v-if="!isNFT && asset?.id === 'bch'">
     <div class="col q-mt-xs">
       <q-input
         type="text"
         inputmode="none"
         filled
-        v-model="sendAmountInFiat"
+        v-model="fiatFormatted"
         ref="fiatInput"
         class="fiat-input-field"
         @focus="onInputFocus(index, 'fiat')"
@@ -130,7 +140,7 @@
         :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
         :label="$t('Amount')"
         :dark="darkMode"
-        :key="inputExtras.sendAmountInFiat"
+        :key="inputExtras.fiatFormatted"
       >
         <template v-slot:append>
           {{ String(currentSendPageCurrency()).toUpperCase() }}
@@ -141,20 +151,23 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
-      <span v-if="asset.id === 'bch'">
+      <template v-if="asset?.id === 'bch'">
+        <span>
         {{ parseAssetDenomination(selectedDenomination, {
           ...asset,
           balance: currentWalletBalance
         }) }}
       </span>
-      <span v-else>
-        {{ currentWalletBalance }} {{ asset.symbol }}
-      </span>
-      <template v-if="asset.id === 'bch'">
         {{ ` = ${parseFiatCurrency(
           convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
         }` }}
       </template>
+      <span v-else>
+        {{ parseAssetDenomination(selectedDenomination, {
+          ...asset,
+          balance: currentWalletBalance * (10 ** (asset?.decimals || 0))
+        }) }}
+      </span>
       <a
         href="#"
         v-if="!computingMax || !recipient.sending"
@@ -220,7 +233,8 @@ export default {
 
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
-    defaultSelectedFtChangeAddress: { type: String }
+    defaultSelectedFtChangeAddress: { type: String },
+    walletType: { type: String }
   },
 
   emits: [
@@ -236,9 +250,10 @@ export default {
 
   data () {
     return {
-      amount: 0,
-      amountFormatted: 0,
-      sendAmountInFiat: 0,
+      amount: '',
+      fiatAmount: '',
+      amountFormatted: '',
+      fiatFormatted: '',
       balanceExceeded: false,
       emptyRecipient: false,
       selectedDenomination: 'BCH',
@@ -250,7 +265,7 @@ export default {
   mounted () {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
-    this.sendAmountInFiat = this.inputExtras.sendAmountInFiat
+    this.fiatFormatted = this.inputExtras.fiatFormatted
     if (this.inputExtras.isBip21) {
       this.selectedDenomination = 'BCH'
     } else {
@@ -408,9 +423,9 @@ export default {
 
   watch: {
     amount: function (value) {
-      if (this.asset.id.startsWith('ct/')) {
-        this.balanceExceeded = value > (this.asset.balance / (10 ** this.asset.decimals))
-      } else if (this.asset.id === 'bch') {
+      if (this.asset?.id?.startsWith('ct/')) {
+        this.balanceExceeded = value > ((this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0)))
+      } else if (this.asset?.id === 'bch') {
         this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
       }
 

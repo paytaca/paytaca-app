@@ -10,76 +10,163 @@
       class="apps-header"
     />
     <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
-      <div class="row items-center justify-end">
-        <div class="text-h5">{{ $t('Merchants')}}</div>
+      <!-- Header Section -->
+      <div class="row items-center q-mt-md q-mb-md">
+        <div class="text-h5 q-mr-sm">{{ $t('Merchants')}}</div>
         <q-space/>
         <q-btn
           round
           icon="add"
-          class="btn-scan button text-white bg-grad"
+          class="button text-white bg-grad"
+          size="md"
           @click="openMerchantInfoDialog()"
         />
       </div>
 
-      <div class="q-pt-sm">
-        <q-linear-progress v-if="fetchingMerchants" query reverse rounded color="brandblue"/>
+      <!-- Loading Progress -->
+      <div class="q-pt-sm q-mb-md">
+        <q-linear-progress v-if="fetchingMerchants" query reverse rounded color="pt-primary1"/>
         <div v-else class="q-pb-xs"></div>
       </div>
 
-      <div v-if="!fetchingMerchants && !merchantsData?.length" class="text-center text-body1 text-grey">
-        {{ $t('NoRecords', {}, 'No records') }}
+      <!-- Empty State -->
+      <div v-if="!fetchingMerchants && !merchantsData?.length" class="text-center q-mt-xl">
+        <q-icon name="storefront" size="4em" class="text-grey q-mb-md" />
+        <div class="text-h6 text-grey q-mb-xs">{{ $t('NoMerchants', {}, 'No Merchants') }}</div>
+        <div class="text-body2 text-grey q-mb-lg">{{ $t('NoRecords', {}, 'No records') }}</div>
+        <q-btn
+          unelevated
+          rounded
+          color="pt-primary1"
+          :label="$t('AddMerchant', {}, 'Add Merchant')"
+          icon="add"
+          class="button"
+          @click="openMerchantInfoDialog()"
+        />
       </div>
-      <div
-        v-for="merchantData in merchantsData" :key="merchantsData?.id"
-        v-ripple
-        class="pos-merchant-list-item"
-        style="position:relative;"
-      >
-        <q-menu
-          class="pt-card-2 text-bow"
+
+      <!-- Merchants List -->
+      <div v-else class="merchants-grid">
+        <q-card
+          v-for="merchantData in merchantsData"
+          :key="merchantData?.id"
+          class="merchant-card br-15 pt-card text-bow q-mb-md"
           :class="getDarkModeClass(darkMode)"
-          touch-position
+          v-ripple
+          @click="openMerchantPage(merchantData)"
         >
-          <div style="min-width:min(35vw, 150px);">
-            <q-item
-              clickable v-close-popup
-              @click="() => openMerchantPage(merchantData)"
-            >
-              <q-item-section>
-                <q-item-label>{{ $t('View') }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable v-close-popup
-              @click="() => openMerchantInfoDialog(merchantData)"
-            >
-              <q-item-section>
-                <q-item-label>{{ $t('Edit') }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-item
-              clickable v-close-popup
-              @click="() => confirmDeleteMerchant(merchantData)"
-            >
-              <q-item-section>
-                <q-item-label>{{ $t('Delete') }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </div>
-        </q-menu>
-        <div class="text-body1">
-          {{ merchantData?.name }}
-          <span v-if="merchantData?.id" class="text-grey">#{{ merchantData?.id }}</span>
-        </div>
-        <div class="text-body2">{{ merchantData?.formattedLocation }}</div>
-        <div class="text-grey text-caption">
-          <q-badge v-if="Number.isSafeInteger(merchantData?.branchCount)" rounded color="brandblue" class="q-mr-sm">
-            {{ $t('BranchesCapped', {}, 'Branches') }}: {{ merchantData?.branchCount }}
-          </q-badge>
-          <q-badge v-if="Number.isSafeInteger(merchantData?.posDeviceCount)" rounded color="brandblue" class="q-mr-sm">
-            {{ $t('Devices') }}: {{ merchantData?.posDeviceCount }}
-          </q-badge>
-        </div>
+          <q-card-section class="q-pa-md">
+            <div class="row items-start">
+              <!-- Merchant Icon -->
+              <div class="merchant-icon-wrapper q-mr-md">
+                <div class="column items-center">
+                  <q-icon name="storefront" size="2em" :color="darkMode ? 'white' : 'pt-primary1'" />
+                  <q-badge
+                    v-if="merchantData?.id"
+                    rounded
+                    color="grey-6"
+                    class="merchant-id-badge q-mt-xs"
+                  >
+                    #{{ merchantData?.id }}
+                  </q-badge>
+                </div>
+              </div>
+
+              <!-- Merchant Info -->
+              <div class="col merchant-info">
+                <div class="row items-center q-mb-xs">
+                  <div class="text-h6 text-weight-medium">
+                    {{ merchantData?.name }}
+                  </div>
+                </div>
+                
+                <div v-if="merchantData?.formattedLocation" class="row items-center no-wrap q-mb-sm text-body2 text-grey">
+                  <q-icon name="location_on" size="1rem" class="q-mr-xs flex-shrink-0" />
+                  <span class="ellipsis">{{ merchantData?.formattedLocation }}</span>
+                </div>
+
+                <!-- Stats Badges -->
+                <div class="row items-center q-gutter-xs">
+                  <q-badge
+                    v-if="Number.isSafeInteger(merchantData?.branchCount)"
+                    rounded
+                    color="pt-primary1"
+                    class="stat-badge"
+                  >
+                    <q-icon name="store" size="0.8em" class="q-mr-xs" />
+                    {{ merchantData?.branchCount }} {{ merchantData?.branchCount === 1 ? $t('BranchSmall', {}, 'Branch') : $t('BranchesCapped', {}, 'Branches') }}
+                  </q-badge>
+                  <q-badge
+                    v-if="Number.isSafeInteger(merchantData?.posDeviceCount)"
+                    rounded
+                    color="pt-primary1"
+                    class="stat-badge"
+                  >
+                    <q-icon name="devices" size="0.8em" class="q-mr-xs" />
+                    {{ merchantData?.posDeviceCount }} {{ $t('Devices') }}
+                  </q-badge>
+                </div>
+              </div>
+
+              <!-- Menu Button -->
+              <q-btn
+                flat
+                round
+                dense
+                icon="more_vert"
+                class="menu-button"
+                :class="getDarkModeClass(darkMode)"
+                @click.stop
+              >
+                <q-menu
+                  class="pt-card-2 text-bow"
+                  :class="getDarkModeClass(darkMode)"
+                  touch-position
+                >
+                  <q-list style="min-width: 150px;">
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="() => openMerchantPage(merchantData)"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="visibility" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ $t('View') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="() => openMerchantInfoDialog(merchantData)"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="edit" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>{{ $t('Edit') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-separator />
+                    <q-item
+                      clickable
+                      v-close-popup
+                      @click="() => confirmDeleteMerchant(merchantData)"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="delete" color="red" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-red">{{ $t('Delete') }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
+            </div>
+          </q-card-section>
+        </q-card>
       </div>
     </div>
     <q-dialog v-model="confirm" persistent>
@@ -89,7 +176,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat :label="$t('OK')" color="brandblue" v-close-popup />
+          <q-btn flat :label="$t('OK')" color="pt-primary1" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -111,6 +198,7 @@ import { useStore } from 'vuex'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import HeaderNav from 'src/components/header-nav'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
+import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
 
 const $router = useRouter()
 const $store = useStore()
@@ -118,6 +206,7 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const confirm = ref(false)
+const { ensureCanPerformAction } = useTieredLimitGate()
 
 onMounted(() => refreshPage())
 
@@ -203,14 +292,31 @@ function fetchMerchants() {
 }
 
 async function openMerchantPage(merchantData) {
-  // $router.push({ name: 'app-pos-merchant', query: { merchantId: merchantData?.id } })
-  const data = await $store.dispatch('global/fetchMerchant', merchantData?.id)
-  console.log('Merchant data:', data)
-  $router.push({ name: 'app-pos-merchant', state: { merchantId: JSON.stringify(merchantData?.id), merchantData: data } })
+  try {
+    $q.loading.show({ group: 'open-merchant', message: $t('FetchingData') })
+    await $store.dispatch('global/fetchMerchant', merchantData?.id)
+  } catch(error) {
+    $q.notify({
+      type: 'negative',
+      message: String(error?.response?.data?.detail || error?.message || error),
+    })
+    throw error
+  } finally {
+    $q.loading.hide('open-merchant')
+  }
+  // Use query param so the merchant page is reloadable and doesn't rely on history.state.
+  $router.push({ name: 'app-pos-merchant', query: { merchantId: String(merchantData?.id) } })
 }
 
 const merchantInfoDialog = ref({ show: false, merchant: null })
-function openMerchantInfoDialog(merchantData) {
+async function openMerchantInfoDialog(merchantData) {
+  // If creating a new merchant (merchantData is null/undefined), check limit
+  if (!merchantData) {
+    const canCreate = await ensureCanPerformAction('merchants', { darkMode: darkMode.value, forceRefresh: true })
+    if (!canCreate) return
+  }
+  
+  // Continue with opening dialog
   merchantInfoDialog.value = { show: true, merchant: merchantData }
 }
 
@@ -237,7 +343,7 @@ function deleteMerchant(merchantData) {
     progress: true,
     persistent: true,
     ok: false,
-    color: 'brandblue',
+    color: 'pt-primary1',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   })
   return posBackend.delete(`paytacapos/merchants/${merchantData?.id}/`, { authorize: true })
@@ -286,8 +392,68 @@ async function refreshPage(done=() => {}) {
 }
 </script>
 <style lang="scss" scoped>
-.pos-merchant-list-item {
-  border-radius: map-get($space-xs, 'y');
-  padding: map-get($space-sm, 'y') map-get($space-xs, 'x');
+.merchants-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.merchant-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.merchant-icon-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.1);
+  
+  .dark & {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .column {
+    align-items: center;
+  }
+}
+
+.merchant-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.merchant-id-badge {
+  font-size: 0.75rem;
+}
+
+.stat-badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  
+  .q-icon {
+    vertical-align: middle;
+  }
+}
+
+.menu-button {
+  flex-shrink: 0;
+  opacity: 0.7;
+  
+  &:hover {
+    opacity: 1;
+  }
 }
 </style>

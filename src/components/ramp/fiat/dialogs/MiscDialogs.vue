@@ -1,24 +1,38 @@
 <template>
   <!-- Generic Dialog -->
   <q-dialog v-model="genericDialog" @before-hide="$emit('back')">
-    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
-      <q-card-section>
-        <div class="text-h6 text-center">{{ title }}</div>
+    <q-card 
+      class="br-15 pt-card-2 text-bow glassmorphic-dialog" 
+      style="width: 70%;" 
+      :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+      <q-card-section class="q-pa-lg">
+        <div class="text-h6 text-center text-weight-bold">{{ title }}</div>
       </q-card-section>
 
-      <q-card-section class="text-center q-pt-none">
-        {{ text }}
+      <q-card-section class="text-center q-pt-none q-px-lg q-pb-lg">
+        <div class="sm-font-size">{{ text }}</div>
       </q-card-section>
 
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn
-          flat
-          :label="$t('Confirm')"
-          :class="getDarkModeClass(darkMode) + ' button button-text-primary'"
-          @click="submitData()"
-          v-close-popup
-        />
+      <q-card-actions class="q-pa-lg q-pt-none" align="center">
+        <div class="row full-width q-gutter-sm">
+          <q-btn 
+            rounded
+            unelevated
+            :label="$t('Cancel')" 
+            color="red-6" 
+            class="col glassmorphic-btn-cancel"
+            @click="$emit('back')" 
+            v-close-popup />
+          <q-btn
+            rounded
+            unelevated
+            :label="$t('Confirm')"
+            class="col glassmorphic-btn-confirm"
+            :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
+            @click="submitData()"
+            v-close-popup
+          />
+        </div>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -240,61 +254,91 @@
 
   <!-- Payment Deletion Confirmation -->
   <q-dialog v-model="confirmDeletePaymentMethod" @before-hide="$emit('back')">
-    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
-      <q-card-section class="xm-font-size q-mx-lg">
-        <div class="text-center">{{ $t('DeleteThisPaymentMethod') }}</div>
+    <q-card 
+      class="br-15 pt-card-2 text-bow glassmorphic-dialog" 
+      style="width: 70%;" 
+      :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+      <q-card-section class="q-pa-lg">
+        <div class="text-h6 text-center text-weight-bold">{{ $t('DeleteThisPaymentMethod') }}</div>
       </q-card-section>
 
-      <q-card-section class="text-center q-pt-none">
-        <span class="lg-font-size text-weight-bold">
-          {{ info.payment_type.name}}:
-        </span><br>
-        <span>
+      <q-card-section class="text-center q-pt-none q-px-lg q-pb-lg">
+        <div class="q-mb-sm">
+          <span class="lg-font-size text-weight-bold">
+            {{ info.payment_type?.name }}:
+          </span>
+        </div>
+        <div class="sm-font-size">
           {{ info.account_identifier }}
-        </span>
+        </div>
       </q-card-section>
 
-      <q-card-actions class="text-center" align="center">
-        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn
-          flat
-          :label="$t('Confirm')"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-          @click="submitData()"
-          v-close-popup
-        />
+      <q-card-actions class="q-pa-lg q-pt-none" align="center">
+        <div class="row full-width q-gutter-sm">
+          <q-btn 
+            rounded
+            unelevated
+            :label="$t('Cancel')" 
+            color="red-6" 
+            class="col glassmorphic-btn-cancel"
+            @click="$emit('back')" 
+            v-close-popup />
+          <q-btn
+            rounded
+            unelevated
+            :label="$t('Confirm')"
+            class="col glassmorphic-btn-confirm"
+            :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
+            @click="submitData()"
+            v-close-popup
+          />
+        </div>
       </q-card-actions>
     </q-card>
   </q-dialog>
 
   <!-- Payment Removal Confirmation -->
   <q-dialog persistent v-model="confirmRemovePaymentMethod">
-    <q-card class="br-15 pt-card text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
-      <q-card-section class="xm-font-size q-mx-lg">
-        <div class="text-center">{{ $t('RemoveThisPaymentMethod') }}</div>
+    <q-card 
+      class="br-15 pt-card-2 text-bow glassmorphic-dialog" 
+      style="width: 70%;" 
+      :class="[getDarkModeClass(darkMode), `theme-${theme}`]">
+      <q-card-section class="q-pa-lg">
+        <div class="text-h6 text-center text-weight-bold">{{ $t('RemoveThisPaymentMethod') }}</div>
       </q-card-section>
 
-      <q-card-section class="text-center q-pt-none">
-        <span class="lg-font-size text-weight-bold">
-          {{ info.payment_type.name}}:
-        </span><br>
-        <span>
+      <q-card-section class="text-center q-pt-none q-px-lg q-pb-lg">
+        <div class="q-mb-sm">
+          <span class="lg-font-size text-weight-bold">
+            {{ info.payment_type?.name }}:
+          </span>
+        </div>
+        <div class="sm-font-size">
           {{ info.account_identifier }}
-        </span>
+        </div>
       </q-card-section>
 
-      <q-card-section class="text-center" align="center">
-        <q-btn flat :label="$t('Cancel')" color="red-6" @click="$emit('back')" v-close-popup />
-        <q-btn
-          flat
-          :label="$t('Confirm')"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-          @click="submitData()"
-          v-close-popup
-        />
-      </q-card-section>
+      <q-card-actions class="q-pa-lg q-pt-none" align="center">
+        <div class="row full-width q-gutter-sm">
+          <q-btn 
+            rounded
+            unelevated
+            :label="$t('Cancel')" 
+            color="red-6" 
+            class="col glassmorphic-btn-cancel"
+            @click="$emit('back')" 
+            v-close-popup />
+          <q-btn
+            rounded
+            unelevated
+            :label="$t('Confirm')"
+            class="col glassmorphic-btn-confirm"
+            :class="[getDarkModeClass(darkMode), `theme-${theme}`]"
+            @click="submitData()"
+            v-close-popup
+          />
+        </div>
+      </q-card-actions>
     </q-card>
   </q-dialog>
 
@@ -487,7 +531,7 @@
 
   <!-- WIP instruction dialog fot ad form -->
   <q-dialog v-model="instructionDialog" @before-hide="$emit('back')" full-width position="bottom">
-    <q-card class="br-15 pt-card-2 text-bow" style="width: 70%;" :class="getDarkModeClass(darkMode)">
+    <q-card class="br-15 pt-card-2 text-bow bottom-card" style="width: 70%;" :class="getDarkModeClass(darkMode)">
       <q-card-section>
         <div class="text-h6 text-center">{{ title }}</div>
       </q-card-section>
@@ -538,6 +582,7 @@ export default {
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
+      theme: this.$store.getters['global/theme'],
       info: {},
       loading: false,
       dialogType: '',
@@ -580,11 +625,11 @@ export default {
       storeFilters: {
         selectedPaymentTypes: [],
         selectedPTL: [15, 30, 45, 60],
-        priceOrder: null,
+        // priceOrder removed - server prioritizes ads by trades and ratings
         priceTypes: ['FIXED', 'FLOATING']
       },
       orderFilters: {
-        sort_type: 'ascending',
+        sort_type: 'descending',
         sort_by: 'created_at',
         status: [],
         payment_types: [],
@@ -781,7 +826,7 @@ export default {
     },
     updateStoreFilters (filters) {
       if (!filters) return
-      this.storeFilters.priceOrder = filters.price_order
+      // priceOrder removed - server handles ordering
       this.storeFilters.priceTypes = filters.price_types
       this.storeFilters.selectedPaymentTypes = filters.payment_types
       this.storeFilters.selectedPTL = filters.time_limits
@@ -1006,9 +1051,8 @@ export default {
           vm.info = vm.data
           return 'submit'
         case 'filterAd':
-          vm.info = {
-            price_order: vm.storeFilters.priceOrder
-          }
+          vm.info = {}
+          // price_order removed - server handles ordering by trades and ratings
           if (vm.storeFilters.selectedPaymentTypes) {
             vm.info.payment_types = vm.storeFilters.selectedPaymentTypes
           }
@@ -1110,5 +1154,125 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+
+/* Glassmorphic Dialog Enhancements */
+.glassmorphic-dialog {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glassmorphic Button Styles */
+.glassmorphic-btn-confirm {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  /* Theme-specific styling */
+  &.theme-glassmorphic-blue {
+    background: linear-gradient(
+      to right bottom,
+      rgba(59, 123, 246, 0.85),
+      rgba(54, 129, 232, 0.85),
+      rgba(49, 139, 218, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(59, 123, 246, 0.75),
+        rgba(54, 129, 232, 0.75),
+        rgba(49, 139, 218, 0.75)
+      ) !important;
+    }
+  }
+  
+  &.theme-glassmorphic-green {
+    background: linear-gradient(
+      to right bottom,
+      rgba(67, 160, 71, 0.85),
+      rgba(62, 164, 74, 0.85),
+      rgba(57, 168, 77, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(67, 160, 71, 0.75),
+        rgba(62, 164, 74, 0.75),
+        rgba(57, 168, 77, 0.75)
+      ) !important;
+    }
+  }
+  
+  &.theme-glassmorphic-gold {
+    background: linear-gradient(
+      to right bottom,
+      rgba(255, 167, 38, 0.85),
+      rgba(255, 176, 56, 0.85),
+      rgba(255, 184, 74, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(255, 167, 38, 0.75),
+        rgba(255, 176, 56, 0.75),
+        rgba(255, 184, 74, 0.75)
+      ) !important;
+    }
+  }
+  
+  &.theme-glassmorphic-red {
+    background: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85)
+    ) !important;
+    color: white !important;
+    
+    &.dark {
+      background: linear-gradient(
+        to right bottom,
+        rgba(246, 59, 123, 0.75),
+        rgba(232, 54, 96, 0.75),
+        rgba(218, 49, 72, 0.75)
+      ) !important;
+    }
+  }
+}
+
+.glassmorphic-btn-cancel {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px 0 rgba(237, 95, 89, 0.25);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
 }
 </style>

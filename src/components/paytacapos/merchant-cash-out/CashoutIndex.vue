@@ -19,7 +19,7 @@
     <!-- List -->
     <div :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
       <div v-if="isloading" class="row justify-center q-py-lg" style="margin-top: 50px">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+        <ProgressLoader />
       </div>
       <div v-else>
         <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 60}px`" style="overflow:auto;">
@@ -42,7 +42,7 @@
   </q-pull-to-refresh>
 </template>
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import { backend } from 'src/wallet/pos'
 import ProgressLoader from '../../ProgressLoader.vue'
@@ -97,7 +97,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     formatCurrency,
     async refreshData (done) {
       this.isloading = true

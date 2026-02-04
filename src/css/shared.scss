@@ -2,6 +2,7 @@
  * with properties that are the same all throughout different themes.
 */
 
+@use "sass:color";
 @import "https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500&display=swap";
 
 /* ----- VARIABLES ----- */
@@ -62,6 +63,16 @@ In html/template:
   border-bottom-right-radius: 0 !important;
 }
 
+// iOS: Quasar adds bottom padding to bottom-positioned dialogs which makes
+// "bottom-card" dialogs look like they are floating above the screen edge.
+// Keep safe-area padding INSIDE the card (see bottom-card mixin) but remove
+// extra padding on the dialog container so the card sits flush at the bottom.
+body.platform-ios {
+  .q-dialog__inner--bottom:not(.q-dialog__inner--animating) {
+    padding-bottom: 0 !important;
+  }
+}
+
 
 .br-40 {
   border-radius: 40px !important;
@@ -70,6 +81,11 @@ In html/template:
 @include gen-color-classes($brand_blue, 'brandblue');
 @include gen-color-classes($brand_dark, 'branddark');
 @include gen-color-classes($brand_light, 'brandlight');
+
+@include gen-color-classes($brand_blue, 'pt-primary1');
+@include gen-color-classes($brand_blue, 'pt-primary2');
+@include gen-color-classes($brand_dark, 'pt-dark');
+@include gen-color-classes($brand_light, 'pt-light');
 
 .pp-fcolor {
   color: #000 !important;
@@ -83,14 +99,32 @@ In html/template:
   &.dark {
     color: white;
     .text-bow-muted {
-      color: darken(#fff, 30%);
+      color: color.scale(#fff, $lightness: -30%);
     }
   }
   &.light {
     color: black;
     .text-bow-muted {
-      color: lighten(#000, 30%);
+      color: color.scale(#000, $lightness: 30%);
     }
+  }
+}
+
+// Multisig pages were visually smaller than other apps.
+// Apply a small, consistent base font-size bump only to containers
+// that opt-in via this class.
+.multisig-app {
+  font-size: 15px;
+  // Add consistent side gutters like other apps pages
+  padding-left: 12px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 600px) {
+  .multisig-app {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 
@@ -125,21 +159,26 @@ In html/template:
   }
 }
 
-div#q-app:has(.marketplace-container) {
+div#q-app:has(.marketplace-container),
+div#q-app:has(.sticky-header-container) {
   height: 100vh;
   overflow: unset;
 }
 
-.marketplace-container {
+.marketplace-container,
+.sticky-header-container {
   min-height: 100vh;
   // padding-top: 70px;
   padding-bottom: 50px;
 
-  .header-nav {
+  .header-nav,
+  .header-nav-wrapper {
     position: sticky;
     top: -1px;
     width: 100%;
-    z-index: 100 !important;
+    // Keep headers above page content (cards/lists/etc).
+    // Dialogs/overlays use much higher z-index values.
+    z-index: 3000 !important;
   }
 }
 
@@ -152,20 +191,23 @@ div#q-app:has(.marketplace-container) {
   width: 100%;
   max-height: 100vh;
   body.platform-ios & {
-    position: fixed;
-    bottom: 0;
     width: 100%;
-    max-height: 100vh;
+    // Let Quasar handle dialog positioning. We only account for the iOS home indicator
+    // so bottom-positioned dialogs don't get pushed/offset unexpectedly.
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: calc(100vh - env(safe-area-inset-bottom, 0px));
   }
 }
 
-@mixin bottom-card($height-percentage) {
+@mixin bottom-card($height-percentage: null) {
   @include bottom-card--base;
-  height: calc(#{$height-percentage} - env(safe-area-inset-bottom));
+  @if $height-percentage != null {
+    height: calc(#{$height-percentage} - env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .bottom-card {
-  @include bottom-card(unset);
+  @include bottom-card();
 }
 
 .bottom-card-small {
@@ -179,7 +221,9 @@ div#q-app:has(.marketplace-container) {
 .bottom-card-tall {
   @include bottom-card(90vh);
 }
-
+.q-btn.tile span.q-btn__content {
+  align-items: baseline !important;
+}
 .q-btn .tile-label {
   font-size: .8em;
 }

@@ -1,0 +1,582 @@
+@use 'shared.scss';
+
+body.theme-glassmorphic-red {
+  /* ----- VARIABLES ----- */
+  $color_4: #fff;
+  $color_6: #f54270;
+
+  $text_red_9: #c01543;
+  $bg_card_dark: #332828;
+  $bg_gradient: linear-gradient(
+    to right bottom,
+    #f63b7b,
+    #e83660,
+    #da3148,
+    #cc2c3d,
+    #be2732
+  );
+
+  $theme_primary1: $color_6;
+  $theme_primary2: $text_red_9;
+  $bg_card_light: $color_4;
+  
+  /* ----- GLOBAL ----- */
+  body {
+    @include shared.body-prop;
+  }
+
+  p, a {
+    @include shared.user-select-none;
+  }
+
+  /* ----- IDS ----- */
+  #registration-container {
+    min-height: 100vh;
+    position: relative !important;
+
+    &.dark {
+      background: #462733 !important;
+    }
+
+    &.light {
+      background-color: #f3ecec !important;
+    }
+
+    &.grad {
+      background-image: $bg_gradient;
+    }
+
+    .q-field--dark {
+      .q-field__control {
+        color: #f54270 !important;
+      }
+
+      .q-field__native {
+        color: black !important;
+      }
+    }
+  }
+
+  #bch-card {
+    background-image: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.9),
+      rgba(232, 54, 96, 0.9),
+      rgba(218, 49, 72, 0.9),
+      rgba(204, 44, 61, 0.9),
+      rgba(190, 39, 50, 0.9)
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(135, 31, 48, 0.15) !important;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+  
+  #apps {
+    padding: 20px 20px 80px 20px;
+    color: #f63b7b;
+  }
+  
+
+  #app-container,
+  #apps-page-container {
+    &.dark {
+      background: #462733 !important;
+    }
+
+    &.light {
+      background-color: #f3ecec !important;
+    }
+    &.grad {
+      background-image: $bg_gradient;
+    }
+  }
+
+  /* ----- CLASSES ----- */
+
+  // Creates quasar compliant color classes `bg-<name>` and `text-<name>`
+  @include shared.gen-color-classes($theme_primary1, 'pt-primary1');
+  @include shared.gen-color-classes($theme_primary2, 'pt-primary2');
+  @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
+  @include shared.gen-color-classes($bg_card_light, 'pt-light');
+
+  .bg-grad,
+  .bg-grad.button {
+    background-image: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85),
+      rgba(204, 44, 61, 0.85),
+      rgba(190, 39, 50, 0.85)
+    ) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.12);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover, &:active {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px 0 rgba(135, 31, 48, 0.18);
+    }
+  }
+  .text-grad {
+    background: -webkit-linear-gradient(
+      -70deg,
+      #f63b7b,
+      #e83660,
+      #da3148,
+      #cc2c3d,
+      #be2732
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .pt-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    &.dark {
+      background: rgba(51, 28, 40, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &.light {
+      background-color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+      &.btn-transaction-bg {
+        background-color: rgba(252, 242, 243, 0.7) !important;
+      }
+    }
+  }
+
+  .pt-card-2 {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    &.dark {
+      background: rgba(70, 39, 55, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &.light {
+      background-color: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .pt-card-3 {
+    background: #462733 !important;
+  }
+
+  .pt-label {
+    &.dark {
+      color: $color_4;
+    }
+
+    &.light {
+      color: black;
+    }
+  }
+
+  .pt-header {
+    color: $color_6;
+    
+    &.dark {
+      background: #462733;
+    }
+
+    &.light {
+      background: #f3ecec;
+    }
+  }
+
+  .pt-arrow-left-link {
+    color: $color_6;
+  }
+
+  .pt-settings-icon {
+    color: $color_6;
+  }
+
+  .price-chart-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    &.dark {
+      background: rgba(70, 39, 55, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    &.light {
+      background: rgba(243, 236, 236, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .wallet-card {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    &.dark {
+      background: rgba(51, 28, 40, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &.light {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .title {
+      color: $text_red_9;
+    }
+
+    .bottom-border {
+      &.dark {
+        border-bottom-color: rgba(128, 128, 128, 0.3);
+      }
+
+      &.light {
+        border-bottom-color: rgba(231, 218, 224, 0.5);
+      }
+    }
+
+    .address,
+    .market-currency {
+      color: gray;
+    }
+  }
+
+  .method-cards {
+    height: 78px;
+    min-width: 150px;
+    border-radius: 16px;
+    background-image: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85),
+      rgba(204, 44, 61, 0.85),
+      rgba(190, 39, 50, 0.85)
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.1);
+  }
+  .method-cards-dark {
+    background-image: linear-gradient(
+      to right bottom,
+      rgba(137, 32, 69, 0.85),
+      rgba(121, 29, 84, 0.85),
+      rgba(105, 26, 73, 0.85),
+      rgba(89, 23, 62, 0.85),
+      rgba(73, 20, 51, 0.85)
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .selected {
+    border: 2px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow: none !important;
+    transform: scale(1.02);
+  }
+
+  .pt-app {
+    border-radius: 10px;
+  }
+
+  .fixed-footer {
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
+
+    &.dark {
+      background-color: rgba(51, 28, 40, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &.light {
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .footer-icon-btn {
+      &.dark {
+        color: white;
+      }
+    }
+
+    .default-text-color {
+      color: #f63b7b !important;
+    }
+    .default-text-color-2 {
+      filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
+    }
+  }
+
+  .bg-pink {
+    background: #ef4f84;
+  }
+
+  .btn-scan {
+    background-image: linear-gradient(
+      to right bottom,
+      rgba(246, 59, 123, 0.85),
+      rgba(232, 54, 96, 0.85),
+      rgba(218, 49, 72, 0.85),
+      rgba(204, 44, 61, 0.85),
+      rgba(190, 39, 50, 0.85)
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 20px 0 rgba(135, 31, 48, 0.12);
+  }
+
+  .group-currency {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    &.dark {
+      background: rgba(51, 28, 40, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &.light {
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .text-token {
+      &.dark {
+        color: #ec407a;
+      }
+
+      &.light {
+        color: var(--q-dark);
+      }
+    }
+
+    .amount-text {
+      font-size: 18px;
+      overflow-wrap: anywhere;
+
+      &.dark {
+        color: #9e9e9e;
+      }
+    }
+  }
+
+  .network-selection-tab {
+    color: $color_6 !important;
+
+    &.q-tab--active {
+      &.dark {
+        color: rgba(245, 66, 112, 1) !important;
+      }
+
+      &.light {
+        color: #c01543 !important;
+      }
+    }
+
+    &.q-tab--inactive {
+      &.dark {
+        color: $color_6 !important;
+      }
+
+      &.light {
+        color: #000 !important;
+      }
+    }
+  }
+
+  .button {
+    background: #f54270 !important;
+    color: white !important;
+
+    &.button-text-primary {
+      background: transparent !important;
+      color: #f54270 !important;
+    }
+
+    &.button-text-secondary {
+      background: transparent !important;
+      color: #f54270 !important;
+    }
+
+    &.button-icon {
+      background: transparent !important;
+      color: #f54270 !important;
+    }
+  }
+
+  .settings-button {
+    color: #f63b7b;
+  }
+
+  .transaction-container, .points-earned-div {
+    &.dark {
+      background-color: rgba(61, 33, 47, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    &.light {
+      background-color: rgba(255, 248, 249, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+  }
+
+  .btn-custom.dark,
+  .section-title.dark {
+    color: $color_4 !important;
+  }
+
+  .btn-custom {
+    &.light {
+      color: #4c4f4f !important;
+    }
+
+    &.active-transaction-btn {
+      background-color: rgb(246, 60, 100) !important;
+      color: #fff !important;
+    }
+  }
+
+  .section-title.light {
+    color: #444646;
+  }
+
+  .transactions-wallet {
+    &.type,
+    &.amount,
+    &.date {
+      &.light {
+        color: #4c4f4f;
+      }
+    }
+
+    &.type,
+    &.date {
+      &.dark {
+        color: $color_4;
+      }
+    }
+
+    &.amount.dark,
+    &.market-value {
+      color: #9e9e9e;
+    }
+  }
+
+  .bg-button-toggle {
+    background: #f54270 !important;
+  }
+
+  .q-btn.q-btn--rounded.bg-amber {
+    background-color: #f54270 !important;
+  }
+
+  .pin-icon {
+    color: #f54270;
+  }
+
+  .primary-filter {
+    filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
+  }
+
+  #qr-button {
+    button {
+      background-color: #f63b7b !important;
+      border-color: rgba(246, 59, 123, 0.3) !important;
+      
+      &.light {
+        background-color: #fff !important;
+        border-color: #f63b7b !important;
+
+        .default-text-color {
+          color: #f63b7b !important;
+        }
+      }
+
+      &.dark {
+        background-color: #f63b7b !important;
+        border-color: rgba(246, 59, 123, 0.5) !important;
+
+        .default-text-color {
+          color: white !important;
+        }
+      }
+
+      .default-text-color {
+        color: white !important;
+      }
+    }
+  }
+
+  .asset-option {
+    .button-default.dark {
+      background: rgba(51, 28, 40, 0.7) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        background: rgba(51, 28, 40, 0.8) !important;
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .default-text-color {
+        filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7448%) hue-rotate(59deg) brightness(109%) contrast(101%);
+      }
+    }
+
+    .button-default.light {
+      background-color: rgba(255, 255, 255, 0.7) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        background-color: rgba(255, 255, 255, 0.85) !important;
+      }
+
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+
+      .default-text-color {
+        filter: brightness(0) saturate(100%) invert(31%) sepia(96%) saturate(1224%) hue-rotate(320deg) brightness(96%) contrast(89%);
+      }
+    }
+  }
+}
+

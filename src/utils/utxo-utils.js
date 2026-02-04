@@ -1,4 +1,10 @@
 import { hexToBin } from 'bitauth-libauth-v3'
+import { SignatureTemplate } from 'cashscript'
+import { Wallet } from 'src/wallet'
+import { LibauthHDWallet } from 'src/wallet/bch-libauth'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import SingleWallet from 'src/wallet/single-wallet'
+
 /**
 * @typedef { Object } CashToken
 * @property { string } category
@@ -167,6 +173,60 @@ export function watchtowerUtxoToCommonUtxo (utxo) {
 }
 
 /**
+ * @param {WatchtowerUtxo} utxo 
+ * @returns {import("cashscript").Utxo}
+ */
+export function watchtowerUtxoToCashscript(utxo) {
+  let tokenAmount
+  if (utxo?.tokenid) {
+    tokenAmount = BigInt(utxo?.amount)
+  }
+
+  return {
+    txid: utxo?.txid,
+    vout: utxo?.vout,
+    satoshis: BigInt(utxo?.value),
+    token: !utxo?.tokenid ? undefined : {
+      category: utxo?.tokenid,
+      amount: tokenAmount,
+      nft: !utxo?.capability ? undefined : {
+        capability: utxo?.capability,
+        commitment: utxo?.commitment,
+      }
+    }
+  }
+}
+
+/**
+ * @param {WatchtowerUtxo} utxo 
+ * @param {Wallet | SingleWallet | LibauthHDWallet} wallet
+ */
+export function watchtowerUtxoToCashscriptP2pkh(utxo, wallet, templateOpts) {
+  if (wallet instanceof Wallet) {
+    const bchWallet = getWalletByNetwork(wallet, 'bch')
+    // using libauth wallet since fetching private key is not async
+    wallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath)
+  }
+
+  let utxoPkWif
+  if (wallet instanceof SingleWallet) {
+    utxoPkWif = wallet.wif
+  } else {
+    const addressPath = utxo?.address_path || utxo.wallet_index
+    utxoPkWif = wallet.getPrivateKeyWifAt(addressPath)
+  }
+
+  // this is 0.10.x cashscript, but would probably be compatible with 0.8.x
+  const template = new SignatureTemplate(
+    utxoPkWif, templateOpts?.hashtype, templateOpts?.signatureAlgorithm
+  );
+
+  const ctUtxo = watchtowerUtxoToCashscript(utxo)
+  ctUtxo.template = template
+  return ctUtxo
+}
+
+/**
  * @param { CommonUTXO } utxo
  * @returns { import("@bitauth/libauth").Input }
  */
@@ -203,4 +263,34 @@ export function commonUtxoToLibauthOutput (utxo, lockingBytecode) {
     }
   }
   return output
+}
+
+
+/**
+ * @param {Object} utxo
+ * @param {String} utxo.txid
+ * @param {Number} utxo.vout
+ * @param {Number | String} utxo.satoshis
+ * @param {Object} [utxo.token]
+ * @param {Number | String} utxo.token.amount
+ * @param {String} utxo.token.category
+ * @param {Object} [utxo.token.nft]
+ * @param {'none' | 'mutable' | 'minting'} utxo.token.nft.capability
+ * @param {String} utxo.token.nft.commitment
+ * @returns {import('cashscript').Utxo}
+ */
+export function parseUtxo(utxo) {
+  return {
+    txid: utxo?.txid,
+    vout: utxo?.vout,
+    satoshis: BigInt(utxo?.satoshis),
+    token: !utxo?.token ? undefined : {
+      category: utxo?.token?.category,
+      amount: BigInt(utxo?.token?.amount),
+      nft: !utxo?.token?.nft ? undefined : {
+        capability: utxo?.token?.nft?.capability,
+        commitment: utxo?.token?.nft?.commitment,
+      }
+    }
+  }
 }

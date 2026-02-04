@@ -59,21 +59,60 @@
             </template>
           </div>
           <div
-            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)" :key="index"
-            class="row no-wrap items-start q-mb-sm q-gutter-x-xs"
+            v-for="(output, index) in jpp?.parsed?.outputs?.slice(0,10)"
+            :key="index" class="q-mb-sm row items-start no-wrap"
           >
+            <!-- <div class="text-grey" style="width:2em;">#{{ index+1 }}</div> -->
             <div class="q-space">
-              {{ ellipsisText(output.address, {start: 16, end: 5 }) }}
-              <q-popup-proxy :breakpoint="0">
-                <div
-                  class="text-body2 pt-card pt-label address-popup q-px-md q-py-sm"
-                  :class="getDarkModeClass(darkMode)"
-                >
-                  {{ output.address }}
+              <div class="row no-wrap items-start q-gutter-x-xs">
+                <div class="q-space">
+                  {{ ellipsisText(output.address, {start: 16, end: 5 }) }}
                 </div>
-              </q-popup-proxy>
+                <div class="text-right">{{ output.amount / 10 ** 8 }} {{$t('BCH')}}</div>
+              </div>
+              <div v-if="output?.token?.category" class="row no-wrap items-start q-gutter-x-xs">
+                <div class="ellipsis" style="max-width:45vw;">
+                  Token: {{ ellipsisText(output?.token?.category, { start: 6, end: 6 }) }}
+                </div>
+                <q-space/>
+                <div v-if="output?.token?.nft" class="text-brandblue text-underline">
+                  NFT
+                </div>
+                <div v-else>
+                  {{ formatTokenAmount(output?.token) }}
+                </div>
+              </div>
             </div>
-            <div class="text-right">{{ output.amount / 10 ** 8 }} BCH</div>
+            <q-popup-proxy :breakpoint="0">
+              <div
+                class="text-body2 pt-card pt-label address-popup q-pa-sm"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <div class="text-caption text-grey">Recipient:</div>
+                <div>{{ output.address }}</div>
+
+                <div v-if="output?.token?.category" class="q-mt-sm">
+                  <div class="text-caption text-grey">Token:</div>
+                  <div v-ripple style="position: relative;" @click="copyToClipboard(output?.token?.category)">
+                    {{ output?.token?.category }}
+                    <q-icon name="content_copy"/>
+                  </div>
+                  
+                  <div v-if="output?.token?.amount" class="q-mt-sm">
+                    <div class="text-caption text-grey">Token amount:</div>
+                    <div>{{ formatTokenAmount(output?.token) }}</div>
+                  </div>
+
+                  <div v-if="output?.token?.nft" class="q-mt-sm">
+                    <div class="text-caption text-grey">
+                      NFT:
+                      <q-badge>{{ output?.token?.nft?.capability }}</q-badge>
+                    </div>
+                    <div>{{ output?.token?.nft?.commitment }}</div>
+                  </div>
+                </div>
+              </div>
+            </q-popup-proxy>
           </div>
           <strong v-if="jpp?.parsed?.outputs?.length > 10">
             {{
@@ -84,9 +123,20 @@
               )
             }}
           </strong>
-          <div v-if="jpp?.parsed?.outputs?.length > 1" class="row items-center q-mb-sm text-subtitle1">
-            <div class="q-space">{{ $t('Total') }}:</div>
-            <div>{{ jpp.total / 10 ** 8 }} BCH</div>
+          <div v-if="jpp?.parsed?.outputs?.length > 1" class="q-mb-sm">
+            <div class="row items-center text-subtitle1">
+              <div class="q-space">{{ $t('Total') }}:</div>
+              <div>{{ jpp.total / 10 ** 8 }} BCH</div>
+            </div>
+            <template v-if="jpp?.tokenAmounts?.length">
+              <div v-for="(tokenData, index) in jpp?.tokenAmounts" :key="index" class="text-right text-subtitle2">
+                {{ formatTokenAmount(tokenData) }}
+              </div>
+            </template>
+            <div v-if="jpp?.nfts?.length" class="text-right text-subtitle2">
+              {{ jpp?.nfts?.length }}
+              {{ jpp?.nfts?.length === 1 ? 'NFT' : 'NFTs' }}
+            </div>
           </div>
         </div>
         <div v-if="jpp.txids.length">
@@ -148,9 +198,9 @@ const innerVal = ref(props.modelValue)
 watch(innerVal, () => $emit('update:modelValue', innerVal.value))
 watch(() => [props.modelValue], () => innerVal.value = props.modelValue)
 
-const store = useStore()
-const darkMode = computed(() => store.getters['darkmode/getStatus'])
-const denomination = computed(() => store.getters['global/denomination'])
+const $store = useStore()
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const denomination = computed(() => $store.getters['global/denomination'])
 const $q = useQuasar()
 
 const $copyText = inject('$copyText')
@@ -165,7 +215,20 @@ function copyToClipboard(value) {
 }
 
 function txLink(txid) {
-  return `https://blockchair.com/bitcoin-cash/transaction/${txid}/`
+  return `https://explorer.paytaca.com/tx/${txid}`
+}
+
+function formatTokenAmount(tokenData) {
+  const category = tokenData?.category
+  const asset = $store.getters['assets/getAssets']?.find(asset => asset?.id === `ct/${category}`)
+  if (!asset) return tokenData?.amount
+
+  const decimals = parseInt(asset?.decimals) || 0
+  const parsedAmount = tokenData?.amount / 10 ** decimals
+  if (!parsedAmount) return tokenData?.amount
+  const symbol = asset?.symbol
+  const parsedAmountText = parsedAmount.toLocaleString('en-us', { maximumFractionDigits: decimals })
+  return `${parsedAmountText} ${symbol}`
 }
 </script>
 <style lang="scss" scoped>

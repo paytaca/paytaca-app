@@ -1,6 +1,6 @@
 <template>
   <div v-if="$route.name === 'arbiter-appeals'">
-    <HeaderNav :title="`P2P Exchange`" backnavpath="/apps"/>
+    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
     <AppealListing :key="appealListingKey" />
   </div>
   <div v-else>
@@ -24,6 +24,12 @@ export default {
   components: {
     HeaderNav,
     AppealListing
+  },
+  mounted() {
+    if ('appeal_id' in this.$route.query) {      
+      this.$router.push({ name: 'appeal-detail', params: { order: this.$route.query?.appeal_id } })
+      setTimeout(() => {bus.emit('show-footer-menu', false)},50)      
+    }
   },
   methods: {
     refreshPage () {

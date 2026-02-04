@@ -22,7 +22,7 @@
         no-caps
         v-model="redeemTab"
         class="col-12"
-        :indicator-color="isNotDefaultTheme(theme) ? 'transparent' : ''"
+        indicator-color=""
         @click="pointsToRedeem = '0'; computeBalance()"
       >
         <q-tab
@@ -110,7 +110,7 @@
           <div class="row full-width justify-evenly">
             <template v-if="isSending">
               <progress-loader
-                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                
                 :isTight="true"
                 class="q-mb-md"
               />
@@ -192,7 +192,7 @@
           <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
             {{ redeemablePointsBalance }}
             {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-            {{ $t('Remaning') }}
+            {{ $t('Remaining') }}
           </div>
 
           <div class="text-body1 q-mb-sm">
@@ -205,7 +205,7 @@
           <div class="row full-width justify-evenly">
             <template v-if="isSending">
               <progress-loader
-                :color="isNotDefaultTheme(theme) ? theme : 'pink'"
+                
                 :isTight="true"
                 class="q-mb-md"
               />
@@ -254,7 +254,11 @@
 
 <script>
 import { NativeBiometric } from 'capacitor-native-biometric'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
 import {
   convertPoints,
   getKeyPairFromWalletMnemonic,
@@ -264,7 +268,7 @@ import {
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { raiseNotifyError, getWallet } from 'src/utils/send-page-utils'
 
-import CustomKeyboard from 'src/pages/transaction/dialog/CustomKeyboard.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import PinDialog from 'src/components/pin/index.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
@@ -328,7 +332,6 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     computeBalance () {
       this.pointsBalance = this.points - Number(this.pointsToRedeem)
       if (this.redeemablePoints) {
@@ -372,7 +375,7 @@ export default {
 
       if (!vm.isSecurityCheckSuccess) {
         setTimeout(() => {
-          if (vm.$q.localStorage.getItem('preferredSecurity') === 'pin') {
+          if (vm.$store.getters['global/preferredSecurity'] === 'pin') {
             vm.pinDialogAction = 'VERIFY'
           } else vm.verifyBiometric()
         }, 500)
@@ -421,11 +424,24 @@ export default {
         )
   
         if (txId) {
+          // Generate BCH address dynamically
+          const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+          const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+          const bchAddress = await generateReceivingAddress({
+            walletIndex: this.$store.getters['global/getWalletIndex'],
+            derivationPath: getDerivationPathForWalletType('bch'),
+            addressIndex: validAddressIndex,
+            isChipnet: this.$store.getters['global/isChipnet']
+          })
+          if (!bchAddress) {
+            throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
+          }
+          
           // call to engagement-hub to process swapping
           const data = {
             tx_id: txId,
             amount: Number(this.pointsToRedeem),
-            address: this.$store.getters['global/getAddress']('bch'),
+            address: bchAddress,
             token_address: await getWalletTokenAddress(),
             promo: this.pointsType,
             id: this.promoId

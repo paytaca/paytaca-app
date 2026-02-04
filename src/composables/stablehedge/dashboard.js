@@ -3,7 +3,7 @@ import { Store } from "src/store";
 import { parseHedgePositionData } from "src/wallet/anyhedge/formatters";
 import { getStablehedgeBackend } from "src/wallet/stablehedge/api";
 import { satoshisToToken, tokenToSatoshis } from "src/wallet/stablehedge/token-utils";
-import { getAssetDenomination } from "src/utils/denomination-utils";
+import { getDenomDecimals } from "src/utils/denomination-utils";
 
 /**
  * @param {import("src/wallet/stablehedge/interfaces").VolumeApiData[]} data
@@ -65,7 +65,7 @@ export function useStablehedgeDashboard(redemptionContractDataOrRef) {
   const pricePerBch = computed(() =>  priceUnitPerBch.value / 10 ** decimals.value)
   const pricePerDenomination = computed(() => {
     const currentDenomination = denomination.value || 'BCH'
-    const conversionRate = parseFloat(getAssetDenomination(currentDenomination, 1)) || 1
+    const { convert: conversionRate } = getDenomDecimals(currentDenomination);
     return pricePerBch.value / conversionRate
   })
 

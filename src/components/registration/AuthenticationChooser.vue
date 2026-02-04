@@ -3,17 +3,17 @@
     <h5 class="q-ma-none text-bow" :class="getDarkModeClass(darkMode)">
       {{ $t('ChooseBackupPhase') }}
     </h5>
-    <p class="dim-text" style="margin-top: 10px;">
+    <p style="margin-top: 10px;">
       {{ $t('ChooseBackupPhaseDescription') }}
     </p>
 
     <template v-if="importSeedPhrase">
-      <p class="dim-text">{{ $t('ImportShardsDescription') }}</p>
-      <p class="dim-text">{{ $t('ImportSeedPhraseDescription') }}</p>
+      <p>{{ $t('ImportShardsDescription') }}</p>
+      <p>{{ $t('ImportSeedPhraseDescription') }}</p>
     </template>
     <template v-else>
-      <p class="dim-text">{{ $t('CreateShardsDescription') }}</p>
-      <p class="dim-text">{{ $t('CreateSeedPhraseDescription') }}</p>
+      <p>{{ $t('CreateShardsDescription') }}</p>
+      <p>{{ $t('CreateSeedPhraseDescription') }}</p>
     </template>
   </div>
 

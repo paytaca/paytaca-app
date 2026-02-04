@@ -21,9 +21,6 @@ import BCHJS from '@psf/bch-js'
 
 const bchjs = new BCHJS()
 
-/**
- * @returns IWalletKit
- */
 export async function initWeb3Wallet () {
   const core = new Core({
     projectId: process.env.WALLETCONNECT_PROJECT_ID

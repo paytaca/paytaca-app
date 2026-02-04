@@ -65,7 +65,7 @@
           </PeerInfo>
       </template>
     </q-card-section>
-    <q-card-actions align="right" class="q-gutter-x-md" style="padding-top: 0px">
+    <q-card-actions class="row justify-around q-gutter-x-md q-mt-lg" style="padding-top: 0px">
       <slot name="actions"></slot>
     </q-card-actions>
   </q-card>
@@ -76,7 +76,7 @@ import { useQuasar } from 'quasar'
 import { useRouter } from "vue-router";
 import PeerInfo from './PeerInfo.vue'
 import { shortenAddressForDisplay } from '../../utils/address-utils'
-import { toTokenAddress } from 'src/marketplace/escrow/utils'
+import { toTokenAddress } from 'src/utils/crypto';
 
 const props = defineProps({
     sessionType: { type: String, required: true }, /* proposal | request | active */

@@ -12,13 +12,13 @@
           <p
             ref="header-title"
             class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': isNotDefaultTheme || darkMode}"
+            :class="{'text-grad': darkMode}"
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-            {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Exchange' }}
+            {{ user?.is_arbiter ? 'Ramp Appeals' : 'P2P Ramp' }}
           </p>
         </div>
         <div class="col-1">
-          <slot name="top-right-menu" v-bind="{ isNotDefaultTheme }">&nbsp;</slot>
+          <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
       <div
@@ -39,7 +39,7 @@
               :dark="darkMode"
               :readonly="!register || user?.is_arbiter"
               :disable="loggingIn"
-              :placeholder="register ? 'Enter nickname' : ''"
+              :placeholder="register ? $t('EnterNickname') : ''"
               :loading="inputLoading"
               :error="errorMessage !== null"
               v-model="usernickname"
@@ -68,7 +68,7 @@
 import { wallet } from 'src/exchange/wallet'
 import { backend } from 'src/exchange/backend'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -104,14 +104,15 @@ export default {
   },
   watch: {
     loggingIn (value) {
-      if (value && !this.register) {
-        this.$q.loading.show()
-      }
-      if (!value) {
-        setTimeout(() => {
-          this.$q.loading.hide()
-        }, 1500)
-      }
+      // Removed loading gif since skeleton loaders are used
+      // if (value && !this.register) {
+      //   this.$q.loading.show()
+      // }
+      // if (!value) {
+      //   setTimeout(() => {
+      //     this.$q.loading.hide()
+      //   }, 1500)
+      // }
     }
   },
   created () {
@@ -122,12 +123,8 @@ export default {
     if (this.error) this.errorMessage = this.error
     this.loadUser()
   },
-  beforeUnmount () {
-    bus.emit('relogged')
-  },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     onLoggingIn (value) {
       this.loggingIn = value
     },
@@ -140,6 +137,9 @@ export default {
         this.user = await loadAuthenticatedUser(forceLogin)
         this.$emit('loggedIn', this.user.user_type)
         this.$store.commit('ramp/updateUser', this.user)
+        // Only notify the app to refetch data after a successful login.
+        // Emitting on unmount can cause refresh loops if the dialog is closed/cancelled.
+        bus.emit('relogged')
       } catch (error) {
         if (!error.response) {
           bus.emit('network-error')

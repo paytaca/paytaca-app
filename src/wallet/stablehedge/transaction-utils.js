@@ -1,29 +1,8 @@
-import { SignatureTemplate, Transaction } from "cashscript"
-import { hash256, placeholder, scriptToBytecode } from "@cashscript/utils"
-import { cashScriptOutputToLibauthOutput, createInputScript, createSighashPreimage, getInputSize, getOutputSize, getPreimageSize, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils";
+import { SignatureTemplate } from "cashscript"
+import { hash256, scriptToBytecode } from "@cashscript/utils"
+import { cashScriptOutputToLibauthOutput, createSighashPreimage, getOutputSize, publicKeyToP2PKHLockingBytecode } from "cashscript/dist/utils";
 import { binToHex, cashAddressToLockingBytecode, encodeTransactionBCH, hexToBin } from "@bitauth/libauth";
 import { P2PKH_INPUT_SIZE } from "cashscript/dist/constants";
-
-/**
- * Taken directly from Transaction class' fee calculation
- * Returns the bytesize of contract's transaction input
- * @param {Transaction} transaction
- */
-export function calculateInputSize(transaction) {
-  const redeemScript = transaction.redeemScript || transaction.contract?.redeemScript
-  const placeholderArgs = transaction.args.map((arg) => (arg instanceof SignatureTemplate ? placeholder(65) : arg));
-  // Create a placeholder preimage of the correct size
-  const placeholderPreimage = transaction.abiFunction.covenant
-      ? placeholder(getPreimageSize(scriptToBytecode(redeemScript)))
-      : undefined;
-  // Create a placeholder input script for size calculation using the placeholder
-  // arguments and correctly sized placeholder preimage
-  const placeholderScript = createInputScript(redeemScript, placeholderArgs, transaction.selector, placeholderPreimage);
-
-  // Add one extra byte per input to over-estimate tx-in count
-  const contractInputSize = getInputSize(placeholderScript) + 1;
-  return contractInputSize
-}
 
 /**
  * @param {Object} opts
@@ -113,33 +92,6 @@ export function cashscriptTxToLibauth(contractAddress, tx) {
   return { transaction, sourceOutputs }
 }
 
-
-/**
- * @param {import("./wallet").WatchtowerUtxo} utxo 
- * @returns {import("cashscript").Utxo}
- */
-export function watchtowerUtxoToCashscript(utxo) {
-  let tokenAmount
-  if (utxo?.tokenid) {
-    tokenAmount = BigInt(utxo?.amount)
-  }
-
-  return {
-    txid: utxo?.txid,
-    vout: utxo?.vout,
-    satoshis: BigInt(utxo?.value),
-    token: !utxo?.tokenid ? undefined : {
-      category: utxo?.tokenid,
-      amount: tokenAmount,
-      nft: !utxo?.capability ? undefined : {
-        capability: utxo?.capability,
-        commitment: utxo?.commitment,
-      }
-    }
-  }
-}
-
-
 export class TransactionBalancer {
   /**
    * @callback InputSizeCalculator
@@ -187,7 +139,15 @@ export class TransactionBalancer {
   }
 
   get txFee() {
-    return BigInt(Math.ceil(Number(this.txSize) * this.feePerByte))
+    // Use integer arithmetic to avoid floating-point precision issues
+    // Convert feePerByte to fixed-point: multiply by 1000000, divide result by 1000000
+    // Higher precision to handle multiple inputs better
+    const feePerByteScaled = Math.round(this.feePerByte * 1000000)
+    const feeScaled = this.txSize * BigInt(feePerByteScaled)
+    // Always round up (ceiling) to ensure we never underpay
+    // This matches what JPP servers expect
+    const fee = (feeScaled + 999999n) / 1000000n
+    return fee
   }
 
   get excessSats() {

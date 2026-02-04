@@ -4,9 +4,11 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { capitalize } from 'vue';
 import { bus } from 'src/wallet/event-bus';
 import { backend } from './backend';
-import { generateKeypair } from './chat/keys';
 import { EscrowArbiter } from './objects';
 import { i18n } from 'src/boot/i18n';
+import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage';
+import crypto from 'crypto'
+import * as secp from '@noble/secp256k1'
 
 
 const { t: $t } = i18n.global
@@ -25,7 +27,20 @@ export function getWifAddress(wif) {
 export function parseWif(wif) {
   const pubkey = getWifPubkey(wif)
   const address = getWifAddress(wif)
-  const chat = generateKeypair({ seed: wif })
+  
+  // Derive encryption keypair from WIF using the same method as wallet encryption
+  // Hash WIF string (SHA256) as UTF-8 to get derivative privkey (matches wallet encryption behavior)
+  const _sha256 = crypto.createHash('sha256')
+  _sha256.update(Buffer.from(wif, 'utf8'))
+  const privkey = _sha256.digest().toString('hex')
+  
+  // Derive pubkey from privkey
+  const privBytes = secp.etc.hexToBytes(privkey)
+  const pub = secp.getPublicKey(privBytes)
+  const pubkeyHex = secp.etc.bytesToHex(pub)
+  
+  const chat = { privkey, pubkey: pubkeyHex }
+  
   return { wif, pubkey, address, chat}
 }
 
@@ -125,10 +140,24 @@ export async function getAuthKey(opts ={ wif: '', nonce: '', saveAuthToken: fals
   }
 }
 
-const AUTH_TOKEN_STORAGE_KEY = 'marketplace-arbiter-key'
-export async function getArbiterKeys() {
+const AUTH_TOKEN_STORAGE_KEY_PREFIX = 'marketplace-arbiter-key'
+
+/**
+ * Get wallet-specific storage key for marketplace arbiter keys
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {string} Storage key with wallet hash
+ */
+function getArbiterKeysStorageKey(walletHash = null) {
+  if (walletHash) {
+    return getWalletStorageKey(AUTH_TOKEN_STORAGE_KEY_PREFIX, walletHash)
+  }
+  return getCurrentWalletStorageKey(AUTH_TOKEN_STORAGE_KEY_PREFIX)
+}
+
+export async function getArbiterKeys(walletHash = null) {
   try {
-    const storageVal = await SecureStoragePlugin.get({ key: AUTH_TOKEN_STORAGE_KEY })
+    const key = getArbiterKeysStorageKey(walletHash)
+    const storageVal = await SecureStoragePlugin.get({ key })
     const [wif, authToken] = storageVal.value.split(':')
     return { success: true, wif, authToken } 
   } catch(error) {
@@ -136,10 +165,11 @@ export async function getArbiterKeys() {
   }
 }
 
-export async function setArbiterKeys(wif, authToken) {
+export async function setArbiterKeys(wif, authToken, walletHash = null) {
   try {
+    const key = getArbiterKeysStorageKey(walletHash)
     if (!wif && !authToken) {
-      const removeResp = await SecureStoragePlugin.remove({ key: AUTH_TOKEN_STORAGE_KEY })
+      const removeResp = await SecureStoragePlugin.remove({ key })
       if (removeResp.value) bus.emit('arbiter-keys-removed')
       return { success: removeResp.value }
     }
@@ -148,7 +178,7 @@ export async function setArbiterKeys(wif, authToken) {
     if (!authToken || typeof authToken !== 'string') return { success: false, error: 'Invalid auth token'}
 
     const value = `${wif}:${authToken}`
-    const setResponse = await SecureStoragePlugin.set({ key: AUTH_TOKEN_STORAGE_KEY, value: value })
+    const setResponse = await SecureStoragePlugin.set({ key, value: value })
     if (setResponse.value) bus.emit('arbiter-keys-updated')
     return { success: setResponse.value }
   } catch(error) {

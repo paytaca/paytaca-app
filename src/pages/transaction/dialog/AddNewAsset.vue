@@ -24,7 +24,7 @@
           </q-card-section>
 
           <div v-if="loading" class="flex justify-center">
-            <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+            <ProgressLoader />
           </div>
           <div class="col-12 q-mx-md q-mb-md overflow-hidden" v-if="asset !== null">
             <div class="row" v-for="val, key in asset" :key="key">
@@ -75,9 +75,10 @@
 </template>
 
 <script>
+import * as assetSettings from 'src/utils/asset-settings'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import ProgressLoader from '../../../components/ProgressLoader.vue'
-import { getDarkModeClass, isNotDefaultTheme, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   components: {
@@ -121,27 +122,19 @@ export default {
     }
   },
   computed: {
-    isSep20 () {
-      return this.network === 'sBCH'
-    },
     isTokenIdValid() {
-      if (this.isSep20) return this.tokenId?.length == 42 && this.tokenId?.startsWith?.('0x')
       return this.tokenId?.trim?.()?.length == 64
     },
     addTokenTitle () {
-      if (this.isSep20)
-        return this.$t(this.isHongKong(this.currentCountry) ? 'Add_SEP20_Point' : 'Add_SEP20_Token')
       if (this.isCashToken) {
-        return this.$t(this.isHongKong(this.currentCountry) ? 'AddFungibleCashPoint' : 'AddFungibleCashToken')
+        return this.$t('AddFungibleCashToken')
       }
-      return this.$t(this.isHongKong(this.currentCountry) ? 'Add_Type1_Point' : 'Add_Type1_Token')
+      return this.$t('Add_Type1_Token')
     },
     inputPlaceholder () {
-      if (this.isSep20)
-        this.$t('Enter_SEP20_ContractAddress')
       if (this.isCashToken)
-        return this.$t(this.isHongKong(this.currentCountry) ? 'EnterCashPointCategoryID' : 'EnterCashTokenCategory')
-      return this.$t(this.isHongKong(this.currentCountry) ? 'Enter_SLP_PointId' : 'Enter_SLP_TokenId')
+        return this.$t('EnterCashTokenCategory')
+      return this.$t('Enter_SLP_TokenId')
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -150,38 +143,16 @@ export default {
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
-    isHongKong,
     show () {
       this.$refs.dialog.show()
     },
     formatTokenDetailsKey (key) {
       return key.charAt(0).toUpperCase() + key.slice(1)
     },
-    setAssetDetailsSep20() {
-      const vm = this
-      vm.loading = true
-      console.log('fetching sep20')
-      return getWalletByNetwork(vm.wallet, 'sbch').getSep20ContractDetails(vm.tokenId).then(response => {
-        if (response.success && response.token) {
-          vm.asset = {
-            id: `sep20/${response.token.address}`,
-            symbol: response.token.symbol,
-            name: response.token.name,
-            decimals: response.token.decimals,
-            logo: '',
-            balance: 0
-          }
-          vm.addBtnDisabled = false
-        }
-      }).finally(() => {
-        vm.loading = false
-      })
-    },
     setAssetDetailsCashtoken() {
       const vm = this
-      vm.loading = true
-      console.log('fetching ct')
+      vm.loading = true      
+      // console.log('fetching ct')
       return vm.$refs.questForm.validate().then(success => {
         getWalletByNetwork(vm.wallet, 'bch').getTokenDetails(vm.tokenId).then(details => {
           if (details !== null) {
@@ -196,7 +167,7 @@ export default {
     setAssetDetailsSLP() {
       const vm = this
       vm.loading = true
-      console.log('fetching slp')
+      // console.log('fetching slp')
       return getWalletByNetwork(vm.wallet, 'slp').getSlpTokenDetails(vm.tokenId).then(details => {
         const token = {
           logo: details.image_url,
@@ -217,21 +188,16 @@ export default {
     },
     setAssetDetails () {
       const vm = this
-      if (vm.isSep20) return this.setAssetDetailsSep20()
       if (vm.isCashToken) return this.setAssetDetailsCashtoken()
       return this.setAssetDetailsSLP()
     },
     addAsset () {
+      // console.log('adding new asset: ', this.asset)
+      assetSettings.addNewAsset(this.asset, this.network)
       if (!this.asset?.id) return console.error('No asset id found. Skipping adding new asset')
       // if (this.asset?.is_nft) return console.error('Asset is nft. Skipping adding new asset')
 
-      if (this.isSep20) {
-        this.$store.commit('sep20/addNewAsset', this.asset)
-        this.$store.commit(`sep20/moveAssetToBeginning`)
-        this.$store.dispatch('market/updateAssetPrices', { clearExisting: true })
-        this.$store.dispatch('sep20/updateTokenIcon', { assetId: this.asset.id })
-        return
-      }
+      assetSettings.addNewAsset(this.asset, this.network)
 
       this.$store.commit(
         'assets/addNewAsset',

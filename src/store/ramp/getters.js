@@ -1,79 +1,147 @@
+import { Store } from 'src/store'
+
+/**
+ * Get current wallet hash from global store
+ * @returns {string|null} Current wallet hash
+ */
+function getCurrentWalletHash() {
+  try {
+    const wallet = Store.getters['global/getWallet']('bch')
+    return wallet?.walletHash || null
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * Get wallet-specific state for current wallet
+ * @param {Object} state - Ramp store state
+ * @param {string} walletHash - Optional wallet hash, if not provided uses current wallet
+ * @returns {Object} Wallet-specific state
+ */
+function getWalletState(state, walletHash = null) {
+  const hash = walletHash || getCurrentWalletHash()
+  if (!hash) {
+    // Return empty state if no wallet hash available
+    return {}
+  }
+  
+  // Ensure byWallet exists
+  if (!state.byWallet) {
+    return {}
+  }
+  
+  // Initialize wallet state if it doesn't exist
+  if (!state.byWallet[hash]) {
+    // Return empty object - state will be initialized by mutation when needed
+    return {}
+  }
+  
+  return state.byWallet[hash]
+}
+
+/**
+ * Get wallet-specific state for a specific wallet hash
+ * @param {Object} state - Ramp store state
+ * @returns {Function} Function that takes walletHash and returns wallet state
+ */
+export function getWalletStateByHash(state) {
+  return function(walletHash) {
+    return getWalletState(state, walletHash)
+  }
+}
+
 export function featureToggles (state) {
   return state.featureToggles
 }
 
 export function showAdLimitMessage (state) {
-  return state.showAdLimitMessage
+  const walletState = getWalletState(state)
+  return walletState.showAdLimitMessage ?? true
 }
 
 export function cashinOrderList (state) {
-  return state.cashinOrderList
+  const walletState = getWalletState(state)
+  return walletState.cashinOrderList || []
 }
 
 export function cashinOrderListPage (state) {
-  return state.cashinOrderListPage
+  const walletState = getWalletState(state)
+  return walletState.cashinOrderListPage || 1
 }
 
 export function cashinOrderListTotalPage (state) {
-  return state.cashinOrderListTotalPage
+  const walletState = getWalletState(state)
+  return walletState.cashinOrderListTotalPage || 1
 }
 
 export function storeListingTab (state) {
-  return state.storeListingTab
+  const walletState = getWalletState(state)
+  return walletState.storeListingTab || 'SELL'
 }
 
 export function adListingTab (state) {
-  return state.adListingTab
+  const walletState = getWalletState(state)
+  return walletState.adListingTab || 'BUY'
 }
 
 export function orderListingTab (state) {
-  return state.orderListingTab
+  const walletState = getWalletState(state)
+  return walletState.orderListingTab || 'ONGOING'
 }
 
 export function appealListingTab (state) {
-  return state.appealListingTab
+  const walletState = getWalletState(state)
+  return walletState.appealListingTab || 'PENDING'
 }
 
 export function ongoingOrderFilters (state) {
+  const walletState = getWalletState(state)
   return function (currency) {
-    return state.ongoingOrderFilters[currency]
+    return walletState.ongoingOrderFilters?.[currency] || {}
   }
 }
 
 export function completedOrderFilters (state) {
+  const walletState = getWalletState(state)
   return function (currency) {
-    return state.completedOrderFilters[currency]
+    return walletState.completedOrderFilters?.[currency] || {}
   }
 }
 
 export function storeBuyFilters (state) {
+  const walletState = getWalletState(state)
   return function (currency) {
-    return state.storeBuyFilters[currency]
+    return walletState.storeBuyFilters?.[currency] || walletState.storeBuyFilters || {}
   }
 }
 
 export function storeSellFilters (state) {
+  const walletState = getWalletState(state)
   return function (currency) {
-    return state.storeSellFilters[currency]
+    return walletState.storeSellFilters?.[currency] || walletState.storeSellFilters || {}
   }
 }
 
 export function getArbiter (state) {
-  return state.arbiter
+  const walletState = getWalletState(state)
+  return walletState.arbiter || null
 }
 
 export function getUser (state) {
-  return state.user
+  const walletState = getWalletState(state)
+  return walletState.user || null
 }
 
 export function getTotalPages (state) {
+  const walletState = getWalletState(state)
   return function ({ component = null, transactionType = null }) {
     if (component === 'store') {
       switch (transactionType) {
         case 'SELL':
-          return state.storeSellTotalPages
+          return walletState.storeSellTotalPages || null
         case 'BUY':
-          return state.storeBuyTotalPages
+          return walletState.storeBuyTotalPages || null
         default:
           return 1
       }
@@ -84,13 +152,14 @@ export function getTotalPages (state) {
 }
 
 export function getPageNumber (state) {
+  const walletState = getWalletState(state)
   return function ({ component = null, transactionType = null }) {
     if (component === 'store') {
       switch (transactionType) {
         case 'SELL':
-          return state.storeSellTotalPages
+          return walletState.storeSellPageNumber || null
         case 'BUY':
-          return state.storeBuyTotalPages
+          return walletState.storeBuyPageNumber || null
         default:
           return 1
       }
@@ -103,20 +172,23 @@ export function getPageNumber (state) {
 // store getters //
 
 export function getStoreBuyListings (state) {
-  return state.storeBuyListings
+  const walletState = getWalletState(state)
+  return walletState.storeBuyListings || []
 }
 
 export function getStoreSellListings (state) {
-  return state.storeSellListings
+  const walletState = getWalletState(state)
+  return walletState.storeSellListings || []
 }
 
 export function getStoreTotalPages (state) {
+  const walletState = getWalletState(state)
   return function (transactionType) {
     switch (transactionType) {
       case 'SELL':
-        return state.storeSellTotalPages
+        return walletState.storeSellTotalPages || null
       case 'BUY':
-        return state.storeBuyTotalPages
+        return walletState.storeBuyTotalPages || null
       default:
         return 0
     }
@@ -124,12 +196,13 @@ export function getStoreTotalPages (state) {
 }
 
 export function getStorePageNumber (state) {
+  const walletState = getWalletState(state)
   return function (transactionType) {
     switch (transactionType) {
       case 'SELL':
-        return state.storeSellPageNumber
+        return walletState.storeSellPageNumber || null
       case 'BUY':
-        return state.storeBuyPageNumber
+        return walletState.storeBuyPageNumber || null
       default:
         return 0
     }
@@ -140,20 +213,23 @@ export function getStorePageNumber (state) {
 
 // ads getters //
 export function getAdsBuyListings (state) {
-  return state.adsBuyListings
+  const walletState = getWalletState(state)
+  return walletState.adsBuyListings || []
 }
 
 export function getAdsSellListings (state) {
-  return state.adsSellListings
+  const walletState = getWalletState(state)
+  return walletState.adsSellListings || []
 }
 
 export function getAdsTotalPages (state) {
+  const walletState = getWalletState(state)
   return function (transactionType) {
     switch (transactionType) {
       case 'SELL':
-        return state.adsSellTotalPages
+        return walletState.adsSellTotalPages || null
       case 'BUY':
-        return state.adsBuyTotalPages
+        return walletState.adsBuyTotalPages || null
       default:
         return null
     }
@@ -161,12 +237,13 @@ export function getAdsTotalPages (state) {
 }
 
 export function getAdsPageNumber (state) {
+  const walletState = getWalletState(state)
   return function (transactionType) {
     switch (transactionType) {
       case 'SELL':
-        return state.adsSellPageNumber
+        return walletState.adsSellPageNumber || null
       case 'BUY':
-        return state.adsBuyPageNumber
+        return walletState.adsBuyPageNumber || null
       default:
         return null
     }
@@ -177,20 +254,23 @@ export function getAdsPageNumber (state) {
 
 // orders getters //
 export function getOngoingOrders (state) {
-  return state.ongoingOrders
+  const walletState = getWalletState(state)
+  return walletState.ongoingOrders || []
 }
 
 export function getCompletedOrders (state) {
-  return state.completedOrders
+  const walletState = getWalletState(state)
+  return walletState.completedOrders || []
 }
 
 export function getOrdersTotalPages (state) {
+  const walletState = getWalletState(state)
   return function (orderState) {
     switch (orderState) {
       case 'ONGOING':
-        return state.ongoingOrdersTotalPages
+        return walletState.ongoingOrdersTotalPages || null
       case 'COMPLETED':
-        return state.completedOrdersTotalPages
+        return walletState.completedOrdersTotalPages || null
       default:
         return null
     }
@@ -198,12 +278,13 @@ export function getOrdersTotalPages (state) {
 }
 
 export function getOrdersPageNumber (state) {
+  const walletState = getWalletState(state)
   return function (orderState) {
     switch (orderState) {
       case 'ONGOING':
-        return state.ongoingOrdersPageNumber
+        return walletState.ongoingOrdersPageNumber || null
       case 'COMPLETED':
-        return state.completedOrdersPageNumber
+        return walletState.completedOrdersPageNumber || null
       default:
         return null
     }
@@ -211,34 +292,26 @@ export function getOrdersPageNumber (state) {
 }
 
 /** cashin order getters */
-export function getCashinOrders (state) {
-  return state.cashinOrders
-}
-
-export function getCashinOrdersTotalPages (state) {
-  return state.cashinOrdersTotalPages
-}
-
-export function getCashinOrdersPageNumber (state) {
-  return state.cashinOrdersPageNumber
-}
 
 // appeals getters //
 export function pendingAppeals (state) {
-  return state.pendingAppeals
+  const walletState = getWalletState(state)
+  return walletState.pendingAppeals || []
 }
 
 export function resolvedAppeals (state) {
-  return state.resolvedAppeals
+  const walletState = getWalletState(state)
+  return walletState.resolvedAppeals || []
 }
 
 export function appealsTotalPages (state) {
+  const walletState = getWalletState(state)
   return function (appealState) {
     switch (appealState) {
       case 'PENDING':
-        return state.pendingAppealsTotalPages
+        return walletState.pendingAppealsTotalPages || null
       case 'RESOLVED':
-        return state.resolvedAppealsTotalPages
+        return walletState.resolvedAppealsTotalPages || null
       default:
         return null
     }
@@ -246,12 +319,13 @@ export function appealsTotalPages (state) {
 }
 
 export function appealsPageNumber (state) {
+  const walletState = getWalletState(state)
   return function (appealState) {
     switch (appealState) {
       case 'PENDING':
-        return state.pendingAppealsPageNumber
+        return walletState.pendingAppealsPageNumber || null
       case 'RESOLVED':
-        return state.resolvedAppealsPageNumber
+        return walletState.resolvedAppealsPageNumber || null
       default:
         return null
     }
@@ -260,34 +334,40 @@ export function appealsPageNumber (state) {
 // appeals getters //
 
 export function getTxidHistory (state) {
-  return state.txids
+  const walletState = getWalletState(state)
+  return walletState.txids || {}
 }
 
 export function getOrderTxid (state) {
+  const walletState = getWalletState(state)
   return function (id, action) {
-    if (action && state.txids[id]) {
-      return state.txids[id][action]
+    if (action && walletState.txids?.[id]) {
+      return walletState.txids[id][action]
     }
-    return state.txids[id]
+    return walletState.txids?.[id]
   }
 }
 
 export function wallet (state) {
-  return state.wallet
+  const walletState = getWalletState(state)
+  return walletState.wallet || null
 }
 
 export function paymentTypes (state) {
+  const walletState = getWalletState(state)
   return function (currency) {
-    return state.paymentTypes[currency] || []
+    return walletState.paymentTypes?.[currency] || []
   }
 }
 
 export function chatIdentity (state) {
+  const walletState = getWalletState(state)
   return function (ref) {
-    return state.chatIdentity[ref]
+    return walletState.chatIdentity?.[ref] || null
   }
 }
 
 export function ordersCurrency (state) {
-  return state.ordersCurrency
+  const walletState = getWalletState(state)
+  return walletState.ordersCurrency || 'All'
 }

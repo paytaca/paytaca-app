@@ -1,6 +1,6 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="'Merchant Cash Out'" class="header" />
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+      <HeaderNav :title="'Merchant Cash Out'" class="header-nav header" />
     <CashoutIndex v-if="state === 'list'" @cashout-form="openCashoutForm"/>
 </div>
 </template>
@@ -45,7 +45,6 @@ export default {
     async loadMerchant (merchantId) {
       await backend.get(`/paytacapos/merchants/${merchantId}/`)
         .then(response => {
-          console.log(response.data)
           this.merchant = response.data
           this.$store.commit('paytacapos/updateCashoutMerchant', this.merchant)
         })
@@ -69,11 +68,8 @@ export default {
       }
 
       await backend.post(url, { params: params, authorize: true })
-        .then(response => {
-          console.log(response)
-        })
         .catch(error => {
-          console.log(error)
+          console.error(error.response || error)
         })
     }
   }

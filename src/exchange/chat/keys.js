@@ -32,13 +32,26 @@ export async function updatePubkey (pubkey) {
 }
 
 export async function getKeypair () {
-  const storageData = await SecureStoragePlugin.get({ key: AES_STORAGE_KEY })
-  const parsedData = JSON.parse(storageData?.value)
+  try {
+    const storageData = await SecureStoragePlugin.get({ key: AES_STORAGE_KEY })
+    const parsedData = JSON.parse(storageData?.value)
 
-  const response = { pubkey: '', privkey: '' }
-  response.pubkey = parsedData?.pubkey
-  response.privkey = parsedData?.privkey
-  return response
+    const response = { pubkey: '', privkey: '' }
+    response.pubkey = parsedData?.pubkey
+    response.privkey = parsedData?.privkey
+    
+    // If keypair is empty or invalid, return null to signal it needs regeneration
+    if (!response.pubkey || !response.privkey) {
+      console.warn('[getKeypair] Stored keypair is empty or invalid')
+      return null
+    }
+    
+    return response
+  } catch (error) {
+    // If storage read fails, return null to signal it needs regeneration
+    console.warn('[getKeypair] Failed to read stored keypair:', error)
+    return null
+  }
 }
 
 /**
@@ -57,18 +70,15 @@ export async function saveKeypair (privkey) {
 
 /**
  * @param {Object} opts
- * @param {String} opts.seed
+ * @param {String} opts.seed - Wallet private key from path '0' (required)
  */
 export function generateKeypair (opts = { seed: '' }) {
   const seed = opts?.seed
-  let privkey = ''
-  if (seed && typeof seed === 'string') {
-    privkey = sha256(seed)
-  } else {
-    const privBytes = crypto.randomFillSync(new Uint8Array(32))
-    privkey = Buffer.from(privBytes).toString('hex')
+  if (!seed || typeof seed !== 'string' || seed.length === 0) {
+    throw new Error('generateKeypair requires a valid seed (wallet private key from path 0). Memos must be encrypted with a deterministic keypair derived from the wallet.')
   }
-
+  
+  const privkey = sha256(seed)
   const pubkey = privToPub(privkey)
   return { privkey, pubkey }
 }

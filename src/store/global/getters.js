@@ -18,6 +18,19 @@ export function walletRecoveryMessage(state) {
   return state.walletRecoveryMessage
 }
 
+export function backupReminderDismissed (state) {
+  return state.backupReminderDismissed
+}
+
+export function lastBackupTimestamp (state) {
+  // Get last backup timestamp from current wallet's settings
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return state.vault[walletIndex].settings.lastBackupTimestamp || null
+  }
+  return null
+}
+
 export function theme (state) {
   return state.theme
 }
@@ -46,12 +59,12 @@ export function autoGenerateAddress(state) {
   return state.autoGenerateAddress
 }
 
-export function showTokens (state) {
-  return state.showTokens
-}
-
 export function enableStablhedge (state) {
   return state.enableStablhedge
+}
+
+export function enableSLP (state) {
+  return state.enableSLP
 }
 
 export function enableSmartBCH (state) {
@@ -123,6 +136,68 @@ export function getVault (state) {
 
 export function getWalletIndex (state) {
   return state.walletIndex
+}
+
+/**
+ * Get wallet hash for a specific vault index
+ * @param {Object} state
+ * @param {number} index - The vault index
+ * @returns {string|null} The wallet hash or null if not found
+ */
+export function getWalletHashByIndex (state) {
+  return (index) => {
+    const wallet = state.vault?.[index]
+    return wallet?.wallet?.bch?.walletHash || 
+           wallet?.wallet?.BCH?.walletHash ||
+           wallet?.BCH?.walletHash || 
+           wallet?.bch?.walletHash ||
+           wallet?.walletHash ||
+           null
+  }
+}
+
+/**
+ * Get vault index by wallet hash
+ * @param {Object} state
+ * @param {string} walletHash - The wallet hash
+ * @returns {number|null} The vault index or null if not found
+ */
+export function getVaultIndexByWalletHash (state) {
+  return (walletHash) => {
+    if (!walletHash || !state.vault || state.vault.length === 0) return null
+    
+    const normalizedHash = String(walletHash).trim()
+    
+    const index = state.vault.findIndex(wallet => {
+      if (!wallet || wallet.deleted) return false
+      
+      const hash = wallet?.wallet?.bch?.walletHash || 
+                   wallet?.wallet?.BCH?.walletHash ||
+                   wallet?.BCH?.walletHash ||
+                   wallet?.bch?.walletHash ||
+                   wallet?.walletHash
+      
+      if (!hash) return false
+      
+      return String(hash).trim() === normalizedHash
+    })
+    
+    return index !== -1 ? index : null
+  }
+}
+
+/**
+ * Get wallet from vault by wallet hash
+ * @param {Object} state
+ * @param {string} walletHash - The wallet hash
+ * @returns {Object|null} The wallet object or null if not found
+ */
+export function getWalletByHash (state) {
+  return (walletHash) => {
+    const index = getVaultIndexByWalletHash(state)(walletHash)
+    if (index === null) return null
+    return state.vault?.[index] || null
+  }
 }
 
 export function getDefaultAssetLogo () {
@@ -239,7 +314,9 @@ export function getConnectedSites (state) {
 }
 
 export function denomination (state) {
-  return state.denomination
+  // Backward-compat: older wallets may still have 'Satoshis' stored.
+  // Canonical UI/value moving forward is 'sats'.
+  return state.denomination === 'Satoshis' ? 'sats' : state.denomination
 }
 
 export function walletAddresses (state) {
@@ -284,8 +361,84 @@ export function merchantActivity (state) {
 }
 
 export function getWatchtowerBaseUrl (state) {
+  
   if (state.isChipnet) {
     return 'https://chipnet.watchtower.cash'
   }
   return 'https://watchtower.cash'
+}
+
+/**
+ * Get preferred security method for current wallet
+ * Returns 'pin' or 'biometric'
+ */
+export function preferredSecurity (state) {
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    const pref = state.vault[walletIndex].settings.preferredSecurity || 'pin'
+    // Normalize Quasar storage format (e.g., "__q_strn|pin" -> "pin")
+    return typeof pref === 'string' && pref.includes('|') ? pref.split('|').pop() : pref
+  }
+  // Fallback to localStorage for backward compatibility during migration
+  try {
+    const storedPref = globalThis?.localStorage 
+      ? globalThis.localStorage.getItem('preferredSecurity') 
+      : null
+    if (storedPref) {
+      // Normalize Quasar storage format (e.g., "__q_strn|pin" -> "pin")
+      return typeof storedPref === 'string' && storedPref.includes('|') ? storedPref.split('|').pop() : storedPref
+    }
+    return 'pin'
+  } catch {
+    return 'pin'
+  }
+}
+
+/**
+ * Get lock app setting for current wallet
+ * Returns true if app lock is enabled, false otherwise
+ */
+export function lockApp (state) {
+  const walletIndex = state.walletIndex
+  if (state.vault?.[walletIndex]?.settings) {
+    return Boolean(state.vault[walletIndex].settings.lockApp)
+  }
+  return false
+}
+
+/**
+ * Transaction list timestamp display preference.
+ * true: relative timestamps (e.g. "5 minutes ago")
+ * false: absolute timestamps (date + time) formatted using user's locale
+ */
+export function relativeTxTimestamp (state) {
+  const walletIndex = state.walletIndex
+  const value = state.vault?.[walletIndex]?.settings?.relativeTxTimestamp
+  if (value === undefined || value === null) return true
+  return Boolean(value)
+}
+
+/**
+ * Check if ANY wallet in the vault has lock app enabled
+ * Returns true if at least one wallet has lock enabled, false otherwise
+ * Used for security checks that should apply globally when any wallet is protected
+ */
+export function anyWalletHasLockEnabled (state) {
+  if (!state.vault || !Array.isArray(state.vault)) {
+    return false
+  }
+  return state.vault.some(wallet => {
+    if (!wallet || wallet.deleted === true) {
+      return false
+    }
+    return Boolean(wallet.settings?.lockApp)
+  })
+}
+
+/**
+ * Get current unlock state
+ * Returns true if app is unlocked in current session
+ */
+export function isUnlocked (state) {
+  return Boolean(state.isUnlocked)
 }

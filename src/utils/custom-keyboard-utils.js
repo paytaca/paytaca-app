@@ -1,3 +1,5 @@
+import { formatWithLocale, getLocaleSeparators } from "./denomination-utils"
+
 /**
  * Parses the key clicked in the custom keyboard and inserts
  * it into the text from the currently-focused input textfield.
@@ -12,6 +14,14 @@ export function parseKey (key, inputText, caret, asset) {
 
   if (key === '.' && (inputText === '' || Number(amount) === 0)) {
     amount = '0.'
+  } else if (key === '.') {
+    // Handle decimal point insertion
+    const hasPeriod = amount.indexOf('.')
+    if (hasPeriod === -1) {
+      // No decimal point yet, append it to the end
+      amount = amount + '.'
+    }
+    // If decimal already exists, do nothing (prevent multiple decimals)
   } else {
     const hasPeriod = amount.indexOf('.')
     if (hasPeriod < 1) {
@@ -40,8 +50,10 @@ export function parseKey (key, inputText, caret, asset) {
  * @returns the adjusted string if asset is a cashtoken; the unchanged string otherwise
  */
 function parseCtKey (amount, asset) {
-  if (asset?.id?.startsWith('ct/')) {
+  // Validate decimals for both tokens and BCH
+  if (asset?.decimals !== undefined && asset.decimals !== null) {
     if (asset.decimals === 0) {
+      // Remove decimal point for tokens with 0 decimals
       amount = amount.toString().replace('.', '')
     } else {
       const parts = amount.toString().split('.')
@@ -71,4 +83,43 @@ export function adjustSplicedAmount (text, caretPosition, addedItem = null) {
     return text.split('').toSpliced(caretPosition, 0, addedItem).join('')
   }
   return text.split('').toSpliced(caretPosition, 1).join('')
+}
+
+/**
+ * Selective locale formatting when either the decimal or zero key is clicked.
+ * Since **Number.toLocaleString** does not handle numbers/number strings with
+ * multiple zeros (for BCH amounts) properly, a custom logic is applied.
+ * @param {String} amount the unformatted amount (no locale formatting applied)
+ * @param {String} formattedAmount the formatted amount (locale formatting is applied)
+ * @param {String} key the key pressed in the custom keyboard
+ * @param {Object} decimalObj contains the min and max options for locale formatting
+ * @returns the formatted amount as a **string**
+ */
+export function formatWithLocaleSelective (amount, formattedAmount, key, decimalObj) {
+  const decimalSeparator = getLocaleSeparators().decimal
+  // Ensure amount is a string
+  const amountStr = String(amount || '')
+  let parsedAmount = amountStr
+
+  // if clicked decimal
+  if (key === '.') {
+    // check if decimal is already present in formattedAmount
+    if (!formattedAmount.includes(decimalSeparator)) {
+      // if not present, format amount and append decimal
+      parsedAmount = formatWithLocale(amountStr, decimalObj) + decimalSeparator
+    }
+  }
+  //  else if clicked zero
+  else if (key === '0') {
+    // check if decimal is already present in amount
+    if (amountStr.includes('.')) {
+      // if present, format amount and append zero (already appended from parseKey)
+      // split decimal numbers for possible zeros
+      const amountSplit = amountStr.split('.')
+      const combinedDecimal = `${decimalSeparator}${amountSplit[1]}`
+      parsedAmount = `${formatWithLocale(amountSplit[0], decimalObj)}${combinedDecimal}`
+    } else parsedAmount = formatWithLocale(amountStr, decimalObj)
+  }
+
+  return parsedAmount
 }

@@ -1,10 +1,13 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
 import { loadWallet } from 'src/wallet'
-import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic } from 'src/lib/multisig'
+import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic, MultisigWallet } from 'src/lib/multisig'
 import { useRoute, useRouter } from 'vue-router'
 import Watchtower from 'src/lib/watchtower'
 import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
+import { getBcmrBackend } from 'src/wallet/cashtokens'
+import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
+import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
@@ -19,12 +22,34 @@ export const useMultisigHelpers = () => {
     return $store.getters['global/isChipnet']
   })
 
+  const network = computed(() => {
+    return isChipnet.value ? WatchtowerNetwork.chipnet : WatchtowerNetwork.mainnet
+  })
+
+  const multisigCoordinationServer = computed(() => {
+    return new WatchtowerCoordinationServer({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+    })
+  })
+
+  const multisigNetworkProvider = computed(() => {
+    return new WatchtowerNetworkProvider({
+      network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
+    })
+  })
+
+  const resolveXPrvOfXpub = computed(() => {
+    return createXprvFromXpubResolver({
+      walletVault: $store.getters['global/getVault']
+    })
+  })
+
   const txExplorerUrl = computed(() => {
     // TODO: get options from watchtower
     if (isChipnet.value) {
       return 'https://chipnet.chaingraph.cash/tx'
     }
-    return 'https://blockchair.com/bitcoin-cash/transaction'
+    return 'https://explorer.paytaca.com/tx'
   })
 
   const cashAddressNetworkPrefix = computed(() => {
@@ -36,16 +61,17 @@ export const useMultisigHelpers = () => {
 
   const multisigWallets = computed(() => {
     const wallets = $store.getters['multisig/getWallets']?.map((w) => {
-      const wallet = structuredClone(w)
-      wallet.lockingData.hdKeys.addressIndex = 0
-      const address = getMultisigCashAddress({
-        ...wallet, cashAddressNetworkPrefix: cashAddressNetworkPrefix.value
+      return MultisigWallet.importFromObject(w, {
+        store: $store,
+        provider: multisigNetworkProvider.value,
+        coordinationServer: multisigCoordinationServer.value,
+        resolveXprvOfXpub: resolveXPrvOfXpub.value
       })
-      return { ...wallet, address }
     })
     return wallets
   })
 
+  // transactions.send
   const getSignerWalletFromVault = ({ xpub }) => {
     const vaultIndex = localWallets.value.findIndex((signerWallet) => {
       return signerWallet.wallet.bch.xPubKey === xpub
@@ -65,80 +91,72 @@ export const useMultisigHelpers = () => {
     return hdKeys.hdPrivateKey
   }
 
-  const getSignerMnemonic = async ({ xpub }) => {
-    const signerWallet = getSignerWalletFromVault({ xpub })
-    if (!signerWallet) return
-    const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
-    return mnemonic
-  }
-
   /**
-   * Among the signers, check which belongs to this Paytaca Wallet.
-   * Use the first one found.
-   * @returns {number|undefined} 1 if signer_1, 2 if signer_2, ...
+   * Retrieves token details from existing assets cache or Paytaca's BCMR indexer
+   * @param {string} category - The token category/token id
+   * @returns {{
+   *   name: string
+   *   description?: string,
+   *   uris?: {
+   *     icon: string
+   *   },
+   *   token: {
+   *    category: string,
+   *    symbol: string,
+   *    decimals?: number
+   *  }
+   * }} - A partial BCMR IdentitySnapshot, only the basic token details
+   * 
    */
-  const identifyPossiblePstCreator = async ({ signers }) => {
-    for (const signerEntityIndex of Object.keys(signers)) {
-      const walletFound = localWallets.value.find((signerWallet) => {
-        return signerWallet.wallet.bch.xPubKey === signers[signerEntityIndex].xpub
-      })
-      if (walletFound) {
-        return signerEntityIndex
+  const getAssetTokenIdentity = async (category) => {
+    const assetTokenDetailsFromAssetsVault = $store.state?.assets?.assets?.find(cachedAssetDetail => {
+      return cachedAssetDetail.id.includes(category)
+    })
+
+    let cashtokenIdentity = null
+
+    if (assetTokenDetailsFromAssetsVault) {
+      cashtokenIdentity = {
+        name: assetTokenDetailsFromAssetsVault.name,
+        description: assetTokenDetailsFromAssetsVault.description,
+        uris: {
+          icon: assetTokenDetailsFromAssetsVault.logo
+        },
+        token: {
+          category,
+          symbol: assetTokenDetailsFromAssetsVault.symbol,
+          decimals: assetTokenDetailsFromAssetsVault.decimals   
+        }
       }
     }
-    return undefined
-  }
 
-  const transactionsLastIndex = computed(() => {
-    return $store.getters['multisig/getTransactionsLastIndex']
-  })
+    if (!cashtokenIdentity) {
+      cashtokenIdentity = $store.state?.global?.cache?.cashtokenIdentities?.[category]
+    }
 
-  const saveTransaction = async (multisigTransaction) => {
-    await $store.dispatch(
-      'multisig/saveTransaction',
-      multisigTransaction
-    )
-  }
+    if (!cashtokenIdentity) {
+      const response =  await getBcmrBackend().get(`tokens/${category}`)
+      if (response?.data?.token?.category !== category) return // sanity check
+      if (response?.data) {
+        cashtokenIdentity = JSON.parse(JSON.stringify(response.data))
+        $store.commit('global/cacheCashtokenIdentity', { category, cashtokenIdentity })
+      }
+    }
 
-  const updateTransaction = async ({ index, multisigTransaction }) => {
-    await $store.dispatch('multisig/updateTransaction', { index, multisigTransaction })
-  }
-
-  const getMultisigWalletBchBalance = async (address) => {
-    const watchtower = new Watchtower($store.getters['global/isChipnet'])
-    const response = await watchtower.getAddressBchBalance(address)
-    return response?.data?.balance
-  }
-
-  const getTransactionsByWalletAddress = ({ address }) => {
-    const transactions =
-         $store.getters['multisig/getTransactionsByWalletAddress']({
-           address: address
-         }).filter((transaction) => {
-	   return transaction.metadata.address === address
-	 }).map(transaction => structuredClone(transaction))
-   return transactions     
-  }
-
-  const getTransactionsByMultisigWallet = (wallet) => {
-    const lockingBytecodeHex = binToHex(getLockingBytecode({ template: wallet.template, lockingData: wallet.lockingData}).bytecode)
-    return $store.getters['multisig/getTransactionsByLockingBytecode']({ lockingBytecodeHex})
+    return cashtokenIdentity
   }
 
   return {
     localWallets,
     getSignerWalletFromVault,
     getSignerXPrv,
-    getSignerMnemonic,
-    identifyPossiblePstCreator,
-    saveTransaction,
-    updateTransaction,
-    transactionsLastIndex,
     cashAddressNetworkPrefix,
     multisigWallets,
-    getTransactionsByWalletAddress,
-    getTransactionsByMultisigWallet,
-    getMultisigWalletBchBalance,
-    txExplorerUrl
+    txExplorerUrl,
+    getAssetTokenIdentity,
+    multisigNetworkProvider: multisigNetworkProvider.value,
+    multisigCoordinationServer: multisigCoordinationServer.value,
+    resolveXprvOfXpub: resolveXPrvOfXpub.value,
+    network: network.value
   }
 }

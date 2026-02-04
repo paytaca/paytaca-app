@@ -1,5 +1,5 @@
 <template>
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav :title="$t('GenerateQR')" backnavpath="/" />
 
     <div
@@ -7,7 +7,7 @@
       class="text-center"
       style="padding-top: 80px;"
     >
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+      <ProgressLoader />
     </div>
 
     <div v-else>
@@ -78,16 +78,28 @@
 
         <div class="row col-12 flex-center q-pb-md">
           <div class="col copy-container">
-            <span class="qr-code-text text-weight-light text-center">
+            <div class="qr-code-text text-weight-light text-center">
               <div
-                class="text-nowrap text-bow"
-                style="letter-spacing: 1px;"
+                class="text-bow"
+                style="letter-spacing: 1px; word-break: break-all;"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
                 :class="getDarkModeClass(darkMode)"
               >
-                {{ displayAddress(address) }} <q-icon name="fas fa-copy" style="font-size: 14px;" />
+                {{ address }}
               </div>
-            </span>
+            </div>
+            <div class="row justify-center q-mt-md q-mx-lg">
+              <q-btn
+                outline
+                no-caps
+                class="br-15"
+                color="grey-7"
+                icon="content_copy"
+                padding="xs md"
+                :label="$t('ClickToCopyAddress')"
+                @click="copyToClipboard(isCt ? address : addressAmountFormat)"
+              />
+            </div>
           </div>
         </div>
         <div v-if="amount && !isCt" class="text-center row col-12 flex-center">   
@@ -95,8 +107,9 @@
             <div class="receive-label q-mt-md" style="font-size: 15px;">
               {{ $t('YouWillReceive') }}
             </div>
-            <div class="text-weight-light receive-amount-label" style="font-size: 18px;">
-              {{ amount }} {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
+            <div class="receive-amount-label" style="font-size: 18px;">
+              {{ formatWithLocale(amount, decimalObj) }}
+              {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH' }}
             </div>
           </div>
         </div>
@@ -106,7 +119,7 @@
           :class="getDarkModeClass(darkMode)"
           v-if="!isCt"
         >
-          <span class="cursor-pointer" @click="amountDialog = true; customKeyboardState = 'show';">
+          <span class="cursor-pointer" @click="amountDialog = true">
             {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
           </span>
           <span class="q-ml-md text-negative cursor-pointer" @click="amount = ''">
@@ -123,28 +136,20 @@
             size="lg"
             icon="close"
             class="close-button"
-            @click="setReceiveAmount('close')"
+            @click="amountDialog = false"
           />
         </div>
         <div :style="`margin-top: ${$q.screen.height * .15}px`">
         <div class="text-center text-bow text-h6" :class="getDarkModeClass(darkMode)">{{ $t('SetReceiveAmount') }}</div>
         <div class="col q-mt-md q-px-lg text-center">
-          <q-input
-            type="text"
-            inputmode="none"
-            @focus="openCustomKeyboard(true)"
-            filled
-            v-model="tempAmount"
-            :label="$t('Amount')"
-            :readonly="readonlyState"
-            :dark="darkMode"
-          >
-            <template v-slot:append>
-              <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                {{setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'}}
-              </div>
-            </template>
-          </q-input>
+          <custom-input
+            v-model="amount"
+            :inputSymbol="setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : 'BCH'"
+            :inputRules="[val => Boolean(val) || $t('InvalidAmount')]"
+            :asset="null"
+            :decimalObj="decimalObj"
+            @on-check-click="amountDialog = false"
+          />
         </div>
         <div
           class="q-pt-md text-subtitle1 button button-text-primary set-amount-button cursor-pointer"
@@ -157,22 +162,22 @@
       </div>
     </div>
   </div>
-
-  <customKeyboard
-    :custom-keyboard-state="customKeyboardState"
-    v-on:addKey="setAmount"
-    v-on:makeKeyAction="makeKeyAction"
-  />
 </template>
 
 <script>
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getWatchtowerWebsocketUrl, convertCashAddress } from 'src/wallet/chipnet'
 import { Address } from 'src/wallet'
 import { useWakeLock } from '@vueuse/core'
+import { formatWithLocale } from 'src/utils/denomination-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType
+} from 'src/utils/address-generation-utils.js'
+
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader'
-import customKeyboard from '../../pages/transaction/dialog/CustomKeyboard.vue'
+import CustomInput from 'src/components/CustomInput.vue'
 
 export default {
   name: 'GenerateQR',
@@ -180,7 +185,7 @@ export default {
   components: {
     HeaderNav,
     ProgressLoader,
-    customKeyboard
+    CustomInput
   },
 
   data () {
@@ -192,10 +197,7 @@ export default {
       addresses: [],
       incomingTransactions: [],
       amountDialog: false,
-      customKeyboardState: 'dismiss',
       amount: '',
-      tempAmount: '',
-      readonlyState: false,
       setAmountInFiat: true
     }
   },
@@ -233,82 +235,19 @@ export default {
     },
     selectedAssetMarketPrice () {
       return this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency())
+    },
+    decimalObj () {
+      return this.setAmountInFiat ? { min: 0, max: 4 } : { min: 0, max: 8 }
     }
   },
 
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
-    setReceiveAmount (state) {
-      if (state !== 'close') {
-        this.amount = this.tempAmount
-      }
-      this.readonlyState = false
-      this.amountDialog = false
-      this.customKeyboardState = 'dismiss'
-    },
+    formatWithLocale,
+
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
       return currency && currency.symbol
-    },
-    displayAddress (address) {
-      if (address) {
-        return address.substring(0, 16) + '...' + address.substring(address.length - 4)
-      }
-    },
-    setAmount (key) {
-      let receiveAmount, finalAmount, tempAmountFormatted = ''
-
-      receiveAmount = this.tempAmount
-
-      receiveAmount = receiveAmount === null ? '' : receiveAmount
-      if (key === '.' && receiveAmount === '') {
-        finalAmount = '0.'
-      } else {
-        finalAmount = receiveAmount.toString()
-        const hasPeriod = finalAmount.indexOf('.')
-        if (hasPeriod < 1) {
-          if (Number(finalAmount) === 0 && Number(key) > 0) {
-            finalAmount = key
-          } else {
-            // Check amount if still zero
-            if (Number(finalAmount) === 0 && Number(finalAmount) === Number(key)) {
-              finalAmount = 0
-            } else {
-              finalAmount += key.toString()
-            }
-          }
-        } else {
-          finalAmount += key !== '.' ? key.toString() : ''
-        }
-      }
-      // // Set the new amount
-      this.tempAmount = finalAmount
-    },
-    makeKeyAction (action) {
-      if (action === 'backspace') {
-        // Backspace
-        this.tempAmount = String(this.tempAmount).slice(0, -1)
-      } else if (action === 'delete') {
-        // Delete
-        this.tempAmount = ''
-      } else {
-        // Enabled submit slider
-        if (this.tempAmount) {
-          this.setReceiveAmount('gen')
-        }
-        this.customKeyboardState = 'dismiss'
-        this.readonlyState = false
-      }
-    },
-    openCustomKeyboard (state) {
-      this.readonlyState = state
-
-      if (state) {
-        this.customKeyboardState = 'show'
-      } else {
-        this.customKeyboardState = 'dismiss'
-      }
     },
     convertFiatToSelectedAsset (amount) {
       const parsedAmount = Number(amount)
@@ -327,15 +266,38 @@ export default {
         icon: 'mdi-clipboard-check'
       })
     },
-    getAddresses () {
+    async getAddresses () {
       const vm = this
 
-      vm.addresses.push(vm.$store.getters['global/getAddress']('bch'))
-      vm.addresses.push(convertCashAddress(
-        vm.$store.getters['global/getAddress']('bch'),
-        this.isChipnet,
-        true
-      ))
+      // Generate addresses dynamically from mnemonic instead of using stored addresses
+      try {
+        const addressIndex = vm.$store.getters['global/getLastAddressIndex']('bch')
+        // Ensure addressIndex is a valid number (default to 0 if undefined/null)
+        const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
+        const walletIndex = vm.$store.getters['global/getWalletIndex']
+        
+        // Generate regular BCH address
+        const bchAddress = await generateReceivingAddress({
+          walletIndex: walletIndex,
+          derivationPath: getDerivationPathForWalletType('bch'),
+          addressIndex: validAddressIndex,
+          isChipnet: vm.isChipnet
+        })
+        
+        // Generate CashToken address (token-aware format)
+        const ctAddress = convertCashAddress(bchAddress, vm.isChipnet, true)
+        
+        vm.addresses.push(bchAddress)
+        vm.addresses.push(ctAddress)
+      } catch (error) {
+        console.error('Error generating addresses dynamically:', error)
+        this.$q.notify({
+          message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
+          color: 'negative',
+          icon: 'warning'
+        })
+        // Don't fallback to store - address generation must succeed
+      }
     },
     convertToLegacyAddress (address) {
       const addressObj = new Address(address)
@@ -350,33 +312,25 @@ export default {
         const data = JSON.parse(message.data)
         if (this.incomingTransactions.indexOf(data.txid) === -1) {
           this.incomingTransactions.push(data.txid)
-          vm.$confetti.start({
-            particles: [
-              {
-                type: 'heart'
+          
+          // Redirect to transaction details page for all received transactions
+          if (data.txid) {
+            // Extract category from token_id if it's a token transaction, otherwise it's BCH
+            const query = { new: 'true' }
+            if (data.token_id && data.token_id !== 'bch') {
+              const parts = data.token_id.split('/')
+              if (parts.length === 2 && parts[0] === 'ct') {
+                query.category = parts[1]
               }
-            ],
-            size: 3,
-            dropRate: 3
-          })
-          if (!vm.$q.platform.is.mobile) {
-            let decimals = 8
-            let amount = data.value / (10 ** decimals)
-            if (data.token_id.startsWith('ct/')) {
-              decimals = data.token_decimals
-              amount = Number(data.amount) / (10 ** data.token_decimals)
             }
-            vm.$q.notify({
-              classes: 'br-15 text-body1',
-              message: `${amount.toFixed(decimals)} ${data.token_symbol.toUpperCase()} received!`,
-              color: 'blue-9',
-              position: 'bottom',
-              timeout: 4000
+            // For BCH transactions, no category query param is needed
+            vm.$router.push({
+              name: 'transaction-detail',
+              params: { txid: data.txid },
+              query
             })
+            return // Exit early - confetti will be shown on transaction details page
           }
-          setTimeout(function () {
-            vm.$confetti.stop()
-          }, 3000)
         }
       }
     }
@@ -386,7 +340,7 @@ export default {
     const vm = this
 
     vm.generatingAddress = true
-    vm.getAddresses()
+    await vm.getAddresses() // Wait for address generation to complete
     vm.generatingAddress = false
 
     vm.setupListener()

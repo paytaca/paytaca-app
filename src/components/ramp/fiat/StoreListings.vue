@@ -28,14 +28,14 @@
           </div>
           <div class="q-ml-md">
             <span>
-              <q-badge :outline="!filters.order_amount" color="blue" rounded @click="openFilterSelection('amount')">
-                Amount{{ filters.order_amount ? `: ${filters.order_amount} ${amountFilterCurrency}` : ''}}
+              <q-badge :outline="!filters.order_amount" class="button button-text-primary" :class="getDarkModeClass(darkMode)" rounded @click="openFilterSelection('amount')">
+                {{ $t('Amount') }}{{ filters.order_amount ? `: ${filters.order_amount} ${amountFilterCurrency}` : ''}}
                 <q-icon size="xs" name='mdi-menu-down'/>
               </q-badge>
             </span>
             <span class="q-pl-xs">
-              <q-badge :outline="defaultPaymentTypes" color="blue" rounded @click="openFilterSelection('paymentTypes')">
-                Payment Types <q-icon size="xs" name='mdi-menu-down'/>
+              <q-badge :outline="defaultPaymentTypes" class="button button-text-primary" :class="getDarkModeClass(darkMode)" rounded @click="openFilterSelection('paymentTypes')">
+                {{ $t('PaymentTypes') }} <q-icon size="xs" name='mdi-menu-down'/>
               </q-badge>
             </span>
           </div>
@@ -65,34 +65,66 @@
           :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`">
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-buy-btn': transactionType === 'SELL'}]"
+            :class="buyBchButtonClass"
+            :style="transactionType === 'SELL' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
             @click="transactionType='SELL'">
             {{ $t('BuyBCH') }}
           </button>
           <button
             class="col br-15 btn-custom fiat-tab q-mt-none"
-            :class="[{'dark': darkMode}, {'active-sell-btn': transactionType === 'BUY'}]"
+            :class="sellBchButtonClass"
+            :style="transactionType === 'BUY' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
             @click="transactionType='BUY'">
             {{ $t('SellBCH') }}
           </button>
         </div>
       </q-pull-to-refresh>
       <div class="q-mt-sm">
-        <div v-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
-          <div v-if="displayEmptyList && !loading">
+        <!-- Skeleton Loading State -->
+        <div v-if="loading && (!listings || listings.length === 0)" class="q-px-md">
+          <q-list>
+            <q-item v-for="n in 5" :key="n" class="q-mb-sm">
+              <q-item-section>
+                <div class="q-pb-sm q-pl-md">
+                  <div class="row">
+                    <div class="col">
+                      <!-- User name -->
+                      <q-skeleton type="text" width="40%" height="18px" class="q-mb-xs" />
+                      <!-- Rating -->
+                      <div class="row q-mb-xs">
+                        <q-skeleton type="rect" width="100px" height="16px" />
+                        <q-skeleton type="text" width="40px" height="16px" class="q-ml-xs" />
+                      </div>
+                      <!-- Trade info -->
+                      <q-skeleton type="text" width="60%" height="14px" class="q-mb-xs" />
+                      <!-- Price -->
+                      <q-skeleton type="text" width="50%" height="22px" class="q-mb-xs" />
+                      <!-- Quantity and Limit -->
+                      <q-skeleton type="text" width="70%" height="14px" class="q-mb-xs" />
+                      <q-skeleton type="text" width="65%" height="14px" class="q-mb-sm" />
+                      <!-- Payment method badges -->
+                      <div class="row q-gutter-sm">
+                        <q-skeleton type="rect" width="80px" height="24px" style="border-radius: 12px;" />
+                        <q-skeleton type="rect" width="90px" height="24px" style="border-radius: 12px;" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!listings || listings.length == 0" class="relative text-center" style="margin-top: 50px;">
+          <div v-if="displayEmptyList">
             <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
             <p :class="{ 'text-black': !darkMode }">{{ $t('NoAdsToDisplay') }}</p>
           </div>
-          <div v-else>
-            <div class="row justify-center" v-if="loading">
-              <q-spinner-dots color="primary" size="40px" />
-            </div>
-          </div>
         </div>
+
+        <!-- Listings -->
         <div v-else>
-          <div class="row justify-center" v-if="loading">
-            <q-spinner-dots color="primary" size="40px" />
-          </div>
           <q-pull-to-refresh @refresh="refreshData">
             <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
               <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
@@ -188,6 +220,7 @@ import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
+import { getAuthToken } from 'src/exchange/auth'
 
 export default {
   setup () {
@@ -225,8 +258,17 @@ export default {
         sell: true,
         buy: true
       },
-      switchFlag: false
+      switchFlag: false,
+      isInitialMount: true,
+      pendingFetch: false // Track if we have a pending fetch waiting for authentication
     }
+  },
+  created () {
+    // Listen for relogged event to retry fetching after authentication
+    bus.on('relogged', this.handleRelogged)
+  },
+  beforeUnmount () {
+    bus.off('relogged', this.handleRelogged)
   },
   watch: {
     async transactionType (value) {
@@ -244,6 +286,10 @@ export default {
         })
     },
     async selectedCurrency () {
+      // Skip watcher on initial mount to prevent double loading
+      if (this.isInitialMount) {
+        return
+      }
       this.switchFlag = true
       this.loading = true
       this.filterComponentKey++
@@ -263,6 +309,23 @@ export default {
     }
   },
   computed: {
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    buyBchButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'SELL',
+        [`theme-${this.theme}`]: true
+      }
+    },
+    sellBchButtonClass () {
+      return {
+        'dark': this.darkMode,
+        'active-theme-btn': this.transactionType === 'BUY',
+        [`theme-${this.theme}`]: true
+      }
+    },
     amountFilterCurrency () {
       if (this.filters?.order_amount_currency === 'BCH') return 'BCH'
       if (this.selectedCurrency?.symbol !== 'All') {
@@ -301,14 +364,41 @@ export default {
   },
   async mounted () {
     const vm = this
-    await vm.fetchPaymentTypes()
-    vm.fetchFiatCurrencies()
-    vm.updateFilters()
-    vm.resetAndRefetchListings()
+    // Check if we have an auth token before proceeding
+    // If no token exists after wallet switch, wait for authentication
+    const token = await getAuthToken()
+    
+    // Start fetching fiat currencies first (needed for listings)
+    // Payment types can load in parallel but are not required for initial listing fetch
+    await vm.fetchFiatCurrencies()
+    // Fetch payment types in parallel (non-blocking)
+    vm.fetchPaymentTypes()
+    
+    // Only fetch listings if we have an auth token
+    // If no token, the fetch will be triggered after authentication via handleRelogged
+    if (!token) {
+      // No token - mark as pending and wait for authentication
+      vm.pendingFetch = true
+      // Trigger authentication by emitting session-expired if not already triggered
+      // This ensures login dialog appears
+      bus.emit('session-expired')
+    }
+    
+    // Enable watchers after initial mount to prevent double loading
+    vm.isInitialMount = false
   },
   methods: {
     getDarkModeClass,
     formatCurrency,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || themeColors['glassmorphic-blue']
+    },
     openFilterSelection (type) {
       this.$q.dialog({
         component: FilterSelectionDialog,
@@ -361,7 +451,12 @@ export default {
     },
     async fetchPaymentTypes () {
       const vm = this
-      await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
+      // Fetch payment types in background - non-blocking for initial render
+      vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.isAllCurrencies ? null : this.selectedCurrency?.symbol })
+        .then(() => {
+          // Update filters when payment types are loaded
+          vm.updateFilters()
+        })
         .catch(error => {
           this.handleRequestError(error)
         })
@@ -375,11 +470,26 @@ export default {
             vm.selectedCurrency = vm.fiatCurrencies[0]
           }
           vm.fiatCurrencies.unshift('All')
+          // Start fetching listings as soon as currency is available
+          // Don't wait for payment types
+          // Always fetch on initial currency load (when isInitialMount is true)
+          // This ensures listings load after wallet switch when component is recreated
+          // But only if we're not waiting for authentication (pendingFetch)
+          if (vm.isInitialMount && !vm.pendingFetch) {
+            vm.updateFilters()
+            vm.resetAndRefetchListings()
+          }
         })
         .catch(error => {
           vm.fiatCurrencies = vm.availableFiat
           if (!vm.selectedCurrency) {
             vm.selectedCurrency = vm.fiatCurrencies[0]
+          }
+          // Even on error, try to fetch listings if we have a currency
+          // But only if we're not waiting for authentication (pendingFetch)
+          if (vm.isInitialMount && !vm.pendingFetch && vm.selectedCurrency) {
+            vm.updateFilters()
+            vm.resetAndRefetchListings()
           }
           this.handleRequestError(error)
         })
@@ -398,6 +508,8 @@ export default {
             overwrite: overwrite
           })
           .then(() => {
+            // Clear pending flag on success
+            this.pendingFetch = false
             vm.updatePaginationValues()
 
             setTimeout(() => {
@@ -407,8 +519,25 @@ export default {
             }, 50)
           })
           .catch(error => {
+            // Handle 403 errors gracefully - authentication will be triggered by backend interceptor
+            // Don't show error to user if it's a 403 (session expired) - authentication will handle it
+            if (error?.response?.status === 403) {
+              // Session expired or not authenticated - mark as pending and wait for authentication
+              // Backend interceptor will emit 'session-expired' to trigger login
+              this.pendingFetch = true
+              this.loading = false
+              return
+            }
             this.handleRequestError(error)
           })
+      }
+    },
+    handleRelogged () {
+      // Authentication completed - retry fetching if we had a pending fetch
+      if (this.pendingFetch && this.selectedCurrency) {
+        this.pendingFetch = false
+        this.loading = true
+        this.resetAndRefetchListings(true)
       }
     },
     async receiveDialog (data) {
@@ -520,17 +649,52 @@ export default {
     transition: .2s;
     font-weight: 500;
   }
-  .btn-custom:hover {
+  .btn-custom.dark {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .btn-custom:not(.active-theme-btn):hover {
     background-color: rgb(242, 243, 252);
     color: #4C4F4F;
   }
-  .btn-custom.active-buy-btn {
-    background-color: rgb(60, 100, 246) !important;
+  .btn-custom.dark:not(.active-theme-btn):hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  /* Theme-based active button styles */
+  button.btn-custom.fiat-tab.active-theme-btn {
     color: #fff !important;
   }
-  .btn-custom.active-sell-btn {
-    background-color: #ed5f59 !important;
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue {
+    background-color: #42a5f5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold {
+    background-color: #ffa726 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green {
+    background-color: #4caf50 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red {
+    background-color: #f54270 !important;
+  }
+  
+  /* Dark mode active button */
+  button.btn-custom.fiat-tab.active-theme-btn.dark {
     color: #fff !important;
+  }
+  
+  /* Active button hover effects - slightly darken */
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-blue:hover {
+    background-color: #1e88e5 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-gold:hover {
+    background-color: #fb8c00 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-green:hover {
+    background-color: #43a047 !important;
+  }
+  button.btn-custom.fiat-tab.active-theme-btn.theme-glassmorphic-red:hover {
+    background-color: #e91e63 !important;
   }
   .btn-transaction {
     font-size: 16px;

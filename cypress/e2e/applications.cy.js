@@ -16,9 +16,9 @@ describe('Applications Page', () => {
   });
 
   it('should navigate through all menu tabs', () => {
-    // Test P2P Exchange
+    // Test P2P Ramp
     cy.visit('http://localhost:9000/#/apps');
-    cy.contains('.pt-app-name', 'P2P Exchange').parent().find('.pt-app').click();
+    cy.contains('.pt-app-name', 'P2P Ramp').parent().find('.pt-app').click();
     cy.url().should('include', '/apps/exchange');
     cy.wait(3000); // Wait for navigation to load
 
@@ -52,7 +52,7 @@ describe('Applications Page', () => {
     cy.url().should('include', '/#/apps');
 
     // Test Merchant Admin with Translation Handling
-    testAppNavigation('apps-pos-admin', '/#/apps/pos-admin');
+    testAppNavigation('apps-pos-admin', '/#/apps/merchant-admin');
 
     // Test Wallet Info with Translation Handling
     testAppNavigation('apps-wallet-info', '/#/apps/wallet-info');

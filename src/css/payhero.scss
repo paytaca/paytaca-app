@@ -43,15 +43,23 @@ body.theme-payhero {
   /* ----- IDS ----- */
   #registration-container {
     min-height: 100vh;
-    background-image: linear-gradient(
-      to right bottom,
-      #3b7bf6,
-      #a866db,
-      #da53b2,
-      #ef4f84,
-      #ed5f59
-    );
     position: relative !important;
+
+    &.dark {
+      background: linear-gradient(
+        180deg,
+        $background-blue 0%,
+        #000 100%
+      ) !important;
+    }
+
+    &.light {
+      background: linear-gradient(
+        180deg,
+        #fff 0%,
+        $brand_yellow 100%
+      ) !important;
+    }
 
     .q-field--dark {
       .q-field__control,
@@ -98,6 +106,11 @@ body.theme-payhero {
   }
 
   /* ----- CLASSES ----- */
+
+  @include shared.gen-color-classes($brand_yellow, 'pt-primary1');
+  @include shared.gen-color-classes($button_yellow, 'pt-primary2');
+  @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
+  @include shared.gen-color-classes($label-white, 'pt-light');
 
   .bg-grad {
     background: $black_opaque_50;
@@ -446,16 +459,6 @@ body.theme-payhero {
       &.light {
         font-weight: 500 !important;
       }
-    }
-  }
-
-  .ignored-tokens-button {
-    &.dark {
-      background: $button_yellow !important;
-    }
-
-    &.light {
-      background-color: white !important;
     }
   }
 

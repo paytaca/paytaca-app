@@ -1,114 +1,124 @@
 <template>
   <q-dialog
     ref="multi-wallet"
-    seamless
     full-width
-    position="top"
-    transition-show="fade"
-    transition-hide="fade"
-    @before-hide="$emit('dialog-hide')"
+    full-height
+    position="left"
+    maximized
+    @before-show="onDialogShow"
+    @before-hide="onDialogHide"    
   >
-    <q-card class="q-mt-xl q-mx-sm wallet-card" :class="getDarkModeClass(darkMode)">
-      <div class="row no-wrap items-center justify-center q-px-lg q-pt-lg">
-        <div class="text-h5 q-space q-mt-sm title">
-          {{ $t('Wallets') }}
+    <q-card
+      class="wallet-card"
+      :class="getDarkModeClass(darkMode)"
+      :style="sidebarCardStyle"
+    >
+      <!-- Fixed Header -->
+      <div class="fixed-header" :class="getDarkModeClass(darkMode)">
+        <div class="row justify-between items-center q-px-lg q-py-sm">
+          <div class="wallets-title text-weight-bold text-grad">
+            {{ $t('Wallets') }}
+          </div>
+          <q-btn
+            round
+            flat
+            dense
+            :color="darkMode ? 'white' : 'black'"
+            icon="keyboard_double_arrow_left"
+            class="default-text-color"
+            @click="hide"
+          />
         </div>
-        <div
-          clickable
-          class="text-blue-9 create-import-button"
-          :class="{'text-grad': isNotDefaultTheme(theme)}"
+      </div>
+
+      <!-- Scrollable Wallet List -->
+      <div class="scrollable-wallet-list" :class="getDarkModeClass(darkMode)">
+        <div v-if="isloading" class="q-py-md">
+          <q-item
+            v-for="n in 5"
+            :key="`skeleton-${n}`"
+            class="wallet-item q-px-md"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-item-section>
+              <q-skeleton type="text" width="70%" height="24px" />
+            </q-item-section>
+          </q-item>
+        </div>
+        <div v-else-if="!isWalletsRecovered" class="row justify-center text-center q-py-md q-px-lg">
+          <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
+            <q-spinner class="q-mr-sm"/><i>Recovering your wallets, please wait</i>
+            <div v-if="walletRecoveryMessage">{{ walletRecoveryMessage }}</div>
+          </span>
+        </div>
+        <div v-else class="q-py-md">
+          <draggable
+            :list="vault"
+            @end="onDragEnd"
+            :item-key="getWalletItemKey"
+            :animation="200"
+            :delay="200"
+            :delay-on-touch-only="true"
+            class="wallet-list-draggable"
+          >
+            <template #item="{ element: wallet, index }">
+              <template v-if="wallet.deleted !== true">
+                <q-item
+                  clickable
+                  v-ripple
+                  class="wallet-item q-px-md"
+                  :class="[
+                    getDarkModeClass(darkMode),
+                    isActive(index) ? 'active-wallet' : ''
+                  ]"
+                  @click.stop="handleWalletClick(index, $event)"
+                  @click.native.stop="handleWalletClickNative(index, $event)"
+                  @touchstart.stop="handleWalletTouchStart(index, $event)"
+                  @touchend.stop="handleWalletTouchEnd(index, $event)"
+                >
+                  <q-item-section>
+                    <!-- Wallet name -->
+                    <div 
+                      class="wallet-name text-weight-medium" 
+                      :class="isActive(index) ? 'text-grad' : ''"
+                      @click.stop="handleWalletNameClick(index, $event)"
+                    >
+                      {{ wallet.name }}
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </template>
+          </draggable>
+        </div>
+      </div>
+
+      <!-- Fixed Bottom Button -->
+      <div class="fixed-footer text-bow" :class="getDarkModeClass(darkMode)">
+        <q-btn
+          unelevated
+          no-caps
+          class="full-width create-import-button bg-grad"
           @click="() => {
             $router.push('/accounts')
             hide()
           }"
         >
-          {{ $t('CreateOrImportWallet') }}
-        </div>
-      </div>
-      <q-card-section class="q-pt-sm flex flex-center" v-if="isloading">
-        <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-      </q-card-section>
-      <q-card-section class="q-pt-sm" v-else>
-        <q-virtual-scroll :items="vault">
-          <template v-slot="{ item: wallet, index }">
-            <template v-if="wallet.deleted !== true">
-              <q-item
-                clickable
-                class="q-pb-sm bottom-border"
-                :class="getDarkModeClass(darkMode)"
-                @click="selectedIndex = index"
-              >
-                <q-item-section style="overflow-wrap: break-word;">
-                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                    <span class="text-h5" :class="{'text-grad text-weight-bold' : isNotDefaultTheme(theme)}" style="font-size: 15px;">
-                      {{ wallet.name }} &nbsp;<q-icon :class="isActive(index)? 'active-color' : 'inactive-color'" size="13px" name="mdi-checkbox-blank-circle"/>
-                    </span>
-                    <span class="text-nowrap q-ml-xs q-mt-sm pt-label asset-balance" :class="getDarkModeClass(darkMode)">
-                      {{ parseAssetDenomination(denomination, getAssetData(index), false, 10) }}
-                    </span>
-                  </div>
-                  <div :class="getDarkModeClass(darkMode)" class="row justify-between no-wrap pt-label">
-                    <span class="address" :class="getDarkModeClass(darkMode)">
-                      {{ arrangeAddressText(wallet) }}
-                    </span>
-                    <span class="text-nowrap q-ml-xs pt-label market-currency" :class="getDarkModeClass(darkMode)">
-                      {{ parseFiatCurrency(getAssetMarketBalance(getAssetData(index)), selectedMarketCurrency) }}
-                    </span>
-                  </div>
-                  <q-menu anchor="bottom right" self="top end" >
-                    <q-list class="text-h5 pt-card" :class="getDarkModeClass(darkMode)">
-                      <q-item clickable v-close-popup>
-                        <q-item-section
-                          class="pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          @click="switchWallet(selectedIndex)"
-                        >
-                          {{ $t('SwitchWallet') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section
-                          class="pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          @click="openRenameDialog()"
-                        >
-                          {{ $t('Rename') }}
-                        </q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup>
-                        <q-item-section
-                          class="pt-label"
-                          :class="getDarkModeClass(darkMode)"
-                          @click="openBasicInfoDialog()"
-                        >
-                          {{ $t('SeeBasicWalletInfo') }}
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-item-section>
-              </q-item>
-            </template>
-          </template>
-        </q-virtual-scroll>
-      </q-card-section>
-      <div v-if="!isWalletsRecovered" class="row justify-center text-center q-pb-md q-mx-lg q-px-lg">
-        <span class="q-mb-md" :class="getDarkModeClass(darkMode)">
-          <q-spinner class="q-mr-sm"/><i>Recovering your wallets, please wait</i>
-          <div v-if="walletRecoveryMessage">{{ walletRecoveryMessage }}</div>
-        </span>
+          <q-icon name="add_circle_outline" size="18px" class="q-mr-sm" />
+          <span class="text-weight-medium">{{ $t('CreateOrImportWallet') }}</span>
+        </q-btn>
       </div>
     </q-card>
   </q-dialog>
 </template>
 <script>
 import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getWalletName } from 'src/utils/wallet-name-cache'
 
-import renameDialog from './renameDialog.vue'
-import BasicInfoDialog from 'src/components/multi-wallet/BasicInfoDialog'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
+import WalletSwitchLoading from 'src/components/WalletSwitchLoading.vue'
+import draggable from 'vuedraggable'
 
 export default {
   emits: [
@@ -119,27 +129,38 @@ export default {
       currentIndex: this.$store.getters['global/getWalletIndex'],
       isChipnet: this.$store.getters['global/isChipnet'],
       vault: [],
+      vaultIndexMap: new Map(), // Maps displayed index to actual vault index
       isloading: false,
       secondDialog: false,
-      selectedIndex: null
+      touchData: {}, // Track touch events for tap detection
+      isSwitching: false // Prevent multiple simultaneous wallet switches
     }
   },
   components: {
-    renameDialog,
-    BasicInfoDialog,
     LoadingWalletDialog,
-    ProgressLoader
+    WalletSwitchLoading,
+    draggable
   },
   watch: {
     isWalletsRecovered (val) {
       if (val) this.loadData()
+    },
+    // Watch for vault changes in the store to update the list immediately
+    storeVault: {
+      handler (newVault) {
+        if (newVault && newVault.length > 0 && this.isWalletsRecovered) {
+          // Update vault data when store vault changes
+          this.arrangeVaultData().catch(console.error)
+        }
+      },
+      deep: true,
+      immediate: false
     }
   },
   methods: {
     parseAssetDenomination,
     parseFiatCurrency,
     getDarkModeClass,
-    isNotDefaultTheme,
     async processVaultName () {
       const vm = this
       vm.isloading = true
@@ -151,24 +172,46 @@ export default {
 
       const tempVault = vm.$store.getters['global/getVault']
       const vaultNameUpdatePromises = tempVault.map(async (wallet, index) => {
+        // Skip deleted wallets
+        if (wallet.deleted === true) {
+          return
+        }
+
         let tempName = wallet.name
+        const walletHash = wallet?.wallet?.bch?.walletHash
+        
         if (wallet.name === '') { // from vuex store
-          tempName = `Personal Wallet #${index + 1}`
+          // Check cache before falling back to generic name
+          const cachedName = walletHash ? getWalletName(walletHash) : null
+          if (cachedName) {
+            tempName = cachedName
+          } else {
+            tempName = 'Personal Wallet'
+          }
         } else {
           const walletName = await vm.$store.dispatch(
             'global/syncWalletName',
             { walletIndex: index }
           ).catch(console.error) ?? ''
 
-          if (walletName) tempName = walletName
-          else tempName = `Personal Wallet #${index + 1}`
+          if (walletName) {
+            tempName = walletName
+          } else {
+            // If sync failed, check cache before falling back to generic name
+            const cachedName = walletHash ? getWalletName(walletHash) : null
+            if (cachedName) {
+              tempName = cachedName
+            } else {
+              tempName = 'Personal Wallet'
+            }
+          }
         }
 
         vm.$store.commit('global/updateWalletName', { index, name: tempName })
       })
       await Promise.allSettled(vaultNameUpdatePromises)
 
-      vm.arrangeVaultData()
+      await vm.arrangeVaultData()
       vm.isloading = false
     },
     processDefaultVaultName () {
@@ -176,49 +219,205 @@ export default {
       const tempVault = vm.$store.getters['global/getVault']
 
       tempVault.forEach((wallet, index) => {
+        // Skip deleted wallets
+        if (wallet.deleted === true) {
+          return
+        }
+
         if (wallet.name === '') {
-          vm.$store.commit('global/updateWalletName', { index, name: `Personal Wallet #${index + 1}` })
+          // Check cache before using generic name
+          const walletHash = wallet?.wallet?.bch?.walletHash
+          const cachedName = walletHash ? getWalletName(walletHash) : null
+          const newName = cachedName || 'Personal Wallet'
+          vm.$store.commit('global/updateWalletName', { index, name: newName })
         }
       })
     },
-    switchWallet (index) {
+    handleWalletTouchStart (displayIndex, event) {
+      // Store touch start time and position to detect tap vs drag
+      if (!this.touchData) {
+        this.touchData = {}
+      }
+      const touch = event.touches?.[0] || event.changedTouches?.[0]
+      this.touchData[displayIndex] = {
+        startTime: Date.now(),
+        startX: touch?.clientX,
+        startY: touch?.clientY
+      }
+    },
+    handleWalletTouchEnd (displayIndex, event) {
+      if (!this.touchData || !this.touchData[displayIndex]) {
+        return
+      }
+      
+      const touch = event.changedTouches?.[0]
+      // Guard: if touch is undefined or missing coordinates, can't determine tap vs drag
+      if (!touch || touch.clientX === undefined || touch.clientY === undefined) {
+        delete this.touchData[displayIndex]
+        return
+      }
+      
+      const touchInfo = this.touchData[displayIndex]
+      const endTime = Date.now()
+      const duration = endTime - touchInfo.startTime
+      const deltaX = Math.abs(touch.clientX - touchInfo.startX)
+      const deltaY = Math.abs(touch.clientY - touchInfo.startY)
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+      
+      // Consider it a tap if duration < 300ms and distance < 10px
+      if (duration < 300 && distance < 10) {
+        delete this.touchData[displayIndex]
+        this.switchWallet(displayIndex)
+      } else {
+        delete this.touchData[displayIndex]
+      }
+    },
+    handleWalletClickNative (displayIndex, event) {
+      this.switchWallet(displayIndex)
+    },
+    handleWalletNameClick (displayIndex, event) {
+      this.switchWallet(displayIndex)
+    },
+    handleWalletClick (displayIndex, event) {
+      this.switchWallet(displayIndex)
+    },
+    async switchWallet (displayIndex) {
       const vm = this
-      if (index === this.currentIndex) return
+      
+      // Prevent multiple simultaneous switches
+      if (vm.isSwitching) {
+        return
+      }
+      
+      // Map displayed index to actual vault index
+      // Handle the case where displayIndex is 0 and map might return undefined
+      // Use has() to explicitly check if the key exists, since 0 is falsy
+      let actualIndex
+      if (vm.vaultIndexMap.has(displayIndex)) {
+        actualIndex = vm.vaultIndexMap.get(displayIndex)
+      } else {
+        // Fallback: if mapping doesn't exist, use displayIndex directly
+        // This should only happen if arrangeVaultData hasn't been called yet
+        console.warn(`[MultiWallet] vaultIndexMap missing entry for displayIndex ${displayIndex}, using displayIndex as fallback`)
+        actualIndex = displayIndex
+      }
+      
+      // Check if already on this wallet
+      const currentActualIndex = vm.vaultIndexMap.has(vm.currentIndex) 
+        ? vm.vaultIndexMap.get(vm.currentIndex) 
+        : vm.currentIndex
+      if (actualIndex === currentActualIndex) {
+        return
+      }
+      
+      // Set switching flag
+      vm.isSwitching = true
 
       vm.hide()
-      const loadingDialog = this.$q.dialog({
-        component: LoadingWalletDialog
+      
+      // Show full-screen loading with pulsating logo
+      const loadingComponent = vm.$q.dialog({
+        component: WalletSwitchLoading,
+        persistent: true
       })
-
-      vm.$store.dispatch('global/switchWallet', index).then(function () {
-        vm.$router.push('/')
-        setTimeout(() => { location.reload() }, 500)
-      })
-
-      loadingDialog.hide()
-    },
-    arrangeAddressText (wallet) {
-      let address = ''
-      if (this.isChipnet) {
-        address = wallet.chipnet.bch.lastAddress
-      } else {
-        address = wallet.wallet.bch.lastAddress
-      }
-      return address.slice(0, 16) + '.....' + address.slice(45)
-    },
-    isActive (index) {
-      return index === this.currentIndex
-    },
-    openRenameDialog () {
-      this.$q.dialog({
-        component: renameDialog,
-        componentProps: {
-          index: this.selectedIndex
+      
+      try {
+        // Execute wallet switch - this includes a 1 second delay for syncing
+        await vm.$store.dispatch('global/switchWallet', actualIndex)
+        
+        // Verify wallet index was updated correctly
+        const currentWalletIndex = vm.$store.getters['global/getWalletIndex']
+        if (currentWalletIndex !== actualIndex) {
+          // Force update if it didn't persist
+          vm.$store.commit('global/updateWalletIndex', actualIndex)
+          vm.$store.commit('global/updateCurrentWallet', actualIndex)
         }
-      })
-        .onOk(() => {
-          this.processVaultName()
+        
+        // SECURITY: Check if destination wallet is locked
+        // If locked, navigate directly to lock screen without showing home page
+        const lockAppEnabled = vm.$store.getters['global/lockApp']
+        const isUnlocked = vm.$store.getters['global/isUnlocked']
+        
+        // Wait for localStorage to persist (important for Android)
+        // Also wait for vuex-persistedstate to write the state
+        // Keep loading component visible until reload to prevent flicker
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        vm.isSwitching = false
+        
+        if (lockAppEnabled && !isUnlocked) {
+          // Wallet is locked - go directly to lock screen with page reload
+          // Use location.replace to avoid history entry and ensure reload
+          // Loading screen will be cleared by the reload
+          // Force a full page navigation to ensure the loading screen is cleared
+          window.location.replace('/#/lock?redirect=/')
+          // Add a fallback timeout to force reload if replace doesn't work
+          setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+              console.warn('[MultiWallet] location.replace did not navigate, forcing reload')
+              location.reload()
+            }
+          }, 1000)
+        } else {
+          // Wallet is unlocked or has no lock - go to home with reload
+          // Loading screen will be cleared by the reload
+          location.reload()
+        }
+      } catch (error) {
+        console.error('[MultiWallet] Switch error:', error)
+        vm.isSwitching = false
+        loadingComponent.hide()
+        
+        // Show error notification
+        vm.$q.notify({
+          message: vm.$t('WalletSwitchFailed', {}, 'Failed to switch wallet'),
+          color: 'negative',
+          icon: 'error',
+          timeout: 2000
         })
+      }
+    },
+    isActive (displayIndex) {
+      // Map displayed index to actual vault index and compare with current index
+      const actualIndex = this.vaultIndexMap.get(displayIndex) ?? displayIndex
+      // currentIndex is the actual vault index from the store
+      return actualIndex === this.currentIndex
+    },
+    getWalletItemKey (wallet) {
+      // Use wallet hash as unique key, fallback to index if hash not available
+      return wallet?.wallet?.bch?.walletHash || wallet?.BCH?.walletHash || wallet?.walletHash || JSON.stringify(wallet)
+    },
+    onDragEnd (event) {
+      const vm = this
+      const { oldIndex, newIndex } = event
+      
+      // If indices are the same, no reordering occurred
+      if (oldIndex === newIndex) {
+        return
+      }
+
+      // Get the actual vault indices from the mapping
+      // The vaultIndexMap maps display index -> actual vault index
+      const oldActualIndex = vm.vaultIndexMap.get(oldIndex)
+      const newActualIndex = vm.vaultIndexMap.get(newIndex)
+      
+      // If we can't find the actual indices in the map, something went wrong
+      if (oldActualIndex === undefined || newActualIndex === undefined) {
+        console.warn('[MultiWallet] Could not find actual vault indices for reordering', { oldIndex, newIndex, vaultIndexMap: Array.from(vm.vaultIndexMap.entries()) })
+        // Rebuild the display and return
+        vm.arrangeVaultData().catch(console.error)
+        return
+      }
+
+      // Reorder the vault in the store using actual vault indices
+      vm.$store.commit('global/reorderVault', { fromIndex: oldActualIndex, toIndex: newActualIndex })
+      
+      // Update current index if it changed
+      vm.currentIndex = vm.$store.getters['global/getWalletIndex']
+      
+      // Rebuild the display to reflect the new order
+      // This will rebuild vaultIndexMap with the new positions
+      vm.arrangeVaultData().catch(console.error)
     },
     getAssetMarketBalance (asset) {
       if (!asset || !asset.id) return ''
@@ -230,12 +429,101 @@ export default {
 
       return computedBalance.toFixed(2)
     },
-    arrangeVaultData () {
+    async arrangeVaultData () {
       const vm = this
       let tempVault = vm.$store.getters['global/getVault']
       tempVault = JSON.stringify(tempVault)
       tempVault = JSON.parse(tempVault)
-      vm.vault = tempVault
+      
+      // Deduplicate wallets by walletHash
+      // Keep the wallet with a custom name (not "Personal Wallet") or the first one if both have generic names
+      const walletHashMap = new Map()
+      const deduplicatedVault = []
+      const indexMap = new Map() // Maps displayed index to actual vault index
+      
+      // Import getMnemonic for checking mnemonic existence
+      const { getMnemonic } = await import('src/wallet')
+      
+      // Check mnemonics in parallel for better performance
+      // Use wallet hash when available for more reliable lookup
+      const mnemonicChecks = tempVault.map((wallet, index) => {
+        if (!wallet || wallet.deleted === true) {
+          return Promise.resolve(null)
+        }
+        
+        // Prefer wallet hash if available (post-migration pattern)
+        const walletHash = wallet?.wallet?.bch?.walletHash || wallet?.BCH?.walletHash
+        if (walletHash) {
+          return getMnemonic(walletHash).catch(() => null)
+        }
+        
+        // Fallback to index-based lookup (pre-migration or missing wallet hash)
+        return getMnemonic(index).catch(() => null)
+      })
+      const mnemonics = await Promise.all(mnemonicChecks)
+      
+      tempVault.forEach((wallet, originalIndex) => {
+        // Skip deleted wallets
+        if (wallet.deleted === true) {
+          return
+        }
+        
+        // Skip wallets without mnemonics (orphaned entries)
+        if (!mnemonics[originalIndex]) {
+          return
+        }
+        
+        const walletHash = wallet?.wallet?.bch?.walletHash
+        if (!walletHash) {
+          // If no walletHash, include it (might be incomplete wallet)
+          const displayIndex = deduplicatedVault.length
+          deduplicatedVault.push(wallet)
+          indexMap.set(displayIndex, originalIndex)
+          return
+        }
+        
+        const normalizedHash = String(walletHash).trim()
+        const existingEntry = walletHashMap.get(normalizedHash)
+        
+        if (!existingEntry) {
+          // First occurrence of this walletHash
+          const displayIndex = deduplicatedVault.length
+          deduplicatedVault.push(wallet)
+          indexMap.set(displayIndex, originalIndex)
+          walletHashMap.set(normalizedHash, {
+            displayIndex,
+            originalIndex,
+            wallet,
+            hasCustomName: this.hasCustomName(wallet.name)
+          })
+        } else {
+          // Duplicate found - decide which one to keep
+          const currentHasCustomName = this.hasCustomName(wallet.name)
+          
+          // Prefer wallet with custom name, or if both have generic names, keep the first one
+          if (currentHasCustomName && !existingEntry.hasCustomName) {
+            // Current wallet has custom name, replace the existing one
+            deduplicatedVault[existingEntry.displayIndex] = wallet
+            indexMap.set(existingEntry.displayIndex, originalIndex)
+            walletHashMap.set(normalizedHash, {
+              displayIndex: existingEntry.displayIndex,
+              originalIndex,
+              wallet,
+              hasCustomName: true
+            })
+          }
+          // Otherwise, keep the existing entry (first occurrence or already has custom name)
+        }
+      })
+      
+      // Store the index mapping for switchWallet
+      vm.vaultIndexMap = indexMap
+      vm.vault = deduplicatedVault
+    },
+    hasCustomName (name) {
+      // Check if the name is a custom name (not "Personal Wallet")
+      if (!name || name === '') return false
+      return name !== 'Personal Wallet'
     },
     getAssetData (index) {
       if (this.currentIndex === index) {
@@ -244,19 +532,43 @@ export default {
         return this.isChipnet ? this.$store.getters['assets/getVault'][index].chipnet_assets[0] : this.$store.getters['assets/getVault'][index].asset[0]
       }
     },
-    openBasicInfoDialog () {
-      this.$q.dialog({
-        component: BasicInfoDialog,
-        componentProps: {
-          vaultIndex: this.selectedIndex
-        }
-      })
-    },
     hide () {
-      this.$refs['multi-wallet'].hide()
+      if (this.$refs['multi-wallet']) {
+        this.$refs['multi-wallet'].hide()
+      } else {
+        console.error('[MultiWallet] Dialog ref not found!')
+      }
+    },
+    onDialogHide () {
+      this.$emit('dialog-hide')
+    },
+    async onDialogShow () {
+      // Refresh wallet list every time the sidebar is shown
+      // Update current index first
+      this.currentIndex = this.$store.getters['global/getWalletIndex']
+      
+      // Immediately update vault data from store
+      this.arrangeVaultData().catch(console.error)
+      
+      // Load full data when dialog opens (balances will be updated here)
+      // This is the only time we need to check balances of other wallets
+      if (this.isWalletsRecovered) {
+        await this.loadData()
+      } else {
+        // Even if wallets aren't recovered, still update balances when dialog opens
+        // since user is actively viewing the multi-wallet interface
+        this.$store.dispatch('assets/updateVaultBchBalances', {
+          chipnet: this.isChipnet,
+          excludeCurrentIndex: true,
+        })?.catch(console.error)
+      }
     },
     async loadData () {
       const vm = this
+      
+      // Clean up duplicate wallets in the vault
+      vm.$store.dispatch('global/cleanupDuplicateWallets')
+      
       vm.$store.dispatch('assets/updateVaultBchBalances', {
         chipnet: vm.isChipnet,
         excludeCurrentIndex: true,
@@ -272,6 +584,19 @@ export default {
     }
   },
   computed: {
+    sidebarCardStyle () {
+      // Keep sidebar content below the OS status bar/cutouts on native builds.
+      // iOS already looks correct; Android needs the safe-area top padding.
+      const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
+
+      if (this.$q.platform.is.android) {
+        return { paddingTop: safeTop }
+      }
+      if (this.$q.platform.is.ios) {
+        return { paddingTop: '20px' }
+      }
+      return { paddingTop: '0px' }
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -294,41 +619,185 @@ export default {
     },
     walletRecoveryMessage() {
       return this.$store.getters['global/walletRecoveryMessage']
+    },
+    // Computed property to watch store vault changes
+    storeVault () {
+      return this.$store.getters['global/getVault']
     }
   },
   async mounted () {
-   this.loadData()
+   // No need to load data on mount - balances of other wallets are not displayed on home page
+   // Data will be loaded when user opens the multi-wallet dialog (onDialogShow)
   }
 }
 </script>
 <style lang="scss" scoped>
 .wallet-card {
-  height: 525px;
-  .title {
-    font-size: 18px;
-  }
-  .bottom-border {
-    border-bottom-width: 1px;
-    border-bottom-style: solid;
-  }
-  .address, .market-currency {
-    font-size: 12px;
+  height: 100vh;
+  width: 90vw;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  
+  @media (max-width: 600px) {
+    width: 90vw;
   }
 }
-.inactive-color {
-  color: #ed5e59;
-  -webkit-text-fill-color: #ed5e59;
+
+.fixed-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  
+  &.dark {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.3);
+  }
 }
-.active-color {
-  color: #8ec351;
-  -webkit-text-fill-color: #8ec351;
+
+.wallets-title {
+  font-size: 20px;
+  letter-spacing: 0.5px;
 }
+
+.scrollable-wallet-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+.fixed-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  
+  &.dark {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.wallet-item {
+  border-radius: 10px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0 12px 4px 12px;
+  padding: 12px 16px;
+  min-height: 48px;
+  border: none;
+  background: transparent;
+  cursor: grab;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  &.active-wallet {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    
+    &.dark {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    &.light {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+.wallet-list-draggable {
+  .sortable-ghost {
+    opacity: 0.4;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .sortable-drag {
+    opacity: 0.8;
+    transform: rotate(2deg);
+  }
+}
+
+  .wallet-name {
+    font-size: 15px;
+    letter-spacing: 0.2px;
+    line-height: 1.5;
+    transition: opacity 0.2s ease;
+    
+    .wallet-item.dark & {
+      opacity: 0.9;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .wallet-item.light & {
+      opacity: 1;
+      color: rgba(0, 0, 0, 0.87);
+    }
+    
+    .wallet-item:hover & {
+      opacity: 1;
+    }
+    
+    .wallet-item.active-wallet & {
+      opacity: 1;
+      font-weight: 600;
+    }
+  }
+
 .pt-card {
   min-width: 150px;
   font-size: 15px;
 }
+
 .create-import-button {
-  margin-top: 10px;
-  cursor: pointer;
+  border-radius: 10px;
+  height: 44px;
+  font-size: 13px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
 }
 </style>

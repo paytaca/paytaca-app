@@ -1,8 +1,9 @@
 <template>
   <div
     id="app-container"
+    class="sticky-header-container"
     :class="[getDarkModeClass(darkMode), darkMode ? 'text-grey-2' : 'text-grey-10']">
-    <HeaderNav :title="'Merchant Cash Out'" class="header"/>
+      <HeaderNav :title="'Merchant Cash Out'" class="header-nav header" />
     <div>
       <div v-if="status === 'confirm-transaction'"
         class="q-mx-sm"
@@ -221,7 +222,7 @@ export default {
       const payload = {
         txid: txid,
         key: 'merchant_cashout',
-        value: this.merchant.name
+        value: this.merchant?.name
       }
 
       const watchtower = new Watchtower()
@@ -232,7 +233,7 @@ export default {
       const url = '/paytacapos/cash-out/'
       const body = {
         payment_method_id: this.paymentMethod.id,
-        merchant_id: this.merchant.id,
+        merchant_id: this.merchant?.id,
         currency: this.currency.symbol,
         txids: txids
       }

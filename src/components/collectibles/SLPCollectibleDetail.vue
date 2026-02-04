@@ -9,13 +9,20 @@
 
       <q-img
         v-if="imageUrl && !forceUseDefaultImg"
-        :src="imageUrl" fit="fill" width="75"
+        :src="imageUrl" 
+        fit="contain" 
+        style="width: 100%; max-height: 400px;"
         @error="() => forceUseDefaultImg = true"
       />
-      <q-img v-else :src="defaultImageUrl" fit="fill" width="75"></q-img>
+      <q-img 
+        v-else 
+        :src="defaultImageUrl" 
+        fit="contain" 
+        style="width: 100%; max-height: 400px;"
+      />
 
       <q-card-section style="text-align: center; margin-bottom: 10px;">
-        <q-btn-group push style="color: rgb(60, 100, 246) !important;">
+        <q-btn-group push class="bg-pt-primary1 text-pt-light">
           <q-btn @click="verify" push :label="$t('Verify')" icon="visibility" />
           <q-btn @click="send" push :label="$t('Send')" icon="send" />
         </q-btn-group>
@@ -27,6 +34,7 @@
 <script>
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import noImage from 'src/assets/no-image.svg'
 
 export default {
   name: 'collectible',
@@ -40,7 +48,8 @@ export default {
   data () {
     return {
       val: this.modelValue,
-      forceUseDefaultImg: false
+      forceUseDefaultImg: false,
+      noImage
     }
   },
   computed: {
@@ -55,13 +64,13 @@ export default {
     },
     defaultImageUrl() {
       if (this.imageUrl && !this.forceUseDefaultImg) return ''
-      return this.$store.getters['global/getDefaultAssetLogo']?.(this.collectible?.token_id)
+      return noImage
     }
   },
   methods: {
     getDarkModeClass,
     verify () {
-      const url = 'https://blockchair.com/bitcoin-cash/transaction/' + this.collectible.token_id
+      const url = 'https://explorer.paytaca.com/tx/' + this.collectible.token_id
       openURL(url)
     },
     send () {

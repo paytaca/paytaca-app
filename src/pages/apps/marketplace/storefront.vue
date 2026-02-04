@@ -56,7 +56,7 @@
           flat
           padding="none xs"
           no-caps label="Info"
-          color="brandblue"
+          color="pt-primary1"
         >
           <q-menu class="q-pa-sm pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
             <div style="min-width: min(250px, 75vw);">
@@ -85,7 +85,7 @@
         v-if="Number.isFinite(storefront?.ordersReviewSummary?.averageRating)"
         class="row items-center no-wrap q-mx-sm"
       >
-        <q-rating :model-value="1" readonly max="1" size="1.5em" color="brandblue" class="q-mr-xs"/>
+        <q-rating :model-value="1" readonly max="1" size="1.5em" color="pt-primary1" class="q-mr-xs"/>
         <div>
           {{ roundRating(storefront?.ordersReviewSummary?.averageRating) }}
           ({{ storefront?.ordersReviewSummary?.count }}
@@ -95,7 +95,7 @@
         <q-btn
           flat
           no-caps label="See reviews"
-          color="brandblue"
+          color="pt-primary1"
           padding="xs md"
           class="q-r-mr-lg"
           @click="() => showReviewsListDialog = true"
@@ -115,7 +115,7 @@
           clearable
           v-model="searchBar.text"
           placeholder="Search product/collection name"
-          color="brandblue"
+          color="pt-primary1"
           debounce="500"
         >
           <template v-slot:append>
@@ -233,9 +233,6 @@
           />
         </template>
       </q-banner>
-      <div class="row items-center justify-center">
-        <q-spinner v-if="!initialized && fetchingStorefront" size="4em" color="brandblue"/>
-      </div>
       <div v-if="collections?.length" class="q-mb-lg">
         <div class="q-px-sm row items-center" @click="expandCollections = !expandCollections">
           <div class="text-h6 q-space">Collections</div>
@@ -250,7 +247,7 @@
               >
               </div>
               <div v-if="fetchingCollections === 'prepending'" class="row items-center self-center q-pa-sm">
-                <q-spinner size="3rem" color="brandblue"/>
+                <q-spinner size="3rem" color="pt-primary1"/>
               </div>
               <div
                 v-for="collection in collections" :key="collection?.id"
@@ -290,19 +287,19 @@
               >
               </div>
               <div v-if="fetchingCollections === 'appending'" class="row items-center self-center q-pa-sm">
-                <q-spinner size="3rem" color="brandblue"/>
+                <q-spinner size="3rem" color="pt-primary1"/>
               </div>
             </div>
           </div>
         </q-slide-transition>
       </div>
-      <div v-if="initialized || products?.length" class="row items-start">
-        <div class="col-12 q-pr-xs q-pl-sm">
+      <div v-if="initialized || products?.length">
+        <div class="q-pr-xs q-pl-sm">
           <div class="row items-center no-wrap q-gutter-sm" style="overflow:auto;">
             <q-chip
               v-for="category in productCategories" :key="category"
               :outline="category !== selectedCategory"
-              :color="darkMode ? 'white' : 'brandblue'"
+              :color="darkMode ? 'white' : 'pt-primary1'"
               :text-color="darkMode ? 'black' : 'white'"
               clickable
               @click="selectedCategory = category === selectedCategory ? '' : category"
@@ -311,88 +308,104 @@
             </q-chip>
           </div>
         </div>
-        <div class="col-12 q-px-sm q-mt-sm">
-          <q-linear-progress v-if="fetchingProducts" indeterminate color="brandblue" size="4px"/>
+        <div class="q-px-sm q-mt-sm">
+          <q-linear-progress v-if="fetchingProducts && !fetchingMoreProducts" indeterminate color="pt-primary1" size="4px"/>
           <div v-else style="height:4px;"></div>
         </div>
-        <template v-if="products?.length">
-          <div class="col-12 row items-center q-px-sm">
-            <q-space/>
-            <LimitOffsetPagination
-              :pagination-props="{
-                maxPages: 5,
-                rounded: true,
-                padding: 'sm md',
-                boundaryNumbers: true,
-                disable: fetchingProducts,
-              }"
-              class="q-my-sm"
-              :hide-below-pages="2"
-              :modelValue="productsPagination"
-              @update:modelValue="fetchProducts"
-            />
-          </div>
-          <div
-            v-for="product in products" :key="product?.id"
-            class="col-6 col-sm-4 col-md-3 q-pa-sm"
-            @click="() => $router.push({ name: 'app-marketplace-product', params: { productId: product?.id } })"
-          >
-            <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-              <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1"/>
-              <q-card-section>
-                <div
-                  v-if="Number.isFinite(product?.reviewSummary?.averageRating)"
-                  class="float-right row items-center no-wrap"
-                  @click.stop
-                >
-                  <q-rating :model-value="1" readonly max="1" size="1em" color="brandblue"/>
-                  {{ roundRating(product?.reviewSummary?.averageRating) }}
-                  <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
-                    <div class="row items-center no-wrap">
-                      <q-rating
-                        readonly
-                        max="5"
-                        :model-value="roundRating(product?.reviewSummary?.averageRating, { forceDecimals: false})"
-                        size="1em"
-                        color="brandblue"
-                        class="no-wrap"
-                        icon-half="star_half"
-                      />
-                      <div>
-                        {{ roundRating(product?.reviewSummary?.averageRating) }}
-                      </div>
-                    </div>
-                    <div>
-                      ({{ product?.reviewSummary?.count }}
-                      {{ product?.reviewSummary?.count === 1 ? 'review' : 'reviews' }})
-                    </div>
-                  </q-menu>
-                </div>
-                <div class="row items-center">
-                  <div class="q-space text-body1 ellipsis">{{ product?.name }}</div>
-                  <q-chip
-                    v-if="product?.availableAtStorefront(product?.storefrontId) == false"
-                    dense
-                    color="grey" text-color="white"
-                    class="q-ma-none"
-                  >
-                  {{ $t('Unavailable') }}
-                  </q-chip>
-                </div>
-                <div>
-                  {{ product.minMarkupPrice }}
-                  <template v-if="product?.minMarkupPrice != product?.maxMarkupPrice">
-                    - {{ product?.maxMarkupPrice }}
+        
+        <div class="row items-start" ref="productsContainer">
+          <!-- Skeleton loaders -->
+          <template v-if="(!initialized || !products.length) && fetchingProducts">
+            <div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+              <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+                <q-skeleton height="200px" square />
+                <q-card-section>
+                  <q-skeleton type="text" width="30%" class="float-right" />
+                  <q-skeleton type="text" width="70%" />
+                  <q-skeleton type="text" width="50%" class="q-mt-xs" />
+                </q-card-section>
+              </q-card>
+            </div>
+          </template>
+          
+          <!-- Actual products -->
+          <template v-else-if="products?.length">
+            <div
+              v-for="product in products" :key="product?.id"
+              class="col-6 col-sm-4 col-md-3 q-pa-sm"
+              @click="() => $router.push({ name: 'app-marketplace-product', params: { productId: product?.id } })"
+            >
+              <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+                <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1">
+                  <template v-slot:loading>
+                    <q-skeleton height="100%" width="100%" square />
                   </template>
-                  {{ getStorefrontCurrency(product?.storefrontId) }}
-                </div>
-              </q-card-section>
-            </q-card>
+                </q-img>
+                <q-card-section>
+                  <div
+                    v-if="Number.isFinite(product?.reviewSummary?.averageRating)"
+                    class="float-right row items-center no-wrap"
+                    @click.stop
+                  >
+                    <q-rating :model-value="1" readonly max="1" size="1em" color="pt-primary1"/>
+                    {{ roundRating(product?.reviewSummary?.averageRating) }}
+                    <q-menu class="pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                      <div class="row items-center no-wrap">
+                        <q-rating
+                          readonly
+                          max="5"
+                          :model-value="roundRating(product?.reviewSummary?.averageRating, { forceDecimals: false})"
+                          size="1em"
+                          color="pt-primary1"
+                          class="no-wrap"
+                          icon-half="star_half"
+                        />
+                        <div>
+                          {{ roundRating(product?.reviewSummary?.averageRating) }}
+                        </div>
+                      </div>
+                      <div>
+                        ({{ product?.reviewSummary?.count }}
+                        {{ product?.reviewSummary?.count === 1 ? 'review' : 'reviews' }})
+                      </div>
+                    </q-menu>
+                  </div>
+                  <div class="row items-center">
+                    <div class="q-space text-body1 ellipsis">{{ product?.name }}</div>
+                    <q-chip
+                      v-if="product?.availableAtStorefront(product?.storefrontId) == false"
+                      dense
+                      color="grey" text-color="white"
+                      class="q-ma-none"
+                    >
+                    {{ $t('Unavailable') }}
+                    </q-chip>
+                  </div>
+                  <div>
+                    {{ product.minMarkupPrice }}
+                    <template v-if="product?.minMarkupPrice != product?.maxMarkupPrice">
+                      - {{ product?.maxMarkupPrice }}
+                    </template>
+                    {{ getStorefrontCurrency(product?.storefrontId) }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </template>
+          
+          <!-- Empty state -->
+          <div v-else-if="initialized" class="text-grey text-center col-12">
+            {{ $t('NoProducts') }}
           </div>
-        </template>
-        <div v-else-if="initialized" class="text-grey text-center col-12">
-          {{ $t('NoProducts') }}
         </div>
+        
+        <!-- Infinite scroll loading indicator -->
+        <div v-if="fetchingMoreProducts" class="row justify-center q-py-md">
+          <q-spinner size="2em" color="pt-primary1"/>
+        </div>
+        
+        <!-- Scroll sentinel for infinite loading -->
+        <div ref="productScrollSentinel" style="height: 1px; width: 100%;"></div>
       </div>
     </div>
   </q-pull-to-refresh>
@@ -407,9 +420,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onActivated, onDeactivated, watchEffect } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'
 import ReviewsListDialog from 'src/components/marketplace/reviews/ReviewsListDialog.vue'
 import StorePickupDialog from 'src/components/marketplace/checkout/StorePickupDialog.vue'
 import { debounce } from 'quasar'
@@ -474,7 +486,7 @@ watch(() => searchBar.value.text, async () => {
   searchBar.value.lastSearch = searchBar.value.text
   searchBar.value.loading = true
   await Promise.allSettled([
-    fetchProducts(),
+    fetchProducts({ reset: true }),
     fetchCollections(),
   ])
   searchBar.value.loading = false
@@ -658,7 +670,7 @@ function fetchCollections(opts={ limit: 0, offset: 0, append: false, prepend: fa
 const fetchingProductCategories = ref(false)
 const productCategories = ref([].map(String))
 const selectedCategory = ref('')
-watch(selectedCategory, () => fetchProducts())
+watch(selectedCategory, () => fetchProducts({ reset: true }))
 function fetchProductCategories() {
   const params = { storefront_id: props?.storefrontId }
   fetchingProductCategories.value = true
@@ -676,31 +688,206 @@ function fetchProductCategories() {
 }
 
 const fetchingProducts = ref(false)
+const fetchingMoreProducts = ref(false)
 const products = ref([].map(Product.parse))
 const productsPagination = ref({ count: 0, limit: 0, offset: 0 })
-function fetchProducts(opts={ limit: 0, offset: 0 }) {
+const productsContainer = ref(null)
+const productScrollSentinel = ref(null)
+
+function fetchProducts(opts={ limit: 0, offset: 0, reset: false }) {
+  // If resetting, clear the list
+  if (opts.reset) {
+    products.value = []
+    productsPagination.value = { count: 0, limit: 0, offset: 0 }
+  }
+
   const params = {
     storefront_id: props.storefrontId,
-    limit: opts?.limit || 10,
-    offset: opts?.offset || undefined,
+    limit: opts?.limit || 6,
+    offset: opts?.offset !== undefined ? opts?.offset : productsPagination.value.offset,
     categories: selectedCategory.value || undefined,
     s: searchBar.value?.text || undefined,
   }
 
-  fetchingProducts.value = true
+  const isLoadingMore = params.offset > 0
+  if (isLoadingMore) {
+    fetchingMoreProducts.value = true
+  } else {
+    fetchingProducts.value = true
+  }
+
   return backend.get(`products/info/`, { params })
     .then(response => {
       if (!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 
-      products.value = response?.data?.results?.map(Product.parse)
+      const newProducts = response?.data?.results?.map(Product.parse)
+      
+      // Append to existing list if loading more, otherwise replace
+      if (isLoadingMore) {
+        products.value = [...products.value, ...newProducts]
+      } else {
+        products.value = newProducts
+      }
+
       productsPagination.value.count = response?.data?.count
       productsPagination.value.limit = response?.data?.limit
-      productsPagination.value.offset = response?.data?.offset
+      productsPagination.value.offset = response?.data?.offset + response?.data?.results.length
+      
+      // Set up infinite scroll observer after initial data is loaded
+      if (!isLoadingMore && response?.data?.results.length > 0) {
+        setupProductInfiniteScroll()
+      }
+      
       return response
     })
     .finally(() => {
       fetchingProducts.value = false
+      fetchingMoreProducts.value = false
     })
+    .then((response) => {
+      // After loading completes and loading states are cleared, check again if we need more
+      if (response?.data?.results.length > 0) {
+        checkAndLoadMoreProducts()
+      }
+    })
+}
+
+// Infinite scroll setup for products
+let productObserver = null
+let productScrollListenerCleanup = null
+
+function onProductScroll(event) {
+  if (fetchingProducts.value || fetchingMoreProducts.value) return
+  
+  const hasMore = products.value.length < productsPagination.value.count
+  if (!hasMore) return
+  
+  const element = event?.target || window
+  let scrollTop, scrollHeight, clientHeight
+  
+  if (element === window || element === document) {
+    scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    scrollHeight = document.documentElement.scrollHeight
+    clientHeight = window.innerHeight || document.documentElement.clientHeight
+  } else {
+    scrollTop = element.scrollTop
+    scrollHeight = element.scrollHeight
+    clientHeight = element.clientHeight
+  }
+  
+  const scrollBottom = scrollHeight - scrollTop - clientHeight
+  
+  // Load more when user is within 300px of the bottom
+  if (scrollBottom < 300) {
+    fetchProducts({ offset: productsPagination.value.offset })
+  }
+}
+
+function setupProductInfiniteScroll() {
+  // Clean up existing observer and listeners
+  if (productObserver) {
+    productObserver.disconnect()
+  }
+  if (productScrollListenerCleanup) {
+    productScrollListenerCleanup()
+    productScrollListenerCleanup = null
+  }
+  
+  nextTick(() => {
+    if (!productScrollSentinel.value) return
+    
+    // Find the scroll container - the q-pull-to-refresh's inner scroll div
+    let scrollRoot = null
+    const appContainer = document.getElementById('app-container')
+    
+    // q-pull-to-refresh creates a scroll wrapper div inside it
+    if (appContainer) {
+      const scrollWrapper = appContainer.querySelector('.q-scrollarea, .q-pull-to-refresh__scroll')
+      scrollRoot = scrollWrapper || appContainer
+    }
+    
+    let initialIntersectionHandled = false
+    
+    const options = {
+      root: scrollRoot,
+      rootMargin: '200px',
+      threshold: 0.1
+    }
+    
+    productObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        
+        // On first callback, just record the state and skip action
+        if (!initialIntersectionHandled) {
+          initialIntersectionHandled = true
+          // If it's not initially intersecting, we're good to process next time
+          if (!entry.isIntersecting) {
+            return
+          }
+          // If it IS initially intersecting, skip this one but process the next
+          return
+        }
+        
+        if (entry.isIntersecting && !fetchingProducts.value && !fetchingMoreProducts.value) {
+          // Check if there are more items to load
+          const hasMore = products.value.length < productsPagination.value.count
+          if (hasMore) {
+            fetchProducts({ offset: productsPagination.value.offset })
+          }
+        }
+      },
+      options
+    )
+    productObserver.observe(productScrollSentinel.value)
+    
+    // Add scroll listener as backup for Safari full screen mode
+    const cleanupFns = []
+    
+    // Listen to window scroll
+    window.addEventListener('scroll', onProductScroll, { passive: true })
+    cleanupFns.push(() => window.removeEventListener('scroll', onProductScroll))
+    
+    // Listen to scroll container if found
+    if (scrollRoot) {
+      scrollRoot.addEventListener('scroll', onProductScroll, { passive: true })
+      cleanupFns.push(() => scrollRoot.removeEventListener('scroll', onProductScroll))
+    }
+    
+    productScrollListenerCleanup = () => cleanupFns.forEach(fn => fn())
+  })
+}
+
+onUnmounted(() => {
+  if (productObserver) {
+    productObserver.disconnect()
+  }
+  if (productScrollListenerCleanup) {
+    productScrollListenerCleanup()
+  }
+})
+
+// Check if sentinel is visible and load more if needed
+function checkAndLoadMoreProducts() {
+  // Wait a bit for DOM to update
+  setTimeout(() => {
+    if (!productScrollSentinel.value) return
+    if (fetchingProducts.value || fetchingMoreProducts.value) return
+    
+    const hasMore = products.value.length < productsPagination.value.count
+    if (!hasMore) return
+    
+    const rect = productScrollSentinel.value.getBoundingClientRect()
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    
+    // Check if sentinel is in viewport (with some margin for safety)
+    const isVisible = rect.top < viewportHeight && rect.bottom >= 0
+    
+    // If sentinel is visible, load more items
+    if (isVisible) {
+      fetchProducts({ offset: productsPagination.value.offset })
+    }
+  }, 100)
 }
 
 const currency = computed(() => getStorefrontCurrency(props.storefrontId))
@@ -754,7 +941,7 @@ async function refreshPage(done=() => {}) {
     await Promise.all([
       fetchStorefront(),
       updateLivenessStatus(),
-      fetchProducts(),
+      fetchProducts({ reset: true }),
       fetchProductCategories(),
       fetchCollections(),
       updateDeliveryCalculation(),

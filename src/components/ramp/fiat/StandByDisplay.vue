@@ -66,7 +66,6 @@
             readonly
             dense
             filled
-            :loading="!contractBalance"
             :dark="darkMode"
             v-model="contractBalance">
             <template v-slot:append>
@@ -121,7 +120,13 @@
                             @click="viewPaymentAttachment(method.attachments[0].image?.url)"/>
                         </div>
                         <div v-else>
-                          <span class="text-primary">Uploading Proof of Payment <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/></span>
+                          <span class="text-primary">
+                            {{ (data?.order?.status?.value === 'PD_PN' || data?.order?.status?.value === 'PD' || data?.order?.status?.value === 'RLS')
+                              ? 'Proof of payment not available yet'
+                              : 'Uploading Proof of Payment'
+                            }}
+                            <q-icon name="refresh" color="primary" size="xs" @click="$emit('refresh')"/>
+                          </span>
                         </div>
                       </div>
                     </q-card>
@@ -132,13 +137,23 @@
           </div>
         </div>
         <!-- Instruction message -->
-        <div
-          class="row q-px-md q-pt-sm text-center sm-font-size"
-          style="overflow-wrap: break-word;">
-          <div v-if="hasLabel" class="row">
-            <q-icon class="col-auto" size="sm" name="mdi-information-outline" color="blue-6"/>&nbsp;
-            <span class="col text-left q-ml-sm">{{ label }}</span>
-          </div>
+        <div v-if="hasLabel" class="important-alert-wrapper q-px-md q-pt-md q-pb-sm">
+          <q-card 
+            flat 
+            bordered
+            class="important-alert-card pulse-animation"
+            :class="[getDarkModeClass(darkMode), getAlertColorClass]">
+            <q-card-section class="row items-center q-pa-md">
+              <q-icon 
+                class="col-auto important-alert-icon" 
+                size="32px" 
+                name="mdi-alert-circle" 
+                :color="getIconColor"/>
+              <div class="col q-ml-md important-alert-text">
+                {{ label }}
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
         <!-- Cancel order button -->
         <div v-if="!displayContractInfo" class="q-mt-sm q-px-md q-mb-sm">
@@ -157,15 +172,33 @@
         </div>
         <!-- Appeal Button -->
         <div v-if="showAppealBtn">
-          <div class="row q-pt-xs q-px-md">
+          <!-- Countdown until appeal becomes available -->
+          <div v-if="showAppealCountdown" class="q-pt-xs q-px-md">
+            <q-card flat bordered class="pt-card appeal-countdown-card" :class="getDarkModeClass(darkMode)">
+              <q-card-section class="row items-center q-pa-md">
+                <q-icon name="schedule" size="22px" :color="darkMode ? 'grey-4' : 'grey-7'" />
+                <div class="col q-ml-md">
+                  <div class="text-weight-bold">{{ $t('AppealableInSeconds', { countdown: appealCountdownDisplay }, `Appealable in ${appealCountdownDisplay}`) }}</div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                    {{ $t('AppealCountdownHelper', {}, 'If the other party is unresponsive, you can submit an appeal once the timer ends.') }}
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+
+          <!-- Prominent appeal CTA once available -->
+          <div v-else class="row q-pt-xs q-px-md appeal-cta-wrapper">
             <q-btn
               :loading="loadAppealButton"
-              flat
+              :disable="loadAppealButton"
+              unelevated
+              rounded
               no-caps
-              :disable="appealCountdown !== null"
-              :label="appealBtnLabel"
-              class="q-space text-white"
-              color="blue-6"
+              icon="gavel"
+              :label="$t('SubmitAnAppeal')"
+              class="q-space appeal-btn-cta"
+              color="negative"
               @click="openDialog = true"
             />
           </div>
@@ -175,10 +208,6 @@
           <q-btn no-caps flat color="primary" @click="openReviewForm = true">{{ feedback ? $t('ViewMyFeedback') : $t('SubmitFeedback') }}</q-btn>
         </div>
       </div>
-    </div>
-    <!-- Progress Loader -->
-    <div v-if="!isloaded" class="row justify-center q-py-lg" style="margin-top: 50px">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
     </div>
   </div>
   <!-- Dialogs -->
@@ -215,12 +244,11 @@
 <script>
 import AppealForm from './dialogs/AppealForm.vue'
 import FeedbackDialog from './dialogs/FeedbackDialog.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackForm from './dialogs/FeedbackForm.vue'
 import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatCurrency } from 'src/exchange'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
@@ -232,7 +260,7 @@ export default {
       nickname: this.$store.getters['ramp/getUser']?.name,
       appeal: null,
       isloaded: false,
-      appealCountdown: null,
+      appealCountdownSeconds: null, // number | null
       appealCountdownLoading: true,
       timer: null,
       type: 'ongoing',
@@ -257,7 +285,6 @@ export default {
   components: {
     FeedbackDialog,
     AppealForm,
-    ProgressLoader,
     FeedbackForm,
     AttachmentDialog
   },
@@ -281,14 +308,36 @@ export default {
       }
       return userType
     },
-    appealBtnLabel () {
-      if (this.appealCountdown) return this.$t('AppealableInSeconds', { countdown: this.appealCountdown }, `Appealable in ${this.appealCountdown}`)
-      return this.$t('SubmitAnAppeal')
+    appealCountdownDisplay () {
+      const seconds = Number(this.appealCountdownSeconds)
+      if (!Number.isFinite(seconds) || seconds <= 0) return '00:00'
+      const hrs = Math.floor(seconds / 3600)
+      const mins = Math.floor((seconds % 3600) / 60)
+      const secs = seconds % 60
+      const pad2 = (n) => String(n).padStart(2, '0')
+      if (hrs > 0) return `${pad2(hrs)}:${pad2(mins)}:${pad2(secs)}`
+      return `${pad2(mins)}:${pad2(secs)}`
+    },
+    isAppealTimeLocked () {
+      const appealableAt = this.data?.order?.appealable_at
+      if (!appealableAt) return false
+      const appealableDate = new Date(appealableAt)
+      const now = Date.now()
+      return Number.isFinite(appealableDate?.getTime?.()) && appealableDate.getTime() > now
+    },
+    showAppealCountdown () {
+      // Only show countdown if backend provided an appealable_at and we're still waiting
+      return !!this.data?.order?.appealable_at &&
+        !this.appealCountdownLoading &&
+        Number(this.appealCountdownSeconds) > 0
     },
     showAppealBtn () {
       const stat = ['ESCRW', 'PD_PN', 'PD', 'CNCL']
       const statusAppealable = stat.includes(this.data?.order?.status.value)
       const hasFundedContract = !!this.data?.contractAddress && this.contractBalance > 0
+      // If backend provided appealable_at and it's still in the future, never show the CTA (show countdown instead).
+      if (statusAppealable && this.isAppealTimeLocked) return true
+      // Otherwise, show appeal section only when either contract is funded or backend tells us appealability is known.
       return statusAppealable && (hasFundedContract || (!!this.data?.order?.appealable_at && !this.appealCountdownLoading))
     },
     displayContractInfo () {
@@ -336,6 +385,34 @@ export default {
       return stat.includes(this.data?.order?.status.value)
     },
     label () {
+      const status = this.data?.order?.status?.value
+
+      // When appeal CTA is available, clarify that the user can submit an appeal.
+      // (Only applied to the ESCRW seller-waiting state to match the requested copy.)
+      // IMPORTANT: `appealCountdownSeconds` starts as null; `Number(null) === 0` is true.
+      // Require a non-null countdown value to avoid showing the "with appeal" label
+      // when the countdown was never started / appeal wasn't initialized.
+      const hasAppealCountdownValue = this.appealCountdownSeconds !== null && this.appealCountdownSeconds !== undefined
+      const appealCtaVisible = this.showAppealBtn &&
+        !this.showAppealCountdown &&
+        !this.isAppealTimeLocked &&
+        hasAppealCountdownValue &&
+        Number(this.appealCountdownSeconds) === 0
+      if (status === 'ESCRW' && appealCtaVisible) {
+        return this.$t(
+          'StandByDisplayLabelEscrwWithAppeal',
+          {},
+          'Please wait for the buyer to send and confirm their fiat payment or submit an appeal to release your BCH from the escrow contract.'
+        )
+      }
+      if (status === 'PD_PN' && appealCtaVisible) {
+        return this.$t(
+          'StandByDisplayLabelPdPnWithAppeal',
+          {},
+          'Please wait for the seller to release the funds. If the seller is unresponsive, you may submit an appeal.'
+        )
+      }
+
       const labels = {
         SBM: this.$t('StandByDisplayLabelSbm'),
         CNF: this.$t('StandByDisplayLabelCnf'),
@@ -345,7 +422,23 @@ export default {
         PD: this.$t('StandByDisplayLabelPd'),
         RLS_PN: this.$t('StandByDisplayLabelRlsPn')
       }
-      return labels[this.data?.order?.status.value]
+      return labels[status]
+    },
+    getAlertColorClass () {
+      const status = this.data?.order?.status.value
+      // CNF and ESCRW_PN are critical statuses that need more attention
+      if (status === 'CNF' || status === 'ESCRW_PN') {
+        return 'alert-critical'
+      }
+      return 'alert-normal'
+    },
+    getIconColor () {
+      const status = this.data?.order?.status.value
+      // CNF and ESCRW_PN use warning color for emphasis
+      if (status === 'CNF' || status === 'ESCRW_PN') {
+        return 'orange-7'
+      }
+      return 'blue-6'
     },
     counterparty () {
       const tradeType = this.data.order?.trade_type
@@ -396,19 +489,18 @@ export default {
   methods: {
     formatCurrency,
     getDarkModeClass,
-    isNotDefaultTheme,
     openURL,
     explorerLink (linkType = 'txid') {
       let url = ''
 
       if (this.isChipnet) {
-        url = 'https://chipnet.imaginary.cash'
+        url = `${process.env.TESTNET_EXPLORER_URL}`
       } else {
-        url = 'https://blockchair.com/bitcoin-cash'
+        url = 'https://explorer.paytaca.com'
       }
 
       if (linkType === 'txid') {
-        url = this.isChipnet ? `${url}/tx/` : `${url}/transaction/`
+        url = `${url}/tx/`
         return `${url}${this.txid}`
       } else {
         url = `${url}/address/`
@@ -416,7 +508,7 @@ export default {
       }
 
       // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.bitcoinunlimited.info/tx/'
+      //   url = 'https://explorer.paytaca.com/tx/'
       // }
     },
     async loadData () {
@@ -500,24 +592,24 @@ export default {
       const vm = this
       if (vm.data?.order?.appealable_at) {
         const appealableDate = new Date(vm.data?.order?.appealable_at)
-        vm.timer = setInterval(function () {
-          const now = new Date().getTime()
-          const distance = appealableDate - now
-
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-
-          if (hours > 0) vm.appealCountdown = `${hours} hour(s)`
-          else if (minutes > 0) vm.appealCountdown = `${minutes} minute(s)`
-          else if (seconds > 0) vm.appealCountdown = `${seconds} second(s)`
-
-          if (distance < 0) {
-            clearInterval(vm.timer)
-            vm.appealCountdown = null
-          }
+        const updateCountdown = () => {
+          const now = Date.now()
+          const distance = appealableDate.getTime() - now
+          const secondsRemaining = Math.max(0, Math.ceil(distance / 1000))
+          vm.appealCountdownSeconds = secondsRemaining
           vm.appealCountdownLoading = false
-        }, 1000)
+          if (distance <= 0) {
+            clearInterval(vm.timer)
+            vm.timer = null
+            vm.appealCountdownSeconds = 0
+          }
+        }
+
+        // Compute immediately to avoid UI flicker on first render
+        updateCountdown()
+        if (!vm.timer) {
+          vm.timer = setInterval(updateCountdown, 1000)
+        }
       }
     },
     copyToClipboard (value) {
@@ -551,5 +643,171 @@ export default {
 }
 .subtext {
   opacity: .5;
+}
+
+// Appeal countdown card and CTA styling
+.appeal-countdown-card {
+  border-radius: 16px;
+}
+
+.appeal-btn-cta {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 6px 18px rgba(237, 95, 89, 0.35);
+  animation: appealPulse 1.8s ease-in-out infinite;
+}
+
+.appeal-cta-wrapper {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes appealPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+// Important alert styles
+.important-alert-wrapper {
+  .important-alert-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    
+    // Sparkle effect overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.1) 60%,
+        transparent 70%
+      );
+      animation: sparkle 3s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    &.alert-critical {
+      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+      border: 2px solid rgba(255, 152, 0, 0.4);
+      
+      &::before {
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.2) 40%,
+          rgba(255, 255, 255, 0.5) 50%,
+          rgba(255, 255, 255, 0.2) 60%,
+          transparent 70%
+        );
+      }
+      
+      &.dark {
+        background: linear-gradient(135deg, rgba(255, 152, 0, 0.15) 0%, rgba(255, 193, 7, 0.15) 100%);
+        border: 2px solid rgba(255, 152, 0, 0.5);
+        
+        &::before {
+          background: linear-gradient(
+            45deg,
+            transparent 30%,
+            rgba(255, 255, 255, 0.15) 40%,
+            rgba(255, 255, 255, 0.35) 50%,
+            rgba(255, 255, 255, 0.15) 60%,
+            transparent 70%
+          );
+        }
+      }
+    }
+    
+    &.alert-normal {
+      background: rgba(33, 150, 243, 0.08);
+      border: 1px solid rgba(33, 150, 243, 0.3);
+      
+      &.dark {
+        background: rgba(33, 150, 243, 0.12);
+        border: 1px solid rgba(33, 150, 243, 0.4);
+      }
+    }
+    
+    // Ensure content is above the sparkle overlay
+    ::v-deep(.q-card__section) {
+      position: relative;
+      z-index: 2;
+    }
+  }
+  
+  .important-alert-text {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: inherit;
+  }
+  
+  .important-alert-icon {
+    flex-shrink: 0;
+  }
+}
+
+// Sparkle animation - shimmer effect that sweeps across
+@keyframes sparkle {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+// Pulse animation - continuous grow and shrink
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s ease-in-out infinite;
+  
+  // Only apply pulse animation to critical alerts
+  &:not(.alert-critical) {
+    animation: none;
+  }
+}
+
+// Dark mode adjustments
+.dark {
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
 }
 </style>

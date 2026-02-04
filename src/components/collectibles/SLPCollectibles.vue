@@ -1,8 +1,21 @@
 <template>
   <div class="pt-label" :class="getDarkModeClass(darkMode, '', 'text-grey-8')">
-    <div v-if="fetchingCollectibles" class="row items-center justify-center">
-      <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
-    </div>
+    <!-- Skeleton Loaders -->
+    <template v-if="fetchingCollectibles && !collectibles.length">
+      <div class="q-mx-md q-px-sm q-mb-md">
+        <q-skeleton type="text" width="40%" height="32px" class="q-ml" />
+      </div>
+      <div class="q-pa-md row items-start">
+        <q-card
+          v-for="n in 6" :key="`skeleton-${n}`"
+          class="collectible-card q-ma-sm"
+        >
+          <q-skeleton height="130px" width="100%" square />
+        </q-card>
+      </div>
+    </template>
+
+    <!-- Actual Content -->
     <template v-if="collectibles.length > 0">
       <div class="q-mx-md q-px-sm row items-center">
         <div class="q-space text-h5 q-ml">{{ $t('SLPCollectibles') }}</div>
@@ -10,7 +23,7 @@
           <q-btn-toggle
             flat
             v-model="viewType"
-            toggle-color="brandblue"
+            toggle-color="pt-primary1"
             padding="sm"
             :options="[
               {icon: 'view_stream', value: 'list'},
@@ -63,9 +76,20 @@
       </div>
     </template>
     <template v-if="collectibles.length === 0 && !fetchingCollectibles">
-      <p class="text-center pt-label no-collectibles-label" :class="getDarkModeClass(darkMode)">
-        {{ $t('NoCollectibles') }}
-      </p>
+      <div class="empty-state flex flex-center column q-pa-xl">
+        <q-icon 
+          name="collections" 
+          size="80px" 
+          class="q-mb-md" 
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+        />
+        <div class="text-h6 text-center q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+          {{ $t('NoCollectibles') }}
+        </div>
+        <div class="text-caption text-center q-px-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+          {{ $t('NoCollectiblesSubtitle', {}, 'Start collecting SLP tokens to see them here') }}
+        </div>
+      </div>
     </template>
     <Collectible v-model="collectibleDetail.show" :collectible="collectibleDetail.collectible"/>
   </div>
@@ -74,7 +98,7 @@
 import ProgressLoader from 'components/ProgressLoader'
 import Collectible from 'components/collectibles/SLPCollectibleDetail'
 import SLPCollectiblesItem from 'components/collectibles/SLPCollectiblesItem.vue'
-import { isNotDefaultTheme, getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'SLPCollectibles',
@@ -132,7 +156,6 @@ export default {
   },
 
   methods: {
-    isNotDefaultTheme,
     getDarkModeClass,
     toggleExpandGroup(groupId) {
       const index = this.expandedGroupIds.indexOf(groupId)
@@ -192,9 +215,8 @@ export default {
   .upsidedown {
     transform: rotate(180deg);
   }
-  .no-collectibles-label {
-    font-size: 18px;
-    color: gray;
-    margin-top: 50px;
+  .empty-state {
+    min-height: 300px;
+    padding: 60px 20px;
   }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <router-view :key="$route.path"></router-view>
   <AppealFooterMenu v-if="showFooterMenu" :data="footerData" v-on:clicked="switchMenu"/>
-  <RampLogin v-if="showLogin" @logged-in="onLoggedIn"/>
+  <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="onLoggedIn"/>
 </template>
 <script>
 import AppealFooterMenu from 'src/components/ramp/appeal/AppealFooterMenu.vue'
@@ -25,6 +25,7 @@ export default {
         unreadOrdersCount: 0
       },
       showLogin: false,
+      forceLogin: false,
       appealListKey: 0,
       appealDetailKey: 0,
       appealProfileKey: 0,
@@ -87,6 +88,8 @@ export default {
       this.showFooterMenu = show
     },
     handleSessionEvent () {
+      // Force re-login when session expires or token is invalid
+      this.forceLogin = true
       this.showLogin = true
     },
     refreshChildren () {
@@ -104,6 +107,7 @@ export default {
     },
     onLoggedIn () {
       this.showLogin = false
+      this.forceLogin = false
     },
     updateUnreadCount (count) {
       this.footerData.unreadAppealsCount = count
@@ -142,7 +146,9 @@ export default {
       } else {
         // HTTP status code error
         switch (error.response.status) {
+          case 401:
           case 403:
+            // Authentication errors - trigger re-authentication
             bus.emit('session-expired')
             break
           case 400:

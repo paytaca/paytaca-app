@@ -19,18 +19,18 @@
 
 export default function () {
   return {
-    network: 'BCH', // BCH || sBCH
+    network: 'BCH',
     language: 'en-us',
     country: {
       name: 'United States',
       code: 'US'
     },
-    theme: 'default', // [default, payhero]
+    theme: 'glassmorphic-blue', // [glassmorphic-blue, payhero]
     isChipnet: false,
-    autoGenerateAddress: false,
-    showTokens: true,
+    autoGenerateAddress: true,
     enableStablhedge: false,
-    enableSmartBCH: false,
+    enableSLP: false,
+    enableSmartBCH: false, // SmartBCH is deprecated and forcibly disabled
     wallets: {
       bch: {
         walletHash: '',
@@ -53,16 +53,6 @@ export default function () {
         lastAddress: '',
         lastChangeAddress: '',
         lastAddressIndex: 0,
-        connectedAddress: '',
-        connectedAddressIndex: '0/0',
-        connectedSites: {},
-
-      },
-      sbch: {
-        subscribed: false,
-        walletHash: '',
-        derivationPath: '',
-        lastAddress: '',
         connectedAddress: '',
         connectedAddressIndex: '0/0',
         connectedSites: {}
@@ -124,5 +114,35 @@ export default function () {
     },
     walletsRecovered: false, // Flag to check if wallets have been recovered from storage
     walletRecoveryMessage: '',
+    backupReminderDismissed: false, // Flag to track if user has marked backup as done
+    /**
+     * Clearable state, any apps storing state here should be able to recover if cache is cleared.
+     */
+    cache: {
+      /**
+       * Caches the basic cashtoken details.
+       * Using category as key, the value is a partial of BCMR's latest IdentitySnapshot.
+       * 
+       * @type {[category: string]: {
+       *   name: string
+       *   description?: string,
+       *   uris?: {
+       *     icon: string
+       *   },
+       *   token: {
+       *    category: string,
+       *    symbol: string,
+       *    decimals?: number
+       *  }
+       * }} - A partial BCMR IdentitySnapshot, other fields are omitted
+       */
+      cashtokenIdentities: {}
+    },
+    /**
+     * Session-only state for app lock feature
+     * isUnlocked tracks if user has successfully authenticated in current session
+     * Not persisted to localStorage
+     */
+    isUnlocked: false
   }
 }

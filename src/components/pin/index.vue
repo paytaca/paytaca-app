@@ -8,20 +8,20 @@
     transition-hide="slide-down"
     seamless
     >
-      <q-card v-if="loader" class="full-height flex flex-center text-bow" :class="getDarkModeClass(darkMode)">
+      <q-card v-if="loader" class="full-height flex flex-center text-bow" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
           <q-card-section>
             <div class="row">
               <div class="col-12 text-center q-mt-lg">
                 <p class="text-h6 dim-text">{{ $t('SavingYourPin') }}...</p>
               </div>
               <div class="col-12 text-center">
-                <ProgressLoader :color="isNotDefaultTheme(theme) ? theme : 'pink'"/>
+                <ProgressLoader />
               </div>
             </div>
           </q-card-section>
       </q-card>
 
-      <q-card v-else id="app-container" :class="getDarkModeClass(darkMode)">
+      <q-card v-else id="app-container" :class="getDarkModeClass(darkMode)" :style="wrapperBackgroundStyle">
         <q-card-section class="q-mt-md q-pb-none">
             <div class="text-center">
                 <p class="text-h6 text-blue-9 text-uppercase" :class="{'text-grad': darkMode}"><strong>{{ actionCaption }}</strong></p>
@@ -38,7 +38,7 @@
                   <div class="row justify-center">
                       <div class="col-2 pt-pin-key" v-for="(keys, index) in pinKeys" :key="index">
                         <p class="q-py-md text-h5 text-center q-my-none pt-text-key">
-                            <span v-if="keys.key !== ''" class="material-icons pin-icon" :class="{'text-blue-5': darkMode}">
+                            <span v-if="keys.key !== ''" class="material-icons pin-icon">
                               radio_button_checked
                             </span>
                             <span v-else class="material-icons">
@@ -93,10 +93,8 @@
 
 <script>
 import ProgressLoader from '../../components/ProgressLoader'
-import 'capacitor-secure-storage-plugin'
-import { Plugins } from '@capacitor/core'
 import { getMnemonic } from '../../wallet'
-import { getDarkModeClass, isNotDefaultTheme } from 'src/utils/theme-darkmode-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { sha256 } from 'js-sha256'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 
@@ -136,7 +134,7 @@ export default {
     'disableClose': { type: Boolean, default: false }
   },
   watch: {
-    pinDialogAction () {
+    pinDialogAction (newVal, oldVal) {
       const vm = this
       if (vm.pinDialogAction === 'SET UP' || vm.pinDialogAction === 'SET NEW' || vm.pinDialogAction === 'VERIFY') {
         vm.pin = ''
@@ -168,11 +166,46 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
+    },
+    wrapperBackgroundStyle () {
+      const theme = this.theme
+      const isDark = this.darkMode
+      
+      // Map of themes to their background colors [dark, light]
+      const themeBackgrounds = {
+        'glassmorphic-blue': {
+          dark: '#273746',
+          light: '#ecf3f3'
+        },
+        'glassmorphic-gold': {
+          dark: '#3d3224',
+          light: '#fff8e1'
+        },
+        'glassmorphic-green': {
+          dark: '#263d32',
+          light: '#e8f5e9'
+        },
+        'glassmorphic-red': {
+          dark: '#462733',
+          light: '#f3ecec'
+        },
+        'payhero': {
+          dark: '#012121',
+          light: '#012121'
+        }
+      }
+      
+      // Default to blue theme if theme not found
+      const bgColors = themeBackgrounds[theme] || themeBackgrounds['glassmorphic-blue']
+      const backgroundColor = isDark ? bgColors.dark : bgColors.light
+      
+      return {
+        backgroundColor: backgroundColor
+      }
     }
   },
   methods: {
     getDarkModeClass,
-    isNotDefaultTheme,
     nonNumKeysClass (key) {
       let classes = ''
       if (this.$store.getters['darkmode/getStatus']) {
@@ -262,11 +295,11 @@ export default {
         let secretKey = null
         try {
           secretKey = await SecureStoragePlugin.get({ key: pinKey })
-        } catch (error) {
+        } catch {
           try {
             // fallback for retrieving pin using unhashed mnemonic
             secretKey = await SecureStoragePlugin.get({ key: `pin ${mnemonic}` })
-          } catch (error1) {
+          } catch {
             // fallback for old process of pin retrieval
             secretKey = await SecureStoragePlugin.get({ key: 'pin' })
           }
@@ -289,7 +322,13 @@ export default {
           .then(() => {
             setTimeout(() => {
               if (vm.pinDialogAction === 'SET UP') {
+                // Emit proceed action first so parent can handle it while dialog is still active
                 vm.$emit('nextAction', 'proceed')
+                // Then finish loader and close dialog after parent receives the proceed signal
+                vm.loader = false
+                vm.removeKey('reset')
+                vm.dialog = false
+                vm.$emit('update:pinDialogAction', '')
               } else {
                 resetAll()
               }
@@ -301,17 +340,13 @@ export default {
         vm.loader = false
         vm.removeKey('reset')
         vm.$emit('nextAction')
-        try {
-          vm.pinDialogAction = ''
-        } catch {}
-        finally {
-          vm.$emit('update:pinDialogAction')
-        }
+        vm.$emit('update:pinDialogAction', '')
       }
     },
     cancelPin () {
       this.removeKey('reset')
       this.$emit('nextAction', 'cancel')
+      this.$emit('update:pinDialogAction', '')
     }
   }
 }

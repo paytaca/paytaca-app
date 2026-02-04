@@ -20,6 +20,7 @@ class Translator {
 
   constructor () {
     this.indexFile = 'index.js'
+    this.batchSize = 50 // how many keys to translate in one bulk
     this.texts = [
       ...words,
       ...phrases.static,
@@ -37,7 +38,7 @@ class Translator {
       check for supported language codes here
       https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
     */
-    const supportedLangs = [
+    const defaultSupportedLangs = [
       'en-us',
       'es',
       'zh-tw',
@@ -68,6 +69,13 @@ class Translator {
       'es-ar:es',
       'pt-br:pt',
     ]
+    const supportedLangsInput = opts?.supportedLangs ?? opts?.langs ?? opts?.lang
+    const supportedLangs = Array.isArray(supportedLangsInput)
+      ? supportedLangsInput
+      : (typeof supportedLangsInput === 'string' && supportedLangsInput.length > 0)
+          ? supportedLangsInput.split(',').map(s => s.trim()).filter(Boolean)
+          : defaultSupportedLangs
+
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
     if (ignoreExisting) console.log('Will ignore keys with existing translation')
@@ -79,7 +87,7 @@ class Translator {
 
       if (lang.includes(":")) {
         const [ branchLang, mainLang ] = lang.split(":")
-        this.copy(mainLang, branchLang)
+        await this.copy(mainLang, branchLang)
         continue
       }
 
@@ -125,9 +133,15 @@ class Translator {
         console.log(translateCountData)
 
         if (Object.keys(filteredGroup).length !== 0) {
-          // Sleep for 2 seconds
-          await sleep(2000)
-          translatedObj = await this.translateGroup(filteredGroup, codes)
+          const batchedGroups = this.batchGroup(filteredGroup);
+          console.log('Batched into', batchedGroups.length, 'group(s)')
+          for(let i = 0; i < batchedGroups.length; i++) {
+            const batch = batchedGroups[i];
+            // Sleep for 1 second
+            await sleep(100)
+            console.log('Translating batch', (i + 1), 'of', batchedGroups.length, 'for', label)
+            Object.assign(translatedObj, await this.translateGroup(batch, codes))
+          }
         }
 
         // override hardcoded translations
@@ -158,10 +172,10 @@ class Translator {
         strData += JSON.stringify(jsonData, null, 2)
 
         // to remove the quotes on keys after stringify
-        strData = strData.replace(/"([^"]+)":/g, '$1:')
+        strData = strData.replace(/"([a-zA-Z_$][a-zA-Z0-9_$]*)":/g, '$1:')
 
         // write to our i18n/{lang_code}/index.js
-        this.write(strData, lang)
+        await this.write(strData, lang)
 
         index++
       }
@@ -174,16 +188,35 @@ class Translator {
    */
   async translateGroup(group, codes) {
     if (Object.keys(group).length === 0) return {}
+    if (codes.from === codes.to) return { ...group }
 
     // store all the interpolated substring in an object with its corresponding key
     const interpolatedWords = {}
     for (const [key, value] of Object.entries(group)) {
       const interpolatedMatches = value.match(this.regex.interpolatedStrRegex)
-      if (interpolatedMatches !== null) interpolatedWords[key] = interpolatedMatches
+      if (interpolatedMatches !== null) {
+        console.log('Interpolated', `[${key}] => '${value}'`, interpolatedMatches)
+        interpolatedWords[key] = interpolatedMatches
+      }
     }
 
     // translate in bulks
     let translatedObj = await translate(group, codes)
+    if (codes.to == 'en') {
+      let hasInconsistency = false
+      for (const [key, value] of Object.entries(translatedObj)) {
+        if (group[key] !== value) {
+          hasInconsistency = true
+          console.log('Found inconsistency!', key, `translated to '${value}' instead of '${group[key]}'`)
+        }
+      }
+      if (hasInconsistency) {
+        console.log('Codes', codes)
+        console.log('TranslatedObj', translatedObj)
+        console.log('Group', group)
+        throw new Error('Has inconsistency')
+      }
+    }
 
     // replace the translated interpolation placeholder with the untranslated one
     if (Object.keys(interpolatedWords).length !== 0) {
@@ -215,6 +248,19 @@ class Translator {
     return { filteredGroup, manualTranslations: manual, existingTranslations: existing }
   }
 
+  batchGroup(group) {
+    const keys = Object.keys(group)
+    const batchedKeys = [];
+    for (let i = 0; i < keys.length; i += this.batchSize) {
+      batchedKeys.push(keys.slice(i, i + this.batchSize));
+    }
+    return batchedKeys.map(keys => {
+      const obj = {};
+      keys.forEach(key => obj[key] = group[key]);
+      return obj
+    })
+  }
+
   /**
    * @param {Object} obj
    */
@@ -236,13 +282,16 @@ class Translator {
   write (data, to) {
     const toPath = `./${to}/${this.indexFile}`
   
-    fs.writeFile(
-      toPath,
-      data,
-      (err) => {
-        if (err) throw err
-      }
-    )
+    return new Promise((resolve, reject) => {
+      fs.writeFile(
+        toPath,
+        data,
+        (err) => {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
   }
 
   // used to copy branch languages from their main languages
@@ -250,13 +299,16 @@ class Translator {
     const fromPath = `./${from}/${this.indexFile}`
     const toPath = `./${to}/${this.indexFile}`
   
-    fs.copyFile(
-      fromPath,
-      toPath,
-      (err) => {
-        if (err) throw err
-      }
-    )
+    return new Promise((resolve, reject) => {
+      fs.copyFile(
+        fromPath,
+        toPath,
+        (err) => {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
   }
 
   async getExistingTranslations(lang) {

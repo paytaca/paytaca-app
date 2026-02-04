@@ -1,21 +1,19 @@
 <template>
   <q-select
-    :style="{ width: this.$q.platform.is.mobile ? '75%' : '100%' }"
     v-model="theme"
     :options="themeOptions"
     :dark="darkMode"
-    @filter="filterThemeSelection"
-    popup-content-style="color: black;"
+    :color="themeColor"
     dense
-    use-input
-    fill-input
-    borderless
-    hide-selected
+    outlined
+    rounded
+    hide-bottom-space
+    class="glass-input"
   >
     <template v-slot:option="scope">
       <q-item v-bind="scope.itemProps">
         <q-item-section>
-          <q-item-label :class="{ 'text-black': !darkMode && !scope.selected }">
+          <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
             {{ scope.opt.label }}
           </q-item-label>
         </q-item-section>
@@ -25,42 +23,11 @@
 </template>
 
 <script>
+import { updateCssThemeColors } from 'src/utils/theme-utils';
+
 export default {
   props: {
     darkMode: { type: Boolean }
-  },
-  data () {
-    return {
-      themeOptions: [
-        { value: 'default', label: this.$t('Default') },
-        { value: 'payhero', label: 'PayHero' }
-      ],
-      filteredThemeOptions: []
-    }
-  },
-  methods: {
-    filterThemeSelection (val, update) {
-      if (!val) {
-        this.filteredThemeOptions = this.hkSelection(this.themeOptions)
-      } else {
-        const needle = String(val).toLowerCase()
-        this.filteredThemeOptions = this.hkSelection(this.themeOptions)
-          .filter(denom => String(denom?.label).toLowerCase().indexOf(needle) >= 0)
-      }
-      update()
-    },
-    hkSelection (options) {
-      // get rid of duplicate PayHero entry from language switching
-      if (options.length > 1) {
-        options.pop()
-      }
-      if (this.currentCountry === 'HK' && !options.some((a) => a.value === 'PayHero')) {
-        options.push({ value: 'payhero', label: 'PayHero' })
-      } else if (this.currentCountry !== 'HK' && options.some((a) => a.value === 'PayHero')) {
-        options.pop()
-      }
-      return options
-    }
   },
   computed: {
     currentCountry () {
@@ -69,26 +36,41 @@ export default {
     language () {
       return this.$store.getters['global/language'].value
     },
+    themeColor () {
+      const themeMap = {
+        'glassmorphic-blue': 'blue-6',
+        'glassmorphic-green': 'green-6',
+        'glassmorphic-gold': 'orange-6',
+        'glassmorphic-red': 'pink-6'
+      }
+      const currentTheme = this.$store.getters['global/theme']
+      return themeMap[currentTheme] || 'blue-6'
+    },
+    themeOptions() {
+      const themes = [
+        { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') },
+        { value: 'glassmorphic-red', label: this.$t('GlassmorphicRed') },
+        { value: 'glassmorphic-green', label: this.$t('GlassmorphicGreen') },
+        { value: 'glassmorphic-gold', label: this.$t('GlassmorphicGold') },
+      ]
+      return themes
+    },
     theme: {
       get () {
         const currentTheme = this.$store.getters['global/theme']
         let filteredTheme = ''
         try {
-          filteredTheme = this.themeOptions.filter(a => a.value === currentTheme)[0].label
+          filteredTheme = this.themeOptions.filter(a => a.value === currentTheme)[0]
         } catch {
-          filteredTheme = 'PayHero'
+          filteredTheme = { value: 'glassmorphic-blue', label: this.$t('GlassmorphicBlue') }
         }
         return filteredTheme
       },
       set (th) {
         const newTheme = th.value
         this.$store.commit('global/setTheme', newTheme)
+        updateCssThemeColors(newTheme);
       }
-    }
-  },
-  watch: {
-    language () {
-      this.themeOptions[0].label = this.$t('Default')
     }
   }
 }

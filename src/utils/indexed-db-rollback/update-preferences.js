@@ -48,7 +48,6 @@ export async function updatePreferences () {
 
     const alreadyUpdated = window.localStorage.getItem(UPDATE_PREFERENCES_FLAG)
     if (Boolean(alreadyUpdated) === true) {
-        console.log('Preferences already updated:', alreadyUpdated)
         return
     }
 
@@ -57,7 +56,7 @@ export async function updatePreferences () {
     console.log('ipGeoPreferences:', ipGeoPreferences)
     Store.commit('global/setCountry', {
       country: ipGeoPreferences.country,
-      denomination: $t('DEEM')
+      denomination: 'BCH' // Default denomination, can be changed by user later
     })
 
     const languageCodes = ipGeoPreferences.langs
