@@ -1,8 +1,8 @@
 <template>
 	<HeaderNav title="Eload Service" backnavpath="/apps/eload/form" class="header-nav"/>
 	
-	<div class="q-px-lg">	
-		<div class="row justify-between">
+	<div class="">	
+		<div class="row justify-between q-px-lg" v-if="!loading">
 			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Transactions</div>
 			<q-btn 
 				flat 
@@ -16,9 +16,14 @@
         		@click=""
         	/>		
 		</div>
+		<div v-else class="row justify-between q-px-lg q-pt-md">
+			<q-skeleton type="text" width="50%" height="30px" class="q-mb-xs br-15" />  
+			<q-skeleton type="text" width="10%" height="30px" class="q-mb-xs br-15" />  
+		</div>
+
 
 		<!-- Order List -->
-		<div v-if="!loading" class="scroll q-mt-md" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
+		<div v-if="!loading" class="scroll q-mt-md q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
 				<div v-for="order in orders" class="pointer" @click="selectOrder(order)">
 					<div class="row justify-between q-pa-sm">
@@ -38,11 +43,40 @@
 						</div>
 					</div>					
 
-					<q-separator class="q-sy-md" :dark="darkMode"/>
+					<q-separator class="q-my-sm" :dark="darkMode"/>
 				</div>
 
 				<div class="text-center text-grad q-pt-md md-font-size text-bold pointer" v-if="!isLastPage" @click="nextPage()">See More</div>
 			</q-pull-to-refresh>
+		</div>
+
+		<div v-else class="q-mt-md q-px-sm" style="height: 60vh;">
+			<q-list>
+      	<q-item v-for="n in 3" :key="n">
+        	<q-item-section>
+          	<div class="q-pb-sm">
+            	<div class="row justify-between">
+              	<div class="col">
+                	<!-- Promo Name -->
+                  <q-skeleton type="text" width="50%" height="20px" class="q-mb-xs" />
+                  <!-- Amount -->
+                  <q-skeleton type="text" width="30%" height="20px" class="q-mb-xs" />
+                  <!-- BCH -->
+                  <q-skeleton type="text" width="35%" height="22px" class="q-mb-xs" />
+                  <!-- Date -->
+                  <q-skeleton type="text" width="15%" height="14px" class="q-mb-xs" />                                 
+                </div>
+
+                <!-- <div class="col text-right">
+	              	<q-skeleton type="text" width="20%" height="20px" class="q-mb-xs" /> 
+	              </div> -->                
+              </div>              
+            </div>
+
+            <q-separator class="q-my-sm"/>
+         	</q-item-section>         	
+        </q-item>
+      </q-list>
 		</div>
 	</div>
 </template>
