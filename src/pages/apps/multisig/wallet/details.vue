@@ -1,8 +1,10 @@
 <template>
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
         <header-nav :title="$t('WalletDetails', {}, 'Wallet Details')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav header-nav apps-header" />
-        <div class="row" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
+        <div class="row text-bow" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
+          
           <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AboutWallet', {}, 'About Wallet') }}</p>
               <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
                 <q-item clickable v-ripple @click="openRenameDialog()">
                   <q-item-section>
@@ -31,6 +33,17 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
+                <q-item v-if="wallet.isOnline()">
+                  <q-item-section>
+                    <q-item-label caption >{{ $t('WalletId', {}, 'Wallet Id').toUpperCase() }}</q-item-label>
+                    <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                      {{ wallet.id }} 
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="mdi-cloud-outline"></q-icon>
+                  </q-item-section>
+                </q-item>
                 <q-item>
                   <q-item-section>
                     <q-item-label caption>{{ $t('WalletHash') }}</q-item-label>
@@ -45,7 +58,7 @@
                 <q-item-label header>Signers</q-item-label>
                 <q-item v-for="signer in wallet.signers" :key="signer.xpub" >
                     <q-item-section>
-                        <q-list bordered class="settings-list" style="border-radius: 15px; ":class="getDarkModeClass(darkMode)">
+                        <q-list bordered class="settings-list br-15" :class="getDarkModeClass(darkMode)">
                             <q-item>
                                 <q-item-section>
                                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -87,9 +100,9 @@
                                     <div>{{ signer.serverIdentityId || 'None' }}</div>
                                 </div>
                             </q-item-label>
-                            <div class="flex  justify-end q-my-md q-mx-sm q-gutter-x-sm">
+                            <div class="flex  justify-end q-my-md q-mx-sm q-gutter-x-sm ">
                               <q-btn v-if="hdPrivateKeys?.[signer.xpub]" @click="openCreateServerIdentityDialog(signer)" text-color="primary" rounded no-caps dense>{{ $t('CreateMultisigServerIdentity', {}, 'Create Server Identity') }}</q-btn> 
-                              <CopyButton :text="JSON.stringify(signer)" :label="$t('CopySignerDetails', {}, 'Copy Signer Details')" outline/>
+                              <CopyButton :text="JSON.stringify(signer)" :label="$t('CopySignerDetails', {}, 'Copy Signer Details')" color="primary"/>
                             </div>
                         </q-list>
                     </q-item-section>
@@ -102,20 +115,13 @@
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                   <q-item-section>
-                    <q-item-label caption>{{ $t('WalletSetup', {}, 'Wallet Setup') }}</q-item-label>
+                    <q-item-label caption>{{ $t('WalletSetupSharing', {}, 'Wallet Setup Sharing') }}</q-item-label>
                     <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
                       {{ wallet.isOnline() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-              <q-item v-if="wallet.isOnline()">
-                <q-item-section>
-                  <q-item-label caption>{{ $t('WalletSetupOnlineId', {}, 'Wallet Setup Online Id') }}</q-item-label>
-                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
-                    {{ wallet.id }} 
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
+              
               <q-item>
                 <q-item-section>
                   <q-item-label caption>{{ $t('TransactionSigning', {}, 'Transaction Signing') }}</q-item-label>
@@ -276,7 +282,7 @@ const openRenameDialog = () => {
 
 onMounted(async () => {
   await loadHdPrivateKeys(wallet.value?.signers)
-  await wallet.value?.loadSignersServerIdentity()
+  await wallet.value.loadSignersServerIdentity()
 })
 
 </script>
