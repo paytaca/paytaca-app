@@ -3,7 +3,7 @@
     <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6 text-bold">{{$t('ShareWallet')}}</div>
-        <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ExportWalletDescription') }}</div>
+        <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ShareWalletDescription') }}</div>
         <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
           <div>
             <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round >

@@ -86,19 +86,19 @@
               <q-separator spaced inset />
               <q-item v-if="wallet.isOnline()">
                 <q-item-section>
-                  <q-item-label>{{ $t('WalletId') }}</q-item-label>
+                  <q-item-label><q-icon name="mdi-identifier" size="sm" ></q-icon><q-icon name="mdi-cloud-check" size="sm" ></q-icon></q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label >
                    <span class="flex flex-wrap items-center">
-                    {{ wallet.id }}
+                    {{ wallet.id }} 
                   </span> 
                  </q-item-label>
                 </q-item-section>
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>{{ $t('WalletHash') }}</q-item-label>
+                  <q-item-label class="text-subtitle2">{{ $t('WalletHash') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label>
@@ -110,24 +110,24 @@
               </q-item>
               <q-item>
                 <q-item-section>
-                  <q-item-label>{{ $t('RequiredSignatures') }}</q-item-label>
+                  <q-item-label class="text-subtitle2">{{ $t('RequiredSignatures') }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-item-label caption>{{ wallet.m }} of {{ wallet.signers.length }}</q-item-label>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
-              <q-item-label header>Signers</q-item-label>
               <q-item >
                 <q-item-section>
+                  <q-item-label class="text-subtitle2 q-mb-md">{{ $t('Signers') }}</q-item-label>
                   <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
-                    <q-chip v-for="signer, i in wallet.signers.slice(0, 3)" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat>
+                    <q-chip v-for="signer, i in wallet.signers.slice(0, 3)" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat dense class="q-px-md">
                       <q-avatar>
                         <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
                         <q-icon v-else name="person" size="sm"></q-icon>
                       </q-avatar>
                       <div class="flex flex-column">
-                        <div class="text-bold ellipsis" style="max-width:3.5em">
+                        <div class="ellipsis" style="max-width:3.5em">
                           {{ signer.name }}
                         </div>
                       </div>
@@ -141,7 +141,7 @@
               <q-separator spaced inset />
               <q-expansion-item v-model="balancesExpanded">
                 <template v-slot:header>
-                  <q-item-section>
+                  <q-item-section class="text-subtitle2">
                     {{ $t('Balances') }}
                   </q-item-section>
                 </template>
@@ -402,7 +402,7 @@ const handleWalletActions = async (action) => {
     if (action.value === 'delete-wallet') {
       handleDeleteWalletAction()
     }
-    if (action.value === 'export-wallet') {
+    if (action.value === 'share-wallet') {
       handlShareWalletAction()
     }
     if (action.value === 'scan-wallet-utxos') {
@@ -431,9 +431,9 @@ const openWalletActionsDialog = () => {
         color: 'red'
       },
       {
-        icon: 'mdi-file-export',
+        icon: 'mdi-share',
         label: $t('ShareWallet'),
-        value: 'export-wallet',
+        value: 'share-wallet',
         color: 'primary'
       },
       {

@@ -11,16 +11,29 @@
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="pst">
+          
           <q-list>
             <q-item>
               <q-item-section>
                 <q-item-label class="text-h5 text-bold">
-                  Purpose
+                  {{ pst.purpose }}
                 </q-item-label>
               </q-item-section>
               <q-item-section side class="text-capitalize text-bold">
-                <q-item-label>
+                <!-- <q-item-label>
                   {{ pst.purpose }}
+                </q-item-label> -->
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>
+                <q-item-label>
+                  Unsigned Hash
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label>
+                  {{ shortenString(pst.unsignedTransactionHash, 20) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -113,6 +126,7 @@
               </q-item-section>
               <q-item-section side class="text-capitalize">
                 {{ signingProgress.signingProgress }}
+                
               </q-item-section>
             </q-item>
             <q-item-label header>Signers</q-item-label>
@@ -143,14 +157,22 @@
             <q-item class="q-mt-lg">
               <q-item-section>
                 <div class="row justify-between q-gutter-x-md">
-                  <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="combinePst" v-close-popup>
+                  <q-btn class="tile col-xs-3" flat dense no-caps @click="showShareProposalOptionsDialog" v-close-popup>
+                    <template v-slot:default>
+                      <div class="row justify-center">
+                        <q-icon name="mdi-share" class="col-12" color="primary" size="lg"></q-icon>
+                        <div class="col-12 tile-label">{{ $t('Share') }}</div>
+                      </div>
+                    </template>
+                  </q-btn>
+                  <!-- <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="combinePst" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
                         <div class="col-12 tile-label">Merge</div>
                       </div>
                     </template>
-                  </q-btn>
+                  </q-btn> -->
                   <q-btn 
                     :loading="isBroadcasting"
                     @click="broadcastTransaction"
@@ -159,24 +181,32 @@
                     <template v-slot:default>
                       <div class="row justify-center items-stretch">
                         <q-icon name="cell_tower" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">Broadcast</div>
+                        <div class="col-12 tile-label">{{ $t('Broadcast') }}</div>
                       </div>
                     </template>
                     <template v-slot:loading>
                       <div class="row justify-center items-stretch">
                         <q-spinner-radio color="primary" size="lg"/>
-                        <div class="col-12 tile-label">Broadcasting...</div>
+                        <div class="col-12 tile-label">{{ $t('Broadcasting') }}...</div>
                       </div>
                     </template>
                   </q-btn>
                   <q-btn class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
-                        <q-icon name="more_horiz" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">More</div>
+                        <q-icon name="delete_forever" class="col-12" color="red" size="lg"></q-icon>
+                        <div class="col-12 tile-label">{{ $t('Delete') }}</div>
                       </div>
                     </template>
                   </q-btn>
+                  <!-- <q-btn class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
+                    <template v-slot:default>
+                      <div class="row justify-center">
+                        <q-icon name="more_horiz" class="col-12" color="primary" size="lg"></q-icon>
+                        <div class="col-12 tile-label">{{ $t('More') }}</div>
+                      </div>
+                    </template>
+                  </q-btn> -->
                 </div>
               </q-item-section>
             </q-item>
@@ -210,14 +240,14 @@ import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
 import { withTimeout } from 'src/utils/async-utils'
-import PstExportOptionsDialog from 'components/multisig/PstExportOptionsDialog.vue'
+import ShareProposalOptionsDialog from 'components/multisig/ShareProposalOptionsDialog.vue'
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
-
 const {
   getSignerXPrv,
   multisigNetworkProvider,
   multisigCoordinationServer,
-  resolveXprvOfXpub
+  resolveXprvOfXpub,
+  resolveMnemonicOfXpub
 } = useMultisigHelpers()
 
 
@@ -230,8 +260,17 @@ const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const signingProgress = ref({})
+
 const isBroadcasting = ref(false)
 const pst = ref()
+
+const signingProgressBar = computed(() => {
+  return signingProgress.value.signatureCount / wallet.value.m
+})
+
+const signingProgressBarLabel = computed(() => {
+  return signingProgress.value?.signingProgress || ''
+})
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -245,7 +284,8 @@ const wallet = computed(() => {
       { 
         network: multisigNetworkProvider,
         coordinationServer: multisigCoordinationServer,
-        resolveXprvOfXpub
+        resolveXprvOfXpub,
+        resolveMnemonicOfXpub
       }
     )
   }
@@ -300,9 +340,63 @@ const syncPst = async () => {
   }
 }
 
-const showPstExportOptionsDialog = () => {
+const handleProposalDownloadAction = () => {
+  const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
   $q.dialog({
-    component: PstExportOptionsDialog,
+    title: $t('DownloadTransactionProposalFile'),
+    message: $t('DownloadTransactionProposalFileHint'),
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+    prompt: {
+      type: 'text',
+      model: defaultFilename,
+      filled: true,
+      color: 'primary'
+    },
+    ok: { 
+      label: $t('DownloadFile'),
+      color: 'primary',
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)}`,
+    },
+    cancel: { 
+      label: $t('Cancel'),
+      color: 'default',
+      outline: true,
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)} `,
+    },
+    
+  }).onOk(async (filename) => {
+    
+    if (!filename) return
+
+    const base64Psbt = await pst.value.export()
+    const blob = new Blob(
+      [base64Psbt], 
+      { type: 'text/plain' }
+    )
+
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${filename}.psbt`
+    document.body.appendChild(a)
+    a.click()
+
+  }).onCancel(() => {})
+}
+
+const handleProposalUploadAction = async () => {
+  try {
+    await pst.value.upload()
+  } catch (error) {
+    console.error('Error uploading proposal:', error)
+  }
+}
+
+const showShareProposalOptionsDialog = () => {
+  $q.dialog({
+    component: ShareProposalOptionsDialog,
     componentProps: {
       darkMode: darkMode.value,
       pst: pst.value
@@ -310,35 +404,10 @@ const showPstExportOptionsDialog = () => {
   }).onOk((payload) => {
     if (payload?.action === 'display-qr') {
       showPstQrDialog()
-    } else if (payload?.action === 'download-pst') {
-      const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
-      $q.dialog({
-        title: 'Enter Filename',
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
-        prompt: {
-          type: 'text',
-          model: defaultFilename
-        }
-      }).onOk(async (filename) => {
-        
-        if (!filename) return
-
-        const base64Psbt = await pst.value.export()
-        const blob = new Blob(
-          [base64Psbt], 
-          { type: 'text/plain' }
-        )
-
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${filename}.psbt`
-        document.body.appendChild(a)
-        a.click()
-    }).onCancel(() => {})
-      // downloadWalletFile(payload.pst || pst.value)
-    } else {
-      // openWalletActionsDialog()
+    } else if (payload?.action === 'download-proposal') {
+      handleProposalDownloadAction()
+    } else if (payload?.action === 'upload-proposal') {
+      handleProposalUploadAction()
     }
   }).onCancel(() => {
     // Dialog was closed without action
@@ -378,12 +447,13 @@ const openBottomsMenu = () => {
       },
       {
         icon: 'mdi-file-export',
-        label: $t('ExportTx'),
-        value: 'export-psbt',
+        label: $t('ShareProposal'),
+        value: 'share-proposal',
         color: 'primary'
       }
     ],
-    class: `${getDarkModeClass(darkMode.value)} pt-card text-bow justify-between`
+
+    class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
 
   }).onOk(async (action) => {
     if (action.value === 'delete') {
@@ -395,8 +465,8 @@ const openBottomsMenu = () => {
       await syncPst()
     }
 
-    if (action.value === 'export-psbt') {
-      showPstExportOptionsDialog()
+    if (action.value === 'share-proposal') {
+      showShareProposalOptionsDialog()
     }
   })
 }
@@ -522,6 +592,19 @@ onMounted(async () => {
 
   console.log('pst hex', pst.value.unsignedTransactionHex)
   console.log('pst hash', pst.value.unsignedTransactionHash)
+  console.log('PST', pst.value)
+  console.log('PST PSBT', (await pst.value.toPsbt()).toString())
+  const psbt = (await pst.value.toPsbt()).toString()
+  const importedPst = Pst.import(psbt)
+  console.log('Imported PST', importedPst.getSigningProgress())
+
+
 })
 
 </script>
+
+<style lang="scss">
+.custom-bottom-sheet .q-bottom-sheet__item .q-icon {
+  font-size: xx-large;
+}
+</style>
