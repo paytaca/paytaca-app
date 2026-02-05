@@ -5,10 +5,15 @@ import {
   hexToBin,
   decodeCashAddress,
   encodeCashAddress,
-  CashAddressType
+  CashAddressType,
+  decodePrivateKeyWif,
+  hash256,
+  instantiateSecp256k1,
 } from "@bitauth/libauth"
 import { BLOCK_TIME_SEC } from './constants.js'
 import { ElectrumNetworkProvider } from 'cashscript'
+
+const HASHTYPE = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
 
 export async function getBlockHeight() {
   const provider = new ElectrumNetworkProvider('mainnet')
@@ -50,4 +55,36 @@ export function convertCashAddressToTokenAddress (address) {
     case (CashAddressType.p2sh):
       return encodeCashAddress(decodedAddress.prefix, CashAddressType.p2shWithTokens, payload)
   }
+}
+
+/**
+ * Sign preimages using the provided WIF private key.
+ * Note: This should run on the merchant frontend; it signs input preimages
+ * for the spend transaction.
+  * @param {Object} params
+  * @param {Array} params.preimages - Array of objects containing inputIndex and preimage hex strings.
+  * @param {string} params.wif - WIF encoded private key.
+ * @returns {Array} - Array of objects containing inputIndex, merchantSigHex, and merchantPkHex.  
+ */
+export async function signPreimages({ preimages, wif }) {
+  const decoded = decodePrivateKeyWif(wif);
+  if (typeof decoded === 'string') throw new Error(decoded);
+
+  const secp = await instantiateSecp256k1();
+  const merchantPkBin = secp.derivePublicKeyCompressed(decoded.privateKey);
+  const merchantPkHex = binToHex(merchantPkBin);
+
+  return preimages.map(({ inputIndex, preimage }) => {
+    const preimageBin = hexToBin(preimage);
+    const messageHash = hash256(preimageBin);
+
+    const sig64 = secp.signMessageHashSchnorr(decoded.privateKey, messageHash);
+    const sigWithHashType = new Uint8Array([...sig64, HASHTYPE]); // 65 bytes
+
+    return {
+      inputIndex,
+      merchantSigHex: binToHex(sigWithHashType),
+      merchantPkHex
+    };
+  });
 }

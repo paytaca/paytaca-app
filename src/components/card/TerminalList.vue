@@ -59,7 +59,7 @@
 
 <script>
 // import { createNFTs, fetchTerminals, fetchUnissuedTerminals } from 'src/services/card/backend/api';
-import AuthTokenManager, { decodeCommitment, encodeTerminalHash } from 'src/services/card/auth-nft';
+import AuthTokenManager, { decodeCommitment } from 'src/services/card/auth-nft';
 import { Wallet } from 'mainnet-js';
 import { Contract } from '@mainnet-cash/contract'
 

@@ -608,8 +608,6 @@ import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
 import { loadCardUser } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
-import { get } from 'http';
-import { ca } from 'date-fns/locale';
 
   
   export default {
@@ -688,7 +686,7 @@ import { ca } from 'date-fns/locale';
         // await this.mutateGlobalAuthToken()
         // await this.mintMerchantAuthToken()
         // await this.mutateMerchantAuthToken()
-        // await this.spend(1000)
+        await this.spend(1000)
         // await this.sweep()
 
       } catch (error) {
@@ -716,13 +714,16 @@ import { ca } from 'date-fns/locale';
           maxWidth: '1100px',
           overflow: 'hidden'
         }
+      },
+      walletBalance() {
+        const asset = this.$store.getters['assets/getAssets'][0]
+        return asset?.spendable || 0
       }
     },
 
     methods: {
       async getCardUser() {
         const cardUser = await loadCardUser()
-        console.log('CardUser:', cardUser)
         return cardUser
       },
 
@@ -1002,7 +1003,7 @@ import { ca } from 'date-fns/locale';
 
           // execute workflow from card.js
           await card.create()
-          const tokenId = card.tokenId
+          // const tokenId = card.tokenId
 
           // // load user from card/auth
           // const user = await loadCardUser()

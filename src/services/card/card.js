@@ -5,6 +5,7 @@ import { backend } from './backend';
 import { backend as watchtowerBackend } from 'src/exchange/backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
+import { signPreimages } from './utils';
 
 export class Card {
   constructor(data) {
@@ -215,13 +216,49 @@ export class Card {
     return response.data;
   } 
 
+  /**
+   * Spends {amountSats} satoshis from the card to a specified address.
+  * Note: This is intended for the merchant POS flow (e.g., PaytacaPOS) after the
+  * card owner taps their NFC card. Building the spend transaction requires both
+  * the merchant signature and a backend signature, so this likely doesn't belong
+  * in this app.
+   * @param {*} merchantId 
+   * @param {*} toAddress 
+   * @param {*} amountSats 
+   * @returns 
+   */
   async spend(merchantId, toAddress, amountSats) {
-    const response = await backend.post(`/cards/${this.raw.cash_address}/spend/`, {
+    this._assertWallet();
+    
+    const response = await backend.post(`/cards/${this.raw.cash_address}/preimage/`, {
       merchant_id: merchantId,
       to_address: toAddress,
       amount_sats: amountSats
     });
-    return response.data;
+
+    const data = response.data;
+    if (data.success === false) {
+      throw new Error(data.error || 'Failed to get preimages for spend transaction');
+    }
+
+    const privkey = this.wallet.privkey()
+    const preimages = data.preimages;
+    const signatures = await signPreimages({
+      preimages: preimages,
+      wif: privkey
+    });
+
+    const spendResponse = await backend.post(`/cards/${this.raw.cash_address}/spend/`, {
+      merchant_id: merchantId,
+      to_address: toAddress,
+      amount_sats: amountSats,
+      tx: {
+        hex: data.txHex,
+        signatures: signatures
+      }
+    });
+    
+    return spendResponse.data
   }
 
   // ==================== AUTH NFT OPERATIONS ====================
