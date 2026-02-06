@@ -3,18 +3,8 @@
 	
 	<div class="">	
 		<div class="row justify-between q-px-lg" v-if="!loading">
-			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Transactions</div>
-			<q-btn 
-				flat 
-				round 
-				unelevated
-        		ripple
-        		dense
-				size="md"
-        		icon="filter_list"
-        		class="button button-text-primary"
-        		@click=""
-        	/>		
+			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Orders</div>
+			<FilterBtn :filters="filters"/>	
 		</div>
 		<div v-else class="row justify-between q-px-lg q-pt-md">
 			<q-skeleton type="text" width="50%" height="30px" class="q-mb-xs br-15" />  
@@ -52,7 +42,7 @@
 
 		<div v-else class="q-mt-md q-px-sm" style="height: 60vh;">
 			<q-list>
-      	<q-item v-for="n in 3" :key="n">
+      	<q-item v-for="n in 4" :key="n">
         	<q-item-section>
           	<div class="q-pb-sm">
             	<div class="row justify-between">
@@ -84,6 +74,7 @@
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { formatDate } from 'src/exchange'
 import HeaderNav from 'src/components/header-nav.vue'
+import FilterBtn from 'src/components/eload/FilterBtn.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
@@ -106,6 +97,7 @@ export default {
 	},
 	components: {
 		HeaderNav,
+		FilterBtn
 	},
 	computed: {
 		isLastPage () {

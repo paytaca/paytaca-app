@@ -11,7 +11,7 @@
 				{{ promoSnapshot.name }}
 			</div>
 
-			<div class="q-gutter-sm q-py-sm">				
+			<div class=" q-py-sm">				
 				<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot.service" />
 		    	<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot.service_group" />
 			</div>
@@ -48,7 +48,7 @@
         </div>        
 	</div>
 
-	<div v-else>
+	<div v-else class="q-pt-md">
 		<div class="skeleton-center">
 	    	<q-skeleton type="text" width="75px" height="30px" class="q-mb-xs" style="margin: 0 auto;" />
 	        <q-skeleton type="text" width="50%" height="20px" style="margin: 0 auto;" />
