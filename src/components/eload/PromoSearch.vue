@@ -1,6 +1,7 @@
 <template>
 	<div>
 		<q-input
+			ref="searchInput"
 			dense
 			outlined
 			clearable
@@ -11,34 +12,60 @@
 			color="pt-primary1"
 			debounce="500"
 			:bg-color="darkMode ? 'pt-dark' : 'pt-light'"
-			@update:modelValue="search"			
+			@update:modelValue="search"
 		>
 			<template v-slot:append>
-		    	<q-icon name="search" />
-		    </template>		    
-		
+				<q-icon name="search" />
+			</template>
+
 			<q-menu
 				v-if="searchVal"
 				v-model="showPromos"
-				fit no-focus				
+				fit
+				no-focus
+				max-height="60vh"
+				class="q-pa-md"
+				:style="{ width: inputWidth + 'px' }"
 				:dark="darkMode"
 				:content-class="darkMode ? 'bg-grey-10 text-white' : 'bg-white text-black'"
 			>
-				<q-list style="min-width: 200px"> 
-		    		<q-item v-for="(promo, index) in searchResult" :key="index" clickable @click="selectPromo(promo)"> 
-		    			<q-item-section :class="darkMode ? 'text-white' : 'text-black'">
-		    				{{ formatPromoLabel(promo) }}
-		    			</q-item-section> 
-		    		</q-item> 
-		    	</q-list> 
+				<div class="q-pt-sm">
+					<div
+						v-for="(promo, index) in searchResult"
+						:key="index"
+						class="promo-result"
+						:class="darkMode ? 'text-white' : 'text-black'"
+						@click="selectPromo(promo)"
+					>
+						<div class="md-font-size text-weight-bold text-overflow">
+							{{ formatPromoLabel(promo) }}
+						</div>
+
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+							{{ promo.amount }} PHP
+						</div>
+
+						<q-separator class="q-my-sm" :dark="darkMode"/>
+					</div>
+
+					<div
+						v-if="!loading && searchResult.length === 0"
+						class="text-center sm-font-size q-py-sm"
+						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+					>
+						No results
+					</div>
+				</div>
 			</q-menu>
 		</q-input>
 	</div>
 </template>
+
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 
 export default {
+	emits: ['select-promo'],
 	data () {
 		return {
 			darkMode: this.$store.getters['darkmode/getStatus'],
@@ -49,10 +76,15 @@ export default {
 			showPromos: false
 		}
 	},
+	computed: {
+		inputWidth () {
+			const el = this.$refs.searchInput?.$el
+			return el ? el.offsetWidth : 200
+		}
+	},
 	props: {
 		promoName: String
 	},
-	emits: ['select'],
 	methods: {
 		formatPromoLabel (promo) {
 			const service = String(promo?.service || '').trim()
@@ -60,32 +92,49 @@ export default {
 			const name = String(promo?.name || '').trim()
 			return [service, group, name].filter(Boolean).join(' > ')
 		},
-		selectPromo (promo) {
+		async selectPromo (promo) {
 			this.showPromos = false
-			this.searchVal = promo?.name || this.searchVal
-			this.$emit('select', promo)
+
+			const id = promo?.id
+			const resp = id ? await eloadServiceAPI.fetchPromoDetails(id) : null
+			const resolvedPromo = resp?.success ? resp.data : promo
+
+			this.searchVal = resolvedPromo?.name || promo?.name || this.searchVal
+			this.$emit('select-promo', resolvedPromo)
 		},
 		async search () {
 			this.loading = true
-			console.log('search: ', this.searchVal)
+			const data = { promoName: this.searchVal }
 
-			let data = {
-				promoName: this.searchVal
-			}
-
-			let result = await eloadServiceAPI.fetchPromo(data)
-
+			const result = await eloadServiceAPI.fetchPromo(data)
 			if (result.success) {
 				this.searchResult = result.data.promos
-
 				this.lastSearch = this.searchVal
 				this.showPromos = true
-				this.loading = false
-			} else {
-				this.loading = false
 			}
+			this.loading = false
 		}
 	}
 }
-	
 </script>
+
+<style lang="scss" scoped>
+.sm-font-size {
+	font-size: small;
+}
+.md-font-size {
+	font-size: medium;
+}
+.lg-font-size {
+	font-size: large;
+}
+
+.promo-result {
+	cursor: pointer;
+}
+.text-overflow {
+	white-space: normal;
+	word-break: break-word;
+	overflow-wrap: anywhere;
+}
+</style>
