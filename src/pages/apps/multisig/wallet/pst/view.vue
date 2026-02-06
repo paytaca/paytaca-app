@@ -6,23 +6,17 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Transaction')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}/psts`" class="header-nav">
+    <HeaderNav :title="$t('TxProposal')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}/psts`" class="header-nav">
     </HeaderNav>
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="pst">
-          
           <q-list>
             <q-item>
               <q-item-section>
                 <q-item-label class="text-h5 text-bold">
                   {{ pst.purpose }}
                 </q-item-label>
-              </q-item-section>
-              <q-item-section side class="text-capitalize text-bold">
-                <!-- <q-item-label>
-                  {{ pst.purpose }}
-                </q-item-label> -->
               </q-item-section>
             </q-item>
             <q-item>
@@ -130,26 +124,46 @@
               </q-item-section>
             </q-item>
             <q-item-label header>Signers</q-item-label>
-            <q-item v-for="signer, i in wallet?.signers" :key="`signer-${i}`">
-              <q-item-section >
-                <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
+            <q-item v-for="signer, i in wallet?.signers" :key="`signer-${i}`" top>
+              <q-item-section>
+                <!-- <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
                   <div class="flex items-center q-gutter-x-sm">
                     <q-icon name="person" size="sm"></q-icon><span>{{ signer.name || `Signer ${i}` }}</span>
                   </div>
-                </div>
+                </div> -->
+                <q-chip style="height:fit-content" flat class="q-px-md">
+                  <q-avatar>
+                    <q-icon v-if="signersXPrv[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
+                    <q-icon v-else name="person" size="sm"></q-icon>
+                  </q-avatar>
+                  <div class="flex flex-column">
+                    <div class="ellipsis" style="max-width:3.5em">
+                      {{ signer.name }}
+                    </div>
+                  </div>
+                </q-chip>
               </q-item-section>
-              <q-item-section side top>
+              <q-item-section side>
                 <q-btn
-                  label="Sign"
-                  :disable="!signersXPrv[signer.xpub] || pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
+                  v-if="signersXPrv[signer.xpub]"
+                  :disable="pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
                   :icon="signButtonIcon(signer)"
-                  :color="signersXPrv[signer.xpub] || pst?.signerSigned(signer.xpub)? 'secondary': ''"
-                  dense
+                  text-color="primary"
                   no-caps
-                  flat
-                  :class="signersXPrv[signer.xpub] ? 'default-text-color': 'inactive-color'"
+                  rounded
                   @click="initiateSignTransaction(signer)"
                   >
+                  <span>&nbsp;&nbsp;{{$t('Sign')}}&nbsp;&nbsp;</span>
+                </q-btn>
+                <q-btn
+                  v-else
+                  :disable="pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
+                  :icon="signButtonIcon(signer)"
+                  no-caps
+                  rounded
+                  @click="importSignerSignature"
+                  >
+                  <span>{{ $t('Import') }}</span>
                 </q-btn>
               </q-item-section>
             </q-item>
@@ -165,7 +179,7 @@
                       </div>
                     </template>
                   </q-btn>
-                  <!-- <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="combinePst" v-close-popup>
+                  <!-- <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="importSignerSignature" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
@@ -191,7 +205,7 @@
                       </div>
                     </template>
                   </q-btn>
-                  <q-btn class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
+                  <q-btn class="tile col-xs-3" flat dense no-caps @click="onDeleteProposalAction" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
                         <q-icon name="delete_forever" class="col-12" color="red" size="lg"></q-icon>
@@ -199,6 +213,7 @@
                       </div>
                     </template>
                   </q-btn>
+                  
                   <!-- <q-btn class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
                     <template v-slot:default>
                       <div class="row justify-center">
@@ -213,12 +228,19 @@
           </q-list>
         </template>
         </div>
-        <DragSlide
+        <div
           v-if="showActionConfirmationSlider"
-          @swiped="onConfirmSliderSwiped"
-          text="Swipe to confirm"
-          class="absolute-bottom"
-        />
+          class="action-confirmation-backdrop"
+          @click="cancelActionConfirmationSlider"
+        >
+          <div class="action-confirmation-slider-content" @click.stop>
+            <DragSlide
+              @swiped="onConfirmSliderSwiped"
+              text="Swipe to confirm"
+              :disable-absolute-bottom="true"
+            />
+          </div>
+        </div>
     </div>
   </q-pull-to-refresh>
 </template>
@@ -299,7 +321,7 @@ const pstOutputsTokenCategories = computed(() => {
 const signButtonIcon = computed(() => {
   return (signer) => {
     if (pst.value.signerSigned(signer.xpub)) return 'done_all'
-    if (!signersXPrv.value[signer.xpub]) return 'edit_off'
+    // if (!signersXPrv.value[signer.xpub]) return 'edit_off'
     return 'draw'
   }
 })
@@ -403,7 +425,7 @@ const showShareProposalOptionsDialog = () => {
     }
   }).onOk((payload) => {
     if (payload?.action === 'display-qr') {
-      showPstQrDialog()
+      showProposalQrDialog()
     } else if (payload?.action === 'download-proposal') {
       handleProposalDownloadAction()
     } else if (payload?.action === 'upload-proposal') {
@@ -414,7 +436,7 @@ const showShareProposalOptionsDialog = () => {
   })
 }
 
-const showPstQrDialog = () => {
+const showProposalQrDialog = () => {
   $q.dialog({
     component: PstQrDialog,
     componentProps: {
@@ -426,48 +448,26 @@ const showPstQrDialog = () => {
   })
 }
 
-
-
-const openBottomsMenu = () => {
-  $q.bottomSheet({
-    title: $t('TransactionOptions'),
-    grid: true,
-    actions: [
-      {
-        icon: 'delete_forever',
-        label: $t('Delete'),
-        value: 'delete',
-        color: 'red'
-      },
-      {
-        icon: 'cloud_upload',
-        label: $t('Sync'),
-        value: 'sync-pst',
-        color: 'primary'
-      },
-      {
-        icon: 'mdi-file-export',
-        label: $t('ShareProposal'),
-        value: 'share-proposal',
-        color: 'primary'
-      }
-    ],
-
-    class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
-
-  }).onOk(async (action) => {
-    if (action.value === 'delete') {
-      await pst.value.delete({ sync: false })
-      router.push(`/apps/multisig/wallet/${route.params.wallethash}`)
-    }
-
-    if (action.value === 'sync-pst') {
-      await syncPst()
-    }
-
-    if (action.value === 'share-proposal') {
-      showShareProposalOptionsDialog()
-    }
+const onDeleteProposalAction = async () => {
+  $q.dialog({
+    message: $t('MultisigDeleteProposalConfirmationMessage', {}, 'Are you sure you want to delete this transaction proposal? This action cannot be undone.'),
+    ok: { 
+      label: $t('Yes'),
+      color: 'primary',
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)}`,
+    },
+    cancel: { 
+      label: $t('No'),
+      color: 'default',
+      outline: true,
+      rounded: true,
+      class: `button-default ${getDarkModeClass(darkMode.value)} `,
+    },
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+  }).onOk(() => {
+    pst.value.delete({ sync: false })
+    router.push({ name: 'app-multisig' })
   })
 }
 
@@ -477,6 +477,11 @@ const initiateSignTransaction = async (signer) => {
     ...signer,
     xprv: signersXPrv.value[signer.xpub]
   }
+}
+
+const cancelActionConfirmationSlider = () => {
+  showActionConfirmationSlider.value = false
+  signingInitiatedBy.value = null
 }
 
 const commitSignTransaction = async () => {
@@ -554,7 +559,7 @@ const onConfirmSliderSwiped = async (reset) => {
   })
 }
 
-const combinePst = () => {
+const importSignerSignature = () => {
   router.push({ 
     name: 'app-multisig-wallet-pst-import',
     params: {
@@ -562,8 +567,8 @@ const combinePst = () => {
       unsignedtransactionhash: route.params.unsignedtransactionhash
     },
     query: {
-      title: 'Merge Transaction',
-      description: 'Scan or Load a Partially Signed Transaction Proposal from your cosigner to merge with this one.',
+      title: $t('Import'),
+      description: $t('ImportSignerSignatureDescription', {}, 'Scan or Load a Partially Signed Transaction from your cosigner to merge with this one.') ,
     }
   })
 }
@@ -589,22 +594,27 @@ onMounted(async () => {
     pst.value = storedPst
     signingProgress.value = pst.value.getSigningProgress()
   }
-
-  console.log('pst hex', pst.value.unsignedTransactionHex)
-  console.log('pst hash', pst.value.unsignedTransactionHash)
-  console.log('PST', pst.value)
-  console.log('PST PSBT', (await pst.value.toPsbt()).toString())
-  const psbt = (await pst.value.toPsbt()).toString()
-  const importedPst = Pst.import(psbt)
-  console.log('Imported PST', importedPst.getSigningProgress())
-
-
 })
 
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .custom-bottom-sheet .q-bottom-sheet__item .q-icon {
   font-size: xx-large;
+}
+
+.action-confirmation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.action-confirmation-slider-content {
+  width: 100%;
 }
 </style>
