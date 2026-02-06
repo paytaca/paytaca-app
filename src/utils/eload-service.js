@@ -241,9 +241,12 @@ export async function fetchOrders (data) {
 		// add filters
 		params['sort-type'] = data.filters.sort_type
 
-		if (data.filters.service !== 'ALL') {
-			params['service'] = data.filters.service
-		}
+		if ('service' in data.filters) {
+			let _params = new URLSearchParams(params)
+			data.filters.service.forEach(s => _params.append("service", s));
+
+			params = _params
+		}	
 
 		let headers = {
 			'wallet-hash': walletHash,

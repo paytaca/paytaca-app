@@ -13,7 +13,7 @@
 	@click="filterDialog = true"
 />
 
-<q-dialog  v-model="filterDialog" :class="darkMode ? 'text-white' : 'text-black'" class="">
+<q-dialog  v-model="filterDialog" :class="darkMode ? 'text-white' : 'text-black'">
 	<q-card class="q-pa-md br-15 full-width">
 		<div class="text-center text-weight-bold lg-font-size">Filter and Sort Orders</div>
 
@@ -78,14 +78,15 @@ export default {
 		}
 	},
 	props: {
-		filters: Object,		
+		filters: Object,
+		services: Array		
 	},
 	computed: {
 		isAllServicesSelected() {			
-			return this.filterData.service.length === this.filterOption.services.length
+			return this.filterData?.service.length === this.filterOption?.services.length
 		}
 	},
-	emits: ['updateFilter'],
+	emits: ['submitData'],
 	watch: {
 		filterDialog (val) {
 			const vm = this		
@@ -100,7 +101,12 @@ export default {
 			    }
 			    vm.filterData = filters
 			}
-		}
+		},
+		services (val) {
+			if (val) {
+				this.filterOption.services = val
+			}			
+		},
 	},
 	methods: {
 		getDarkModeClass,
@@ -124,7 +130,7 @@ export default {
 			}			
 		},
 		submitData() {
-
+			this.$emit('submitData', this.filterData)
 		},
 		resetFilters () {
 			this.filterData.sort_type = 'DESCENDING'
@@ -144,15 +150,11 @@ export default {
 	    }	     
 
 	    vm.filterData = filters	    
-
-		let result = await eloadServiceAPI.fetchService()
-
-		if (result.success) {			
-			vm.filterOption.services = result.data
-		}			
+	    vm.filterOption.services = vm.services
+	    
 
 		// initalize service filter
-		this.setServiceAll()		
+		// this.setServiceAll()		
 
 		vm.loading = false
 	}

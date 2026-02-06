@@ -2,19 +2,26 @@
 	<HeaderNav title="Eload Service" backnavpath="/apps/eload/form" class="header-nav"/>
 	
 	<div class="">	
-		<div class="row justify-between q-px-lg" v-if="!loading">
+		<div class="row justify-between q-px-lg">
 			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Orders</div>
-			<FilterBtn :filters="filters"/>	
+			<FilterBtn v-if="!loading" :filters="filters" :services="services" @submit-data="filterOrder"/>	
+			<q-btn v-else flat round unelevated ripple dense size="md" icon="filter_list" class="button button-text-primary" padding="none" disable/>
 		</div>
-		<div v-else class="row justify-between q-px-lg q-pt-md">
+	<!-- 	<div v-else class="row justify-between q-px-lg q-pt-md">
 			<q-skeleton type="text" width="50%" height="30px" class="q-mb-xs br-15" />  
 			<q-skeleton type="text" width="10%" height="30px" class="q-mb-xs br-15" />  
 		</div>
-
+ -->
 
 		<!-- Order List -->
 		<div v-if="!loading" class="scroll q-mt-md q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
+				<div v-if="orders.length == 0" class="relative text-center" style="margin-top: 50px;">
+	        <div>
+	          <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
+	          <p :class="{ 'text-black': !darkMode }">{{ $t('NoOrderstoDisplay') }}</p>
+	        </div>
+	      </div>
 				<div v-for="order in orders" class="pointer" @click="selectOrder(order)">
 					<div class="row justify-between q-pa-sm">
 						<div class="col-8">						
@@ -84,9 +91,10 @@ export default {
 			theme: this.$store.getters['global/theme'],
 			loading: true,
 			orders: [],
+			services: [],
 			filters: {
 				sort_type: 'DESCENDING', // newest first default
-				service: 'ALL'
+				service: []
 			},
 			paginationSettings: {
 				limit: 10,
@@ -107,7 +115,16 @@ export default {
 			return page >= total_page
 		},
 	},
-	async mounted () {				
+	async mounted () {	
+		const vm = this			
+		let result = await eloadServiceAPI.fetchService()
+
+		if (result.success) {			
+			vm.services = result.data
+		}
+
+		this.filters.service = this.services.map(e => e.name)
+
 		await this.fetchOrders()
 	},
 	methods: {
@@ -134,8 +151,6 @@ export default {
 	    		vm.paginationSettings.total_pages = result.data.total_pages
 	    	}
 
-	    	console.log('orders: ', vm.orders)
-
 	    	vm.loading = false
 	    },
 	    getPromoSnapshotData(snapshot, key) {
@@ -148,6 +163,10 @@ export default {
 	    },
 	    selectOrder (order) {	    	
 	    	this.$router.push({ name: 'eload-service-order-details', params: { orderId: order?.id } })
+	    },
+	    async filterOrder (filter) {
+	    	this.filters = filter
+	    	await this.fetchOrders(true)
 	    },
 	    async refresh(done) {
 	    	await this.fetchOrders(true)
