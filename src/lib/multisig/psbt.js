@@ -88,6 +88,27 @@ export const ProprietaryFields = Object.freeze({
         subKeyData: utf8ToBin('network')
       }
     } 
+  },
+  metadata: {
+    identifier: utf8ToBin('metadata'),
+    subKey: {
+      walletHash: {
+        subType: bigIntToCompactUint(0),
+        subKeyData: utf8ToBin('walletHash')
+      },
+      origin: {
+        subType: bigIntToCompactUint(1),
+        subKeyData: utf8ToBin('origin')
+      },
+      purpose: {
+        subType: bigIntToCompactUint(2),
+        subKeyData: utf8ToBin('purpose')
+      },
+      network: {
+        subType: bigIntToCompactUint(3),
+        subKeyData: utf8ToBin('network')
+      }
+    } 
   }
 })
 
@@ -265,13 +286,15 @@ export class ProprietaryField {
 
     for (const keypair of _keypairs) {
       const keyData = keypair.key?.keyData
+
       if (!keyData) return proprietaryFields
 
       const identifierLenReadResult = readCompactUint({ bin: keyData, index: 0})
       const identifierReader = readBytes(Number(identifierLenReadResult.result))
       const identifierReadResult = identifierReader(identifierLenReadResult.position)
       if (!binsAreEqual(identifier, identifierReadResult.result)) {
-        return 
+        // return 
+        continue
       }
       
       const proprietaryField = {
@@ -1393,7 +1416,7 @@ export class Psbt {
     this.globalMap.setOutputCount(decoded.outputs.length)
     this.globalMap.setPsbtVersion(version)
     this.globalMap.setFallbackLocktime(decoded.locktime)
-    console.log('DECODED', decoded)
+    
     // this.globalMap.addProprietaryField(
     //   ProprietaryFields.paytaca.identifier, 
     //   hexToBin(decoded.walletHash), 
@@ -1422,6 +1445,26 @@ export class Psbt {
         ProprietaryFields.paytaca.subKey.network.subKeyData
       )
 
+    decoded.origin && this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+      utf8ToBin(decoded.origin), 
+      ProprietaryFields.metadata.subKey.origin.subType, 
+      ProprietaryFields.metadata.subKey.origin.subKeyData
+    )
+
+    decoded.purpose && this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+      utf8ToBin(decoded.purpose), 
+      ProprietaryFields.metadata.subKey.purpose.subType, 
+      ProprietaryFields.metadata.subKey.purpose.subKeyData
+    )
+
+    this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+        utf8ToBin(decoded.network),
+        ProprietaryFields.metadata.subKey.network.subType, 
+        ProprietaryFields.metadata.subKey.network.subKeyData
+      )
 
     for(const input of decoded.inputs) {
       const psbtInput = new PsbtInput()
@@ -1494,6 +1537,7 @@ export class Psbt {
       }
     }
     
+
     this.globalMap.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.forEach(pf => {
       if (pf.subKeyData && pf.value) {
         let valueDecoder = binToUtf8
@@ -1503,6 +1547,22 @@ export class Psbt {
         decodeResult[pf.getSubKeyData(binToUtf8)] = pf.getValue(valueDecoder)
       }
     })
+
+    const metadata = {}
+
+    this.globalMap.getProprietaryFields(ProprietaryFields.metadata.identifier)?.forEach(pf => {
+      if (pf.subKeyData && pf.value) {
+        let valueDecoder = binToUtf8
+        if (binsAreEqual(pf.subKeyData,  ProprietaryFields.metadata.subKey.walletHash.subKeyData)) {
+          valueDecoder = binToHex
+        }
+        metadata[[pf.getSubKeyData(binToUtf8)]] = pf.getValue(valueDecoder)
+      }
+    })
+
+    if (Object.keys(metadata).length > 0) {
+      decodeResult.metadata = metadata
+    }
 
     decodeResult.inputs = []
 

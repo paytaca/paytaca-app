@@ -1063,7 +1063,7 @@ export class MultisigWallet {
     return selectedUtxos
   }
 
-  async createPst(proposal, options) {
+  async createProposal(proposal, options) {
 
     if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
       throw new Error('Sending mixed assets is not yet supported!')

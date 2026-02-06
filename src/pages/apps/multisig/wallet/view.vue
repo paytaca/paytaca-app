@@ -32,7 +32,8 @@
                         :icon="!balancesRefreshing? 'refresh': ''"
                         :loading="balancesRefreshing"
                         size="md"
-                        flat dense>
+                        flat
+                        dense>
                         <template v-slot:loading>
                           <q-spinner-facebook></q-spinner-facebook>
                         </template>
@@ -46,7 +47,7 @@
                 <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
+                      <q-icon name="send_and_archive" class="col-12" color="primary" round></q-icon>
                       <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>

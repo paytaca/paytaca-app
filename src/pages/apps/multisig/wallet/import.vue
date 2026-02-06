@@ -24,14 +24,14 @@
                   <q-icon class="default-text-color"  name="upload_file" @click="importWalletFromFile"/>
                 </q-btn>
                 <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('FromFile') }}</div>
-                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('FromFileDescription', {}, 'Browse and import a wallet file from your device') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('WalletFromFileDescription', {}, 'Browse and import a wallet file from your device') }}</div>
               </div>
               <div>
                 <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
                   <q-icon class="default-text-color"  name="mdi-cloud-download-outline" @click="importWalletFromServer"/>
                 </q-btn>
                 <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('FromServer', {}, 'From Server') }}</div>
-                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('FromServerDescription', {}, 'Download wallet from Paytaca\'s Multisig Coordinator Server') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('WalletFromServerDescription', {}, 'Download wallet from Paytaca\'s Multisig Coordinator Server') }}</div>
               </div>
               <div>
                 <q-btn :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
