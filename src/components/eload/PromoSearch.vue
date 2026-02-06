@@ -21,10 +21,14 @@
 				v-if="searchVal"
 				v-model="showPromos"
 				fit no-focus				
+				:dark="darkMode"
+				:content-class="darkMode ? 'bg-grey-10 text-white' : 'bg-white text-black'"
 			>
 				<q-list style="min-width: 200px"> 
-		    		<q-item v-for="(promo, index) in searchResult" :key="index" clickable @click=""> 
-		    			<q-item-section class="text-black">{{ promo.name }}</q-item-section> 
+		    		<q-item v-for="(promo, index) in searchResult" :key="index" clickable @click="selectPromo(promo)"> 
+		    			<q-item-section :class="darkMode ? 'text-white' : 'text-black'">
+		    				{{ formatPromoLabel(promo) }}
+		    			</q-item-section> 
 		    		</q-item> 
 		    	</q-list> 
 			</q-menu>
@@ -48,7 +52,19 @@ export default {
 	props: {
 		promoName: String
 	},
+	emits: ['select'],
 	methods: {
+		formatPromoLabel (promo) {
+			const service = String(promo?.service || '').trim()
+			const group = String(promo?.service_group || '').trim()
+			const name = String(promo?.name || '').trim()
+			return [service, group, name].filter(Boolean).join(' > ')
+		},
+		selectPromo (promo) {
+			this.showPromos = false
+			this.searchVal = promo?.name || this.searchVal
+			this.$emit('select', promo)
+		},
 		async search () {
 			this.loading = true
 			console.log('search: ', this.searchVal)

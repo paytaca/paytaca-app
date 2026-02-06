@@ -51,7 +51,7 @@
 		</div>
 
 		<div v-else>
-		<PromoSearch class="q-px-lg"/>	
+		<PromoSearch class="q-px-lg" @select="onPromoSearchSelect"/>	
 
 		<!-- Selecting Service -->
 		<div  class="q-mt-sm" v-if="step === 0">
@@ -59,8 +59,8 @@
 			<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>		
 		</div>
 
-		<!-- Info Card -->	
-		<promo-info-card v-if="step > 0" class="q-mx-lg q-mt-lg" :filters="filters" :step="step" @update="changeValue"/>
+		<!-- Info Card -->
+		<promo-info-card v-if="step > 0 && filters?.service" class="q-mx-lg q-mt-lg" :filters="filters" :step="step" @update="changeValue"/>
 
 		<!-- Selecting Service Group -->
 		<div>
@@ -252,6 +252,7 @@ export default {
 			txnPrepareError: '',
 			txnRecipientAddress: '',
 			txnPrepareKey: '',
+			suppressAutoStep: false,
 			pinDialogAction: '',
 			warningAttemptsStatus: '',
 			pendingSwipeReset: () => {},
@@ -425,12 +426,14 @@ export default {
 	},
 	watch: {
 		'filters.service'(val) {
+			if (this.suppressAutoStep) return
 			if (val) {
 				this.step++
 				this.fetchServiceGroup()
 			}
 		},
 		'filters.serviceGroup'(val) {
+			if (this.suppressAutoStep) return
 			if (val) {
 				this.step++
 				this.fetchCategory()
@@ -438,6 +441,7 @@ export default {
 			}
 		},
 		'filters.category'(val) {
+			if (this.suppressAutoStep) return
 			if (val) {
 				this.step++
 				this.fetchPromos()
@@ -491,6 +495,35 @@ export default {
 		vm.loading = false
 	},
 	methods: {
+		async onPromoSearchSelect (promo) {
+			const vm = this
+			if (!promo) return
+
+			// Stop step watchers from firing while we seed filters.
+			vm.suppressAutoStep = true
+
+			// Reset state related to txn preparation & address input.
+			vm.address = ''
+			vm.txnPreparing = false
+			vm.txnPrepareError = ''
+			vm.txnRecipientAddress = ''
+			vm.txnPrepareKey = ''
+
+			// Seed filters so `PromoInfoCard` can render (and user can still edit upstream selections).
+			vm.filters.service = { name: String(promo.service || '').toLowerCase() || 'eload' }
+			vm.filters.serviceGroup = { name: String(promo.service_group || '').trim() || '-' }
+			vm.filters.category = promo.category ? { name: String(promo.category) } : null
+
+			// Select promo and jump straight to the address entry step.
+			vm.selectedPromo = promo
+			vm.step = 4
+
+			// Fetch quote/rate for BCH computations + txn preparation.
+			vm.ensurePhpBchRate()
+
+			await vm.$nextTick()
+			vm.suppressAutoStep = false
+		},
 		slideToBuy (reset = () => {}) {
 			// Mirror send-page behavior: require auth before sending BCH.
 			const vm = this
