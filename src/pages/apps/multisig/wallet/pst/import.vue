@@ -1,6 +1,6 @@
 <template>
     <div class="static-container">
-      <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+      <div id="app-container" class="sticky-header-container multisig-app" :class="getDarkModeClass(darkMode)">
         <HeaderNav
           :title="$t(route.query.title || 'Import Tx')"
           :backnavpath="`/apps/multisig/wallet/${route.params.wallethash}`"

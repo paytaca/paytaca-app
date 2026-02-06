@@ -22,6 +22,19 @@ function getCurrentWalletHash() {
 }
 
 /**
+ * Get current wallet hash for a given wallet type
+ * @param {'bch'|'slp'|'sbch'} walletType
+ * @returns {string|null}
+ */
+function getCurrentWalletHashByType(walletType = 'bch') {
+  try {
+    return Store.getters['global/getWallet'](walletType)?.walletHash
+  } catch (e) {
+    return null
+  }
+}
+
+/**
  * Get cache key for a request
  * @param {string} endpoint - API endpoint
  * @param {string} walletHash - Wallet hash
@@ -153,8 +166,11 @@ export async function addNewAsset (asset, network) {
 }
 
 export async function fetchFavorites (options = {}) {
-	const { forceRefresh = false } = options
-	const walletHash = getCurrentWalletHash()
+	const { forceRefresh = false, walletHash: walletHashOverride, walletType } = options
+	const walletHash =
+		walletHashOverride ||
+		(walletType ? getCurrentWalletHashByType(walletType) : null) ||
+		getCurrentWalletHash()
 	if (!walletHash) {
 		console.warn('No wallet hash available for fetchFavorites')
 		return null
@@ -173,7 +189,9 @@ export async function fetchFavorites (options = {}) {
 
 	const promise = (async () => {
 		let favorites = null
-		await backend.get(baseURL + '/app-setting/favorites/', { headers: { 'wallet-hash': walletHash } })
+		await backend.get(baseURL + '/app-setting/favorites/', {
+			headers: { 'wallet-hash': walletHash }
+		})
 			.then(response => {			
 				favorites = response.data
 			})
@@ -195,8 +213,12 @@ export async function fetchFavorites (options = {}) {
 	return promise
 }
 
-export async function saveFavorites (list) {
-	const walletHash = getCurrentWalletHash()
+export async function saveFavorites (list, options = {}) {
+	const { walletHash: walletHashOverride, walletType } = options
+	const walletHash =
+		walletHashOverride ||
+		(walletType ? getCurrentWalletHashByType(walletType) : null) ||
+		getCurrentWalletHash()
 	if (!walletHash) {
 		console.warn('No wallet hash available for saveFavorites')
 		return null
@@ -204,13 +226,15 @@ export async function saveFavorites (list) {
 	// Invalidate favorites cache so subsequent reads are consistent
 	requestCache.delete(getCacheKey('favorites', walletHash))
 
-	const TOKEN_HEADER = 'Bearer ' + await getAuthToken()
+	const TOKEN_HEADER = 'Bearer ' + await getAuthToken(walletHash)
 
 	let favorites = null
 	const data = {
 		favorites: list
 	}
-	await backend.post(baseURL + '/app-setting/favorites/', data, { headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }})
+	await backend.post(baseURL + '/app-setting/favorites/', data, {
+		headers: { 'wallet-hash': walletHash, 'Authorization': TOKEN_HEADER }
+	})
 		.then(response => {			
 			favorites = response.data
 		})
@@ -359,6 +383,64 @@ export async function authToken () {
 				console.error(error)
 			}
 			registerUser()
+		})
+}
+
+/**
+ * Authenticate for a specific wallet hash (used when endpoints require non-BCH wallet-hash header).
+ * @param {Object} options
+ * @param {string} options.walletHash
+ */
+export async function authTokenForWallet ({ walletHash }) {
+	if (!walletHash) {
+		console.warn('No wallet hash available for authTokenForWallet')
+		return
+	}
+
+	const user = 'ASSET_' + walletHash
+	const assetHash = await generateAssetHash(walletHash)
+
+	await backend.post(baseURL + '/app-setting/auth/', { 'username': user, 'password': assetHash })
+		.then(async (response) => {
+			await saveAuthToken(response.data.access, walletHash)
+		})
+		.catch(error => {
+			// Only log non-404 errors
+			if (error.response?.status !== 404) {
+				console.error(error)
+			}
+			registerUserForWallet({ walletHash })
+		})
+}
+
+/**
+ * Register a specific wallet hash for app-setting auth.
+ * @param {Object} options
+ * @param {string} options.walletHash
+ */
+export async function registerUserForWallet ({ walletHash }) {
+	if (!walletHash) {
+		console.warn('No wallet hash available for registerUserForWallet')
+		return
+	}
+
+	const user = 'ASSET_' + walletHash
+	const assetHash = await generateAssetHash(walletHash)
+
+	await backend.post(baseURL + '/app-setting/register/', {}, { headers: { 'x-auth-asset-wallethash': user, 'x-auth-asset-pass': assetHash }})
+		.then(async () => {
+			await authTokenForWallet({ walletHash })
+		})
+		.catch(async (error) => {
+			// Only log non-404 errors
+			if (error.response?.status !== 404) {
+				console.error(error.response)
+			}
+			if (error.response) {
+				if (error.response.status === 400) {
+					await authTokenForWallet({ walletHash })
+				}
+			}
 		})
 }
 

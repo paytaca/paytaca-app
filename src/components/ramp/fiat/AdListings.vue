@@ -325,7 +325,7 @@ export default {
     checkAdLimit () {
       const showAdLimitMessage = this.$store.getters['ramp/showAdLimitMessage']
       if (showAdLimitMessage) {
-        backend.get('ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
+        backend.get('/ramp-p2p/ad/check/limit/', { params: { trade_type: this.transactionType }, authorize: true })
           .then(response => {
             console.log(response)
             if (response.data?.exceeds_limit) {
@@ -389,7 +389,7 @@ export default {
     async toggleAdVisibility (ad, index) {
       if (!ad) return
       this.visibilityLoading[ad.id] = true
-      await backend.put(`ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
+      await backend.put(`/ramp-p2p/ad/${ad.id}/`, { is_public: !ad.is_public }, { authorize: true })
         .then(response => {
           this.listings[index].is_public = response.data.is_public
         })

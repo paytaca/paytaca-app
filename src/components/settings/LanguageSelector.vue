@@ -116,7 +116,7 @@ export default {
 
           const denomination = this.$store.getters['global/denomination']
           // Only update denomination if it's not a standard one
-          if (!['BCH', 'mBCH', 'Satoshis'].includes(denomination)) {
+          if (!['BCH', 'mBCH', 'sats', 'Satoshis'].includes(denomination)) {
             try {
               const deemValue = this.$t('DEEM')
               if (!['zh-tw', 'zh-cn'].includes(lang.value) && denomination !== deemValue) {

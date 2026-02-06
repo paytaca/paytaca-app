@@ -83,7 +83,7 @@ const NOTIF_TYPES = {
   MP: $t('Marketplace'),
   CB: $t('Cashback'),
   AH: 'AnyHedge',
-  RP: 'P2P Exchange',
+  RP: 'P2P Ramp',
   TR: $t('Transactions'),
   NF: $t('Collectibles'),
   EP: $t('EventsAndPromotions')

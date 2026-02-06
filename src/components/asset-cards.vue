@@ -27,11 +27,9 @@
       v-for="(asset, index) in filteredFavAssets"
       :key="index"
       class="method-cards asset-card-border q-mr-none"
-      :class="[{ selected: asset?.id === selectedAsset?.id }]"
-      @click="(event) => {
-        selectAsset(event, asset)
-      }"
-      v-touch-hold.mouse="() => showAssetInfo(asset)"
+      :class="[{ selected: isSelectableAsset(asset) && asset?.id === selectedAsset?.id }, { 'is-disabled-card': !isSelectableAsset(asset) }]"
+      @click="(event) => onAssetClick(event, asset)"
+      v-touch-hold.mouse="() => onAssetHold(asset)"
       :style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
       v-touch-pan="handlePan"
     >
@@ -58,7 +56,7 @@
         <template v-else>
           <div class="text-right">
             <p class="asset-balance q-mb-none">
-              {{ parseAssetDenomination(denomination, { ...asset, excludeSymbol: true }) }}
+              {{ formatTokenCardBalance(asset) }}
             </p>
             <template v-if="asset.id !== 'bch'">
               <p v-if="getAssetFiatValue(asset)" class="asset-fiat-value q-mb-none q-mt-xs">
@@ -77,7 +75,7 @@
 
 <script>
 import * as assetSettings from 'src/utils/asset-settings'
-import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { parseAssetDenomination, parseFiatCurrency, getLocaleSeparators } from 'src/utils/denomination-utils'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import AddNewAsset from '../pages/transaction/dialog/AddNewAsset'
 
@@ -308,6 +306,34 @@ export default {
   },
   methods: {
     parseAssetDenomination,
+    isSelectableAsset (asset) {
+      // Requirement: SLP token cards must not be clickable (only SLP; CashTokens unaffected).
+      // On the home page, `isCashToken === false` corresponds to the SLP selector.
+      if (!this.isCashToken && String(asset?.id || '').startsWith('slp/')) return false
+      return true
+    },
+    onAssetClick (event, asset) {
+      if (!this.isSelectableAsset(asset)) return
+      this.selectAsset(event, asset)
+    },
+    onAssetHold (asset) {
+      if (!this.isSelectableAsset(asset)) return
+      this.showAssetInfo(asset)
+    },
+    formatTokenCardBalance (asset) {
+      const base = parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true })
+
+      // Only apply rounding rule to token cards (not BCH) when the value is visually too long.
+      // The "too long" heuristic is based on formatted string length and presence of decimals.
+      if (!asset || asset.id === 'bch') return base
+
+      const { decimal } = getLocaleSeparators()
+      const hasDecimalPart = typeof base === 'string' && base.includes(decimal)
+      const tooLong = typeof base === 'string' && base.length > 12 && hasDecimalPart && (asset.decimals || 0) > 2
+      if (!tooLong) return base
+
+      return parseAssetDenomination(this.denomination, { ...asset, excludeSymbol: true }, false, 0, 2)
+    },
     goToAssetList() {
       this.$router.push({ name: 'asset-list' })
     },
@@ -554,6 +580,12 @@ export default {
       background: red;
       color: white;
     }
+  }
+
+  .is-disabled-card {
+    cursor: default !important;
+    pointer-events: auto; // keep horizontal scroll/pan working
+    opacity: 0.95;
   }
   .view-all-button {
     white-space: nowrap;

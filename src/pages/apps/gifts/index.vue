@@ -325,7 +325,7 @@
 import HeaderNav from '../../../components/header-nav'
 import GiftDialog from 'src/components/gifts/GiftDialog.vue'
 import ShareGiftDialog from 'src/components/gifts/ShareGiftDialog.vue'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 import { capitalize } from 'vue'
 import { formatDistance } from 'date-fns'
 import axios from 'axios'
@@ -341,7 +341,6 @@ export default {
   name: 'Gift',
   components: { 
     HeaderNav,
-    UpgradePromptDialog
   },
   data () {
     return {
@@ -1223,18 +1222,13 @@ export default {
       return themeMap[this.theme] || '#42a5f5'
     },
     async handleCreateGiftClick() {
-      // Check subscription status before checking limit
-      await this.$store.dispatch('subscription/checkSubscriptionStatus')
-      
       // Check if unclaimed gifts limit is reached using local computed property
       if (this.isUnclaimedGiftsLimitReached) {
-        this.$q.dialog({
-          component: UpgradePromptDialog,
-          componentProps: {
-            darkMode: this.darkMode,
-            limitType: 'unclaimedGifts'
-          }
-        })
+        await showLimitDialogWithDeps(
+          { $q: this.$q, $store: this.$store },
+          'unclaimedGifts',
+          { darkMode: this.darkMode, forceRefresh: true }
+        )
         return
       }
       

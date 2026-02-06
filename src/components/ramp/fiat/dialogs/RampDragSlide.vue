@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom">
+  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom" :class="{ nudge }">
     <div class="drag-slide-inner">
       <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
@@ -59,6 +59,10 @@ export default {
     text: {
       type: String,
       default: ''
+    },
+    nudge: {
+      type: Boolean,
+      default: false
     }
   },
   methods: {
@@ -206,5 +210,48 @@ export default {
     position: relative;
     z-index: 4502;
   }
+}
+
+/* Attention nudge: subtle shine + pulse */
+.ramp-drag-slide-container.nudge {
+  :deep(.q-item.bg-grad) {
+    position: relative;
+    overflow: hidden;
+    animation: swipeNudgePulse 1.4s ease-in-out infinite;
+  }
+  :deep(.q-item.bg-grad)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
+    transform: skewX(-20deg);
+    animation: swipeNudgeShine 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  :deep(.q-icon.mdi-chevron-double-right) {
+    animation: swipeNudgeChevron 1.0s ease-in-out infinite;
+  }
+}
+
+@keyframes swipeNudgePulse {
+  0% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+  50% { transform: scale(1.01); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22); }
+  100% { transform: scale(1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+}
+
+@keyframes swipeNudgeShine {
+  0% { left: -60%; opacity: 0; }
+  20% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { left: 120%; opacity: 0; }
+}
+
+@keyframes swipeNudgeChevron {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
 }
 </style>

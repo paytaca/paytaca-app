@@ -52,67 +52,6 @@
         </q-card>
       </div>
 
-      <!-- BCH Denomination Selector -->
-      <div v-if="isComponentReady" class="q-mb-md">
-        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
-          <q-card-section>
-            <div class="row items-center justify-between">
-              <div class="col">
-                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
-                  {{ $t('SelectBCHDenomination') }}
-                </div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                  {{ $t('SelectBCHDenominationToolTip', {}, 'Choose how BCH amounts are displayed') }}
-                </div>
-              </div>
-              <div class="q-ml-md">
-                <DenominatorSelector :darkMode="darkMode" />
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- Auto Generate Address Toggle -->
-      <div class="q-mb-md">
-        <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
-          <q-card-section>
-            <div class="row items-center justify-between">
-              <div class="col">
-                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
-                  {{ $t('AutoGenerateAddress', {}, 'Auto generate address') }}
-                </div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                  {{ $t('AutoGenerateAddressToolTip', {}, 'A new address will be generated after receiving assets.') }}
-                </div>
-              </div>
-              <q-toggle
-                v-model="autoGenerateAddress"
-                :color="toggleColor"
-                keep-color
-              />
-            </div>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- Sound Test Button -->
-      <div class="q-mb-md">
-        <q-btn
-          color="primary"
-          :label="$t('TestSound', {}, 'Test Sound')"
-          icon="volume_up"
-          @click="testSound"
-          :loading="testingSound"
-          class="full-width"
-        />
-      </div>
-
-      <div class="q-mb-md">
-        <div class="text-center">Check security test</div>
-        <DragSlide text="Test" disable-absolute-bottom @swiped="onSwipe"/>
-      </div>
-
           <!-- Address Key Viewer -->
           <div v-if="isComponentReady" class="q-mb-md">
             <q-card class="debug-card" :class="getDarkModeClass(darkMode)">
@@ -381,11 +320,6 @@
 <script>
 import headerNav from 'src/components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { NativeAudio } from '@capacitor-community/native-audio'
-import { Capacitor } from '@capacitor/core'
-import DenominatorSelector from 'src/components/settings/DenominatorSelector'
-import SecurityCheckDialog from "src/components/SecurityCheckDialog.vue";
-import DragSlide from "src/components/drag-slide.vue";
 import { wifToPubkey } from 'src/utils/crypto'
 import { loadLibauthHdWallet } from 'src/wallet'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
@@ -404,15 +338,11 @@ export default {
   name: 'DebugApp',
   components: {
     headerNav,
-    DenominatorSelector,
-    DragSlide,
   },
   data () {
     return {
       logs: [], // Local reference to persistentLogs for reactivity
-      testingSound: false,
       enableSLP: this.$store.getters['global/enableSLP'],
-      autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
       logLevelFilter: ['log', 'error', 'warn', 'debug', 'info'], // All log levels selected by default
       logLevelOptions: [
         { label: 'Log', value: 'log' },
@@ -460,9 +390,6 @@ export default {
   watch: {
     enableSLP (n, o) {
       this.$store.commit('global/enableSLP')
-    },
-    autoGenerateAddress (n, o) {
-      this.$store.commit('global/toggleAutoGenerateAddress')
     }
   },
   methods: {
@@ -686,15 +613,6 @@ export default {
         })
       }
     },
-    onSwipe(reset = () => {}) {
-      this.$q.dialog({
-        component: SecurityCheckDialog,
-      }).onOk(() => {
-        this.$q.notify({ type: 'positive', message: 'Success!' })
-      }).onCancel(() => {
-        this.$q.notify({ message: 'Cancelled' })
-      }).onDismiss(() => reset())
-    },
     addLog (type, message) {
       const time = new Date().toLocaleTimeString()
       const logEntry = {
@@ -902,119 +820,6 @@ export default {
       // Clear component instance reference
       currentComponentInstance = null
     },
-    async testSound () {
-      this.testingSound = true
-      this.addLog('info', 'Testing sound playback...')
-      
-      try {
-        // Unload existing audio first to avoid "AssetId already exists" error
-        try {
-          await NativeAudio.unload({
-            assetId: 'send-success'
-          })
-          this.addLog('debug', 'Unloaded existing audio asset')
-        } catch (unloadError) {
-          // Ignore errors if asset doesn't exist yet
-          this.addLog('debug', 'No existing audio asset to unload')
-        }
-
-        // Try to preload audio first
-        // For iOS, Native Audio plugin looks for files in the main bundle, not www
-        // We need to try different approaches, but be careful to avoid crashes
-        let paths = []
-        if (this.$q.platform.is.ios) {
-          // Try safer path formats for iOS - avoid invalid URLs that could crash
-          // Only try paths that are likely to work or fail gracefully
-          paths = [
-            // Try relative paths first (safer)
-            'assets/sounds/send-success.mp3',
-            'send-success.mp3',
-            // Try Capacitor file URLs (if available)
-            ...(typeof Capacitor !== 'undefined' && Capacitor.convertFileSrc ? [
-              Capacitor.convertFileSrc('assets/sounds/send-success.mp3'),
-              Capacitor.convertFileSrc('/assets/sounds/send-success.mp3')
-            ] : [])
-          ]
-        } else {
-          paths = ['send-success.mp3']
-        }
-
-        let preloaded = false
-        let lastError = null
-        
-        for (const path of paths) {
-          // Skip empty or invalid paths
-          if (!path || typeof path !== 'string' || path.trim() === '') {
-            this.addLog('warn', `Skipping invalid path: ${path}`)
-            continue
-          }
-          
-          try {
-            // Determine if this is a URL
-            const isUrl = path.startsWith('http') || path.startsWith('https') || 
-                        path.startsWith('capacitor') || path.startsWith('file://')
-            
-            this.addLog('debug', `Trying to preload sound with path: ${path} (isUrl: ${isUrl})`)
-            
-            // Add timeout to prevent hanging
-            const preloadPromise = NativeAudio.preload({
-              assetId: 'send-success',
-              assetPath: path,
-              audioChannelNum: 1,
-              volume: 1.0,
-              isUrl: isUrl
-            })
-            
-            // Add timeout protection (5 seconds)
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Preload timeout')), 5000)
-            })
-            
-            await Promise.race([preloadPromise, timeoutPromise])
-            
-            this.addLog('success', `Sound preloaded successfully with path: ${path}`)
-            preloaded = true
-            break
-          } catch (error) {
-            lastError = error
-            const errorMsg = error?.message || String(error) || 'Unknown error'
-            // Don't log full error details if it's a crash-prone scenario
-            if (errorMsg.includes('Index out of range') || errorMsg.includes('crash')) {
-              this.addLog('error', `Path ${path} caused a plugin error - skipping`)
-            } else {
-              this.addLog('warn', `Failed to preload with path ${path}: ${errorMsg}`)
-            }
-          }
-        }
-
-        if (!preloaded) {
-          const errorMsg = lastError?.message || 'Unknown error'
-          throw new Error(`Failed to preload audio with any path. Last error: ${errorMsg}`)
-        }
-
-        // Play the sound
-        this.addLog('info', 'Playing sound...')
-        try {
-          await NativeAudio.play({
-            assetId: 'send-success'
-          })
-          this.addLog('success', 'Sound played successfully!')
-        } catch (playError) {
-          this.addLog('error', `Failed to play sound: ${playError?.message || playError}`)
-          throw playError
-        }
-      } catch (error) {
-        const errorMsg = error?.message || String(error) || 'Unknown error'
-        this.addLog('error', `Sound test failed: ${errorMsg}`)
-        
-        // If it's a crash-related error, provide helpful message
-        if (errorMsg.includes('Index out of range') || errorMsg.includes('crash')) {
-          this.addLog('error', 'The audio plugin encountered an internal error. This may be due to missing audio files in the iOS bundle.')
-        }
-      } finally {
-        this.testingSound = false
-      }
-    },
     async hideDebugApp () {
       this.$q.dialog({
         class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
@@ -1046,15 +851,6 @@ export default {
       // Restore original console methods (stop intercepting)
       // This only happens when user explicitly hides the debug app
       this.restoreConsole()
-      
-      // Unload audio assets
-      try {
-        await NativeAudio.unload({
-          assetId: 'send-success'
-        })
-      } catch (error) {
-        // Ignore errors
-      }
       
       // Note: We don't clear logs here - they persist in case user reopens debug app
       // Logs are limited to 1000 entries to prevent memory issues

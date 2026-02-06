@@ -132,6 +132,7 @@ import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
 import { buildAppsTourSteps, APPS_TOUR_SEEN_KEY } from 'src/utils/apps-tour'
+import { isNativeIOS } from 'src/utils/native-platform'
 
 export default {
   name: 'apps',
@@ -158,7 +159,7 @@ export default {
       apps: [
         {
           id: 'p2p-exchange',
-          name: this.$t('P2PExchange', {}, 'P2P Exchange'),
+          name: this.$t('P2PExchange', {}, 'P2P Ramp'),
           description: this.$t('Apps.P2PExchange.Description', {}, 'Buy and sell BCH peer-to-peer with anyone, secured by smart contract escrow.'),
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
@@ -332,6 +333,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isNativeIOS () {
+      return isNativeIOS()
     },
     theme () {
       return this.$store.getters['global/theme']
@@ -590,6 +594,11 @@ export default {
     },
     updateFilteredApps () {
       this.filteredApps = [...this.apps]
+
+      // Hide Crypto Swap on native iOS (App Store policy / SideShift licensing)
+      if (this.isNativeIOS) {
+        this.filteredApps = this.filteredApps.filter(app => app?.id !== 'cryptoswap')
+      }
       
       // Add debug app if visible
       if (this.showDebugApp) {

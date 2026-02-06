@@ -158,7 +158,8 @@
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
             </q-item-section>
             <q-item-section side id="country-selector">
-              <CountrySelector :darkMode="darkMode" />
+              <q-skeleton v-if="step2Loading" type="text" width="120px" />
+              <CountrySelector v-else :darkMode="darkMode" />
             </q-item-section>
           </q-item>
           <q-separator spaced class="thin-separator" />
@@ -167,7 +168,8 @@
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Language') }}</q-item-label>
             </q-item-section>
             <q-item-section side>
-              <LanguageSelector :darkMode="darkMode" />
+              <q-skeleton v-if="step2Loading" type="text" width="120px" />
+              <LanguageSelector v-else :darkMode="darkMode" />
             </q-item-section>
           </q-item>
           <q-separator spaced class="thin-separator" />
@@ -176,7 +178,8 @@
               <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
             </q-item-section>
             <q-item-section side id="currency">
-              <CurrencySelector :darkMode="darkMode" :key="currencySelectorRerender" />
+              <q-skeleton v-if="step2Loading" type="text" width="120px" />
+              <CurrencySelector v-else :darkMode="darkMode" :key="currencySelectorRerender" />
             </q-item-section>
           </q-item>
         </q-list>
@@ -186,6 +189,7 @@
         rounded
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
+        :disable="step2Loading"
         @click="goToStep3"
         id="Continue"
       />
@@ -402,7 +406,8 @@
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Country') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side id="country-selector">
-                        <CountrySelector :darkMode="darkMode" />
+                        <q-skeleton v-if="step2Loading" type="text" width="120px" />
+                        <CountrySelector v-else :darkMode="darkMode" />
                       </q-item-section>
                     </q-item>
 
@@ -411,7 +416,8 @@
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Language') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side>
-                        <LanguageSelector :darkMode="darkMode" />
+                        <q-skeleton v-if="step2Loading" type="text" width="120px" />
+                        <LanguageSelector v-else :darkMode="darkMode" />
                       </q-item-section>
                     </q-item>
 
@@ -420,14 +426,15 @@
                         <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">{{ $t('Currency') }}</q-item-label>
                       </q-item-section>
                       <q-item-section side id="currency">
-                        <CurrencySelector :darkMode="darkMode" 
+                        <q-skeleton v-if="step2Loading" type="text" width="120px" />
+                        <CurrencySelector v-else :darkMode="darkMode" 
                         :key="currencySelectorRerender" />
                       </q-item-section>
                     </q-item>
                   </q-list>
                 </div>
                 <div class="row justify-center">
-                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" @click="setOpenThemeSelector" id="Continue"/> 
+                  <q-btn rounded :label="$t('Continue')" class="q-mt-lg full-width button" :disable="step2Loading" @click="setOpenThemeSelector" id="Continue"/> 
                 </div>
                 <div class="row justify-center">
                   <transition appear enter-active-class="animated fadeIn">
@@ -513,13 +520,6 @@
       v-on:nextAction="executeActionTaken"
       :new-wallet-mnemonic="mnemonic"
     />
-    
-    <!-- Upgrade Prompt Dialog -->
-    <UpgradePromptDialog
-      v-model="showUpgradeDialog"
-      :dark-mode="darkMode"
-      limit-type="wallets"
-    />
 
   </div>
 </template>
@@ -550,8 +550,11 @@ import MnemonicProcessContainer from 'src/components/registration/MnemonicProces
 import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
 // import RewardsStep from 'src/components/registration/RewardsStep.vue'
+
+// Keep in sync with country selector data source (code, currency, language).
+const COUNTRIES = require('../../countries-info.json')
 
 function countWords(str) {
   if (str) {
@@ -583,8 +586,7 @@ export default {
     MnemonicProcessContainer,
     SeedPhraseContainer,
     Onboarding,
-    Login,
-    UpgradePromptDialog
+    Login
     // RewardsStep
   },
   data () {
@@ -636,7 +638,7 @@ export default {
       walletCreationError: '',
       isRedirecting: false,
       step2Initialized: false,
-      showUpgradeDialog: false,
+      step2Loading: false,
       subscriptionChecked: false
       // moveToReferral: false,
     }
@@ -653,6 +655,7 @@ export default {
       // Reset step2Initialized when leaving step 2
       if (oldVal === 2 && val !== 2) {
         this.step2Initialized = false
+        this.step2Loading = false
       }
       
       // Handle step-specific initialization
@@ -683,18 +686,16 @@ export default {
         this.authenticationPhase = 'options'
         this.seedPhraseBackup = null
         this.useTextArea = false
-        
-        // Check subscription status and show upgrade dialog if limits are exceeded
-        // Force refresh to ensure we fetch fresh LIFT token balance from the server
-        // This handles the case when user navigates back to /accounts page
-        try {
-          await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
-          const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
-          if (isOnMainView && this.checkIfLimitsExceeded()) {
-            this.showUpgradeDialog = true
-          }
-        } catch (error) {
-          console.error('Error checking subscription status in route watcher:', error)
+
+        // If user lands back on the main /accounts view and is already blocked by tier limits,
+        // show the tier-aware prompt immediately (Free→Plus, Plus→Max coming soon).
+        const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
+        if (isOnMainView) {
+          await ensureCanPerformActionWithDeps(
+            { $q: this.$q, $store: this.$store },
+            'wallets',
+            { darkMode: this.darkMode, forceRefresh: true }
+          )
         }
       }
       
@@ -747,40 +748,9 @@ export default {
   },
   computed: {
     canCreateOrImportWallet () {
-      // Check if vault is initialized
-      const vault = this.$store.getters['global/getVault']
-      if (!vault || !Array.isArray(vault)) {
-        return true // Allow if vault is not initialized yet
-      }
-      
-      // Check subscription state exists
-      const subscriptionState = this.$store.state.subscription
-      if (!subscriptionState) {
-        return false // Block if subscription state doesn't exist
-      }
-      
-      // First, check subscription tier limit (3 for free, 12 for plus)
-      // This is the primary restriction that matches initCreateWallet logic
-      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
-      if (!canCreate) {
-        return false // Block if wallet limit is reached for current subscription tier
-      }
-      
-      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
-      const nonDeletedWallets = vault.filter(w => !w?.deleted)
-      const walletCount = nonDeletedWallets.length
-      
-      if (walletCount >= 3) {
-        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
-        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance'] || 0
-        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens'] || 100
-        
-        if (liftBalance < minLiftTokens) {
-          return false // Block if LIFT token requirement not met
-        }
-      }
-      
-      return true // All checks passed
+      // UI hint only. Actual gating happens on click via ensureCanPerformActionWithDeps.
+      const canPerform = this.$store.getters['subscription/canPerformAction']?.('wallets')
+      return canPerform !== false
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -1300,43 +1270,13 @@ export default {
       }
       throw new Error('mnemonic not ready')
     },
-    checkIfLimitsExceeded () {
-      // Check wallet limit first - this is the primary restriction
-      const canCreate = this.$store.getters['subscription/canPerformAction']('wallets')
-      
-      if (!canCreate) {
-        // Show upgrade dialog when wallet limit is reached
-        return true
-      }
-      
-      // If wallet limit allows, check if user has 3+ wallets and needs LIFT tokens
-      const vault = this.$store.getters['global/getVault']
-      const nonDeletedWallets = vault ? vault.filter(w => !w?.deleted) : []
-      const walletCount = nonDeletedWallets.length
-      
-      if (walletCount >= 3) {
-        // If user has 3+ wallets, check if current wallet has at least 100 LIFT tokens
-        const liftBalance = this.$store.getters['subscription/getLiftTokenBalance']
-        const minLiftTokens = this.$store.getters['subscription/getMinLiftTokens']
-        
-        if (liftBalance < minLiftTokens) {
-          // Show upgrade dialog instead of generic LIFT token dialog
-          // This provides better context about Paytaca Plus
-          return true
-        }
-      }
-      
-      return false
-    },
     async initCreateWallet () {
-      // First, check subscription status to get current limits
-      // Force refresh to ensure we fetch fresh LIFT token balance from the server
-      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
-      
-      if (this.checkIfLimitsExceeded()) {
-        this.showUpgradeDialog = true
-        return
-      }
+      const allowed = await ensureCanPerformActionWithDeps(
+        { $q: this.$q, $store: this.$store },
+        'wallets',
+        { darkMode: this.darkMode, forceRefresh: true }
+      )
+      if (!allowed) return
       
       // Handle restore flow
       if (this.importSeedPhrase && this.restoreStep === 2) {
@@ -1375,14 +1315,12 @@ export default {
       this.$forceUpdate()
     },
     async initRestoreWallet () {
-      // First, check subscription status to get current limits
-      // Force refresh to ensure we fetch fresh LIFT token balance from the server
-      await this.$store.dispatch('subscription/checkSubscriptionStatus', true)
-      
-      if (this.checkIfLimitsExceeded()) {
-        this.showUpgradeDialog = true
-        return
-      }
+      const allowed = await ensureCanPerformActionWithDeps(
+        { $q: this.$q, $store: this.$store },
+        'wallets',
+        { darkMode: this.darkMode, forceRefresh: true }
+      )
+      if (!allowed) return
       
       // Set importSeedPhrase flag and navigate to restore step-1
       this.importSeedPhrase = true
@@ -1826,27 +1764,43 @@ export default {
     async initializeStep2 () {
       // Prevent duplicate calls
       if (this.step2Initialized) {
+        this.step2Loading = false
         return
       }
       this.step2Initialized = true
+      this.step2Loading = true
       
       try {
         // Auto-detect language and currency for step 2
         await this.$store.dispatch('market/updateSupportedCurrencies', {})
+        const devicePrefs = await this.getDeviceLocalePreferences()
+        const deviceRegion = devicePrefs?.regionCode
+        const deviceLangs = Array.isArray(devicePrefs?.langs) ? devicePrefs.langs : []
 
-        const ipGeoPreferences = await this.getIPGeolocationPreferences()
+        // Device-first: use region from device locale (when available) to pick default country/currency.
+        let detectedCountry = null
+        if (deviceRegion && Array.isArray(COUNTRIES)) {
+          detectedCountry = COUNTRIES.find(c => String(c?.code || '').toUpperCase() === String(deviceRegion).toUpperCase()) || null
+        }
+
+        // IP fallback only when device locale doesn't provide enough data
+        const ipGeoPreferences = (!detectedCountry || !detectedCountry?.currency)
+          ? await this.getIPGeolocationPreferences()
+          : { country: detectedCountry, currency: { symbol: detectedCountry.currency }, langs: deviceLangs }
 
         // set currency immediately (no timeout) and persist
         // Currency options have 'symbol' which is the currency code (e.g., "PHP", "USD")
         const currencyOptions = this.$store.getters['market/currencyOptions']
         // Match by symbol (which is the currency code like "PHP")
-        let currency = currencyOptions.find(o => o.symbol === ipGeoPreferences.currency.symbol)
+        const desiredCurrencySymbol = ipGeoPreferences?.currency?.symbol
+        let currency = currencyOptions.find(o => o.symbol === desiredCurrencySymbol)
         
         // If currency not found in options, create it from geoip data
-        if (!currency && ipGeoPreferences.currency.symbol && ipGeoPreferences.currency.name) {
+        if (!currency && desiredCurrencySymbol) {
+          const desiredCurrencyName = ipGeoPreferences?.currency?.name || desiredCurrencySymbol
           const newCurrency = {
-            symbol: ipGeoPreferences.currency.symbol,
-            name: ipGeoPreferences.currency.name
+            symbol: desiredCurrencySymbol,
+            name: desiredCurrencyName
           }
           // Add to currency options if not already there
           const updatedOptions = [...currencyOptions]
@@ -1882,8 +1836,8 @@ export default {
         }
         this.currencySelectorRerender = true
         
-        // set language from geoip preferences
-        const languageCodes = ipGeoPreferences.langs || ['en-us']
+        // Device-first language: use device locale languages; fall back to GeoIP languages
+        const languageCodes = (deviceLangs?.length ? deviceLangs : (ipGeoPreferences.langs || ['en-us']))
         
         // Sort language codes (prefer codes with dashes, e.g., 'en-us' over 'en')
         languageCodes.sort((a, b) => {
@@ -1924,8 +1878,9 @@ export default {
         }
         
         // set country
+        const countryToUse = detectedCountry || ipGeoPreferences.country
         this.$store.commit('global/setCountry', {
-          country: ipGeoPreferences.country,
+          country: countryToUse,
           denomination: 'BCH' // Default denomination, can be changed by user later
         })
 
@@ -1935,6 +1890,8 @@ export default {
         console.error('[Step 2] Error initializing step 2:', error)
         // Reset flag so it can be retried
         this.step2Initialized = false
+      } finally {
+        this.step2Loading = false
       }
     },
     async generateSeedPhrase () {
@@ -2277,6 +2234,67 @@ export default {
       
       return result
     },
+    async getDeviceLocalePreferences () {
+      // Best-effort device locale extraction for language + region.
+      // This does NOT require network and respects user device settings.
+      let tag = null
+      let code = null
+
+      try {
+        const res = await Device.getLanguageTag?.()
+        tag = res?.value
+      } catch (_) {}
+
+      // getLanguageCode is known to be flaky on some iOS versions; keep it best-effort.
+      try {
+        const res = await Device.getLanguageCode?.()
+        code = res?.value
+      } catch (_) {}
+
+      const langs = []
+      const pushLang = (v) => {
+        if (!v) return
+        const normalized = String(v).toLowerCase().replace('_', '-').trim()
+        if (!normalized) return
+        // Map language codes to supported codes
+        if (normalized === 'fil') {
+          langs.push('tl')
+          return
+        }
+        if (normalized === 'zh') {
+          langs.push('zh-cn')
+          return
+        }
+        langs.push(normalized)
+      }
+
+      // Prefer browser-provided list when available (web + Capacitor webview)
+      try {
+        const navLangs = Array.isArray(navigator?.languages) ? navigator.languages : []
+        navLangs.forEach(pushLang)
+        pushLang(navigator?.language)
+      } catch (_) {}
+
+      pushLang(tag)
+      pushLang(code)
+
+      // De-duplicate while preserving order
+      const deduped = []
+      for (const l of langs) {
+        if (!deduped.includes(l)) deduped.push(l)
+      }
+
+      // Extract region from language tag (e.g., "es-ES", "ar-OM", "zh-Hant-HK")
+      const regionCode = (() => {
+        const raw = String(tag || navigator?.language || '').replace('_', '-')
+        const parts = raw.split('-').filter(Boolean)
+        // Look for a 2-letter region subtag
+        const region = parts.find(p => /^[a-zA-Z]{2}$/.test(p))
+        return region ? region.toUpperCase() : null
+      })()
+
+      return { langs: deduped, regionCode }
+    },
     resolveDeviceLangCode() {
       // Getting language code from device seems to be crashing in iOS 17.x
       // we just default to english for iOS for now
@@ -2394,14 +2412,17 @@ export default {
       this.$nextTick(() => {
         this.$forceUpdate()
       })
-      
-      // Check if user is on the base /accounts page and has exceeded limits
-      // Show upgrade dialog immediately if limits are exceeded
+
+      // If user loads the base /accounts view and wallet creation is blocked by tier limits,
+      // show the tier-aware prompt immediately (Free→Plus, Plus→Max coming soon).
       const isOnBaseAccountsPage = this.$route.path === '/accounts' || this.$route.path === '/accounts/'
       const isOnMainView = this.mnemonic.length === 0 && this.importSeedPhrase === false && this.steps === -1
-      
-      if (isOnBaseAccountsPage && isOnMainView && this.checkIfLimitsExceeded()) {
-        this.showUpgradeDialog = true
+      if (isOnBaseAccountsPage && isOnMainView) {
+        await ensureCanPerformActionWithDeps(
+          { $q: this.$q, $store: this.$store },
+          'wallets',
+          { darkMode: this.darkMode, forceRefresh: false }
+        )
       }
     } catch (error) {
       console.error('Error checking subscription status:', error)

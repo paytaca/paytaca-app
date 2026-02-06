@@ -88,14 +88,17 @@ export class RampContract {
   async getBalance (address = '', retry = false) {
     if (!address) address = this.contract.address
     let balance = 0
+    let watchtowerErrored = false
     try {
       const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
       balance = response?.data?.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
-      retry = true
+      watchtowerErrored = true
     }
-    if (retry && balance === 0) {
+    // Only fallback to CashScript/Electrum when Watchtower fails (errors),
+    // not when Watchtower returns a legitimate 0 balance.
+    if (retry && watchtowerErrored) {
       console.warn('Refetched contract balance from cashscript built-in method getBalance()')
       const rawBal = await this.contract.getBalance()
       balance = bchjs.BitcoinCash.toBitcoinCash(Number(rawBal))

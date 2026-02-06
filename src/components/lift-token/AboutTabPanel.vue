@@ -267,7 +267,7 @@
               {{ $t('FeeDiscounts') }}
             </div>
             <ul class="benefits-ul">
-              <li>{{ $t('Benefit5', {}, 'Reduced P2P exchange fees') }}</li>
+              <li>{{ $t('Benefit5', {}, 'Reduced P2P ramp fees') }}</li>
               <li>{{ $t('Benefit6', {}, 'Lower marketplace commissions') }}</li>
               <li>{{ $t('Benefit7', {}, 'Discounted payment processing fees') }}</li>
             </ul>
@@ -494,13 +494,7 @@ export default {
     },
     handleNavigateToBuy() {
       if (this.liftSwapContractAddress) {
-        // this.showBuyDialog = true
-        this.$q.notify({
-          message: this.$t('ComingSoon'),
-          color: 'positive',
-          icon: 'campaign',
-          timeout: 3000
-        })
+        this.showBuyDialog = true
       } else {
         this.$q.notify({
           message: this.$t('LIFTPurchaseUnavailable'),

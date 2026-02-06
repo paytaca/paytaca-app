@@ -5,7 +5,7 @@
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
       <!-- Header (visible during loading) -->
-      <HeaderNav title="P2P Exchange" backnavpath="/apps" class="header-nav" />
+      <HeaderNav title="P2P Ramp" backnavpath="/apps" class="header-nav" />
       
       <!-- Content Skeletons -->
       <div class="q-px-md">
@@ -187,7 +187,7 @@ export default {
 
       if (platform) {
         // fetching version check - non-blocking, don't prevent UI from showing
-        backend.get(`ramp-p2p/version/check/${platform}/`)
+        backend.get(`/ramp-p2p/version/check/${platform}/`)
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version

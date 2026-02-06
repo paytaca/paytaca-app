@@ -2,6 +2,7 @@
    <q-layout view="lHh Lpr lFf">
       <q-pull-to-refresh
         id="app-container"
+        class="multisig-app"
         :class="getDarkModeClass(darkMode)"
         @refresh="refreshPage"
       >

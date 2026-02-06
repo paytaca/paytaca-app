@@ -1,6 +1,6 @@
 <template>
 <div class="static-container">
-  <div id="app-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="multisig-app" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="$t('TxProposals')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav" />
     <div class="row items-center justify-center full-height">
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
@@ -15,7 +15,7 @@
         </div>
         <div v-if="psts?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
           {{ $t('NoTxProposalsFound') }}
-          <q-btn color="primary" icon="upload" @click="importPsbt" rounded>
+          <q-btn color="primary" icon="download" @click="importPsbt" rounded>
             {{ $t('Import') }}
           </q-btn>
         </div>

@@ -117,6 +117,6 @@ export function canPerformAction (state, getters, rootState) {
 }
 
 export function getMinLiftTokens (state) {
-  return state?.minLiftTokens || 100
+  return state?.minLiftTokens || limitsConfig.minLiftTokens
 }
 

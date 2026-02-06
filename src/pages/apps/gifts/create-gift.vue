@@ -459,6 +459,7 @@ import { Capacitor } from '@capacitor/core'
 import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 import { hexToRef } from 'src/utils/reference-id-utils'
+import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -494,6 +495,7 @@ export default {
       processing: false,
       completed: false,
       wallet: null,
+      unclaimedGiftsCountSnapshot: null,
       showCampaignInfo: false,
       giftStatus: null,
       failedGiftDetails: null,
@@ -697,7 +699,7 @@ export default {
         const walletHash = this.wallet.BCH.getWalletHash()
         const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/create/`
         
-        this.submitGiftToServer(url, payload, encryptedShard.code, address)
+        this.submitGiftToServer(url, payload, encryptedShard.code, address, { isResubmit: false })
       } catch (error) {
         // Handle any unexpected errors during gift generation
         vm.processing = false
@@ -710,12 +712,17 @@ export default {
       }
     },
 
-    async submitGiftToServer(url, payload, qrCode, address) {
+    async submitGiftToServer (url, payload, qrCode, address, options = {}) {
       const vm = this
+      const { isResubmit = false } = options || {}
       try {
         const resp = await axios.post(url, payload)
         if (resp.status === 200) {
           vm.qrCodeContents = qrCode
+          // Update local snapshot immediately (list endpoint can be eventually consistent)
+          if (!isResubmit && Number.isFinite(vm.unclaimedGiftsCountSnapshot)) {
+            vm.unclaimedGiftsCountSnapshot += 1
+          }
           try {
             const result = await vm.wallet.BCH.sendBch(this.amountBCH, address)
             if (result.success) {
@@ -779,7 +786,7 @@ export default {
       }
     },
 
-    async resubmitGift(giftDetails) {
+    async resubmitGift (giftDetails) {
       if (this.processing) return
       
       this.processing = true
@@ -790,7 +797,8 @@ export default {
         url,
         giftDetails.payload,
         giftDetails.qr,
-        giftDetails.address
+        giftDetails.address,
+        { isResubmit: true }
       )
     },
 
@@ -1335,7 +1343,85 @@ export default {
         this.giftAmountFormatted = '0'
       }
     },
-    createAnother() {
+    async getUnclaimedGiftsCountForLimitGate (maxNeeded = 0, currentGiftCodeHash = null) {
+      // Best-effort count of unclaimed (and not recovered) gifts for this wallet.
+      // We page until we either reach `maxNeeded` or exhaust results.
+      let walletHash = this.$store.getters['global/getWallet']?.('bch')?.walletHash
+      if (!walletHash) {
+        walletHash = this.wallet?.BCH?.getWalletHash?.()
+      }
+      if (!walletHash) return { count: 0, includesCurrent: false }
+
+      const url = `https://gifts.paytaca.com/api/gifts/${walletHash}/list`
+      const pageSize = 50
+      let offset = 0
+      let count = 0
+      let includesCurrent = false
+
+      for (let i = 0; i < 10; i++) { // cap at 500 items
+        const resp = await axios.get(url, {
+          params: {
+            // Keep in sync with `src/pages/apps/gifts/index.vue`
+            type: 'unclaimed',
+            limit: pageSize,
+            offset
+          }
+        })
+        const gifts = resp?.data?.gifts || []
+        if (!Array.isArray(gifts) || gifts.length === 0) break
+
+        for (const gift of gifts) {
+          if (currentGiftCodeHash && gift?.gift_code_hash === currentGiftCodeHash) {
+            includesCurrent = true
+          }
+          const isRecovered = gift?.recovered === true || gift?.recovered === 'true' || gift?.recovered === 1
+          const isUnclaimed = gift?.date_claimed === 'None'
+          if (isUnclaimed && !isRecovered) count++
+          if (maxNeeded && count >= maxNeeded) return { count, includesCurrent }
+        }
+
+        offset += gifts.length
+        if (gifts.length < pageSize) break
+      }
+
+      return { count, includesCurrent }
+    },
+    async createAnother () {
+      // Gate gift creation by per-wallet unclaimed gift limit.
+      const limit = this.$store.getters['subscription/getLimit']?.('unclaimedGifts') || 0
+      if (limit > 0) {
+        try {
+          // Prefer local snapshot to avoid API lag; fall back to API count.
+          if (Number.isFinite(this.unclaimedGiftsCountSnapshot) && this.unclaimedGiftsCountSnapshot >= limit) {
+            await showLimitDialogWithDeps(
+              { $q: this.$q, $store: this.$store },
+              'unclaimedGifts',
+              { darkMode: this.darkMode, forceRefresh: true }
+            )
+            return
+          }
+
+          const currentGiftExistsOnServer = Boolean(this.completed && this.giftCodeHash)
+          const { count, includesCurrent } = await this.getUnclaimedGiftsCountForLimitGate(
+            limit,
+            currentGiftExistsOnServer ? this.giftCodeHash : null
+          )
+          // If the list endpoint is eventually consistent, the newly created gift may not show up yet.
+          const effectiveCount = count + (currentGiftExistsOnServer && !includesCurrent ? 1 : 0)
+          if (effectiveCount >= limit) {
+            await showLimitDialogWithDeps(
+              { $q: this.$q, $store: this.$store },
+              'unclaimedGifts',
+              { darkMode: this.darkMode, forceRefresh: true }
+            )
+            return
+          }
+        } catch (e) {
+          // Best-effort gate; if count fails, allow user to proceed.
+          console.error(e)
+        }
+      }
+
       // Reset form to create another gift
       this.giftAmount = ''
       this.giftAmountFormatted = '0'
@@ -1462,6 +1548,13 @@ export default {
           value: 'create-new'
         })
       })
+      // Initialize unclaimed gifts count snapshot for limit gating (best-effort)
+      try {
+        const { count } = await this.getUnclaimedGiftsCountForLimitGate(0, null)
+        this.unclaimedGiftsCountSnapshot = Number.isFinite(count) ? count : null
+      } catch (_) {
+        this.unclaimedGiftsCountSnapshot = null
+      }
     }
   },
   mounted () {

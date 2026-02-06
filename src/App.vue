@@ -765,6 +765,9 @@ export default {
     // Clear session-based backup reminder dismissal on fresh app start
     // App.vue only mounts on fresh app start (not during navigation), so always clear
     sessionStorage.removeItem('backupReminderDismissedTimestamp')
+    // Clear any stale "update dialog active" flag on cold start
+    sessionStorage.removeItem('appUpdateDialogActive')
+    sessionStorage.removeItem('appUpdateDialogActiveAt')
 
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run before any wallet operations
@@ -825,6 +828,11 @@ export default {
           // Use module-level variable to persist across component remounts (important for iOS)
           // No need to track if optional dialog was shown - user can dismiss it
           if (!versionUpdateDialogInstance) {
+            // Mark update prompt as active to prevent competing dialogs elsewhere (e.g. backup reminder).
+            try {
+              sessionStorage.setItem('appUpdateDialogActive', '1')
+              sessionStorage.setItem('appUpdateDialogActiveAt', Date.now().toString())
+            } catch (_) {}
             versionUpdateDialogInstance = vm.$q.dialog({
               component: AppVersionUpdate,
               componentProps: {
@@ -835,10 +843,22 @@ export default {
             // Clear reference when dialog is closed
             versionUpdateDialogInstance.onOk(() => {
               versionUpdateDialogInstance = null
+              try {
+                sessionStorage.removeItem('appUpdateDialogActive')
+                sessionStorage.removeItem('appUpdateDialogActiveAt')
+              } catch (_) {}
             }).onCancel(() => {
               versionUpdateDialogInstance = null
+              try {
+                sessionStorage.removeItem('appUpdateDialogActive')
+                sessionStorage.removeItem('appUpdateDialogActiveAt')
+              } catch (_) {}
             }).onDismiss(() => {
               versionUpdateDialogInstance = null
+              try {
+                sessionStorage.removeItem('appUpdateDialogActive')
+                sessionStorage.removeItem('appUpdateDialogActiveAt')
+              } catch (_) {}
             })
           }
         }

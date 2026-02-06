@@ -43,7 +43,7 @@
 	    	</q-list>
 	    </div>
 	    
-		<div :class="darkmode ? 'text-white' : 'text-black'" v-if="isloaded">
+		<div :class="darkmode ? 'text-white' : 'text-black'" v-show="isloaded">
 
 			<div class="row"> 
 				<div class="col">
@@ -146,13 +146,6 @@
 
 		<footer-menu ref="footerMenu" />
 
-		<!-- Upgrade Prompt Dialog -->
-		<UpgradePromptDialog
-			v-model="showUpgradeDialog"
-			:dark-mode="darkmode"
-			limit-type="favoriteTokens"
-		/>
-
 	</div>
 </template>
 <script>
@@ -168,7 +161,7 @@ import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
 import RemoveAsset from 'src/pages/transaction/dialog/RemoveAsset'
-import UpgradePromptDialog from 'src/components/subscription/UpgradePromptDialog.vue'
+import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
 
 export default {
 	data () {
@@ -180,7 +173,6 @@ export default {
 			drag: false,	
 			isloaded: false,
 			networkError: false,
-			showUpgradeDialog: false,
 			favoriteLoading: {}, // { [assetId]: boolean }
 		}
 	},
@@ -221,8 +213,7 @@ export default {
 		headerNav,
 		AssetFilter,
 		RemoveAsset,
-		draggable,
-		UpgradePromptDialog
+		draggable
 	},
 	watch: {
 		isCashToken () {
@@ -276,11 +267,21 @@ export default {
 	    	this.isloaded = false
 	    	this.networkError = false
 
-	    	// register / get auth 
-		    await assetSettings.authToken()
+	    	// register / get auth
+		    // IMPORTANT: favorites endpoints require the correct wallet-hash header AND matching auth token.
+		    // When viewing SLP tokens, authenticate using the SLP wallet hash.
+		    const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+		    if (this.isCashToken) {
+		    	await assetSettings.authToken()
+		    } else if (slpWalletHash) {
+		    	await assetSettings.authTokenForWallet({ walletHash: slpWalletHash })
+		    } else {
+		    	// Fallback to BCH auth (may be insufficient for saving SLP favorites)
+		    	await assetSettings.authToken()
+		    }
 
 		    // Always fetch tokens directly from API - completely ignore Vuex store
-		    // Only CashTokens on BCH network are supported by the fungible API
+		    // Fetch either CashTokens or SLP fungible tokens depending on selector.
 		    if (this.isCashToken) {
 		    	try {
 		    		const directTokens = await this.fetchTokensDirectlyFromAPI()
@@ -293,9 +294,14 @@ export default {
 		    		this.assetList = []
 		    	}
 		    } else {
-		    	// For SLP, the fungible API doesn't support it yet
-		    	// Show empty list instead of using store data
-		    	this.assetList = []
+		    	try {
+		    		const slpTokens = await this.fetchSlpTokensDirectlyFromAPI()
+		    		this.assetList = slpTokens
+		    	} catch (error) {
+		    		console.error('Error fetching SLP tokens from API:', error)
+		    		this.networkError = true
+		    		this.assetList = []
+		    	}
 		    }
 
 		    this.isloaded = true
@@ -331,7 +337,10 @@ export default {
 	    		const allFavoritesData = [...favoritesWithOrder, ...nonFavoritesData]
 	    		
 	    		try {
-	    			await assetSettings.saveFavorites(allFavoritesData)
+	    			const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+	    			await assetSettings.saveFavorites(allFavoritesData, {
+	    				walletHash: this.isCashToken ? undefined : slpWalletHash
+	    			})
 	    		} catch (error) {
 	    			console.error('Error saving favorite order:', error)
 	    		}
@@ -366,52 +375,39 @@ export default {
     	try {
 	    	// If adding a favorite (not removing), check subscription limit first
 	    	if (!wasFavorite) {
-	    		// Check subscription limit before adding
-	    		await this.$store.dispatch('subscription/checkSubscriptionStatus')
-	    		
-	    		// Fetch current favorites to check count
-	    		currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
-	    		if (!Array.isArray(currentFavorites)) {
-	    			currentFavorites = []
-	    		}
-	    		
-	    		// Count current favorites (where favorite === 1)
-	    		const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
-	    		
-	    		// Check if this token is already a favorite
-	    		const isAlreadyFavorite = currentFavorites.some(fav => fav.id === favAsset.id && (fav.favorite === 1 || fav.favorite === true))
-	    		
-	    		// If not already a favorite, check limit
-	    		if (!isAlreadyFavorite) {
+	    			// IMPORTANT:
+	    			// In `/asset/list`, the visible token list is sourced from Watchtower's
+	    			// fungible token list endpoints (see `fetchTokensDirectlyFromAPI` and `fetchSlpTokensDirectlyFromAPI`).
+	    			// Count favorites against the same dataset so we don't block early due to
+	    			// "hidden" favorites in the app-setting favorites list.
 	    			const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
-	    			if (currentFavoriteCount >= limit) {
-	    				// Check if user is on free tier
-	    				const isPlus = this.$store.getters['subscription/isPlusSubscriber']
-	    				if (!isPlus) {
-	    					// Show upgrade dialog for free tier users
-	    					this.showUpgradeDialog = true
-	    				} else {
-	    					// Show notification for plus tier users who somehow reached limit
-	    					this.$q.notify({
-	    						message: this.$t('FavoriteTokensLimitReached', {}, 'Favorite tokens limit reached. Upgrade to Paytaca Plus to add more favorites.'),
-	    						color: 'negative',
-	    						icon: 'error',
-	    						position: 'top',
-	    						timeout: 3000,
-	    						actions: [
-	    							{
-	    								label: this.$t('LearnMore', {}, 'Learn More'),
-	    								color: 'white',
-	    								handler: () => {
-	    									this.$router.push('/apps/lift-token')
-	    								}
-	    							}
-	    						]
-	    					})
-	    				}
+	    			let tokenFavoritesIds = new Set()
+	    			try {
+	    				const tokens = this.isCashToken
+	    					? await this.fetchTokensDirectlyFromAPI()
+	    					: await this.fetchSlpTokensDirectlyFromAPI()
+	    				tokenFavoritesIds = new Set(
+	    					(Array.isArray(tokens) ? tokens : [])
+	    						.filter(t => t && t.id && (t.favorite === 1 || t.favorite === true))
+	    						.map(t => t.id)
+	    				)
+	    			} catch (e) {
+	    				// Best-effort only; fall back to empty set.
+	    			}
+
+	    			const currentFavoriteCount = tokenFavoritesIds.size
+	    			const isAlreadyFavorite = tokenFavoritesIds.has(favAsset.id)
+
+	    			// If not already a favorite, check limit
+	    			if (!isAlreadyFavorite && currentFavoriteCount >= limit) {
+	    				// Tier-aware prompt (Free→Plus, Plus→Max coming soon)
+	    				await showLimitDialogWithDeps(
+	    					{ $q: this.$q, $store: this.$store },
+	    					'favoriteTokens',
+	    					{ darkMode: this.darkmode, forceRefresh: true }
+	    				)
 	    				return // Prevent adding favorite if limit is reached
 	    			}
-	    		}
 	    	}
 	    	
 	    	// Update UI immediately for better UX
@@ -526,7 +522,11 @@ export default {
 	    	await new Promise(resolve => setTimeout(resolve, 100))
 
 	    	// Fetch current favorites from API to get complete state including favorite_order
-	    	currentFavorites = await assetSettings.fetchFavorites({ forceRefresh: true })
+	    	const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+	    	currentFavorites = await assetSettings.fetchFavorites({
+	    		forceRefresh: true,
+	    		walletHash: this.isCashToken ? undefined : slpWalletHash
+	    	})
 	    	if (!Array.isArray(currentFavorites)) {
 	    		currentFavorites = []
 	    	}
@@ -618,7 +618,9 @@ export default {
 		    	}
 		    	
 		    	// Save all assets with favorite_order to preserve ordering
-		    	await assetSettings.saveFavorites(favoritesData)
+		    	await assetSettings.saveFavorites(favoritesData, {
+		    		walletHash: this.isCashToken ? undefined : slpWalletHash
+		    	})
     	} finally {
     		this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: false }
     	}
@@ -720,6 +722,81 @@ export default {
 	    		return allTokens
 	    	} catch (error) {
 	    		console.error('Error fetching tokens from API:', error)
+	    		return []
+	    	}
+	    },
+	    async fetchSlpTokensDirectlyFromAPI () {
+	    	if (this.isCashToken) return []
+
+	    	// Use wallet from component data instead of calling getWallet (which might trigger balance API calls)
+	    	if (!this.wallet) {
+	    		console.warn('Wallet not loaded, cannot fetch SLP tokens')
+	    		return []
+	    	}
+
+	    	const walletHash = this.wallet.SLP?.walletHash || this.wallet.slp?.walletHash
+	    	if (!walletHash) {
+	    		console.warn('SLP wallet hash not available')
+	    		return []
+	    	}
+
+	    	const isChipnet = this.$store.getters['global/isChipnet']
+	    	const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+	    	const filterParams = {
+	    		wallet_hash: walletHash,
+	    		limit: 100
+	    	}
+
+	    	try {
+	    		const url = `${baseUrl}/slp-tokens/fungible/`
+	    		let allTokens = []
+	    		let nextUrl = url
+	    		let params = filterParams
+
+	    		while (nextUrl) {
+	    			const { data } = await axios.get(nextUrl, { params })
+
+	    			if (!Array.isArray(data?.results)) {
+	    				break
+	    			}
+
+	    			const tokens = data.results
+	    				.map(result => {
+	    					const logo = result?.image_url ? convertIpfsUrl(result.image_url) : null
+	    					const tokenId = result?.id
+	    					const assetId = tokenId
+	    						? (String(tokenId).startsWith('slp/') ? String(tokenId) : `slp/${tokenId}`)
+	    						: null
+	    					return {
+	    						// Normalize IDs to match other pages/store usage (`slp/<tokenId>`)
+	    						id: assetId,
+	    						name: result?.name || 'Unknown Token',
+	    						symbol: result?.symbol || '',
+	    						decimals: result?.decimals || 0,
+	    						logo: logo,
+	    						balance: result?.balance !== undefined ? result.balance : 0,
+	    						favorite: result?.favorite === true ? 1 : 0,
+	    						favorite_order: result?.favorite_order !== null && result?.favorite_order !== undefined ? result.favorite_order : null
+	    					}
+	    				})
+	    				.filter(token => token?.id)
+	    				// Match existing behavior of showing tokens with balance
+	    				.filter(token => Number(token.balance) > 0)
+
+	    			allTokens = [...allTokens, ...tokens]
+
+	    			if (data.next) {
+	    				nextUrl = data.next
+	    				params = {} // Don't send params again, URL already has them
+	    			} else {
+	    				nextUrl = null
+	    			}
+	    		}
+
+	    		return allTokens
+	    	} catch (error) {
+	    		console.error('Error fetching SLP tokens from API:', error)
 	    		return []
 	    	}
 	    },

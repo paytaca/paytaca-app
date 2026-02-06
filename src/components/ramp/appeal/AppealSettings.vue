@@ -102,7 +102,7 @@ export default {
     getDarkModeClass,
     fetchUserData () {
       return new Promise((resolve, reject) => {
-        backend.get(`ramp-p2p/arbiter/${wallet.walletHash}`, { authorize: true })
+        backend.get(`/ramp-p2p/arbiter/${wallet.walletHash}`, { authorize: true })
           .then((response) => {
             this.currencies = response.data?.fiat_currencies
             this.selectedInactiveTime = null
@@ -166,7 +166,7 @@ export default {
       const body = {
         inactive_hours: hours
       }
-      backend.patch('ramp-p2p/arbiter/', body, { authorize: true })
+      backend.patch('/ramp-p2p/arbiter/', body, { authorize: true })
         .then(() => {
           this.fetchUserData()
           this.$emit('setInactive')
