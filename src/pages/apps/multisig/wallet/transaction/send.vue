@@ -52,7 +52,7 @@
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
                         <div class="text-bold">{{ $t('Purpose') }}</div>
-                        <q-input v-model="purpose" type="textarea" rows="2" outlined autogrow hint></q-input>
+                        <q-input v-model="purpose" type="textarea" rows="2" filled autogrow hint></q-input>
                       </q-item-label>
                     </q-item-section>
                   </q-item>
@@ -80,7 +80,7 @@
                           v-model="recipient.address" :label="`${$t('PasteAddressOfRecipient')} ${i + 1}`"
                           :rules="recipientRules"
                           clearable
-                          outlined dense
+                          filled dense
                           :ref="el => { if (el) addressInputRefs[i] = el }">
                           <template v-slot:append>
                             <q-btn icon="upload_file" flat dense disable></q-btn>
@@ -89,7 +89,7 @@
                         </q-input>
                         <q-input
                           v-model="recipient.amount" :label="$t('Amount')"
-                          outlined dense
+                          filled dense
                           :hint="assetDecimalsHint"
                           :rules="amountRules"
                           clearable
@@ -347,18 +347,18 @@ const createProposal = async () => {
 
   try {
 
-    const pst = await wallet.value.createPst({
+    const proposal = await wallet.value.createProposal({
       creator: creator,
       origin: 'paytaca-wallet',
       purpose: purpose.value,
       recipients: recipients.value
     }, options)
     
-    await pst.save()
+    await proposal.save()
     
     router.push({ 
       name: 'app-multisig-wallet-pst-view', 
-      params: { unsignedtransactionhash: pst.unsignedTransactionHash }
+      params: { unsignedtransactionhash: proposal.unsignedTransactionHash }
     })
 
   } catch (error) {
