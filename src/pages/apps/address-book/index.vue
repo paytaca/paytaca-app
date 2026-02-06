@@ -42,6 +42,7 @@
             round
             icon="mdi-account-plus"
             color="primary"
+            @click="$router.push('/apps/address-book/add-record')"
           />
         </template>
       </div>
