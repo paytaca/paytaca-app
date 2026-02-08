@@ -768,8 +768,7 @@ export default {
           vm.adData.fixedPrice = parseFloat(data.fixed_price)
           vm.adData.floatingPrice = parseFloat(data.floating_price)
           vm.adData.fiatCurrency = data.fiat_currency
-          vm.adData.description = data.description
-
+          vm.adData.description = data.description ?? ''
           vm.description = vm.adData.description
 
           let tradeAmount = parseFloat(data.trade_amount)
@@ -990,7 +989,7 @@ export default {
         appeal_cooldown_choice: data.appealCooldown.value,
         payment_methods: idList,
         is_public: data.isPublic,
-        description: data.description
+        description: data.description ?? ''
       }
 
       if (this.setTradeLimitsInFiat) {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom" :class="{ nudge }">
+  <div v-if="!swiped" v-bind="$attrs" class="ramp-drag-slide-container absolute-bottom" :class="{ nudge }">
     <div class="drag-slide-inner">
       <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
         <template v-if="!locked" v-slot:left>
@@ -28,6 +28,7 @@ import pinDialog from 'src/components/pin/index.vue'
 
 export default {
   name: 'drag-slide',
+  inheritAttrs: false,
   components: {
     pinDialog
   },
