@@ -26,7 +26,7 @@
 		</q-card>
 
 		<div v-if="order.bch_txid && order.bch_txid !== 'balance-confirmed'" class="transaction-id-section section-block-ss text-center" style="margin-top: 25px;">
-          <div class="text-weight-medium q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;{{ $t('TransactionId')}}</div>         
+          <div class="text-weight-medium sm-font-size q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;{{ $t('TransactionId')}}</div>         
 
           <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="order.bch_txid && copyToClipboard(order.bch_txid)">
             <span class="txid-text-ss">{{ order.bch_txid ? `${order.bch_txid.slice(0, 8)}...${order.bch_txid.slice(-8)}` : '' }}</span>
@@ -41,7 +41,7 @@
         </div>
 
         <div v-if="order.completed_at">
-        	<div class="text-weight-medium text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;Completed at</div>
+        	<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;Completed at</div>
 	        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
 	          {{ formatDate(order.completed_at) }}
 	        </div>
