@@ -2,18 +2,6 @@
 /// <reference path="./network.js" />
 /// <reference path="./utxo.js" />
 
-/**
-   * @typedef {Object} PartialSignature
-   * @property {Uint8Array} publicKey - The signer's public key (as bytecode).
-   * @property {string} publicKeyRelativePath - BIP32 derivation path (e.g., "0/0").
-   * @property {number} publicKeyRedeemScriptSlot - Index of redeem script slot.
-   * @property {string} signer - Name or ID of the signer.
-   * @property {string} sigHash - Sighash flag (usually one byte as hex).
-   * @property {string} sigAlgo - Signature algorithm (e.g., "ecdsa").
-   * @property {number} sigSlot - Index of the signature slot.
-   * @property {string} sig - The signature itself (likely a hex string).
-   */
-
   /**
    * @typedef {Object} TokenData
    * @property {string} category - Token ID.
@@ -38,8 +26,9 @@
    * @typedef {Object} Input
    * @property {number} outpointIndex - Transaction ID of the input.
    * @property {Uint8Array|string} outpointTransactionHash - Output index.
+   * @property {Uint8Array|string} outpointTransaction - The transaction pointed to by the outpoint index and hash
    * @property {SourceOutput} sourceOutput - Details about the output being spent.
-   * @property {PartialSignature[]} [partialSignatures] - Signatures (if partially signed).
+   * @property {Object.<string, Uint8Array>} [signatures] - Mapping of public key (hex string) to signature value (Uint8Array) for partially signed inputs.
    * @property {string} [scriptSig] - The final script
    */
 
@@ -103,8 +92,6 @@ import {
   decodeTransactionBch,
   hash256,
   secp256k1,
-  sha256,
-  numberToBinInt32TwosCompliment
 } from 'bitauth-libauth-v3'
 
 import { getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
@@ -113,7 +100,7 @@ import { bip32ExtractRelativePath } from './utils.js'
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerNetworkProvider } from './network.js'
-import { encodeSigningSerializationBCH, generateSigningSerializationBCH, generateSigningSerializationComponentsBCH } from '@bitauth/libauth'
+import { generateSigningSerializationBCH } from '@bitauth/libauth'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -539,7 +526,7 @@ export const publicKeySigned = ({ publicKey, pst }) => {
  * @param {Context} params.context - Context object containing transaction, input index, and source outputs.
  * @returns {boolean} True if signature is valid, otherwise false.
  */
-export const verifyTransactionSignature = ({ signature, publicKey, redeemScript, context }) => {
+export const verifyTransactionInputSignature = ({ signature, publicKey, redeemScript, context }) => {
   const sigHashFlag = signature.slice(-1)[0]
   const signingSerialization = generateSigningSerializationBCH(context, { 
     coveredBytecode: redeemScript, 
@@ -552,6 +539,51 @@ export const verifyTransactionSignature = ({ signature, publicKey, redeemScript,
     return signatureVerificationResult
   }
   return secp256k1.verifySignatureDERLowS(signature.slice(0, signature.length - 1), publicKey, sigHash)
+}
+
+
+
+/**
+/**
+ * Verifies the signatures on all inputs of a transaction.
+ *
+ * @param {Object} params - The verification parameters.
+ * @param {string} params.transaction - Unsigned transaction hex string.
+ * @param {Array<Object>} params.inputs - Array of input objects, each optionally containing:
+ *   @param {Object.<string, Uint8Array>} [params.inputs.signatures] - Object mapping public key hex strings to their corresponding signatures.
+ *   @param {Uint8Array} [params.inputs.redeemScript] - The redeem script associated with each input.
+ *   @param {SourceOutput} sourceOutput
+ *
+ * @returns {Array<boolean>} Array of boolean values indicating the verification result for each signature in order processed.
+ */
+export const verifyTransactionInputsSignature = ({ transaction, inputs }) => {
+  const inputSignatureVerificationResults = []
+  for (const inputIndex in inputs) {
+    if (!inputs[inputIndex].redeemScript) continue 
+    const publicKeys = Object.keys(inputs[inputIndex].signatures || {})
+    if (publicKeys.length === 0) continue
+    publicKeys.forEach((publicKey) => {
+      const signature = inputs[inputIndex].signatures[publicKey]
+      const redeemScript = inputs[inputIndex].redeemScript 
+      if (!signature) return
+      if (!redeemScript) {
+        inputSignatureVerificationResults.push(false)
+        return
+      }
+      const sigVerifyResult = verifyTransactionInputSignature({ 
+        signature, 
+        publicKey: hexToBin(publicKey),
+        redeemScript,
+        context: {
+          inputIndex,
+          sourceOutputs: inputs.map((i) => i.sourceOutput),
+          transaction: decodeTransactionCommon(hexToBin(transaction))
+        }
+      })
+      inputSignatureVerificationResults.push(sigVerifyResult)
+    }) 
+  }
+  return inputSignatureVerificationResults.every(rOk => Boolean(rOk))
 }
 
 export class Pst {
@@ -919,34 +951,10 @@ export class Pst {
   }
 
   combine(psts) {
+
     const inputSignatureVerificationResults = []
     for (const pst of psts) {
-      for (const inputIndex in pst.inputs) {
-        if (!pst.inputs[inputIndex].redeemScript) continue 
-        const publicKeys = Object.keys(pst.inputs[inputIndex].signatures || {})
-        if (publicKeys.length === 0) continue
-        publicKeys.forEach((publicKey) => {
-          const signature = pst.inputs[inputIndex].signatures[publicKey]
-          const redeemScript = pst.inputs[inputIndex].redeemScript 
-          if (!redeemScript) return
-          const transactionBuilder = new MultisigTransactionBuilder()
-          transactionBuilder.addInputs(pst.inputs)
-          transactionBuilder.addOutputs(pst.outputs)
-          transactionBuilder.setLocktime(pst.locktime ?? 0)
-          transactionBuilder.setVersion(pst.version)
-          const sigVerifyResult = verifyTransactionSignature({ 
-            signature, 
-            publicKey: hexToBin(publicKey),
-            redeemScript,
-            context: {
-              inputIndex,
-              sourceOutputs: pst.inputs.map((i) => i.sourceOutput),
-              transaction: decodeTransactionCommon(hexToBin(transactionBuilder.build()))
-            }
-          })
-          inputSignatureVerificationResults.push(sigVerifyResult)
-        }) 
-      }
+      inputSignatureVerificationResults.push(verifyTransactionInputsSignature({transaction: pst.unsignedTransactionHex, inputs: pst.inputs }))
     }
 
     if (!inputSignatureVerificationResults.every(ok => Boolean(ok))) throw new Error('Signature Verification Failed')
@@ -1128,7 +1136,12 @@ export class Pst {
   }
 
   static import(base64Psbt) {
-    return Pst.fromPsbt(base64Psbt)
+    const instance =  Pst.fromPsbt(base64Psbt)
+    const signaturesOk = verifyTransactionInputsSignature({ transaction: instance.unsignedTransactionHex, inputs: instance.inputs })
+    if (!signaturesOk) {
+      throw new Error('Failed verifying signatures.')
+    }
+    return instance
   }
 
 
