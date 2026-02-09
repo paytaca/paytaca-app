@@ -31,9 +31,9 @@
 							<div class="md-font-size text-grad text-weight-bold">
 								PHP {{ getPromoSnapshotData(order.promo_snapshot, 'amount') }}
 							</div>
-							<div class="sm-font-size subtext">{{ order.bch_amount }} BCH</div>
+							<div class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ order.bch_amount }} BCH</div>
 
-							<div class="sm-font-size subtext">{{ formatDate(order.created_at, true) }}</div>
+							<div class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ formatDate(order.created_at, true) }}</div>
 						</div>					
 						<div class="col-4 text-right">
 							<div class="text-capitalize text-weight-bold subtext">{{ order.status }}</div>
@@ -55,7 +55,10 @@
             	<div class="row justify-between">
               	<div class="col">
                 	<!-- Promo Name -->
-                  <q-skeleton type="text" width="50%" height="20px" class="q-mb-xs" />
+                	<div class="row justify-between q-mb-xs">
+                  	<q-skeleton type="text" width="50%" height="20px" class="q-mb-xs" />
+                  	<q-skeleton type="text" width="20%" height="20px" class="q-mb-xs" />
+                  </div>                  
                   <!-- Amount -->
                   <q-skeleton type="text" width="30%" height="20px" class="q-mb-xs" />
                   <!-- BCH -->
