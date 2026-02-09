@@ -299,7 +299,7 @@ export default {
           address_count: resp.address_count
         }
         if (resp.is_favorite) tempFavoritesList.push(temp)
-        else tempRecordsList.push(temp)
+        tempRecordsList.push(temp)
       }
 
       this.favoritesList = [{
@@ -332,8 +332,6 @@ export default {
           data: groupedRecords[group].sort((a, b) => a.name.localeCompare(b.name))
         }))
 
-      console.log(this.favoritesList)
-      console.log(this.recordsList)
     } catch (error) {
       console.log(error)
     }
