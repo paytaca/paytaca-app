@@ -787,11 +787,13 @@ import { selectedCurrency } from 'src/store/market/getters';
         else {
           this.selectedCardToReplace = card
         }
-        console.log('Selected Card: ', this.selectedCardToReplace)
+        this.$q.notify({
+          message: `Selected card: ${this.selectedCardToReplace ? this.selectedCardToReplace.name : 'None'}`
+        })
       },
 
       isCardSelected (card) {
-        return this.selectedCardToReplace && this.selectedCardToReplace.id === card.id
+        return this.selectedCardToReplace && this.selectedCardToReplace.name === card.name
       },
 
       async handleCardReplacement () {
