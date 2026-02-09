@@ -153,9 +153,43 @@ export function getAssetDenomination (
   }, isInput)
 }
 
+/**
+ * Returns the standard number of fraction digits for a fiat currency code.
+ * Based on ISO 4217 "minor units" (common subset used by the app).
+ *
+ * Notes:
+ * - Most currencies use 2 decimals.
+ * - Some use 0 (e.g. JPY, KRW).
+ * - Some use 3 (e.g. OMR, BHD, KWD).
+ */
+export function getFiatCurrencyFractionDigits (currency) {
+  const code = String(currency || '').toUpperCase()
+
+  // 0-decimal currencies (minor unit = 0)
+  const zeroDecimal = new Set([
+    'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW',
+    'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
+  ])
+
+  // 3-decimal currencies (minor unit = 3)
+  const threeDecimal = new Set([
+    'BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'
+  ])
+
+  // A few ISO currencies use 4 decimals; keep for correctness when encountered.
+  const fourDecimal = new Set(['CLF', 'UYW'])
+
+  if (zeroDecimal.has(code)) return 0
+  if (threeDecimal.has(code)) return 3
+  if (fourDecimal.has(code)) return 4
+  return 2
+}
+
 export function parseFiatCurrency (amount, currency) {
-  const newAmount = formatWithLocale(amount, { min: 2, max: 2 })
-  return `${newAmount} ${currency.toUpperCase()}`
+  const code = String(currency || '').toUpperCase()
+  const digits = getFiatCurrencyFractionDigits(code)
+  const newAmount = formatWithLocale(amount, { min: digits, max: digits })
+  return `${newAmount} ${code}`
 }
 
 export function convertToBCH (denomination, amount) {

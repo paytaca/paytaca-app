@@ -655,6 +655,12 @@ export default {
 
   computed: {
     ...mapState('global', ['online']),
+    isMarketUpdating () {
+      return Boolean(this.$store.getters['market/isUpdatingPrices'])
+    },
+    pendingCurrencySymbol () {
+      return this.$store.getters['market/pendingCurrencySymbol']
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -912,6 +918,10 @@ export default {
       const bchPriceInFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
       
       if (!bchPriceInFiat || bchPriceInFiat === 0) {
+        // While currency is switching/refreshing, show a safe placeholder instead of stale values.
+        if (this.isMarketUpdating || (this.pendingCurrencySymbol && this.pendingCurrencySymbol === String(this.selectedMarketCurrency || '').toUpperCase())) {
+          return '—'
+        }
         return ''
       }
 
@@ -1652,7 +1662,13 @@ export default {
       }
 
       const assetPrice = this.$store.getters['market/getAssetPrice'](asset.id, this.selectedMarketCurrency)
-      if (!assetPrice) return ''
+      if (!assetPrice) {
+        // For the BCH card, prefer a placeholder while market data is refreshing.
+        if (asset.id === 'bch' && (this.isMarketUpdating || (this.pendingCurrencySymbol && this.pendingCurrencySymbol === String(this.selectedMarketCurrency || '').toUpperCase()))) {
+          return '—'
+        }
+        return ''
+      }
 
       let balance = Number(asset.balance || 0)
       const computedBalance = balance * Number(assetPrice)

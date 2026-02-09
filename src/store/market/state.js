@@ -18,6 +18,16 @@ export default function () {
     },
     usdRatesLastUpdate: {
       // <symbol>: <timestamp>
-    } 
+    },
+
+    // Track market data freshness to avoid showing stale/wrong conversions
+    assetPricesLastUpdate: {
+      // <assetId>: <timestamp>
+    },
+
+    // UI-friendly state during currency switches / refresh
+    isUpdatingPrices: false,
+    lastCurrencySwitchAt: 0,
+    pendingCurrencySymbol: null,
   }
 }
