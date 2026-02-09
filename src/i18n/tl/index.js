@@ -2430,6 +2430,7 @@ export default {
   below: "sa ibaba",
   idealValue: "perpektong halaga",
   or: "o",
+  paymentReceived: "Natanggap ko na ang bayad at gusto kong ilabas kahit walang proof of payment",
   toRedeemAllTokensInCirculation: "upang tubusin ang lahat ng mga token sa sirkulasyon",
   viewmore: "tingnan pa"
 }

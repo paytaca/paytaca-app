@@ -2430,6 +2430,7 @@ export default {
   below: "ci-dessous",
   idealValue: "valeur idéale",
   or: "ou",
+  paymentReceived: "J'ai reçu le paiement et je souhaite le libérer même sans preuve de paiement",
   toRedeemAllTokensInCirculation: "pour échanger tous les jetons en circulation",
   viewmore: "voir plus"
 }

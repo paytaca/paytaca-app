@@ -2430,6 +2430,7 @@ export default {
   below: "ниже",
   idealValue: "идеальное значение",
   or: "или",
+  paymentReceived: "Я получил платеж и хочу его выпустить даже без подтверждения оплаты",
   toRedeemAllTokensInCirculation: "выкупить все токены в обращении",
   viewmore: "посмотреть больше"
 }

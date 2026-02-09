@@ -2430,6 +2430,7 @@ export default {
   below: "下面",
   idealValue: "理想值",
   or: "或",
+  paymentReceived: "我已收到付款，即使没有付款证明也想放行",
   toRedeemAllTokensInCirculation: "赎回所有流通中的代币",
   viewmore: "查看更多"
 }

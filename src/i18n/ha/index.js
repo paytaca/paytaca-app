@@ -2430,6 +2430,7 @@ export default {
   below: "kasa",
   idealValue: "manufa darajar",
   or: "ko",
+  paymentReceived: "Na karɓi kuɗin kuma ina so in saki ko da ba tare da shaidar biyan kuɗi ba",
   toRedeemAllTokensInCirculation: "don fanshi duk alamu a wurare dabam dabam",
   viewmore: "duba more"
 }

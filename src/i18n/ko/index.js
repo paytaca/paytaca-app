@@ -2430,6 +2430,7 @@ export default {
   below: "아래",
   idealValue: "이상적인 가치",
   or: "또는",
+  paymentReceived: "대금을 받았는데, 대금 증빙 자료 없이도 출고하고 싶습니다.",
   toRedeemAllTokensInCirculation: "유통 중인 모든 토큰을 상환하기 위해",
   viewmore: "자세히 보기"
 }

@@ -763,6 +763,7 @@ const phrases = {
       SelectPaymentMethod: 'Select the payment method(s) you used to pay the seller',
       SendingBchPleaseWait: 'Sending BCH, please wait...',
       ConfirmPayment: 'Confirm Payment',
+      paymentReceived: 'I have received the payment and want to release even without proof of payment',
       SearchUser: 'Search User...',
       BuyBCH: 'Buy BCH',
       SellBCH: 'Sell BCH',
