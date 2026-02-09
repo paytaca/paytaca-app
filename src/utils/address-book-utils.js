@@ -7,7 +7,7 @@ import axios from 'axios'
 const WATCHTOWER_CASH_URL = 'http://localhost:8000/api'
 const ADDRESS_BOOK_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book/` })
 
-export async function getWalletAddressBook() {
+export async function getWalletAddressBook () {
   return await ADDRESS_BOOK_URL
     .get(`${getWalletHash()}/`)
     .then(resp => {
@@ -17,5 +17,18 @@ export async function getWalletAddressBook() {
     .catch(error => {
       console.error('An error occured while fetching wallet address book data: ', error)
       return []
+    })
+}
+
+export async function addNewRecord (data) {
+  return await ADDRESS_BOOK_URL
+    .post('', data)
+    .then(resp => {
+      if (resp.status === 201) return resp.data
+      else return -1
+    })
+    .catch(error => {
+      console.error('An error occured while creating new record: ', error)
+      return -1
     })
 }

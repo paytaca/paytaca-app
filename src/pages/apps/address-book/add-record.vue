@@ -171,10 +171,12 @@
 
 <script>
 import { Address } from 'watchtower-cash-js';
-import { ensureKeypair } from 'src/utils/memo-service';
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { encryptMemo } from 'src/utils/transaction-memos';
+import { addNewRecord } from 'src/utils/address-book-utils';
+import { ensureKeypair } from 'src/utils/memo-service';
 import { getWalletHash } from 'src/utils/wallet-storage';
+import { raiseNotifyError } from 'src/utils/send-page-utils';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
@@ -282,7 +284,6 @@ export default {
     },
 
     async saveRecord () {
-      console.log('saveRecord', this.recordName, this.addresses)
       const payload = { address_book: {}, addresses: [] }
 
       // encrypt the recordName
@@ -316,7 +317,17 @@ export default {
         }
       }
 
-      console.log('payload', payload)
+      const newRecordId = await addNewRecord(payload)
+      if (newRecordId > -1) {
+        this.$q.notify({
+          type: 'positive',
+          message: 'New record created successfully',
+          timeout: 3000
+        })
+        this.$router.push(`view-record/${newRecordId}/`)
+      } else {
+        raiseNotifyError('Failed to add new record. Try again later.')
+      }
     }
   }
 }
