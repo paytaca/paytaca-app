@@ -1508,6 +1508,7 @@ const phrases = {
       YourBCHBalance: 'Your BCH Balance',
       BestAvailablePrice: 'Best Available Price',
       SelectRound: 'Select Round',
+      BuyOnCauldron: 'Buy on Cauldron',
       FilterRounds: 'Filter Rounds',
       FilterByRound: 'Filter by Round',
       TotalCost: 'Total Cost',
