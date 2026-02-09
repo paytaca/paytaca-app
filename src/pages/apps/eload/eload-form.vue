@@ -60,7 +60,7 @@
 		</div>
 
 		<div v-else>
-			<div v-if="loading && step === 0" class="q-mx-lg q-pt-sm">
+			<div v-if="loading && step === 0" class="q-mx-lg q-pt-sm eload-skeleton">
 				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
 			</div>
 			<PromoSearch v-else class="q-px-lg" @select-promo="onPromoSearchSelect"/>
@@ -69,7 +69,7 @@
 			<!-- Selecting Service -->
 			<div  class="q-mt-sm" v-if="step === 0">
 				<div v-if="!loading">
-					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Purchase Type</div>
+					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Purchase Type</div>
 					<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>
 				</div>
 
@@ -1086,5 +1086,8 @@ export default {
 	white-space: normal;
 	word-break: break-all;
 	overflow-wrap: anywhere;
+}
+.eload-skeleton .br-10 {
+	border-radius: 10px;
 }
 </style>

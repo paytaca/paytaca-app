@@ -3,7 +3,7 @@
 	
 	<div class="">	
 		<div class="row justify-between q-px-lg">
-			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Orders</div>
+			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? '' : 'text-grey-8'">Orders</div>
 			<FilterBtn v-if="!loading" :filters="filters" :services="services" @submit-data="filterOrder"/>	
 			<q-btn v-else flat round unelevated ripple dense size="md" icon="filter_list" class="button button-text-primary" padding="none" disable/>
 		</div>
@@ -31,12 +31,12 @@
 							<div class="md-font-size text-grad text-weight-bold">
 								PHP {{ getPromoSnapshotData(order.promo_snapshot, 'amount') }}
 							</div>
-							<div class="sm-font-size subtext">{{ order.bch_amount }} BCH</div>
+							<div class="sm-font-size">{{ order.bch_amount }} BCH</div>
 
-							<div class="sm-font-size subtext">{{ formatDate(order.created_at, true) }}</div>
+							<div class="sm-font-size">{{ formatDate(order.created_at, true) }}</div>
 						</div>					
 						<div class="col-4 text-right">
-							<div class="md-font-size text-capitalize text-weight-bold subtext">{{ order.status }}</div>
+							<div class="text-capitalize text-weight-bold subtext">{{ order.status }}</div>
 						</div>
 					</div>					
 
