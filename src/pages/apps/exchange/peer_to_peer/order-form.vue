@@ -137,7 +137,7 @@
                     {{ amountError }}
                   </div>
                   <div v-else class="col text-left text-weight-bold subtext sm-font-size q-pl-sm">
-                    &asymp; {{ !byFiat ? ad?.fiat_currency?.symbol : '' }} {{ equivalentAmount }} {{ !byFiat ? '' : 'BCH' }}
+                    &asymp; {{ equivalentAmountDisplay }}
                   </div>
                   <div class="justify-end q-gutter-sm q-pr-sm">
                     <q-btn
@@ -295,6 +295,7 @@ import { WebSocketManager } from 'src/exchange/websocket/manager'
 import { fetchUser } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
 import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
+import { getFiatCurrencyFractionDigits, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   setup () {
@@ -402,11 +403,15 @@ export default {
       let amount = this.amount
       if (amount === '' || isNaN(amount)) return 0
       if (!this.byFiat) {
-        amount = Number((amount) * parseFloat(this.ad.price)).toFixed(2)
+        amount = Number(amount) * parseFloat(this.ad.price)
       } else {
-        amount = Number(parseFloat(amount) / parseFloat(this.ad.price)).toFixed(8)
+        amount = Number(amount) / parseFloat(this.ad.price)
       }
       return Number(amount)
+    },
+    equivalentAmountDisplay () {
+      if (this.byFiat) return `${this.equivalentAmount} BCH`
+      return parseFiatCurrency(this.equivalentAmount, this.ad?.fiat_currency?.symbol)
     },
     balance () {
       return this.$store.getters['assets/getAssets'][0].balance
@@ -466,6 +471,9 @@ export default {
     getDarkModeClass,
     formatCurrency,
     satoshiToBch,
+    fiatFractionDigits () {
+      return getFiatCurrencyFractionDigits(this.ad?.fiat_currency?.symbol)
+    },
     onRelogged () {
       // Reset auth-related guards after a successful login
       this.arbiterAuthRequired = false
@@ -806,10 +814,10 @@ export default {
       return Number((amount / price).toFixed(8))
     },
     bchToFiat(amount, price) {
-      return Number((amount * price).toFixed(2))
+      return Number((amount * price).toFixed(this.fiatFractionDigits()))
     },
     formatDecimals(type = 'fiat', value) {
-      if (type === 'fiat') return Number(Number(value).toFixed(2))
+      if (type === 'fiat') return Number(Number(value).toFixed(this.fiatFractionDigits()))
       if (type === 'bch') return Number(Number(value).toFixed(8))
     },
     isZeroTradeLimits () {
@@ -874,9 +882,9 @@ export default {
         }
       }
 
-      amount = this.byFiat ? this.roundOffToFloor(amount, 100) : amount.toFixed(8)
+      amount = this.byFiat ? this.roundOffToFloor(amount, 10 ** this.fiatFractionDigits()) : amount.toFixed(8)
 
-      const amountInFiat = this.byFiat ? amount : Number((amount * this.ad?.price).toFixed(2))
+      const amountInFiat = this.byFiat ? amount : Number((amount * this.ad?.price).toFixed(this.fiatFractionDigits()))
       const amountInBch = this.byFiat ? Number((amount / this.ad?.price).toFixed(8)) : amount
       let amountLessThanMin = false
       let amountGreaterThanMax = false
@@ -888,9 +896,9 @@ export default {
         amountGreaterThanMax = amountInBch > tradeCeiling
       }
 
-      const tradeFloorInFiat = tradeLimitsInFiat ? tradeFloor : Number((tradeFloor * this.ad.price).toFixed(2))
+      const tradeFloorInFiat = tradeLimitsInFiat ? tradeFloor : Number((tradeFloor * this.ad.price).toFixed(this.fiatFractionDigits()))
       const tradeFloorInBch = !tradeLimitsInFiat ? tradeFloor : Number((tradeFloor / this.ad.price).toFixed(8))
-      const tradeCeilInFiat = tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling * this.ad.price).toFixed(2))
+      const tradeCeilInFiat = tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling * this.ad.price).toFixed(this.fiatFractionDigits()))
       const tradeCeilInBch = !tradeLimitsInFiat ? tradeCeiling : Number((tradeCeiling / this.ad.price).toFixed(8))
 
       if (amountLessThanMin) {
@@ -988,7 +996,7 @@ export default {
       this.websockets.marketPrice.subscribeToMessages((message) => {
         const price = parseFloat(message.price)
         if (price) {
-          this.marketPrice = price.toFixed(2)
+          this.marketPrice = price
           this.fetchAd()
         }
       })
