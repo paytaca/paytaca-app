@@ -266,8 +266,14 @@ export async function fetchOrders (data) {
 
 
 	} catch (error) {
+		// 403 - token expired
+		if (error.response && error.response.status === 403) {
+			await authUser()
+			await fetchOrders(data)
+		}
+
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn'
-		console.error('[fetchOrders] Error:', errorMessage)
+		console.error('[fetchOrders] Error:', errorMessage)		
 
 		return {
 			success: false,
@@ -309,6 +315,12 @@ export async function fetchOrderDetails (pk) {
 		}
 
 	} catch (error) {
+		// 403 - token expired
+		if (error.response && error.response.status === 403) {
+			await authUser()
+			await fetchOrders(data)
+		}
+
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn details'
 		console.error('[fetchOrderDetails] Error:', errorMessage)
 
