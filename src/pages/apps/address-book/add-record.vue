@@ -21,8 +21,8 @@
       <!-- Action Buttons Header -->
       <div class="action-header q-mb-lg" id="action-buttons">
         <div class="row justify-between items-center q-py-sm">
-          <span class="text-h6 text-weight-bold col-6">
-            {{ 'Create New Record'.toLocaleUpperCase() }}
+          <span class="text-h6 text-weight-bold col-7">
+            {{ 'Add New Record'.toLocaleUpperCase() }}
           </span>
 
           <div class="row justify-end items-center q-gutter-sm col-auto">
@@ -44,8 +44,8 @@
               label="Save"
               color="primary"
               unelevated
-              icon-right="mdi-check"
               padding="sm md"
+              @click="saveRecord"
             />
           </div>
         </div>
@@ -53,7 +53,7 @@
 
       <!-- Name Input Card -->
       <q-card flat bordered class="form-card name-card q-my-md">
-        <q-card-section class="q-py-sm">
+        <q-card-section class="q-pt-md q-pb-sm">
           <div class="text-subtitle2 text-weight-medium q-mb-sm">Record Name</div>
           <q-input
             v-model="recordName"
@@ -63,6 +63,9 @@
             dense
             :dark="darkMode"
             placeholder="Enter contact name"
+            :rules="[
+              val => Boolean(val) || 'Name is required',
+            ]"
           />
         </q-card-section>
       </q-card>
@@ -167,7 +170,11 @@
 </template>
 
 <script>
+import { Address } from 'watchtower-cash-js';
+import { ensureKeypair } from 'src/utils/memo-service';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { encryptMemo } from 'src/utils/transaction-memos';
+import { getWalletHash } from 'src/utils/wallet-storage';
 
 import HeaderNav from 'src/components/header-nav.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
@@ -272,6 +279,44 @@ export default {
       })
 
       this.$nextTick(() => this.scrollAddressesToBottom())
+    },
+
+    async saveRecord () {
+      console.log('saveRecord', this.recordName, this.addresses)
+      const payload = { address_book: {}, addresses: [] }
+
+      // encrypt the recordName
+      let encryptedRecordName
+      try {
+        const keypair = await ensureKeypair()
+        encryptedRecordName = await encryptMemo(keypair.privkey, keypair.pubkey, this.recordName)
+        if (!encryptedRecordName) {
+          throw new Error('Failed to encrypt record name')
+        }
+        payload.address_book.name = encryptedRecordName
+        payload.address_book.is_favorite = this.favorite
+        payload.address_book.wallet_hash = getWalletHash()
+      } catch (error) {
+        console.error('Error ensuring keypair or encrypting record name:', error)
+        this.$q.notify({
+          type: 'negative',
+          message: 'Failed to encrypt record name',
+          timeout: 2000,
+        })
+        return
+      }
+
+      // parse address type of addresses
+      for (const address of this.addresses) {
+        const addressObj = new Address(address.address)
+        if (addressObj.isTokenAddress()) {
+          payload.addresses.push({ address: address.address, address_type: 'ct' })
+        } else {
+          payload.addresses.push({ address: address.address, address_type: 'bch' })
+        }
+      }
+
+      console.log('payload', payload)
     }
   }
 }
