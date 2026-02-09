@@ -94,16 +94,6 @@
               >
                 <q-tooltip>Delete contact</q-tooltip>
               </q-btn>
-              <q-btn
-                round
-                outline
-                icon="share"
-                color="primary"
-                @click="handleShare"
-                aria-label="Share contact"
-              >
-                <q-tooltip>Share contact</q-tooltip>
-              </q-btn>
             </div>
           </q-card>
 
@@ -119,30 +109,32 @@
                   v-if="addressesList.length > 0"
                   color="primary"
                   :label="addressesList.length"
-                  class="q-ml-sm"
+                  class="q-ml-sm text-weight-bold"
                 />
               </span>
-              <q-btn
-                v-if="addressesList.length > 0"
-                flat
-                dense
-                icon="search"
-                color="primary"
-                @click="showSearch = !showSearch"
-                aria-label="Search addresses"
-              >
-                <q-tooltip>Search addresses</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                dense
-                icon="add"
-                color="primary"
-                @click="handleAddAddress"
-                aria-label="Add address"
-              >
-                <q-tooltip>Add address</q-tooltip>
-              </q-btn>
+              <div class="row items-center q-gutter-x-sm">
+                <q-btn
+                  v-if="addressesList.length > 0"
+                  flat
+                  dense
+                  icon="search"
+                  color="primary"
+                  @click="showSearch = !showSearch"
+                  aria-label="Search addresses"
+                >
+                  <q-tooltip>Search addresses</q-tooltip>
+                </q-btn>
+                <q-btn
+                  flat
+                  dense
+                  icon="add"
+                  color="primary"
+                  @click="handleAddAddress"
+                  aria-label="Add address"
+                >
+                  <q-tooltip>Add address</q-tooltip>
+                </q-btn>
+              </div>
             </div>
 
             <!-- Search input -->
@@ -179,19 +171,19 @@
                         style="cursor: pointer;"
                       >
                         {{ formatAddress(address.address) }}
+                        <q-btn
+                          flat
+                          dense
+                          round
+                          size="xs"
+                          icon="content_copy"
+                          color="primary"
+                          @click.stop="copyToClipboard(address.address, index)"
+                          aria-label="Copy address"
+                        >
+                          <q-tooltip>Copy address</q-tooltip>
+                        </q-btn>
                       </q-item-label>
-                      <q-btn
-                        flat
-                        dense
-                        round
-                        size="xs"
-                        icon="content_copy"
-                        color="primary"
-                        @click.stop="copyToClipboard(address.address, index)"
-                        aria-label="Copy address"
-                      >
-                        <q-tooltip>Copy address</q-tooltip>
-                      </q-btn>
                     </div>
                     <q-item-label caption class="q-mt-xs">
                       <q-chip
@@ -199,6 +191,7 @@
                         text-color="white"
                         size="sm"
                         :icon="getAddressTypeIcon(address.address_type)"
+                        class="text-weight-bold"
                       >
                         {{ formatAddressType(address.address_type) }}
                       </q-chip>
@@ -215,6 +208,7 @@
                       aria-label="Address actions"
                     >
                       <q-menu
+                        class="text-bow"
                         :class="getDarkModeClass(darkMode)"
                         anchor="bottom right"
                         self="top right"
@@ -244,18 +238,6 @@
                               <q-item-label>View QR Code</q-item-label>
                             </q-item-section>
                           </q-item>
-                          <q-item
-                            clickable
-                            v-close-popup
-                            @click="handleShareAddress(address.address)"
-                          >
-                            <q-item-section avatar>
-                              <q-icon name="share" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label>Share address</q-item-label>
-                            </q-item-section>
-                          </q-item>
                           <q-separator />
                           <q-item
                             clickable
@@ -263,10 +245,10 @@
                             @click="handleRemoveAddress(index)"
                           >
                             <q-item-section avatar>
-                              <q-icon name="delete" color="negative" />
+                              <q-icon name="delete" color="red-5" />
                             </q-item-section>
                             <q-item-section>
-                              <q-item-label class="text-negative">Remove from contact</q-item-label>
+                              <q-item-label class="text-red-5">Remove from contact</q-item-label>
                             </q-item-section>
                           </q-item>
                         </q-list>
@@ -339,7 +321,7 @@
               text-color="white"
               size="sm"
               :icon="getAddressTypeIcon(selectedAddressType)"
-              class="q-mb-sm"
+              class="q-mb-sm text-weight-bold"
             >
               {{ formatAddressType(selectedAddressType) }}
             </q-chip>
@@ -432,13 +414,13 @@ export default {
     formatAddressType(type) {
       const typeMap = {
         'bch': 'BCH',
-        'ct': 'CT (CashToken)'
+        'ct': 'CT'
       }
       return typeMap[type.toLowerCase()] || type.toUpperCase()
     },
     getAddressTypeColor(type) {
       const colorMap = {
-        'bch': 'orange-7',
+        'bch': 'green-7',
         'ct': 'teal-6'
       }
       return colorMap[type.toLowerCase()] || 'grey-7'
@@ -520,31 +502,6 @@ export default {
         this.$router.push('/apps/address-book/')
       })
     },
-    handleShare() {
-      // Share entire contact
-      const addressLines = this.addressesList.map(a => {
-        const type = this.formatAddressType(a.address_type)
-        return `${type}: ${a.address}`
-      })
-      const contactText = `${this.record.name}\n\nAddresses:\n${addressLines.join('\n')}`
-      
-      if (navigator.share) {
-        navigator.share({
-          title: this.record.name,
-          text: contactText
-        }).catch(() => {
-          this.copyToClipboard(contactText)
-        })
-      } else {
-        this.copyToClipboard(contactText)
-        this.$q.notify({
-          message: 'Contact details copied to clipboard',
-          color: 'positive',
-          position: 'top',
-          timeout: 2000
-        })
-      }
-    },
     handleAddAddress() {
       // TODO: Navigate to add address page or open dialog
       const recordId = this.$route.params.id
@@ -552,30 +509,26 @@ export default {
     },
     handleSend(address, type) {
       // Navigate to send page with pre-filled address
-      this.$router.push({
-        name: 'transaction-send',
-        query: {
-          address: address
-        }
-      })
+      const query = { network: 'BCH', address }
+
+      if (type === 'ct') {
+        this.$router.push({
+          name: 'transaction-send-select-asset',
+          query
+        })
+      } else {
+        query.assetId = 'bch'
+        this.$router.push({
+          name: 'transaction-send',
+          query
+        })
+      }
     },
     showQrCode(addressObj) {
       this.selectedAddressForQr = addressObj.address
       this.selectedAddressType = addressObj.address_type
       this.qrCodeId = Date.now() // Unique ID for QR code
       this.showQrDialog = true
-    },
-    handleShareAddress(address) {
-      if (navigator.share) {
-        navigator.share({
-          title: 'Bitcoin Cash Address',
-          text: address
-        }).catch(() => {
-          this.copyToClipboard(address)
-        })
-      } else {
-        this.copyToClipboard(address)
-      }
     },
     handleRemoveAddress(index) {
       this.$q.dialog({
