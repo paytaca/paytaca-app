@@ -1,8 +1,7 @@
 import AuthNftService, { encodeMerchantHash } from './auth-nft';
-import { defaultSpendLimitSats, minTokenValue } from './constants';
+import { defaultSpendLimitSats } from './constants';
 import { TapToPay } from './tap-to-pay';
 import { backend } from './backend';
-import { backend as watchtowerBackend } from 'src/exchange/backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
 import { signPreimages } from './utils';
@@ -117,12 +116,12 @@ export class Card {
    * Complete card creation workflow
    * @returns {Promise<Card>}
    */
-  async create() {
-    console.log('Starting complete card creation workflow...');
+  async create(alias) {
+    console.log('Creating card ', alias);
     
     try {
+      const cardData = await this._createCardEntry(alias);
       const genesisResult = await this._mintGenesisToken();
-      const cardData = await this._createCardEntry();
       await this._ensureCardUserAuthenticated();
 
       this.raw = await this._saveGenesis(cardData.id, genesisResult);
@@ -148,11 +147,12 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _createCardEntry() {
+  async _createCardEntry(alias) {
     console.log('Creating card entry...');
     this._assertWallet();
 
     const data = {
+      alias: alias || "",
       wallet_hash: this.wallet.walletHash,
       public_key: this.wallet.pubkey(),
       address_path: this.wallet.addressPath()
@@ -210,11 +210,6 @@ export class Card {
     const { merchant_auth_nft } = await this.getAuthNfts()
     return merchant_auth_nft
   }
-
-  async getMerchantList() {
-    const response = await watchtowerBackend.get('/paytacapos/merchants/');
-    return response.data;
-  } 
 
   /**
    * Spends {amountSats} satoshis from the card to a specified address.

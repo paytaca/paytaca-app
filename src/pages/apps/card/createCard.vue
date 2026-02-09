@@ -42,7 +42,7 @@
               <q-card bordered flat class="subcard-item fixed-card-size bg-white column justify-between">
                 <!-- Card header: Name + Icons -->
                 <q-card-section class="row items-center justify-between q-pa-sm">
-                  <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 100px;">{{ card.name }}</div>
+                  <div class="text-weight-bold text-subtitle1 text-black ellipsis" style="max-width: 100px;">{{ card.raw.alias }}</div>
                   
                   <q-icon
                     name="circle"
@@ -121,9 +121,9 @@
                 <!-- Card Info -->
                  <q-card-section>
                     <div class="text-caption text-grey">
-                      Balance:
-                      <span class="text-h5 text-black"> {{ card.balance }} BCH</span>
+                      Balance: <span class="text-black"> {{ Number(card.raw.bch_balance.balance) / 1e8 }} BCH</span>
                     </div>
+                    <div class="text-black"> {{ card.raw.ct_balance.utxos.length }} NFTs</div>
 
                  </q-card-section>
 
@@ -636,6 +636,7 @@ import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
 import { loadCardUser } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
+import { getMerchantList } from 'src/services/card/merchants';
 
   export default {
     
@@ -701,26 +702,7 @@ import { selectedCurrency } from 'src/store/market/getters';
       })
       
       try {
-
-        const card = await this.getCard()
-        console.log('Card:', card)
-        console.log('Card address:', card.raw.cash_address)
-        await card.getAuthNfts().then(authNfts => {
-          console.log('Card Auth NFTs:', authNfts)
-        })
-
-        await card.getUtxos().then(utxos => {
-          console.log('Card UTXOs:', utxos)
-        })
-
-        // this.burnMerchantAuthToken()
-        // this.burnGlobalAuthToken()
-        // await this.mutateGlobalAuthToken()
-        // await this.mintMerchantAuthToken()
-        // await this.mutateMerchantAuthToken()
-        await this.spend(1000)
-        // await this.sweep()
-
+        await this.getCards()
       } catch (error) {
         console.error('Error during mounted lifecycle:', error.response || error)
       }
@@ -754,43 +736,36 @@ import { selectedCurrency } from 'src/store/market/getters';
     },
 
     methods: {
-      async getCardUser() {
-        const cardUser = await loadCardUser()
-        return cardUser
-      },
+      loadCardUser,
+      getMerchantList,
 
-      async getCard() {
-        const cardUser = await this.getCardUser()
+      /**
+       * Fetch cards for the current user and update local state
+       */
+      async getCards() {
+        const cardUser = await this.loadCardUser()
         const cards = await cardUser.fetchCards()
-        if (cards.length === 0) {
-          console.warn('No cards found for the user.')
-          return
-        }
-        const card = cards[cards.length - 1] // get the last card for testing
-        return card
+        this.subCards = cards
+        console.log('Fetched Cards:', cards)
+        return cards
       },
 
-      async getMerchant() {
-        // Fetching merchant list and selecting one for testing
-        const card = await this.getCard()
-        const merchants = await card.getMerchantList()
-        if (merchants.results.length === 0) {
-          console.warn('No merchants found in the merchant list.')
+      /**
+       * 
+       * Mutate Global Auth Token
+       * @param {Card} card - Card instance
+       * @param {Object} mutation - mutation parameters
+       * @param mutation.authorize {boolean} - true to authorize, false to deauthorize
+       * @param mutation.spendLimitSats {number} - (optional) spend limit in satoshis
+       * @param mutation.broadcast {boolean} - (optional) whether to broadcast the transaction, default: true
+       */
+      async mutateGlobalAuthToken(card, mutation) {
+        if (!mutation) {
+          console.error('Mutation parameter is required')
           return
         }
-        const selectedMerchant = merchants.results[0] // for testing, pick the first merchant
-        console.log('Selected Merchant:', selectedMerchant)
-        return selectedMerchant
-      },
-
-      async mutateGlobalAuthToken() {
         try {
-          const card = await this.getCard()
-          const result = await card.mutateGlobalAuthToken({
-            authorize: true,
-            spendLimitSats: 1000, // Optional: can omit if not changing
-            broadcast: true 
-          })
+          const result = await card.mutateGlobalAuthToken(mutation)
           console.log('Mutate Global Auth Token result:', result)
         } catch(error) {
           const satsNeeded = this.parseSatoshisNeeded(error.message)
@@ -802,19 +777,18 @@ import { selectedCurrency } from 'src/store/market/getters';
         }
       },
 
-      async mutateMerchantAuthToken() {
+      /**
+       * Mutate Merchant Auth Token
+       * @param card 
+       * @param mutation 
+       * @param mutation.authorize {boolean} - true to authorize, false to deauthorize
+       * @param mutation.merchant {Object} - merchant details {id, pubkey}
+       * @param mutation.spendLimitSats {number} - (optional) spend limit in satoshis
+       * @param mutation.broadcast {boolean} - (optional) whether to broadcast the transaction, default: true
+       */
+      async mutateMerchantAuthToken(card, mutation) {
         try {
-          const card = await this.getCard()
-          const selectedMerchant = await this.getMerchant()
-          const result = await card.mutateMerchantAuthToken({
-            authorize: false,
-            merchant: {
-              id: selectedMerchant.id,
-              pubkey: selectedMerchant.pubkey
-            },
-            spendLimitSats: 1000, // Optional: can omit if not changing
-            broadcast: true 
-          })
+          const result = await card.mutateMerchantAuthToken(mutation)
           console.log('Mutate Merchant Auth Token result:', result)
         } catch(error) {
           const satsNeeded = this.parseSatoshisNeeded(error.message)
@@ -826,14 +800,17 @@ import { selectedCurrency } from 'src/store/market/getters';
         }
       },
 
-      async mintMerchantAuthToken() {
-        const card = await this.getCard()
-        const selectedMerchant = await this.getMerchant()
+      /**
+       * Mint Merchant Auth Token
+       * @param {Card} card - Card instance
+       * @param {Object} merchant - merchant details {id, pubkey}
+       */
+      async mintMerchantAuthToken(card, merchant) {
         const mintParams = {
           authorized: true,
           merchant: {
-            id: selectedMerchant.id,
-            pubkey: selectedMerchant.pubkey
+            id: merchant.id,
+            pubkey: merchant.pubkey
           }
         }
         const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
@@ -841,6 +818,10 @@ import { selectedCurrency } from 'src/store/market/getters';
         console.log('Issue Result:', issueResult)
       },
 
+      /**
+       * Delete this later, this function belongs in the paytaca POS app.
+       * This is here only for testing purposes
+       */
       async spend(amountSats = 1000) {
         const card = await this.getCard()
         const toAddress = card.wallet.address()
@@ -853,12 +834,11 @@ import { selectedCurrency } from 'src/store/market/getters';
         console.log('spendResult:', spendResult)
       },
 
-      async sweep() {
-        const card = await this.getCard()
-        await card.getUtxos().then(utxos => {
-          console.log('Card UTXOs (before sweep):', utxos)
-        })
-
+      /**
+       * Sweep UTXOs from card back to wallet
+       * @param card {Card} - Card instance
+       */
+      async sweep(card) {
         const result = await card.sweep()
         console.log('sweep result:', result)
 
@@ -867,39 +847,39 @@ import { selectedCurrency } from 'src/store/market/getters';
         })
       },
 
-      async burnMerchantAuthToken({ retryOnFundFailure = true } = {}) {
+      /**
+       * Burn a Merchant Auth Token to revoke authorization for a specific merchant
+       * @param card {Card} - Card instance
+       * @param merchant {Object} - merchant details {id, pubkey}
+       * @param opts {Object} - options {retryOnFundFailure: boolean}
+       */
+      async burnMerchantAuthToken(card, merchant, opts = { retryOnFundFailure: true }) {
         try {
-          const cardUser = await this.getCardUser()
-          const card = await this.getCard()
-          const selectedMerchant = await this.getMerchant()
+          const cardUser = await this.loadCardUser()
           const tokenId = card.raw.category
-          const result = await cardUser.burnMerchantAuthToken(tokenId, selectedMerchant.id, selectedMerchant.pubkey)
-          console.log('Burn Tokens result:', result)
-
-          await cardUser.fetchAuthTokens(tokenId).then(authTokens => {
-            console.log('[CardUser] Auth Tokens:', authTokens)
-          })
+          const result = await cardUser.burnMerchantAuthToken(tokenId, merchant.id, merchant.pubkey)
+          return result
         } catch (error) {
           console.error('Error burning merchant auth token:', error)
-          if (retryOnFundFailure)
+          if (opts?.retryOnFundFailure)
             await this.createFundingUtxoAndCallback(error, this.burnMerchantAuthToken)
         }
       },
 
-      async burnGlobalAuthToken( { retryOnFundFailure = true } = {}) {
+      /**
+       * Burn a Global Auth Token to revoke all authorizations
+       * @param card {Card} - Card instance
+       * @param opts {Object} - options {retryOnFundFailure: boolean}
+       */
+      async burnGlobalAuthToken(card, opts = { retryOnFundFailure: true }) {
         try {
-          const cardUser = await this.getCardUser()
-          const card = await this.getCard()
+          const cardUser = await this.loadCardUser()
           const tokenId = card.raw.category
           const result = await cardUser.burnGlobalAuthToken(tokenId)
-          console.log('Burn Global Auth Token result:', result)
-
-          await cardUser.fetchAuthTokens(tokenId).then(authTokens => {
-            console.log('[CardUser] Auth Tokens:', authTokens)
-          })
+          return result
         } catch (error) {
           console.error('Error burning global auth token:', error)
-          if (retryOnFundFailure)
+          if (opts?.retryOnFundFailure)
             await this.createFundingUtxoAndCallback(error, this.burnGlobalAuthToken)
         }
       },
@@ -909,7 +889,7 @@ import { selectedCurrency } from 'src/store/market/getters';
         const satsNeeded = this.parseSatoshisNeeded(error.message)
         console.log('Satoshis needed for operation:', satsNeeded)
         if (satsNeeded !== null) {
-          const cardUser = await this.getCardUser()
+          const cardUser = await this.loadCardUser()
           const result = await cardUser.wallet.createFundingUtxo(satsNeeded)
           console.log('Funding UTXO created:', result)
           console.log('Retrying operation...')
@@ -1024,8 +1004,6 @@ import { selectedCurrency } from 'src/store/market/getters';
           // initializing the card helper
           const card = await Card.createInitialized()
           const estimatedFees = card.estimateCreateCardSatsRequirement()
-          console.log('Estimated total sats needed for minting:', estimatedFees)
-          console.log('Wallet balance (sats):', this.walletBalance * 1e8)
           const balanceSats = BigInt(Math.floor(this.walletBalance * 1e8))
           if (balanceSats < estimatedFees) {
             this.$q.notify({
@@ -1035,62 +1013,14 @@ import { selectedCurrency } from 'src/store/market/getters';
             return
           }
 
-          // execute workflow from card.js
-          await card.create()
-          // const tokenId = card.tokenId
+          await card.create(this.newCardName)
 
-          // // load user from card/auth
-          // const user = await loadCardUser()
-          // const cards = await user.fetchCards()
-          // console.log('Card User: ', user)
-
-          // find the specific card we just created in the list
-          // const mintedCard = cards.find(c => c.tokenId === tokenId)
-          // let actualBalance = 0
-          // let contractAddress = 'Pending'
-
-          // if (mintedCard) {
-          //   // fetch real balance
-          //   const tokenUtxos = await mintedCard.getTokenUtxos()
-          //   // calculate sum of token amounts in Utxos
-          //   actualBalance = tokenUtxos.reduce((total, utxo) => {
-          //     return total + Number(utxo.token.amount)
-          //   }, 0)
-
-          //   const contract = await mintedCard.getContract()
-          //   contractAddress = contract.address
-          // }
-
-          // print and fetch info for each card
-          // for(const cardItem of cards){
-          //   const tokenUtxos = await cardItem.getTokenUtxos();
-          //   const bchUtxos = await cardItem.getBchUtxos();
-          //   const contract = await cardItem.getContract()
-
-          //   console.log('=====Card Details=====')
-          //   console.log('Card: ', cardItem);
-          //   console.log('Card ID: ', cardItem.tokenId)
-          //   console.log('Card tokenUtxos:', tokenUtxos);
-          //   console.log('Card bchUtxos:', bchUtxos);
-          //   console.log('Card contract:', contract);
-          // }
-
-          // Create new subcard object
-          const newCard = {
-            // id: result.tokenId,
-            name: this.newCardName,
-            // contractAddress: contractAddress,
-            // balance: actualBalance,
-            status: 'Active' // by default
-          }
-
-          // Update UI state ; Insert before the create card button
-          this.subCards.push(newCard);
           this.createCardDialog = false; // close dialog
           this.$q.notify({
-            message: `Card "${newCard.name}" created successfully!`,
+            message: 'Card created successfully!',
             color: 'positive',
           });
+          this.getCards() // refresh cards to get real data from blockchain
         } catch (error) {
           console.error('Final Workflow Error: ', error)
           this.$q.notify({
