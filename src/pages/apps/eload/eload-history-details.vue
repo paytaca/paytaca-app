@@ -11,7 +11,7 @@
 				{{ promoSnapshot.name }}
 			</div>
 
-			<div class=" q-py-sm">				
+			<div class="q-gutter-sm q-py-sm">				
 				<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot.service" />
 		    	<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot.service_group" />
 			</div>
@@ -41,7 +41,7 @@
         </div>
 
         <div v-if="order.completed_at">
-        	<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;{{ $t('DateAndTime', {}, 'Date & Time') }}</div>
+        	<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;Completed at</div>
 	        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
 	          {{ formatDate(order.completed_at) }}
 	        </div>
