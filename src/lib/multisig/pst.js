@@ -541,8 +541,6 @@ export const verifyTransactionInputSignature = ({ signature, publicKey, redeemSc
   return secp256k1.verifySignatureDERLowS(signature.slice(0, signature.length - 1), publicKey, sigHash)
 }
 
-
-
 /**
 /**
  * Verifies the signatures on all inputs of a transaction.
@@ -552,7 +550,7 @@ export const verifyTransactionInputSignature = ({ signature, publicKey, redeemSc
  * @param {Array<Object>} params.inputs - Array of input objects, each optionally containing:
  *   @param {Object.<string, Uint8Array>} [params.inputs.signatures] - Object mapping public key hex strings to their corresponding signatures.
  *   @param {Uint8Array} [params.inputs.redeemScript] - The redeem script associated with each input.
- *   @param {SourceOutput} sourceOutput
+ *   @param {SourceOutput} params.inputs.sourceOutput
  *
  * @returns {Array<boolean>} Array of boolean values indicating the verification result for each signature in order processed.
  */
@@ -726,7 +724,8 @@ export class Pst {
         continue
       }
       
-      const template = createTemplate({ m: this.wallet.m, signers: sortedPublicKeys.map(p => ({ publicKey: p })) })
+      const m = extractMValue(correspondingInput.redeemScript)
+      const template = createTemplate({ m, signers: sortedPublicKeys.map(p => ({ publicKey: p })) })
       const compiler = getCompiler({ template })
       const bip32RelativeDerivationPath = bip32ExtractRelativePath(
         correspondingInput.bip32Derivation[Object.keys(correspondingInput.bip32Derivation)[0]].path
