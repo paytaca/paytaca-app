@@ -2430,6 +2430,7 @@ export default {
   below: "di bawah",
   idealValue: "nilai ideal",
   or: "atau",
+  paymentReceived: "Saya sudah menerima pembayarannya dan ingin melepaskannya meski tanpa bukti pembayaran",
   toRedeemAllTokensInCirculation: "untuk menebus semua token yang beredar",
   viewmore: "lihat lebih banyak"
 }

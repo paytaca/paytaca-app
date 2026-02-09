@@ -2430,6 +2430,7 @@ export default {
   below: "hieronder",
   idealValue: "ideale waarde",
   or: "of",
+  paymentReceived: "Ek het die betaling ontvang en wil vrystel selfs sonder bewys van betaling",
   toRedeemAllTokensInCirculation: "om alle tekens in omloop te los",
   viewmore: "sien meer"
 }

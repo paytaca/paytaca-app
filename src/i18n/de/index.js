@@ -2430,6 +2430,7 @@ export default {
   below: "unten",
   idealValue: "idealer Wert",
   or: "oder",
+  paymentReceived: "Ich habe die Zahlung erhalten und möchte sie auch ohne Zahlungsnachweis freigeben",
   toRedeemAllTokensInCirculation: "alle im Umlauf befindlichen Token einzulösen",
   viewmore: "mehr anzeigen"
 }

@@ -2427,6 +2427,7 @@ export default {
   below: "below",
   idealValue: "ideal value",
   or: "or",
+  paymentReceived: "I have received the payment and want to release even without proof of payment",
   toRedeemAllTokensInCirculation: "to redeem all tokens in circulation",
   viewmore: "view more"
 }

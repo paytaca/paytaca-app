@@ -2430,6 +2430,7 @@ export default {
   below: "hieronder",
   idealValue: "ideale waarde",
   or: "of",
+  paymentReceived: "Ik heb de betaling ontvangen en wil zelfs zonder betalingsbewijs vrijgeven",
   toRedeemAllTokensInCirculation: "om alle tokens in omloop in te wisselen",
   viewmore: "bekijk meer"
 }

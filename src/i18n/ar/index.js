@@ -2430,6 +2430,7 @@ export default {
   below: "أدناه",
   idealValue: "القيمة المثالية",
   or: "أو",
+  paymentReceived: "لقد استلمت المبلغ وأريد الإفراج عنه حتى بدون إثبات الدفع",
   toRedeemAllTokensInCirculation: "لاسترداد جميع المصكوكات المتداولة",
   viewmore: "عرض المزيد"
 }

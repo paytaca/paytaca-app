@@ -2430,6 +2430,7 @@ export default {
   below: "sotto",
   idealValue: "valore ideale",
   or: "o",
+  paymentReceived: "Ho ricevuto il pagamento e voglio liberarlo anche senza prova di pagamento",
   toRedeemAllTokensInCirculation: "per riscattare tutti i gettoni in circolazione",
   viewmore: "vedere di più"
 }

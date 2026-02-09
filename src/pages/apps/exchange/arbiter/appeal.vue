@@ -394,7 +394,8 @@ export default {
         this.loading = false
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}/appeal/`, { authorize: true })
+      // Arbiter-side endpoint; force arbiter token explicitly.
+      await backend.get(`/ramp-p2p/order/${orderId}/appeal/`, { authorize: 'arbiter' })
         .then(response => {
           vm.appeal = response.data.appeal
           vm.loading = false
