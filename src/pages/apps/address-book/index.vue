@@ -283,6 +283,11 @@ export default {
       //   }
       // ]
       const respData = await getWalletAddressBook()
+
+      if (respData.length === 0) {
+        this.isLoading = false
+        return
+      }
       
       const tempFavoritesList = []
       const tempRecordsList = []
@@ -326,6 +331,9 @@ export default {
           letter_group: group,
           data: groupedRecords[group].sort((a, b) => a.name.localeCompare(b.name))
         }))
+
+      console.log(this.favoritesList)
+      console.log(this.recordsList)
     } catch (error) {
       console.log(error)
     }
