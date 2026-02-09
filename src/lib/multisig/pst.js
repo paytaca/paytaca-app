@@ -540,7 +540,6 @@ export const publicKeySigned = ({ publicKey, pst }) => {
  * @returns {boolean} True if signature is valid, otherwise false.
  */
 export const verifyTransactionSignature = ({ signature, publicKey, redeemScript, context }) => {
-  console.log({ signature, publicKey, redeemScript, context })
   const sigHashFlag = signature.slice(-1)[0]
   const signingSerialization = generateSigningSerializationBCH(context, { 
     coveredBytecode: redeemScript, 
@@ -920,7 +919,39 @@ export class Pst {
   }
 
   combine(psts) {
-    return combine([this, ...psts])
+    const inputSignatureVerificationResults = []
+    for (const pst of psts) {
+      for (const inputIndex in pst.inputs) {
+        if (!pst.inputs[inputIndex].redeemScript) continue 
+        const publicKeys = Object.keys(pst.inputs[inputIndex].signatures || {})
+        if (publicKeys.length === 0) continue
+        publicKeys.forEach((publicKey) => {
+          const signature = pst.inputs[inputIndex].signatures[publicKey]
+          const redeemScript = pst.inputs[inputIndex].redeemScript 
+          if (!redeemScript) return
+          const transactionBuilder = new MultisigTransactionBuilder()
+          transactionBuilder.addInputs(pst.inputs)
+          transactionBuilder.addOutputs(pst.outputs)
+          transactionBuilder.setLocktime(pst.locktime ?? 0)
+          transactionBuilder.setVersion(pst.version)
+          const sigVerifyResult = verifyTransactionSignature({ 
+            signature, 
+            publicKey: hexToBin(publicKey),
+            redeemScript,
+            context: {
+              inputIndex,
+              sourceOutputs: pst.inputs.map((i) => i.sourceOutput),
+              transaction: decodeTransactionCommon(hexToBin(transactionBuilder.build()))
+            }
+          })
+          inputSignatureVerificationResults.push(sigVerifyResult)
+        }) 
+      }
+    }
+
+    if (!inputSignatureVerificationResults.every(ok => Boolean(ok))) throw new Error('Signature Verification Failed')
+    const combined = combine([this, ...psts])
+    return combined
   }
 
   getSignatureCount() {

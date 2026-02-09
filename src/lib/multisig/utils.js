@@ -380,7 +380,6 @@ export async function retryWithBackoff(fn, retries = 2, delay = 500) {
       return await fn();
     } catch (err) {
       if (i === retries - 1) throw err; 
-      console.warn(`Retry ${i + 1} failed, waiting ${delay}ms...`);
       await new Promise(res => setTimeout(res, delay));
       delay *= 2; 
     }
