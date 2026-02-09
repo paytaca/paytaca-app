@@ -11,15 +11,34 @@
     <div class="row justify-center">
       <div class="col-xs-12 col-sm-8 q-px-xs">
         <template v-if="pst">
+          <div class="row q-mb-sm justify-center">
+              <div class="col-xs-12">
+                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px; color:white">
+                  <q-card-section class="row items-center justify-between">
+                    <div class="col-12 flex justify-between items-center">
+                      <div class="flex items-center q-gutter-x-sm">
+                        <q-icon name="receipt" size="sm"></q-icon>
+                        <span class="text-bold text-h6">{{pst.purpose || pst?.metadata?.purpose || 'Purpose Not Specified'}}</span>
+                      </div>
+                      <q-icon v-if="pst.id" name="mdi-cloud-check" size="sm" flat></q-icon>
+                    </div>
+                    <div class="col-12 text-caption">{{ $t('Origin') }}: {{ pst.origin || pst?.metadata?.origin || 'Not Specified' }}</div>
+                    <div class="col-12 text-caption">{{ $t('Network') }}: {{ pst.network || pst?.metadata?.network || 'Not Specified' }}</div>
+                    <div class="col-12 text-caption">{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</div>
+                    <div class="col-12 text-caption">{{ $t('WalletName') }}: {{ wallet?.name }}</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+            </div>
           <q-list>
-            <q-item>
+            <!-- <q-item>
               <q-item-section>
                 <q-item-label class="text-h5 text-bold">
-                  {{ pst.purpose }}
+                  {{ pst.purpose || pst?.metadata?.purpose || 'Unknown Origin' }}
                 </q-item-label>
               </q-item-section>
-            </q-item>
-            <q-item>
+            </q-item> -->
+            <!-- <q-item>
               <q-item-section>
                 <q-item-label>
                   Unsigned Hash
@@ -30,8 +49,8 @@
                   {{ shortenString(pst.unsignedTransactionHash, 20) }}
                 </q-item-label>
               </q-item-section>
-            </q-item>
-            <q-item v-if="wallet">
+            </q-item> -->
+            <!-- <q-item v-if="wallet">
               <q-item-section>
                 <q-item-label>
                   <div class="flex items-center">
@@ -44,7 +63,7 @@
                 {{ wallet?.name }}
                 </q-item-label>
               </q-item-section>
-            </q-item>
+            </q-item> -->
             <template v-if="pst.getTotalSatsDebit() > 0">
               <q-item >
                 <q-item-section>
@@ -100,10 +119,10 @@
                 </q-btn>
               </q-item-section>
             </q-item>
-            <q-expansion-item v-model="balancesExpanded">
+            <q-expansion-item>
               <template v-slot:header>
                 <q-item-section>
-                  Raw Tx
+                  {{ $t('RawTx', {}, 'Raw Tx')}}
                 </q-item-section>
               </template>
               <q-item-label class="q-pa-md">
@@ -113,6 +132,18 @@
                 <q-btn icon="content_copy" @click="copyToClipboard(pst.unsignedTransactionHex)" flat dense/>
               </q-item-label>
             </q-expansion-item>
+            <q-expansion-item v-if="pst.metadata">
+              <template v-slot:header>
+                <q-item-section>
+                  {{ $t('Metadata')}}
+                </q-item-section>
+              </template>
+              <q-item-label class="q-pa-md">
+                <code style="word-break: break-all; filter: brightness(80%)">
+                  {{ pst.metadata }}
+                </code>
+              </q-item-label>
+            </q-expansion-item>
             <q-separator></q-separator>
             <q-item>
               <q-item-section>
@@ -120,7 +151,6 @@
               </q-item-section>
               <q-item-section side class="text-capitalize">
                 {{ signingProgress.signingProgress }}
-                
               </q-item-section>
             </q-item>
             <q-item-label header>Signers</q-item-label>
@@ -138,15 +168,27 @@
                   </q-avatar>
                   <div class="flex flex-column">
                     <div class="ellipsis" style="max-width:3.5em">
-                      {{ signer.name }}
+                      {{ signer.name + 'kjfdlsafajfkdasljfkldsjkadlf'}} 
+                    </div>
+                    <div v-if="pst?.signerSigned(signer.xpub)" class="text-bow-muted">
+                      {{ $t('SigOk') }} <q-icon name="done_all" style="color:#D4AF37"></q-icon>
                     </div>
                   </div>
                 </q-chip>
               </q-item-section>
+              
               <q-item-section side>
                 <q-btn
-                  v-if="signersXPrv[signer.xpub]"
-                  :disable="pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
+                  v-if="signersXPrv[signer.xpub] && !pst?.signerSigned(signer.xpub)"
+                  :icon="signButtonIcon(signer)"
+                  text-color="primary"
+                  no-caps
+                  rounded
+                  @click="initiateSignTransaction(signer)"
+                  >
+                  <span>&nbsp;&nbsp;{{$t('SignTx')}}&nbsp;&nbsp;</span>
+                </q-btn>
+                <!-- <q-btn
                   :icon="signButtonIcon(signer)"
                   text-color="primary"
                   no-caps
@@ -154,6 +196,16 @@
                   @click="initiateSignTransaction(signer)"
                   >
                   <span>&nbsp;&nbsp;{{$t('Sign')}}&nbsp;&nbsp;</span>
+                </q-btn> -->
+                <q-btn
+                  v-else-if="signersXPrv[signer.xpub] && pst?.signerSigned(signer.xpub)"
+                  icon="mdi-share"
+                  text-color="primary"
+                  no-caps
+                  rounded
+                  @click="() => showSharePartialSignatureOptionsDialog(signer.name)"
+                  >
+                  <span>&nbsp;&nbsp;{{$t('ShareSigs', {} , 'Share Sigs')}}&nbsp;&nbsp;</span>
                 </q-btn>
                 <q-btn
                   v-else
@@ -163,7 +215,7 @@
                   rounded
                   @click="importSignerSignature"
                   >
-                  <span>{{ $t('Import') }}</span>
+                  <span>{{ $t('ImportSigs', {}, 'Import Sigs') }}</span>
                 </q-btn>
               </q-item-section>
             </q-item>
@@ -179,14 +231,6 @@
                       </div>
                     </template>
                   </q-btn>
-                  <!-- <q-btn :disabled="signingProgress.signingProgress === 'fully-signed'" class="tile col-xs-3" flat dense no-caps @click="importSignerSignature" v-close-popup>
-                    <template v-slot:default>
-                      <div class="row justify-center">
-                        <q-icon name="mdi-file-upload" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">Merge</div>
-                      </div>
-                    </template>
-                  </q-btn> -->
                   <q-btn 
                     :loading="isBroadcasting"
                     @click="broadcastTransaction"
@@ -263,6 +307,7 @@ import Big from 'big.js'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
 import { withTimeout } from 'src/utils/async-utils'
 import ShareProposalOptionsDialog from 'components/multisig/ShareProposalOptionsDialog.vue'
+import ShareSignatureOptionsDialog from 'components/multisig/ShareSignatureOptionsDialog.vue'
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
 const {
   getSignerXPrv,
@@ -271,8 +316,6 @@ const {
   resolveXprvOfXpub,
   resolveMnemonicOfXpub
 } = useMultisigHelpers()
-
-
 const $q = useQuasar()
 const $store = useStore()
 const { t: $t } = useI18n()
@@ -282,17 +325,8 @@ const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const signingProgress = ref({})
-
 const isBroadcasting = ref(false)
 const pst = ref()
-
-const signingProgressBar = computed(() => {
-  return signingProgress.value.signatureCount / wallet.value.m
-})
-
-const signingProgressBarLabel = computed(() => {
-  return signingProgress.value?.signingProgress || ''
-})
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -315,58 +349,24 @@ const wallet = computed(() => {
 })  
 
 const pstOutputsTokenCategories = computed(() => {
-    return new Set(pst.value?.outputs.map(o => o.token?.category ? binToHex(o.token.category) : '').filter(c=> Boolean(c)) || [])
+    return new Set(
+      pst.value?.outputs.map(o => 
+        o.token?.category ? binToHex(o.token.category) : '').filter(c=> Boolean(c)
+      ) || []
+    )
 })
 
 const signButtonIcon = computed(() => {
   return (signer) => {
     if (pst.value.signerSigned(signer.xpub)) return 'done_all'
-    // if (!signersXPrv.value[signer.xpub]) return 'edit_off'
     return 'draw'
   }
 })
 
-const syncPst = async () => {
-
-  try {
-
-    $q.notify({
-      type: 'info',
-      message: 'Feature not yet supported...',
-      position: 'bottom',
-      timeout: 3000,
-      color: 'primary'
-    })
-    return
-    $q.loading.show({
-      spinner: QSpinnerDots,
-      spinnerColor: 'primary',
-      messageColor: 'primary',
-      message: 'Syncing Pst...'
-    })
-
-    await withTimeout(pst.value.upload(), 10000, 'Request timed-out!')
-    
-  } catch (error) {
-
-    $q.notify({
-        type: 'Warning',
-        message: error,
-        position: 'bottom',
-        timeout: 3000,
-        color: 'dark'
-    })
-
-  } finally {
-    $q.loading.hide()
-  }
-}
-
-const handleProposalDownloadAction = () => {
-  const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
+const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
   $q.dialog({
-    title: $t('DownloadTransactionProposalFile'),
-    message: $t('DownloadTransactionProposalFileHint'),
+    title: dialogTitle,
+    message: dialogMessage,
     class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
     prompt: {
       type: 'text',
@@ -389,19 +389,17 @@ const handleProposalDownloadAction = () => {
     },
     
   }).onOk(async (filename) => {
-    
-    if (!filename) return
 
-    const base64Psbt = await pst.value.export()
+    if (!filename) return
     const blob = new Blob(
-      [base64Psbt], 
+      [data], 
       { type: 'text/plain' }
     )
 
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${filename}.psbt`
+    a.download = `${filename}.${fileExtension}`
     document.body.appendChild(a)
     a.click()
 
@@ -423,11 +421,20 @@ const showShareProposalOptionsDialog = () => {
       darkMode: darkMode.value,
       pst: pst.value
     }
-  }).onOk((payload) => {
+  }).onOk(async (payload) => {
     if (payload?.action === 'display-qr') {
       showProposalQrDialog()
     } else if (payload?.action === 'download-proposal') {
-      handleProposalDownloadAction()
+      const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
+      const base64Psbt = await pst.value.export()
+      handleFileDownloadDialog({
+          dialogTitle: $t('DownloadTransactionProposalFile'), 
+          dialogMessage: $t('DownloadTransactionProposalFileHint'), 
+          defaultFilename,
+          fileExtension: 'psbt',
+          data: base64Psbt
+        }
+      )
     } else if (payload?.action === 'upload-proposal') {
       handleProposalUploadAction()
     }
@@ -435,6 +442,7 @@ const showShareProposalOptionsDialog = () => {
     // Dialog was closed without action
   })
 }
+
 
 const showProposalQrDialog = () => {
   $q.dialog({
@@ -470,6 +478,37 @@ const onDeleteProposalAction = async () => {
     router.push({ name: 'app-multisig' })
   })
 }
+
+const showSharePartialSignatureOptionsDialog = (signerName) => {
+  $q.dialog({
+    component: ShareSignatureOptionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      pst: pst.value,
+      signerName
+    }
+  }).onOk(async (payload) => {
+    if (payload?.action === 'display-qr') {
+      showProposalQrDialog()
+    } else if (payload?.action === 'download-signature') {
+      const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-') + `-${(signerName || 'signer')?.toLowerCase()}-partial-sig`
+      const base64Psbt = await pst.value.export()
+      handleFileDownloadDialog({
+          dialogTitle: $t('DownloadPartialSignature'), 
+          dialogMessage: $t('DownloadPartialSignatureHint'), 
+          defaultFilename,
+          fileExtension: 'psbt',
+          data: base64Psbt
+        }
+      )
+    } else if (payload?.action === 'upload-signature') {
+      
+    }
+  }).onCancel(() => {
+    // Dialog was closed without action
+  })
+}
+
 
 const initiateSignTransaction = async (signer) => {
   showActionConfirmationSlider.value = true
@@ -508,7 +547,6 @@ const showBroadcastSuccessDialog = async (txid) => {
     router.push({ name: 'app-multisig-wallet-view', params: { wallethash: route.params.wallethash } })
   })
 }
-
 
 const broadcastTransaction = async () => {
   try {
@@ -594,6 +632,23 @@ onMounted(async () => {
     pst.value = storedPst
     signingProgress.value = pst.value.getSigningProgress()
   }
+
+  try {
+    await pst.value.resolveInputsTransactionData()  
+  } catch (error) {
+    $q.dialog({
+      title: $t('Warning'),
+      message: error?.message,
+      class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+      ok: { 
+        label: $t('DownloadFile'),
+        color: 'primary',
+        rounded: true,
+        class: `button-default ${getDarkModeClass(darkMode.value)}`,
+      }
+    })
+  }
+  
 })
 
 </script>
