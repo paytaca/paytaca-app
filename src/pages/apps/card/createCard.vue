@@ -1,8 +1,21 @@
 <template>
   <q-layout>
   
-    <div class="q-ml-l">
-      <p class="text-primary text-weight-bold text-h5 text-center">Card Management</p>
+    <div class="row items-center q-pa-md">
+      <q-btn 
+        flat
+        round
+        dense
+        icon="arrow_back"
+        color="primary"
+        @click="$router.back()"
+      />
+      <div class="col">
+        <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
+      </div>
+
+      <div class="q-pa-xs" style="width: 32px"></div>
+      
     </div>
      
     <div>
@@ -191,9 +204,8 @@
                   />
                 </div>
 
-
                 <transition mode="out-in" enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
-                  <div v-if="!showForm" class="text-center">
+                  <div v-show="!showForm" class="text-center">
                     <q-btn 
                       label="Get Started" 
                       color="white" 
@@ -201,30 +213,46 @@
                       class="q-px-xl text-bold"
                       unelevated
                       rounded
-                      @click="showForm = true"
+                      @click="activateForm"
                     />
                   </div>
+                </transition>
 
-                  <div v-else class="bg-white q-pa-md rounded-borders shadow-2">
+                  <div v-show="showForm" class="bg-white q-pa-md rounded-borders shadow-2">
                     <div class="row items-center justify-between q-mb-sm">
                       <div class="text-subtitle1 text-bold text-primary">Shipping Details</div>
                       <q-btn icon="close" flat round dense color="grey" @click="showForm = false" />
                     </div>
 
                     <q-form @submit="onSubmit" class="q-col-gutter-sm">
+                      <pre class="text-black">{{ formData }}</pre>
                       <q-input outlined dense v-model="formData.fullName" label="Full Name" />
                       
                       <div class="row q-col-gutter-sm">
-                        <q-input outlined dense v-model="formData.city" label="City" class="col-6" />
-                        <q-input outlined dense v-model="formData.state" label="State" class="col-6" />
-                        <q-input outlined dense v-model="formData.zip" label="Zip" class="col-6" />
-                        <q-input outlined dense v-model="formData.country" label="Country" class="col-6" />
+                        <div class="col-6 text-primary">
+                          <q-input outlined dense v-model="formData.city" label="City" />
+                        </div>
+                        <div class="col-6">
+                          <q-input outlined dense v-model="formData.state" label="State" />
+                        </div>
+                        <div class="col-6">
+                          <q-input outlined dense v-model="formData.zip" label="Zip" />
+                        </div>
+                        <div class="col-6">
+                          <q-input outlined dense v-model="formData.country" label="Country" />
+                        </div>
+                        
+                        <!-- Users will pin location and it will dynamically fill the required fields (City, State, Zip, and Country) -->
+                        <div ref="mapContainer" class="q-mt-md" style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid #ddd;"></div>
+                        <div class="text-caption text-grey-7 q-mt-xs">
+                          <q-icon name="place" color="primary"/>
+                          Pin your location to auto-fill address fields.
+                        </div>  
                       </div>
-
                       <q-btn label="Confirm Order" color="primary" type="submit" class="full-width q-mt-md" unelevated />
                     </q-form>
                   </div>
-                </transition>
+
               </div>
             </div>
           </div>
@@ -609,7 +637,6 @@ import Card from 'src/services/card/card.js';
 import { loadCardUser } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
 
-  
   export default {
     
     components: {
@@ -649,6 +676,8 @@ import { selectedCurrency } from 'src/store/market/getters';
         isSweep: false,
         // Order form
         showForm: false,
+        map: null,
+        marker: null,
         formData: {
           fullName: '',
           city: '',
@@ -667,7 +696,10 @@ import { selectedCurrency } from 'src/store/market/getters';
     
     async mounted () {
       console.log("GO!")
-
+      this.$nextTick(() => {
+        this.initMap()
+      })
+      
       try {
 
         const card = await this.getCard()
@@ -918,11 +950,13 @@ import { selectedCurrency } from 'src/store/market/getters';
         else {
           this.selectedCardToReplace = card
         }
-        console.log('Selected Card: ', this.selectedCardToReplace)
+        this.$q.notify({
+          message: `Selected card: ${this.selectedCardToReplace ? this.selectedCardToReplace.name : 'None'}`
+        })
       },
 
       isCardSelected (card) {
-        return this.selectedCardToReplace && this.selectedCardToReplace.id === card.id
+        return this.selectedCardToReplace && this.selectedCardToReplace.name === card.name
       },
 
       async handleCardReplacement () {
@@ -1304,7 +1338,81 @@ import { selectedCurrency } from 'src/store/market/getters';
             this.$refs.orderForm.resetValidation()
           }
         })
-      }
+      },
+
+      initMap () {
+        // check if container exists
+        if (!this.$refs.mapContainer) return
+
+        // initialize map
+        this.map = L.map(this.$refs.mapContainer).setView([7.123, 124.845], 13)
+
+        // OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(this.map)
+
+        // draggable marker
+        this.marker = L.marker([7.123, 124.845], {draggable: true}).addTo(this.map)
+
+        // listener - when user stops dragging, fetch address
+        this.marker.on('dragend', this.handleMarkerDrag)
+      },
+
+      async handleMarkerDrag (event) {
+        const { lat, lng } = event.target.getLatLng()
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+          )
+          const data = await response.json()
+          const addr = data.address
+
+          this.$q.notify({
+            message: `Full address data: ${addr}`,
+            color: 'warning'
+          })
+
+          // response mapping to formData
+          this.formData = {
+            ...this.formData,
+            city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
+            state: addr.state = addr.state || addr.region || addr.province || '',
+            zip: addr.zip = addr.postcode || '',
+            country: addr.country = addr.country || '',
+          }
+          
+          this.$q.notify({
+            message: `Location set to ${this.formData.city}`,
+            icon: 'check', 
+            color: 'positive'
+          })
+        }
+        catch (error) {
+          this.$q.notify({
+            message: 'Geocoding failed',
+            color: 'negative'
+          })
+        }
+      },
+
+      async activateForm () {
+        this.showForm = true
+        await this.$nextTick()
+
+        if (!this.map) {
+          this.initMap()
+        }
+        else {
+          setTimeout(() => {
+            this.map.invalidateSize()
+          }, 300)
+        }
+      },
+
+
 
     }
 
@@ -1312,6 +1420,8 @@ import { selectedCurrency } from 'src/store/market/getters';
 </script>
 
 <style lang="scss" scoped>
+  @import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
+
   .create-card-dialog {
     width: 500px;
     max-width: 90vw;
