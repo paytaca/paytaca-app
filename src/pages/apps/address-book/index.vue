@@ -220,68 +220,6 @@ export default {
 
     try {
       const keypair = await ensureKeypair()
-      // const respData = [
-      //   {
-      //     id: 2,
-      //     name: 'eyJkIjoiSjAzNFNZbTdVeWpOSEhBaFdKRG04QT09IiwiaXYiOiJFdnRVSitwWXpkYXdmNmJoZ255VlJBPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: true
-      //   },
-      //   {
-      //     id: 3,
-      //     name: 'eyJkIjoiNmtCVnJpRU50RHVJejJlZHU4Tm5SUT09IiwiaXYiOiJlNXRDRUdQT2FpRTdwcVVqaGY4SEpnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 1,
-      //     is_favorite: true
-      //   },
-      //   {
-      //     id: 4,
-      //     name: 'eyJkIjoiSlBaY1dNOEhXajZ2OXQ5Zk9nRE9Bdz09IiwiaXYiOiJPUGEzY3VhbnBYYmhsQTN1SlBXcXdnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 0,
-      //     is_favorite: true
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoiQlVxdG9qdktPSmovYlJRM2ViczNvdz09IiwiaXYiOiJJTTB1T2M0VlVlcENsUzdBdTJVSk1BPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: false
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoiRWswaXY5Tk8vdEVhVTdDeW9pZnFZdz09IiwiaXYiOiI0NGV2MWVBSVpOVzBkV1dDdDhlYWhRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 1,
-      //     is_favorite: false
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoiN21xd05hNGxTbkNaMGExS2RTN3Vxdz09IiwiaXYiOiIxZ3JlcEZUNnQyTTVDWVRyMTlkaUpRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: false
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoiNGdURHBoRFpXd1RWdGhtakxrYzlyUT09IiwiaXYiOiJBSVFMRWdRQmRJTWZYVWdMVS9MS2FRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: false
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoiREE4cG1NK1ZGTitMbTJ2emFpTEtXZz09IiwiaXYiOiJBVE1TZHF3T2VjS3hleW44aE9QWHpRPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: false
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoiRXlWUU9Bai8xdHBHTHBGVWVVRWRrQT09IiwiaXYiOiJremFka1hxWmlpQ0JMbVpiZjErendnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: false
-      //   },
-      //   {
-      //     id: 1,
-      //     name: 'eyJkIjoidVdoZEJ1NFU5eEcwbW1YbmNZZVhaQT09IiwiaXYiOiJNL2VFUWxHamFpVSttby9tMFZja1pnPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=',
-      //     address_count: 5,
-      //     is_favorite: false
-      //   }
-      // ]
       const respData = await getWalletAddressBook()
 
       if (respData.length === 0) {

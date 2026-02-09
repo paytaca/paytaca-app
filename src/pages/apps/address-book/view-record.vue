@@ -351,12 +351,13 @@
 </template>
 
 <script>
+import { getRecord } from 'src/utils/address-book-utils';
+import { decryptMemo } from 'src/utils/transaction-memos';
+import { ensureKeypair } from 'src/utils/memo-service';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatAddress, formatDate } from 'src/exchange/index.js'
 
 import HeaderNav from 'src/components/header-nav.vue'
-import { ensureKeypair } from 'src/utils/memo-service';
-import { decryptMemo } from 'src/utils/transaction-memos';
 
 export default {
   name: 'ViewRecord',
@@ -556,29 +557,11 @@ export default {
         })
       })
     },
-    async loadRecord() {
+    async loadRecord(id) {
       this.loading = true
       this.error = null
 
-      // TODO: Implement API call to fetch record
-      const resp = {
-        id: 1,
-        name: "eyJkIjoiSjAzNFNZbTdVeWpOSEhBaFdKRG04QT09IiwiaXYiOiJFdnRVSitwWXpkYXdmNmJoZ255VlJBPT0iLCJwayI6IjAzNzgwMzU0YjZiMjI0NDgwMDk3ZjhmZDNiOWMxM2Y1ZmQ1MDY2Mzk4ZWU1MTNlYzI4ODM4NjA1MGQ5MWY3ZDdmMCIsInBrcyI6WyIwMzc4MDM1NGI2YjIyNDQ4MDA5N2Y4ZmQzYjljMTNmNWZkNTA2NjM5OGVlNTEzZWMyODgzODYwNTBkOTFmN2Q3ZjAiXX0=",
-        is_favorite: false,
-        created_at: "2026-01-05T02:41:14.996084Z",
-        addresses: [
-          {
-            "id": 1,
-            "address": "bitcoincash:qze93uuw8vt8v358f7eupg3t4jtkpz8ltguhg62pde",
-            "address_type": "bch"
-          },
-          {
-            "id": 2,
-            "address": "bitcoincash:zze93uuw8vt8v358f7eupg3t4jtkpz8ltgmamyy8j2",
-            "address_type": "ct"
-          }
-        ]
-      }
+      const resp = await getRecord(id)
 
       try {
         const keypair = await ensureKeypair()
@@ -590,37 +573,15 @@ export default {
           name: decryptedName,
         }
       } catch (error) {
-        console.log(error)
+        console.error(error)
       }
 
-      setTimeout(() => {
-        this.loading = false
-        // In real implementation, handle errors here
-      }, 500)
+      this.loading = false
     }
   },
 
   async mounted () {
-    console.log(this.$route.params)
-
-    // Load record data
-    await this.loadRecord()
-
-    // Set height of addresses-list
-    // this.$nextTick(() => {
-    //   if (this.record?.addresses.length > 0) {
-    //     const headerHeight = document.getElementById('header-nav')?.clientHeight || 0
-    //     const recordDetailsHeight = document.getElementById('record-details')?.clientHeight || 0
-    //     const addressesListLabel = document.getElementById('addresses-list-label')?.clientHeight || 0
-  
-    //     const aboveDivsHeight = headerHeight + recordDetailsHeight + addressesListLabel
-    //     const overallHeight = this.$q.screen.height - aboveDivsHeight - 75
-    //     const addressesList = document.getElementById('addresses-list')
-    //     if (addressesList) {
-    //       addressesList.style.height = `${overallHeight}px`
-    //     }
-    //   }
-    // })
+    await this.loadRecord(this.$route.params.id)
   }
 }
 </script>
