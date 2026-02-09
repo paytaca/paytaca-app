@@ -225,7 +225,6 @@
                     </div>
 
                     <q-form @submit="onSubmit" class="q-col-gutter-sm">
-                      <pre class="text-black">{{ formData }}</pre>
                       <q-input outlined dense v-model="formData.fullName" label="Full Name" />
                       
                       <div class="row q-col-gutter-sm">
