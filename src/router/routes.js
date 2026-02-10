@@ -364,7 +364,12 @@ const routes = [
             path: 'wallet/:wallethash/pst/:unsignedtransactionhash',
             component: () => import('src/pages/apps/multisig/wallet/pst/view.vue'),
             name: 'app-multisig-wallet-pst-view'
-          }
+          },
+          {
+            path: 'wallet/:wallethash/pst/:unsignedtransactionhash/signatures/:masterfingerprint/import',
+            component: () => import('src/pages/apps/multisig/signatures/import.vue'),
+            name: 'app-multisig-wallet-pst-signatures-import'
+          },
         ]
       },
       {
