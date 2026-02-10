@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Kaufen Sie BCH mit lokaler Währung",
   BuyLIFTTokens: "Kaufen Sie LIFT-Token",
   BuyNow: "Jetzt kaufen",
+  BuyOnCauldron: "Kaufen Sie bei Cauldron",
   By: "von",
   ByA: "von a",
   ByCity: "Nach Stadt",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Zahlung zurückerstattet",
   PaymentReleased: "Zahlung freigegeben",
   PaymentRequestIsExpired: "Die Zahlungsanforderung ist abgelaufen",
-  PaymentSendingError: "Beim Senden Ihrer Zahlung ist etwas passiert.Bitte versuchen Sie es später noch einmal.Ihr Guthaben wurde nicht abgebucht.",
+  PaymentSendingError: "Beim Verarbeiten Ihrer Zahlung ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut. Ihr Guthaben wurde nicht abgebucht.",
   PaymentTransaction: "Zahlungsvorgang",
   PaymentTransactionId: "Zahlungstransaktions-ID",
   PaymentType: "Zahlungsart",
@@ -2429,6 +2430,7 @@ export default {
   below: "unten",
   idealValue: "idealer Wert",
   or: "oder",
+  paymentReceived: "Ich habe die Zahlung erhalten und möchte sie auch ohne Zahlungsnachweis freigeben",
   toRedeemAllTokensInCirculation: "alle im Umlauf befindlichen Token einzulösen",
   viewmore: "mehr anzeigen"
 }

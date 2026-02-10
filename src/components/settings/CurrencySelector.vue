@@ -45,7 +45,7 @@ export default {
         // Save to vault for wallet-specific settings
         this.$store.commit('global/saveWalletSetting', { key: 'currency', value: value })
         this.$store.dispatch('global/saveWalletPreferences')
-        this.$store.dispatch('market/updateAssetPrices', {})
+        this.$store.dispatch('market/refreshMarketDataForSelectedCurrency', { assetIds: ['bch'] })
       })
     }
   },

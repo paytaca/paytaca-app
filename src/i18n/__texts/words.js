@@ -556,6 +556,7 @@ const words = [
     RelativeTimestamp: 'Relative Timestamp',
     ContractDetails: 'Contract Details',
     ContractAddress: 'Contract Address',
+    or: 'Or',
   }
 ]
 

@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "用当地货币购买BCH",
   BuyLIFTTokens: "购买 LIFT 代币",
   BuyNow: "立即购买",
+  BuyOnCauldron: "在大锅上购买",
   By: "通过",
   ByA: "由一个",
   ByCity: "按城市",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "付款已退回",
   PaymentReleased: "付款已释放",
   PaymentRequestIsExpired: "付款请求已过期",
-  PaymentSendingError: "发送付款时发生了一些情况。请稍后重试。您的余额未被扣除。",
+  PaymentSendingError: "发送付款时出现问题。请稍后再试。您的余额未被扣除。",
   PaymentTransaction: "支付交易",
   PaymentTransactionId: "支付交易ID",
   PaymentType: "付款方式",
@@ -2429,6 +2430,7 @@ export default {
   below: "下面",
   idealValue: "理想值",
   or: "或",
+  paymentReceived: "我已收到付款，即使没有付款证明也想放行",
   toRedeemAllTokensInCirculation: "赎回所有流通中的代币",
   viewmore: "查看更多"
 }

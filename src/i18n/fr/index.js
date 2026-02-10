@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Achetez du BCH avec la devise locale",
   BuyLIFTTokens: "Acheter des jetons LIFT",
   BuyNow: "Acheter maintenant",
+  BuyOnCauldron: "Acheter sur Chaudron",
   By: "par",
   ByA: "par un",
   ByCity: "Par ville",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Paiement remboursé",
   PaymentReleased: "Paiement libéré",
   PaymentRequestIsExpired: "La demande de paiement est expirée",
-  PaymentSendingError: "Quelque chose s'est produit lors de l'envoi de votre paiement.Veuillez réessayer plus tard.Votre solde n'a pas été déduit.",
+  PaymentSendingError: "Un problème est survenu lors de l'envoi de votre paiement. Veuillez réessayer plus tard. Votre solde n'a pas été débité.",
   PaymentTransaction: "Opération de paiement",
   PaymentTransactionId: "ID de transaction de paiement",
   PaymentType: "Type de paiement",
@@ -2429,6 +2430,7 @@ export default {
   below: "ci-dessous",
   idealValue: "valeur idéale",
   or: "ou",
+  paymentReceived: "J'ai reçu le paiement et je souhaite le libérer même sans preuve de paiement",
   toRedeemAllTokensInCirculation: "pour échanger tous les jetons en circulation",
   viewmore: "voir plus"
 }

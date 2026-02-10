@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Acquista BCH con valuta locale",
   BuyLIFTTokens: "Acquista gettoni LIFT",
   BuyNow: "Acquista ora",
+  BuyOnCauldron: "Acquista su Calderone",
   By: "di",
   ByA: "da a",
   ByCity: "Per città",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Pagamento rimborsato",
   PaymentReleased: "Pagamento rilasciato",
   PaymentRequestIsExpired: "La richiesta di pagamento è scaduta",
-  PaymentSendingError: "È successo qualcosa durante l'invio del pagamento.Per favore riprova più tardi.Il tuo saldo non è stato detratto.",
+  PaymentSendingError: "Si è verificato un problema durante l'invio del pagamento. Riprova più tardi. Il tuo saldo non è stato detratto.",
   PaymentTransaction: "Transazione di pagamento",
   PaymentTransactionId: "ID della transazione di pagamento",
   PaymentType: "Tipo di pagamento",
@@ -2429,6 +2430,7 @@ export default {
   below: "sotto",
   idealValue: "valore ideale",
   or: "o",
+  paymentReceived: "Ho ricevuto il pagamento e voglio liberarlo anche senza prova di pagamento",
   toRedeemAllTokensInCirculation: "per riscattare tutti i gettoni in circolazione",
   viewmore: "vedere di più"
 }

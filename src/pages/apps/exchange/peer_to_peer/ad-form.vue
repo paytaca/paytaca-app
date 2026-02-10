@@ -110,8 +110,8 @@
                   <span class="col text-right text-weight-medium">{{ $t('CurrentMarketPrice') }}</span>
                 </div>
                 <div class="row justify-between">
-                  <span class="col text-left text-weight-bold text-h6">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(priceAmount).replace(/[^\d.,-]/g, '') }}</span>
-                  <span :class="isBlinking ? 'blink market-price': 'market-price'" class="col text-right text-h6 text-weight-bold">{{ adData.fiatCurrency?.symbol }} {{ formattedCurrency(marketPrice).replace(/[^\d.,-]/g, '') }}</span>
+                  <span class="col text-left text-weight-bold text-h6">{{ parseFiatCurrency(priceAmount, adData.fiatCurrency?.symbol) }}</span>
+                  <span :class="isBlinking ? 'blink market-price': 'market-price'" class="col text-right text-h6 text-weight-bold">{{ parseFiatCurrency(marketPrice, adData.fiatCurrency?.symbol) }}</span>
                 </div>
                 <q-banner
                   v-if="showPriceDeviationWarning"
@@ -392,6 +392,7 @@ import ProgressLoader from 'src/components/ProgressLoader.vue'
 import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
 import { WebSocketManager } from 'src/exchange/websocket/manager'
+import { getFiatCurrencyFractionDigits, parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   setup () {
@@ -525,17 +526,17 @@ export default {
         let floor = this.adData.tradeFloor * this.marketPrice
         let ceiling = this.adData.tradeCeiling * this.marketPrice
         if (floor % 1 !== 0) {
-          floor = floor.toFixed(2)
+          floor = floor.toFixed(getFiatCurrencyFractionDigits(this.adData.fiatCurrency?.symbol))
         }
         if (ceiling % 1 !== 0) {
-          ceiling = ceiling.toFixed(2)
+          ceiling = ceiling.toFixed(getFiatCurrencyFractionDigits(this.adData.fiatCurrency?.symbol))
         }
         this.adData.tradeFloor = floor
         this.adData.tradeCeiling = ceiling
 
         let amount = this.adData.tradeAmount * this.marketPrice
         if (amount % 1 !== 0) {
-          amount = amount.toFixed(2)
+          amount = amount.toFixed(getFiatCurrencyFractionDigits(this.adData.fiatCurrency?.symbol))
         }
         this.adData.tradeAmount = amount
       } else {
@@ -772,14 +773,15 @@ export default {
           vm.description = vm.adData.description
 
           let tradeAmount = parseFloat(data.trade_amount)
-          if (data.trade_amount_in_fiat) tradeAmount = tradeAmount.toFixed(2)
+          if (data.trade_amount_in_fiat) tradeAmount = tradeAmount.toFixed(getFiatCurrencyFractionDigits(data.fiat_currency?.symbol))
           vm.adData.tradeAmount = tradeAmount
 
           let tradeFloor = parseFloat(data.trade_floor)
           let tradeCeiling = parseFloat(data.trade_ceiling)
           if (data.trade_limits_in_fiat) {
-            tradeFloor = tradeFloor.toFixed(2)
-            tradeCeiling = tradeCeiling.toFixed(2)
+            const digits = getFiatCurrencyFractionDigits(data.fiat_currency?.symbol)
+            tradeFloor = tradeFloor.toFixed(digits)
+            tradeCeiling = tradeCeiling.toFixed(digits)
           }
           vm.adData.tradeFloor = tradeFloor
           vm.adData.tradeCeiling = tradeCeiling
@@ -1044,7 +1046,7 @@ export default {
           break
         }
       }
-      price = Number(parseFloat(price).toFixed(2))
+      price = Number(parseFloat(price).toFixed(getFiatCurrencyFractionDigits(vm.adData.fiatCurrency?.symbol)))
       return price
     },
     closeWSConnection () {
@@ -1057,8 +1059,8 @@ export default {
       this.websocket.setWebSocketUrl(wsUrl)
       this.websocket.subscribeToMessages((message) => {
         if (message?.price) {
-          const price = parseFloat(message?.price)?.toFixed(2)
-          if (price && this.marketPrice !== price) {
+          const price = parseFloat(message?.price)
+          if (Number.isFinite(price) && this.marketPrice !== price) {
             this.marketPrice = price
             console.log('Updated market price to :', this.marketPrice)
             this.startBlinking()
