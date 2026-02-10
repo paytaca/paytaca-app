@@ -28,9 +28,7 @@
               :color="favorite ? 'amber' : 'primary'"
               @click="favorite = !favorite"
               :aria-label="favorite ? 'Remove from favorites' : 'Add to favorites'"
-            >
-              <q-tooltip>{{ favorite ? 'Remove from favorites' : 'Add to favorites' }}</q-tooltip>
-            </q-btn>
+            />
       
             <q-btn
               rounded

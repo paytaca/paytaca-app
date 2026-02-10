@@ -86,9 +86,7 @@
                 @click="addresses.splice(index, 1)"
                 :aria-label="'Remove address ' + (index + 1)"
                 class="q-ml-sm"
-              >
-                <q-tooltip>Remove address</q-tooltip>
-              </q-btn>
+              />
             </div>
           </q-card-section>
         </q-card>

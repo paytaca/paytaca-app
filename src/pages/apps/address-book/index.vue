@@ -43,6 +43,7 @@
             icon="mdi-account-plus"
             color="primary"
             @click="$router.push('/apps/address-book/add-record')"
+            aria-label="Add New Record"
           />
         </template>
       </div>

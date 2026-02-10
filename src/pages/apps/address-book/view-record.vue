@@ -71,9 +71,7 @@
                 color="primary"
                 @click="toggleFavorite"
                 :aria-label="record.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
-              >
-                <q-tooltip>{{ record.is_favorite ? 'Remove from favorites' : 'Add to favorites' }}</q-tooltip>
-              </q-btn>
+              />
               <q-btn
                 round
                 outline
@@ -81,9 +79,7 @@
                 color="primary"
                 @click="handleEdit"
                 aria-label="Edit contact"
-              >
-                <q-tooltip>Edit contact</q-tooltip>
-              </q-btn>
+              />
               <q-btn
                 round
                 outline
@@ -91,9 +87,7 @@
                 color="primary"
                 @click="handleDelete"
                 aria-label="Delete contact"
-              >
-                <q-tooltip>Delete contact</q-tooltip>
-              </q-btn>
+              />
             </div>
           </q-card>
 
@@ -121,9 +115,7 @@
                   color="primary"
                   @click="showSearch = !showSearch"
                   aria-label="Search addresses"
-                >
-                  <q-tooltip>Search addresses</q-tooltip>
-                </q-btn>
+                />
                 <q-btn
                   flat
                   dense
@@ -131,9 +123,7 @@
                   color="primary"
                   @click="handleAddAddress"
                   aria-label="Add address"
-                >
-                  <q-tooltip>Add address</q-tooltip>
-                </q-btn>
+                />
               </div>
             </div>
 
@@ -180,9 +170,7 @@
                           color="primary"
                           @click.stop="copyToClipboard(address.address, index)"
                           aria-label="Copy address"
-                        >
-                          <q-tooltip>Copy address</q-tooltip>
-                        </q-btn>
+                        />
                       </q-item-label>
                     </div>
                     <q-item-label caption class="q-mt-xs">

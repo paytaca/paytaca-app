@@ -49,16 +49,16 @@ export default {
 
 <style lang="scss" scoped>
 .form-card {
-  border-radius: 16px;
+  border-radius: 5px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 5px rgba(0, 0, 0, 0.08);
   }
 
   .dark & {
     &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 5px rgba(0, 0, 0, 0.3);
     }
   }
 }
