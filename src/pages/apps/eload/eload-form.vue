@@ -227,7 +227,7 @@
 				</q-card>
 
 				<q-card
-					v-if="selectedPromo && isMobileNumberAddress && amountToPayPhp !== null"
+					v-if="selectedPromo && amountToPayPhp !== null"
 					class="q-mx-lg q-pa-md br-15 q-mt-md"
 				>
 					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
