@@ -225,28 +225,27 @@
                     </div>
 
                     <q-form @submit="onSubmit" class="q-col-gutter-sm">
-                      <pre class="text-black">{{ formData }}</pre>
-                      <q-input outlined dense v-model="formData.fullName" label="Full Name" />
+                      <q-input outlined dense v-model="formData.fullName" label="Full Name *" input-class="text-black" :rules="[val => !!val || 'Full name is required']" lazy-rules/>
                       
                       <div class="row q-col-gutter-sm">
-                        <div class="col-6 text-primary">
-                          <q-input outlined dense v-model="formData.city" label="City" />
+                        <div class="col-6">
+                          <q-input outlined dense v-model="formData.city" label="City *" input-class="text-black" :rules="[val => !!val || 'City is required']" lazy-rules/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.state" label="State" />
+                          <q-input outlined dense v-model="formData.state" label="State *" input-class="text-black" :rules="[val => !!val || 'State is required']" lazy-rules/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.zip" label="Zip" />
+                          <q-input outlined dense v-model="formData.zip" label="Zip *" input-class="text-black" :rules="[val => !!val || 'Zip code is required']" lazy-rules/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.country" label="Country" />
+                          <q-input outlined dense v-model="formData.country" label="Country *" input-class="text-black" :rules="[val => !!val || 'Country is required']" lazy-rules/>
                         </div>
                         
-                        <!-- Users will pin location and it will dynamically fill the required fields (City, State, Zip, and Country) -->
+                        <!-- Users will drag marker and it will dynamically fill the required fields (City, State, Zip, and Country) -->
                         <div ref="mapContainer" class="q-mt-md" style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid #ddd;"></div>
                         <div class="text-caption text-grey-7 q-mt-xs">
                           <q-icon name="place" color="primary"/>
-                          Pin your location to auto-fill address fields.
+                          Drag the marker to your location to auto-fill address fields.
                         </div>  
                       </div>
                       <q-btn label="Confirm Order" color="primary" type="submit" class="full-width q-mt-md" unelevated />
@@ -1143,7 +1142,7 @@ import { getMerchantList } from 'src/services/card/merchants';
 
         if(isNaN(amount) || amount <= 0){
           this.$q.notify({
-            message: 'Please enter a a valid spend limit amount',
+            message: 'Please enter a valid spend limit amount',
             color: 'negative',
             icon: 'warning'
           })
@@ -1230,18 +1229,26 @@ import { getMerchantList } from 'src/services/card/merchants';
       },
 
       async onSubmit(){
+
         this.$q.loading.show({message: 'Processing your order...'})
 
         try {
           await new Promise(resolve => setTimeout(resolve, 2000))
 
-          this.$q.notify({
+          this.$q.dialog({
+            title: 'Order confirmed',
             color: 'positive',
-            message: 'Physical card order placed!',
-            icon: 'check'
+            message: 'You order has been placed. We will notify you once it is out for delivery.',
+            icon: 'check',
+            ok: {
+              label: 'Got it',
+              color: 'primary'
+            },
+            persistent: true
+          }).onOk(() => {
+            this.resetForm()
           })
 
-          this.resetForm()
         }
         catch (error){
           this.$q.notify({
@@ -1268,6 +1275,8 @@ import { getMerchantList } from 'src/services/card/merchants';
             this.$refs.orderForm.resetValidation()
           }
         })
+
+        this.showForm = false
       },
 
       initMap () {
@@ -1300,25 +1309,15 @@ import { getMerchantList } from 'src/services/card/merchants';
           const data = await response.json()
           const addr = data.address
 
-          this.$q.notify({
-            message: `Full address data: ${addr}`,
-            color: 'warning'
-          })
-
           // response mapping to formData
           this.formData = {
             ...this.formData,
             city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
-            state: addr.state = addr.state || addr.region || addr.province || '',
-            zip: addr.zip = addr.postcode || '',
-            country: addr.country = addr.country || '',
+            state: addr.state || addr.region || addr.province || '',
+            zip: addr.zip || addr.postcode || '',
+            country: addr.country || '',
           }
           
-          this.$q.notify({
-            message: `Location set to ${this.formData.city}`,
-            icon: 'check', 
-            color: 'positive'
-          })
         }
         catch (error) {
           this.$q.notify({
@@ -1341,8 +1340,6 @@ import { getMerchantList } from 'src/services/card/merchants';
           }, 300)
         }
       },
-
-
 
     }
 
