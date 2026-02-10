@@ -7,6 +7,7 @@ export const backend = axios.create()
 const baseURL = process.env.ELOAD_SERVICE_API || ''
 
 const TOKEN_STORAGE_KEY = process.env.GBITS_AUTH_KEY || 'gbits-auth-key'
+const MAX_AUTH_RETRIES = 1
 
 function getWalletHash () {
 	return Store.getters['global/getWallet']('bch')?.walletHash
@@ -217,119 +218,125 @@ export async function createOrder (data) {
 
 // Fetching Order List
 export async function fetchOrders (data) {
-	try {		
-		const walletHash = getWalletHash()
-		if (!walletHash) {
-			throw new Error('Wallet hash not available')
-		}
+	const walletHash = getWalletHash()
+	if (!walletHash) {
+		return { success: false, data: null, error: 'Wallet hash not available' }
+	}
 
-		let token = await getAuthToken()
-		if (!token) {
-			// Best-effort: authenticate and retry token retrieval.
-			await authUser()
-			token = await getAuthToken()
-		}
-		if (!token) {
-			throw new Error('Auth token not available')
-		}
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			let token = await getAuthToken()
+			if (!token) {
+				// Best-effort: authenticate and retry token retrieval.
+				await authUser()
+				token = await getAuthToken()
+			}
+			if (!token) {
+				throw new Error('Auth token not available')
+			}
 
-		let params = {
-			limit: data.limit,
-			page: data.page
-		}
+			let params = {
+				limit: data.limit,
+				page: data.page
+			}
 
-		// add filters
-		params['sort-type'] = data.filters.sort_type
+			// add filters
+			params['sort-type'] = data.filters.sort_type
 
-		if ('service' in data.filters) {
-			let _params = new URLSearchParams(params)
-			data.filters.service.forEach(s => _params.append("service", s));
+			if ('service' in data.filters) {
+				const _params = new URLSearchParams(params)
+				data.filters.service.forEach(s => _params.append('service', s))
+				params = _params
+			}
 
-			params = _params
-		}	
+			const headers = {
+				'wallet-hash': walletHash,
+				Authorization: `Bearer ${token}`
+			}
 
-		let headers = {
-			'wallet-hash': walletHash,
-			Authorization: `Bearer ${token}`
-		}
-		
-		const response = await backend.get(baseURL + '/txn/', {
-			params: params,		
-			headers: headers
-		})
+			const response = await backend.get(baseURL + '/txn/', {
+				params: params,
+				headers: headers
+			})
 
-		return {
-			success: true,
-			data: response.data,
-			error: null
-		}
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+		} catch (error) {
+			// 403 - token expired or server rejecting token; retry only a bounded number of times
+			if (error.response?.status === 403 && attempt < MAX_AUTH_RETRIES) {
+				await authUser()
+				continue
+			}
 
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn'
+			console.error('[fetchOrders] Error:', errorMessage)
 
-	} catch (error) {
-		// 403 - token expired
-		if (error.response && error.response.status === 403) {
-			await authUser()
-			return await fetchOrders(data)
-		}
-
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn'
-		console.error('[fetchOrders] Error:', errorMessage)		
-
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
 		}
 	}
+
+	// Should be unreachable due to return in catch, but keep a safe fallback.
+	return { success: false, data: null, error: 'Failed to fetch txn' }
 }
 
 // Fetching a Specific Order Details
 export async function fetchOrderDetails (pk) {
-	try {
-		const walletHash = getWalletHash()
-		if (!walletHash) {
-			throw new Error('Wallet hash not available')
-		}
+	const walletHash = getWalletHash()
+	if (!walletHash) {
+		return { success: false, data: null, error: 'Wallet hash not available' }
+	}
 
-		let token = await getAuthToken()
-		if (!token) {
-			// Best-effort: authenticate and retry token retrieval.
-			await authUser()
-			token = await getAuthToken()
-		}
-		if (!token) {
-			throw new Error('Auth token not available')
-		}
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			let token = await getAuthToken()
+			if (!token) {
+				// Best-effort: authenticate and retry token retrieval.
+				await authUser()
+				token = await getAuthToken()
+			}
+			if (!token) {
+				throw new Error('Auth token not available')
+			}
 
-		let headers = {
-			'wallet-hash': walletHash,
-			Authorization: `Bearer ${token}`
-		}
+			const headers = {
+				'wallet-hash': walletHash,
+				Authorization: `Bearer ${token}`
+			}
 
-		const response = await backend.get(baseURL + '/txn/' + pk, { headers: headers })
+			const response = await backend.get(baseURL + '/txn/' + pk, { headers: headers })
 
-		return {
-			success: true,
-			data: response.data,
-			error: null
-		}
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+		} catch (error) {
+			// 403 - token expired or server rejecting token; retry only a bounded number of times
+			if (error.response?.status === 403 && attempt < MAX_AUTH_RETRIES) {
+				await authUser()
+				continue
+			}
 
-	} catch (error) {
-		// 403 - token expired; re-auth and retry this request
-		if (error.response && error.response.status === 403) {
-			await authUser()
-			return await fetchOrderDetails(pk)
-		}
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn details'
+			console.error('[fetchOrderDetails] Error:', errorMessage)
 
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn details'
-		console.error('[fetchOrderDetails] Error:', errorMessage)
-
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
 		}
 	}
+
+	// Should be unreachable due to return in catch, but keep a safe fallback.
+	return { success: false, data: null, error: 'Failed to fetch txn details' }
 }
 
 /**
