@@ -179,7 +179,11 @@ export default {
 	    	}
 	    },
 	    getPromoSnapshotData(snapshot, key) {
-	    	return snapshot[key]
+	    	// Defensive: a single bad order (null/undefined promo_snapshot) should not
+	    	// crash the entire list rendering.
+	    	if (!snapshot || typeof snapshot !== 'object') return '—'
+	    	const value = snapshot[key]
+	    	return (value === null || value === undefined) ? '—' : value
 	    },	  
 	    nextPage() {
 	    	if (this.initialLoading || this.loadingMore) return
