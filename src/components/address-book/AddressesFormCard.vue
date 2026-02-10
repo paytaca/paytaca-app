@@ -3,7 +3,10 @@
     v-model="showQrScanner"
     @decode="onAddressQrDecoded"
   />
-  <QRUploader ref="qr-upload" @detect-upload="onAddressQrDecoded" />
+  <QRUploader
+    ref="qr-upload"
+    @detect-upload="onAddressQrDecoded"
+  />
 
   <q-card flat bordered class="form-card addresses-card">
     <q-card-section class="addresses-card-header">
@@ -66,16 +69,20 @@
           bordered
           class="address-card q-mb-sm"
         >
-          <q-card-section class="q-pa-sm">
-            <div class="row items-center q-gutter-sm">
+          <q-card-section class="q-px-md q-pt-md q-pb-xs">
+            <div class="row items-center q-gutter-x-sm">
               <q-input
                 dense
                 v-model="address.address"
                 label="Address"
                 filled
                 class="col"
-                :dark="darkMode"
                 placeholder="Enter address"
+                lazy-rules
+                :dark="darkMode"
+                :rules="[
+                  val => checkAddressFormat(val) || 'Incorrect address format.'
+                ]"
               />
               <q-btn
                 round
@@ -162,6 +169,12 @@ export default {
 
       return value
     },
+    checkAddressFormat (address) {
+      return (
+        address.includes('bitcoincash:q') ||
+        address.includes('bitcoincash:z')
+      ) && address.length === 54
+    },
 
     scrollAddressesToBottom () {
       const ref = this.$refs.addressesScroll
@@ -181,7 +194,18 @@ export default {
         this.$q.notify({
           type: 'negative',
           message: 'No QR code detected. Please try again.',
-          timeout: 2500,
+          timeout: 2000,
+          position: 'top'
+        })
+        return
+      }
+
+      // Only accept P2PKH addresses + bch prefix (bitcoincash:q... or bitcoincash:z...)
+      if (!this.checkAddressFormat(address)) {
+        this.$q.notify({
+          type: 'negative',
+          message: 'Incorrect address format.',
+          timeout: 1500,
           position: 'top'
         })
         return
@@ -191,8 +215,8 @@ export default {
       if (alreadyAdded) {
         this.$q.notify({
           type: 'warning',
-          message: 'Address already added',
-          timeout: 2000,
+          message: 'Address already added.',
+          timeout: 1500,
           position: 'top'
         })
         return
@@ -201,7 +225,7 @@ export default {
       this.addresses.push({ address })
       this.$q.notify({
         type: 'positive',
-        message: 'Address added',
+        message: 'Address added.',
         timeout: 1500,
         position: 'top'
       })

@@ -131,7 +131,8 @@ export default {
         this.$q.notify({
           type: 'positive',
           message: 'New record created successfully',
-          timeout: 3000
+          timeout: 2000,
+          position: 'top'
         })
         this.$router.push(`view-record/${newRecordId}/`)
       } else {
