@@ -306,9 +306,6 @@ export default {
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			loading: true,
 			step: 0,				
-			// Used to short-circuit step watchers during promo-search flows.
-			// (Kept as a top-level reactive flag since watchers reference `this.isSearch`.)
-			isSearch: false,
 
 			selectedPromo: null,
 			address: '',
@@ -507,23 +504,17 @@ export default {
 			if (this.suppressAutoStep) return
 			if (val) {
 				this.step++
-
-				if (!this.isSearch) {
-					this.fetchServiceGroup()
-				}
+				this.fetchServiceGroup()
 			}
 		},
 		'filters.serviceGroup'(val) {
 			if (this.suppressAutoStep) return
 			if (val) {
 				this.step++
-
-				if (!this.isSearch) {
-					this.fetchCategory(true)
-				}					
+				this.fetchCategory(true)				
 
 			} else {
-				// add searching service group with name
+				// Refresh service groups when cleared (e.g. user edits previous selection).
 				this.fetchServiceGroup()
 			}
 		},
@@ -531,10 +522,7 @@ export default {
 			if (this.suppressAutoStep) return
 			if (val) {
 				this.step++
-
-				if (!this.isSearch) {
-					this.fetchPromos(true)
-				}				
+				this.fetchPromos(true)
 				// fetch promos
 			} else {
 				// Category can be cleared as a side-effect of resetting service/serviceGroup.
