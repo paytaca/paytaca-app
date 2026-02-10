@@ -248,7 +248,7 @@
                               <q-icon name="delete" color="red-5" />
                             </q-item-section>
                             <q-item-section>
-                              <q-item-label class="text-red-5">Remove from contact</q-item-label>
+                              <q-item-label class="text-red-5">Remove address</q-item-label>
                             </q-item-section>
                           </q-item>
                         </q-list>
