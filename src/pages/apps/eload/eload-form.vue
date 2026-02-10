@@ -1011,17 +1011,33 @@ export default {
 			let result = await eloadServiceAPI.fetchCategory(data)
 
 			if (result.success) {
+				const incomingCategories = Array.isArray(result?.data?.category) ? result.data.category : []
 				if (overwrite) {
-					this.categories = result.data.category
+					this.categories = incomingCategories
 				} else {
-					this.categories.push(...result.data.category)					
+					this.categories.push(...incomingCategories)					
 				}
 				this.paginationSettings.category.totalPages = result.data.total_pages
 
-				if (this.categories.length <= 1) {
-					this.step++
-					await this.fetchPromos(true)
-				}				
+				// If there is exactly one category, auto-select it so:
+				// - PromoInfoCard can show the category name
+				// - Promo fetch is properly filtered by category
+				const totalPages = Number(result?.data?.total_pages)
+				const isSingleCategory = this.categories.length === 1 && (!Number.isFinite(totalPages) || totalPages <= 1)
+				if (isSingleCategory) {
+					const onlyCategory = this.categories[0]
+
+					// Prevent filter watcher from double-incrementing and double-fetching.
+					const prevSuppress = this.suppressAutoStep
+					this.suppressAutoStep = true
+					try {
+						this.filters.category = onlyCategory
+						if (this.step < 3) this.step = 3
+						await this.fetchPromos(true)
+					} finally {
+						this.suppressAutoStep = prevSuppress
+					}
+				}
 			}
 
 			vm.loading = false			
