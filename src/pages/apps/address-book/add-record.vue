@@ -103,6 +103,7 @@ export default {
         if (!encryptedRecordName) {
           throw new Error('Failed to encrypt record name')
         }
+
         payload.address_book.name = encryptedRecordName
         payload.address_book.is_favorite = this.favorite
         payload.address_book.wallet_hash = getWalletHash()
@@ -112,6 +113,7 @@ export default {
           type: 'negative',
           message: 'Failed to encrypt record name',
           timeout: 2000,
+          position: 'top'
         })
         return
       }
@@ -136,7 +138,7 @@ export default {
         })
         this.$router.push(`view-record/${newRecordId}/`)
       } else {
-        raiseNotifyError('Failed to add new record. Try again later.')
+        raiseNotifyError('Failed to add new record. Try again later.', 3000, 'top')
       }
     }
   }

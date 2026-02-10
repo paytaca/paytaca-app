@@ -258,12 +258,13 @@ export function parseAddressWithoutPrefix(prefixlessAddress) {
 }
 
 
-export function raiseNotifyError (message, timeout = 3000) {
+export function raiseNotifyError (message, timeout = 3000, position = 'bottom') {
   Notify.create({
     type: 'negative',
     color: 'red-4',
     timeout: timeout,
-    message: message
+    message: message,
+    position
   })
 }
 
