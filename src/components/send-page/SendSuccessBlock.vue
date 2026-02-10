@@ -222,6 +222,12 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    walletBchRaw () {
+      return this.$store.getters['global/getWallet']?.('bch')
+    },
+    walletSlpRaw () {
+      return this.$store.getters['global/getWallet']?.('slp')
+    },
     selectedMarketCurrency () {
       const code = this.currentSendPageCurrency?.()
       return String(code || '').toUpperCase()
@@ -306,6 +312,22 @@ export default {
     }
   },
 
+  watch: {
+    txid (newVal, oldVal) {
+      if (newVal && newVal !== oldVal) {
+        // In case txid arrives after mount, or component is reused.
+        this.networkFeeSats = null
+        this.fetchNetworkFee()
+      }
+    },
+    walletBchRaw () {
+      if (this.txid && this.networkFeeSats == null) this.fetchNetworkFee()
+    },
+    walletSlpRaw () {
+      if (this.txid && this.networkFeeSats == null) this.fetchNetworkFee()
+    }
+  },
+
   mounted () {
     // For tokens, totalAmountSent is in human-readable format, but parseAssetDenomination
     // expects balance in smallest units. Convert if needed.
@@ -342,22 +364,25 @@ export default {
         const baseUrl = getWatchtowerApiUrl(isChipnet)
 
         const assetId = String(this.asset?.id || 'bch')
-        const walletBch = this.$store.getters['global/getWallet']?.('bch')
-        const walletSlp = this.$store.getters['global/getWallet']?.('slp')
+        const walletBch = this.walletBchRaw
+        const walletSlp = this.walletSlpRaw
 
         let walletHash = ''
         let url = ''
         const params = { page: 1, type: 'all', txids: this.txid }
 
         if (assetId.startsWith('slp/')) {
+          if (!walletSlp) return
           const tokenId = assetId.split('/')[1]
           walletHash = getWalletByNetwork(walletSlp, 'slp')?.getWalletHash?.()
           url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
         } else if (assetId.startsWith('ct/')) {
+          if (!walletBch) return
           const tokenId = assetId.split('/')[1]
           walletHash = getWalletByNetwork(walletBch, 'bch')?.getWalletHash?.()
           url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
         } else {
+          if (!walletBch) return
           walletHash = getWalletByNetwork(walletBch, 'bch')?.getWalletHash?.()
           url = `${baseUrl}/history/wallet/${walletHash}/`
         }
