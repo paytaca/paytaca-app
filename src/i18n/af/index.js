@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Koop BCH met plaaslike geldeenheid",
   BuyLIFTTokens: "Koop LIFT Tokens",
   BuyNow: "Koop nou",
+  BuyOnCauldron: "Koop op Ketel",
   By: "deur",
   ByA: "deur a",
   ByCity: "Deur Stad",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Betaling terugbetaal",
   PaymentReleased: "Betaling vrygestel",
   PaymentRequestIsExpired: "Betalingsversoek het verval",
-  PaymentSendingError: "Iets het gebeur tydens die stuur van jou betaling.Probeer asseblief later weer.Jou saldo is nie afgetrek nie.",
+  PaymentSendingError: "Iets het verkeerd geloop toe jou betaling verwerk is. Probeer asseblief later weer. Jou saldo is nie afgetrek nie.",
   PaymentTransaction: "Betalingstransaksie",
   PaymentTransactionId: "Betalingstransaksie-ID",
   PaymentType: "Tipe betaling",
@@ -2429,6 +2430,7 @@ export default {
   below: "hieronder",
   idealValue: "ideale waarde",
   or: "of",
+  paymentReceived: "Ek het die betaling ontvang en wil vrystel selfs sonder bewys van betaling",
   toRedeemAllTokensInCirculation: "om alle tekens in omloop te los",
   viewmore: "sien meer"
 }

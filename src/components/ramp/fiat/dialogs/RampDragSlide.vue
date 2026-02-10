@@ -1,26 +1,29 @@
 <template>
-  <div v-if="!swiped" class="ramp-drag-slide-container absolute-bottom" :class="{ nudge }">
-    <div class="drag-slide-inner">
-      <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
-        <template v-if="!locked" v-slot:left>
-          <div style="font-size: 15px" class="text-body1">
-            <q-icon class="material-icons q-mr-md" size="lg">task_alt</q-icon>
-            {{ $t('SecurityCheck') }}
-          </div>
-        </template>
-        <q-item class="bg-grad text-white q-py-sm">
-          <q-item-section avatar>
-            <q-icon v-if="locked" name="lock" size="sm" :class="`bg-${themeColor}`" class="q-pa-sm" style="border-radius: 50%" />
-            <q-icon v-else name="mdi-chevron-double-right" size="lg" :class="`bg-${themeColor}`" style="border-radius: 50%" />
-          </q-item-section>
-          <q-item-section class="text-right">
-            <h6 class="q-my-sm text-white text-uppercase" style="font-size: medium;">{{ sliderText }}</h6>
-          </q-item-section>
-        </q-item>
-      </q-slide-item>
+  <!-- Root must be an actual element so directives on <RampDragSlide> can attach -->
+  <div class="ramp-drag-slide-root">
+    <div v-if="!swiped" v-bind="$attrs" class="ramp-drag-slide-container absolute-bottom" :class="{ nudge }">
+      <div class="drag-slide-inner">
+        <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
+          <template v-if="!locked" v-slot:left>
+            <div style="font-size: 15px" class="text-body1">
+              <q-icon class="material-icons q-mr-md" size="lg">task_alt</q-icon>
+              {{ $t('SecurityCheck') }}
+            </div>
+          </template>
+          <q-item class="bg-grad text-white q-py-sm">
+            <q-item-section avatar>
+              <q-icon v-if="locked" name="lock" size="sm" :class="`bg-${themeColor}`" class="q-pa-sm" style="border-radius: 50%" />
+              <q-icon v-else name="mdi-chevron-double-right" size="lg" :class="`bg-${themeColor}`" style="border-radius: 50%" />
+            </q-item-section>
+            <q-item-section class="text-right">
+              <h6 class="q-my-sm text-white text-uppercase" style="font-size: medium;">{{ sliderText }}</h6>
+            </q-item-section>
+          </q-item>
+        </q-slide-item>
+      </div>
     </div>
+    <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
   </div>
-  <pinDialog v-model:pin-dialog-action="pinDialogAction" v-on:nextAction="pinDialogNextAction" />
 </template>
 <script>
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -28,6 +31,7 @@ import pinDialog from 'src/components/pin/index.vue'
 
 export default {
   name: 'drag-slide',
+  inheritAttrs: false,
   components: {
     pinDialog
   },

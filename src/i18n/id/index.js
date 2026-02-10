@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Beli BCH dengan Mata Uang Lokal",
   BuyLIFTTokens: "Beli Token LIFT",
   BuyNow: "Beli Sekarang",
+  BuyOnCauldron: "Beli di Kuali",
   By: "oleh",
   ByA: "oleh a",
   ByCity: "Berdasarkan Kota",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Pembayaran dikembalikan",
   PaymentReleased: "Pembayaran dilepaskan",
   PaymentRequestIsExpired: "Permintaan pembayaran sudah habis masa berlakunya",
-  PaymentSendingError: "Terjadi sesuatu saat mengirim pembayaran Anda.Silakan coba lagi nanti.Saldo Anda tidak terpotong.",
+  PaymentSendingError: "Terjadi masalah saat mengirim pembayaran Anda. Silakan coba lagi nanti. Saldo Anda tidak terpotong.",
   PaymentTransaction: "Transaksi pembayaran",
   PaymentTransactionId: "ID Transaksi Pembayaran",
   PaymentType: "Jenis Pembayaran",
@@ -2429,6 +2430,7 @@ export default {
   below: "di bawah",
   idealValue: "nilai ideal",
   or: "atau",
+  paymentReceived: "Saya sudah menerima pembayarannya dan ingin melepaskannya meski tanpa bukti pembayaran",
   toRedeemAllTokensInCirculation: "untuk menebus semua token yang beredar",
   viewmore: "lihat lebih banyak"
 }

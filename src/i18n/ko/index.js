@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "현지 통화로 BCH 구매",
   BuyLIFTTokens: "LIFT 토큰 구매",
   BuyNow: "지금 구매",
+  BuyOnCauldron: "가마솥에서 구매",
   By: "에 의해",
   ByA: "에 의해",
   ByCity: "도시별",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "결제 금액이 환불됨",
   PaymentReleased: "결제가 해제되었습니다.",
   PaymentRequestIsExpired: "결제 요청이 만료되었습니다.",
-  PaymentSendingError: "결제를 보내는 중에 문제가 발생했습니다.나중에 다시 시도해 주세요.잔액이 차감되지 않았습니다.",
+  PaymentSendingError: "결제 전송 중 문제가 발생했습니다. 나중에 다시 시도해 주세요. 잔액이 차감되지 않았습니다.",
   PaymentTransaction: "결제거래",
   PaymentTransactionId: "결제거래ID",
   PaymentType: "결제 유형",
@@ -2429,6 +2430,7 @@ export default {
   below: "아래",
   idealValue: "이상적인 가치",
   or: "또는",
+  paymentReceived: "대금을 받았는데, 대금 증빙 자료 없이도 출고하고 싶습니다.",
   toRedeemAllTokensInCirculation: "유통 중인 모든 토큰을 상환하기 위해",
   viewmore: "자세히 보기"
 }

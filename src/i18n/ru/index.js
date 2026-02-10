@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Купить BCH за местную валюту",
   BuyLIFTTokens: "Купить токены LIFT",
   BuyNow: "Купить сейчас",
+  BuyOnCauldron: "Купить в Котле",
   By: "по",
   ByA: "по",
   ByCity: "По городу",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Платеж возвращен",
   PaymentReleased: "Платеж выпущен",
   PaymentRequestIsExpired: "Срок действия запроса на оплату истек",
-  PaymentSendingError: "Что-то произошло во время отправки платежа.Пожалуйста, повторите попытку позже.Ваш баланс не был списан.",
+  PaymentSendingError: "Произошла проблема при отправке вашего платежа. Пожалуйста, попробуйте позже. Ваш баланс не был списан.",
   PaymentTransaction: "Платежная операция",
   PaymentTransactionId: "Идентификатор платежной транзакции",
   PaymentType: "Тип оплаты",
@@ -2429,6 +2430,7 @@ export default {
   below: "ниже",
   idealValue: "идеальное значение",
   or: "или",
+  paymentReceived: "Я получил платеж и хочу его выпустить даже без подтверждения оплаты",
   toRedeemAllTokensInCirculation: "выкупить все токены в обращении",
   viewmore: "посмотреть больше"
 }

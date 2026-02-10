@@ -24,6 +24,26 @@ export function assetPrices (state) {
   return state.assetPrices
 }
 
+export function isUpdatingPrices (state) {
+  return Boolean(state.isUpdatingPrices)
+}
+
+export function lastCurrencySwitchAt (state) {
+  return Number(state.lastCurrencySwitchAt) || 0
+}
+
+export function pendingCurrencySymbol (state) {
+  return state.pendingCurrencySymbol ? String(state.pendingCurrencySymbol).toUpperCase() : null
+}
+
+export function assetPricesLastUpdate (state) {
+  return state.assetPricesLastUpdate || {}
+}
+
+export function usdRatesLastUpdate (state) {
+  return state.usdRatesLastUpdate || {}
+}
+
 export function getAssetPrice (state) {
   return (assetId, currencySymbol) => {
     // 1. check if asset price for assetId exists
@@ -42,8 +62,24 @@ export function getAssetPrice (state) {
     }
 
     // 3. step 2 has none, check if has usd rates & calculate
-    if (!state.usdRates || !state.usdRates[parsedCurrencySymbol.toUpperCase()]) return null
+    const fxKey = parsedCurrencySymbol.toUpperCase()
+    if (!state.usdRates || !state.usdRates[fxKey]) return null
     if (!assetPrice.prices.usd) return null
+
+    // Refuse to use stale FX/price data only during an active currency refresh.
+    // This prevents wrong conversions after a switch without blocking cold start or
+    // app resume (when timestamps may be missing or from a previous session).
+    const pendingSymbol = state.pendingCurrencySymbol ? String(state.pendingCurrencySymbol).toUpperCase() : null
+    const inCurrencyRefresh = Boolean(state.isUpdatingPrices && pendingSymbol && pendingSymbol === fxKey)
+
+    if (inCurrencyRefresh) {
+      const STALE_TTL_MS = 5 * 60 * 1000
+      const fxLast = Number(state.usdRatesLastUpdate?.[fxKey]) || 0
+      if (!fxLast || Date.now() - fxLast > STALE_TTL_MS) return null
+
+      const priceLast = Number(state.assetPricesLastUpdate?.[assetId]) || 0
+      if (!priceLast || Date.now() - priceLast > STALE_TTL_MS) return null
+    }
 
     return Number(state.usdRates[parsedCurrencySymbol.toUpperCase()]) * Number(assetPrice.prices.usd)
   }

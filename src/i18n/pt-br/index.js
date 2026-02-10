@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Compre BCH com moeda local",
   BuyLIFTTokens: "Compre tokens LIFT",
   BuyNow: "Compre agora",
+  BuyOnCauldron: "Compre no Caldeirão",
   By: "por",
   ByA: "por um",
   ByCity: "Por cidade",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "Pagamento reembolsado",
   PaymentReleased: "Pagamento liberado",
   PaymentRequestIsExpired: "A solicitação de pagamento expirou",
-  PaymentSendingError: "Algo aconteceu ao enviar seu pagamento.Por favor, tente novamente mais tarde.Seu saldo não foi deduzido.",
+  PaymentSendingError: "Ocorreu um problema ao enviar seu pagamento. Por favor, tente novamente mais tarde. Seu saldo não foi deduzido.",
   PaymentTransaction: "Transação de pagamento",
   PaymentTransactionId: "ID da transação de pagamento",
   PaymentType: "Tipo de pagamento",
@@ -2429,6 +2430,7 @@ export default {
   below: "abaixo",
   idealValue: "valor ideal",
   or: "ou",
+  paymentReceived: "Recebi o pagamento e quero liberar mesmo sem comprovante de pagamento",
   toRedeemAllTokensInCirculation: "para resgatar todos os tokens em circulação",
   viewmore: "ver mais"
 }

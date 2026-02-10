@@ -271,6 +271,7 @@ export default {
   BuyBCHWithLocalCurrency: "Sayi BCH tare da Kuɗin Gida",
   BuyLIFTTokens: "Saya LIFT Token",
   BuyNow: "Sayi Yanzu",
+  BuyOnCauldron: "Sayi akan Cauldron",
   By: "ta",
   ByA: "da a",
   ByCity: "By City",
@@ -1447,7 +1448,7 @@ export default {
   PaymentRefunded: "An dawo da biyan kuɗi",
   PaymentReleased: "An saki biyan kuɗi",
   PaymentRequestIsExpired: "Neman biyan kuɗi ya ƙare",
-  PaymentSendingError: "Wani abu ya faru yayin aika kuɗin ku.Da fatan za a sake gwadawa daga baya.Ba a cire ma'aunin ku ba.",
+  PaymentSendingError: "Wani abu ya faru yayin aikawa da biyan kuɗin ku. Da fatan za a sake gwadawa daga baya. Ba a cire kuɗi daga asusun ku ba.",
   PaymentTransaction: "Ma'amalar biyan kuɗi",
   PaymentTransactionId: "ID na Kasuwancin Biyan kuɗi",
   PaymentType: "Nau'in Biyan Kuɗi",
@@ -2429,6 +2430,7 @@ export default {
   below: "kasa",
   idealValue: "manufa darajar",
   or: "ko",
+  paymentReceived: "Na karɓi kuɗin kuma ina so in saki ko da ba tare da shaidar biyan kuɗi ba",
   toRedeemAllTokensInCirculation: "don fanshi duk alamu a wurare dabam dabam",
   viewmore: "duba more"
 }

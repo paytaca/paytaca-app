@@ -269,6 +269,7 @@ export default {
   BuyBCHWithLocalCurrency: "Buy BCH with Local Currency",
   BuyLIFTTokens: "Buy LIFT Tokens",
   BuyNow: "Buy Now",
+  BuyOnCauldron: "Buy on Cauldron",
   By: "by",
   ByA: "by a",
   ByCity: "By City",
@@ -2426,6 +2427,7 @@ export default {
   below: "below",
   idealValue: "ideal value",
   or: "or",
+  paymentReceived: "I have received the payment and want to release even without proof of payment",
   toRedeemAllTokensInCirculation: "to redeem all tokens in circulation",
   viewmore: "view more"
 }
