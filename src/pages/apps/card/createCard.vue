@@ -225,20 +225,20 @@
                     </div>
 
                     <q-form @submit="onSubmit" class="q-col-gutter-sm">
-                      <q-input outlined dense v-model="formData.fullName" label="Full Name *" input-class="text-black" :rules="[val => !!val || 'Full name is required']"/>
+                      <q-input outlined dense v-model="formData.fullName" label="Full Name *" input-class="text-black" :rules="[val => !!val || 'Full name is required']" lazy-rules/>
                       
                       <div class="row q-col-gutter-sm">
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.city" label="City *" input-class="text-black" :rules="[val => !!val || 'City is required']"/>
+                          <q-input outlined dense v-model="formData.city" label="City *" input-class="text-black" :rules="[val => !!val || 'City is required']" lazy-rules/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.state" label="State *" input-class="text-black" :rules="[val => !!val || 'State is required']"/>
+                          <q-input outlined dense v-model="formData.state" label="State *" input-class="text-black" :rules="[val => !!val || 'State is required']" lazy-rules/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.zip" label="Zip *" input-class="text-black" :rules="[val => !!val || 'Zip code is required']"/>
+                          <q-input outlined dense v-model="formData.zip" label="Zip *" input-class="text-black" :rules="[val => !!val || 'Zip code is required']" lazy-rules/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.country" label="Country *" input-class="text-black" :rules="[val => !!val || 'Country is required']"/>
+                          <q-input outlined dense v-model="formData.country" label="Country *" input-class="text-black" :rules="[val => !!val || 'Country is required']" lazy-rules/>
                         </div>
                         
                         <!-- Users will drag marker and it will dynamically fill the required fields (City, State, Zip, and Country) -->
@@ -1156,9 +1156,6 @@ import { selectedCurrency } from 'src/store/market/getters';
       },
 
       async onSubmit(){
-        this.$q.notify({
-          message: `Form Data: ${JSON.stringify(this.formData)}`
-        })
 
         this.$q.loading.show({message: 'Processing your order...'})
 
@@ -1205,6 +1202,8 @@ import { selectedCurrency } from 'src/store/market/getters';
             this.$refs.orderForm.resetValidation()
           }
         })
+
+        this.showForm = false
       },
 
       initMap () {
@@ -1237,11 +1236,6 @@ import { selectedCurrency } from 'src/store/market/getters';
           const data = await response.json()
           const addr = data.address
 
-          this.$q.notify({
-            message: `Full address data: ${addr}`,
-            color: 'warning'
-          })
-
           // response mapping to formData
           this.formData = {
             ...this.formData,
@@ -1251,11 +1245,6 @@ import { selectedCurrency } from 'src/store/market/getters';
             country: addr.country || '',
           }
           
-          this.$q.notify({
-            message: `Location set to ${this.formData.city}`,
-            icon: 'check', 
-            color: 'positive'
-          })
         }
         catch (error) {
           this.$q.notify({
