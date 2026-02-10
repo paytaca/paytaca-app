@@ -46,7 +46,6 @@ export function usdRatesLastUpdate (state) {
 
 export function getAssetPrice (state) {
   return (assetId, currencySymbol) => {
-    const STALE_TTL_MS = 5 * 60 * 1000
     // 1. check if asset price for assetId exists
     if (!Array.isArray(state.assetPrices)) return null
     const assetPrice = state.assetPrices.find(assetPrice => assetPrice && assetPrice.assetId === assetId)
@@ -67,12 +66,20 @@ export function getAssetPrice (state) {
     if (!state.usdRates || !state.usdRates[fxKey]) return null
     if (!assetPrice.prices.usd) return null
 
-    // Refuse to use stale FX/price data (prevents wrong conversions after currency switches).
-    const fxLast = Number(state.usdRatesLastUpdate?.[fxKey]) || 0
-    if (!fxLast || Date.now() - fxLast > STALE_TTL_MS) return null
+    // Refuse to use stale FX/price data only during an active currency refresh.
+    // This prevents wrong conversions after a switch without blocking cold start or
+    // app resume (when timestamps may be missing or from a previous session).
+    const pendingSymbol = state.pendingCurrencySymbol ? String(state.pendingCurrencySymbol).toUpperCase() : null
+    const inCurrencyRefresh = Boolean(state.isUpdatingPrices && pendingSymbol && pendingSymbol === fxKey)
 
-    const priceLast = Number(state.assetPricesLastUpdate?.[assetId]) || 0
-    if (!priceLast || Date.now() - priceLast > STALE_TTL_MS) return null
+    if (inCurrencyRefresh) {
+      const STALE_TTL_MS = 5 * 60 * 1000
+      const fxLast = Number(state.usdRatesLastUpdate?.[fxKey]) || 0
+      if (!fxLast || Date.now() - fxLast > STALE_TTL_MS) return null
+
+      const priceLast = Number(state.assetPricesLastUpdate?.[assetId]) || 0
+      if (!priceLast || Date.now() - priceLast > STALE_TTL_MS) return null
+    }
 
     return Number(state.usdRates[parsedCurrencySymbol.toUpperCase()]) * Number(assetPrice.prices.usd)
   }
