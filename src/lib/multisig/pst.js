@@ -969,8 +969,8 @@ export class Pst {
       purpose: this.purpose,
       unsignedTransactionHex: this.unsignedTransactionHex,
       inputs: this.inputs,
-      outputs: this.outputs,
-      walletHash: getWalletHash(this.wallet),
+      outputs: this.outputs
+      // walletHash: getWalletHash(this.wallet),
     }
 
     if (this.metadata) {
@@ -1206,7 +1206,7 @@ export class Pst {
     }
     
     if (bigintKeys.has(k) && typeof v !== 'string') {
-      return value.toString();
+      return v.toString();
     }    
     
     return v
