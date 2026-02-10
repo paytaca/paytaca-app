@@ -958,6 +958,65 @@ export class Pst {
     return result
   }
 
+  /**
+   /**
+    * Verifies an array of decoded signer signature data objects for validity.
+    *
+    * @param {DecodedSignerSignatureData[]} signerSignatures - Array of decoded signature data to verify.
+    * @returns {boolean} - Returns true if all signer signatures pass signature verification.
+    * @throws {Error} If verification fails.
+    */
+  verifySignerSignatures(signerSignatures) {
+    for (const signerSignature of signerSignatures) {
+      const proposalCorrespondingInputIndex = this.inputs?.findIndex(i => {
+        return (
+          binToHex(i.outpointTransactionHash) === signerSignature.input.outpointTransactionHash &&
+          Number(i.outpointIndex) === Number(signerSignature.input.outpointIndex)
+        )
+      })
+      if (proposalCorrespondingInputIndex === -1) {
+        throw new Error(`Signed input doesn't belong to this transaction`)
+      }
+      const success = verifyTransactionInputSignature({
+        signature: hexToBin(signerSignature.signature),
+        publicKey: hexToBin(signerSignature.publicKey),
+        redeemScript: hexToBin(signerSignature.input.redeemScript),
+        context: {
+          transaction: decodeTransactionCommon(hexToBin(this.unsignedTransactionHex)),
+          inputIndex: proposalCorrespondingInputIndex,
+          sourceOutputs: this.inputs.map(i => i.sourceOutput)
+        }
+      })
+      if (!success) {
+        throw new Error(`Failed to verify signature of input index ${proposalCorrespondingInputIndex}`)
+      }
+    }
+    return true
+  }
+
+   /** 
+    * Merges individual signer signature data with this pst
+    *
+    * @param {DecodedSignerSignatureData[]} signerSignatures - Array of decoded signature data to verify.
+    * @returns {boolean} - Returns true if all signer signatures pass signature verification.
+    * @throws {Error} If verification fails.
+    */
+   mergeSignerSignatures(signerSignatures) {
+    this.verifySignerSignatures(signerSignatures)
+    for (const signerSignature of signerSignatures) {
+      const input = this.inputs.find(i => {
+        return (
+          i.outpointIndex === signerSignature.input.outpointIndex &&
+          binToHex(i.outpointTransactionHash) === signerSignature.input.outpointTransactionHash
+        )
+      })
+      if (!input.signatures) {
+        input.signatures = {}
+      }
+      input.signatures[signerSignature.publicKey] = signerSignature.signature
+    }
+  }
+
   getTotalSatsInput() {
     return this.inputs.filter(i => !i.sourceOutput?.token).reduce((total, input) => {
       return total + Number(input.sourceOutput.valueSatoshis)
