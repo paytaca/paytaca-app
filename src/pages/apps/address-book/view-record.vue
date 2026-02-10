@@ -457,6 +457,7 @@ export default {
       const payload = { is_favorite: this.record.is_favorite}
       const patchSuccess = await patchRecord(this.record.id, payload)
       if (patchSuccess) {
+        await this.loadRecord(this.record.id)
         const message = this.record.is_favorite 
             ? 'Added to favorites' 
             : 'Removed from favorites'
