@@ -65,7 +65,7 @@
       </div>
       <div class="row items-start justify-start q-mb-md" ref="storefrontsContainer">
         <!-- Skeleton loaders -->
-        <template v-if="(!initialized || !storefronts.length)">
+        <template v-if="(!initialized || !storefronts.length) && fetchingStorefronts">
           <div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-skeleton height="200px" />
