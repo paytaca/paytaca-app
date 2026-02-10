@@ -66,8 +66,7 @@
                   {{ formatDateRelative(order?.createdAt) }}
                 </q-item-label>
                 <q-item-label>
-                  {{ Number(order?.total).toFixed(2) }}
-                  {{ order?.currency?.symbol }}
+                  {{ parseFiatCurrency(order?.total, order?.currency?.symbol) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -83,6 +82,7 @@ import { backend } from 'src/marketplace/backend'
 import { formatDateRelative } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
 import { computed, onActivated, onMounted, ref, watch } from 'vue'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import LimitOffsetPagination from 'src/components/LimitOffsetPagination.vue'

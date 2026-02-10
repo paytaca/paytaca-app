@@ -2,7 +2,7 @@ import { deriveHdPrivateNodeFromSeed, deriveHdPath, secp256k1 } from '@bitauth/l
 import axios from 'axios'
 
 import { Store } from 'src/store'
-import { convertToBCH } from 'src/utils/denomination-utils'
+import { convertToBCH, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getMnemonic } from 'src/wallet'
 import { getWallet } from 'src/utils/send-page-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
@@ -81,7 +81,8 @@ export function convertPoints (points, pointsDivisor) {
 
   const convertedFiat = Store.getters['market/getAssetPrice']('bch', fiatCurrency())
   const bchNum = Number(bch) === 0 || Number.isNaN(Number(bch)) ? '0' : bch.toFixed(8)
-  const finalFiat = `${(bchNum * convertedFiat).toFixed(2)} ${fiatCurrency()}`
+  const fiatAmount = Number(bchNum) * Number(convertedFiat)
+  const finalFiat = parseFiatCurrency(fiatAmount, fiatCurrency())
   const finalBch = `${bchNum} ${denomination()}`
 
   return `${finalFiat} or ${finalBch}`

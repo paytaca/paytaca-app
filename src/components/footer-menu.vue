@@ -150,12 +150,13 @@ export default {
   .fixed-footer {
     position: fixed;
     height: 67px;
-    padding-top: 5px;
+    padding-top: 0;
     width: calc(100% - 32px) !important;
     max-width: 600px;
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
+    align-items: center;
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 6;
@@ -165,20 +166,60 @@ export default {
     .footer-icon-btn {
       border-radius: 20px;
       border: none;
-      width: 60px;
-      height: 50px;
+      width: auto;
+      flex: 1 1 0;
+      max-width: 88px;
+      height: 56px;
       outline: none;
       background-color: transparent;
       font-size: 12px;
       color: black;
-      line-height: 20px;
+      line-height: normal;
       min-width: 50px;
+      text-align: center;
+      padding: 0;
+      padding-bottom: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+
+      a {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      br {
+        display: none;
+      }
+
+      :deep(.q-icon) {
+        line-height: 1;
+      }
+
+      span {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 0 2px;
+        font-size: 11px;
+        line-height: 1.15;
+        white-space: normal;
+        overflow-wrap: break-word; // only breaks long words when needed
+        word-break: normal;
+      }
     }
     .footer-btn-container {
-      margin-top: 1px !important;
+      margin-top: 0 !important;
       overflow-x: auto;
       overflow-y: hidden;
       flex-wrap: nowrap;
+      align-items: center;
     }
   }
   .fixed-footer.dark {
@@ -189,16 +230,32 @@ export default {
   }
   #qr-button {
     z-index: 100 !important;
-    margin-top: -25px;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
     position: absolute;
+    left: 50%;
+    top: -24px;
+    transform: translateX(-50%);
+    gap: 2px;
+    .footer-icon-btn {
+      flex: 0 0 auto;
+      width: 60px;
+      max-width: 60px;
+      height: 60px;
+      min-width: 60px;
+      border-radius: 50%;
+    }
     button {
       z-index: 100 !important;
-      border-radius: 50px;
+      border-radius: 50%;
       border: 2px solid lightgray;
       width: 60px;
       height: 60px;
+    }
+    br {
+      display: none;
     }
     span {
       font-size: 12px;

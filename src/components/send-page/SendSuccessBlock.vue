@@ -17,6 +17,20 @@
         </template>
       </template>
 
+      <!-- Network Fee (like Transaction Detail page) -->
+      <div v-if="shouldShowNetworkFee" class="network-fee q-mt-sm">
+        <div class="text-grey text-weight-medium text-caption">{{ $t('NetworkFee') }}</div>
+        <div class="network-fee-value">
+          <template v-if="networkFeeLoading">—</template>
+          <template v-else>
+            {{ networkFeeFormatted }}
+            <template v-if="networkFeeFiatFormatted">
+              ({{ networkFeeFiatFormatted }})
+            </template>
+          </template>
+        </div>
+      </div>
+
       <!-- Reference ID Section -->
       <div class="reference-id-section q-mt-md">
         <div class="text-grey text-weight-medium text-caption">{{ $t('ReferenceId')}}</div>
@@ -160,8 +174,10 @@ import {
   parseFiatCurrency,
   parseAssetDenomination
 } from 'src/utils/denomination-utils'
+import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import * as memoService from 'src/utils/memo-service'
 import { hexToRef } from 'src/utils/reference-id-utils'
+import axios from 'axios'
 
 import SendSuccessDetailsDialog from 'src/components/send-page/SendSuccessDetailsDialog.vue'
 
@@ -192,6 +208,8 @@ export default {
     return {
       amountSent: '',
       fiatAmountSent: '',
+      networkFeeSats: null,
+      networkFeeLoading: false,
       transactionMemo: '',
       memoInput: '',
       editingMemo: false,
@@ -203,6 +221,45 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    walletBchRaw () {
+      return this.$store.getters['global/getWallet']?.('bch')
+    },
+    walletSlpRaw () {
+      return this.$store.getters['global/getWallet']?.('slp')
+    },
+    selectedMarketCurrency () {
+      const code = this.currentSendPageCurrency?.()
+      return String(code || '').toUpperCase()
+    },
+    shouldShowNetworkFee () {
+      // Always show the row when we have a txid; display placeholder while loading.
+      return Boolean(this.txid)
+    },
+    networkFeeBch () {
+      const sats = Number(this.networkFeeSats)
+      if (!Number.isFinite(sats) || sats <= 0) return null
+      return sats / 10 ** 8
+    },
+    networkFeeFormatted () {
+      if (this.networkFeeBch === null) return '—'
+      return parseAssetDenomination(this.denomination, { id: 'bch', symbol: 'BCH', balance: this.networkFeeBch })
+    },
+    networkFeeFiat () {
+      if (this.networkFeeBch === null) return null
+      const code = this.selectedMarketCurrency
+      if (!code) return null
+      const price = this.$store.getters['market/getAssetPrice']?.('bch', code)
+      if (!price) return null
+      const value = this.networkFeeBch * Number(price)
+      if (!Number.isFinite(value)) return null
+      return value
+    },
+    networkFeeFiatFormatted () {
+      if (this.networkFeeFiat === null) return ''
+      const code = this.selectedMarketCurrency
+      if (!code) return ''
+      return parseFiatCurrency(this.networkFeeFiat, code)
     },
     transactionBreakdownData () {
       // Helper to convert amount to smallest unit if needed for tokens
@@ -255,6 +312,28 @@ export default {
     }
   },
 
+  watch: {
+    txid (newVal, oldVal) {
+      if (newVal && newVal !== oldVal) {
+        // In case txid arrives after mount, or component is reused.
+        this.networkFeeSats = null
+        this.fetchNetworkFee()
+      }
+    },
+    walletBchRaw (newVal, oldVal) {
+      // Only trigger when wallet becomes available (null -> object)
+      if (!oldVal && newVal && this.txid && this.networkFeeSats == null && !this.networkFeeLoading) {
+        this.fetchNetworkFee()
+      }
+    },
+    walletSlpRaw (newVal, oldVal) {
+      // Only trigger when wallet becomes available (null -> object)
+      if (!oldVal && newVal && this.txid && this.networkFeeSats == null && !this.networkFeeLoading) {
+        this.fetchNetworkFee()
+      }
+    }
+  },
+
   mounted () {
     // For tokens, totalAmountSent is in human-readable format, but parseAssetDenomination
     // expects balance in smallest units. Convert if needed.
@@ -271,6 +350,7 @@ export default {
       this.totalFiatAmountSent, this.totalAmountSent
     )
     this.loadMemo()
+    this.fetchNetworkFee()
   },
 
   methods: {
@@ -279,6 +359,67 @@ export default {
 
     getExplorerLink (txid) {
       return getExplorerLink(txid, this.isCashToken)
+    },
+    async fetchNetworkFee () {
+      if (!this.txid) return
+      if (this.networkFeeLoading) return
+
+      this.networkFeeLoading = true
+      try {
+        const isChipnet = this.$store.getters['global/isChipnet']
+        const baseUrl = getWatchtowerApiUrl(isChipnet)
+
+        const assetId = String(this.asset?.id || 'bch')
+        const walletBch = this.walletBchRaw
+        const walletSlp = this.walletSlpRaw
+
+        let walletHash = ''
+        let url = ''
+        const params = { page: 1, type: 'all', txids: this.txid }
+
+        if (assetId.startsWith('slp/')) {
+          if (!walletSlp) return
+          const tokenId = assetId.split('/')[1]
+          const walletObj = getWalletByNetwork(walletSlp, 'slp')
+          if (!walletObj) return
+          walletHash = walletObj.getWalletHash?.()
+          if (!walletHash || typeof walletHash !== 'string' || !walletHash.trim()) return
+          url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
+        } else if (assetId.startsWith('ct/')) {
+          if (!walletBch) return
+          const tokenId = assetId.split('/')[1]
+          const walletObj = getWalletByNetwork(walletBch, 'bch')
+          if (!walletObj) return
+          walletHash = walletObj.getWalletHash?.()
+          if (!walletHash || typeof walletHash !== 'string' || !walletHash.trim()) return
+          url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
+        } else {
+          if (!walletBch) return
+          const walletObj = getWalletByNetwork(walletBch, 'bch')
+          if (!walletObj) return
+          walletHash = walletObj.getWalletHash?.()
+          if (!walletHash || typeof walletHash !== 'string' || !walletHash.trim()) return
+          url = `${baseUrl}/history/wallet/${walletHash}/`
+        }
+
+        if (!url) return
+
+        const { data } = await axios.get(url, { params, timeout: 10000 })
+        const history = data?.history || data
+        if (!Array.isArray(history)) return
+
+        const tx = history.find(t => (t?.txid || t?.tx_hash || t?.hash) === this.txid) || null
+        const txFeeRaw = tx?.tx_fee
+        const sats = Number(txFeeRaw)
+        if (Number.isFinite(sats) && sats > 0) {
+          this.networkFeeSats = sats
+        }
+      } catch (e) {
+        // Best-effort only; fee will still be visible in Transaction Detail view.
+        console.warn('[SendSuccessBlock] fetchNetworkFee failed:', e)
+      } finally {
+        this.networkFeeLoading = false
+      }
     },
     openSendSuccessDetailsDialog () {
       this.$q.dialog({
@@ -487,6 +628,13 @@ export default {
       font-size: 20px;
       margin-top: 0;
       opacity: 0.85;
+    }
+
+    .network-fee {
+      .network-fee-value {
+        font-size: 13px;
+        opacity: 0.9;
+      }
     }
 
     // Reference ID Section
