@@ -21,6 +21,22 @@ async function withRetries (fn, { retries = 3, initialDelayMs = 500 } = {}) {
   }
 }
 
+function normalizeCurrencySymbol (symbol) {
+  if (symbol === undefined || symbol === null) return null
+  const s = String(symbol).trim()
+  if (!s) return null
+  return s.toUpperCase()
+}
+
+function buildVsCurrencies (currencySymbol, customCurrency) {
+  // Always include USD so we can fall back to USD-based conversions when needed.
+  return [currencySymbol, customCurrency, 'USD']
+    .map(normalizeCurrencySymbol)
+    .filter(Boolean)
+    // Keep the first occurrence of duplicates (do NOT drop all occurrences).
+    .filter((element, index, array) => array.indexOf(element) === index)
+}
+
 export async function updateSupportedCurrencies (context, { force = true }) {
   if (Array.isArray(context.state.currencyOptions) && context.state.currencyOptions.length >= 1 && !force) return
 
@@ -72,10 +88,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
   // If assetId is provided, use the unified endpoint to fetch price for that specific asset
   // This works for tokens (ct/..., slp/...) as well as BCH
   if (assetId) {
-    // Request only the user's currency - the API should return prices in the requested currency
-    const vsCurrencies = [currencySymbol, customCurrency, 'USD']
-      .filter(Boolean)
-      .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
+    const vsCurrencies = buildVsCurrencies(currencySymbol, customCurrency)
     
     if (!vsCurrencies.length) return
     
@@ -174,9 +187,7 @@ export async function updateAssetPrices (context, { clearExisting = false, custo
     .filter(Boolean)
     .filter((e, i, s) => s.indexOf(e) === i)
 
-  const vsCurrencies = [currencySymbol, customCurrency, 'USD']
-    .filter(Boolean)
-    .filter((element, index, array) => array.indexOf(element) === array.lastIndexOf(element))
+  const vsCurrencies = buildVsCurrencies(currencySymbol, customCurrency)
 
   const { data: priceDataList } = await axios.get(
     'https://watchtower.cash/api/market-prices/',
@@ -249,8 +260,6 @@ export async function refreshMarketDataForSelectedCurrency (context, { assetIds 
       return context.dispatch('updateAssetPrices', {
         assetId: id,
         clearExisting: false,
-        // Ensure USD is also available for fallback paths.
-        customCurrency: 'USD',
       })
     })
 
