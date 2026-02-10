@@ -69,7 +69,7 @@
           bordered
           class="address-card q-mb-sm"
         >
-          <q-card-section class="q-px-md q-pt-md q-pb-xs">
+          <q-card-section class="q-pa-sm">
             <div class="row items-center q-gutter-x-sm">
               <q-input
                 dense

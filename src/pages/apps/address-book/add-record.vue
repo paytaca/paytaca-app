@@ -33,11 +33,13 @@
             <q-btn
               rounded
               class="save-button"
-              label="Save"
+              label="Create"
               color="primary"
-              unelevated
               padding="sm md"
               @click="saveRecord"
+              aria-label="Create new record"
+              :disabled="!canSaveRecord || isLoading"
+              :loading="isLoading"
             />
           </div>
         </div>
@@ -80,12 +82,17 @@ export default {
       favorite: false,
       addresses: [],
       showQrScanner: false,
+      isLoading: false
     }
   },
 
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+
+    canSaveRecord () {
+      return Boolean(this.recordName)
     }
   },
 
@@ -93,6 +100,7 @@ export default {
     getDarkModeClass,
 
     async saveRecord () {
+      this.isLoading = true
       const payload = { address_book: {}, addresses: [] }
 
       // encrypt the recordName
@@ -135,6 +143,8 @@ export default {
       } else {
         raiseNotifyError('Failed to add new record. Try again later.', 3000, 'top')
       }
+
+      this.isLoading = false
     }
   }
 }
