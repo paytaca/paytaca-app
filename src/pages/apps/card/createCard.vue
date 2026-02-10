@@ -225,27 +225,27 @@
                     </div>
 
                     <q-form @submit="onSubmit" class="q-col-gutter-sm">
-                      <q-input outlined dense v-model="formData.fullName" label="Full Name" />
+                      <q-input outlined dense v-model="formData.fullName" label="Full Name *" input-class="text-black" :rules="[val => !!val || 'Full name is required']"/>
                       
                       <div class="row q-col-gutter-sm">
-                        <div class="col-6 text-primary">
-                          <q-input outlined dense v-model="formData.city" label="City" />
+                        <div class="col-6">
+                          <q-input outlined dense v-model="formData.city" label="City *" input-class="text-black" :rules="[val => !!val || 'City is required']"/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.state" label="State" />
+                          <q-input outlined dense v-model="formData.state" label="State *" input-class="text-black" :rules="[val => !!val || 'State is required']"/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.zip" label="Zip" />
+                          <q-input outlined dense v-model="formData.zip" label="Zip *" input-class="text-black" :rules="[val => !!val || 'Zip code is required']"/>
                         </div>
                         <div class="col-6">
-                          <q-input outlined dense v-model="formData.country" label="Country" />
+                          <q-input outlined dense v-model="formData.country" label="Country *" input-class="text-black" :rules="[val => !!val || 'Country is required']"/>
                         </div>
                         
-                        <!-- Users will pin location and it will dynamically fill the required fields (City, State, Zip, and Country) -->
+                        <!-- Users will drag marker and it will dynamically fill the required fields (City, State, Zip, and Country) -->
                         <div ref="mapContainer" class="q-mt-md" style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid #ddd;"></div>
                         <div class="text-caption text-grey-7 q-mt-xs">
                           <q-icon name="place" color="primary"/>
-                          Pin your location to auto-fill address fields.
+                          Drag the marker to your location to auto-fill address fields.
                         </div>  
                       </div>
                       <q-btn label="Confirm Order" color="primary" type="submit" class="full-width q-mt-md" unelevated />
@@ -1156,18 +1156,29 @@ import { selectedCurrency } from 'src/store/market/getters';
       },
 
       async onSubmit(){
+        this.$q.notify({
+          message: `Form Data: ${JSON.stringify(this.formData)}`
+        })
+
         this.$q.loading.show({message: 'Processing your order...'})
 
         try {
           await new Promise(resolve => setTimeout(resolve, 2000))
 
-          this.$q.notify({
+          this.$q.dialog({
+            title: 'Order confirmed',
             color: 'positive',
-            message: 'Physical card order placed!',
-            icon: 'check'
+            message: 'You order has been place. We will notify you once it is out for delivery.',
+            icon: 'check',
+            ok: {
+              label: 'Got it',
+              color: 'primary'
+            },
+            persistent: true
+          }).onOk(() => {
+            this.resetForm()
           })
 
-          this.resetForm()
         }
         catch (error){
           this.$q.notify({
@@ -1235,9 +1246,9 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.formData = {
             ...this.formData,
             city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
-            state: addr.state = addr.state || addr.region || addr.province || '',
-            zip: addr.zip = addr.postcode || '',
-            country: addr.country = addr.country || '',
+            state: addr.state || addr.region || addr.province || '',
+            zip: addr.zip || addr.postcode || '',
+            country: addr.country || '',
           }
           
           this.$q.notify({
@@ -1267,8 +1278,6 @@ import { selectedCurrency } from 'src/store/market/getters';
           }, 300)
         }
       },
-
-
 
     }
 
