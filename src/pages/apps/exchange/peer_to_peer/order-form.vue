@@ -410,7 +410,11 @@ export default {
       return Number(amount)
     },
     equivalentAmountDisplay () {
-      if (this.byFiat) return `${this.equivalentAmount} BCH`
+      if (this.byFiat) {
+        const bch = Number(this.equivalentAmount)
+        const bchDisplay = Number.isFinite(bch) ? bch.toFixed(8) : '—'
+        return `${bchDisplay} BCH`
+      }
       return parseFiatCurrency(this.equivalentAmount, this.ad?.fiat_currency?.symbol)
     },
     balance () {
