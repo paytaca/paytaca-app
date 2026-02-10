@@ -45,3 +45,15 @@ export async function getRecord (id) {
       return null
     })
 }
+
+export async function patchRecord (id, data) {
+  return await ADDRESS_BOOK_URL
+    .patch(`/${id}/`, data)
+    .then(resp => {
+      return resp.status === 200
+    })
+    .catch(error => {
+      console.error('An error occured while patching record: ', error)
+      return false
+    })
+}
