@@ -46,6 +46,7 @@ export function updateAssetPrices (state, payload) {
   const isFullUpdate = Array.isArray(payload) ? false : (payload?.isFullUpdate ?? false)
   
   if (!Array.isArray(assetPrices)) return
+  if (!state.assetPricesLastUpdate) state.assetPricesLastUpdate = {}
 
   // For full updates, remove assets not in the new update to prevent stale data
   if (isFullUpdate && assetPrices.length > 0) {
@@ -85,21 +86,25 @@ export function updateAssetPrices (state, payload) {
             prices: mergedPrices,
             priceIds: mergedPriceIds
           }
+          state.assetPricesLastUpdate[assetPrice.assetId] = Date.now()
         } else if (assetPrice.prices) {
           // If new prices object exists but is empty, still update to ensure consistency
           state.assetPrices[i] = assetPrice
+          state.assetPricesLastUpdate[assetPrice.assetId] = Date.now()
         }
         break
       }
     }
     if (!updated && assetPrice.prices && Object.keys(assetPrice.prices).length > 0) {
       state.assetPrices.push(assetPrice)
+      state.assetPricesLastUpdate[assetPrice.assetId] = Date.now()
     }
   })
 }
 
 export function clearAssetPrices (state) {
   state.assetPrices = []
+  state.assetPricesLastUpdate = {}
 }
 
 /**
@@ -111,10 +116,29 @@ export function updateUsdRates (state, data) {
   if (!Array.isArray(data)) return
 
   if (!state.usdRates) state.usdRates = {}
+  if (!state.usdRatesLastUpdate) state.usdRatesLastUpdate = {}
   data.forEach(rateInfo => {
     if (typeof rateInfo.symbol !== 'string') return
     state.usdRates[rateInfo.symbol] = rateInfo.rate
-    state.usdRatesLastUpdate[rateInfo.symbol] = data?.timestamp || Date.now()
+    const tsRaw = Number(rateInfo.timestamp)
+    // Some APIs return unix seconds; normalize to ms for consistent comparisons.
+    const ts = Number.isFinite(tsRaw)
+      ? (tsRaw > 0 && tsRaw < 1e12 ? tsRaw * 1000 : tsRaw)
+      : NaN
+    state.usdRatesLastUpdate[rateInfo.symbol] = Number.isFinite(ts) ? ts : Date.now()
   })
+}
+
+export function setIsUpdatingPrices (state, val) {
+  state.isUpdatingPrices = Boolean(val)
+}
+
+export function setLastCurrencySwitchAt (state, ts) {
+  const n = Number(ts)
+  state.lastCurrencySwitchAt = Number.isFinite(n) ? n : Date.now()
+}
+
+export function setPendingCurrencySymbol (state, symbol) {
+  state.pendingCurrencySymbol = symbol ? String(symbol).toUpperCase() : null
 }
 

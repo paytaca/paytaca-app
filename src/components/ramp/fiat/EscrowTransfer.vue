@@ -148,6 +148,7 @@ import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
 import packageInfo from '../../../../package.json'
 import { bchToFiat, satoshiToBch } from 'src/exchange'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   data () {
@@ -214,9 +215,8 @@ export default {
       return false
     },
     fiatAmount () {
-      let amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
-      if (amount > 1) amount = amount.toFixed(2)
-      return this.$parent.formattedCurrency(amount)
+      const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
+      return parseFiatCurrency(amount, this.order?.ad?.fiat_currency?.symbol)
     }
   },
   async mounted () {
