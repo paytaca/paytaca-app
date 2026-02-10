@@ -447,8 +447,6 @@ export async function getAuthToken() { // adjust later
 export async function generateUserHash (walletHash) {
  	const hashVal = 'GBITS_' + walletHash
 
- 	sha256(hashVal)
-
  	return sha256(hashVal)
  }
 
