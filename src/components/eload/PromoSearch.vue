@@ -103,16 +103,28 @@ export default {
 			this.$emit('select-promo', resolvedPromo)
 		},
 		async search () {
-			this.loading = true
-			const data = { promoName: this.searchVal }
+			const q = typeof this.searchVal === 'string' ? this.searchVal.trim() : ''
 
-			const result = await eloadServiceAPI.fetchPromo(data)
-			if (result.success) {
-				this.searchResult = result.data.promos
-				this.lastSearch = this.searchVal
-				this.showPromos = true
+			// Quasar `clearable` sets v-model to null; avoid calling the API with promoName=null.
+			if (!q) {
+				this.loading = false
+				this.showPromos = false
+				this.searchResult = []
+				this.lastSearch = ''
+				return
 			}
-			this.loading = false
+
+			this.loading = true
+			try {
+				const result = await eloadServiceAPI.fetchPromo({ promoName: q })
+				if (result.success) {
+					this.searchResult = result.data.promos
+					this.lastSearch = q
+					this.showPromos = true
+				}
+			} finally {
+				this.loading = false
+			}
 		}
 	}
 }
