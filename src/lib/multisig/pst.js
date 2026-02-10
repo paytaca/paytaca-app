@@ -1165,6 +1165,7 @@ export class Pst {
   static exportSafeJSONReplacer(k, v) {
     const binaryKeys = new Set([
       'outpointTransactionHash',
+      'outpointTransaction',
       'publicKey',
       'sig',
       'sigHash',
@@ -1221,6 +1222,7 @@ export class Pst {
   static importSafeJSONReviver(k, v) {
     const binaryKeys = new Set([
       'outpointTransactionHash',
+      'outpointTransaction',
       'publicKey',
       'sig',
       'sigHash',
