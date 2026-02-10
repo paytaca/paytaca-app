@@ -1007,7 +1007,7 @@ export default {
 
 				if (this.categories.length <= 1) {
 					this.step++
-					this.fetchPromos(true)
+					await this.fetchPromos(true)
 				}				
 			}
 
