@@ -11,7 +11,7 @@
       </template>
     </HeaderNav>
 
-    <div class="pt-card br-15 q-mt-md q-mx-md q-pa-sm" :class="getDarkModeClass(darkMode)">
+    <div class="pt-card pt-location-search-card br-15 q-mt-md q-mx-md q-pa-sm" :class="getDarkModeClass(darkMode)">
       <div class="q-mx-sm q-my-sm">
         <SessionLocationWidget ref="sessionLocationWidget" />
       </div>  
@@ -203,7 +203,6 @@ import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const loaded = false
 
 const initialized = ref(false)
 function resetPage() {
@@ -542,8 +541,10 @@ table.orders-table td {
   top: 110px;
 }
 
-.pt-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Only animate the location/search wrapper card, not every storefront/skeleton card. */
+.pt-location-search-card {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: slideInUp 0.4s ease-out;
 }
 
