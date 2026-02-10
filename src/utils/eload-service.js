@@ -254,7 +254,7 @@ export async function fetchOrders (data) {
 				Authorization: `Bearer ${token}`
 			}
 
-			const response = await backend.get(baseURL + '/txn/', {
+			const response = await backend.get(buildTxnUrl(), {
 				params: params,
 				headers: headers
 			})
@@ -310,7 +310,7 @@ export async function fetchOrderDetails (pk) {
 				Authorization: `Bearer ${token}`
 			}
 
-			const response = await backend.get(baseURL + '/txn/' + pk, { headers: headers })
+			const response = await backend.get(buildTxnUrl() + pk, { headers: headers })
 
 			return {
 				success: true,
