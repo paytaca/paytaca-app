@@ -1069,7 +1069,7 @@ import { selectedCurrency } from 'src/store/market/getters';
 
         if(isNaN(amount) || amount <= 0){
           this.$q.notify({
-            message: 'Please enter a a valid spend limit amount',
+            message: 'Please enter a valid spend limit amount',
             color: 'negative',
             icon: 'warning'
           })
@@ -1165,7 +1165,7 @@ import { selectedCurrency } from 'src/store/market/getters';
           this.$q.dialog({
             title: 'Order confirmed',
             color: 'positive',
-            message: 'You order has been place. We will notify you once it is out for delivery.',
+            message: 'You order has been placed. We will notify you once it is out for delivery.',
             icon: 'check',
             ok: {
               label: 'Got it',
