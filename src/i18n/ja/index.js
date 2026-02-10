@@ -2430,6 +2430,7 @@ export default {
   below: "以下",
   idealValue: "理想値",
   or: "または",
+  paymentReceived: "支払いを受領したので、支払い証明がなくてもリリースしたい",
   toRedeemAllTokensInCirculation: "流通しているすべてのトークンを引き換える",
   viewmore: "もっと見る"
 }

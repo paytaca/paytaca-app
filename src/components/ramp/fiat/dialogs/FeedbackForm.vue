@@ -182,7 +182,8 @@ export default {
       const vm = this
       const url = `/ramp-p2p/order/${vm.orderId}/appeal/`
 
-      await backend.get(url, { authorize: true })
+      // Peer-side endpoint; force peer token (URL-based heuristic may pick arbiter).
+      await backend.get(url, { authorize: 'peer' })
         .then(response => {
           vm.appealed = true
         })

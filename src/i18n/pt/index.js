@@ -2430,6 +2430,7 @@ export default {
   below: "abaixo",
   idealValue: "valor ideal",
   or: "ou",
+  paymentReceived: "Recebi o pagamento e quero liberar mesmo sem comprovante de pagamento",
   toRedeemAllTokensInCirculation: "para resgatar todos os tokens em circulação",
   viewmore: "ver mais"
 }
