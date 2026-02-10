@@ -64,7 +64,25 @@
    * 
    */
 
+  /**
+   * @typedef {Object} DecodedSignerSignatureData
+   * @property {string} signature - Hex-encoded signature string.
+   * @property {string} publicKey - Hex-encoded public key string.
+   * @property {Object} input - Input reference object.
+   * @property {number} [input.id] - Input coordination server identifier.
+   * @property {number} input.proposal - Proposal identifier.
+   * @property {string} input.outpointTransactionHash - Hex-encoded transaction hash.
+   * @property {number} input.outpointIndex - Outpoint index.
+   * @property {string} input.redeemScript - Hex-encoded redeem script.
+   * @property {Object} bip32Derivation - Derivation information.
+   * @property {number} [bip32Derivation.id] - Derivation coordination server identifier.
+   * @property {string} bip32Derivation.path - BIP32 derivation path string (e.g., "m/44'/145'/0'/1/10").
+   * @property {string} bip32Derivation.publicKey - Hex-encoded public key string.
+   * @property {string} bip32Derivation.masterFingerprint - Hex-encoded master fingerprint string.
+   */
 
+
+  
 import {
   encodeTransactionCommon,
   hashTransaction,
@@ -100,7 +118,7 @@ import { createTemplate } from './template.js'
 import { bip32ExtractRelativePath } from './utils.js'
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
-import { WatchtowerNetworkProvider } from './network.js'
+import { WatchtowerCoordinationServer, WatchtowerNetworkProvider } from './network.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -509,6 +527,8 @@ export const verifyTransactionInputsSignature = ({ transaction, inputs }) => {
   return inputSignatureVerificationResults.every(rOk => Boolean(rOk))
 }
 
+
+
 export class Pst {
 
   constructor() {
@@ -605,7 +625,8 @@ export class Pst {
   set network(n) {
     this.options = {
       ...this.options,
-      provider: new WatchtowerNetworkProvider({ network: n })
+      provider: new WatchtowerNetworkProvider({ network: n }),
+      coordinationServer: new WatchtowerCoordinationServer({ network: n })
     }
   }
 
@@ -892,6 +913,49 @@ export class Pst {
 
   getSigningProgress() {
     return getSigningProgress(this)
+  }
+
+  /**
+   * Returns an array of decoded signer signature data objects for the given master fingerprint.
+   *
+   * @param {string} masterFingerprint - The hex-encoded master fingerprint to filter signatures by.
+   * @returns {DecodedSignerSignatureData[]} - Array of decoded signature data relevant to the provided master fingerprint.
+   */
+  getSignerSignatures(masterFingerprint) {
+    if (!this.inputs) return []
+    const result = []
+    for (const input of this.inputs) {
+      if (input.signatures && input.bip32Derivation) {
+        for (const [pubkeyHex, sig] of Object.entries(input.signatures)) {
+          const derivation = input.bip32Derivation[pubkeyHex]
+          if (
+            derivation &&
+            derivation.masterFingerprint &&
+            derivation.masterFingerprint.toLowerCase() === masterFingerprint.toLowerCase()
+          ) {
+            result.push({
+              signature: typeof sig === "string" ? sig : binToHex(sig),
+              publicKey: pubkeyHex,
+              input: {
+                outpointTransactionHash: typeof input.outpointTransactionHash === "string"
+                  ? input.outpointTransactionHash
+                  : binToHex(input.outpointTransactionHash),
+                outpointIndex: input.outpointIndex,
+                redeemScript: input.redeemScript ? input.redeemScript : undefined,
+                proposal: this.unsignedTransactionHash
+              },
+              bip32Derivation: {
+                ...derivation,
+                publicKey: pubkeyHex,
+                masterFingerprint: derivation.masterFingerprint,
+                path: derivation.path
+              }
+            })
+          }
+        }
+      }
+    }
+    return result
   }
 
   getTotalSatsInput() {
