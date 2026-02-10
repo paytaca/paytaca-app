@@ -4,7 +4,7 @@
 	<div class="">	
 		<div class="row justify-between q-px-lg">
 			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? '' : 'text-grey-8'">Orders</div>
-			<FilterBtn v-if="!loading" :filters="filters" :services="services" @submit-data="filterOrder"/>	
+			<FilterBtn v-if="!initialLoading" :filters="filters" :services="services" @submit-data="filterOrder"/>	
 			<q-btn v-else flat round unelevated ripple dense size="md" icon="filter_list" class="button button-text-primary" padding="none" disable/>
 		</div>
 	<!-- 	<div v-else class="row justify-between q-px-lg q-pt-md">
@@ -14,7 +14,7 @@
  -->
 
 		<!-- Order List -->
-		<div v-if="!loading" class="scroll q-mt-md q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
+		<div v-if="!initialLoading" class="scroll q-mt-md q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
 				<div v-if="orders.length == 0" class="relative text-center" style="margin-top: 50px;">
 	        <div>
@@ -43,7 +43,23 @@
 					<q-separator class="q-my-sm" :dark="darkMode"/>
 				</div>
 
-				<div class="text-center text-grad q-pt-md md-font-size text-bold pointer" v-if="!isLastPage" @click="nextPage()">See More</div>
+				<div class="text-center q-pt-md">
+					<div
+						v-if="loadingMore"
+						class="row justify-center items-center q-gutter-sm"
+						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+					>
+						<q-spinner-dots size="24px" color="primary" />
+						<div class="md-font-size text-weight-bold">Loading…</div>
+					</div>
+					<div
+						v-else-if="!isLastPage"
+						class="text-grad md-font-size text-bold pointer"
+						@click="nextPage()"
+					>
+						See More
+					</div>
+				</div>
 			</q-pull-to-refresh>
 		</div>
 
@@ -92,7 +108,8 @@ export default {
 		return {
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			theme: this.$store.getters['global/theme'],
-			loading: true,
+			initialLoading: true,
+			loadingMore: false,
 			orders: [],
 			services: [],
 			filters: {
@@ -135,7 +152,9 @@ export default {
 		formatDate,
 	    async fetchOrders (overwrite=false) {
 	    	let vm = this
-	    	vm.loading = true
+	    	const isInitial = vm.initialLoading || (vm.orders.length === 0 && vm.paginationSettings.page === 1)
+	    	if (isInitial) vm.initialLoading = true
+	    	else vm.loadingMore = true
 
 	    	let data = {
 	    		limit: vm.paginationSettings.limit,
@@ -143,23 +162,28 @@ export default {
 	    		filters: vm.filters
 	    	}
 
-	    	let result = await eloadServiceAPI.fetchOrders(data)	    	
+	    	try {
+	    		let result = await eloadServiceAPI.fetchOrders(data)
 
-	    	if (result.success) {
-	    		if (overwrite) {
-	    			vm.orders = result.data.transactions
-	    		} else {	    			
-	    			vm.orders.push(...result.data.transactions)
-	    		}	    		
-	    		vm.paginationSettings.total_pages = result.data.total_pages
+	    		if (result.success) {
+	    			if (overwrite) {
+	    				vm.orders = result.data.transactions
+	    			} else {
+	    				vm.orders.push(...result.data.transactions)
+	    			}
+	    			vm.paginationSettings.total_pages = result.data.total_pages
+	    		}
+	    	} finally {
+	    		vm.initialLoading = false
+	    		vm.loadingMore = false
 	    	}
-
-	    	vm.loading = false
 	    },
 	    getPromoSnapshotData(snapshot, key) {
 	    	return snapshot[key]
 	    },	  
 	    nextPage() {
+	    	if (this.initialLoading || this.loadingMore) return
+	    	if (this.isLastPage) return
 	    	this.paginationSettings.page++
 
 	    	this.fetchOrders()
