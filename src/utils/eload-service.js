@@ -332,7 +332,30 @@ export async function fetchOrderDetails (pk) {
 	}
 }
 
-export async function registerUser() {	
+/**
+ * Performs the auth API request without fallback to register.
+ * Used by registerUser to avoid recursion (authUser -> registerUser -> authUser).
+ */
+async function performAuthRequest () {
+	const walletHash = getWalletHash()
+	if (!walletHash) return null
+
+	const user = 'GBITS_' + walletHash
+	const userHash = await generateUserHash(walletHash)
+
+	const response = await backend.post(baseURL + '/auth/', {
+		username: user,
+		password: userHash
+	})
+
+	if (response.data && response.data.access) {
+		await saveAuthToken(response.data.access)
+		return true
+	}
+	return false
+}
+
+export async function registerUser () {
 	const walletHash = getWalletHash()
 	if (!walletHash) {
 		console.error('[registerUser] Wallet hash not available')
@@ -343,28 +366,32 @@ export async function registerUser() {
 		const user = 'GBITS_' + walletHash
 		const userHash = await generateUserHash(walletHash)
 
-		const response = await backend.post(baseURL + '/register/', {},
-			{
-				headers: {
-					'x-auth-wallethash': user,
-					'x-auth-pass': userHash
-				}
-			})
+		await backend.post(baseURL + '/register/', {}, {
+			headers: {
+				'x-auth-wallethash': user,
+				'x-auth-pass': userHash
+			}
+		})
 
-		// After registration, authenticate
-		return await authUser()
+		// After registration, authenticate using raw request to avoid recursion
+		return await performAuthRequest()
 	} catch (error) {
-		// 400 means user already exists, try to authenticate
+		// 400 means user already exists, try to authenticate directly (no authUser call)
 		if (error.response && error.response.status === 400) {
-			return await authUser()
+			try {
+				return await performAuthRequest()
+			} catch (authErr) {
+				console.error('[registerUser] Auth after 400 failed:', authErr.message)
+				return false
+			}
 		}
-		
+
 		console.error('[registerUser] Registration error:', error.message)
 		return false
-	}	
+	}
 }
 
-export async function authUser() {
+export async function authUser () {
 	const walletHash = getWalletHash()
 	if (!walletHash) {
 		console.error('[authUser] Wallet hash not available')
@@ -372,33 +399,18 @@ export async function authUser() {
 	}
 
 	try {
-		const user = 'GBITS_' + walletHash
-		const userHash = await generateUserHash(walletHash)
-
-		const response = await backend.post(baseURL + '/auth/',
-			{
-				"username": user,
-				"password": userHash
-			}
-		)
-
-		if (response.data && response.data.access) {			
-			const value = saveAuthToken(response.data.access)			
-			return true
-		}
-
+		return await performAuthRequest()
 	} catch (error) {
-		// If auth fails, try to register the user
+		// If auth fails (401/404), try to register the user
 		if (error.response && (error.response.status === 401 || error.response.status === 404)) {
 			try {
-				await registerUser()
-				return true
+				return await registerUser()
 			} catch (registerError) {
 				console.error('[authUser] Registration failed:', registerError)
 				return false
 			}
 		}
-		
+
 		console.error('[authUser] Authentication error:', error.message)
 		return false
 	}
