@@ -169,9 +169,11 @@ export default {
 	    },
 	    async filterOrder (filter) {
 	    	this.filters = filter
+	    	this.paginationSettings.page = 1
 	    	await this.fetchOrders(true)
 	    },
 	    async refresh(done) {
+	    	this.paginationSettings.page = 1
 	    	await this.fetchOrders(true)
 	    	done()
 	    }
