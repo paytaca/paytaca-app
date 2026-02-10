@@ -54,13 +54,10 @@ export default{
 	},
 	computed: {
 		backnav () {
-			console.log(this.$route.name)
 			if (this.$route.name === 'eload-service-history') {
 				return '/apps/eload'
 			}
-			
 			return '/apps'
-						
 		}
 	},
 	components: {
