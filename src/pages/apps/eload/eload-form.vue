@@ -592,8 +592,11 @@ export default {
 			vm.txnRecipientAddress = ''
 			vm.txnPrepareKey = ''
 
-			// Seed filters so `PromoInfoCard` can render (and user can still edit upstream selections).
-			vm.filters.service = { name: String(promo.service || '').toLowerCase() || 'eload' }
+			// Resolve full service object (with id) so edit → change service group still works (API needs service.id).
+			const serviceName = String(promo.service || '').toLowerCase() || 'eload'
+			const resolvedService = Array.isArray(vm.services) && vm.services.find(s => (s.name || '').toLowerCase() === serviceName)
+			vm.filters.service = resolvedService || { name: serviceName }
+
 			vm.filters.serviceGroup = { name: String(promo.service_group || '').trim() || '-' }
 			vm.filters.category = promo.category ? { name: String(promo.category) } : null
 
@@ -951,10 +954,24 @@ export default {
 				this.step++	
 			}			
 		},
-		async fetchServiceGroup() {		
-			this.loading = true	
+		async fetchServiceGroup() {
+			// API requires service.id; resolve from this.services when filter has only name (e.g. after promo search).
+			const serviceFilter = this.filters.service
+			let service = serviceFilter
+			if (serviceFilter && (serviceFilter.id == null || serviceFilter.id === undefined)) {
+				const name = (serviceFilter.name || '').toLowerCase()
+				service = Array.isArray(this.services) && this.services.find(s => (s.name || '').toLowerCase() === name) || serviceFilter
+			}
+			if (!service?.id) {
+				this.serviceGroups = []
+				this.paginationSettings.serviceGroup.totalPages = 0
+				this.loading = false
+				return
+			}
+
+			this.loading = true
 			let data = {
-				service: this.filters.service,
+				service,
 				limit: 10,
 				page: 1
 			}
