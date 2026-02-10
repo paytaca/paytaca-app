@@ -319,6 +319,7 @@ export default {
 			txnPrepareError: '',
 			txnRecipientAddress: '',
 			txnPrepareKey: '',
+			txnPreparePendingKey: '',
 			suppressAutoStep: false,
 			pinDialogAction: '',
 			warningAttemptsStatus: '',
@@ -537,6 +538,7 @@ export default {
 			this.txnPrepareError = ''
 			this.txnRecipientAddress = ''
 			this.txnPrepareKey = ''
+			this.txnPreparePendingKey = ''
 			if (val) this.ensurePhpBchRate()
 		},
 		address () {
@@ -549,6 +551,13 @@ export default {
 			// When address becomes valid + we have quote + amount, prepare txn immediately.
 			if (!val) return
 			if (val === this.txnPrepareKey) return
+			// If a prepare is already in-flight, queue the latest key so we can retry
+			// as soon as the current request completes. Without this, a mid-flight input
+			// change can leave txnRecipientAddress empty with no auto-recovery.
+			if (this.txnPreparing) {
+				this.txnPreparePendingKey = val
+				return
+			}
 			this.prepareTxn()
 		},
 		step (val) {
@@ -715,11 +724,15 @@ export default {
 					vm.txnPrepareError = 'Unable to prepare transaction'
 				}
 			} finally {
-				if (vm.txnPayloadKey === key) {
-					vm.txnPreparing = false
-				} else {
-					// Input changed; allow new prepare to run.
-					vm.txnPreparing = false
+				vm.txnPreparing = false
+
+				// If the payload changed while we were in-flight, the watcher may have
+				// already fired but couldn't start a new prepare due to txnPreparing=true.
+				// Retry once here for the latest queued key (if it's still current).
+				const pending = vm.txnPreparePendingKey
+				vm.txnPreparePendingKey = ''
+				if (pending && pending !== key && pending === vm.txnPayloadKey) {
+					vm.prepareTxn()
 				}
 			}
 		},
