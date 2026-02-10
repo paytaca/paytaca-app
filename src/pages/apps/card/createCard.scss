@@ -1,0 +1,116 @@
+
+@import url("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css");
+
+.create-card-dialog {
+width: 500px;
+max-width: 90vw;
+max-height: 80vh;
+display: flex;
+flex-direction: column;
+border-radius: 18px;
+box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 40px rgba(33, 150, 243, 0.25);
+overflow: hidden;
+}
+
+.view-card-dialog {
+width: 400px;
+max-width: 90vw;
+display: flex;
+flex-direction: column;
+border-radius: 18px;
+overflow: hidden;
+}
+
+.order-card-container {
+border-radius: 16px;
+border: 1px dashed #1976d2;
+}
+
+.line-height-tight {
+line-height: 1.1;
+}
+
+.opacity-80 {
+opacity: 0.8;
+}
+
+.rounded-borders {
+border-radius: 12px;
+}
+.card-floating {
+
+animation: float 6s ease-in-out infinite;
+border-radius: 20px;
+}
+
+@keyframes float {
+0% { transform: translateY(0px) rotate(0deg); }
+50% { transform: translateY(-20px) rotate(2deg); }
+100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.form-container {
+max-width: 450px;
+animation: slideInUp 0.3s ease-out;
+}
+
+:deep(.q-field--outlined .q-field__control:before) {
+border: 1px solid var(--q-primary) !important;
+opacity: 1 !important; 
+}
+
+:deep(.q-field--outlined.q-field--focused .q-field__control:after) {
+border-color: var(--q-primary) !important;
+border-width: 2px; 
+}
+
+:deep(.q-field--outlined .q-field__label) {
+color: var(--q-primary);
+}
+
+.status-blink {
+color: #21ba45; 
+animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+0% {
+    opacity: 1;
+    transform: scale(1);
+}
+50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+}
+100% {
+    opacity: 1;
+    transform: scale(1);
+}
+}
+
+.fixed-card-size {
+width: 250px;   
+height: 150px;  
+transition: transform 0.2s ease-in-out;
+}
+
+.border-primary {
+border: 2px solid var(--q-primary) !important;
+}
+
+.transition-hover:hover {
+background-color: #f0f4ff !important;
+}
+
+.unselected-card {
+background-color: white !important;
+color: #9e9e9e;
+}
+
+.selected-card-active {
+background-color: white !important; 
+border: 1px solid #027be3 !important;
+}
