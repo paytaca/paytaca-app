@@ -92,6 +92,7 @@ import {
   decodeTransactionBch,
   hash256,
   secp256k1,
+  generateSigningSerializationBch
 } from 'bitauth-libauth-v3'
 
 import { getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
@@ -100,7 +101,6 @@ import { bip32ExtractRelativePath } from './utils.js'
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerNetworkProvider } from './network.js'
-import { generateSigningSerializationBCH } from '@bitauth/libauth'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -528,7 +528,7 @@ export const publicKeySigned = ({ publicKey, pst }) => {
  */
 export const verifyTransactionInputSignature = ({ signature, publicKey, redeemScript, context }) => {
   const sigHashFlag = signature.slice(-1)[0]
-  const signingSerialization = generateSigningSerializationBCH(context, { 
+  const signingSerialization = generateSigningSerializationBch(context, { 
     coveredBytecode: redeemScript, 
     signingSerializationType: new Uint8Array([sigHashFlag]) // Uint8Array([65]) for allOutputs
   })
