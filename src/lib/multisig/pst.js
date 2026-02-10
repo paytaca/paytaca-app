@@ -110,44 +110,6 @@ export const SIGNING_PROGRESS = {
   INCONSISTENT: 'inconsistent'
 }
 
-export const transactionBinObjectsToUint8Array = (transactionObject) => {
-  const transaction = structuredClone(transactionObject)
-  transaction.inputs.forEach(input => {
-    if (input.outpointTransactionHash && !(input?.outpointTransactionHash instanceof Uint8Array)) {
-      input.outpointTransactionHash = Uint8Array.from(Object.values((input.outpointTransactionHash)))
-    }
-    if (input.unlockingBytecode && !(input?.unlockingBytecode instanceof Uint8Array)) {
-      input.unlockingBytecode = Uint8Array.from(Object.values((input.unlockingBytecode)))
-    }
-    if (input.sourceOutput?.lockingBytecode && !(input.sourceOutput.lockingBytecode instanceof Uint8Array)) {
-      input.sourceOutput.lockingBytecode = Uint8Array.from(Object.values((input.sourceOutput.lockingBytecode)))
-    }
-    if (input.sourceOutput?.outpointTransactionHash && !(input.sourceOutput.outpointTransactionHash instanceof Uint8Array)) {
-      input.sourceOutput.outpointTransactionHash = Uint8Array.from(Object.values((input.sourceOutput.outpointTransactionHash)))
-    }
-  })
-
-  transaction.outputs.forEach(output => {
-    if (output.lockingBytecode && !(output?.lockingBytecode instanceof Uint8Array)) {
-      output.lockingBytecode = Uint8Array.from(Object.values(output.lockingBytecode))
-    }
-    if (output.token?.category && !(output.token?.category instanceof Uint8Array)) {
-      output.token.category = Uint8Array.from(Object.values(output.token.category))
-    }
-
-    if (output.token?.nft?.commitment && !(output.token.nft.commitment instanceof Uint8Array)) {
-      output.token.nft.commitment = Uint8Array.from(Object.values(output.token.nft.commitment))
-    }
-  })
-
-  return {
-    version: transaction.version,
-    locktime: transaction.locktime,
-    inputs: transaction.inputs,
-    outputs: transaction.outputs
-  }
-}
-
 /**
  * Revives special types formatted by the stringify function:
  * - `<Uint8Array: 0x...>` → Uint8Array
@@ -197,43 +159,6 @@ export const libauthStringifyReviver = (_, value) => {
   return value
 }
 
-export const libauthStringifyReviverExportable = (_, value) => {
-  if (typeof value !== 'string') return value
-
-  // Uint8Array pattern: "<Uint8Array: 0x...>"
-  const uint8ArrayMatch = value.match(/^<Uint8Array: 0x([0-9a-f]+)>$/i)
-  if (uint8ArrayMatch) {
-    return uint8ArrayMatch[1]
-  }
-
-  // Uint8Array pattern: "<Uint8Array: 0x> (Empty Uint8Array)"
-  const emptyUint8ArrayMatch = value.match(/^<Uint8Array: 0x>$/)
-  if (emptyUint8ArrayMatch) {
-    return new Uint8Array([])
-  }
-
-  // Bigint pattern: "<bigint: ...n>"
-  const bigintMatch = value.match(/^<bigint: (-?\d+)n>$/)
-  if (bigintMatch) {
-    return `${bigintMatch[1]}`
-  }
-
-  // Function pattern: "<function: ...>"
-  const functionMatch = value.match(/^<function: (.+)>$/)
-  if (functionMatch) {
-    // Note: We can't reconstruct actual functions, just return the string representation
-    return { type: 'function', value: functionMatch[1] }
-  }
-
-  // Symbol pattern: "<symbol: ...>"
-  const symbolMatch = value.match(/^<symbol: (.+)>$/)
-  if (symbolMatch) {
-    // Note: We can't reconstruct actual symbols, just return the string representation
-    return { type: 'symbol', value: symbolMatch[1] }
-  }
-
-  return value
-}
 
 export const extractMValue = (redeemScript) => {
   let firstByte;
