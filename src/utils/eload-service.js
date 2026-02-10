@@ -350,7 +350,10 @@ async function performAuthRequest () {
 
 	if (response.data && response.data.access) {
 		await saveAuthToken(response.data.access)
-		return true
+		// Read-after-write: ensure token is readable before returning, so callers
+		// that do await authUser() then await getAuthToken() always see the token.
+		const stored = await getAuthToken()
+		if (stored) return true
 	}
 	return false
 }
