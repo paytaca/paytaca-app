@@ -31,7 +31,7 @@
 		<div class="q-gutter-sm q-pt-sm" v-if="filterOption.services">			
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded :outline="!isAllServicesSelected" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Default: ALL" @click="updateFilter('service', 'ALL')"/>
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded color="red" label="Clear" @click="updateFilter('service', 'CLEAR')"/>
-			<q-badge v-for="service in filterOption.services" size="md" class="q-px-sm q-py-sm" rounded :outline="!filterData.service.includes(service.name)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="service.name"  @click="updateFilter('service', service.name)"/>
+			<q-badge v-for="service in filterOption.services" size="md" class="q-px-sm q-py-sm" rounded :outline="!selectedServices.includes(service.name)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="service.name"  @click="updateFilter('service', service.name)"/>
 		</div>
 
 		<div class="text-center q-pt-sm q-px-sm q-pb-sm">
@@ -60,7 +60,6 @@
 </q-dialog>
 </template>
 <script>
-import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { isProxy, toRaw } from 'vue'
 
@@ -69,7 +68,10 @@ export default {
 		return {
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			filterDialog: false,
-			filterData: {},
+			filterData: {
+				sort_type: 'DESCENDING',
+				service: []
+			},
 			loading: true,				
 			filterOption: {
 				services: [],
@@ -82,36 +84,57 @@ export default {
 		services: Array		
 	},
 	computed: {
+		selectedServices () {
+			return Array.isArray(this.filterData?.service) ? this.filterData.service : []
+		},
 		isAllServicesSelected() {			
-			return this.filterData?.service.length === this.filterOption?.services.length
+			const allCount = Array.isArray(this.filterOption?.services) ? this.filterOption.services.length : 0
+			if (allCount <= 0) return false
+			return this.selectedServices.length === allCount
 		}
 	},
 	emits: ['submitData'],
 	watch: {
 		filterDialog (val) {
 			const vm = this		
-			if (!val) {
+			// Initialize safe defaults when opening the dialog.
+			if (val) {
 				let filters = JSON.parse(JSON.stringify(vm.filters))		
 			    if (isProxy(filters)) {		
 			    	filters = toRaw(filters)
 			    }	     
 
+			    vm.filterData = filters || {}
+			    if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'
+
 			    if (!Array.isArray(vm.filterData.service)) {
-			    	this.setServiceAll()
+			    	// Default to ALL if services are already available; otherwise keep an empty array.
+			    	if (Array.isArray(vm.filterOption?.services) && vm.filterOption.services.length) {
+			    		vm.setServiceAll()
+			    	} else {
+			    		vm.filterData.service = []
+			    	}
 			    }
-			    vm.filterData = filters
 			}
 		},
 		services (val) {
 			if (val) {
 				this.filterOption.services = val
+				// If service filter isn't initialized yet, default to ALL.
+				if (!Array.isArray(this.filterData?.service) || this.filterData.service.length === 0) {
+					this.setServiceAll()
+				}
 			}			
 		},
 	},
 	methods: {
 		getDarkModeClass,
+		ensureServiceArray () {
+			if (!Array.isArray(this.filterData.service)) this.filterData.service = []
+		},
 		updateFilter (type, data) {
 			if (type === 'service') {
+				this.ensureServiceArray()
 				if (data === 'ALL') {
 					if (!this.isAllServicesSelected) {
 						this.setServiceAll()
@@ -137,6 +160,7 @@ export default {
 			this.setServiceAll()
 		},
 		setServiceAll () {
+			this.ensureServiceArray()
 			this.filterData.service = this.filterOption.services.map(e => e.name)
 		}
 	},
@@ -149,8 +173,17 @@ export default {
 	    	filters = toRaw(filters)
 	    }	     
 
-	    vm.filterData = filters	    
-	    vm.filterOption.services = vm.services
+	    vm.filterData = filters || {}
+	    if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'
+
+	    vm.filterOption.services = vm.services || []
+	    if (!Array.isArray(vm.filterData.service) || vm.filterData.service.length === 0) {
+	    	if (Array.isArray(vm.filterOption.services) && vm.filterOption.services.length) {
+	    		vm.setServiceAll()
+	    	} else {
+	    		vm.filterData.service = []
+	    	}
+	    }
 	    
 
 		// initalize service filter
