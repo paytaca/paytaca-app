@@ -24,12 +24,9 @@
     </q-card>
 </template>
 <script>
-import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-
 export default {
 	data () {
 		return {
-			serviceName: this.service.name.toLowerCase(),
 			serviceInfo: {
 				eload: {
 					altName: 'Mobile E-load',
@@ -50,22 +47,30 @@ export default {
 		}
 	},
 	computed: {
-		altName () {			
-			return this.serviceInfo[this.serviceName].altName
+		serviceKey () {
+			const rawName = typeof this.service?.name === 'string' ? this.service.name : ''
+			return rawName.trim().toLowerCase()
+		},
+		serviceMeta () {
+			const key = this.serviceKey
+			return (key && this.serviceInfo[key]) || null
+		},
+		altName () {
+			// Prefer mapped altName, otherwise fall back to API-provided name
+			return this.serviceMeta?.altName || this.service?.name || ''
 		},
 		description () {
-			return this.serviceInfo[this.serviceName].description
+			// Prefer mapped description; otherwise show nothing (avoids misleading text for unknown services)
+			return this.serviceMeta?.description || ''
 		},
 		icon () {
-			return this.serviceInfo[this.serviceName].icon
+			// Prefer mapped icon, otherwise a generic icon
+			return this.serviceMeta?.icon || 'help_outline'
 		}
 
 	},
 	props: {
 		service: Object
-	},
-	methods: {
-		getDarkModeClass
 	}
 }
 </script>
