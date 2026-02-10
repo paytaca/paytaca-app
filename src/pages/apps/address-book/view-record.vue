@@ -70,6 +70,7 @@
                 :icon="record.is_favorite ? 'mdi-star' : 'mdi-star-outline'"
                 color="primary"
                 @click="toggleFavorite"
+                :loading="isLoadingFavorite"
                 :aria-label="record.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
               />
               <q-btn
@@ -339,11 +340,12 @@
 </template>
 
 <script>
-import { getRecord } from 'src/utils/address-book-utils';
+import { getRecord, patchRecord } from 'src/utils/address-book-utils';
 import { decryptMemo } from 'src/utils/transaction-memos';
 import { ensureKeypair } from 'src/utils/memo-service';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatAddress, formatDate } from 'src/exchange/index.js'
+import { raiseNotifyError, raiseNotifySuccess } from 'src/utils/notify-utils';
 
 import HeaderNav from 'src/components/header-nav.vue'
 
@@ -365,6 +367,8 @@ export default {
       selectedAddressType: 'bch',
       qrCodeId: 0,
       copiedAddressIndex: null,
+
+      isLoadingFavorite: false,
 
       record: {
         name: 'Name Name name_yey',
@@ -446,18 +450,27 @@ export default {
         })
       })
     },
-    toggleFavorite() {
+    async toggleFavorite() {
+      this.isLoadingFavorite = true
+      
       this.record.is_favorite = !this.record.is_favorite
-      // TODO: Persist favorite status via API/store
-      this.$q.notify({
-        message: this.record.is_favorite 
-          ? 'Added to favorites' 
-          : 'Removed from favorites',
-        color: 'positive',
-        position: 'top',
-        timeout: 2000,
-        icon: this.record.is_favorite ? 'star' : 'star_border'
-      })
+      const payload = { is_favorite: this.record.is_favorite}
+      const patchSuccess = await patchRecord(this.record.id, payload)
+      if (patchSuccess) {
+        const message = this.record.is_favorite 
+            ? 'Added to favorites' 
+            : 'Removed from favorites'
+        const icon = this.record.is_favorite ? 'star' : 'star_border'
+        raiseNotifySuccess(message, 3000, 'top', icon)
+      } else {
+        this.record.is_favorite = !this.record.is_favorite
+        const message = this.record.is_favorite
+          ? 'Failed to add to favorites. Please try again later.'
+          : 'Failed to remove from favorites. Please try again later.'
+        raiseNotifyError(message, 3000, 'top')
+      }
+
+      this.isLoadingFavorite = false
     },
     handleEdit() {
       // TODO: Navigate to edit page or open edit dialog
@@ -545,6 +558,7 @@ export default {
         })
       })
     },
+    
     async loadRecord(id) {
       this.loading = true
       this.error = null
