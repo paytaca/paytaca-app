@@ -223,6 +223,9 @@
 						:placeholder="'Enter ' + addressType(selectedPromo.address_type)"
 						:error="showAddressError"
 						:error-message="addressErrorMessage"
+						@focus="markAddressTouched"
+						@blur="markAddressTouched"
+						@update:modelValue="onAddressModelUpdate"
 					/>
 				</q-card>
 
@@ -308,7 +311,8 @@ export default {
 			isSearch: false,
 
 			selectedPromo: null,
-			address: '',		
+			address: '',
+			addressTouched: false,
 			purchaseSuccess: false,
 			purchaseTxid: '',
 			phpBchRate: null,
@@ -409,6 +413,8 @@ export default {
 		showAddressError () {
 			if (!this.selectedPromo) return false
 			if (!this.isMobileNumberAddress) return false
+			// Only show validation error after user interaction.
+			if (!this.addressTouched) return false
 			// highlight while not filled out with a valid number
 			return !this.isValidMobileNumber
 		},
@@ -603,6 +609,7 @@ export default {
 
 			// Reset state related to txn preparation & address input.
 			vm.address = ''
+			vm.addressTouched = false
 			vm.txnPreparing = false
 			vm.txnPrepareError = ''
 			vm.txnRecipientAddress = ''
@@ -834,6 +841,7 @@ export default {
 			// Reset selections
 			this.selectedPromo = null
 			this.address = ''
+			this.addressTouched = false
 			this.filters.service = null
 			this.filters.serviceGroup = null
 			this.filters.category = null
@@ -876,6 +884,13 @@ export default {
 		},
 		updateFilters(type, name) {
 			this.filters[type] = name	
+		},
+		markAddressTouched () {
+			this.addressTouched = true
+		},
+		onAddressModelUpdate () {
+			// Mark input as "touched" on first user edit (suppresses initial error flash)
+			if (!this.addressTouched) this.addressTouched = true
 		},
 		changeValue (type) {
 			this.filters[type] = null
