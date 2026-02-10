@@ -320,11 +320,17 @@ export default {
         this.fetchNetworkFee()
       }
     },
-    walletBchRaw () {
-      if (this.txid && this.networkFeeSats == null) this.fetchNetworkFee()
+    walletBchRaw (newVal, oldVal) {
+      // Only trigger when wallet becomes available (null -> object)
+      if (!oldVal && newVal && this.txid && this.networkFeeSats == null && !this.networkFeeLoading) {
+        this.fetchNetworkFee()
+      }
     },
-    walletSlpRaw () {
-      if (this.txid && this.networkFeeSats == null) this.fetchNetworkFee()
+    walletSlpRaw (newVal, oldVal) {
+      // Only trigger when wallet becomes available (null -> object)
+      if (!oldVal && newVal && this.txid && this.networkFeeSats == null && !this.networkFeeLoading) {
+        this.fetchNetworkFee()
+      }
     }
   },
 
@@ -374,22 +380,31 @@ export default {
         if (assetId.startsWith('slp/')) {
           if (!walletSlp) return
           const tokenId = assetId.split('/')[1]
-          walletHash = getWalletByNetwork(walletSlp, 'slp')?.getWalletHash?.()
+          const walletObj = getWalletByNetwork(walletSlp, 'slp')
+          if (!walletObj) return
+          walletHash = walletObj.getWalletHash?.()
+          if (!walletHash || typeof walletHash !== 'string' || !walletHash.trim()) return
           url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
         } else if (assetId.startsWith('ct/')) {
           if (!walletBch) return
           const tokenId = assetId.split('/')[1]
-          walletHash = getWalletByNetwork(walletBch, 'bch')?.getWalletHash?.()
+          const walletObj = getWalletByNetwork(walletBch, 'bch')
+          if (!walletObj) return
+          walletHash = walletObj.getWalletHash?.()
+          if (!walletHash || typeof walletHash !== 'string' || !walletHash.trim()) return
           url = `${baseUrl}/history/wallet/${walletHash}/${tokenId}/`
         } else {
           if (!walletBch) return
-          walletHash = getWalletByNetwork(walletBch, 'bch')?.getWalletHash?.()
+          const walletObj = getWalletByNetwork(walletBch, 'bch')
+          if (!walletObj) return
+          walletHash = walletObj.getWalletHash?.()
+          if (!walletHash || typeof walletHash !== 'string' || !walletHash.trim()) return
           url = `${baseUrl}/history/wallet/${walletHash}/`
         }
 
-        if (!walletHash || !url) return
+        if (!url) return
 
-        const { data } = await axios.get(url, { params })
+        const { data } = await axios.get(url, { params, timeout: 10000 })
         const history = data?.history || data
         if (!Array.isArray(history)) return
 

@@ -26,12 +26,18 @@ export function getWalletByNetwork (wallet, type) {
   if (!wallet) return null
   const w = wallet
   const idx = Number(store().getters['global/isChipnet'])
-  
+
+  // Validate index is 0 or 1
+  if (idx !== 0 && idx !== 1) {
+    console.error(`[getWalletByNetwork] Invalid chipnet index: ${idx}`)
+    return null
+  }
+
   if (type === 'bch')
     return [w.BCH, w.BCH_CHIP][idx] || null
   if (type === 'slp')
     return [w.SLP, w.SLP_TEST][idx] || null
-  
+
   // Unknown wallet type
   throw new Error(`Unknown wallet type: ${type}`)
 }
