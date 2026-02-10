@@ -176,53 +176,64 @@ export async function fetchPromoDetails(pk) {
 }
 
 export async function createOrder (data) {
-	try {
-		const walletHash = getWalletHash()
-		if (!walletHash) {
-			throw new Error('Wallet hash not available')
-		}
+	const walletHash = getWalletHash()
+	if (!walletHash) {
+		return { success: false, data: null, error: 'Wallet hash not available' }
+	}
 
-		let token = await getAuthToken()
-		if (!token) {
-			// Best-effort: authenticate and retry token retrieval.
-			await authUser()
-			token = await getAuthToken()
-		}
-		if (!token) {
-			throw new Error('Auth token not available')
-		}
-
-		const payload = {
-			promo: data.promo,
-			promo_snapshot: data.promo_snapshot,
-			bch_amount: data.bch_amount,
-			bch_price_quote: data.bch_price_quote
-		}
-
-		const response = await backend.post(buildTxnUrl(), payload, {
-			// NOTE: avoid underscore header names (often blocked by proxies/CORS).
-			// Use the same convention used elsewhere in the app (e.g. watchtower/ramp): `wallet-hash`.
-			headers: {
-				'wallet-hash': walletHash,
-				Authorization: `Bearer ${token}`
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			let token = await getAuthToken()
+			if (!token) {
+				// Best-effort: authenticate and retry token retrieval.
+				await authUser()
+				token = await getAuthToken()
 			}
-		})
+			if (!token) {
+				throw new Error('Auth token not available')
+			}
 
-		return {
-			success: true,
-			data: response.data,
-			error: null
-		}
-	} catch (error) {
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to create txn'
-		console.error('[createOrder] Error:', errorMessage)
+			const payload = {
+				promo: data.promo,
+				promo_snapshot: data.promo_snapshot,
+				bch_amount: data.bch_amount,
+				bch_price_quote: data.bch_price_quote
+			}
 
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
+			const response = await backend.post(buildTxnUrl(), payload, {
+				// NOTE: avoid underscore header names (often blocked by proxies/CORS).
+				// Use the same convention used elsewhere in the app (e.g. watchtower/ramp): `wallet-hash`.
+				headers: {
+					'wallet-hash': walletHash,
+					Authorization: `Bearer ${token}`
+				}
+			})
+
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+		} catch (error) {
+			// 403 - token expired or server rejecting token; retry only a bounded number of times
+			if (error.response?.status === 403 && attempt < MAX_AUTH_RETRIES) {
+				await authUser()
+				continue
+			}
+
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to create txn'
+			console.error('[createOrder] Error:', errorMessage)
+
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
 		}
 	}
+
+	// Should be unreachable due to return in catch, but keep a safe fallback.
+	return { success: false, data: null, error: 'Failed to create txn' }
 }
 
 // Fetching Order List
