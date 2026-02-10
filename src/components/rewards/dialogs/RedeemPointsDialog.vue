@@ -266,7 +266,8 @@ import {
   processPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
-import { raiseNotifyError, getWallet } from 'src/utils/send-page-utils'
+import { getWallet } from 'src/utils/send-page-utils'
+import { raiseNotifyError } from 'src/utils/notify-utils'
 
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'

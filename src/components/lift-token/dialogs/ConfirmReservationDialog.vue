@@ -168,7 +168,7 @@ import {
   parseFiatCurrency,
   getAssetDenomination,
 } from 'src/utils/denomination-utils';
-import { raiseNotifyError } from 'src/utils/send-page-utils';
+import { raiseNotifyError } from 'src/utils/notify-utils';
 
 import DragSlide from "src/components/drag-slide.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
