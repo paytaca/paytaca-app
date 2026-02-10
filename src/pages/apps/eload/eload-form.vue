@@ -303,6 +303,9 @@ export default {
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			loading: true,
 			step: 0,				
+			// Used to short-circuit step watchers during promo-search flows.
+			// (Kept as a top-level reactive flag since watchers reference `this.isSearch`.)
+			isSearch: false,
 
 			selectedPromo: null,
 			address: '',		
@@ -354,8 +357,7 @@ export default {
 					limit: 9,
 					page: 1,
 					totalPages: 0
-				},
-				isSearch: false
+				}
 			}
 		}
 	},
@@ -944,28 +946,10 @@ export default {
 				this.filters.category = null
 			}						
 		},
-		async selectPromo(promo, search=false) {		
+		async selectPromo(promo) {		
 			this.selectedPromo = promo
 			this.ensurePhpBchRate()
-
-			if (search) {
-				this.isSearch = true 
-
-				setTimeout(() => { 
-					this.isSearch = false
-				}, 500);
-
-				this.filters.service = promo.more_info.service
-				this.filters.serviceGroup = promo.more_info.service_group
-
-				if (promo.category.toLowerCase() !== 'none') {
-					this.filters.category = promo.more_info.category
-				}
-				
-				this.step = 4				
-			} else {
-				this.step++	
-			}			
+			this.step++	
 		},
 		async fetchServiceGroup() {
 			// API requires service.id; resolve from this.services when filter has only name (e.g. after promo search).
