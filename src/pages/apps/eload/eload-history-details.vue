@@ -1,54 +1,7 @@
 <template>
 	<HeaderNav title="Eload Service" :backnavpath="{ name: 'eload-service-orders'}" class="header-nav"/>
 
-	<div class="q-pt-md q-mx-lg" v-if="!loading" :class="darkMode ? 'text-white' : 'text-black'">
-		<div class="text-center q-mb-md">
-			<div class="text-capitalize status">{{ order.status }}</div>
-			<div class="order-id">ORDER ID: {{ order.txn_id }}</div>
-		</div>
-		<q-card class="q-pa-md br-15">			
-			<div class="lg-font-size text-weight-bold">
-				{{ promoSnapshot.name }}
-			</div>
-
-			<div class="q-gutter-sm q-py-sm">				
-				<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot.service" />
-		    	<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot.service_group" />
-			</div>
-
-			<div class=" q-py-xs">
-				<span class="md-font-size">PHP {{ promoSnapshot.amount}}</span> &nbsp;|&nbsp; <span class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ order.bch_amount }} BCH</span>
-			</div>		
-			
-			<div class="q-py-xs">{{ promoSnapshot.description }}</div>
-
-			<div class="sm-font-size subtext">{{ promoSnapshot.validity }}</div>
-		</q-card>
-
-		<div v-if="order.bch_txid && order.bch_txid !== 'balance-confirmed'" class="transaction-id-section section-block-ss text-center" style="margin-top: 25px;">
-          <div class="text-weight-medium sm-font-size q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;{{ $t('TransactionId')}}</div>         
-
-          <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="order.bch_txid && copyToClipboard(order.bch_txid)">
-            <span class="txid-text-ss">{{ order.bch_txid ? `${order.bch_txid.slice(0, 8)}...${order.bch_txid.slice(-8)}` : '' }}</span>
-            <q-icon name="content_copy" size="18px" class="copy-icon-ss" />
-          </div>
-          <div class="view-explorer-container q-mt-sm">
-            <a class="view-explorer-link-ss text-grad" :class="getDarkModeClass(darkMode)" :href="explorerLink" target="_blank">
-              <q-icon name="open_in_new" size="16px" class="q-mr-xs" />
-              {{ $t('ViewInExplorer') }}
-            </a>
-          </div>
-        </div>
-
-        <div v-if="order.completed_at">
-        	<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;Completed at</div>
-	        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
-	          {{ formatDate(order.completed_at) }}
-	        </div>
-        </div>        
-	</div>
-
-	<div v-else class="q-pt-md">
+	<div v-if="loading" class="q-pt-md">
 		<div class="skeleton-center">
 	    	<q-skeleton type="text" width="75px" height="30px" class="q-mb-xs" style="margin: 0 auto;" />
 	        <q-skeleton type="text" width="50%" height="20px" style="margin: 0 auto;" />
@@ -66,6 +19,76 @@
 	    	
 	    </div>	    
 	</div>
+
+	<div
+		v-else-if="loadError"
+		class="q-pt-md q-mx-lg"
+		:class="darkMode ? 'text-white' : 'text-black'"
+	>
+		<q-card class="q-pa-md br-15">
+			<div class="text-weight-bold lg-font-size">Unable to load order details</div>
+			<div class="q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+				{{ loadError }}
+			</div>
+			<div class="q-mt-md">
+				<q-btn
+					rounded
+					no-caps
+					class="button"
+					:class="getDarkModeClass(darkMode)"
+					label="Retry"
+					@click="fetchOrder()"
+				/>
+			</div>
+		</q-card>
+	</div>
+
+	<div class="q-pt-md q-mx-lg" v-else :class="darkMode ? 'text-white' : 'text-black'">
+		<div class="text-center q-mb-md">
+			<div class="text-capitalize status">{{ order?.status }}</div>
+			<div class="order-id">ORDER ID: {{ order?.txn_id }}</div>
+		</div>
+		<q-card class="q-pa-md br-15">			
+			<div class="lg-font-size text-weight-bold">
+				{{ promoSnapshot?.name }}
+			</div>
+
+			<div class="q-gutter-sm q-py-sm">				
+				<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot?.service" />
+		    	<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot?.service_group" />
+			</div>
+
+			<div class=" q-py-xs">
+				<span class="md-font-size">PHP {{ promoSnapshot?.amount }}</span> &nbsp;|&nbsp; <span class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ order?.bch_amount }} BCH</span>
+			</div>		
+			
+			<div class="q-py-xs">{{ promoSnapshot?.description }}</div>
+
+			<div class="sm-font-size subtext">{{ promoSnapshot?.validity }}</div>
+		</q-card>
+
+		<div v-if="order?.bch_txid && order?.bch_txid !== 'balance-confirmed'" class="transaction-id-section section-block-ss text-center" style="margin-top: 25px;">
+          <div class="text-weight-medium sm-font-size q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;{{ $t('TransactionId')}}</div>         
+
+          <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="order?.bch_txid && copyToClipboard(order?.bch_txid)">
+            <span class="txid-text-ss">{{ order?.bch_txid ? `${order?.bch_txid.slice(0, 8)}...${order?.bch_txid.slice(-8)}` : '' }}</span>
+            <q-icon name="content_copy" size="18px" class="copy-icon-ss" />
+          </div>
+          <div class="view-explorer-container q-mt-sm">
+            <a class="view-explorer-link-ss text-grad" :class="getDarkModeClass(darkMode)" :href="explorerLink" target="_blank">
+              <q-icon name="open_in_new" size="16px" class="q-mr-xs" />
+              {{ $t('ViewInExplorer') }}
+            </a>
+          </div>
+        </div>
+
+        <div v-if="order?.completed_at">
+        	<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;Completed at</div>
+	        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
+	          {{ formatDate(order?.completed_at) }}
+	        </div>
+        </div>        
+	</div>
 </template>
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
@@ -78,7 +101,8 @@ export default {
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			order: null,
 			loading: true,
-			promoSnapshot: null
+			promoSnapshot: null,
+			loadError: ''
 		}
 	},
 	components: {
@@ -86,7 +110,7 @@ export default {
 	},
 	computed: {
 		explorerLink () {
-	      const txid = this.order.bch_txid
+	      const txid = this.order?.bch_txid
 	      let url = 'https://explorer.paytaca.com/tx/'
 	      if (this.$store.getters['global/isChipnet']) {
 	        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
@@ -101,16 +125,26 @@ export default {
 		getDarkModeClass,	
 		async fetchOrder () {
 			this.loading = true
+			this.loadError = ''
+			this.order = null
+			this.promoSnapshot = null
 			const orderID = this.$route.params.orderId
 
-			const result = await eloadServiceAPI.fetchOrderDetails(orderID)
+			try {
+				const result = await eloadServiceAPI.fetchOrderDetails(orderID)
 
-			if (result.success) {
-				this.order = result.data
-				this.promoSnapshot = result.data.promo_snapshot
-			}			
-
-			this.loading = false
+				if (result?.success) {
+					this.order = result.data || {}
+					this.promoSnapshot = (result.data && result.data.promo_snapshot) ? result.data.promo_snapshot : {}
+				} else {
+					this.loadError = result?.error?.message || result?.error || this.$t?.('UnableToLoad') || 'Request failed'
+				}
+			} catch (e) {
+				console.error('[Eload] fetchOrderDetails failed:', e)
+				this.loadError = this.$t?.('UnableToLoad') || 'Request failed'
+			} finally {
+				this.loading = false
+			}
 		},
 		copyToClipboard (value) {
 	      this.$copyText(value)
