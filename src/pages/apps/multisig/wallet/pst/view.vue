@@ -213,7 +213,7 @@
                   :icon="signButtonIcon(signer)"
                   no-caps
                   rounded
-                  @click="importSignerSignature"
+                  @click="() => importSignerSignature(signer.masterFingerprint, signer.name)"
                   >
                   <span>{{ $t('ImportSigs', {}, 'Import Sigs') }}</span>
                 </q-btn>
@@ -597,16 +597,16 @@ const onConfirmSliderSwiped = async (reset) => {
   })
 }
 
-const importSignerSignature = () => {
+const importSignerSignature = (masterFingerprint, name) => {
   router.push({ 
-    name: 'app-multisig-wallet-pst-import',
+    name: 'app-multisig-wallet-pst-signatures-import',
     params: {
       wallethash: route.params.wallethash,
-      unsignedtransactionhash: route.params.unsignedtransactionhash
+      unsignedtransactionhash: route.params.unsignedtransactionhash,
+      masterfingerprint: masterFingerprint
     },
     query: {
-      title: $t('Import'),
-      description: $t('ImportSignerSignatureDescription', {}, 'Scan or Load a Partially Signed Transaction from your cosigner to merge with this one.') ,
+      signerName: name
     }
   })
 }
@@ -648,7 +648,6 @@ onMounted(async () => {
       }
     })
   }
-  
 })
 
 </script>
