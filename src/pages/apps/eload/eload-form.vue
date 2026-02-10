@@ -531,7 +531,12 @@ export default {
 				}				
 				// fetch promos
 			} else {
-				this.fetchCategory(true)
+				// Category can be cleared as a side-effect of resetting service/serviceGroup.
+				// In those cases `filters.serviceGroup` is already null, so calling fetchCategory
+				// would hit the API with a null serviceGroup and cause avoidable errors/logs.
+				if (this.filters?.serviceGroup?.id) {
+					this.fetchCategory(true)
+				}
 			}
 		},
 		selectedPromo (val) {
@@ -983,6 +988,14 @@ export default {
 		},
 		async fetchCategory(overwrite=false) {
 			const vm = this
+			// Guard: `serviceGroup` can briefly be null during reset flows (e.g. editing selections).
+			// Avoid calling the API with a null serviceGroup (would error on `serviceGroup.id`).
+			if (!vm.filters?.serviceGroup?.id) {
+				if (overwrite) vm.categories = []
+				vm.paginationSettings.category.totalPages = 0
+				return
+			}
+
 			vm.loading = true
 			const setting = vm.paginationSettings.category
 			

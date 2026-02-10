@@ -76,8 +76,17 @@ export async function fetchServiceGroup (data) {
 
 export async function fetchCategory (data) {
 	try {
+		const serviceGroupId = data?.serviceGroup?.id
+		if (!serviceGroupId) {
+			return {
+				success: false,
+				data: null,
+				error: 'Missing service group id'
+			}
+		}
+
 		let params = {
-			'service-group-id': data.serviceGroup.id,
+			'service-group-id': serviceGroupId,
 			limit: data.limit,
 			page: data.page
 		}
