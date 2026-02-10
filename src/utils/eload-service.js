@@ -315,10 +315,10 @@ export async function fetchOrderDetails (pk) {
 		}
 
 	} catch (error) {
-		// 403 - token expired
+		// 403 - token expired; re-auth and retry this request
 		if (error.response && error.response.status === 403) {
 			await authUser()
-			await fetchOrders(data)
+			return await fetchOrderDetails(pk)
 		}
 
 		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch txn details'
