@@ -368,7 +368,9 @@ async function sendCustomPayment(data) {
   try {
     // gather needed utxos
     let utxos = await getUtxosFromWatchtower(data.walletHash)
-    if (utxos.length === 0) {
+    // check balance if sufficient for purchase
+    const utxosBalance = utxos.reduce((acc, curr) => acc + curr.value, 0)
+    if (utxos.length === 0 || utxosBalance < data.amount) {
       // throw new Error('No UTXOs found')
       // consolidate UTXOs in the background
       await consolidateUtxos(data.wallet, data.spendable)
