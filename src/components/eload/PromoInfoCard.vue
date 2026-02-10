@@ -72,18 +72,36 @@ export default {
 	},
 	computed: {
 		service () {
-			const name = this.filters.service.name.toLowerCase()
-			return this.serviceInfo[name].altName
+			const filters = this.filters || {}
+			const service = filters.service || {}
+			const rawName = typeof service.name === 'string' ? service.name : ''
+			const key = rawName.toLowerCase()
+			const info = key && this.serviceInfo[key]
+
+			if (info && info.altName) return info.altName
+
+			// Fallback to original service name or empty string
+			return rawName || ''
 		},
 		icon () {
-			const name = this.filters.service.name.toLowerCase()
-			return this.serviceInfo[name].icon
+			const filters = this.filters || {}
+			const service = filters.service || {}
+			const rawName = typeof service.name === 'string' ? service.name : ''
+			const key = rawName.toLowerCase()
+			const info = key && this.serviceInfo[key]
+
+			// Fallback to mapped icon if available; otherwise a generic icon
+			return (info && info.icon) || 'help_outline'
 		},
 		serviceGroup () {
-			return this.filters.serviceGroup.name
+			const filters = this.filters || {}
+			const group = filters.serviceGroup || {}
+			return group.name || ''
 		},
 		category () {
-			return this.filters.category.name
+			const filters = this.filters || {}
+			const category = filters.category || {}
+			return category.name || ''
 		}
 	},
 	methods: {
