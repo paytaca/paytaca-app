@@ -1020,10 +1020,10 @@ export default {
 					this.promos = result.data.promos
 				} else {					
 					this.promos.push(...result.data.promos)
-				}				
+				}
+				this.paginationSettings.promo.totalPages = result.data.total_pages
 			}
 
-			this.paginationSettings.promo.totalPages = result.data.total_pages		
 			vm.loading = false	
 		},
 		preventPull (e) {
