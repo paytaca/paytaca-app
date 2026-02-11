@@ -22,6 +22,7 @@
                       </div>
                       <q-icon v-if="pst.id" name="mdi-cloud-check" size="sm" flat></q-icon>
                     </div>
+                    <div v-if="pst.id" class="col-12 text-caption">{{ $t('ID') }}: {{ pst.id || '<Local Only>' }}</div>
                     <div class="col-12 text-caption">{{ $t('Origin') }}: {{ pst.origin || pst?.metadata?.origin || 'Not Specified' }}</div>
                     <div class="col-12 text-caption">{{ $t('Network') }}: {{ pst.network || pst?.metadata?.network || 'Not Specified' }}</div>
                     <div class="col-12 text-caption">{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</div>
@@ -203,7 +204,7 @@
                   text-color="primary"
                   no-caps
                   rounded
-                  @click="() => showSharePartialSignatureOptionsDialog(signer.name)"
+                  @click="() => showSharePartialSignatureOptionsDialog(signer.name, signer.masterFingerprint)"
                   >
                   <span>&nbsp;&nbsp;{{$t('ShareSigs', {} , 'Share Sigs')}}&nbsp;&nbsp;</span>
                 </q-btn>
@@ -479,7 +480,7 @@ const onDeleteProposalAction = async () => {
   })
 }
 
-const showSharePartialSignatureOptionsDialog = (signerName) => {
+const showSharePartialSignatureOptionsDialog = (signerName, signerMasterFingerprint) => {
   $q.dialog({
     component: ShareSignatureOptionsDialog,
     componentProps: {
@@ -502,7 +503,7 @@ const showSharePartialSignatureOptionsDialog = (signerName) => {
         }
       )
     } else if (payload?.action === 'upload-signature') {
-      
+      pst.value.uploadSignerPsbt(signerMasterFingerprint)
     }
   }).onCancel(() => {
     // Dialog was closed without action
@@ -567,7 +568,6 @@ const broadcastTransaction = async () => {
       await showBroadcastSuccessDialog(result.data.txid)
     }
   } catch (error) {
-    console.log('Error', error)
     $q.dialog({
       title: 'Error',
       message: error.message || 'An error occurred while broadcasting the transaction.',
