@@ -340,12 +340,12 @@
 </template>
 
 <script>
-import { getRecord, patchRecord } from 'src/utils/address-book-utils';
 import { decryptMemo } from 'src/utils/transaction-memos';
 import { ensureKeypair } from 'src/utils/memo-service';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatAddress, formatDate } from 'src/exchange/index.js'
 import { raiseNotifyError, raiseNotifySuccess } from 'src/utils/notify-utils';
+import { deleteRecord, getRecord, patchRecord } from 'src/utils/address-book-utils';
 
 import HeaderNav from 'src/components/header-nav.vue'
 import EditRecordDialog from 'src/components/address-book/EditRecordDialog.vue';
@@ -476,31 +476,29 @@ export default {
           raiseNotifySuccess('Name updated successfully.', 2000, 'top')
         })
     },
-    handleDelete() {
+    async handleDelete() {
       this.$q.dialog({
-        title: 'Delete Contact',
-        message: `Are you sure you want to delete "${this.record.name}"? This action cannot be undone.`,
-        seamless: true,
+        title: 'Delete Record',
+        message: `Are you sure you want to delete this record? This action cannot be undone.`,
+        persistent: true,
         ok: {
           label: 'Delete',
           color: 'red',
-          flat: true
         },
         cancel: {
           label: 'Cancel',
           flat: true
         },
-        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      }).onOk(() => {
-        // TODO: Implement delete API call
-        this.$q.notify({
-          message: 'Contact deleted',
-          color: 'positive',
-          position: 'top',
-          timeout: 2000
-        })
-        // Navigate back to address book list
-        this.$router.push('/apps/address-book/')
+        class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
+      }).onOk(async () => {
+        const deleteSuccess = await deleteRecord(this.record.id)
+        if (deleteSuccess) {
+          raiseNotifySuccess('Record deleted successfully.', 2000, 'top')
+          // Navigate back to address book list
+          this.$router.push('/apps/address-book/')
+        } else {
+          raiseNotifyError('Failed to delete this record. Please try again later.', 3000, 'top')
+        }
       })
     },
     handleAddAddress() {
