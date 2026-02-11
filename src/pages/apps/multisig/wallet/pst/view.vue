@@ -509,7 +509,6 @@ const showSharePartialSignatureOptionsDialog = (signerName) => {
   })
 }
 
-
 const initiateSignTransaction = async (signer) => {
   showActionConfirmationSlider.value = true
   signingInitiatedBy.value = {
@@ -611,7 +610,7 @@ const importSignerSignature = (masterFingerprint, name) => {
   })
 }
 
-onMounted(async () => {
+const loadSignerXPrvs = async () => {
   if (wallet.value) {
     for (const signer of wallet.value.signers) {
       const xprv = await getSignerXPrv({ xpub: signer.xpub })
@@ -619,8 +618,10 @@ onMounted(async () => {
         signersXPrv.value[signer.xpub] = xprv
       }
     }
-  }  
+  }
+}
 
+const loadPst = async () => {
   const storedPst = 
     (new Pst())
       .setStore($store)
@@ -631,10 +632,22 @@ onMounted(async () => {
   if (storedPst) {
     pst.value = storedPst
     signingProgress.value = pst.value.getSigningProgress()
+    await pst.value.fetchServerId()?.catch((e) => {
+      if (e?.response?.status === 404) {
+        return
+      }
+      $q.notify({
+        message: $t('fetchServerIdWarning', {}, 'Warning: Unable to detect if this proposal exists in Paytaca\'s Coordination Server. You can still use the app you just can\'t use the coordination server as of this time.'),
+        color: 'warning',
+        textColor: 'black'
+      })
+    })
   }
+}
 
+const loadPstInputsTransactionData = async () => {
   try {
-    await pst.value.resolveInputsTransactionData()  
+    await pst.value?.resolveInputsTransactionData()  
   } catch (error) {
     $q.dialog({
       title: $t('Warning'),
@@ -648,6 +661,14 @@ onMounted(async () => {
       }
     })
   }
+}
+
+
+
+onMounted(async () => {
+  await loadSignerXPrvs()
+  await loadPst()
+  await loadPstInputsTransactionData()
 })
 
 </script>

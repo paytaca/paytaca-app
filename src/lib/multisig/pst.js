@@ -1220,11 +1220,14 @@ export class Pst {
         },
         authCredentialsGenerator: this.wallet
       })
+    this.id = response?.id
+  }
 
-    if (response?.id && !this.id) {
-      this.id = response.id
-      this.save()
-    }
+  async fetchServerId() {
+    if (!this.options?.coordinationServer) return
+    const response = 
+      await this.options?.coordinationServer?.getProposalByUnsignedTransactionHash(this.unsignedTransactionHash)
+    this.id = response?.id
   }
 
   /**
