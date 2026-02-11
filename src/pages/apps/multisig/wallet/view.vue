@@ -52,18 +52,31 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-psts', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
+                <q-btn v-if="proposals && proposals.length > 0 || !proposalsFromServer?.length " flat dense no-caps :to="{ name: 'app-multisig-wallet-psts', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box" class="col-12" color="primary" style="position:relative">
-                        <q-badge color="red" v-if="psts?.length > 0" style="margin-right: 20px;" floating>
-                        {{ psts.length }}
+                        <q-badge color="red" v-if="proposals?.length > 0" style="margin-right: 20px;" floating>
+                        {{ proposals.length }}
                         </q-badge>
                       </q-icon>
                       <div class="col-12 tile-label">{{ $t('Proposals') }}</div>
                     </div>
                   </template>
                 </q-btn>
+                <q-btn v-else-if="proposalsFromServer?.length > 0" @click="showProposalsImportSelectionDialog" flat dense no-caps class="tile" v-close-popup>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-cloud" class="col-12" color="primary" style="position:relative">
+                        <q-badge color="red" v-if="proposalsFromServer?.length > 0" style="margin-right: 20px;" floating>
+                        {{ proposalsFromServer.length }}
+                        </q-badge>
+                      </q-icon>
+                      <div class="col-12 tile-label">{{ $t('Proposals') }}</div>
+                    </div>
+                  </template>
+                </q-btn>
+                
                 <q-btn  flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
@@ -209,6 +222,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
 import { binToBase64, sortObjectKeys } from 'bitauth-libauth-v3'
+import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
@@ -222,7 +236,7 @@ import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import WalletShareOptionsDialog from 'components/multisig/WalletShareOptionsDialog.vue'
 import WalletQrDialog from 'components/multisig/WalletQrDialog.vue'
-import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
+import ImportProposalSelectionDialog from 'components/multisig/ImportProposalSelectionDialog'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -267,12 +281,14 @@ const wallet = computed(() => {
   return null
 })
 
-const psts = computed(() => {
+const proposals = computed(() => {
   const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
   return psbts?.map(psbtBase64 => {
     return Pst.fromPsbt(psbtBase64)
   })
 })
+
+const proposalsFromServer = ref()
 
 const assetPrice = computed(() => {
   if (balanceConvertionRates.value?.length > 0) {
@@ -317,6 +333,54 @@ const showWalletQrDialog = () => {
   }).onOk(() => {
     openWalletActionsDialog()
   })
+}
+
+const showProposalsImportSelectionDialog = () => {
+  const decodedProposals = []
+
+  for(const p of proposalsFromServer.value) {
+
+    if (p.proposalFormat && p.proposalFormat !== 'psbt') continue 
+    try {
+      const decoded = Pst.import(p.proposal) 
+      decoded.id = p.id     
+      decodedProposals.push(decoded)
+    } catch (error) {
+      console.log(error)
+      // ignore proposal that can't be decoded
+    }
+  }
+
+  if (decodedProposals?.length > 0) {
+    $q.dialog({
+      component: ImportProposalSelectionDialog,
+      componentProps: {
+        darkMode: darkMode.value,
+        proposals: decodedProposals
+      }
+    }).onOk(async (selectedProposal) => {
+      try {
+        selectedProposal.setStore($store)
+        selectedProposal.save()  
+        router.push({ 
+          name: 'app-multisig-wallet-pst-view', 
+          params: { 
+            wallethash: wallet.value.walletHash, 
+            unsignedtransactionhash: selectedProposal.unsignedTransactionHash 
+          } 
+        })
+      } catch (error) {
+        $q.notify({
+          message: $t('ImportSelectedProposalError', {}, 'Error importing proposal'),
+          color: 'negative'
+        })
+      }
+      
+    }).onCancel(() => {
+      // Dialog was closed without action
+    })
+  }
+  
 }
 
 const downloadWalletFile = (walletToExport) => {
@@ -416,7 +480,7 @@ const handleWalletActions = async (action) => {
   
 const openWalletActionsDialog = () => {
   const disableActions = []
-  if (psts.value?.length > 0) {
+  if (proposals.value?.length > 0) {
     disableActions.push('send-bch')
     disableActions.push('import-tx')
   }
@@ -549,17 +613,29 @@ const onUpdateTransactionFile = (file) => {
   reader.readAsText(file)
 }
 
+const queryServerForProposals = async () => {
+  if (!proposals.value || proposals.value?.length === 0) {
+    const p = await wallet.value?.fetchProposals()
+    proposalsFromServer.value = p
+  }
+}
+
 watch(wallet, async (newWallet) => {
   if (!newWallet) {
     router.push({ name: 'app-multisig' })
   }
 })
 
+
+
 onMounted(async () => {
   try {
     await loadHdPrivateKeys(wallet.value?.signers)
     await refreshBalance()
     await loadCashtokenIdentitiesToBalances()
+    if (!proposals.value || proposals.value?.length === 0) {
+      await queryServerForProposals()
+    }
   } 
   catch (error) {
     $q.notify({
