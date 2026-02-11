@@ -10,9 +10,9 @@
 		</HeaderNav>
 	<div class="text-bow q-py-md" :class="getDarkModeClass(darkMode)">
 		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
-			<q-card class="q-pa-lg br-15 text-center">
+			<q-card class="q-pa-lg br-15 text-center pt-card text-bow" :class="getDarkModeClass(darkMode)">
 				<q-icon name="task_alt" size="64px" class="text-positive" />
-				<div class="text-weight-bold text-h6 q-mt-sm">Payment sent</div>
+				<div class="text-weight-bold text-h6 q-mt-sm" :class="darkMode ? 'text-white' : 'text-grey-9'">Payment sent</div>
 
 				<div class="q-mt-md" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
 					Your BCH payment has been sent. Please wait a while to receive the order — processing can take a few minutes.
@@ -22,20 +22,20 @@
 
 				<div class="row q-mb-xs success-row">
 					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Promo</div>
-					<div class="col-8 text-weight-bold text-right success-value">{{ selectedPromo?.name || '—' }}</div>
+					<div class="col-8 text-weight-bold text-right success-value" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ selectedPromo?.name || '—' }}</div>
 				</div>
 				<div class="row q-mb-xs success-row">
 					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Amount</div>
-					<div class="col-8 text-weight-bold text-right">{{ formattedAmountToPayPhp }} PHP</div>
+					<div class="col-8 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedAmountToPayPhp }} PHP</div>
 				</div>
 				<div class="row q-mb-xs success-row">
 					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Equivalent</div>
-					<div class="col-8 text-weight-bold text-right">≈ {{ formattedAmountToPayBch || '—' }} BCH</div>
+					<div class="col-8 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">≈ {{ formattedAmountToPayBch || '—' }} BCH</div>
 				</div>
 
 				<div v-if="purchaseTxid" class="q-mt-md">
 					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Transaction ID</div>
-					<div class="text-weight-bold q-mt-xs txid">{{ purchaseTxid }}</div>
+					<div class="text-weight-bold q-mt-xs txid" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ purchaseTxid }}</div>
 					<div class="q-mt-sm">
 						<q-btn
 							flat
@@ -200,20 +200,20 @@
 			</div>
 
 			<div v-if="step > 3" class="q-mt-md">
-				<q-card class="q-mx-lg q-pa-md br-15">
+				<q-card class="q-mx-lg q-pa-md br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
 					<div class="row justify-between">
-						<div class="text-weight-bold md-font-size">{{ selectedPromo.name }}</div>
+						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ selectedPromo.name }}</div>
 						<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('promo')"/>
 					</div>			
 				<!-- </div> -->
 					<!-- <div class="md-font-size text-bold"></div> -->
 					<div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.amount }} PHP</div>
-					<div class="q-py-sm">{{ selectedPromo.description }}</div>
+					<div class="q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.description }}</div>
 					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.validity }}</div>
 
 				</q-card>
 
-				<q-card class="q-mx-lg q-pa-md br-15 q-mt-md">
+				<q-card class="q-mx-lg q-pa-md br-15 q-mt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
 					<!-- <div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ addressType(selectedPromo.address_type) }}</div> -->
 
 					<q-input 
@@ -231,7 +231,8 @@
 
 				<q-card
 					v-if="selectedPromo && amountToPayPhp !== null"
-					class="q-mx-lg q-pa-md br-15 q-mt-md"
+					class="q-mx-lg q-pa-md br-15 q-mt-md pt-card text-bow"
+					:class="getDarkModeClass(darkMode)"
 				>
 					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
 						Amount to pay
