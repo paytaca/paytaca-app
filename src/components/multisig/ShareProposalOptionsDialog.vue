@@ -25,11 +25,14 @@
             <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('DownloadTransactionProposalFileHint') }}</div>
           </div>
           <div>
-            <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+            <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disabled="pst.id">
               <q-icon class="default-text-color"  size="24px" name="cloud_upload" @click="handleUploadProposal"/>
+              <q-badge v-if="pst.id" floating size="xs" color="green" rounded>
+                <q-icon name="check" size="xs"></q-icon>
+              </q-badge>
             </q-btn>
-            <div class="q-pt-xs text-center text-capitalize text-bold" style="font-size: 13px;">{{ $t('UploadToCoordinatorServer') }}</div>
-            <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('UploadProposalHint') }}</div>
+            <div class="q-pt-xs text-center text-capitalize text-bold" style="font-size: 13px;">{{ $t('UploadProposalToCoordinatorServer') }}</div>
+            <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('UploadProposalToCoordinatorServerHint') }}</div>
           </div>
         </div>
       </q-card-section>
