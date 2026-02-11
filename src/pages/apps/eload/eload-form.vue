@@ -751,17 +751,8 @@ export default {
 			this.prepareTxn()
 		},
 		getTxnPrepareErrorMessage (error) {
-			const raw = String(error?.message || error || '').trim()
-			const lower = raw.toLowerCase()
-
 			// Common web/network error strings across browsers + capacitor.
-			if (
-				lower.includes('network') ||
-				lower.includes('failed to fetch') ||
-				lower.includes('load failed') ||
-				lower.includes('timeout') ||
-				lower.includes('timed out')
-			) {
+			if (this.isLikelyNetworkError(error)) {
 				return 'Network error while preparing order. Check your connection then retry.'
 			}
 
