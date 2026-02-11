@@ -188,7 +188,8 @@ export default {
           iconName: 'card_membership',
           path: '/apps/eload',
           iconStyle: 'width:45%; height: 45%;',
-          active: true // !this.$store.getters['global/isChipnet']
+          // Eload backend is mainnet-only; disable entry on chipnet to avoid wrong-network orders/payments.
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           id: 'collectibles',
