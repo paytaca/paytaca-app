@@ -813,12 +813,13 @@ export default {
 				vm.clearTxnPrepareAutoRetry()
 			} catch (error) {
 				console.error('[Eload] prepareTxn failed:', error)
+				// Always clear txnPrepareKey on failure so the watcher won't return early
+				// (val === txnPrepareKey), allowing automatic retry and manual retry.
+				// Clear first, before any logic that could throw, to avoid leaving user stuck.
+				vm.txnPrepareKey = ''
 				// Only show error if still relevant to current input
 				if (vm.txnPayloadKey === key) {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
-					// Always clear txnPrepareKey on failure so the watcher won't return early
-					// (val === txnPrepareKey), allowing automatic retry and manual retry.
-					vm.txnPrepareKey = ''
 
 					// One-shot auto-retry for transient network issues.
 					// This provides recovery without forcing the user to edit the address.
