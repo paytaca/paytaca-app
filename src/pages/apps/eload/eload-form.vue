@@ -253,6 +253,41 @@
 				</q-card>
 
 				<div class="q-px-lg">
+					<q-banner
+						v-if="!buying && txnPrepareError"
+						rounded
+						dense
+						class="br-15 q-mt-md q-mb-md"
+						:class="darkMode ? 'bg-grey-10 text-white' : 'bg-grey-2 text-black'"
+					>
+						<div class="sm-font-size text-negative">
+							{{ txnPrepareError }}
+						</div>
+						<template v-slot:action>
+							<q-btn
+								flat
+								dense
+								no-caps
+								class="button button-text-primary"
+								label="Retry"
+								:disable="txnPreparing || !txnPayloadKey"
+								@click="retryPrepareTxn"
+							/>
+						</template>
+					</q-banner>
+
+					<div
+						v-else-if="!buying && txnPreparing"
+						class="row justify-center q-my-md"
+					>
+						<div class="column items-center">
+							<q-spinner-dots size="26px" color="primary" />
+							<div class="q-mt-sm sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+								Preparing order…
+							</div>
+						</div>
+					</div>
+
 					<div v-if="buying" class="row justify-center q-my-md">
 						<div class="column items-center">
 							<q-spinner-dots size="32px" color="primary" />
@@ -679,6 +714,30 @@ export default {
 				vm.pendingSwipeReset?.()
 			}
 		},
+		retryPrepareTxn () {
+			// Manual recovery when the server/order preparation failed.
+			if (!this.txnPayloadKey) return
+			if (this.txnPreparing) return
+			this.prepareTxn()
+		},
+		getTxnPrepareErrorMessage (error) {
+			const raw = String(error?.message || error || '').trim()
+			const lower = raw.toLowerCase()
+
+			// Common web/network error strings across browsers + capacitor.
+			if (
+				lower.includes('network') ||
+				lower.includes('failed to fetch') ||
+				lower.includes('load failed') ||
+				lower.includes('timeout') ||
+				lower.includes('timed out')
+			) {
+				return 'Network error while preparing order. Check your connection then retry.'
+			}
+
+			// Avoid leaking internal/server details to users; keep it actionable.
+			return 'Unable to prepare order. Please retry.'
+		},
 		async prepareTxn () {
 			const vm = this
 			const key = vm.txnPayloadKey
@@ -723,7 +782,7 @@ export default {
 				console.error('[Eload] prepareTxn failed:', error)
 				// Only show error if still relevant to current input
 				if (vm.txnPayloadKey === key) {
-					vm.txnPrepareError = 'Unable to prepare transaction'
+					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
 				}
 			} finally {
 				vm.txnPreparing = false
