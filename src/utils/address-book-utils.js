@@ -6,6 +6,7 @@ import axios from 'axios'
 //   process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
 const WATCHTOWER_CASH_URL = 'http://localhost:8000/api'
 const ADDRESS_BOOK_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book/` })
+const ADDRESSES_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book-address/` })
 
 export async function getWalletAddressBook () {
   return await ADDRESS_BOOK_URL
@@ -54,6 +55,44 @@ export async function patchRecord (id, data) {
     })
     .catch(error => {
       console.error('An error occured while patching record: ', error)
+      return false
+    })
+}
+
+// export async function deleteRecord(id)
+
+export async function addAddress (data) {
+  return await ADDRESSES_URL
+    .post('', data)
+    .then(resp => {
+      return resp.status === 201
+    })
+    .catch(error => {
+      console.error('An error occurred while adding new address: ', error)
+      return false
+    })
+}
+
+export async function patchAddress (id, data) {
+  return await ADDRESSES_URL
+    .patch(`/${id}/`, data)
+    .then(resp => {
+      return resp.status === 200
+    })
+    .catch(error => {
+      console.error('An error occurred while updating an address: ', error)
+      return false
+    })
+}
+
+export async function deleteAddress (id) {
+  return await ADDRESSES_URL
+    .delete(`/${id}/`)
+    .then(resp => {
+      return resp.status === 204
+    })
+    .catch(error => {
+      console.error('An error occurred while deleting an address: ', error)
       return false
     })
 }
