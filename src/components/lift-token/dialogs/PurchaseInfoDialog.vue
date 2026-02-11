@@ -311,6 +311,8 @@ export default {
     parseLocaleDate,
     parseFiatCurrency,
     getAssetDenomination,
+    getExplorerLink,
+    getExplorerAddressLink,
 
     getThemeColor() {
       const themeColors = {
