@@ -816,8 +816,9 @@ export default {
 				// Only show error if still relevant to current input
 				if (vm.txnPayloadKey === key) {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
-					// Ensure we don't "lock" the current payload as prepared on failure.
-					if (vm.txnPrepareKey === key) vm.txnPrepareKey = ''
+					// Always clear txnPrepareKey on failure so the watcher won't return early
+					// (val === txnPrepareKey), allowing automatic retry and manual retry.
+					vm.txnPrepareKey = ''
 
 					// One-shot auto-retry for transient network issues.
 					// This provides recovery without forcing the user to edit the address.

@@ -93,6 +93,7 @@
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
@@ -111,11 +112,7 @@ export default {
 	computed: {
 		explorerLink () {
 	      const txid = this.order?.bch_txid
-	      let url = 'https://explorer.paytaca.com/tx/'
-	      if (this.$store.getters['global/isChipnet']) {
-	        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
-	      }
-	      return `${url}${txid || ''}`
+	      return getExplorerLink(txid || '')
 	    },
 	},
 	async mounted () {

@@ -346,6 +346,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { openURL } from 'quasar'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerAddressLink } from 'src/utils/send-page-utils'
 import { backend } from 'src/exchange/backend'
 import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -522,14 +523,7 @@ export default {
       return this.$store.getters['global/isChipnet']
     },
     explorerLink () {
-      let url = ''
-
-      if (this.isChipnet) {
-        url = `${process.env.TESTNET_EXPLORER_URL}/address/`
-      } else {
-        url = 'https://explorer.paytaca.com/address/'
-      }
-      return `${url}${this.data?.contract.address}`
+      return getExplorerAddressLink(this.data?.contract?.address || '')
     },
     noticeMessage () {
       if (this.data?.type === 'seller' && this.order?.status?.value === 'PD_PN' && this.proofMissingOnServer) {

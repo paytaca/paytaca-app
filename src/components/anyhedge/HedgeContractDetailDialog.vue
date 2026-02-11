@@ -27,7 +27,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://explorer.paytaca.com/address/' + contract.address"
+              :href="getExplorerAddressLink(contract.address)"
               target="_blank"
             />
           </div>
@@ -82,7 +82,7 @@
                 icon="launch"
                 size="xs" padding="xs"
                 class="q-ml-sm"
-                :href="'https://explorer.paytaca.com/tx/' + contract.fundingTxHash"
+                :href="getExplorerLink(contract.fundingTxHash)"
                 target="_blank"
               />
             </div>
@@ -252,7 +252,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://explorer.paytaca.com/address/' + contract.metadata.shortPayoutAddress"
+              :href="getExplorerAddressLink(contract.metadata.shortPayoutAddress)"
               target="_blank"
             />
           </div>
@@ -265,7 +265,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://explorer.paytaca.com/address/' + contract.metadata.longPayoutAddress"
+              :href="getExplorerAddressLink(contract.metadata.longPayoutAddress)"
               target="_blank"
             />
           </div>
@@ -301,7 +301,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://explorer.paytaca.com/tx/' + settlementMetadata.txid"
+              :href="getExplorerLink(settlementMetadata.txid)"
               target="_blank"
             />
           </div>
@@ -397,7 +397,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://explorer.paytaca.com/tx/' + mutualRedemptionData.txHash"
+              :href="getExplorerLink(mutualRedemptionData.txHash)"
               target="_blank"
             />
           </div>
@@ -499,6 +499,7 @@ import CreateMutualRedemptionFormDialog from './CreateMutualRedemptionFormDialog
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue'
 import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink, getExplorerAddressLink } from 'src/utils/send-page-utils'
 import { useI18n } from 'vue-i18n'
 
 const bchjs = new BCHJS()

@@ -137,6 +137,7 @@
 <script>
 import { getAssetDenomination } from 'src/utils/denomination-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { getExplorerLink } from 'src/utils/send-page-utils';
 import { parseStablehedgeHistory } from 'src/wallet/stablehedge/history-utils';
 import { copyToClipboard, useDialogPluginComponent, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n';
@@ -169,11 +170,7 @@ export default defineComponent({
     const isChipnet = computed(() => $store.getters['global/isChipnet'])
     const explorerLink = computed(() => {
       const txid = props.record?.txid
-      let url = 'https://explorer.paytaca.com/tx/'
-
-      if (isChipnet.value) url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
-
-      return `${url}${txid}`
+      return getExplorerLink(txid || '')
     })
 
     const $copyText = inject('$copyText')

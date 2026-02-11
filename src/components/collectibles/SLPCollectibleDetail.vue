@@ -34,6 +34,7 @@
 <script>
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import noImage from 'src/assets/no-image.svg'
 
 export default {
@@ -70,7 +71,7 @@ export default {
   methods: {
     getDarkModeClass,
     verify () {
-      const url = 'https://explorer.paytaca.com/tx/' + this.collectible.token_id
+      const url = getExplorerLink(this.collectible.token_id)
       openURL(url)
     },
     send () {

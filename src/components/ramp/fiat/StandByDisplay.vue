@@ -249,6 +249,7 @@ import { openURL } from 'quasar'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink, getExplorerAddressLink } from 'src/utils/send-page-utils'
 import { formatCurrency } from 'src/exchange'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
@@ -491,25 +492,10 @@ export default {
     getDarkModeClass,
     openURL,
     explorerLink (linkType = 'txid') {
-      let url = ''
-
-      if (this.isChipnet) {
-        url = `${process.env.TESTNET_EXPLORER_URL}`
-      } else {
-        url = 'https://explorer.paytaca.com'
-      }
-
       if (linkType === 'txid') {
-        url = `${url}/tx/`
-        return `${url}${this.txid}`
-      } else {
-        url = `${url}/address/`
-        return `${url}${this.data?.contractAddress}`
+        return getExplorerLink(this.txid || '')
       }
-
-      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.paytaca.com/tx/'
-      // }
+      return getExplorerAddressLink(this.data?.contractAddress || '')
     },
     async loadData () {
       if (this.isAppealed) {
