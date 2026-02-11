@@ -359,6 +359,9 @@ export default {
 			txnRecipientAddress: '',
 			txnPrepareKey: '',
 			txnPreparePendingKey: '',
+			txnPrepareAutoRetryTimer: null,
+			txnPrepareAutoRetryKey: '',
+			txnPrepareAutoRetryCount: 0,
 			suppressAutoStep: false,
 			pinDialogAction: '',
 			warningAttemptsStatus: '',
@@ -570,6 +573,7 @@ export default {
 		},
 		selectedPromo (val) {
 			// Reset any prepared txn when promo changes
+			this.clearTxnPrepareAutoRetry()
 			this.txnPreparing = false
 			this.txnPrepareError = ''
 			this.txnRecipientAddress = ''
@@ -579,13 +583,15 @@ export default {
 		},
 		address () {
 			// Reset prepared txn when input changes (will be re-prepared when valid)
+			this.clearTxnPrepareAutoRetry()
 			this.txnPrepareError = ''
 			this.txnRecipientAddress = ''
 			this.txnPrepareKey = ''
 		},
-		txnPayloadKey (val) {
+		txnPayloadKey (val, oldVal) {
 			// When address becomes valid + we have quote + amount, prepare txn immediately.
 			if (!val) return
+			if (val !== oldVal) this.clearTxnPrepareAutoRetry()
 			if (val === this.txnPrepareKey) return
 			// If a prepare is already in-flight, queue the latest key so we can retry
 			// as soon as the current request completes. Without this, a mid-flight input
@@ -622,7 +628,28 @@ export default {
 		// Fetch Services
 		vm.loading = false
 	},
+	beforeUnmount () {
+		this.clearTxnPrepareAutoRetry()
+	},
 	methods: {
+		clearTxnPrepareAutoRetry () {
+			if (this.txnPrepareAutoRetryTimer) {
+				clearTimeout(this.txnPrepareAutoRetryTimer)
+				this.txnPrepareAutoRetryTimer = null
+			}
+			this.txnPrepareAutoRetryKey = ''
+			this.txnPrepareAutoRetryCount = 0
+		},
+		isLikelyNetworkError (error) {
+			const raw = String(error?.message || error || '').trim().toLowerCase()
+			return (
+				raw.includes('network') ||
+				raw.includes('failed to fetch') ||
+				raw.includes('load failed') ||
+				raw.includes('timeout') ||
+				raw.includes('timed out')
+			)
+		},
 		async onPromoSearchSelect (promo) {
 			const vm = this
 			if (!promo) return
@@ -631,6 +658,7 @@ export default {
 			vm.suppressAutoStep = true
 
 			// Reset state related to txn preparation & address input.
+			vm.clearTxnPrepareAutoRetry()
 			vm.address = ''
 			vm.addressTouched = false
 			vm.txnPreparing = false
@@ -780,6 +808,7 @@ export default {
 				// Mark this payload as successfully prepared. This must be set only on success;
 				// otherwise, a failed request could block watcher-triggered retries.
 				vm.txnPrepareKey = key
+				vm.clearTxnPrepareAutoRetry()
 			} catch (error) {
 				console.error('[Eload] prepareTxn failed:', error)
 				// Only show error if still relevant to current input
@@ -787,6 +816,27 @@ export default {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
 					// Ensure we don't "lock" the current payload as prepared on failure.
 					if (vm.txnPrepareKey === key) vm.txnPrepareKey = ''
+
+					// One-shot auto-retry for transient network issues.
+					// This provides recovery without forcing the user to edit the address.
+					if (vm.isLikelyNetworkError(error)) {
+						// Reset counter when key changes; otherwise allow only one retry per key.
+						if (vm.txnPrepareAutoRetryKey !== key) {
+							vm.txnPrepareAutoRetryKey = key
+							vm.txnPrepareAutoRetryCount = 0
+						}
+						if (vm.txnPrepareAutoRetryCount < 1) {
+							vm.txnPrepareAutoRetryCount += 1
+							if (vm.txnPrepareAutoRetryTimer) clearTimeout(vm.txnPrepareAutoRetryTimer)
+							vm.txnPrepareAutoRetryTimer = setTimeout(() => {
+								// Abort if user changed inputs or we already succeeded.
+								if (vm.txnPayloadKey !== key) return
+								if (vm.txnPreparing) return
+								if (vm.txnRecipientAddress) return
+								vm.prepareTxn()
+							}, 2500)
+						}
+					}
 				}
 			} finally {
 				vm.txnPreparing = false
