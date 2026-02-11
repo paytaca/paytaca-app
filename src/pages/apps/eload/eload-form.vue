@@ -8,7 +8,7 @@
 				</div>	        	
 	    	</template>
 		</HeaderNav>
-	<div class="text-black q-py-md">
+	<div class="text-bow q-py-md" :class="getDarkModeClass(darkMode)">
 		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center">
 				<q-icon name="task_alt" size="64px" class="text-positive" />
@@ -321,6 +321,7 @@
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { formatWithLocale } from 'src/utils/denomination-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
 import ServiceCard from 'src/components/eload/ServiceCard.vue'
 import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
@@ -632,6 +633,7 @@ export default {
 		this.clearTxnPrepareAutoRetry()
 	},
 	methods: {
+		getDarkModeClass,
 		clearTxnPrepareAutoRetry () {
 			if (this.txnPrepareAutoRetryTimer) {
 				clearTimeout(this.txnPrepareAutoRetryTimer)
