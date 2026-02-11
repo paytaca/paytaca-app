@@ -771,10 +771,9 @@ export default {
 		},
 		async prepareTxn () {
 			const vm = this
-			const key = vm.txnPayloadKey
-			if (!key) return
+			let key
+			if (!vm.txnPayloadKey) return
 			if (vm.txnPreparing) return
-			if (vm.txnPrepareKey === key && vm.txnRecipientAddress) return
 
 			vm.txnPreparing = true
 			vm.txnPrepareError = ''
@@ -783,6 +782,13 @@ export default {
 			try {
 				// Ensure we have a fresh quote id/rate before preparing.
 				await vm.ensurePhpBchRate()
+				// Capture key AFTER ensurePhpBchRate — the rate/quote update can change
+				// txnPayloadKey reactively. Using the post-await key ensures the stale
+				// guard and txnPrepareKey match the values we actually used for createOrder.
+				key = vm.txnPayloadKey
+				if (!key) return
+				if (vm.txnPrepareKey === key && vm.txnRecipientAddress) return
+
 				const quoteId = vm.phpBchQuoteId
 				const bchAmount = vm.bchAmountString
 				if (!Number.isFinite(quoteId) || !bchAmount) throw new Error('Missing BCH quote/amount')
@@ -818,8 +824,8 @@ export default {
 				// (val === txnPrepareKey), allowing automatic retry and manual retry.
 				// Clear first, before any logic that could throw, to avoid leaving user stuck.
 				vm.txnPrepareKey = ''
-				// Only show error if still relevant to current input
-				if (vm.txnPayloadKey === key) {
+				// Only show error if still relevant to current input (key undefined = failed before capture, show error)
+				if (key === undefined || vm.txnPayloadKey === key) {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
 
 					// One-shot auto-retry for transient network issues.
@@ -835,7 +841,7 @@ export default {
 							if (vm.txnPrepareAutoRetryTimer) clearTimeout(vm.txnPrepareAutoRetryTimer)
 							vm.txnPrepareAutoRetryTimer = setTimeout(() => {
 								// Abort if user changed inputs or we already succeeded.
-								if (vm.txnPayloadKey !== key) return
+								if (key !== undefined && vm.txnPayloadKey !== key) return
 								if (vm.txnPreparing) return
 								if (vm.txnRecipientAddress) return
 								vm.prepareTxn()
@@ -851,7 +857,7 @@ export default {
 				// Retry once here for the latest queued key (if it's still current).
 				const pending = vm.txnPreparePendingKey
 				vm.txnPreparePendingKey = ''
-				if (pending && pending !== key && pending === vm.txnPayloadKey) {
+				if (pending && (key === undefined || pending !== key) && pending === vm.txnPayloadKey) {
 					vm.prepareTxn()
 				}
 			}
