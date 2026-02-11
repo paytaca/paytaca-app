@@ -61,7 +61,6 @@
 </template>
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { isProxy, toRaw } from 'vue'
 
 export default {
 	data () {
@@ -99,22 +98,7 @@ export default {
 			const vm = this		
 			// Initialize safe defaults when opening the dialog.
 			if (val) {
-				let filters = JSON.parse(JSON.stringify(vm.filters))		
-			    if (isProxy(filters)) {		
-			    	filters = toRaw(filters)
-			    }	     
-
-			    vm.filterData = filters || {}
-			    if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'
-
-			    if (!Array.isArray(vm.filterData.service)) {
-			    	// Default to ALL if services are already available; otherwise keep an empty array.
-			    	if (Array.isArray(vm.filterOption?.services) && vm.filterOption.services.length) {
-			    		vm.setServiceAll()
-			    	} else {
-			    		vm.filterData.service = []
-			    	}
-			    }
+				vm.applyIncomingFilters(vm.filters, { defaultAllIfEmpty: false })
 			}
 		},
 		services (val) {
@@ -129,6 +113,37 @@ export default {
 	},
 	methods: {
 		getDarkModeClass,
+		clonePlainObject (value) {
+			// JSON clone always produces a plain object (not a Vue Proxy).
+			// Also avoids `JSON.parse(undefined)` throwing when `filters` is undefined.
+			if (value === undefined) return undefined
+			try {
+				return JSON.parse(JSON.stringify(value))
+			} catch (e) {
+				return undefined
+			}
+		},
+		applyIncomingFilters (filters, opts = { defaultAllIfEmpty: false }) {
+			const vm = this
+			const cloned = vm.clonePlainObject(filters)
+
+			vm.filterData = cloned || {}
+			if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'
+
+			// Service filter behavior:
+			// - If not an array: default to ALL when services exist; otherwise empty array.
+			// - If it's an empty array: only default to ALL when requested.
+			const hasServices = Array.isArray(vm.filterOption?.services) && vm.filterOption.services.length
+			if (!Array.isArray(vm.filterData.service)) {
+				if (hasServices) vm.setServiceAll()
+				else vm.filterData.service = []
+				return
+			}
+
+			if (opts?.defaultAllIfEmpty && vm.filterData.service.length === 0 && hasServices) {
+				vm.setServiceAll()
+			}
+		},
 		ensureServiceArray () {
 			if (!Array.isArray(this.filterData.service)) this.filterData.service = []
 		},
@@ -164,26 +179,11 @@ export default {
 			this.filterData.service = this.filterOption.services.map(e => e.name)
 		}
 	},
-	async mounted () {		
+	mounted () {		
 		const vm = this
 		
-
-		let filters = JSON.parse(JSON.stringify(vm.filters))		
-	    if (isProxy(filters)) {	    	
-	    	filters = toRaw(filters)
-	    }	     
-
-	    vm.filterData = filters || {}
-	    if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'
-
 	    vm.filterOption.services = vm.services || []
-	    if (!Array.isArray(vm.filterData.service) || vm.filterData.service.length === 0) {
-	    	if (Array.isArray(vm.filterOption.services) && vm.filterOption.services.length) {
-	    		vm.setServiceAll()
-	    	} else {
-	    		vm.filterData.service = []
-	    	}
-	    }
+	    vm.applyIncomingFilters(vm.filters, { defaultAllIfEmpty: true })
 	    
 
 		// initalize service filter
