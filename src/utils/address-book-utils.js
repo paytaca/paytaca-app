@@ -59,7 +59,17 @@ export async function patchRecord (id, data) {
     })
 }
 
-// export async function deleteRecord(id)
+export async function deleteRecord (id) {
+  return await ADDRESS_BOOK_URL
+    .delete(`/${id}/`)
+    .then(resp => {
+      return resp.status === 204
+    })
+    .catch(error => {
+      console.error('An error occurred while deleting record: ', error)
+      return false
+    })
+}
 
 export async function addAddress (data) {
   return await ADDRESSES_URL
@@ -80,7 +90,7 @@ export async function patchAddress (id, data) {
       return resp.status === 200
     })
     .catch(error => {
-      console.error('An error occurred while updating an address: ', error)
+      console.error('An error occurred while patching an address: ', error)
       return false
     })
 }
