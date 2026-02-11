@@ -887,6 +887,7 @@ export class MultisigWallet {
     return await this.options?.provider?.getWalletTransactionHistory({walletHash, type, all, tokenCategory, page })
   }
 
+
   /**
    * Marks the address at addressIndex as issued.
    * 
@@ -1201,6 +1202,11 @@ export class MultisigWallet {
       .setProvider(options?.provider)
       .setCoordinationServer(options?.coordinationServer)
     return pst 
+  }
+
+  async fetchProposals() {
+    if (!this.options?.coordinationServer) return 
+    return await this.options.coordinationServer.getWalletProposals(this.generateBsmsDescriptorId())
   }
 
   isOnline() {
