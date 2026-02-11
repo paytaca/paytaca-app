@@ -991,11 +991,13 @@ export default {
 			
 		},
 		addressType (type) {
-			if (type === 'AN') {
-				return 'Account Number'
-			} else if (type === 'MN') {
-				return 'Mobile Number'
-			}
+			const normalized = typeof type === 'string' ? type.trim().toUpperCase() : ''
+			if (normalized === 'AN') return 'Account Number'
+			if (normalized === 'MN') return 'Mobile Number'
+
+			// Safe fallback for any unexpected/empty address_type values.
+			// Prevents UI strings like "Enter undefined".
+			return 'Reference'
 		},
 		resetPagination (type) {
 			this.paginationSettings[type] = {
