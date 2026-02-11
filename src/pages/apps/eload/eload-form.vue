@@ -879,7 +879,11 @@ export default {
 					const walletIndex = vm.$store.getters['global/getWalletIndex']
 					vm.wallet = await cachedLoadWallet('BCH', walletIndex)
 				}
-				if (!vm.wallet) throw new Error('Wallet not loaded')
+				if (!vm.wallet) {
+					const err = new Error('Wallet not loaded')
+					err.userMessage = 'Wallet is not loaded yet. Please wait a moment and try again.'
+					throw err
+				}
 
 				const changeAddress = await sendPageUtils.getChangeAddress('bch')
 				const recipientCashAddr = new Address(String(recipientAddressRaw).trim()).toCashAddress()
@@ -892,18 +896,25 @@ export default {
 				const fiatAmounts = Number.isFinite(vm.amountToPayPhp) ? [vm.amountToPayPhp] : null
 				const fiatCurrency = fiatAmounts ? 'PHP' : null
 
-				const sendResult = await getWalletByNetwork(vm.wallet, 'bch')
-					.sendBch(
-						0,
-						'',
-						changeAddress,
-						null,
-						undefined,
-						recipients,
-						quoteId,
-						fiatAmounts,
-						fiatCurrency
-					)
+				// `getWalletByNetwork` can return null; callers must handle it.
+				const bchWallet = getWalletByNetwork(vm.wallet, 'bch')
+				if (!bchWallet || typeof bchWallet.sendBch !== 'function') {
+					const err = new Error('BCH wallet unavailable')
+					err.userMessage = 'BCH wallet is unavailable. Please wait for wallet loading to finish, then try again.'
+					throw err
+				}
+
+				const sendResult = await bchWallet.sendBch(
+					0,
+					'',
+					changeAddress,
+					null,
+					undefined,
+					recipients,
+					quoteId,
+					fiatAmounts,
+					fiatCurrency
+				)
 
 				// `sendBch` returns an object; treat falsy/failed response as error.
 				if (!sendResult?.success) throw new Error(sendResult?.error || 'Send BCH failed')
@@ -912,7 +923,8 @@ export default {
 				vm.purchaseSuccess = true
 			} catch (error) {
 				console.error('[Eload] Buy failed:', error)
-				vm.$q?.notify?.({ type: 'negative', message: 'Unable to complete purchase' })
+				const userMessage = error?.userMessage || 'Unable to complete purchase'
+				vm.$q?.notify?.({ type: 'negative', message: userMessage })
 			} finally {
 				vm.buying = false
 				reset?.()
