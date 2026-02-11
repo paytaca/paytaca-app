@@ -748,7 +748,6 @@ export default {
 			vm.txnPreparing = true
 			vm.txnPrepareError = ''
 			vm.txnRecipientAddress = ''
-			vm.txnPrepareKey = key
 
 			try {
 				// Ensure we have a fresh quote id/rate before preparing.
@@ -778,11 +777,16 @@ export default {
 				if (vm.txnPayloadKey !== key) return
 
 				vm.txnRecipientAddress = String(recipientAddressRaw).trim()
+				// Mark this payload as successfully prepared. This must be set only on success;
+				// otherwise, a failed request could block watcher-triggered retries.
+				vm.txnPrepareKey = key
 			} catch (error) {
 				console.error('[Eload] prepareTxn failed:', error)
 				// Only show error if still relevant to current input
 				if (vm.txnPayloadKey === key) {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
+					// Ensure we don't "lock" the current payload as prepared on failure.
+					if (vm.txnPrepareKey === key) vm.txnPrepareKey = ''
 				}
 			} finally {
 				vm.txnPreparing = false
