@@ -516,9 +516,9 @@ export default {
 			return Boolean(this.txnPayloadKey) && !this.txnPreparing
 		},
 		canSubmitBuy () {
-			// Only allow swipe when txn is prepared (recipient address available)
+			// Allow swipe once inputs are valid; prepare order on swipe to avoid
+			// creating multiple server-side orders on reactive changes (rate refresh, edits).
 			if (!this.canPrepareTxn) return false
-			if (!this.txnRecipientAddress) return false
 			return !this.buying && !this.phpBchRateLoading
 		},
 		formattedAmountToPayPhp () {
@@ -591,18 +591,17 @@ export default {
 			this.txnPrepareKey = ''
 		},
 		txnPayloadKey (val, oldVal) {
-			// When address becomes valid + we have quote + amount, prepare txn immediately.
-			if (!val) return
-			if (val !== oldVal) this.clearTxnPrepareAutoRetry()
-			if (val === this.txnPrepareKey) return
-			// If a prepare is already in-flight, queue the latest key so we can retry
-			// as soon as the current request completes. Without this, a mid-flight input
-			// change can leave txnRecipientAddress empty with no auto-recovery.
-			if (this.txnPreparing) {
-				this.txnPreparePendingKey = val
-				return
-			}
-			this.prepareTxn()
+			// IMPORTANT:
+			// `prepareTxn()` creates a server-side order. If we auto-run it here, any reactive
+			// change (address edits, PHP/BCH quote refresh) can create multiple pending orders.
+			// Instead, treat any payload change as invalidating the prepared order, and only
+			// call `prepareTxn()` from explicit user action (swipe to buy / Retry).
+			if (val === oldVal) return
+			this.clearTxnPrepareAutoRetry()
+			this.txnPrepareError = ''
+			this.txnRecipientAddress = ''
+			this.txnPrepareKey = ''
+			this.txnPreparePendingKey = ''
 		},
 		step (val) {
 			if (val === 3) {
@@ -827,39 +826,9 @@ export default {
 				// Only show error if still relevant to current input (key undefined = failed before capture, show error)
 				if (key === undefined || vm.txnPayloadKey === key) {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
-
-					// One-shot auto-retry for transient network issues.
-					// This provides recovery without forcing the user to edit the address.
-					if (vm.isLikelyNetworkError(error)) {
-						// Reset counter when key changes; otherwise allow only one retry per key.
-						if (vm.txnPrepareAutoRetryKey !== key) {
-							vm.txnPrepareAutoRetryKey = key
-							vm.txnPrepareAutoRetryCount = 0
-						}
-						if (vm.txnPrepareAutoRetryCount < 1) {
-							vm.txnPrepareAutoRetryCount += 1
-							if (vm.txnPrepareAutoRetryTimer) clearTimeout(vm.txnPrepareAutoRetryTimer)
-							vm.txnPrepareAutoRetryTimer = setTimeout(() => {
-								// Abort if user changed inputs or we already succeeded.
-								if (key !== undefined && vm.txnPayloadKey !== key) return
-								if (vm.txnPreparing) return
-								if (vm.txnRecipientAddress) return
-								vm.prepareTxn()
-							}, 2500)
-						}
-					}
 				}
 			} finally {
 				vm.txnPreparing = false
-
-				// If the payload changed while we were in-flight, the watcher may have
-				// already fired but couldn't start a new prepare due to txnPreparing=true.
-				// Retry once here for the latest queued key (if it's still current).
-				const pending = vm.txnPreparePendingKey
-				vm.txnPreparePendingKey = ''
-				if (pending && (key === undefined || pending !== key) && pending === vm.txnPayloadKey) {
-					vm.prepareTxn()
-				}
 			}
 		},
 		async onBuySwiped (reset = () => {}) {
@@ -871,7 +840,7 @@ export default {
 
 			vm.buying = true
 			try {
-				// Ensure txn is prepared (should already be due to watcher).
+				// Ensure txn is prepared (creates server-side order if needed).
 				if (!vm.txnRecipientAddress) {
 					await vm.prepareTxn()
 				}
