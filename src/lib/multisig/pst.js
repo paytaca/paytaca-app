@@ -959,6 +959,49 @@ export class Pst {
   }
 
   /**
+   * Returns a PSBT string containing only the partial signatures provided by the signer
+   * corresponding to the given master fingerprint.
+   *
+   * @param {string} masterFingerprint - The hex-encoded master fingerprint identifying the signer.
+   * @returns {string} - A base64-encoded PSBT that includes only the signatures of the specified signer.
+   */
+  getSignerPsbt(masterFingerprint) {
+    const decodedSignerSignatureDataArray = this.getSignerSignatures(masterFingerprint)
+    const inputs = this.inputs?.map(i => {
+      if (!i.redeemScript) return i 
+      return {
+        ...i,
+        signatures: {}
+      }
+    })
+
+    for (const decodedSignerSignatureData of decodedSignerSignatureDataArray) {
+      const signatureDataInputTransactionHash = hexToBin(decodedSignerSignatureData.input.outpointTransactionHash)
+      const targetInput = inputs.find(i => {
+        if (!binToHex(i.redeemScript).includes(decodedSignerSignatureData.publicKey)) return false
+        return (
+          Number(i.outpointIndex) === Number(decodedSignerSignatureData.input.outpointIndex) &&
+          binsAreEqual(i.outpointTransactionHash, signatureDataInputTransactionHash )
+        )
+      })
+      if (!targetInput) continue
+      targetInput.signatures[decodedSignerSignatureData.publicKey] = hexToBin(decodedSignerSignatureData.signature)
+    }
+    return (new Psbt()).encode({ ...this.toJSON(), inputs: inputs }).toString()
+  }
+
+  async uploadSignerPsbt(masterFingerprint) {
+    if (!this.options.coordinationServer) return 
+    const psbt = this.getSignerPsbt(masterFingerprint)
+    const response = await this.options.coordinationServer.submitPartialSignature({
+      payload: psbt,
+      proposalUnsignedTransactionHash: this.unsignedTransactionHash
+    })
+
+    console.log('response', response)
+  }
+
+  /**
    /**
     * Verifies an array of decoded signer signature data objects for validity.
     *

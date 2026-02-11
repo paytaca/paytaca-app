@@ -28,7 +28,7 @@
               </div>
               <div>
                 <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disable="!signerSignatures">
-                  <q-icon class="default-text-color"  name="upload_file" @click="importFromServer"/>
+                  <q-icon class="default-text-color"  name="cloud_download" @click="importFromServer"/>
                   <q-badge v-if="signerSignatures" floating rounded></q-badge>
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize text-bold">{{ $t('ImportPartialSignaturesFromServer') }}</div>
@@ -103,7 +103,6 @@ const importFromServer = async () => {
     
   }).onOk(async () => {
     const pst = Pst.import(canonicalPsbt.value)
-    console.log('PST BEFORE MERGE', pst)
     if (pst.options?.coordinationServer) {
       const signatures = await pst.options.coordinationServer.getSignerSignatures({
         masterFingerprint: route.params.masterfingerprint, 
