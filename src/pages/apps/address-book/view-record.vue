@@ -504,8 +504,19 @@ export default {
       })
     },
     handleAddAddress() {
-      // TODO: Navigate to add address page or open dialog
-      console.log('add address yey')
+      this.$q.dialog({
+        component: EditRecordDialog,
+        componentProps: {
+          title: 'Edit Addresses',
+          isEditName: false,
+          record: this.record,
+          addressesProps: this.addressesList
+        }
+      })
+        .onOk(async () => {
+          await this.loadRecord(this.record.id)
+          raiseNotifySuccess('Addresses updated successfully.', 2000, 'top')
+        })
     },
     handleSend(address, type) {
       // Navigate to send page with pre-filled address

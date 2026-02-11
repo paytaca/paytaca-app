@@ -6,7 +6,7 @@
     class="no-click-outside"
   >
     <q-card
-      class="full-width pt-card-2 text-bow"
+      class="full-width pt-card-2 text-bow edit-record-card"
       :class="getDarkModeClass(darkMode)"
     >
       <q-card-section class="row justify-between items-center">
@@ -23,34 +23,38 @@
 
       <q-separator />
 
-      <q-card-section>
+      <div class="edit-record-body">
         <record-name-input-card v-model="recordName" v-if="isEditName" />
-        <addresses-form-card v-model="addresses" v-else />
-
-        <div class="row full-width justify-evenly q-mt-lg q-gutter-x-md">
-          <q-btn
-            unelevated
-            rounded
-            flat
-            no-caps
-            :class="getDarkModeClass(darkMode)"
-            :label="$t('Cancel')"
-            :disable="isLoading"
-            v-close-popup
-          />
-          <q-btn
-            unelevated
-            rounded
-            no-caps
-            class="button"
-            :class="getDarkModeClass(darkMode)"
-            :label="$t('Update')"
-            :disable="!canSaveRecord || isLoading"
-            :loading="isLoading"
-            @click="updateRecord"
-          />
+        <div v-else class="addresses-wrapper q-pa-sm">
+          <addresses-form-card v-model="addresses" />
         </div>
-      </q-card-section>
+      </div>
+
+      <q-separator />
+
+      <q-card-actions class="row full-width justify-evenly q-gutter-x-md q-pa-sm">
+        <q-btn
+          unelevated
+          rounded
+          flat
+          no-caps
+          :class="getDarkModeClass(darkMode)"
+          :label="$t('Cancel')"
+          :disable="isLoading"
+          v-close-popup
+        />
+        <q-btn
+          unelevated
+          rounded
+          no-caps
+          class="button"
+          :class="getDarkModeClass(darkMode)"
+          :label="$t('Update')"
+          :disable="!canSaveRecord || isLoading"
+          :loading="isLoading"
+          @click="updateRecord"
+        />
+      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
@@ -117,6 +121,17 @@ export default {
   methods: {
     getDarkModeClass,
 
+    cloneAddresses (addresses) {
+      const source = Array.isArray(addresses) ? addresses : []
+
+      // Prefer structuredClone when available; fallback to JSON deep clone.
+      // Addresses are expected to be plain objects (serializable).
+      if (typeof globalThis !== 'undefined' && typeof globalThis.structuredClone === 'function') {
+        return globalThis.structuredClone(source)
+      }
+      return JSON.parse(JSON.stringify(source)) // NOSONAR - fallback deep clone for older runtimes
+    },
+
     async updateRecord () {
       this.isLoading = true
 
@@ -145,7 +160,30 @@ export default {
 
   mounted () {
     if (this.isEditName) this.recordName = this.record.name
-    else this.addresses = this.addressesProps
+    else this.addresses = this.cloneAddresses(this.addressesProps)
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.edit-record-card {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.edit-record-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.addresses-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+</style>
