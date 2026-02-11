@@ -41,25 +41,12 @@
 	</q-card>
 </template>
 <script>
+import { getEloadServiceInfo } from 'src/utils/eload-service-info'
 	
 export default {
 	data () {
 		return {
 			darkMode: this.$store.getters['darkmode/getStatus'],
-			serviceInfo: {
-				eload: {
-					altName: 'Mobile E-load',
-					icon: 'phone_in_talk',			
-				},
-				cable: {
-					altName: 'Cable Services',
-					icon: 'tv',					
-				},
-				gamepins: {
-					altName: 'Gamepins',
-					icon: 'gamepad',					
-				}
-			}
 		}
 	},
 	emits: ['update'],
@@ -71,27 +58,25 @@ export default {
 		step: Number,		
 	},
 	computed: {
+		serviceMeta () {
+			const filters = this.filters || {}
+			const service = filters.service || {}
+			const rawName = typeof service.name === 'string' ? service.name : ''
+			return getEloadServiceInfo(rawName)
+		},
 		service () {
 			const filters = this.filters || {}
 			const service = filters.service || {}
 			const rawName = typeof service.name === 'string' ? service.name : ''
-			const key = rawName.toLowerCase()
-			const info = key && this.serviceInfo[key]
 
-			if (info && info.altName) return info.altName
+			if (this.serviceMeta?.altName) return this.serviceMeta.altName
 
 			// Fallback to original service name or empty string
 			return rawName || ''
 		},
 		icon () {
-			const filters = this.filters || {}
-			const service = filters.service || {}
-			const rawName = typeof service.name === 'string' ? service.name : ''
-			const key = rawName.toLowerCase()
-			const info = key && this.serviceInfo[key]
-
 			// Fallback to mapped icon if available; otherwise a generic icon
-			return (info && info.icon) || 'help_outline'
+			return this.serviceMeta?.icon || 'help_outline'
 		},
 		serviceGroup () {
 			const filters = this.filters || {}

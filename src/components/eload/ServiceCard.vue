@@ -24,36 +24,16 @@
     </q-card>
 </template>
 <script>
+import { getEloadServiceInfo } from 'src/utils/eload-service-info'
+
 export default {
-	data () {
-		return {
-			serviceInfo: {
-				eload: {
-					altName: 'Mobile E-load',
-					icon: 'phone_in_talk',
-					description: 'Instantly top up prepaid mobile credits for calls, texts, and data.'
-				},
-				cable: {
-					altName: 'Cable Services',
-					icon: 'tv',
-					description: 'Pay for your cable TV subscription quickly and conveniently.'
-				},
-				gamepins: {
-					altName: 'Gamepins',
-					icon: 'gamepad',
-					description: 'Purchase digital codes or credits to unlock in‑game items and play online games.'
-				}
-			}
-		}
-	},
 	computed: {
 		serviceKey () {
 			const rawName = typeof this.service?.name === 'string' ? this.service.name : ''
 			return rawName.trim().toLowerCase()
 		},
 		serviceMeta () {
-			const key = this.serviceKey
-			return (key && this.serviceInfo[key]) || null
+			return getEloadServiceInfo(this.serviceKey)
 		},
 		altName () {
 			// Prefer mapped altName, otherwise fall back to API-provided name
