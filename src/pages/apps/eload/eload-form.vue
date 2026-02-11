@@ -996,6 +996,10 @@ export default {
 			if (!this.addressTouched) this.addressTouched = true
 		},
 		changeValue (type) {
+			// Recipient input depends on promo (address_type). Clear it when editing prior selections.
+			this.address = ''
+			this.addressTouched = false
+
 			// `promo` isn't a member of `filters`; editing promo should clear `selectedPromo`.
 			if (type === 'promo') {
 				this.selectedPromo = null
@@ -1084,9 +1088,14 @@ export default {
 			}						
 		},
 		async selectPromo(promo) {		
+			// Promo determines the expected `address_type`; avoid carrying over any stale recipient input.
+			this.address = ''
+			this.addressTouched = false
+
 			this.selectedPromo = promo
 			this.ensurePhpBchRate()
-			this.step++	
+			// Move to address entry step.
+			this.step = 4
 		},
 		async fetchServiceGroup() {
 			// API requires service.id; resolve from this.services when filter has only name (e.g. after promo search).
