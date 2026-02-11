@@ -994,7 +994,12 @@ export default {
 			if (!this.addressTouched) this.addressTouched = true
 		},
 		changeValue (type) {
-			this.filters[type] = null
+			// `promo` isn't a member of `filters`; editing promo should clear `selectedPromo`.
+			if (type === 'promo') {
+				this.selectedPromo = null
+			} else {
+				this.filters[type] = null
+			}
 
 			switch (type) {
 				case 'service':
@@ -1020,6 +1025,13 @@ export default {
 
 			this.resetPagination('category')
 			this.resetPagination('promo')			
+
+			// If user goes back to promo selection (e.g. via PromoSearch shortcut),
+			// ensure the promo list is populated so they don't get stuck on an empty screen.
+			if (type === 'promo') {
+				this.promos = []
+				this.fetchPromos(true)
+			}
 		},
 		getTotalPages (type) {
 			return this.paginationSettings[type].totalPages
