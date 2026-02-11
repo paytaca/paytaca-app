@@ -771,8 +771,8 @@ export default {
 		async prepareTxn () {
 			const vm = this
 			let key
-			if (!vm.txnPayloadKey) return
-			if (vm.txnPreparing) return
+			if (!vm.txnPayloadKey) return false
+			if (vm.txnPreparing) return false
 
 			vm.txnPreparing = true
 			vm.txnPrepareError = ''
@@ -785,8 +785,8 @@ export default {
 				// txnPayloadKey reactively. Using the post-await key ensures the stale
 				// guard and txnPrepareKey match the values we actually used for createOrder.
 				key = vm.txnPayloadKey
-				if (!key) return
-				if (vm.txnPrepareKey === key && vm.txnRecipientAddress) return
+				if (!key) return false
+				if (vm.txnPrepareKey === key && vm.txnRecipientAddress) return true
 
 				const quoteId = vm.phpBchQuoteId
 				const bchAmount = vm.bchAmountString
@@ -810,13 +810,14 @@ export default {
 				if (!recipientAddressRaw) throw new Error('Missing recipient_address from server')
 
 				// Guard: if inputs changed while awaiting, ignore stale response.
-				if (vm.txnPayloadKey !== key) return
+				if (vm.txnPayloadKey !== key) return false
 
 				vm.txnRecipientAddress = String(recipientAddressRaw).trim()
 				// Mark this payload as successfully prepared. This must be set only on success;
 				// otherwise, a failed request could block watcher-triggered retries.
 				vm.txnPrepareKey = key
 				vm.clearTxnPrepareAutoRetry()
+				return true
 			} catch (error) {
 				console.error('[Eload] prepareTxn failed:', error)
 				// Always clear txnPrepareKey on failure so the watcher won't return early
@@ -827,6 +828,7 @@ export default {
 				if (key === undefined || vm.txnPayloadKey === key) {
 					vm.txnPrepareError = vm.getTxnPrepareErrorMessage(error)
 				}
+				return false
 			} finally {
 				vm.txnPreparing = false
 			}
@@ -842,7 +844,15 @@ export default {
 			try {
 				// Ensure txn is prepared (creates server-side order if needed).
 				if (!vm.txnRecipientAddress) {
-					await vm.prepareTxn()
+					const prepared = await vm.prepareTxn()
+					if (!prepared) {
+						// `prepareTxn` already sets `txnPrepareError` for relevant failures.
+						// Avoid showing a second, conflicting toast error here.
+						if (!vm.txnPrepareError) {
+							vm.$q?.notify?.({ type: 'negative', message: 'Unable to prepare order. Please retry.' })
+						}
+						return
+					}
 				}
 
 				const quoteId = vm.phpBchQuoteId

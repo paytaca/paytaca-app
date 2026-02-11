@@ -16,7 +16,7 @@ export const ELOAD_SERVICE_INFO = Object.freeze({
 	}
 })
 
-export function resolveEloadServiceKey (serviceName) {
+function resolveEloadServiceKey (serviceName) {
 	if (typeof serviceName !== 'string') return ''
 	return serviceName.trim().toLowerCase()
 }
