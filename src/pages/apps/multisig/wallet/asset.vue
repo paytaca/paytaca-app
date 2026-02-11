@@ -51,7 +51,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps @click="send" class="tile" v-close-popup>
+                <q-btn @click="send" class="tile" :disable="!balance" flat dense no-caps  v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send" class="col-12" color="primary" style="position:relative">
