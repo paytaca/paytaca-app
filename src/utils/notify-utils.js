@@ -1,6 +1,6 @@
 import { Notify } from "quasar"
 
-export function raiseNotifySuccess (message, timeout=3000, position='bottom', icon='check-circle') {
+export function raiseNotifySuccess (message, timeout=3000, position='bottom', icon='check_circle') {
   Notify.create({
     type: 'positive',
     timeout,

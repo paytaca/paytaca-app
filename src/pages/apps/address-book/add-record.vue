@@ -104,15 +104,14 @@ export default {
       const payload = { address_book: {}, addresses: [] }
 
       // encrypt the recordName
-      let encryptedRecordName
       try {
         const keypair = await ensureKeypair()
-        encryptedRecordName = await encryptMemo(keypair.privkey, keypair.pubkey, this.recordName)
-        if (!encryptedRecordName) {
+        const encryptedName = await encryptMemo(keypair.privkey, keypair.pubkey, this.recordName)
+        if (!encryptedName) {
           throw new Error('Failed to encrypt record name')
         }
 
-        payload.address_book.name = encryptedRecordName
+        payload.address_book.name = encryptedName
         payload.address_book.is_favorite = this.favorite
         payload.address_book.wallet_hash = getWalletHash()
       } catch (error) {

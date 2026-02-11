@@ -348,6 +348,7 @@ import { formatAddress, formatDate } from 'src/exchange/index.js'
 import { raiseNotifyError, raiseNotifySuccess } from 'src/utils/notify-utils';
 
 import HeaderNav from 'src/components/header-nav.vue'
+import EditRecordDialog from 'src/components/address-book/EditRecordDialog.vue';
 
 export default {
   name: 'ViewRecord',
@@ -433,21 +434,9 @@ export default {
             this.copiedAddressIndex = null
           }, 1000)
         }
-        this.$q.notify({
-          message: 'Address copied to clipboard',
-          color: 'positive',
-          position: 'top',
-          timeout: 2000,
-          icon: 'check_circle'
-        })
+        raiseNotifySuccess('Address copied to clipboard.', 2000, 'top')
       }).catch(() => {
-        this.$q.notify({
-          message: 'Failed to copy address',
-          color: 'negative',
-          position: 'top',
-          timeout: 2000,
-          icon: 'error'
-        })
+        raiseNotifyError('Failed to copy address.', 2000, 'top')
       })
     },
     async toggleFavorite() {
@@ -473,10 +462,19 @@ export default {
 
       this.isLoadingFavorite = false
     },
-    handleEdit() {
-      // TODO: Navigate to edit page or open edit dialog
-      const recordId = this.$route.params.id
-      this.$router.push(`/apps/address-book/edit/${recordId}/`)
+    async handleEdit() {
+      this.$q.dialog({
+        component: EditRecordDialog,
+        componentProps: {
+          title: 'Edit Record Name',
+          isEditName: true,
+          record: this.record
+        }
+      })
+        .onOk(async () => {
+          await this.loadRecord(this.record.id)
+          raiseNotifySuccess('Name updated successfully.', 2000, 'top')
+        })
     },
     handleDelete() {
       this.$q.dialog({
@@ -507,8 +505,7 @@ export default {
     },
     handleAddAddress() {
       // TODO: Navigate to add address page or open dialog
-      const recordId = this.$route.params.id
-      this.$router.push(`/apps/address-book/edit/${recordId}/?action=add-address`)
+      console.log('add address yey')
     },
     handleSend(address, type) {
       // Navigate to send page with pre-filled address
