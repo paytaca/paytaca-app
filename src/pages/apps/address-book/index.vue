@@ -25,12 +25,13 @@
 
         <template v-else>
           <q-input
-            class="col"
             rounded
             outlined
             clearable
             dense
+            class="col"
             label="Search name"
+            v-model="searchQuery"
           >
             <template v-slot:prepend>
               <q-icon name="search"></q-icon>
@@ -69,19 +70,19 @@
 
         <template v-else>
           <!-- favorites list -->
-          <div v-if="!isLoading && favoritesList.length > 0">
-            <record-list :list="favoritesList" />
+          <div v-if="!isLoading && filteredFavoriteRecords.length > 0">
+            <record-list :list="filteredFavoriteRecords" />
           </div>
   
           <!-- contacts list -->
-          <div v-if="!isLoading && recordsList.length > 0">
-            <record-list :list="recordsList" />
+          <div v-if="!isLoading && filteredRecords.length > 0">
+            <record-list :list="filteredRecords" />
           </div>
   
           <div
             class="text-center text-h6 q-mt-md"
             :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
-            v-if="!isLoading && favoritesList.length === 0 && recordsList.length === 0"
+            v-if="!isLoading && filteredFavoriteRecords.length === 0 && filteredRecords.length === 0"
           >
             <p>Empty address book</p>
             <p>
@@ -139,13 +140,61 @@ export default {
      // non-favorite contacts
      recordsList: [],
 
-     isLoading: false
+     isLoading: false,
+     searchQuery: ''
     }
   },
 
   computed: {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
+    },
+
+    filteredFavoriteRecords () {
+      // When there is no active search, return the full favorites list
+      if (!this.searchQuery) return this.favoritesList
+
+      // If there are no favorites, nothing to filter
+      if (!this.favoritesList || this.favoritesList.length === 0) return []
+
+      const query = this.searchQuery.toLowerCase()
+      const baseGroup = this.favoritesList[0]
+
+      const filteredData = baseGroup.data.filter(rec => {
+        const name = rec && typeof rec.name === 'string' ? rec.name.toLowerCase() : ''
+        return name.includes(query)
+      })
+
+      // If no favorites match the query, hide the favorites section
+      if (filteredData.length === 0) return []
+
+      // Preserve the list-of-groups shape expected by RecordList
+      return [{
+        ...baseGroup,
+        data: filteredData
+      }]
+    },
+
+    filteredRecords () {
+      // When there is no active search, return the full records list
+      if (!this.searchQuery) return this.recordsList
+
+      const query = this.searchQuery.toLowerCase()
+
+      // Filter each letter group by the search query and drop empty groups
+      return this.recordsList
+        .map(group => {
+          const filteredData = (group.data || []).filter(rec => {
+            const name = rec && typeof rec.name === 'string' ? rec.name.toLowerCase() : ''
+            return name.includes(query)
+          })
+
+          return {
+            ...group,
+            data: filteredData
+          }
+        })
+        .filter(group => group.data.length > 0)
     },
     
     alphabetIndex() {
