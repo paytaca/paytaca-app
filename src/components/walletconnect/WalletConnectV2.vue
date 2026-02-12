@@ -338,9 +338,21 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
-// Convert activeSessions object to array for efficient v-for iteration
-const activeSessionsArray = computed(() => Object.values(activeSessions.value || {}))
-const activeSessionsCount = computed(() => Object.keys(activeSessions.value || {}).length)
+// Filter activeSessions to only include sessions belonging to the current wallet
+// Sessions that belong to the current wallet will have mappings in sessionTopicWalletAddressMapping
+const filteredActiveSessions = computed(() => {
+  const sessions = activeSessions.value || {}
+  const mappings = sessionTopicWalletAddressMapping.value || {}
+  
+  // Only include sessions that have mappings (meaning their addresses belong to current wallet)
+  return Object.fromEntries(
+    Object.entries(sessions).filter(([topic]) => mappings[topic])
+  )
+})
+
+// Convert filtered activeSessions object to array for efficient v-for iteration
+const activeSessionsArray = computed(() => Object.values(filteredActiveSessions.value || {}))
+const activeSessionsCount = computed(() => Object.keys(filteredActiveSessions.value || {}).length)
 
 const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
@@ -1650,6 +1662,17 @@ watch(
     }
   },
   { flush: 'post' }
+)
+
+// Watch for wallet changes and reload sessions to filter by new wallet
+watch(
+  () => $store.getters['global/getWalletIndex'],
+  (newIndex, oldIndex) => {
+    // Only reload if wallet actually changed (not initial load)
+    if (oldIndex !== undefined && newIndex !== oldIndex && web3Wallet.value) {
+      loadActiveSessions({ showLoading: false })
+    }
+  }
 )
 
 onBeforeMount(async () => {
