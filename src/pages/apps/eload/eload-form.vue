@@ -1167,6 +1167,14 @@ export default {
 						this.suppressAutoStep = prevSuppress
 					}
 				}
+
+				// If empty category
+				//  - skipping selecting category for empty categories
+				const isEmptyCategory = this.categories.length === 0
+				if (isEmptyCategory) {
+					await this.fetchPromos(true)
+					this.step = 3
+				}
 			}
 
 			vm.loading = false			
