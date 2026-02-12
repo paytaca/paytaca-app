@@ -234,7 +234,7 @@
                           <q-item
                             clickable
                             v-close-popup
-                            @click="handleRemoveAddress(index)"
+                            @click="handleRemoveAddress(address)"
                           >
                             <q-item-section avatar>
                               <q-icon name="delete" color="red-5" />
@@ -279,10 +279,9 @@
     </div>
 
     <!-- QR Code Dialog -->
-    <q-dialog v-model="showQrDialog" :class="getDarkModeClass(darkMode)">
+    <q-dialog v-model="showQrDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-card class="q-pa-md" style="min-width: 300px">
         <q-card-section>
-          <div class="text-h6 text-center q-mb-md">Address QR Code</div>
           <div class="row justify-center q-mb-md">
             <qr-code
               :text="selectedAddressForQr"
@@ -317,7 +316,6 @@
             flat
             label="Copy"
             color="primary"
-            icon="content_copy"
             @click="copyToClipboard(selectedAddressForQr)"
             v-close-popup
           />
@@ -334,7 +332,7 @@ import { ensureKeypair } from 'src/utils/memo-service';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatAddress, formatDate } from 'src/exchange/index.js'
 import { raiseNotifyError, raiseNotifySuccess } from 'src/utils/notify-utils';
-import { deleteRecord, getRecord, patchRecord } from 'src/utils/address-book-utils';
+import { deleteAddress, deleteRecord, getRecord, patchRecord } from 'src/utils/address-book-utils';
 
 import HeaderNav from 'src/components/header-nav.vue'
 import EditRecordDialog from 'src/components/address-book/EditRecordDialog.vue';
@@ -523,30 +521,28 @@ export default {
       this.qrCodeId = Date.now() // Unique ID for QR code
       this.showQrDialog = true
     },
-    handleRemoveAddress(index) {
+    async handleRemoveAddress(address) {
       this.$q.dialog({
         title: 'Remove Address',
         message: 'Are you sure you want to remove this address from the contact?',
-        seamless: true,
+        persistent: true,
         ok: {
           label: 'Remove',
           color: 'red',
-          flat: true
         },
         cancel: {
           label: 'Cancel',
           flat: true
         },
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
-      }).onOk(() => {
-        // TODO: Implement remove address API call
-        this.addressesList.splice(index, 1)
-        this.$q.notify({
-          message: 'Address removed',
-          color: 'positive',
-          position: 'top',
-          timeout: 2000
-        })
+      }).onOk(async () => {
+        const deleteSuccess = await deleteAddress(address.id)
+        if (deleteSuccess) {
+          await this.loadRecord(this.record.id)
+          raiseNotifySuccess('Address deleted successfully.', 2000, 'top')
+        } else {
+          raiseNotifyError('Failed to delete address. Please try again later.', 3000, 'top')
+        }
       })
     },
     
