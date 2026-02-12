@@ -31,10 +31,10 @@
         <div
           v-else
           class="send-form-container text-bow"
-          :class="[sent ? 'q-mt-md sent' : 'q-mt-xs', getDarkModeClass(darkMode)]"
+          :class="['q-mt-xs', getDarkModeClass(darkMode)]"
         >
           <div class="q-pa-md enter-address-container">
-            <div v-if="isNFT && !sent" class="nft-container">
+            <div v-if="isNFT" class="nft-container">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
               <div
@@ -259,7 +259,7 @@
             </div>
           </div>
           <div
-            v-if="!sent && recipients[0].recipientAddress !== ''"
+            v-if="recipients[0].recipientAddress !== ''"
             class="q-px-lg"
             :style="isNFT ? 'margin-top: 25px' : ''"
           >
@@ -366,23 +366,6 @@
             class="absolute-bottom"
           />
 
-          <template v-if="sent">
-            <SendSuccessBlock
-              :isNFT="isNFT"
-              :name="name"
-              :isCashToken="isCashToken"
-              :totalAmountSent="totalAmountSent"
-              :asset="asset"
-              :denomination="denomination"
-              :totalFiatAmountSent="totalFiatAmountSent"
-              :currentSendPageCurrency="currentSendPageCurrency"
-              :convertToFiatAmount="convertToFiatAmount"
-              :txid="txid"
-              :txTimestamp="txTimestamp"
-              :jpp="jpp"
-              :recipients="recipients"
-            />
-          </template>
         </div>
       </template>
     </div>
@@ -447,7 +430,6 @@ import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
-import SendSuccessBlock from 'src/components/send-page/SendSuccessBlock.vue'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 
@@ -465,7 +447,6 @@ export default {
     QrScanner,
     SendPageForm,
     QRUploader,
-    SendSuccessBlock,
     PointsReceivedDialog,
     LoadingWalletDialog,
     Pin,
@@ -592,7 +573,6 @@ export default {
       disableSending: false,
       jpp: null,
       bip21Expires: null,
-      sent: false,
       sending: false,
       txid: '',
       txTimestamp: Date.now(),
@@ -630,13 +610,6 @@ export default {
     },
     backNavigationPath () {
       if (this.backPath) return this.backPath
-      if (this.sent && this.assetId) {
-        // After sending, navigate to transaction list for this asset
-        return {
-          name: 'transaction-list',
-          query: { assetID: this.assetId }
-        }
-      }
       return '/'
     },
     theme () {
@@ -648,7 +621,7 @@ export default {
     hideFooter () {
       if (this.customKeyboardState === 'show') return true
       if (this.showSlider) return true
-      if (this.sending || this.sent) return true
+      if (this.sending) return true
       if (this.isScrolledToBottom) return true
 
       return false
@@ -706,7 +679,7 @@ export default {
     showSlider () {
       if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
-        !this.sending && !this.sent && this.sliderStatus &&
+        !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
         this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
@@ -832,94 +805,6 @@ export default {
 
   methods: {
     // ========== send-success state persistence (for background/foreground) ==========
-    getSendSuccessSessionKey () {
-      // Keyed by wallet + asset, so switching wallets/assets doesn't leak state across pages
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      const network = this.network || 'BCH'
-      return `send_success:${walletIndex}:${network}:${this.assetId}`
-    },
-    persistSendSuccessState () {
-      try {
-        if (!this.sent || !this.txid) return
-        if (typeof window === 'undefined' || !window.sessionStorage) return
-
-        const payload = {
-          v: 1,
-          savedAt: Date.now(),
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          network: this.network || 'BCH',
-          assetId: this.assetId,
-          // Minimal fields needed to re-render the success UI accurately
-          txid: this.txid,
-          txTimestamp: this.txTimestamp,
-          totalAmountSent: this.totalAmountSent,
-          totalFiatAmountSent: this.totalFiatAmountSent,
-          // Preserve breakdown list
-          recipients: this.recipients,
-          // Preserve asset display data as best-effort (store may not be ready yet on resume)
-          asset: this.asset
-        }
-        sessionStorage.setItem(this.getSendSuccessSessionKey(), JSON.stringify(payload))
-      } catch (_) {
-        // Best-effort only
-      }
-    },
-    restoreSendSuccessState () {
-      try {
-        if (typeof window === 'undefined' || !window.sessionStorage) return false
-        const raw = sessionStorage.getItem(this.getSendSuccessSessionKey())
-        if (!raw) return false
-
-        let parsed = null
-        try { parsed = JSON.parse(raw) } catch { return false }
-        if (!parsed || parsed.v !== 1) return false
-
-        // Safety: avoid restoring stale success state indefinitely
-        const maxAgeMs = 60 * 60 * 1000 // 1 hour
-        if (typeof parsed.savedAt === 'number' && (Date.now() - parsed.savedAt) > maxAgeMs) {
-          sessionStorage.removeItem(this.getSendSuccessSessionKey())
-          return false
-        }
-
-        // Ensure it matches the current context
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        if (parsed.walletIndex !== walletIndex) return false
-        if (parsed.assetId !== this.assetId) return false
-        if ((parsed.network || 'BCH') !== (this.network || 'BCH')) return false
-
-        // Restore state needed for the success screen
-        this.sent = true
-        this.sending = false
-        this.sliderStatus = false
-        this.customKeyboardState = 'dismiss'
-        this.focusedInputField = ''
-
-        this.txid = parsed.txid || this.txid
-        this.txTimestamp = parsed.txTimestamp || this.txTimestamp
-        this.totalAmountSent = Number(parsed.totalAmountSent) || this.totalAmountSent
-        this.totalFiatAmountSent = parsed.totalFiatAmountSent ?? this.totalFiatAmountSent
-
-        if (Array.isArray(parsed.recipients) && parsed.recipients.length) {
-          this.recipients = parsed.recipients
-        }
-        if (parsed.asset && typeof parsed.asset === 'object') {
-          // Keep reactive store updates working; this is just to prevent blank UI on resume
-          this.asset = { ...this.asset, ...parsed.asset }
-        }
-
-        return true
-      } catch (_) {
-        return false
-      }
-    },
-    clearSendSuccessState () {
-      try {
-        if (typeof window === 'undefined' || !window.sessionStorage) return
-        sessionStorage.removeItem(this.getSendSuccessSessionKey())
-      } catch (_) {
-        // ignore
-      }
-    },
 
     // ========== imported methods ==========
     convertTokenAmount,
@@ -1224,18 +1109,20 @@ export default {
     // jpp
     onJppPaymentSucess () {
       this.$forceUpdate()
-      this.txid = this.jpp?.txids?.[0]
-      const jppAmount = this.jpp.total / 10 ** 8
-      this.totalAmountSent = jppAmount
-      this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
-      this.recipients[0].amount = jppAmount
-      this.recipients[0].recipientAddress = this.jpp.parsed.outputs
-        .slice(0, 10).map(output => output.address).join(', ')
-      this.recipients[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
-      this.txTimestamp = Date.now()
-      this.sending = false
-      this.sent = true
-      this.persistSendSuccessState()
+      const txid = this.jpp?.txids?.[0]
+      if (!txid) return
+      
+      // Redirect to transaction detail page
+      const query = {
+        from: 'send-page',
+        assetID: this.assetId || 'bch'
+      }
+      
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid },
+        query
+      })
     },
 
     // bip21
@@ -1775,10 +1662,19 @@ export default {
                 tokenId: vm.assetId.split('/')[1]
               })
             ])
-            vm.txid = txId
-            vm.sent = true
             vm.txTimestamp = Date.now()
-            vm.persistSendSuccessState()
+            
+            // Redirect to transaction detail page
+            const query = {
+              from: 'send-page',
+              assetID: vm.assetId || 'bch'
+            }
+            
+            vm.$router.push({
+              name: 'transaction-detail',
+              params: { txid: txId },
+              query
+            })
           } catch (e) {
             sendPageUtils.raiseNotifyError(e.message)
           }
@@ -1921,9 +1817,8 @@ export default {
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
         vm.sending = false
-        vm.sent = true
-        vm.persistSendSuccessState()
-
+        
+        // Handle points (non-blocking)
         if (!vm.assetId?.startsWith?.('ct/')) {
           // api call for processing first transaction 5 PHP worth of BCH
           const cashinResp = await processCashinPoints({
@@ -1945,6 +1840,18 @@ export default {
             })
           }
         }
+
+        // Redirect to transaction detail page
+        const query = {
+          from: 'send-page',
+          assetID: vm.assetId || 'bch'
+        }
+        
+        vm.$router.push({
+          name: 'transaction-detail',
+          params: { txid: result.txid },
+          query
+        })
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 
@@ -2413,20 +2320,11 @@ export default {
       vm.adjustWalletBalance()
     })
 
-    // When returning from background (or lock screen), restore success screen state
-    // before any logic that might mutate recipients.
-    // This ensures the "Successfully sent" screen remains visible after resume.
-    const restored = vm.restoreSendSuccessState()
-
-    if (!vm.sent) {
-      if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
-    }
+    if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
     // check query if address is not empty (from qr reader redirection)
-    if (!vm.sent) {
-      if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
-        vm.onScannerDecode(vm.$route.query.address)
-      }
+    if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
+      vm.onScannerDecode(vm.$route.query.address)
     }
 
     if (this.inputExtras.length === 1) {
@@ -2443,11 +2341,6 @@ export default {
   },
 
   beforeRouteLeave (to, from, next) {
-    // If app lock is enabled, the app deliberately routes to `/lock` on background.
-    // Do NOT clear the send-success state in that case, otherwise resuming will lose the success screen.
-    if (to?.path !== '/lock') {
-      this.clearSendSuccessState()
-    }
     next()
   },
 
@@ -2462,12 +2355,6 @@ export default {
 
   created () {
     const vm = this
-
-    // Restore success state as early as possible to avoid UI flicker on resume.
-    // If restored, skip normal form initialization.
-    if (vm.restoreSendSuccessState()) {
-      return
-    }
 
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.recipients[0].amount = vm.amount
@@ -2506,9 +2393,6 @@ export default {
   .send-form-container {
     max-height: calc(100vh - 60px);
     overflow-y: auto;
-    &.sent {
-      max-height: calc(100vh - 60px);
-    }
     .enter-address-container {
       .nft-container {
         width: 150px;
@@ -2695,38 +2579,6 @@ export default {
       }
     }
   }
-  .sent-success-container {
-    margin-top: -70px;
-    .amount-label {
-      font-size: 25px;
-      margin-top: -10px;
-    }
-    .amount-fiat-label {
-      font-size: 25px;
-      margin-top: -15px;
-    }
-    .to-label {
-      font-size: 22px;
-      margin: -10px 0 5px 0
-    }
-    .recipient-address {
-      overflow-wrap: break-word;
-      font-size: 16px;
-    }
-    .tx-id {
-      overflow-wrap: break-word;
-      font-size: 16px;
-      margin-top: 20px;
-    }
-    .view-explorer-button {
-      text-decoration: none;
-    }
-    .memo-container {
-      min-width: 50vw;
-      border: 1px solid grey;
-      background-color: inherit;
-    }
-  }
   .highlighted-word {
     font-weight: bold;
     color: orange;
@@ -2741,11 +2593,6 @@ export default {
     
     /* Add padding at bottom to prevent content from being hidden under the slider */
     padding-bottom: 120px !important;
-
-    /* Reduce padding when transaction is sent (no DragSlide) */
-    &.sent {
-      padding-bottom: 24px !important;
-    }
   }
 
   /* iOS-specific fixes for DragSlide positioning */
