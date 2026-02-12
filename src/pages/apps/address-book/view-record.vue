@@ -117,8 +117,17 @@
                   dense
                   icon="search"
                   color="primary"
-                  @click="showSearch = !showSearch"
+                  @click="showSearch = !showSearch, showFilter = showFilter ? !showFilter : showFilter"
                   aria-label="Search addresses"
+                />
+                <q-btn
+                  v-if="addressesList.length > 0"
+                  flat
+                  dense
+                  icon="filter_list"
+                  color="primary"
+                  @click="showFilter = !showFilter, showSearch = showSearch ? !showSearch : showSearch"
+                  aria-label="Filter addresses"
                 />
                 <q-btn
                   flat
@@ -146,6 +155,38 @@
                 <q-icon name="search" />
               </template>
             </q-input>
+
+            <!-- Filter div -->
+            <div
+              v-if="showFilter && addressesList.length > 0"
+              class="row items-center justify-evenly q-mb-md q-px-sm"
+            >
+              <span class="text-subtitle1">Filter addresses:</span>
+              <div class="row justify-evenly">
+                <q-chip
+                  clickable
+                  text-color="white"
+                  class="text-weight-bold"
+                  :color="getAddressTypeColor('bch')"
+                  :icon="getAddressTypeIcon('bch')"
+                  :outline="filterQuery === 'ct'"
+                  @click="filterQuery = filterQuery === '' ? 'bch' : ''"
+                >
+                  {{ formatAddressType('bch') }}
+                </q-chip>
+                <q-chip
+                  clickable
+                  text-color="white"
+                  class="text-weight-bold"
+                  :color="getAddressTypeColor('ct')"
+                  :icon="getAddressTypeIcon('ct')"
+                  :outline="filterQuery === 'bch'"
+                  @click="filterQuery = filterQuery === '' ? 'ct' : ''"
+                >
+                  {{ formatAddressType('ct') }}
+                </q-chip>
+              </div>
+            </div>
 
             <div id="addresses-list" v-if="filteredAddresses.length > 0">
               <q-card
@@ -349,7 +390,9 @@ export default {
       loading: false,
       error: null,
       showSearch: false,
+      showFilter: false,
       searchQuery: '',
+      filterQuery: '',
       showQrDialog: false,
       selectedAddressForQr: '',
       selectedAddressType: 'bch',
@@ -372,14 +415,17 @@ export default {
       return formatDate(this.record.created_at, true)
     },
     filteredAddresses() {
-      if (!this.searchQuery) {
+      if (!this.searchQuery && !this.filterQuery) {
         return this.addressesList
       }
       const query = this.searchQuery.toLowerCase()
-      return this.addressesList.filter(addr => 
-        addr.address.toLowerCase().includes(query) ||
-        this.formatAddressType(addr.address_type).toLowerCase().includes(query)
-      )
+      return this.addressesList.filter(addr => {
+        if (this.filterQuery) {
+          return addr.address.toLowerCase().includes(query) && 
+            addr.address_type === this.filterQuery
+        }
+        return addr.address.toLowerCase().includes(query)
+      })
     }
   },
 
