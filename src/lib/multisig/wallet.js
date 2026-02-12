@@ -145,8 +145,8 @@ import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutput
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
-import { decryptECIESMessage, encryptECIESMessage } from './ecies.js'
-import { BsmsDescriptor } from './bsms.js'
+import { encryptECIESMessage } from './ecies.js'
+import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
@@ -422,6 +422,7 @@ export const generateCoordinationServerCredentialsFromXprv = ({ xprv }) => {
       'X-Auth-Message': message
   }
 }
+
 export const generateCoordinationServerCredentialsFromMnemonic = ({ mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) => {
   const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
     mnemonic,
@@ -441,7 +442,6 @@ export class PriceOracle {
     return await fetch(url)
   }
 }
-
 
 export class MultisigWallet {
 
@@ -465,7 +465,6 @@ export class MultisigWallet {
     }
     
     this.options = options || {}
-    
   }
 
   setStore(store) {
@@ -1269,11 +1268,12 @@ export class MultisigWallet {
 
     let coordinator = null
     for (const signer of wallet.signers) {
+      // Elect first found signer with private key on this device as coordinator
       if (!coordinator) {
         const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
         if (mnemonic) {
           coordinator = signer 
-          coordinator.mnemonic = mnemonic
+          coordinator.mnemonic = mnemonic 
         }
       }
       if (enablePrivacy) {
@@ -1286,7 +1286,9 @@ export class MultisigWallet {
         signer.derivationPath = signer.path || signer.derivationPath || `m/44'/145'/0'`
         signer.publicKey = binToHex(MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub))
         signer.walletDescriptor = encryptedBsmsDescriptor 
-        if (coordinator &&signer.xpub === coordinator.xpub) {
+        
+        
+        if (coordinator && signer.xpub === coordinator.xpub) {
           signer.coordinator = true
         }
         delete signer.xpub
@@ -1296,8 +1298,20 @@ export class MultisigWallet {
     if (!coordinator) {
       throw new Error('You must be a cosigner with a private key on this device to upload the multisig wallet setup!')
     }
+
     const mnemonic = coordinator.mnemonic
+    const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
+      mnemonic,
+      network: 'mainnet', // This is ok we only use xpub hd prefix even on chipnet 
+      hdPath: coordinator.path 
+    })
+
+    const coordinatorKeyRecord = new BsmsKeyRecord()
+    coordinatorKeyRecord.sign(hdPrivateKey.privateKey)
+
     wallet.signers.forEach(s => {
+      // while cleaning up, might as well attach coordinator's key record for each cosigner
+      s.coordinatorKeyRecord = coordinatorKeyRecord.toEciesEncryptedString(hexToBin(s.publicKey))
       delete s.mnemonic
     })
     const uploadedWallet = await this.options?.coordinationServer?.uploadWallet({ 
