@@ -1,62 +1,6 @@
-export class BsmsKeyRecord {
-    constructor({ version = 1.0, token = '00000000000000000000000000000000' }) {
-        this.version = '1.0'
-        this.token = '00000000000000000000000000000000'
-        this.description = ''
-    }
+import { bigIntToCompactUint, secp256k1, utf8ToBin } from "bitauth-libauth-v3"
+import { encryptECIESMessage } from "./ecies";
 
-    setMasterFingerprint(masterFingerprint) {
-        this.masterFingerprint = masterFingerprint
-        return this
-    }
-    setDerivationPath(derivationPath) {
-        this.derivationPath = derivationPath
-        return this
-    }
-
-    setDescription(description='') {
-        if (description.length > 80) {
-            throw new Error('Description must be less than 80 characters')
-        }
-        this.description = description
-        return this
-    }
-    /**
-     * @param {string} key - Xpub or public key
-     */
-    setKey(key) {
-        this.key = key
-        return this
-    }
-
-    setSignature(signature) {
-        this.signature = signature
-        return this
-    }
-
-    /**
-     * Returns the BSMS key record as a string in the BSMS format
-     * Example:
-     *  BSMS 1.0
-     *  [token]
-     *  [masterFingerprint/derivationPath]key
-     *  [description]
-     *  [signature]
-     * @returns {string}
-     */
-    toString() {
-        if (!this.version || !this.token || !this.masterFingerprint || !this.derivationPath || !this.key || !this.signature) {
-            throw new Error('Some fields are missing')
-        }
-        let lines = []
-        lines.push(`BSMS ${this.version}`) 
-        lines.push(this.token)
-        lines.push(`[${this.masterFingerprint}/${this.derivationPath}/${this.key}`.trim())
-        lines.push(this.description.trim())
-        lines.push(this.signature.trim())
-        return lines.join('\n')
-    }
-}
 
 export class BsmsDescriptor {
     /**
@@ -138,4 +82,87 @@ export class BsmsDescriptor {
         ].join('\n');
     }
 }
-        
+
+export const BitcoinSignedMessageLegacyPrefix = `\x18Bitcoin Signed Message:\n`;
+
+export class BsmsKeyRecord {
+    /**
+    /**
+     * Creates an instance of BsmsKeyRecord.
+     * @param {Object} params - The parameters for the key record.
+     * @param {string} [params.version='1.0'] - BSMS version, defaults to `1.0`
+     * @param {string} [param.token='00'] - Token used for encryption. Defaults to 0x00 no encryption
+     * @param {string} params.masterFingerprint - The BIP32 master fingerprint (8-character hex string).
+     * @param {string} params.derivationPath - The BIP32 derivation path for the key.
+     * @param {string|Uint8Array} params.key - The public key (hex) or the XPub string.
+     */
+    constructor({ version='1.0', token='00', description='',  masterFingerprint, derivationPath, key, sig}) {
+        this.version = version
+        this.token = token 
+        this.masterFingerprint = masterFingerprint
+        this.derivationPath = derivationPath
+        this.description = description
+        this.key = key
+        if (sig) {
+            this.sig = sig 
+        }
+    }
+
+    get keyDescriptor() {
+        return `[${this.masterFingerprint}/${this.derivationPath}]${this.key}`
+    }
+
+    get preImage() {
+        return [
+            `BSMS ${this.version}`,
+            this.token,
+            this.keyDescriptor,
+            this.description
+        ].join('\n')
+    }
+
+    /**
+     * Signs the BSMS preImage message using the given private key.
+     * @param {Uint8Array} privateKey - The ECDSA private key as a Uint8Array.
+     * @returns {string} The DER-encoded signature in hex format.
+     */
+    sign(privateKey) {
+
+        const prefixBin = utf8ToBin(BitcoinSignedMessageLegacyPrefix)
+        const messageBin = utf8ToBin(this.preImage)
+        // Adopting Electron Cash's message len encoding to accomodate longer messages, i.e. varsize int
+        // Mainnet-js just uses the length as is
+        const messageLenBin = bigIntToCompactUint(messageBin.length) 
+
+        const preImage = new Uint8Array([
+            ...prefixBin,
+            ...messageLenBin,
+            ...messageBin
+        ])
+
+        // Double Sha256
+        const preImageHash = hash256(preImage)
+        // Preserving expected legacy signing algorithm ECDSA 
+        this.sig = binToHex(secp256k1.signMessageHashDER(privateKey, preImageHash))
+        return this.sig
+    }
+
+    /**
+     * Encrypts the BSMS key record string using ECIES for the given recipient's public key.
+     * 
+     * @param {Uint8Array} recipientPublicKey - The recipient's raw public key (Uint8Array).
+     * @returns {Promise<string>} Promise that resolves to the ECIES-encrypted message in hexadecimal format.
+     */
+    toEciesEncryptedString(recipientPublicKey) {
+       return encryptECIESMessage(recipientPublicKey, this.toString())
+    }
+
+    toString() {
+        return [
+            this.preImage,
+            this.sig
+        ].join('\n')
+    }
+
+
+}
