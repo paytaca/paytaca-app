@@ -6,8 +6,8 @@
     class="no-click-outside"
   >
     <q-card
-      class="full-width pt-card-2 text-bow edit-record-card"
-      :class="getDarkModeClass(darkMode)"
+      class="full-width text-bow edit-record-card"
+      :class="getDarkModeClass(darkMode, 'pt-card-2')"
     >
       <q-card-section class="row justify-between items-center">
         <span class="text-h6 text-weight-bold">{{ title }}</span>
@@ -24,7 +24,9 @@
       <q-separator />
 
       <div class="edit-record-body">
-        <record-name-input-card v-model="recordName" v-if="isEditName" />
+        <div v-if="isEditName" class="q-px-sm">
+          <record-name-input-card v-model="recordName" />
+        </div>
         <div v-else class="addresses-wrapper q-pa-sm">
           <addresses-form-card v-model="addresses" />
         </div>

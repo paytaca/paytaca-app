@@ -7,7 +7,8 @@
       <template v-if="record.data.length > 0">
         <q-item-label 
           header 
-          class="text-weight-bold"
+          class="text-weight-bold text-bow"
+          :class="getDarkModeClass(darkMode)"
           :id="`letter-group-${record.letter_group}`"
         >
           {{ record.letter_group.toLocaleUpperCase() }}
@@ -40,11 +41,23 @@
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+
 export default {
   name: 'RecordList',
 
   props: {
     list: { type: Array, default: new Array() }
+  },
+
+  computed: {
+    darkMode() {
+      return this.$store.getters["darkmode/getStatus"];
+    }
+  },
+
+  methods: {
+    getDarkModeClass
   }
 }
 </script>

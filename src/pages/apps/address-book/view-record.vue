@@ -54,7 +54,10 @@
               <p class="text-h6 q-mb-xs">{{ record.name }}</p>
               <div class="text-caption q-mb-none">
                 <span>Created {{ formattedDate }}</span>
-                <span v-if="record.updated_at" class="q-ml-sm">
+                <span
+                  class="q-ml-sm"
+                  :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+                >
                   • Updated {{ formatDate(record.updated_at, true) }}
                 </span>
               </div>
@@ -268,20 +271,6 @@
                 >
                   No addresses added yet
                 </p>
-                <p
-                  class="text-body2 q-mb-md"
-                  :class="darkMode ? 'text-grey-6' : 'text-grey-6'"
-                >
-                  Add an address to get started
-                </p>
-                <q-btn
-                  outline
-                  color="primary"
-                  icon="add"
-                  label="Add Address"
-                  @click="handleAddAddress"
-                  class="q-mt-sm"
-                />
               </div>
             </q-card>
           </div>
@@ -371,12 +360,7 @@ export default {
 
       isLoadingFavorite: false,
 
-      record: {
-        name: 'Name Name name_yey',
-        is_favorite: false,
-        created_at: new Date(),
-        updated_at: null
-      },
+      record: {},
       addressesList: []
     }
   },
