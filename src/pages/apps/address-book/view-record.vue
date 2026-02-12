@@ -53,12 +53,12 @@
             <div class="text-left q-mb-md">
               <p class="text-h6 q-mb-xs">{{ record.name }}</p>
               <div class="text-caption q-mb-none">
-                <span>Created {{ formattedDate }}</span>
+                <span>Created {{ formatDateLocaleRelative(record.created_at) }}</span>
                 <span
                   class="q-ml-sm"
                   :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
                 >
-                  • Updated {{ formatDate(record.updated_at, true) }}
+                  • Updated {{ formatDateLocaleRelative(record.updated_at) }}
                 </span>
               </div>
             </div>
@@ -370,8 +370,9 @@
 <script>
 import { decryptMemo } from 'src/utils/transaction-memos';
 import { ensureKeypair } from 'src/utils/memo-service';
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { formatAddress, formatDate } from 'src/exchange/index.js'
+import { formatAddress } from 'src/exchange/index.js';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { formatDateLocaleRelative } from 'src/utils/time';
 import { raiseNotifyError, raiseNotifySuccess } from 'src/utils/notify-utils';
 import { deleteAddress, deleteRecord, getRecord, patchRecord } from 'src/utils/address-book-utils';
 
@@ -410,10 +411,6 @@ export default {
     darkMode() {
       return this.$store.getters["darkmode/getStatus"];
     },
-    formattedDate() {
-      if (!this.record.created_at) return ''
-      return formatDate(this.record.created_at, true)
-    },
     filteredAddresses() {
       if (!this.searchQuery && !this.filterQuery) {
         return this.addressesList
@@ -432,7 +429,8 @@ export default {
   methods: {
     getDarkModeClass,
     formatAddress,
-    formatDate,
+    formatDateLocaleRelative,
+
     formatAddressType(type) {
       const typeMap = {
         'bch': 'BCH',

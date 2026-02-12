@@ -47,6 +47,8 @@ export async function getServerTime() {
  * locale-sensitive formatting. 
  * 
  * @param {string|number|Date} date - The date to be formatted.
+ * @param {Date} currentTime - The current datetime
+ * @param {Boolean} useRelative - Toggle whether to use relative or absolute formatting (default to true)
  * @returns {string} The formatted date string, or an empty string if input is invalid.
  *
  * @example
