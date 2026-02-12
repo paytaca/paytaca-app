@@ -1,11 +1,21 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-    <header-nav
-      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
-      :backnavpath="backNavPath"
-      class="header-nav"
-    ></header-nav>
-    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
+    <SendSuccessPage
+      v-if="showReceiveSuccessPage"
+      :txid="receivedTxid"
+      :amount="receivedAmount"
+      :asset-symbol="receivedAssetSymbol"
+      :fiat-amount="receivedFiatAmount"
+      :is-cash-token="assetId?.startsWith?.('ct/')"
+      mode="receive"
+    />
+    <template v-else>
+      <header-nav
+        :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
+        :backnavpath="backNavPath"
+        class="header-nav"
+      ></header-nav>
+      <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
         id="context-menu"
         size="35px"
@@ -190,6 +200,7 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -198,7 +209,8 @@ import { getMnemonic, Wallet, Address } from '../../wallet'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
-  convertCashAddress
+  convertCashAddress,
+  getWatchtowerApiUrl
 } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
@@ -215,6 +227,7 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
+import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 
 export default {
   name: 'receive-page',
@@ -223,7 +236,8 @@ export default {
   ],
   components: {
     HeaderNav,
-    CustomInput
+    CustomInput,
+    SendSuccessPage
   },
   data () {
     return {
@@ -242,7 +256,12 @@ export default {
       tokens: [],
       dynamicAddress: '', // Store dynamically generated address (for display, may be token format)
       dynamicAddressRegular: '', // Store regular format address (for API calls, subscriptions, listeners)
-      isInitializing: true // Flag to prevent watcher from triggering during initial load
+      isInitializing: true, // Flag to prevent watcher from triggering during initial load
+      showReceiveSuccessPage: false,
+      receivedTxid: '',
+      receivedAmount: null,
+      receivedAssetSymbol: 'BCH',
+      receivedFiatAmount: null
     }
   },
   props: {
@@ -339,6 +358,54 @@ export default {
 
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
+    },
+
+    /**
+     * Check if transaction exists in wallet history
+     * @param {string} txid - Transaction ID to check
+     * @param {string} assetId - Asset ID (e.g., 'bch', 'ct/tokenId', 'slp/tokenId')
+     * @returns {Promise<boolean>} True if transaction exists in history
+     */
+    async checkTransactionExistsInHistory (txid, assetId) {
+      try {
+        const wallet = this.getWallet('bch')
+        if (!wallet?.walletHash) {
+          return false
+        }
+
+        const baseUrl = getWatchtowerApiUrl(this.isChipnet)
+        let categoryPath = ''
+        
+        // Handle token categories
+        if (assetId?.startsWith?.('ct/') || assetId?.startsWith?.('slp/')) {
+          const tokenId = assetId.split('/')[1]
+          categoryPath = `/${tokenId}`
+        }
+        
+        const url = `${baseUrl}/history/wallet/${encodeURIComponent(wallet.walletHash)}${categoryPath}/`
+        const { data } = await axios.get(url, { params: { txids: txid } })
+        const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
+        
+        return !!tx
+      } catch (error) {
+        console.error('Error checking transaction in history:', error)
+        return false
+      }
+    },
+
+    /**
+     * Show receive success page for consolidation transactions
+     * @param {string} txid - Transaction ID
+     * @param {number} amount - Amount received
+     * @param {string} assetSymbol - Asset symbol
+     * @param {string} assetId - Asset ID
+     */
+    showReceiveSuccess (txid, amount, assetSymbol, assetId) {
+      this.receivedTxid = txid
+      this.receivedAmount = amount
+      this.receivedAssetSymbol = assetSymbol || 'BCH'
+      this.receivedFiatAmount = null // Can be calculated if needed
+      this.showReceiveSuccessPage = true
     },
     async getMainchainTokens () {
       const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
@@ -850,6 +917,16 @@ export default {
                 _fromWebsocket: true
               }
               
+              // Check if transaction exists in history before redirecting
+              const existsInHistory = await vm.checkTransactionExistsInHistory(data.txid, data.token_id)
+              
+              if (!existsInHistory) {
+                // Show receive success page for consolidation transactions (not in history)
+                const assetSymbol = asset?.symbol || data.token_symbol?.toUpperCase() || 'TOKEN'
+                vm.showReceiveSuccess(data.txid, amount, assetSymbol, data.token_id)
+                return // Exit early to prevent notification
+              }
+              
               const query = { new: 'true' }
               if (category) {
                 query.category = category
@@ -915,6 +992,17 @@ export default {
               tx_timestamp: Date.now(),
               date_created: Date.now(),
               _fromWebsocket: true
+            }
+            
+            // Check if transaction exists in history before redirecting
+            const assetId = data.token_id === 'bch' ? 'bch' : data.token_id
+            const existsInHistory = await vm.checkTransactionExistsInHistory(data.txid, assetId)
+            
+            if (!existsInHistory) {
+              // Show receive success page for consolidation transactions (not in history)
+              const assetSymbol = asset?.symbol || data.token_symbol?.toUpperCase() || (data.token_id === 'bch' ? 'BCH' : 'TOKEN')
+              vm.showReceiveSuccess(data.txid, txAmount, assetSymbol, assetId)
+              return // Exit early to prevent notification and token addition
             }
             
             // Extract category from token_id if it's a token transaction, otherwise it's BCH

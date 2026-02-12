@@ -20,7 +20,15 @@
         {{ $t('SLPSendWarning') }}
       </q-banner>
       <template v-else>
-        <div v-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
+        <SendSuccessPage
+          v-if="showSendSuccessPage"
+          :txid="txid"
+          :amount-sent="formattedAmountSent"
+          :asset-symbol="asset?.symbol || symbol || 'BCH'"
+          :fiat-amount="formattedFiatAmountSent"
+          :is-cash-token="isCashToken"
+        />
+        <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
             :jpp="jpp"
             :wallet="wallet"
@@ -396,7 +404,8 @@ import { toTokenAddress } from 'src/utils/crypto'
 import axios from 'axios'
 import {
   getWalletByNetwork,
-  convertTokenAmount
+  convertTokenAmount,
+  getWatchtowerApiUrl
 } from 'src/wallet/chipnet'
 import {
   getAssetDenomination,
@@ -432,6 +441,7 @@ import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
+import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 
@@ -450,7 +460,8 @@ export default {
     PointsReceivedDialog,
     LoadingWalletDialog,
     Pin,
-    BiometricWarningAttempt
+    BiometricWarningAttempt,
+    SendSuccessPage
   },
 
   props: {
@@ -596,7 +607,8 @@ export default {
       priceId: null,
       priceIdPrice: null,
       selectedOtherWallet: null,
-      generatingOtherWalletAddress: false
+      generatingOtherWalletAddress: false,
+      showSendSuccessPage: false
     }
   },
 
@@ -738,6 +750,26 @@ export default {
           }
         })
         .filter(wallet => wallet !== null && wallet.walletHash !== null)
+    },
+    formattedAmountSent () {
+      if (!this.totalAmountSent || this.totalAmountSent <= 0) return ''
+      const assetSymbol = this.asset?.symbol || this.symbol || 'BCH'
+      if (this.isNFT) return ''
+      
+      // Format amount based on denomination
+      if (this.assetId === 'bch') {
+        return getAssetDenomination(this.selectedDenomination, this.totalAmountSent)
+      }
+      
+      // For tokens, show the amount with symbol
+      return `${this.totalAmountSent} ${assetSymbol}`
+    },
+    formattedFiatAmountSent () {
+      if (!this.totalFiatAmountSent || this.totalFiatAmountSent <= 0) return null
+      if (this.isNFT) return null
+      
+      const currency = this.selectedMarketCurrency || 'USD'
+      return parseFiatCurrency(this.totalFiatAmountSent, currency)
     },
     // Get asset from store reactively to ensure balance updates are reflected
     storeAsset () {
@@ -1107,22 +1139,34 @@ export default {
     },
 
     // jpp
-    onJppPaymentSucess () {
+    async onJppPaymentSucess () {
       this.$forceUpdate()
       const txid = this.jpp?.txids?.[0]
       if (!txid) return
       
-      // Redirect to transaction detail page
-      const query = {
-        from: 'send-page',
-        assetID: this.assetId || 'bch'
-      }
+      this.txid = txid
+      this.txTimestamp = Date.now()
       
-      this.$router.push({
-        name: 'transaction-detail',
-        params: { txid },
-        query
-      })
+      // Check if this is a consolidation transaction or if transaction doesn't exist in history
+      const isConsolidation = this.isConsolidationTransaction()
+      const existsInHistory = await this.checkTransactionExistsInHistory(txid)
+
+      if (isConsolidation || !existsInHistory) {
+        // Show send success page for consolidation transactions or transactions not in history
+        this.showSendSuccess()
+      } else {
+        // Redirect to transaction detail page for regular transactions
+        const query = {
+          from: 'send-page',
+          assetID: this.assetId || 'bch'
+        }
+        
+        this.$router.push({
+          name: 'transaction-detail',
+          params: { txid },
+          query
+        })
+      }
     },
 
     // bip21
@@ -1662,19 +1706,29 @@ export default {
                 tokenId: vm.assetId.split('/')[1]
               })
             ])
+            vm.txid = txId
             vm.txTimestamp = Date.now()
             
-            // Redirect to transaction detail page
-            const query = {
-              from: 'send-page',
-              assetID: vm.assetId || 'bch'
+            // Check if this is a consolidation transaction or if transaction doesn't exist in history
+            const isConsolidation = vm.isConsolidationTransaction()
+            const existsInHistory = await vm.checkTransactionExistsInHistory(txId)
+
+            if (isConsolidation || !existsInHistory) {
+              // Show send success page for consolidation transactions or transactions not in history
+              vm.showSendSuccess()
+            } else {
+              // Redirect to transaction detail page for regular transactions
+              const query = {
+                from: 'send-page',
+                assetID: vm.assetId || 'bch'
+              }
+              
+              vm.$router.push({
+                name: 'transaction-detail',
+                params: { txid: txId },
+                query
+              })
             }
-            
-            vm.$router.push({
-              name: 'transaction-detail',
-              params: { txid: txId },
-              query
-            })
           } catch (e) {
             sendPageUtils.raiseNotifyError(e.message)
           }
@@ -1810,6 +1864,70 @@ export default {
         sendPageUtils.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
       }
     },
+    /**
+     * Check if transaction is a consolidation (sending to own wallet address)
+     * @returns {boolean} True if any recipient is a wallet address
+     */
+    isConsolidationTransaction () {
+      return this.recipients.some(recipient => {
+        const extra = this.inputExtras[this.recipients.indexOf(recipient)]
+        return extra?.isWalletAddress === true
+      })
+    },
+
+    /**
+     * Check if transaction exists in wallet history
+     * @param {string} txid - Transaction ID to check
+     * @returns {Promise<boolean>} True if transaction exists in history
+     */
+    async checkTransactionExistsInHistory (txid) {
+      try {
+        if (!this.wallet) {
+          return false
+        }
+
+        // Get the correct wallet based on asset type
+        let walletHash = null
+        if (this.assetId?.startsWith?.('slp/')) {
+          const slpWallet = getWalletByNetwork(this.wallet, 'slp')
+          walletHash = slpWallet?.getWalletHash?.()
+        } else {
+          // For BCH and CT tokens, use BCH wallet
+          const bchWallet = getWalletByNetwork(this.wallet, 'bch')
+          walletHash = bchWallet?.getWalletHash?.()
+        }
+
+        if (!walletHash) {
+          return false
+        }
+
+        const baseUrl = getWatchtowerApiUrl(this.isChipnet)
+        let categoryPath = ''
+        
+        // Handle token categories
+        if (this.assetId?.startsWith?.('ct/') || this.assetId?.startsWith?.('slp/')) {
+          const tokenId = this.assetId.split('/')[1]
+          categoryPath = `/${tokenId}`
+        }
+        
+        const url = `${baseUrl}/history/wallet/${encodeURIComponent(walletHash)}${categoryPath}/`
+        const { data } = await axios.get(url, { params: { txids: txid } })
+        const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
+        
+        return !!tx
+      } catch (error) {
+        console.error('Error checking transaction in history:', error)
+        return false
+      }
+    },
+
+    /**
+     * Show send success page for consolidation transactions
+     */
+    showSendSuccess () {
+      this.showSendSuccessPage = true
+    },
+
     async submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
@@ -1841,17 +1959,26 @@ export default {
           }
         }
 
-        // Redirect to transaction detail page
-        const query = {
-          from: 'send-page',
-          assetID: vm.assetId || 'bch'
+        // Check if this is a consolidation transaction or if transaction doesn't exist in history
+        const isConsolidation = vm.isConsolidationTransaction()
+        const existsInHistory = await vm.checkTransactionExistsInHistory(result.txid)
+
+        if (isConsolidation || !existsInHistory) {
+          // Show send success page for consolidation transactions or transactions not in history
+          vm.showSendSuccess()
+        } else {
+          // Redirect to transaction detail page for regular transactions
+          const query = {
+            from: 'send-page',
+            assetID: vm.assetId || 'bch'
+          }
+          
+          vm.$router.push({
+            name: 'transaction-detail',
+            params: { txid: result.txid },
+            query
+          })
         }
-        
-        vm.$router.push({
-          name: 'transaction-detail',
-          params: { txid: result.txid },
-          query
-        })
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 

@@ -355,6 +355,7 @@ const phrases = {
       ViewIgnoredTokens: "View ignored tokens",
       ViewInExplorer: "View in explorer",
       ViewTokens: "View Tokens",
+      ViewTransactions: "View Transactions",
       ViewTransactionInExplorer: "View transaction in explorer",
       WaitingSmartBchTransaction: "Waiting for transaction in Smart BCH",
       WaitingBchTransaction: "Waiting for transaction in Bitcoin Cash",
@@ -1136,6 +1137,10 @@ const phrases = {
       CreatingTransaction: 'Creating transaction',
       WaitingForTransactionToComplete: 'Waiting for transaction to complete',
       TransactionSentButTookLongerToComplete: 'Transaction sent but took longer to complete',
+      TransactionSentSuccessfully: 'Transaction Sent Successfully!',
+      TransactionReceived: 'Transaction Received',
+      TransactionReceivedSuccessfully: 'Transaction Received Successfully!',
+      ConsolidationTransactionNote: 'This transaction consolidates funds within your wallet.',
     }, 
     {
       Volume24hr: 'Volume (24 hr)',
