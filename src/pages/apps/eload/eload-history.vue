@@ -14,7 +14,7 @@
  -->
 
 		<!-- Order List -->
-		<div v-if="!initialLoading" class="scroll q-mt-md q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
+		<div v-if="!initialLoading" class="scroll q-mt-sm q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
 				<div v-if="orders.length == 0" class="relative text-center" style="margin-top: 50px;">
 	        <div>
@@ -63,7 +63,7 @@
 			</q-pull-to-refresh>
 		</div>
 
-		<div v-else class="q-mt-md q-px-sm" style="height: 60vh;">
+		<div v-else class="q-mt-sm q-px-sm" style="height: 60vh;">
 			<q-list>
       	<q-item v-for="n in 4" :key="n">
         	<q-item-section>
@@ -114,7 +114,8 @@ export default {
 			services: [],
 			filters: {
 				sort_type: 'DESCENDING', // newest first default
-				service: []
+				service: [],
+				status: ['success', 'pending', 'failed']
 			},
 			paginationSettings: {
 				limit: 10,

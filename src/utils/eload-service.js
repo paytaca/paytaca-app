@@ -269,6 +269,13 @@ export async function fetchOrders (data) {
 				params = _params
 			}
 
+			if ('status' in data.filters) {
+				const _params = new URLSearchParams(params)
+
+				data.filters.status.forEach(s => _params.append('status', s))
+				params = _params
+			}
+
 			const headers = {
 				'wallet-hash': walletHash,
 				Authorization: `Bearer ${token}`

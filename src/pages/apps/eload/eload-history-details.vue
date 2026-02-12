@@ -59,12 +59,12 @@
 			</div>
 
 			<div class=" q-py-xs">
-				<span class="md-font-size">PHP {{ promoSnapshot?.amount }}</span> &nbsp;|&nbsp; <span class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ order?.bch_amount }} BCH</span>
+				<span class="md-font-size">PHP {{ promoSnapshot?.amount }}</span> &nbsp;|&nbsp; <span class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ order?.bch_amount }} BCH</span>
 			</div>		
 			
-			<div class="q-py-xs">{{ promoSnapshot?.description }}</div>
+			<div class="q-py-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ promoSnapshot?.description }}</div>
 
-			<div class="sm-font-size subtext">{{ promoSnapshot?.validity }}</div>
+			<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ promoSnapshot?.validity }}</div>
 		</q-card>
 
 		<div v-if="order?.bch_txid && order?.bch_txid !== 'balance-confirmed'" class="transaction-id-section section-block-ss text-center" style="margin-top: 25px;">
