@@ -29,10 +29,10 @@
           </span>
           <span class="transaction-date" :class="getDarkModeClass(darkMode)">
             <template v-if="transaction.tx_timestamp">
-              {{ formatDateLocaleRelative(transaction.tx_timestamp, currentTime, useRelativeTxTimestamp) }}
+              {{ formatDateLocaleRelative(transaction.tx_timestamp, useRelativeTxTimestamp, currentTime) }}
             </template>
             <template v-else>
-              {{ formatDateLocaleRelative(transaction.date_created, currentTime, useRelativeTxTimestamp) }}
+              {{ formatDateLocaleRelative(transaction.date_created, useRelativeTxTimestamp, currentTime) }}
             </template>
           </span>
         </div>

@@ -47,8 +47,8 @@ export async function getServerTime() {
  * locale-sensitive formatting. 
  * 
  * @param {string|number|Date} date - The date to be formatted.
- * @param {Date} currentTime - The current datetime
  * @param {Boolean} useRelative - Toggle whether to use relative or absolute formatting (default to true)
+ * @param {Date} currentTime - The current datetime
  * @returns {string} The formatted date string, or an empty string if input is invalid.
  *
  * @example
@@ -58,7 +58,7 @@ export async function getServerTime() {
  *   // Absolute, e.g. "Apr 28, 2024, 10:34 AM" depending on locale
  *   formatDate('2024-04-28T10:34:12Z')
  */
-export function formatDateLocaleRelative(date, currentTime=new Date(), useRelative=true) {
+export function formatDateLocaleRelative(date, useRelative=true, currentTime=new Date()) {
   const dt = new Date(date);
   if (Number.isNaN(dt.getTime())) return '';
 
