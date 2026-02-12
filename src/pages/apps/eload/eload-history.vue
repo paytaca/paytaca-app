@@ -3,7 +3,7 @@
 	
 	<div class="">	
 		<div class="row justify-between q-px-lg">
-			<div class="q-pt-md lg-font-size text-italic q-py-sm" :class="darkMode ? '' : 'text-grey-8'">Orders</div>
+			<div class="q-pt-md lg-font-size text-italic text-weight-bold q-py-sm" :class="darkMode ? '' : 'text-grey-8'">Orders</div>
 			<FilterBtn v-if="!initialLoading" :filters="filters" :services="services" @submit-data="filterOrder"/>	
 			<q-btn v-else flat round unelevated ripple dense size="md" icon="filter_list" class="button button-text-primary" padding="none" disable/>
 		</div>
@@ -12,6 +12,8 @@
 			<q-skeleton type="text" width="10%" height="30px" class="q-mb-xs br-15" />  
 		</div>
  -->
+
+ 		<q-separator class="q-mx-lg"/>
 
 		<!-- Order List -->
 		<div v-if="!initialLoading" class="scroll q-mt-sm q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
