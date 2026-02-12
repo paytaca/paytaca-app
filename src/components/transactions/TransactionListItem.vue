@@ -28,8 +28,12 @@
             {{ recordTypeText }}
           </span>
           <span class="transaction-date" :class="getDarkModeClass(darkMode)">
-            <template v-if="transaction.tx_timestamp">{{ formatDate(transaction.tx_timestamp) }}</template>
-            <template v-else>{{ formatDate(transaction.date_created) }}</template>
+            <template v-if="transaction.tx_timestamp">
+              {{ formatDateLocaleRelative(transaction.tx_timestamp, currentTime, useRelativeTxTimestamp) }}
+            </template>
+            <template v-else>
+              {{ formatDateLocaleRelative(transaction.date_created, currentTime, useRelativeTxTimestamp) }}
+            </template>
           </span>
         </div>
         <div class="transaction-amount" :class="getDarkModeClass(darkMode)">
@@ -97,19 +101,14 @@ import { parseAssetDenomination, parseFiatCurrency } from 'src/utils/denominatio
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseAttributeToBadge } from 'src/utils/tx-attributes'
 import * as memoService from 'src/utils/memo-service'
+import { formatDateLocaleRelative } from 'src/utils/time'
 
 const $store = useStore()
-const { t: $t, locale: i18nLocale } = useI18n()
+const { t: $t } = useI18n()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const denomination = computed(() => $store.getters['global/denomination'])
 const theme = computed(() => $store.getters['global/theme'])
 const useRelativeTxTimestamp = computed(() => Boolean($store.getters['global/relativeTxTimestamp']))
-const userLocale = computed(() => {
-  // Prefer app-selected language; fall back to i18n locale; then browser locale.
-  const fromStore = $store.getters['global/language']
-  const candidate = fromStore || i18nLocale?.value || globalThis?.navigator?.language || 'en-US'
-  return String(candidate).replace('_', '-')
-})
 
 const badgeColor = computed(() => {
   const themeMap = {
@@ -293,58 +292,6 @@ const isNftTransaction = computed(() => {
   }
   return false
 })
-
-function formatDate (date) {
-  const dt = new Date(date)
-  if (Number.isNaN(dt.getTime())) return ''
-
-  if (useRelativeTxTimestamp.value) {
-    // Intl.RelativeTimeFormat handles grammar/plurals per locale.
-    // Use currentTime to keep this reactive with our existing interval.
-    const nowMs = Number(currentTime.value) || Date.now()
-    const diffMs = dt.getTime() - nowMs // negative => in the past (e.g., "5 minutes ago")
-    const diffSeconds = Math.round(diffMs / 1000)
-
-    const absSeconds = Math.abs(diffSeconds)
-    const rtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
-      ? new Intl.RelativeTimeFormat(userLocale.value, { numeric: 'auto' })
-      : null
-
-    const format = (value, unit) => {
-      if (rtf) return rtf.format(value, unit)
-      // Very defensive fallback (should rarely happen on modern platforms)
-      return new Date(date).toLocaleString()
-    }
-
-    if (absSeconds < 60) return format(diffSeconds, 'second')
-    const diffMinutes = Math.round(diffSeconds / 60)
-    if (Math.abs(diffMinutes) < 60) return format(diffMinutes, 'minute')
-    const diffHours = Math.round(diffMinutes / 60)
-    if (Math.abs(diffHours) < 24) return format(diffHours, 'hour')
-    const diffDays = Math.round(diffHours / 24)
-    if (Math.abs(diffDays) < 7) return format(diffDays, 'day')
-    const diffWeeks = Math.round(diffDays / 7)
-    if (Math.abs(diffWeeks) < 4) return format(diffWeeks, 'week')
-    const diffMonths = Math.round(diffDays / 30)
-    if (Math.abs(diffMonths) < 12) return format(diffMonths, 'month')
-    const diffYears = Math.round(diffDays / 365)
-    return format(diffYears, 'year')
-  }
-
-  // Absolute timestamp formatted per user's locale.
-  try {
-    return new Intl.DateTimeFormat(userLocale.value, {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(dt)
-  } catch {
-    // Fallback: still show something useful.
-    return dt.toLocaleString()
-  }
-}
 
 const isNewTransaction = computed(() => {
   const timestamp = props.transaction?.tx_timestamp || props.transaction?.date_created
