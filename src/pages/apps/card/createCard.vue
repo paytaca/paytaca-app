@@ -453,7 +453,7 @@
     </q-dialog>
 
     <!-- Manage Auth NFT Pop-up -->
-     <q-dialog v-model="showManageAuthNFTdialog" persistent>
+     <q-dialog v-model="showManageAuthNFTdialog" @show="refreshMerchants" persistent>
         <q-card style="min-width: 300px" class="br-15 q-pa-sm">
             <q-card-section>
               <div class="text-h6">Manage Auth NFTs</div>

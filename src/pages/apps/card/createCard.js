@@ -9,6 +9,11 @@ import { getMerchantList } from 'src/services/card/merchants';
 
   export const createCardLogic = {
       
+    setup () {
+      const merchantList = getMerchantList()
+      return {merchantList}
+    },
+
     components: {
       MultiWalletDropdown,
     },
@@ -78,9 +83,12 @@ import { getMerchantList } from 'src/services/card/merchants';
     },
 
     computed: {
-      // merchant search in manage auth nfts
+      allMerchants () {
+        return this.merchantList.merchants
+      },
+
       filteredMerchants () {
-        if (!this.merchantSearch) return []
+        if (!this.merchantSearch) return this.allMerchants
 
         const search = this.merchantSearch.toLowerCase()
         return this.allMerchants.filter(merchant => {
@@ -118,6 +126,17 @@ import { getMerchantList } from 'src/services/card/merchants';
         console.log('Fetched Cards:', cards)
         return cards
       },
+
+      async refreshMerchants() {
+        try {
+          const data = await this.getMerchantList({ limit: 100, page: 1})
+          this.allMerchants = data.results || data
+        }
+        catch (error) {
+          console.error("Error fetching merchants: ", error)
+        }
+      },
+
 
       /**
        * 
@@ -711,8 +730,8 @@ import { getMerchantList } from 'src/services/card/merchants';
         }
       },
 
-
-
     }
+
+    
 
   }
