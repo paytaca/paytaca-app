@@ -238,7 +238,7 @@
 
           <div v-if="!isCashToken && enableSLP" class="q-px-lg q-mt-sm text-center">
             <div class="text-body2" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
-              SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.
+              {{ $t('SLPLimitedWarning') }}
             </div>
           </div>
 
