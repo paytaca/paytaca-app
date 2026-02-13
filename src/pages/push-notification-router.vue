@@ -50,7 +50,7 @@ async function hasValidMnemonic(walletHashOrIndex) {
   }
 }
 
-async function switchWallet(walletHashOrIndex) {
+async function switchWallet(walletHashOrIndex, destinationRoute = null) {
   if (!walletHashOrIndex) return
 
   // Check if we're already on the target wallet
@@ -79,7 +79,22 @@ async function switchWallet(walletHashOrIndex) {
 
   // global/switchWallet already supports both wallet hash and index
   await $store.dispatch('global/switchWallet', walletHashOrIndex)
-  $router.go(0)
+  
+  // If destination route is provided, navigate directly to it after wallet switch
+  // This prevents push-notification-router from remaining in navigation history
+  if (destinationRoute) {
+    // Wait a brief moment to ensure wallet state is fully synced
+    // The switchWallet action has internal delays, so we wait a bit more
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Use replace to avoid keeping push-notification-router in history
+    // This ensures back button goes to home page, not back to push-notification-router
+    await $router.replace(destinationRoute)
+    $store.dispatch('notification/emitOpenedNotification')
+  } else {
+    // Fallback: reload page if no destination route provided
+    $router.go(0)
+  }
 }
 
 async function handleOpenedNotification() {
@@ -111,8 +126,10 @@ async function handleOpenedNotification() {
 
     if (normalizedCurrentHash && normalizedNotificationHash !== normalizedCurrentHash) {
       loadingMsg.value = t('SwitchingWallet') + '...'
-      // this function is expected to reload the page
-      await switchWallet(normalizedNotificationHash)
+      // Pass destination route to switchWallet so it navigates directly after switch
+      // This prevents push-notification-router from remaining in navigation history
+      const destinationRoute = route || { path: '/' }
+      await switchWallet(normalizedNotificationHash, destinationRoute)
       return
     }
     // If wallet hashes match, continue with routing
@@ -122,8 +139,10 @@ async function handleOpenedNotification() {
 
     if (Number.isSafeInteger(notifWalletIndex) && notifWalletIndex !== currentWalletIndex.value) {
       loadingMsg.value = t('SwitchingWallet') + '...'
-      // this function is expected to reload the page
-      await switchWallet(notifWalletIndex)
+      // Pass destination route to switchWallet so it navigates directly after switch
+      // This prevents push-notification-router from remaining in navigation history
+      const destinationRoute = route || { path: '/' }
+      await switchWallet(notifWalletIndex, destinationRoute)
       return
     }
   }
