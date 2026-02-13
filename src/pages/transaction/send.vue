@@ -876,6 +876,40 @@ export default {
     navigateToCreateGift() {
       this.$router.push({ name: 'create-gift' })
     },
+    /**
+     * Build query and state for navigating to transaction-detail after a send.
+     * Pass state so TransactionDetail can show the tx immediately without waiting for watchtower.
+     * @param {string} txid - Transaction id
+     * @param {{ timestamp?: number, amount?: number }} [opts] - Optional timestamp and amount overrides
+     * @returns {{ query: object, state: { tx: object, fromWebsocket: true } }}
+     */
+    buildTransactionDetailState (txid, opts = {}) {
+      const timestamp = opts.timestamp ?? Date.now()
+      const amount = opts.amount ?? Math.abs(this.totalAmountSent || 0)
+      const asset = this.asset || sendPageUtils.getAsset(this.assetId, this.symbol)
+      const sendTx = {
+        txid,
+        record_type: 'outgoing',
+        amount,
+        asset,
+        tx_timestamp: timestamp,
+        date_created: timestamp,
+        _fromWebsocket: true
+      }
+      const query = {
+        from: 'send-page',
+        assetID: this.assetId || 'bch',
+        new: 'true'
+      }
+      const assetId = this.assetId || ''
+      if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
+        query.category = assetId.split('/')[1]
+      }
+      return {
+        query,
+        state: { tx: sendTx, fromWebsocket: true }
+      }
+    },
 
     // ========== utility methods ==========
     shortenAddress(address) {
@@ -1198,16 +1232,13 @@ export default {
       if (isConsolidation) {
         this.showSendSuccess()
       } else {
-        // Redirect to transaction detail page for regular transactions
-        const query = {
-          from: 'send-page',
-          assetID: this.assetId || 'bch'
-        }
-        
+        // Redirect to transaction detail with state so it can show tx before watchtower indexes
+        const { query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
         this.$router.push({
           name: 'transaction-detail',
           params: { txid },
-          query
+          query,
+          state
         })
       }
     },
@@ -1758,16 +1789,13 @@ export default {
             if (isConsolidation) {
               vm.showSendSuccess()
             } else {
-              // Redirect to transaction detail page for regular transactions
-              const query = {
-                from: 'send-page',
-                assetID: vm.assetId || 'bch'
-              }
-              
+              // Redirect to transaction detail with state so it can show tx before watchtower indexes
+              const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
               vm.$router.push({
                 name: 'transaction-detail',
                 params: { txid: txId },
-                query
+                query,
+                state
               })
             }
           } catch (e) {
@@ -1937,14 +1965,13 @@ export default {
         if (isConsolidation) {
           vm.showSendSuccess()
         } else {
-          const query = {
-            from: 'send-page',
-            assetID: vm.assetId || 'bch'
-          }
+          // Redirect to transaction detail with state so it can show tx before watchtower indexes
+          const { query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
           vm.$router.push({
             name: 'transaction-detail',
             params: { txid: result.txid },
-            query
+            query,
+            state
           })
         }
 
