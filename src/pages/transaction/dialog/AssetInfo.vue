@@ -45,8 +45,7 @@
         <!-- Swap Button for Tokens (below balance) -->
         <div v-if="asset.id?.startsWith?.('ct/')" class="swap-button-section q-mb-md">
           <q-btn 
-            @click="cauldronSwap" 
-            outline
+            @click="cauldronSwap"
             class="swap-btn"
             color="primary"
             no-caps
