@@ -116,7 +116,7 @@
             </div>
             <div class="detail-value tx-address">
               <a
-                :href="`https://bchexplorer.info/tx/${purchase.payment_tx_id}`"
+                :href="getExplorerLink(purchase.payment_tx_id)"
                 target="_blank"
                 class="tx-link"
               >
@@ -141,7 +141,7 @@
             </div>
             <div class="detail-value tx-address text-caption">
               <a
-                :href="`https://bchexplorer.info/address/${purchase.vesting_contract_address}`"
+                :href="getExplorerAddressLink(purchase.vesting_contract_address)"
                 target="_blank"
                 class="tx-link"
               >
@@ -158,7 +158,7 @@
             </div>
             <div class="detail-value tx-address">
               <a
-                :href="`https://bchexplorer.info/tx/${purchase.swap_tx_id}`"
+                :href="getExplorerLink(purchase.swap_tx_id)"
                 target="_blank"
                 class="tx-link"
               >
@@ -238,7 +238,7 @@
                     <div v-if="details.tx_id" class="vesting-tx">
                       <q-icon name="receipt_long" size="14px" class="q-mr-xs" />
                       <a
-                        :href="`https://bchexplorer.info/tx/${details.tx_id}`"
+                        :href="getExplorerLink(details.tx_id)"
                         target="_blank"
                         class="tx-link"
                       >
@@ -259,6 +259,7 @@
 
 <script>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import { getExplorerLink, getExplorerAddressLink } from "src/utils/send-page-utils";
 import {
   parseLiftToken,
   parseLocaleDate,
@@ -310,6 +311,8 @@ export default {
     parseLocaleDate,
     parseFiatCurrency,
     getAssetDenomination,
+    getExplorerLink,
+    getExplorerAddressLink,
 
     getThemeColor() {
       const themeColors = {

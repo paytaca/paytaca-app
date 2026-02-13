@@ -182,6 +182,16 @@ export default {
           }
         },
         {
+          id: 'eload-service',
+          name: this.$t('Eload Service'),
+          description: this.$t('Apps.Eload.Description', {}, 'Buy Telco loads, Cable Subscription and Gamepins'),
+          iconName: 'card_membership',
+          path: '/apps/eload',
+          iconStyle: 'width:45%; height: 45%;',
+          // Eload backend is mainnet-only; disable entry on chipnet to avoid wrong-network orders/payments.
+          active: !this.$store.getters['global/isChipnet']
+        },
+        {
           id: 'collectibles',
           name: this.$t('Collectibles'),
           description: this.$t('Apps.Collectibles.Description', {}, 'View and manage your Non-Fungible token collectibles.'),

@@ -11,16 +11,18 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-my-sm">
-      <SessionLocationWidget ref="sessionLocationWidget" />
-    </div>
+    <div class="pt-card pt-location-search-card br-15 q-mt-md q-mx-md q-pa-sm" :class="getDarkModeClass(darkMode)">
+      <div class="q-mx-sm q-my-sm">
+        <SessionLocationWidget ref="sessionLocationWidget" />
+      </div>  
 
-    <div
-      class="q-px-md q-pt-xs q-pb-md sticky-below-header"
-      :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
-    >
-      <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
-    </div>
+      <div
+        class="q-px-md q-pt-xs q-pb-md sticky-below-header"
+        :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
+      >
+        <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
+      </div>
+    </div>    
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm">
@@ -539,4 +541,22 @@ table.orders-table td {
   top: 110px;
 }
 
+/* Only animate the location/search wrapper card, not every storefront/skeleton card. */
+.pt-location-search-card {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInUp 0.4s ease-out;
+}
+
+/* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>

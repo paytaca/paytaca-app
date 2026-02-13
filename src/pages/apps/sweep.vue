@@ -232,6 +232,7 @@ import SweepPrivateKey, { extractWifFromUrl } from '../../wallet/sweep'
 import QrScanner from '../../components/qr-scanner.vue'
 import { getMnemonic, Wallet } from '../../wallet'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
+import { getExplorerAddressLink } from 'src/utils/send-page-utils'
 import { CashNonFungibleToken } from 'src/wallet/cashtokens'
 import { convertCashAddress, convertToTokenAmountWithDecimals } from 'src/wallet/chipnet'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
@@ -523,11 +524,7 @@ export default {
       }
     },
     getAddressExplorerLink(address) {
-      const isChipnet = this.$store.getters['global/isChipnet']
-      if (isChipnet) {
-        return `${process.env.TESTNET_EXPLORER_URL}/address/${address}`
-      }
-      return `https://explorer.paytaca.com/address/${address}`
+      return getExplorerAddressLink(address)
     },
     copyToClipboard (value) {
       this.$copyText(value)

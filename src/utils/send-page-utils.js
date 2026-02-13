@@ -146,10 +146,25 @@ export async function getChangeAddress (walletType) {
 }
 
 export function getExplorerLink (txid, isCashToken) {
-  let url = 'https://explorer.paytaca.com/tx/'
-  if (isCashToken) url = 'https://explorer.paytaca.com/tx/'
-  if (isChipnet()) url = 'https://chipnet.chaingraph.cash/tx/'
+  let url = 'https://bchexplorer.info/tx/'
+  if (isCashToken) url = 'https://bchexplorer.info/tx/'
+  if (isChipnet()) url = 'https://chipnet.bchexplorer.info/tx/'
   return `${url}${txid}`
+}
+
+export function getExplorerAddressLink (address) {
+  let url = 'https://bchexplorer.info/address/'
+  if (isChipnet()) url = 'https://chipnet.bchexplorer.info/address/'
+  return `${url}${address || ''}`
+}
+
+export function getExplorerBaseUrl () {
+  return isChipnet() ? 'https://chipnet.bchexplorer.info' : 'https://bchexplorer.info'
+}
+
+export function getExplorerLinkForNetwork (txid, isTestnet) {
+  const base = isTestnet ? 'https://chipnet.bchexplorer.info/tx/' : 'https://bchexplorer.info/tx/'
+  return `${base}${txid}`
 }
 
 export function convertToFiatAmount (amount, selectedAssetMarketPrice) {
