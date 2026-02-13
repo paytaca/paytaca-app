@@ -1,11 +1,11 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
     <header-nav
-      :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
-      :backnavpath="backNavPath"
-      class="header-nav"
-    ></header-nav>
-    <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
+        :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
+        :backnavpath="backNavPath"
+        class="header-nav"
+      ></header-nav>
+      <div v-if="!amountDialog" class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-icon
         id="context-menu"
         size="35px"
@@ -198,7 +198,8 @@ import { getMnemonic, Wallet, Address } from '../../wallet'
 import {
   getWalletByNetwork,
   getWatchtowerWebsocketUrl,
-  convertCashAddress
+  convertCashAddress,
+  getWatchtowerApiUrl
 } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
@@ -340,6 +341,7 @@ export default {
     getWallet (type) {
       return this.$store.getters['global/getWallet'](type)
     },
+
     async getMainchainTokens () {
       const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
       const mainchainTokens = []
@@ -850,6 +852,7 @@ export default {
                 _fromWebsocket: true
               }
               
+              // Watchtower is not yet indexed when the websocket notification arrives.
               const query = { new: 'true' }
               if (category) {
                 query.category = category
@@ -917,6 +920,7 @@ export default {
               _fromWebsocket: true
             }
             
+            // Watchtower is not yet indexed when the websocket notification arrives.
             // Extract category from token_id if it's a token transaction, otherwise it's BCH
             const query = { new: 'true' }
             if (data.token_id && data.token_id !== 'bch') {

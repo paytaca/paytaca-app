@@ -164,7 +164,7 @@ export default {
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
           iconStyle: 'width:45%; height: 45%;',
-          active: true // !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           id: 'marketplace',
@@ -172,7 +172,7 @@ export default {
           description: this.$t('Apps.Marketplace.Description', {}, 'Buy goods from merchants around your area and get your orders delivered to you.'),
           iconName: 'img:marketplace.png',
           path: '/apps/marketplace',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'width:45%; height: 45%;',
           onLongPress: (event) => {
             event?.preventDefault?.()
@@ -243,7 +243,7 @@ export default {
           description: this.$t('Apps.CryptoSwap.Description', {}, 'Swap your other cryptocurrencies (BTC, ETH, SOL, and others) into BCH.'),
           iconName: 'mdi-swap-horizontal-bold',
           path: '/apps/crypto-swap',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'font-size: 4.7em',
           smartBCHOnly: false
         },
@@ -263,7 +263,7 @@ export default {
           iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
           path: '/apps/stablehedge/wallet',
           iconStyle: 'width:55%; height: 55%;',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           beta: true,
           betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.')
         },

@@ -7,6 +7,7 @@
     <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
+        v-if="isSLP || !showSendSuccessPage"
         :title="$t('Send') + ' ' + (asset?.symbol || name || '')"
         :backnavpath="backNavigationPath"
         class="header-nav"
@@ -20,7 +21,15 @@
         {{ $t('SLPSendWarning') }}
       </q-banner>
       <template v-else>
-        <div v-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
+        <SendSuccessPage
+          v-if="showSendSuccessPage"
+          :txid="txid"
+          :amount-sent="formattedAmountSent"
+          :asset-symbol="asset?.symbol || symbol || 'BCH'"
+          :fiat-amount="formattedFiatAmountSent"
+          :is-cash-token="isCashToken"
+        />
+        <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
             :jpp="jpp"
             :wallet="wallet"
@@ -31,10 +40,10 @@
         <div
           v-else
           class="send-form-container text-bow"
-          :class="[sent ? 'q-mt-md sent' : 'q-mt-xs', getDarkModeClass(darkMode)]"
+          :class="['q-mt-xs', getDarkModeClass(darkMode)]"
         >
           <div class="q-pa-md enter-address-container">
-            <div v-if="isNFT && !sent" class="nft-container">
+            <div v-if="isNFT" class="nft-container">
               <q-img v-if="!image || forceUseDefaultNftImage" :src="defaultNftImage" width="150"/>
               <q-img v-else :src="image" width="150" @error="() => forceUseDefaultNftImage = true"/>
               <div
@@ -259,7 +268,7 @@
             </div>
           </div>
           <div
-            v-if="!sent && recipients[0].recipientAddress !== ''"
+            v-if="recipients[0].recipientAddress !== ''"
             class="q-px-lg"
             :style="isNFT ? 'margin-top: 25px' : ''"
           >
@@ -366,23 +375,6 @@
             class="absolute-bottom"
           />
 
-          <template v-if="sent">
-            <SendSuccessBlock
-              :isNFT="isNFT"
-              :name="name"
-              :isCashToken="isCashToken"
-              :totalAmountSent="totalAmountSent"
-              :asset="asset"
-              :denomination="denomination"
-              :totalFiatAmountSent="totalFiatAmountSent"
-              :currentSendPageCurrency="currentSendPageCurrency"
-              :convertToFiatAmount="convertToFiatAmount"
-              :txid="txid"
-              :txTimestamp="txTimestamp"
-              :jpp="jpp"
-              :recipients="recipients"
-            />
-          </template>
         </div>
       </template>
     </div>
@@ -448,11 +440,14 @@ import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import SendPageForm from 'src/components/send-page/SendPageForm.vue'
 import QRUploader from 'src/components/QRUploader'
-import SendSuccessBlock from 'src/components/send-page/SendSuccessBlock.vue'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
+import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
+const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
+// Maximum age for pending success state (24 hours in milliseconds)
+const SEND_SUCCESS_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 export default {
   name: 'Send-page',
@@ -466,11 +461,11 @@ export default {
     QrScanner,
     SendPageForm,
     QRUploader,
-    SendSuccessBlock,
     PointsReceivedDialog,
     LoadingWalletDialog,
     Pin,
-    BiometricWarningAttempt
+    BiometricWarningAttempt,
+    SendSuccessPage
   },
 
   props: {
@@ -593,7 +588,6 @@ export default {
       disableSending: false,
       jpp: null,
       bip21Expires: null,
-      sent: false,
       sending: false,
       txid: '',
       txTimestamp: Date.now(),
@@ -617,7 +611,8 @@ export default {
       priceId: null,
       priceIdPrice: null,
       selectedOtherWallet: null,
-      generatingOtherWalletAddress: false
+      generatingOtherWalletAddress: false,
+      showSendSuccessPage: false
     }
   },
 
@@ -631,13 +626,6 @@ export default {
     },
     backNavigationPath () {
       if (this.backPath) return this.backPath
-      if (this.sent && this.assetId) {
-        // After sending, navigate to transaction list for this asset
-        return {
-          name: 'transaction-list',
-          query: { assetID: this.assetId }
-        }
-      }
       return '/'
     },
     theme () {
@@ -649,7 +637,7 @@ export default {
     hideFooter () {
       if (this.customKeyboardState === 'show') return true
       if (this.showSlider) return true
-      if (this.sending || this.sent) return true
+      if (this.sending) return true
       if (this.isScrolledToBottom) return true
 
       return false
@@ -707,7 +695,7 @@ export default {
     showSlider () {
       if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
-        !this.sending && !this.sent && this.sliderStatus &&
+        !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
         this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0 &&
         // check if there are any amount that exceeded current balance
@@ -767,6 +755,26 @@ export default {
         })
         .filter(wallet => wallet !== null && wallet.walletHash !== null)
     },
+    formattedAmountSent () {
+      if (!this.totalAmountSent || this.totalAmountSent <= 0) return ''
+      const assetSymbol = this.asset?.symbol || this.symbol || 'BCH'
+      if (this.isNFT) return ''
+      
+      // Format amount based on denomination
+      if (this.assetId === 'bch') {
+        return getAssetDenomination(this.selectedDenomination, this.totalAmountSent)
+      }
+      
+      // For tokens, show the amount with symbol
+      return `${this.totalAmountSent} ${assetSymbol}`
+    },
+    formattedFiatAmountSent () {
+      if (!this.totalFiatAmountSent || this.totalFiatAmountSent <= 0) return null
+      if (this.isNFT) return null
+      
+      const currency = this.selectedMarketCurrency || 'USD'
+      return parseFiatCurrency(this.totalFiatAmountSent, currency)
+    },
     // Get asset from store reactively to ensure balance updates are reflected
     storeAsset () {
       return sendPageUtils.getAsset(this.assetId, this.symbol)
@@ -774,6 +782,10 @@ export default {
   },
 
   watch: {
+    /** Re-run restore when route query changes (e.g. send asset A -> send asset B) */
+    '$route' () {
+      this.restoreSendSuccessPending()
+    },
     selectedAssetMarketPrice () {
       if (!this.bip21Expires) {
         if (!this.selectedAssetMarketPrice) {
@@ -833,92 +845,106 @@ export default {
 
   methods: {
     // ========== send-success state persistence (for background/foreground) ==========
-    getSendSuccessSessionKey () {
-      // Keyed by wallet + asset, so switching wallets/assets doesn't leak state across pages
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      const network = this.network || 'BCH'
-      return `send_success:${walletIndex}:${network}:${this.assetId}`
-    },
-    persistSendSuccessState () {
+    /** Persist success state so it survives background / app lock / process recreation */
+    saveSendSuccessPending () {
       try {
-        if (!this.sent || !this.txid) return
-        if (typeof window === 'undefined' || !window.sessionStorage) return
-
+        const walletHash = sendPageUtils.getWallet('bch')?.walletHash || null
         const payload = {
-          v: 1,
-          savedAt: Date.now(),
-          walletIndex: this.$store.getters['global/getWalletIndex'],
-          network: this.network || 'BCH',
-          assetId: this.assetId,
-          // Minimal fields needed to re-render the success UI accurately
-          txid: this.txid,
-          txTimestamp: this.txTimestamp,
-          totalAmountSent: this.totalAmountSent,
-          totalFiatAmountSent: this.totalFiatAmountSent,
-          // Preserve breakdown list
-          recipients: this.recipients,
-          // Preserve asset display data as best-effort (store may not be ready yet on resume)
-          asset: this.asset
+          assetId: this.assetId || '',
+          symbol: this.asset?.symbol || this.symbol || 'BCH',
+          txid: this.txid || '',
+          txTimestamp: this.txTimestamp || 0,
+          totalAmountSent: this.totalAmountSent || 0,
+          totalFiatAmountSent: this.totalFiatAmountSent || 0,
+          walletHash: walletHash || '',
+          isChipnet: this.isChipnet || false,
+          savedAt: Date.now() // Timestamp when this entry was saved
         }
-        sessionStorage.setItem(this.getSendSuccessSessionKey(), JSON.stringify(payload))
-      } catch (_) {
-        // Best-effort only
+        if (payload.txid) {
+          sessionStorage.setItem(SEND_SUCCESS_PENDING_KEY, JSON.stringify(payload))
+        }
+      } catch (e) {
+        console.warn('[Send] saveSendSuccessPending failed:', e)
       }
     },
-    restoreSendSuccessState () {
+    /** Clear persisted success state (e.g. when leaving send page) */
+    clearSendSuccessPending () {
       try {
-        if (typeof window === 'undefined' || !window.sessionStorage) return false
-        const raw = sessionStorage.getItem(this.getSendSuccessSessionKey())
-        if (!raw) return false
-
-        let parsed = null
-        try { parsed = JSON.parse(raw) } catch { return false }
-        if (!parsed || parsed.v !== 1) return false
-
-        // Safety: avoid restoring stale success state indefinitely
-        const maxAgeMs = 60 * 60 * 1000 // 1 hour
-        if (typeof parsed.savedAt === 'number' && (Date.now() - parsed.savedAt) > maxAgeMs) {
-          sessionStorage.removeItem(this.getSendSuccessSessionKey())
-          return false
-        }
-
-        // Ensure it matches the current context
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        if (parsed.walletIndex !== walletIndex) return false
-        if (parsed.assetId !== this.assetId) return false
-        if ((parsed.network || 'BCH') !== (this.network || 'BCH')) return false
-
-        // Restore state needed for the success screen
-        this.sent = true
-        this.sending = false
-        this.sliderStatus = false
-        this.customKeyboardState = 'dismiss'
-        this.focusedInputField = ''
-
-        this.txid = parsed.txid || this.txid
-        this.txTimestamp = parsed.txTimestamp || this.txTimestamp
-        this.totalAmountSent = Number(parsed.totalAmountSent) || this.totalAmountSent
-        this.totalFiatAmountSent = parsed.totalFiatAmountSent ?? this.totalFiatAmountSent
-
-        if (Array.isArray(parsed.recipients) && parsed.recipients.length) {
-          this.recipients = parsed.recipients
-        }
-        if (parsed.asset && typeof parsed.asset === 'object') {
-          // Keep reactive store updates working; this is just to prevent blank UI on resume
-          this.asset = { ...this.asset, ...parsed.asset }
-        }
-
-        return true
-      } catch (_) {
-        return false
+        sessionStorage.removeItem(SEND_SUCCESS_PENDING_KEY)
+      } catch (e) {
+        console.warn('[Send] clearSendSuccessPending failed:', e)
       }
     },
-    clearSendSuccessState () {
+    /** Restore success screen if we have a pending success for the current asset, wallet, and network */
+    restoreSendSuccessPending () {
       try {
-        if (typeof window === 'undefined' || !window.sessionStorage) return
-        sessionStorage.removeItem(this.getSendSuccessSessionKey())
-      } catch (_) {
-        // ignore
+        const raw = sessionStorage.getItem(SEND_SUCCESS_PENDING_KEY)
+        if (!raw) return
+        const pending = JSON.parse(raw)
+        if (!pending || !pending.txid || !pending.assetId) return
+        
+        // Check age of stored entry - reject if too old
+        const savedAt = pending.savedAt || 0
+        const ageMs = Date.now() - savedAt
+        if (ageMs > SEND_SUCCESS_PENDING_MAX_AGE_MS || ageMs < 0) {
+          // Entry is too old (or invalid timestamp) - clear it
+          sessionStorage.removeItem(SEND_SUCCESS_PENDING_KEY)
+          if (this.showSendSuccessPage) {
+            this.showSendSuccessPage = false
+            this.txid = ''
+            this.txTimestamp = Date.now()
+            this.totalAmountSent = 0
+            this.totalFiatAmountSent = 0
+          }
+          return
+        }
+        
+        const currentWalletHash = sendPageUtils.getWallet('bch')?.walletHash || null
+        const currentIsChipnet = this.isChipnet || false
+        const currentAssetId = this.assetId || ''
+        
+        // Reject old data that doesn't have wallet/network scoping (for security)
+        // Old data without these fields could belong to a different wallet/network
+        if (pending.walletHash === undefined || pending.isChipnet === undefined) {
+          // Old format data - clear it to prevent cross-wallet/network issues
+          if (this.showSendSuccessPage) {
+            this.showSendSuccessPage = false
+            this.txid = ''
+            this.txTimestamp = Date.now()
+            this.totalAmountSent = 0
+            this.totalFiatAmountSent = 0
+          }
+          // Optionally clear the old data from storage
+          sessionStorage.removeItem(SEND_SUCCESS_PENDING_KEY)
+          return
+        }
+        
+        // Validate assetId, walletHash, and network match
+        const assetMatches = pending.assetId === currentAssetId
+        const walletMatches = String(pending.walletHash || '') === String(currentWalletHash || '')
+        const networkMatches = Boolean(pending.isChipnet) === Boolean(currentIsChipnet)
+        
+        // If any validation fails, clear the success state if currently showing
+        if (!assetMatches || !walletMatches || !networkMatches) {
+          // Different asset/wallet/network: if we're currently showing success, reset so we don't show wrong context
+          if (this.showSendSuccessPage) {
+            this.showSendSuccessPage = false
+            this.txid = ''
+            this.txTimestamp = Date.now()
+            this.totalAmountSent = 0
+            this.totalFiatAmountSent = 0
+          }
+          return
+        }
+        
+        // All validations passed - restore the success state
+        this.txid = pending.txid
+        this.txTimestamp = pending.txTimestamp || Date.now()
+        this.totalAmountSent = pending.totalAmountSent || 0
+        this.totalFiatAmountSent = pending.totalFiatAmountSent || 0
+        this.showSendSuccessPage = true
+      } catch (e) {
+        console.warn('[Send] restoreSendSuccessPending failed:', e)
       }
     },
 
@@ -959,6 +985,40 @@ export default {
     // ========== navigation methods ==========
     navigateToCreateGift() {
       this.$router.push({ name: 'create-gift' })
+    },
+    /**
+     * Build query and state for navigating to transaction-detail after a send.
+     * Pass state so TransactionDetail can show the tx immediately without waiting for watchtower.
+     * @param {string} txid - Transaction id
+     * @param {{ timestamp?: number, amount?: number }} [opts] - Optional timestamp and amount overrides
+     * @returns {{ query: object, state: { tx: object, fromWebsocket: true } }}
+     */
+    buildTransactionDetailState (txid, opts = {}) {
+      const timestamp = opts.timestamp ?? Date.now()
+      const amount = opts.amount ?? Math.abs(this.totalAmountSent || 0)
+      const asset = this.asset || sendPageUtils.getAsset(this.assetId, this.symbol)
+      const sendTx = {
+        txid,
+        record_type: 'outgoing',
+        amount,
+        asset,
+        tx_timestamp: timestamp,
+        date_created: timestamp,
+        _fromWebsocket: true
+      }
+      const query = {
+        from: 'send-page',
+        assetID: this.assetId || 'bch',
+        new: 'true'
+      }
+      const assetId = this.assetId || ''
+      if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
+        query.category = assetId.split('/')[1]
+      }
+      return {
+        query,
+        state: { tx: sendTx, fromWebsocket: true }
+      }
     },
 
     // ========== utility methods ==========
@@ -1223,20 +1283,74 @@ export default {
     },
 
     // jpp
-    onJppPaymentSucess () {
+    async onJppPaymentSucess () {
       this.$forceUpdate()
-      this.txid = this.jpp?.txids?.[0]
-      const jppAmount = this.jpp.total / 10 ** 8
-      this.totalAmountSent = jppAmount
-      this.totalFiatAmountSent = Number(this.convertToFiatAmount(this.totalAmountSent))
-      this.recipients[0].amount = jppAmount
-      this.recipients[0].recipientAddress = this.jpp.parsed.outputs
-        .slice(0, 10).map(output => output.address).join(', ')
-      this.recipients[0].paymentAckMemo = this.jpp.paymentAckMemo || ''
+      const txid = this.jpp?.txids?.[0]
+      if (!txid) return
+      
+      this.txid = txid
       this.txTimestamp = Date.now()
-      this.sending = false
-      this.sent = true
-      this.persistSendSuccessState()
+
+      // Set amount and recipient data from JPP so showSendSuccess displays correctly
+      const totalSats = this.jpp?.totalSendAmountSats ?? this.jpp?.total ?? 0
+      if (totalSats > 0) {
+        const bchAmount = totalSats / 10 ** 8
+        this.totalAmountSent = bchAmount
+        this.totalFiatAmountSent = Number(this.convertToFiatAmount(bchAmount))
+      }
+      if (this.jpp?.parsed?.outputs?.length) {
+        const walletAddress = sendPageUtils.getWallet('bch')?.lastAddress
+        this.recipients = this.jpp.parsed.outputs.map((output) => {
+          const amountBch = (output.amount || 0) / 10 ** 8
+          return {
+            amount: amountBch,
+            fiatAmount: this.convertToFiatAmount(amountBch),
+            fixedAmount: true,
+            recipientAddress: output.address ?? '',
+            paymentAckMemo: ''
+          }
+        })
+        this.inputExtras = this.jpp.parsed.outputs.map((output) => {
+          const [, , isWalletAddress] = sendPageUtils.addressPrechecks(
+            output.address ?? '',
+            [],
+            walletAddress
+          )
+          const amountBch = (output.amount || 0) / 10 ** 8
+          return {
+            amountFormatted: formatWithLocale(amountBch, this.decimalObj(false)),
+            fiatFormatted: formatWithLocale(
+              this.convertToFiatAmount(amountBch),
+              this.decimalObj(true)
+            ),
+            balanceExceeded: false,
+            setMax: false,
+            emptyRecipient: false,
+            selectedDenomination: this.denomination,
+            isBip21: false,
+            isLegacyAddress: false,
+            isWalletAddress,
+            cashbackData: null,
+            incorrectAddress: false
+          }
+        })
+      }
+      
+      // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
+      const isConsolidation = await this.checkConsolidationViaAddressInfo()
+
+      if (isConsolidation) {
+        this.showSendSuccess()
+      } else {
+        // Redirect to transaction detail with state so it can show tx before watchtower indexes
+        const { query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
+        this.$router.push({
+          name: 'transaction-detail',
+          params: { txid },
+          query,
+          state
+        })
+      }
     },
 
     // bip21
@@ -1777,9 +1891,23 @@ export default {
               })
             ])
             vm.txid = txId
-            vm.sent = true
             vm.txTimestamp = Date.now()
-            vm.persistSendSuccessState()
+            
+            // Show send success only for consolidation; otherwise go to transaction detail.
+            const isConsolidation = await vm.checkConsolidationViaAddressInfo()
+
+            if (isConsolidation) {
+              vm.showSendSuccess()
+            } else {
+              // Redirect to transaction detail with state so it can show tx before watchtower indexes
+              const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
+              vm.$router.push({
+                name: 'transaction-detail',
+                params: { txid: txId },
+                query,
+                state
+              })
+            }
           } catch (e) {
             raiseNotifyError(e.message)
           }
@@ -1915,6 +2043,34 @@ export default {
         raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
       }
     },
+    /**
+     * Check if the send is consolidation (exactly one recipient that belongs to this wallet)
+     * via Watchtower address-info API. Used for routing to SendSuccessPage vs transaction-detail.
+     * @returns {Promise<boolean>}
+     */
+    async checkConsolidationViaAddressInfo () {
+      if (!this.recipients?.length || this.recipients.length !== 1) return false
+      const raw = this.recipients[0].recipientAddress ?? ''
+      const recipientAddress = raw.indexOf('?') > -1 ? raw.split('?')[0] : raw
+      if (!recipientAddress) return false
+      const walletHash = sendPageUtils.getWallet('bch')?.walletHash
+      if (!walletHash) return false
+      return sendPageUtils.addressBelongsToWallet(
+        recipientAddress,
+        walletHash,
+        this.$store.getters['global/isChipnet']
+      )
+    },
+
+    /**
+     * Show send success page for consolidation transactions.
+     * Persists state so it survives background / app lock / process recreation.
+     */
+    showSendSuccess () {
+      this.showSendSuccessPage = true
+      this.saveSendSuccessPending()
+    },
+
     async submitPromiseResponseHandler (result, walletType) {
       const vm = this
 
@@ -1922,29 +2078,43 @@ export default {
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
         vm.sending = false
-        vm.sent = true
-        vm.persistSendSuccessState()
 
+        // Show send success immediately (don't wait for points API)
+        const isConsolidation = await vm.checkConsolidationViaAddressInfo()
+        if (isConsolidation) {
+          vm.showSendSuccess()
+        } else {
+          // Redirect to transaction detail with state so it can show tx before watchtower indexes
+          const { query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+          vm.$router.push({
+            name: 'transaction-detail',
+            params: { txid: result.txid },
+            query,
+            state
+          })
+        }
+
+        // Handle points in background (non-blocking) – do not delay success feedback
         if (!vm.assetId?.startsWith?.('ct/')) {
-          // api call for processing first transaction 5 PHP worth of BCH
-          const cashinResp = await processCashinPoints({
-            bch_address: sendPageUtils.getWallet('bch')?.lastAddress
-          })
-          // api call for processing one-time user points
-          const onetimePointsResp = await processOnetimePoints({
-            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            ref_id: result.txid.substring(0, 6)
-          })
-  
-          if (cashinResp || onetimePointsResp) {
-            vm.$q.dialog({
-              component: PointsReceivedDialog,
-              componentProps: {
-                hasReceivedCashinPoints: cashinResp,
-                hasReceivedOneTimePoints: onetimePointsResp
-              }
+          Promise.all([
+            processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
+            processOnetimePoints({
+              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+              ref_id: result.txid.substring(0, 6)
             })
-          }
+          ]).then(([cashinResp, onetimePointsResp]) => {
+            if (cashinResp || onetimePointsResp) {
+              vm.$q.dialog({
+                component: PointsReceivedDialog,
+                componentProps: {
+                  hasReceivedCashinPoints: cashinResp,
+                  hasReceivedOneTimePoints: onetimePointsResp
+                }
+              })
+            }
+          }).catch(err => {
+            console.warn('[Send] Points API failed:', err)
+          })
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
@@ -2379,6 +2549,9 @@ export default {
       }
     }
 
+    // Restore send-success screen after background / app lock / process recreation
+    vm.restoreSendSuccessPending()
+
     if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
     else {
       if (vm.assetId.indexOf('ct/') > -1) vm.isCashToken = true
@@ -2414,20 +2587,11 @@ export default {
       vm.adjustWalletBalance()
     })
 
-    // When returning from background (or lock screen), restore success screen state
-    // before any logic that might mutate recipients.
-    // This ensures the "Successfully sent" screen remains visible after resume.
-    const restored = vm.restoreSendSuccessState()
-
-    if (!vm.sent) {
-      if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
-    }
+    if (vm.paymentUrl) vm.onScannerDecode(vm.paymentUrl)
 
     // check query if address is not empty (from qr reader redirection)
-    if (!vm.sent) {
-      if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
-        vm.onScannerDecode(vm.$route.query.address)
-      }
+    if (typeof vm.$route.query.address === 'string' && vm.$route.query.address) {
+      vm.onScannerDecode(vm.$route.query.address)
     }
 
     if (this.inputExtras.length === 1) {
@@ -2444,10 +2608,10 @@ export default {
   },
 
   beforeRouteLeave (to, from, next) {
-    // If app lock is enabled, the app deliberately routes to `/lock` on background.
-    // Do NOT clear the send-success state in that case, otherwise resuming will lose the success screen.
+    // Preserve pending success state when navigating to lock screen
+    // so it can be restored after unlock. Clear it for all other routes.
     if (to?.path !== '/lock') {
-      this.clearSendSuccessState()
+      this.clearSendSuccessPending()
     }
     next()
   },
@@ -2463,12 +2627,6 @@ export default {
 
   created () {
     const vm = this
-
-    // Restore success state as early as possible to avoid UI flicker on resume.
-    // If restored, skip normal form initialization.
-    if (vm.restoreSendSuccessState()) {
-      return
-    }
 
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.recipients[0].amount = vm.amount
@@ -2507,9 +2665,6 @@ export default {
   .send-form-container {
     max-height: calc(100vh - 60px);
     overflow-y: auto;
-    &.sent {
-      max-height: calc(100vh - 60px);
-    }
     .enter-address-container {
       .nft-container {
         width: 150px;
@@ -2696,38 +2851,6 @@ export default {
       }
     }
   }
-  .sent-success-container {
-    margin-top: -70px;
-    .amount-label {
-      font-size: 25px;
-      margin-top: -10px;
-    }
-    .amount-fiat-label {
-      font-size: 25px;
-      margin-top: -15px;
-    }
-    .to-label {
-      font-size: 22px;
-      margin: -10px 0 5px 0
-    }
-    .recipient-address {
-      overflow-wrap: break-word;
-      font-size: 16px;
-    }
-    .tx-id {
-      overflow-wrap: break-word;
-      font-size: 16px;
-      margin-top: 20px;
-    }
-    .view-explorer-button {
-      text-decoration: none;
-    }
-    .memo-container {
-      min-width: 50vw;
-      border: 1px solid grey;
-      background-color: inherit;
-    }
-  }
   .highlighted-word {
     font-weight: bold;
     color: orange;
@@ -2742,11 +2865,6 @@ export default {
     
     /* Add padding at bottom to prevent content from being hidden under the slider */
     padding-bottom: 120px !important;
-
-    /* Reduce padding when transaction is sent (no DragSlide) */
-    &.sent {
-      padding-bottom: 24px !important;
-    }
   }
 
   /* iOS-specific fixes for DragSlide positioning */

@@ -10,7 +10,7 @@
     </div>
 
     <div class="row q-px-lg q-pt-md q-pb-sm" :class="darkMode ? 'text-light' : 'text-dark'">
-      <div class="col br-15 pt-card" :class="getDarkModeClass(darkMode)"
+      <div class="col pt-card transaction-filters-container" :class="getDarkModeClass(darkMode)"
       :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`" >
         <button
           v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
@@ -591,9 +591,18 @@ export default {
   padding-right: 2px;
 }
 
+.transaction-filters-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px;
+  gap: 6px;
+  border-radius: 20px;
+}
+
 .btn-custom {
   height: 40px;
-  width: 32%;
+  flex: 1 1 0;
   border-radius: 20px;
   border: none;
   background-color: transparent;
@@ -602,7 +611,7 @@ export default {
   transition: 0.2s;
   font-weight: 500;
   white-space: nowrap;
-  font-size: clamp(13px, 2.5vw, 16px);
+  font-size: clamp(12px, 2.5vw, 16px);
   overflow: hidden;
 }
 
@@ -610,12 +619,13 @@ export default {
   margin-left: 0px;
 }
 
-.active-transaction-btn {
+.latest-transactions-section .btn-custom.active-transaction-btn {
   background-color: white !important;
+  color: rgba(0, 0, 0, 0.87) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.active-transaction-btn.border {
+.latest-transactions-section .active-transaction-btn.border {
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 </style>
