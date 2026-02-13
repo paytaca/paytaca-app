@@ -1627,6 +1627,7 @@ const phrases = {
       'Apps.P2PExchange.Description': 'Buy and sell BCH peer-to-peer with anyone, secured by smart contract escrow.',
       'Apps.Marketplace.Description': 'Buy goods from merchants around your area and get your orders delivered to you.',
       'Apps.Collectibles.Description': 'View and manage your Non-Fungible token collectibles.',
+      'Apps.AddressBook.Description': 'Create and manage contacts and addresses.',
       'Apps.Gifts.Description': 'Create and redeem BCH gifts.',
       'Apps.LiftToken.Description': 'View your LIFT token activity and manage related actions.',
       'Apps.MultisigWallets.Description': 'Create and manage multi-signature wallets for extra security.',
@@ -2071,7 +2072,49 @@ const phrases = {
       PaymentTransactionId: 'Payment Transaction ID',
       FailedToGetContractData: 'Failed to get contract data. Please try again later.',
       FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',
-    }
+    },
+    // ===== Address Book =====
+    {
+      AddNewContact: 'Add New Contact',
+      EmptyAddressBook: 'Empty address book',
+      RemoveFromFavorites: 'Remove from favorites',
+      EmptyAddressBookInstruction: 'Add a new contact to get started.',
+      UnableToLoadContact: 'Unable to load this contact properly. Please try again later.',
+      SendToThisAddress: 'Send to this address',
+      ViewQrCode: 'View QR Code',
+      NoAddressesAddedYet: 'No addresses added yet',
+      FailedToCopyAddress: 'Failed to copy address.',
+      AddedToFavorites: 'Added to favorites',
+      AddedToFavoritesError: 'Failed to add to favorites. Please try again later.',
+      RemovedFromFavorites: 'Removed from favorites',
+      RemovedFromFavoritesError: 'Failed to remove from favorites. Please try again later.',
+      EditContactName: 'Edit Contact Name',
+      UpdateNameSuccess: 'Name updated successfully.',
+      UpdateNameError: 'Failed to update name. Please try again later.',
+      DeleteContactDescription: 'Are you sure you want to delete this contact? This action cannot be undone.',
+      DeleteContactSuccess: 'Contact deleted successfully.',
+      DeleteContactError: 'Failed to delete this contact. Please try again later.',
+      UpdateAddressesSuccess: 'Addresses updated successfully.',
+      UpdateAddressesError: 'Failed to update addresses. Please try again later.',
+      UpdateAddressesWarning: 'Some addresses were not updated successfully. Please check them manually and try again.',
+      RemoveAddressDescription: 'Are you sure you want to remove this address from the contact?',
+      RemoveAddressSuccess: 'Address removed successfully.',
+      RemoveAddressError: 'Failed to remove address. Please try again later.',
+      EncryptNameError: 'Failed to encrypt contact name. Please try again later.',
+      ServerError: 'The server encountered an error. Please try again later.',
+      EmptyAddressesError: 'Please fill in all address fields.',
+      InvalidAddressesError: 'One or more addresses are invalid.',
+      EnterContactName: 'Enter contact name',
+      NameIsRequired: 'Name is required',
+      UploadQrImage: 'Upload QR image',
+      IncorrectAddressFormat: 'Incorrect address format',
+      FilePickerError: 'Unable to open file picker',
+      NoQrDetected: 'No QR code detected. Please try again.',
+      AddressAlreadyAdded: 'Address already added',
+      CreateNewContact: 'Create new contact',
+      CreateContactSuccess: 'New contact created successfully.',
+      CreateContactError: 'Failed to add new contact. Try again later.',
+    },
   ],
   dynamic: [
     {
@@ -2205,6 +2248,12 @@ const phrases = {
       BoughtAmount: 'Bought {amount} {symbol}',
       MerchantLower: 'merchant',
       MerchantsLower: 'merchants',
+    },
+    // ===== Address Book =====
+    {
+      CreatedDate: 'Created {date}',
+      UpdatedDate: 'Updated {date}',
+      RemoveAddressIndex: 'Remove address {index}'
     }
   ]
 }
