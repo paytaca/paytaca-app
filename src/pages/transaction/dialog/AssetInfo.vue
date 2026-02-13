@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless class="no-click-outside">
     <q-card
       class="q-dialog-plugin br-15 pt-card text-bow"
       style="padding: 5px 0;"
@@ -45,8 +45,7 @@
         <!-- Swap Button for Tokens (below balance) -->
         <div v-if="asset.id?.startsWith?.('ct/')" class="swap-button-section q-mb-md">
           <q-btn 
-            @click="cauldronSwap" 
-            outline
+            @click="cauldronSwap"
             class="swap-btn"
             color="primary"
             no-caps
@@ -752,9 +751,10 @@ export default {
     }
     
     .action-label {
-      font-size: 12px;
       font-weight: 600;
       line-height: 1.2;
+      padding-left: 5px;
+      font-size: clamp(13px, 2.5vw, 16px);
     }
     
     &:hover {
@@ -786,14 +786,6 @@ export default {
       min-height: 52px;
       padding: 8px 10px;
       gap: 3px;
-      
-      .action-icon {
-        font-size: 16px;
-      }
-      
-      .action-label {
-        font-size: 11px;
-      }
     }
   }
   

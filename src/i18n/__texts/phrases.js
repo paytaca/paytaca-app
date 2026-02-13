@@ -355,6 +355,7 @@ const phrases = {
       ViewIgnoredTokens: "View ignored tokens",
       ViewInExplorer: "View in explorer",
       ViewTokens: "View Tokens",
+      ViewTransactions: "View Transactions",
       ViewTransactionInExplorer: "View transaction in explorer",
       WaitingSmartBchTransaction: "Waiting for transaction in Smart BCH",
       WaitingBchTransaction: "Waiting for transaction in Bitcoin Cash",
@@ -1136,6 +1137,10 @@ const phrases = {
       CreatingTransaction: 'Creating transaction',
       WaitingForTransactionToComplete: 'Waiting for transaction to complete',
       TransactionSentButTookLongerToComplete: 'Transaction sent but took longer to complete',
+      TransactionSentSuccessfully: 'Transaction Sent Successfully!',
+      TransactionReceived: 'Transaction Received',
+      TransactionReceivedSuccessfully: 'Transaction Received Successfully!',
+      ConsolidationTransactionNote: 'This transaction consolidates funds within your wallet.',
     }, 
     {
       Volume24hr: 'Volume (24 hr)',
@@ -2071,6 +2076,8 @@ const phrases = {
       PaymentTransactionId: 'Payment Transaction ID',
       FailedToGetContractData: 'Failed to get contract data. Please try again later.',
       FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',
+      SLPLimitedWarning: 'SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.',
+      TokensInstruction: 'Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens.'
     }
   ],
   dynamic: [

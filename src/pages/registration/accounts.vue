@@ -1293,6 +1293,9 @@ export default {
           // Initialize vault entry so settings can be saved during step 3
           // This must be done before navigation to ensure vault entry exists
           this.initializeVaultEntryForRestore()
+          // Mark wallet as backed up since it was imported from seed phrase or shards
+          // The user already has the seed phrase, so no backup reminder is needed
+          this.$store.commit('global/setLastBackupTimestamp', Date.now())
           // Navigate to settings step (step-3)
           await this.$router.push('/accounts/restore/step-3')
           // Hide loading animation after navigation

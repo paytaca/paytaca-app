@@ -172,7 +172,7 @@
                 @click="toggleManageAssets"
               />
             </div>
-            <div class="row items-center q-gutter-sm">
+            <div class="row items-center">
               <AssetFilter 
                 v-if="hasAssetFilter" 
                 @filterTokens="isCT => isCashToken = isCT" 
@@ -237,8 +237,8 @@
           </template>
 
           <div v-if="!isCashToken && enableSLP" class="q-px-lg q-mt-sm text-center">
-            <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-              SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.
+            <div class="text-body2" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+              {{ $t('SLPLimitedWarning') }}
             </div>
           </div>
 

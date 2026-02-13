@@ -60,7 +60,7 @@
     <div id="qr-button" @click="$router.push({ name: 'qr-reader' })">
       <button class="footer-icon-btn" :class="getDarkModeClass()">
         <router-link :to="{ name: 'qr-reader' }">
-          <q-icon class="default-text-color mb-2" size="30px">
+          <q-icon class="default-text-color" size="30px">
             <svg>
               <use xlink:href="app-qr.svg#icon"></use>
             </svg>
@@ -246,6 +246,26 @@ export default {
       height: 60px;
       min-width: 60px;
       border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      
+      a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+      
+      :deep(.q-icon) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        margin: 0;
+      }
     }
     button {
       z-index: 100 !important;
@@ -253,6 +273,10 @@ export default {
       border: 2px solid lightgray;
       width: 60px;
       height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
     }
     br {
       display: none;
