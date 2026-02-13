@@ -114,10 +114,6 @@ import {
   decodeHdPublicKey,
   decodeHdPrivateKey,
   deriveHdPathRelative,
-  deriveHdPrivateNodeFromBip39Mnemonic,
-  deriveHdPath,
-  deriveHdPublicKey,
-  encodeHdPrivateKey,
   utf8ToBin,
   base64ToBin,
   binToUtf8,
@@ -148,6 +144,7 @@ import { retryWithBackoff } from './utils.js'
 import { encryptECIESMessage } from './ecies.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCoordinationServerCredentialsFromMnemonic } from './coordination.js'
+import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
@@ -197,22 +194,6 @@ export const getMultisigCashAddress = ({
   })
   return address
 }
-
-export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
-  const node = deriveHdPath(
-    deriveHdPrivateNodeFromBip39Mnemonic(
-      mnemonic
-    ),
-    hdPath || "m/44'/145'/0'"
-  )
-  const { hdPrivateKey } = encodeHdPrivateKey({ network: network || 'mainnet', node })
-  const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey)
-  return {
-    hdPrivateKey,
-    hdPublicKey
-  }
-}
-
 
 export const generateFilename = multisigWallet => {
   if (multisigWallet.name) {
@@ -1256,14 +1237,19 @@ export class MultisigWallet {
       hdPath: coordinator.path 
     })
 
-    const coordinatorKeyRecord = new BsmsKeyRecord()
-    coordinatorKeyRecord.sign(hdPrivateKey.privateKey)
-
-    wallet.signers.forEach(s => {
-      // while cleaning up, might as well attach coordinator's key record for each cosigner
-      s.coordinatorKeyRecord = coordinatorKeyRecord.toEciesEncryptedString(hexToBin(s.publicKey))
-      delete s.mnemonic
+    const decodedHdPrivateKey = decodeHdPrivateKey(hdPrivateKey)
+    const coordinatorKeyRecord = new BsmsKeyRecord({
+      masterFingerprint: coordinator.masterFingerprint,
+      derivationPath: coordinator.path,
+      key: coordinator.publicKey 
     })
+    coordinatorKeyRecord.sign(decodedHdPrivateKey.node.privateKey)
+
+    for (const s of wallet.signers) {
+      delete s.mnemonic 
+      s.coordinatorKeyRecord = await coordinatorKeyRecord.toEciesEncryptedString(hexToBin(s.publicKey))
+    }
+
     const uploadedWallet = await this.options?.coordinationServer?.uploadWallet({ 
       wallet, authCredentialsGenerator: this 
     })
