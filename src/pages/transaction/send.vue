@@ -2556,7 +2556,11 @@ export default {
   },
 
   beforeRouteLeave (to, from, next) {
-    this.clearSendSuccessPending()
+    // Preserve pending success state when navigating to lock screen
+    // so it can be restored after unlock. Clear it for all other routes.
+    if (to?.path !== '/lock') {
+      this.clearSendSuccessPending()
+    }
     next()
   },
 
