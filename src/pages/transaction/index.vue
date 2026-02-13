@@ -172,7 +172,7 @@
                 @click="toggleManageAssets"
               />
             </div>
-            <div class="row items-center q-gutter-sm">
+            <div class="row items-center">
               <AssetFilter 
                 v-if="hasAssetFilter" 
                 @filterTokens="isCT => isCashToken = isCT" 
