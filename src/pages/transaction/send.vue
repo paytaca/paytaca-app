@@ -1958,47 +1958,44 @@ export default {
         vm.txid = result.txid
         vm.txTimestamp = Date.now()
         vm.sending = false
-        
-        // Handle points (non-blocking)
-        if (!vm.assetId?.startsWith?.('ct/')) {
-          // api call for processing first transaction 5 PHP worth of BCH
-          const cashinResp = await processCashinPoints({
-            bch_address: sendPageUtils.getWallet('bch')?.lastAddress
-          })
-          // api call for processing one-time user points
-          const onetimePointsResp = await processOnetimePoints({
-            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            ref_id: result.txid.substring(0, 6)
-          })
-  
-          if (cashinResp || onetimePointsResp) {
-            vm.$q.dialog({
-              component: PointsReceivedDialog,
-              componentProps: {
-                hasReceivedCashinPoints: cashinResp,
-                hasReceivedOneTimePoints: onetimePointsResp
-              }
-            })
-          }
-        }
 
-        // Show send success only for consolidation; otherwise go to transaction detail.
+        // Show send success immediately (don't wait for points API)
         // Do not use checkTransactionExistsInHistory: watchtower is not yet indexed right after broadcast.
         const isConsolidation = vm.isConsolidationTransaction()
-
         if (isConsolidation) {
           vm.showSendSuccess()
         } else {
-          // Redirect to transaction detail page for regular transactions
           const query = {
             from: 'send-page',
             assetID: vm.assetId || 'bch'
           }
-          
           vm.$router.push({
             name: 'transaction-detail',
             params: { txid: result.txid },
             query
+          })
+        }
+
+        // Handle points in background (non-blocking) – do not delay success feedback
+        if (!vm.assetId?.startsWith?.('ct/')) {
+          Promise.all([
+            processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
+            processOnetimePoints({
+              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+              ref_id: result.txid.substring(0, 6)
+            })
+          ]).then(([cashinResp, onetimePointsResp]) => {
+            if (cashinResp || onetimePointsResp) {
+              vm.$q.dialog({
+                component: PointsReceivedDialog,
+                componentProps: {
+                  hasReceivedCashinPoints: cashinResp,
+                  hasReceivedOneTimePoints: onetimePointsResp
+                }
+              })
+            }
+          }).catch(err => {
+            console.warn('[Send] Points API failed:', err)
           })
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
