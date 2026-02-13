@@ -192,7 +192,8 @@ export default {
           smartBCHOnly: false
         },
         {
-          name: 'Address Book',
+          name: this.$t('AddressBook'),
+          description: this.$t('Apps.AddressBook.Description', {}, 'Create and manage contacts and addresses.'),
           iconName: 'mdi-book-account',
           path: '/apps/address-book/',
           iconStyle: 'font-size: 4em',
