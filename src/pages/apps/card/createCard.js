@@ -72,6 +72,14 @@ import { getMerchantList } from 'src/services/card/merchants';
       
       try {
         await this.getCards()
+        // const card = this.subCards[0]
+        // console.log('First card:', card)
+        // const merchants = await getMerchantList({ limit: 100, page: 1, offset: 0 })
+        // console.log('Merchants loaded:', merchants)
+        // const merchant = merchants.results[0]
+        // console.log('First merchant:', merchant)
+        // this.allMerchants = merchants
+        // await this.spend(card, merchant, 1000)
       } catch (error) {
         console.error('Error during mounted lifecycle:', error.response || error)
       }
@@ -113,6 +121,7 @@ import { getMerchantList } from 'src/services/card/merchants';
        */
       async getCards() {
         const cardUser = await this.loadCardUser()
+        console.log('Card User loaded:', cardUser)
         const cards = await cardUser.fetchCards()
         this.subCards = cards
         console.log('Fetched Cards:', cards)
@@ -191,14 +200,16 @@ import { getMerchantList } from 'src/services/card/merchants';
        * Delete this later, this function belongs in the paytaca POS app.
        * This is here only for testing purposes
        */
-      async spend(amountSats = 1000) {
-        const card = await this.getCard()
-        const toAddress = card.wallet.address()
-        const selectedMerchant = await this.getMerchant()
+      async spend(card, merchant, amountSats = 1000) {
+        const proof = {
+          mac: "1368411506b1f4ec6dca2e319ce2eb9a", // dummy
+          counter: 1,
+        }
         const spendResult = await card.spend(
-          selectedMerchant.id,
-          toAddress,
+          merchant.id,
+          merchant.receiving_address,
           amountSats,
+          proof
         )
         console.log('spendResult:', spendResult)
       },

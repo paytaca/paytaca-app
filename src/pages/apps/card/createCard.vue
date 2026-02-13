@@ -121,9 +121,9 @@
                 <!-- Card Info -->
                  <q-card-section>
                     <div class="text-caption text-grey">
-                      Balance: <span class="text-black"> {{ Number(card.raw.bch_balance.balance) / 1e8 }} BCH</span>
+                      Balance: <span class="text-black"> {{ Number(card.raw?.bch_balance?.balance) / 1e8 }} BCH</span>
                     </div>
-                    <div class="text-black"> {{ card.raw.ct_balance.utxos.length }} NFTs</div>
+                    <div class="text-black"> {{ card.raw?.ct_balance?.utxos?.length }} NFTs</div>
 
                  </q-card-section>
 
