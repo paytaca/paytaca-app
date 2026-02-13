@@ -244,11 +244,11 @@ export default {
     async updateRecordName () {
       const keypair = await ensureKeypair()
       const encryptedName = await encryptMemo(keypair.privkey, keypair.pubkey, this.recordName)
-      if (!encryptedName) throw new Error('Failed to encrypt record name')
+      if (!encryptedName) throw new Error(this.$t('EncryptNameError'))
 
       const payload = { name: encryptedName }
       const patchSuccess = await patchRecord(this.record.id, payload)
-      if (!patchSuccess) throw new Error('Server error. Check networks tab.')
+      if (!patchSuccess) throw new Error(this.$t('ServerError'))
     },
 
     async updateRecordAddresses () {
@@ -257,10 +257,10 @@ export default {
         .map(a => ({ ...a, address: this.normalizeAddressInput(a?.address) }))
 
       const hasEmpty = normalizedAddresses.some(a => !a.address)
-      if (hasEmpty) throw new Error('Please fill in all address fields.')
+      if (hasEmpty) throw new Error(this.$t('EmptyAddressesError'))
 
       const hasInvalid = normalizedAddresses.some(a => !this.isValidAddress(a.address))
-      if (hasInvalid) throw new Error('One or more addresses are invalid.')
+      if (hasInvalid) throw new Error(this.$t('InvalidAddressesError'))
 
       // Update local state to normalized values before diffing
       this.addresses = normalizedAddresses
@@ -275,7 +275,7 @@ export default {
         this.$q.notify({
           type: 'warning',
           timeout: 4000,
-          message: 'Some addresses were not updated successfully. Please check them manually and try again.',
+          message: this.$t('UpdateAddressesWarning'),
           position: 'top'
         })
       }
@@ -293,8 +293,8 @@ export default {
       } catch (error) {
         console.error('An error occured while updating record: ', error)
         const fallback = this.isEditName
-          ? 'Failed to update name. Please try again later.'
-          : 'Failed to update addresses. Please try again later.'
+          ? this.$t('UpdateNameError')
+          : this.$t('UpdateAddressesError')
         raiseNotifyError(error?.message || fallback, 3000, 'top')
       } finally {
         this.isLoading = false

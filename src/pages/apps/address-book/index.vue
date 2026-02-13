@@ -7,7 +7,7 @@
     <header-nav
       class="apps-header"
       backnavpath="/apps"
-      :title="'Address Book'"
+      :title="$t('AddressBook')"
       id="header-nav"
     />
 
@@ -30,7 +30,7 @@
             clearable
             dense
             class="col"
-            label="Search name"
+            :placeholder="`${$t('SearchName')}...`"
             v-model="searchQuery"
           >
             <template v-slot:prepend>
@@ -44,7 +44,7 @@
             icon="mdi-account-plus"
             color="primary"
             @click="$router.push('/apps/address-book/add-record')"
-            aria-label="Add New Record"
+            :aria-label="$t('AddNewContact')"
           />
         </template>
       </div>
@@ -80,15 +80,12 @@
           </div>
   
           <div
-            class="text-center text-h6 q-mt-md"
+            class="text-center text-h6 q-mt-md q-pt-lg"
             :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
             v-if="!isLoading && filteredFavoriteRecords.length === 0 && filteredRecords.length === 0"
           >
-            <p>Empty address book</p>
-            <p>
-              Click on <q-icon name="mdi-account-plus" size="sm" />
-              to add a new record
-            </p>
+            <p>{{ $t('EmptyAddressBook') }}</p>
+            <p>{{ $t('EmptyAddressBookInstruction') }}</p>
           </div>
         </template>
       </div>

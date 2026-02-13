@@ -12,7 +12,7 @@
     <q-card-section class="addresses-card-header">
       <div class="row justify-between items-center">
         <div class="text-subtitle2 text-weight-medium">
-          Addresses
+          {{ $t('Addresses') }}
         </div>
         <div class="row items-center q-gutter-sm">
           <q-btn
@@ -21,7 +21,7 @@
             icon="mdi-qrcode-scan"
             color="primary"
             @click="showQrScanner = true"
-            aria-label="Scan QR code"
+            :aria-label="$t('ScanQrCode')"
           />
 
           <q-btn
@@ -30,7 +30,7 @@
             icon="mdi-image"
             color="primary"
             @click="onQRUploaderClick"
-            aria-label="Upload QR image"
+            :aria-label="$t('UploadQrImage')"
           />
 
           <q-btn
@@ -39,7 +39,7 @@
             color="primary"
             unelevated
             @click="addresses.push({ address: '' }), scrollAddressesToBottom()"
-            aria-label="Add address"
+            :aria-label="$t('AddAddress')"
           />
         </div>
       </div>
@@ -57,7 +57,7 @@
           class="text-body2 q-mb-none"
           :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
         >
-          No addresses added yet
+          {{ $t('NoAddressesAddedYet') }}
         </p>
       </div>
 
@@ -81,7 +81,7 @@
                 lazy-rules
                 :dark="darkMode"
                 :rules="[
-                  val => checkAddressFormat(val) || 'Incorrect address format.'
+                  val => checkAddressFormat(val) || $t('IncorrectAddressFormat')
                 ]"
               />
               <q-btn
@@ -91,7 +91,7 @@
                 color="negative"
                 size="sm"
                 @click="addresses.splice(index, 1)"
-                :aria-label="'Remove address ' + (index + 1)"
+                :aria-label="$t('RemoveAddressIndex', { index: index + 1 }, `Remove address ${index + 1}`)"
                 class="q-ml-sm"
               />
             </div>
@@ -149,7 +149,7 @@ export default {
         console.error('QR upload picker error:', e)
         this.$q?.notify?.({
           type: 'negative',
-          message: 'Unable to open file picker',
+          message: this.$t('FilePickerError'),
           timeout: 2500,
           position: 'top'
         })
@@ -193,7 +193,7 @@ export default {
       if (!address) {
         this.$q.notify({
           type: 'negative',
-          message: 'No QR code detected. Please try again.',
+          message: this.$t('NoQrDetected'),
           timeout: 2000,
           position: 'top'
         })
@@ -204,7 +204,7 @@ export default {
       if (!this.checkAddressFormat(address)) {
         this.$q.notify({
           type: 'negative',
-          message: 'Incorrect address format.',
+          message: this.$t('IncorrectAddressFormat'),
           timeout: 1500,
           position: 'top'
         })
@@ -215,7 +215,7 @@ export default {
       if (alreadyAdded) {
         this.$q.notify({
           type: 'warning',
-          message: 'Address already added.',
+          message: this.$t('AddressAlreadyAdded'),
           timeout: 1500,
           position: 'top'
         })
@@ -225,7 +225,7 @@ export default {
       this.addresses.push({ address })
       this.$q.notify({
         type: 'positive',
-        message: 'Address added.',
+        message: this.$t('AddressAdded'),
         timeout: 1500,
         position: 'top'
       })

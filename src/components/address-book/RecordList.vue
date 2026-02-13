@@ -11,7 +11,10 @@
           :class="getDarkModeClass(darkMode)"
           :id="`letter-group-${record.letter_group}`"
         >
-          {{ record.letter_group.toLocaleUpperCase() }}
+          {{ record.letter_group === 'favorites' 
+              ? $t('Favorites').toLocaleUpperCase() 
+              : record.letter_group.toLocaleUpperCase() 
+          }}
         </q-item-label>
   
         <q-card

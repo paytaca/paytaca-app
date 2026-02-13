@@ -7,7 +7,7 @@
     <header-nav
       class="apps-header"
       backnavpath="/apps/address-book/"
-      :title="'Address Book'"
+      :title="$t('AddressBook')"
       id="header-nav"
     />
 
@@ -32,11 +32,11 @@
         <q-card class="q-pa-md record-card">
           <div class="text-center">
             <q-icon name="error_outline" size="48px" color="negative" class="q-mb-md" />
-            <p class="text-h6 q-mb-xs">{{ error }}</p>
+            <p class="text-h6 q-mb-xs">{{ $t('UnableToLoadContact') }}</p>
             <q-btn
               outline
               color="primary"
-              label="Retry"
+              :label="$t('Retry')"
               @click="loadRecord"
               class="q-mt-md"
             />
@@ -53,12 +53,22 @@
             <div class="text-left q-mb-md">
               <p class="text-h6 q-mb-xs">{{ record.name }}</p>
               <div class="text-caption q-mb-none">
-                <span>Created {{ formatDateLocaleRelative(record.created_at) }}</span>
+                <span>
+                  {{ $t(
+                    'CreatedDate',
+                    { date: formatDateLocaleRelative(record.created_at) },
+                    `Created ${formatDateLocaleRelative(record.created_at)}`)
+                  }}
+                </span>
                 <span
                   class="q-ml-sm"
                   :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
                 >
-                  • Updated {{ formatDateLocaleRelative(record.updated_at) }}
+                  • {{ $t(
+                    'UpdatedDate',
+                    { date: formatDateLocaleRelative(record.updated_at)  },
+                    `Updated ${formatDateLocaleRelative(record.updated_at) }`)
+                  }}
                 </span>
               </div>
             </div>
@@ -74,7 +84,7 @@
                 color="primary"
                 @click="toggleFavorite"
                 :loading="isLoadingFavorite"
-                :aria-label="record.is_favorite ? 'Remove from favorites' : 'Add to favorites'"
+                :aria-label="record.is_favorite ? $t('RemoveFromFavorites') : $t('AddToFavorites')"
               />
               <q-btn
                 round
@@ -82,7 +92,7 @@
                 icon="edit"
                 color="primary"
                 @click="handleEdit"
-                aria-label="Edit contact"
+                :aria-label="$t('EditContact')"
               />
               <q-btn
                 round
@@ -90,7 +100,7 @@
                 icon="delete"
                 color="primary"
                 @click="handleDelete"
-                aria-label="Delete contact"
+                :aria-label="$t('DeleteContact')"
               />
             </div>
           </q-card>
@@ -102,7 +112,7 @@
                 id="addresses-list-label"
                 class="text-subtitle1 text-weight-bold"
               >
-                Addresses List
+                {{ $t('AddressesList') }}
                 <q-badge
                   v-if="addressesList.length > 0"
                   color="primary"
@@ -118,7 +128,7 @@
                   icon="search"
                   color="primary"
                   @click="showSearch = !showSearch, showFilter = showFilter ? !showFilter : showFilter"
-                  aria-label="Search addresses"
+                  :aria-label="$t('SearchAddresses')"
                 />
                 <q-btn
                   v-if="addressesList.length > 0"
@@ -127,7 +137,7 @@
                   icon="filter_list"
                   color="primary"
                   @click="showFilter = !showFilter, showSearch = showSearch ? !showSearch : showSearch"
-                  aria-label="Filter addresses"
+                  :aria-label="$t('FilterAddresses')"
                 />
                 <q-btn
                   flat
@@ -135,7 +145,7 @@
                   icon="add"
                   color="primary"
                   @click="handleAddAddress"
-                  aria-label="Add address"
+                  :aria-label="$t('AddAddress')"
                 />
               </div>
             </div>
@@ -147,7 +157,7 @@
               outlined
               dense
               clearable
-              placeholder="Search addresses..."
+              :placeholder="`${$t('SearchAddresses')}...`"
               class="q-mb-md"
               :class="getDarkModeClass(darkMode)"
             >
@@ -161,7 +171,7 @@
               v-if="showFilter && addressesList.length > 0"
               class="row items-center justify-evenly q-mb-md q-px-sm"
             >
-              <span class="text-subtitle1">Filter addresses:</span>
+              <span class="text-subtitle1">{{ $t('FilterAddresses') }}:</span>
               <div class="row justify-evenly">
                 <q-chip
                   clickable
@@ -214,7 +224,7 @@
                           icon="content_copy"
                           color="primary"
                           @click.stop="copyToClipboard(address.address, index)"
-                          aria-label="Copy address"
+                          :aria-label="$t('ClickToCopyAddress')"
                         />
                       </q-item-label>
                     </div>
@@ -238,7 +248,7 @@
                       icon="more_vert"
                       color="primary"
                       size="sm"
-                      aria-label="Address actions"
+                      :aria-label="$t('AddressActions')"
                     >
                       <q-menu
                         class="text-bow"
@@ -256,7 +266,7 @@
                               <q-icon name="mdi-send" />
                             </q-item-section>
                             <q-item-section>
-                              <q-item-label>Send to this address</q-item-label>
+                              <q-item-label>{{ $t('SendToThisAddress') }}</q-item-label>
                             </q-item-section>
                           </q-item>
                           <q-item
@@ -268,7 +278,7 @@
                               <q-icon name="qr_code" />
                             </q-item-section>
                             <q-item-section>
-                              <q-item-label>View QR Code</q-item-label>
+                              <q-item-label>{{ $t('ViewQrCode') }}</q-item-label>
                             </q-item-section>
                           </q-item>
                           <q-separator />
@@ -281,7 +291,7 @@
                               <q-icon name="delete" color="red-5" />
                             </q-item-section>
                             <q-item-section>
-                              <q-item-label class="text-red-5">Remove address</q-item-label>
+                              <q-item-label class="text-red-5">{{ $t('RemoveAddress') }}</q-item-label>
                             </q-item-section>
                           </q-item>
                         </q-list>
@@ -310,7 +320,7 @@
                   class="text-h6 q-mb-xs"
                   :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
                 >
-                  No addresses added yet
+                  {{ $t('NoAddressesAddedYet') }}
                 </p>
               </div>
             </q-card>
@@ -355,12 +365,12 @@
         <q-card-actions align="right">
           <q-btn
             flat
-            label="Copy"
+            :label="$t('Copy')"
             color="primary"
             @click="copyToClipboard(selectedAddressForQr)"
             v-close-popup
           />
-          <q-btn flat label="Close" color="primary" v-close-popup />
+          <q-btn flat :label="$t('Close')" color="primary" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -460,9 +470,9 @@ export default {
             this.copiedAddressIndex = null
           }, 1000)
         }
-        raiseNotifySuccess('Address copied to clipboard.', 2000, 'top')
+        raiseNotifySuccess(this.$t('AddressCopied'), 2000, 'top')
       }).catch(() => {
-        raiseNotifyError('Failed to copy address.', 2000, 'top')
+        raiseNotifyError(this.$t('FailedToCopyAddress'), 2000, 'top')
       })
     },
     async toggleFavorite() {
@@ -474,15 +484,15 @@ export default {
       if (patchSuccess) {
         await this.loadRecord(this.record.id)
         const message = this.record.is_favorite 
-            ? 'Added to favorites' 
-            : 'Removed from favorites'
+            ? this.$t('AddedToFavorites') 
+            : this.$t('RemovedFromFavorites')
         const icon = this.record.is_favorite ? 'star' : 'star_border'
         raiseNotifySuccess(message, 3000, 'top', icon)
       } else {
         this.record.is_favorite = !this.record.is_favorite
         const message = this.record.is_favorite
-          ? 'Failed to add to favorites. Please try again later.'
-          : 'Failed to remove from favorites. Please try again later.'
+          ? this.$t('AddedToFavoritesError')
+          : this.$t('RemovedFromFavoritesError')
         raiseNotifyError(message, 3000, 'top')
       }
 
@@ -492,38 +502,38 @@ export default {
       this.$q.dialog({
         component: EditRecordDialog,
         componentProps: {
-          title: 'Edit Record Name',
+          title: this.$t('EditContactName'),
           isEditName: true,
           record: this.record
         }
       })
         .onOk(async () => {
           await this.loadRecord(this.record.id)
-          raiseNotifySuccess('Name updated successfully.', 2000, 'top')
+          raiseNotifySuccess(this.$t('UpdateNameSuccess'), 2000, 'top')
         })
     },
     async handleDelete() {
       this.$q.dialog({
-        title: 'Delete Record',
-        message: `Are you sure you want to delete this record? This action cannot be undone.`,
+        title: this.$t('DeleteContact'),
+        message: this.$t('DeleteContactDescription'),
         persistent: true,
         ok: {
-          label: 'Delete',
+          label: this.$t('Delete'),
           color: 'red',
         },
         cancel: {
-          label: 'Cancel',
+          label: this.$t('Cancel'),
           flat: true
         },
         class: `pt-card-2 text-bow ${this.getDarkModeClass(this.darkMode)}`
       }).onOk(async () => {
         const deleteSuccess = await deleteRecord(this.record.id)
         if (deleteSuccess) {
-          raiseNotifySuccess('Record deleted successfully.', 2000, 'top')
+          raiseNotifySuccess(this.$t('DeleteContactSuccess'), 2000, 'top')
           // Navigate back to address book list
           this.$router.push('/apps/address-book/')
         } else {
-          raiseNotifyError('Failed to delete this record. Please try again later.', 3000, 'top')
+          raiseNotifyError(this.$t('DeleteContactError'), 3000, 'top')
         }
       })
     },
@@ -531,7 +541,7 @@ export default {
       this.$q.dialog({
         component: EditRecordDialog,
         componentProps: {
-          title: 'Edit Addresses',
+          title: this.$t('EditAddresses'),
           isEditName: false,
           record: this.record,
           addressesProps: this.addressesList
@@ -539,7 +549,7 @@ export default {
       })
         .onOk(async () => {
           await this.loadRecord(this.record.id)
-          raiseNotifySuccess('Addresses updated successfully.', 2000, 'top')
+          raiseNotifySuccess(this.$t('UpdateAddressesSuccess'), 2000, 'top')
         })
     },
     handleSend(address, type) {
@@ -567,15 +577,15 @@ export default {
     },
     async handleRemoveAddress(address) {
       this.$q.dialog({
-        title: 'Remove Address',
-        message: 'Are you sure you want to remove this address from the contact?',
+        title: this.$t('RemoveAddressTitle'),
+        message: this.$t('RemoveAddressDescription'),
         persistent: true,
         ok: {
-          label: 'Remove',
+          label: this.$t('Remove'),
           color: 'red',
         },
         cancel: {
-          label: 'Cancel',
+          label: this.$t('Cancel'),
           flat: true
         },
         class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`
@@ -583,9 +593,9 @@ export default {
         const deleteSuccess = await deleteAddress(address.id)
         if (deleteSuccess) {
           await this.loadRecord(this.record.id)
-          raiseNotifySuccess('Address deleted successfully.', 2000, 'top')
+          raiseNotifySuccess(this.$t('RemoveAddressSuccess'), 2000, 'top')
         } else {
-          raiseNotifyError('Failed to delete address. Please try again later.', 3000, 'top')
+          raiseNotifyError(this.$t('RemoveAddressError'), 3000, 'top')
         }
       })
     },
@@ -607,6 +617,7 @@ export default {
         }
       } catch (error) {
         console.error(error)
+        this.error = error
       }
 
       this.loading = false

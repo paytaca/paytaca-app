@@ -2,18 +2,17 @@
   <q-card flat bordered class="form-card name-card q-my-md">
     <q-card-section class="q-pt-md q-pb-sm">
       <div class="text-subtitle2 text-weight-medium q-mb-sm">
-        Record Name
+        {{ $t('ContactName') }}
       </div>
       <q-input
         v-model="recordName"
-        label="Name"
         class="full-width"
         filled
         dense
         :dark="darkMode"
-        placeholder="Enter contact name"
+        :placeholder="$t('EnterContactName')"
         :rules="[
-          val => Boolean(val) || 'Name is required',
+          val => Boolean(val) || $t('NameIsRequired'),
         ]"
       />
     </q-card-section>

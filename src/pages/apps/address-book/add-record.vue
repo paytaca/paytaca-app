@@ -7,7 +7,7 @@
     <HeaderNav
       class="apps-header"
       backnavpath="/apps/address-book/"
-      :title="'Address Book'"
+      :title="$t('AddressBook')"
       id="header-nav"
     />
 
@@ -16,7 +16,7 @@
       <div class="action-header q-mb-lg" id="action-buttons">
         <div class="row justify-between items-center q-py-sm">
           <span class="text-h6 text-weight-bold col-7">
-            {{ 'Add New Record'.toLocaleUpperCase() }}
+            {{ $t('AddNewContact').toLocaleUpperCase() }}
           </span>
 
           <div class="row justify-end items-center q-gutter-sm col-auto">
@@ -27,17 +27,17 @@
               :icon="favorite ? 'mdi-star' : 'mdi-star-outline'"
               :color="favorite ? 'amber' : 'primary'"
               @click="favorite = !favorite"
-              :aria-label="favorite ? 'Remove from favorites' : 'Add to favorites'"
+              :aria-label="favorite ? $t('RemoveFromFavorites') : $t('AddToFavorites')"
             />
       
             <q-btn
               rounded
               class="save-button"
-              label="Create"
+              :label="$t('Create')"
               color="primary"
               padding="sm md"
               @click="saveRecord"
-              aria-label="Create new record"
+              :aria-label="$t('CreateNewContact')"
               :disabled="!canSaveRecord || isLoading"
               :loading="isLoading"
             />
@@ -107,21 +107,14 @@ export default {
       try {
         const keypair = await ensureKeypair()
         const encryptedName = await encryptMemo(keypair.privkey, keypair.pubkey, this.recordName)
-        if (!encryptedName) {
-          throw new Error('Failed to encrypt record name')
-        }
+        if (!encryptedName) throw new Error('Failed to encrypt record name')
 
         payload.address_book.name = encryptedName
         payload.address_book.is_favorite = this.favorite
         payload.address_book.wallet_hash = getWalletHash()
       } catch (error) {
         console.error('Error ensuring keypair or encrypting record name:', error)
-        this.$q.notify({
-          type: 'negative',
-          message: 'Failed to encrypt record name',
-          timeout: 2000,
-          position: 'top'
-        })
+        raiseNotifyError(this.$t('EncryptNameError'), 3000, 'top')
         return
       }
 
@@ -137,10 +130,10 @@ export default {
 
       const newRecordId = await addNewRecord(payload)
       if (newRecordId > -1) {
-        raiseNotifySuccess('New record created successfully', 3000, 'top')
+        raiseNotifySuccess(this.$t('CreateContactSuccess'), 2000, 'top')
         this.$router.push(`view-record/${newRecordId}/`)
       } else {
-        raiseNotifyError('Failed to add new record. Try again later.', 3000, 'top')
+        raiseNotifyError(this.$t('CreateContactError'), 3000, 'top')
       }
 
       this.isLoading = false
