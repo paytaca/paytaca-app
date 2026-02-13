@@ -1667,7 +1667,7 @@ watch(
 // Watch for wallet changes and reload sessions to filter by new wallet
 watch(
   () => $store.getters['global/getWalletIndex'],
-  (newIndex, oldIndex) => {
+  async (newIndex, oldIndex) => {
     // Only reload if wallet actually changed (not initial load)
     if (oldIndex !== undefined && newIndex !== oldIndex && web3Wallet.value) {
       // Clear stale mappings from previous wallet. WalletConnect sessions are global;
@@ -1675,7 +1675,18 @@ watch(
       // have a mapping with wif, causing filteredActiveSessions to incorrectly
       // show old-wallet sessions as belonging to the new wallet.
       sessionTopicWalletAddressMapping.value = {}
-      loadActiveSessions({ showLoading: false })
+      // Refresh walletAddresses for the new wallet. The fallback mapper
+      // (mapSessionTopicWithAddressLocal) uses walletAddresses to match session
+      // accounts; without refreshing, stale addresses from the previous wallet
+      // could incorrectly include old-wallet sessions in filteredActiveSessions.
+      try {
+        await $store.dispatch('global/loadWalletLastAddressIndex')
+        await $store.dispatch('global/loadWalletAddresses')
+        walletAddresses.value = $store.getters['global/walletAddresses'] || []
+      } catch (err) {
+        console.error('Error refreshing wallet addresses on wallet switch:', err)
+      }
+      await loadActiveSessions({ showLoading: false })
     }
   }
 )
