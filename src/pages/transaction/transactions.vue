@@ -116,7 +116,7 @@
 			/>
 			
 			<div class="row q-px-lg q-pt-md" :class="darkmode ? 'text-light' : 'text-dark'">
-				<div class="col br-15 pt-card" :class="getDarkModeClass(darkmode)"
+				<div class="col pt-card transaction-filters-container" :class="getDarkModeClass(darkmode)"
 				:style="`background-color: ${darkmode ? '' : '#dce9e9 !important;'}`" >
 					<button
 					  v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
@@ -953,9 +953,17 @@ export default {
     padding-left: 2px;
     padding-right: 2px;
 }
+.transaction-filters-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px;
+  gap: 6px;
+  border-radius: 20px;
+}
 .btn-custom {
     height: 40px;
-    width: 32%;
+    flex: 1 1 0;
     border-radius: 20px;
     border: none;
     background-color: transparent;
