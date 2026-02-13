@@ -407,7 +407,6 @@ import {
   getWalletByNetwork,
   convertTokenAmount
 } from 'src/wallet/chipnet'
-import { checkTransactionExistsInHistory as checkTransactionExistsInHistoryUtil } from 'src/utils/watchtower-history-utils'
 import {
   getAssetDenomination,
   parseFiatCurrency,
@@ -1194,7 +1193,6 @@ export default {
       }
       
       // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
-      // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed right after broadcast.
       const isConsolidation = this.isConsolidationTransaction()
 
       if (isConsolidation) {
@@ -1755,7 +1753,6 @@ export default {
             vm.txTimestamp = Date.now()
             
             // Show send success only for consolidation; otherwise go to transaction detail.
-            // Do not use checkTransactionExistsInHistory: watchtower is not yet indexed right after broadcast.
             const isConsolidation = vm.isConsolidationTransaction()
 
             if (isConsolidation) {
@@ -1921,30 +1918,6 @@ export default {
     },
 
     /**
-     * Check if transaction exists in wallet history
-     * @param {string} txid - Transaction ID to check
-     * @returns {Promise<boolean>} True if transaction exists in history
-     */
-    async checkTransactionExistsInHistory (txid) {
-      if (!this.wallet) {
-        return false
-      }
-      let walletHash = null
-      if (this.assetId?.startsWith?.('slp/')) {
-        const slpWallet = getWalletByNetwork(this.wallet, 'slp')
-        walletHash = slpWallet?.getWalletHash?.()
-      } else {
-        const bchWallet = getWalletByNetwork(this.wallet, 'bch')
-        walletHash = bchWallet?.getWalletHash?.()
-      }
-      return checkTransactionExistsInHistoryUtil(txid, {
-        walletHash: walletHash ?? undefined,
-        assetId: this.assetId,
-        isChipnet: this.isChipnet
-      })
-    },
-
-    /**
      * Show send success page for consolidation transactions
      */
     showSendSuccess () {
@@ -1960,7 +1933,6 @@ export default {
         vm.sending = false
 
         // Show send success immediately (don't wait for points API)
-        // Do not use checkTransactionExistsInHistory: watchtower is not yet indexed right after broadcast.
         const isConsolidation = vm.isConsolidationTransaction()
         if (isConsolidation) {
           vm.showSendSuccess()

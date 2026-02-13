@@ -852,9 +852,7 @@ export default {
                 _fromWebsocket: true
               }
               
-              // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed
-              // when the websocket notification arrives, so it would return false for virtually all
-              // incoming transactions and incorrectly show the success page instead of transaction detail.
+              // Watchtower is not yet indexed when the websocket notification arrives.
               const query = { new: 'true' }
               if (category) {
                 query.category = category
@@ -922,9 +920,7 @@ export default {
               _fromWebsocket: true
             }
             
-            // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed
-            // when the websocket notification arrives, so it would return false for virtually all
-            // incoming transactions and incorrectly show the success page and skip token addition.
+            // Watchtower is not yet indexed when the websocket notification arrives.
             // Extract category from token_id if it's a token transaction, otherwise it's BCH
             const query = { new: 'true' }
             if (data.token_id && data.token_id !== 'bch') {
