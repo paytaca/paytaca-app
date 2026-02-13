@@ -445,6 +445,8 @@ import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
+// Maximum age for pending success state (24 hours in milliseconds)
+const SEND_SUCCESS_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 export default {
   name: 'Send-page',
@@ -854,7 +856,8 @@ export default {
           totalAmountSent: this.totalAmountSent || 0,
           totalFiatAmountSent: this.totalFiatAmountSent || 0,
           walletHash: walletHash || '',
-          isChipnet: this.isChipnet || false
+          isChipnet: this.isChipnet || false,
+          savedAt: Date.now() // Timestamp when this entry was saved
         }
         if (payload.txid) {
           sessionStorage.setItem(SEND_SUCCESS_PENDING_KEY, JSON.stringify(payload))
@@ -878,6 +881,22 @@ export default {
         if (!raw) return
         const pending = JSON.parse(raw)
         if (!pending || !pending.txid || !pending.assetId) return
+        
+        // Check age of stored entry - reject if too old
+        const savedAt = pending.savedAt || 0
+        const ageMs = Date.now() - savedAt
+        if (ageMs > SEND_SUCCESS_PENDING_MAX_AGE_MS || ageMs < 0) {
+          // Entry is too old (or invalid timestamp) - clear it
+          sessionStorage.removeItem(SEND_SUCCESS_PENDING_KEY)
+          if (this.showSendSuccessPage) {
+            this.showSendSuccessPage = false
+            this.txid = ''
+            this.txTimestamp = Date.now()
+            this.totalAmountSent = 0
+            this.totalFiatAmountSent = 0
+          }
+          return
+        }
         
         const currentWalletHash = sendPageUtils.getWallet('bch')?.walletHash || null
         const currentIsChipnet = this.isChipnet || false
