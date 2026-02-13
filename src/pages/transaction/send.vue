@@ -7,6 +7,7 @@
     <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
       <header-nav
+        v-if="isSLP || !showSendSuccessPage"
         :title="$t('Send') + ' ' + (asset?.symbol || name || '')"
         :backnavpath="backNavigationPath"
         class="header-nav"
