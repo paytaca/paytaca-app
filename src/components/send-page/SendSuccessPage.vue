@@ -129,8 +129,16 @@ export default {
     },
     formattedAmount () {
       const amount = this.amount || this.amountSent
-      if (!amount || Number(amount) <= 0) return ''
-      return `${amount} ${this.assetSymbol}`
+      if (amount === null || amount === undefined) return ''
+      const str = String(amount).trim()
+      if (str === '') return ''
+      const num = Number(amount)
+      // amountSent from send.vue is already formatted with symbol (e.g. "0.001 BCH", "100 TOKEN")
+      if (Number.isNaN(num) || (typeof amount === 'string' && str.includes(' '))) {
+        return str
+      }
+      if (num <= 0) return ''
+      return `${str} ${this.assetSymbol}`
     }
   },
   methods: {
