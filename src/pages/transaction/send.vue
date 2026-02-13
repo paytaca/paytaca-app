@@ -444,6 +444,7 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
+const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
 
 export default {
   name: 'Send-page',
@@ -778,6 +779,10 @@ export default {
   },
 
   watch: {
+    /** Re-run restore when route query changes (e.g. send asset A -> send asset B) */
+    '$route' () {
+      this.restoreSendSuccessPending()
+    },
     selectedAssetMarketPrice () {
       if (!this.bip21Expires) {
         if (!this.selectedAssetMarketPrice) {
@@ -837,6 +842,59 @@ export default {
 
   methods: {
     // ========== send-success state persistence (for background/foreground) ==========
+    /** Persist success state so it survives background / app lock / process recreation */
+    saveSendSuccessPending () {
+      try {
+        const payload = {
+          assetId: this.assetId || '',
+          symbol: this.asset?.symbol || this.symbol || 'BCH',
+          txid: this.txid || '',
+          txTimestamp: this.txTimestamp || 0,
+          totalAmountSent: this.totalAmountSent || 0,
+          totalFiatAmountSent: this.totalFiatAmountSent || 0
+        }
+        if (payload.txid) {
+          sessionStorage.setItem(SEND_SUCCESS_PENDING_KEY, JSON.stringify(payload))
+        }
+      } catch (e) {
+        console.warn('[Send] saveSendSuccessPending failed:', e)
+      }
+    },
+    /** Clear persisted success state (e.g. when leaving send page) */
+    clearSendSuccessPending () {
+      try {
+        sessionStorage.removeItem(SEND_SUCCESS_PENDING_KEY)
+      } catch (e) {
+        console.warn('[Send] clearSendSuccessPending failed:', e)
+      }
+    },
+    /** Restore success screen if we have a pending success for the current asset */
+    restoreSendSuccessPending () {
+      try {
+        const raw = sessionStorage.getItem(SEND_SUCCESS_PENDING_KEY)
+        if (!raw) return
+        const pending = JSON.parse(raw)
+        if (!pending || !pending.txid || !pending.assetId) return
+        if (pending.assetId !== (this.assetId || '')) {
+          // Different asset: if we're currently showing success, reset so we don't show wrong context
+          if (this.showSendSuccessPage) {
+            this.showSendSuccessPage = false
+            this.txid = ''
+            this.txTimestamp = Date.now()
+            this.totalAmountSent = 0
+            this.totalFiatAmountSent = 0
+          }
+          return
+        }
+        this.txid = pending.txid
+        this.txTimestamp = pending.txTimestamp || Date.now()
+        this.totalAmountSent = pending.totalAmountSent || 0
+        this.totalFiatAmountSent = pending.totalFiatAmountSent || 0
+        this.showSendSuccessPage = true
+      } catch (e) {
+        console.warn('[Send] restoreSendSuccessPending failed:', e)
+      }
+    },
 
     // ========== imported methods ==========
     convertTokenAmount,
@@ -1946,10 +2004,12 @@ export default {
     },
 
     /**
-     * Show send success page for consolidation transactions
+     * Show send success page for consolidation transactions.
+     * Persists state so it survives background / app lock / process recreation.
      */
     showSendSuccess () {
       this.showSendSuccessPage = true
+      this.saveSendSuccessPending()
     },
 
     async submitPromiseResponseHandler (result, walletType) {
@@ -2430,6 +2490,9 @@ export default {
       }
     }
 
+    // Restore send-success screen after background / app lock / process recreation
+    vm.restoreSendSuccessPending()
+
     if (vm.assetId.indexOf('slp/') > -1) vm.walletType = 'slp'
     else {
       if (vm.assetId.indexOf('ct/') > -1) vm.isCashToken = true
@@ -2486,6 +2549,7 @@ export default {
   },
 
   beforeRouteLeave (to, from, next) {
+    this.clearSendSuccessPending()
     next()
   },
 
