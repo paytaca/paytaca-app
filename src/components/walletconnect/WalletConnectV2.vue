@@ -1670,6 +1670,11 @@ watch(
   (newIndex, oldIndex) => {
     // Only reload if wallet actually changed (not initial load)
     if (oldIndex !== undefined && newIndex !== oldIndex && web3Wallet.value) {
+      // Clear stale mappings from previous wallet. WalletConnect sessions are global;
+      // without clearing, mapSessionTopicWithAddress would skip topics that already
+      // have a mapping with wif, causing filteredActiveSessions to incorrectly
+      // show old-wallet sessions as belonging to the new wallet.
+      sessionTopicWalletAddressMapping.value = {}
       loadActiveSessions({ showLoading: false })
     }
   }
