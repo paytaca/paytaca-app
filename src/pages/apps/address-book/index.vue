@@ -80,7 +80,7 @@
           </div>
   
           <div
-            class="text-center text-h6 q-mt-md q-pt-lg"
+            class="text-center text-h6 q-mt-md q-pt-lg q-mr-md"
             :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
             v-if="!isLoading && filteredFavoriteRecords.length === 0 && filteredRecords.length === 0"
           >

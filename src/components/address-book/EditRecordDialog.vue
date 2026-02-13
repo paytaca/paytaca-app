@@ -10,13 +10,13 @@
       :class="getDarkModeClass(darkMode, 'pt-card-2')"
     >
       <q-card-section class="row justify-between items-center">
-        <span class="text-h6 text-weight-bold">{{ title }}</span>
+        <span class="text-h6 text-weight-bold col-10">{{ title }}</span>
         <q-btn
           flat
           round
           padding="sm"
           icon="close"
-          class="close-button"
+          class="close-button col-auto"
           v-close-popup
         />
       </q-card-section>
