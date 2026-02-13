@@ -4,7 +4,10 @@ import { Notify, Dialog } from 'quasar'
 import { i18n } from 'src/boot/i18n'
 import { Address } from 'src/wallet'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
-import { isValidTokenAddress } from 'src/wallet/chipnet'
+import crypto from 'crypto'
+import { Buffer } from 'buffer'
+import axios from 'axios'
+import { isValidTokenAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
@@ -319,6 +322,30 @@ function checkIfWalletAddress (address, walletAddress, isLegacy) {
     return address === new Address(walletAddress).toLegacyAddress()
   }
   return address === walletAddress
+}
+
+/**
+ * Check if an address belongs to the current wallet via Watchtower address-info API.
+ * Compares response wallet_digest (sha224 of hex wallet hash) with the given wallet hash.
+ * @param {string} address - BCH cash address (no BIP21 query)
+ * @param {string} walletHashHex - Hex-formatted wallet hash
+ * @param {boolean} isChipnet - Whether chipnet/mainnet
+ * @returns {Promise<boolean>} True if API returns wallet_digest matching our digest
+ */
+export async function addressBelongsToWallet (address, walletHashHex, isChipnet) {
+  if (!address || !walletHashHex) return false
+  const baseUrl = getWatchtowerApiUrl(isChipnet)
+  const url = `${baseUrl}/address-info/bch/${encodeURIComponent(address)}/`
+  try {
+    const { data } = await axios.get(url, { timeout: 10000 })
+    const apiDigest = data?.wallet_digest
+    if (!apiDigest) return false
+    const walletHashBuffer = Buffer.from(walletHashHex, 'hex')
+    const ourDigest = crypto.createHash('sha224').update(walletHashBuffer).digest('hex')
+    return ourDigest.toLowerCase() === String(apiDigest).toLowerCase()
+  } catch {
+    return false
+  }
 }
 
 export function addRemoveInputFocus (index, inputFocus) {

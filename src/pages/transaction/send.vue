@@ -1285,7 +1285,7 @@ export default {
       }
       
       // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
-      const isConsolidation = this.isConsolidationTransaction()
+      const isConsolidation = await this.checkConsolidationViaAddressInfo()
 
       if (isConsolidation) {
         this.showSendSuccess()
@@ -1842,7 +1842,7 @@ export default {
             vm.txTimestamp = Date.now()
             
             // Show send success only for consolidation; otherwise go to transaction detail.
-            const isConsolidation = vm.isConsolidationTransaction()
+            const isConsolidation = await vm.checkConsolidationViaAddressInfo()
 
             if (isConsolidation) {
               vm.showSendSuccess()
@@ -1992,15 +1992,22 @@ export default {
       }
     },
     /**
-     * Check if transaction is a consolidation (sending only to own wallet address(es))
-     * @returns {boolean} True if every recipient is a wallet address; false if any recipient is external
+     * Check if the send is consolidation (exactly one recipient that belongs to this wallet)
+     * via Watchtower address-info API. Used for routing to SendSuccessPage vs transaction-detail.
+     * @returns {Promise<boolean>}
      */
-    isConsolidationTransaction () {
-      if (!this.recipients?.length) return false
-      return this.recipients.every((_recipient, index) => {
-        const extra = this.inputExtras[index]
-        return extra?.isWalletAddress === true
-      })
+    async checkConsolidationViaAddressInfo () {
+      if (!this.recipients?.length || this.recipients.length !== 1) return false
+      const raw = this.recipients[0].recipientAddress ?? ''
+      const recipientAddress = raw.indexOf('?') > -1 ? raw.split('?')[0] : raw
+      if (!recipientAddress) return false
+      const walletHash = sendPageUtils.getWallet('bch')?.walletHash
+      if (!walletHash) return false
+      return sendPageUtils.addressBelongsToWallet(
+        recipientAddress,
+        walletHash,
+        this.$store.getters['global/isChipnet']
+      )
     },
 
     /**
@@ -2021,7 +2028,7 @@ export default {
         vm.sending = false
 
         // Show send success immediately (don't wait for points API)
-        const isConsolidation = vm.isConsolidationTransaction()
+        const isConsolidation = await vm.checkConsolidationViaAddressInfo()
         if (isConsolidation) {
           vm.showSendSuccess()
         } else {
