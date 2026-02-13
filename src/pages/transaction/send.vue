@@ -1147,12 +1147,11 @@ export default {
       this.txid = txid
       this.txTimestamp = Date.now()
       
-      // Check if this is a consolidation transaction or if transaction doesn't exist in history
+      // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
+      // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed right after broadcast.
       const isConsolidation = this.isConsolidationTransaction()
-      const existsInHistory = await this.checkTransactionExistsInHistory(txid)
 
-      if (isConsolidation || !existsInHistory) {
-        // Show send success page for consolidation transactions or transactions not in history
+      if (isConsolidation) {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail page for regular transactions
@@ -1709,12 +1708,11 @@ export default {
             vm.txid = txId
             vm.txTimestamp = Date.now()
             
-            // Check if this is a consolidation transaction or if transaction doesn't exist in history
+            // Show send success only for consolidation; otherwise go to transaction detail.
+            // Do not use checkTransactionExistsInHistory: watchtower is not yet indexed right after broadcast.
             const isConsolidation = vm.isConsolidationTransaction()
-            const existsInHistory = await vm.checkTransactionExistsInHistory(txId)
 
-            if (isConsolidation || !existsInHistory) {
-              // Show send success page for consolidation transactions or transactions not in history
+            if (isConsolidation) {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail page for regular transactions
@@ -1959,12 +1957,11 @@ export default {
           }
         }
 
-        // Check if this is a consolidation transaction or if transaction doesn't exist in history
+        // Show send success only for consolidation; otherwise go to transaction detail.
+        // Do not use checkTransactionExistsInHistory: watchtower is not yet indexed right after broadcast.
         const isConsolidation = vm.isConsolidationTransaction()
-        const existsInHistory = await vm.checkTransactionExistsInHistory(result.txid)
 
-        if (isConsolidation || !existsInHistory) {
-          // Show send success page for consolidation transactions or transactions not in history
+        if (isConsolidation) {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail page for regular transactions
