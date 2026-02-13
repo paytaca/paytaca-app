@@ -129,24 +129,35 @@
 
 			<!-- Category Selection -->
 			<div v-if="step === 2">
-				<div v-if="!loading">
+				<div v-if="!loading"> 
 					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
 
-					<div class="q-px-lg">
-						<div class="row q-col-gutter-sm">
-							<div
-								v-for="(category, index) in categories"
-						    	:key="index"
-						    	class="col-4 col-sm-4"
-							>
-								<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
-							    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
-								</q-card>
+					<div class="scroll-y q-pb-md" :style="`max-height: ${minHeight - 170}px`">
+						<div class="q-px-lg">
+							<div class="row q-col-gutter-sm">
+								<div
+									v-for="(category, index) in categories"
+							    	:key="index"
+							    	class="col-4 col-sm-4"
+								>
+									<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
+								    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
+									</q-card>
+								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-if="!isLastPage('category')" @click="nextPage('category')">See More</div>
+
+						<div
+							v-if="loadingMore"
+							class="row justify-center items-center q-gutter-sm q-pt-md"
+							:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+						>
+							<q-spinner-dots size="24px" color="primary" />
+							<div class="md-font-size text-weight-bold">Loading…</div>
+						</div>
+						<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-else-if="!isLastPage('category')" @click="nextPage('category')">See More</div>	
+					</div>													
 				</div>
 
 				<div class="q-px-lg q-pt-md" v-else>
@@ -165,7 +176,7 @@
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
 
-					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 250}px`" ref="scrollTarget">
+					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 205}px`" ref="scrollTarget">
 						<q-card 
 							class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
 							v-ripple 
@@ -180,11 +191,19 @@
 									<div class="sm-font-size">{{ promo.validity }}</div>
 						</q-card>
 
-						<div class="text-center text-grad q-pt-sm md-font-size text-bold see-more" v-if="!isLastPage('promo')" @click="nextPage('promo')">See More</div>		
+						<div
+							v-if="loadingMore"
+							class="row justify-center items-center q-gutter-sm q-mt-sm q-pb-md"
+							:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+						>
+							<q-spinner-dots size="24px" color="primary" />
+							<div class="md-font-size text-weight-bold">Loading…</div>
+						</div>
+						<div class="text-center text-grad q-pt-sm md-font-size text-bold see-more q-pb-md" v-else-if="!isLastPage('promo')" @click="nextPage('promo')">See More</div>		
 					</q-list>					
 				</div>
 
-				<div v-else class="q-mx-lg q-pt-md">
+				<div v-else class="q-mx-lg q-pt-md q-pb-md">
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<q-skeleton
@@ -342,6 +361,7 @@ export default {
 		return {
 			darkMode: this.$store.getters['darkmode/getStatus'],
 			loading: true,
+			loadingMore: false,
 			step: 0,				
 
 			selectedPromo: null,
@@ -1042,15 +1062,17 @@ export default {
 
 			return page >= total_page
 		},
-		nextPage(type) {
+		async nextPage(type) {
 			this.paginationSettings[type].page++
+			this.loadingMore = true
 
 			if (type === 'category') {
-				this.fetchCategory()	
+				await this.fetchCategory()	
 			} else if (type === 'promo') {
-				this.fetchPromos()
+				await this.fetchPromos()
 			}
 			
+			this.loadingMore = false
 		},
 		addressType (type) {
 			const normalized = typeof type === 'string' ? type.trim().toUpperCase() : ''
@@ -1131,7 +1153,9 @@ export default {
 				return
 			}
 
-			vm.loading = true
+			if (overwrite) {
+				vm.loading = true
+			}			
 			const setting = vm.paginationSettings.category
 			
 			let data = {
@@ -1185,7 +1209,11 @@ export default {
 		},
 		async fetchPromos (overwrite=false) {
 			const vm = this
-			vm.loading = true
+
+			if (overwrite) {
+				vm.loading = true
+			}			
+
 			const setting = vm.paginationSettings.promo
 
 			let data = {
