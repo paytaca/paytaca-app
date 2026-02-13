@@ -845,13 +845,16 @@ export default {
     /** Persist success state so it survives background / app lock / process recreation */
     saveSendSuccessPending () {
       try {
+        const walletHash = sendPageUtils.getWallet('bch')?.walletHash || null
         const payload = {
           assetId: this.assetId || '',
           symbol: this.asset?.symbol || this.symbol || 'BCH',
           txid: this.txid || '',
           txTimestamp: this.txTimestamp || 0,
           totalAmountSent: this.totalAmountSent || 0,
-          totalFiatAmountSent: this.totalFiatAmountSent || 0
+          totalFiatAmountSent: this.totalFiatAmountSent || 0,
+          walletHash: walletHash || '',
+          isChipnet: this.isChipnet || false
         }
         if (payload.txid) {
           sessionStorage.setItem(SEND_SUCCESS_PENDING_KEY, JSON.stringify(payload))
@@ -868,15 +871,42 @@ export default {
         console.warn('[Send] clearSendSuccessPending failed:', e)
       }
     },
-    /** Restore success screen if we have a pending success for the current asset */
+    /** Restore success screen if we have a pending success for the current asset, wallet, and network */
     restoreSendSuccessPending () {
       try {
         const raw = sessionStorage.getItem(SEND_SUCCESS_PENDING_KEY)
         if (!raw) return
         const pending = JSON.parse(raw)
         if (!pending || !pending.txid || !pending.assetId) return
-        if (pending.assetId !== (this.assetId || '')) {
-          // Different asset: if we're currently showing success, reset so we don't show wrong context
+        
+        const currentWalletHash = sendPageUtils.getWallet('bch')?.walletHash || null
+        const currentIsChipnet = this.isChipnet || false
+        const currentAssetId = this.assetId || ''
+        
+        // Reject old data that doesn't have wallet/network scoping (for security)
+        // Old data without these fields could belong to a different wallet/network
+        if (pending.walletHash === undefined || pending.isChipnet === undefined) {
+          // Old format data - clear it to prevent cross-wallet/network issues
+          if (this.showSendSuccessPage) {
+            this.showSendSuccessPage = false
+            this.txid = ''
+            this.txTimestamp = Date.now()
+            this.totalAmountSent = 0
+            this.totalFiatAmountSent = 0
+          }
+          // Optionally clear the old data from storage
+          sessionStorage.removeItem(SEND_SUCCESS_PENDING_KEY)
+          return
+        }
+        
+        // Validate assetId, walletHash, and network match
+        const assetMatches = pending.assetId === currentAssetId
+        const walletMatches = String(pending.walletHash || '') === String(currentWalletHash || '')
+        const networkMatches = Boolean(pending.isChipnet) === Boolean(currentIsChipnet)
+        
+        // If any validation fails, clear the success state if currently showing
+        if (!assetMatches || !walletMatches || !networkMatches) {
+          // Different asset/wallet/network: if we're currently showing success, reset so we don't show wrong context
           if (this.showSendSuccessPage) {
             this.showSendSuccessPage = false
             this.txid = ''
@@ -886,6 +916,8 @@ export default {
           }
           return
         }
+        
+        // All validations passed - restore the success state
         this.txid = pending.txid
         this.txTimestamp = pending.txTimestamp || Date.now()
         this.totalAmountSent = pending.totalAmountSent || 0
