@@ -147,7 +147,7 @@ export default {
       this.$router.push('/')
     },
     onViewTransactions () {
-      this.$router.push('/transactions')
+      this.$router.push({ name: 'transaction-list' })
     }
   }
 }
