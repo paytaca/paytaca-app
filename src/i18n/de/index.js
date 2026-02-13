@@ -1183,7 +1183,7 @@ export default {
   MemoDeleted: "Notiz gelöscht",
   MemoSaved: "Notiz gespeichert",
   Merchant: "Kaufmann",
-  MerchantAdmin: "Händleradministrator",
+  MerchantAdmin: "Händler Admin",
   MerchantDetails: "Händlerdetails",
   MerchantDetailsRequired: "Händlerangaben erforderlich",
   MerchantDetailsSaved: "Händlerdaten gespeichert",
