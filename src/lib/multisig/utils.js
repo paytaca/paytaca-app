@@ -1,5 +1,15 @@
 import Big from 'big.js'
-import { hexToBin, cashAddressToLockingBytecode, binToHex, binsAreEqual, binToBigIntUintBE } from 'bitauth-libauth-v3'
+import { 
+  hexToBin,
+  cashAddressToLockingBytecode,
+  binToHex,
+  binsAreEqual,
+  binToBigIntUintBE,
+  deriveHdPath,
+  deriveHdPublicKey,
+  encodeHdPrivateKey,
+  deriveHdPrivateNodeFromBip39Mnemonic,
+} from 'bitauth-libauth-v3'
 
 export const shortenString = (str, maxLength) => {
   // If the string is shorter than or equal to the maxLength, return it as is.
@@ -383,5 +393,21 @@ export async function retryWithBackoff(fn, retries = 2, delay = 500) {
       await new Promise(res => setTimeout(res, delay));
       delay *= 2; 
     }
+  }
+}
+
+
+export const deriveHdKeysFromMnemonic = ({ mnemonic, network, hdPath }) => {
+  const node = deriveHdPath(
+    deriveHdPrivateNodeFromBip39Mnemonic(
+      mnemonic
+    ),
+    hdPath || "m/44'/145'/0'"
+  )
+  const { hdPrivateKey } = encodeHdPrivateKey({ network: network || 'mainnet', node })
+  const { hdPublicKey } = deriveHdPublicKey(hdPrivateKey)
+  return {
+    hdPrivateKey,
+    hdPublicKey
   }
 }

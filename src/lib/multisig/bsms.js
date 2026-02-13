@@ -1,4 +1,4 @@
-import { bigIntToCompactUint, secp256k1, utf8ToBin } from "bitauth-libauth-v3"
+import { bigIntToCompactUint, binToHex, hash256, secp256k1, utf8ToBin } from "bitauth-libauth-v3"
 import { encryptECIESMessage } from "./ecies";
 
 
@@ -96,7 +96,7 @@ export class BsmsKeyRecord {
      * @param {string} params.derivationPath - The BIP32 derivation path for the key.
      * @param {string|Uint8Array} params.key - The public key (hex) or the XPub string.
      */
-    constructor({ version='1.0', token='00', description='',  masterFingerprint, derivationPath, key, sig}) {
+    constructor({ version='1.0', token='00', description='',  masterFingerprint, derivationPath, key, sig }) {
         this.version = version
         this.token = token 
         this.masterFingerprint = masterFingerprint
@@ -153,8 +153,8 @@ export class BsmsKeyRecord {
      * @param {Uint8Array} recipientPublicKey - The recipient's raw public key (Uint8Array).
      * @returns {Promise<string>} Promise that resolves to the ECIES-encrypted message in hexadecimal format.
      */
-    toEciesEncryptedString(recipientPublicKey) {
-       return encryptECIESMessage(recipientPublicKey, this.toString())
+    async toEciesEncryptedString(recipientPublicKey) {
+       return await encryptECIESMessage(recipientPublicKey, this.toString())
     }
 
     toString() {
