@@ -2,9 +2,8 @@ import { getWalletHash } from 'src/utils/wallet-storage'
 
 import axios from 'axios'
 
-// const WATCHTOWER_CASH_URL = 
-//   process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
-const WATCHTOWER_CASH_URL = 'http://localhost:8000/api'
+const WATCHTOWER_CASH_URL = 
+  process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
 const ADDRESS_BOOK_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book/` })
 const ADDRESSES_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book-address/` })
 
