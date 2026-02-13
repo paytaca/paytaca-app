@@ -222,13 +222,14 @@ export class Card {
    * @param {*} amountSats 
    * @returns 
    */
-  async spend(merchantId, toAddress, amountSats) {
+  async spend(merchantId, toAddress, amountSats, proof) {
     this._assertWallet();
     
     const response = await backend.post(`/cards/${this.raw.cash_address}/preimage/`, {
       merchant_id: merchantId,
       to_address: toAddress,
-      amount_sats: amountSats
+      amount_sats: amountSats,
+      card_proof: proof
     });
 
     const data = response.data;
@@ -263,22 +264,9 @@ export class Card {
    * @private
    * @returns {Promise<{tokenId: string, utxos: Array}>}
    */
-  async _mintGenesisToken() {
+  async _mintGenesisToken(retryOnFailure = true) {
     console.log('Starting genesis token minting...');
     this._assertAuthNftService();
-    
-    // Check existing vout=0 UTXOs and calculate needed amount
-    const requiredSats = this.estimateTokenOpSatsRequirement();
-    const existingSats = await this._checkForFundingUtxos();
-    
-    if (existingSats < requiredSats) {
-      const neededSats = requiredSats - existingSats;
-      console.log(`Need ${neededSats} more sats (have ${existingSats}, need ${requiredSats})`);
-      await this._createFundingUtxo(neededSats);
-      await this._waitForTransaction();
-    } else {
-      console.log(`Sufficient vout=0 UTXOs available: ${existingSats} sats`);
-    }
 
     try {
       const result = await this.authNftService.genesis();
@@ -294,12 +282,38 @@ export class Card {
       throw new Error('No token ID returned from genesis');
       
     } catch (error) {
+      console.error('Error during genesis minting:', error.message || error);
+      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
+      if (satsNeeded) {
+        console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
+        await this._createFundingUtxo(BigInt(satsNeeded));
+        await this._waitForTransaction();
+        if (retryOnFailure) {
+          console.log('Retrying genesis minting after creating UTXO...');
+          return this._mintGenesisToken(false);
+        }
+      }
+      
       if (this._isVoutZeroError(error)) {
         console.error('Still getting vout=0 error after ensuring UTXO exists');
         console.error('Possible causes: UTXO not confirmed, wallet sync issues');
       }
       throw error;
     }
+  }
+
+  parseSatoshisNeeded(message) {
+    const patterns = [
+      /(\d+)\s+satoshis\s+needed/i,
+      /needed\s*\((\d+)\)/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = message.match(pattern);
+      if (match) return Number(match[1]);
+    }
+
+    return null;
   }
 
   /** 
@@ -317,19 +331,34 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _mintGlobalAuthToken({ authorized = true, spendLimitSats } = {}) {
+  async _mintGlobalAuthToken({ authorized = true, spendLimitSats } = {}, retryOnFailure = true) {
     console.log('Minting global auth token...');
     this._assertAuthNftService();
 
-    const result = await this.authNftService.mint({ 
-        tokenId: this.raw?.category, 
-        merchants: [{
-          authorized: authorized,
-          spendLimitSats: spendLimitSats || defaultSpendLimitSats,
-        }]
-    });
-    console.log('Global auth token minted:', result);
-    return result;
+    try {
+      const result = await this.authNftService.mint({ 
+          tokenId: this.raw?.category, 
+          merchants: [{
+            authorized: authorized,
+            spendLimitSats: spendLimitSats || defaultSpendLimitSats,
+          }]
+      });
+      console.log('Global auth token minted:', result);
+      return result;
+    } catch (error) {
+      console.error('Error during global auth token minting:', error.message || error);
+      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
+      if (satsNeeded) {
+        console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
+        await this._createFundingUtxo(BigInt(satsNeeded));
+        await this._waitForTransaction();
+        console.log('Retrying global auth token minting after creating UTXO...');
+        if (retryOnFailure) {
+          return this._mintGlobalAuthToken({ authorized, spendLimitSats }, false);
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -342,7 +371,7 @@ export class Card {
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<{mintResult: Object, issueResult: Object}>}
    */
-  async issueMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}) {
+  async issueMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
     console.log('Issuing merchant auth token...');
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');
@@ -359,9 +388,24 @@ export class Card {
       throw new Error('Merchant auth token with matching commitment already exists.');
     }
 
-    const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant });
-    const issueResult = await this._issueAuthTokens();
-    return { mintResult, issueResult };
+    try {
+      const mintResult = await this._mintMerchantAuthToken({ authorized, spendLimitSats, merchant }, retryOnFailure);
+      const issueResult = await this._issueAuthTokens();
+      return { mintResult, issueResult };
+    } catch (error) {
+      console.error('Error during merchant auth token issuance:', error.message || error);
+      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
+      if (satsNeeded) {
+        console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
+        await this._createFundingUtxo(BigInt(satsNeeded));
+        await this._waitForTransaction();
+        console.log('Retrying merchant auth token issuance after creating UTXO...');
+        if (retryOnFailure) {
+          return this.issueMerchantAuthToken({ authorized, spendLimitSats, merchant }, false);
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -375,7 +419,7 @@ export class Card {
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<Object>}
    */
-  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}) {
+  async _mintMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
     console.log('Minting merchant auth token...');
     this._assertWallet();
     this._assertAuthNftService();

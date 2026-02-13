@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.CARD_API_BASE_URL || 'http://localhost:8002/api
 
 export const backend = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 100000,
   headers: {
     'Content-Type': 'application/json',
   },
