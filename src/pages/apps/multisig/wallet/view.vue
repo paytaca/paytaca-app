@@ -149,7 +149,7 @@
                   </div>
                 </q-item-section>
                 <q-item-section side class="flex items-base">
-                  <q-btn icon="mdi-dots-horizontal" flat dense @click="router.push({ name: 'app-multisig-wallet-details', params: { wallethash: wallet.walletHash } })"></q-btn>
+                  <q-btn icon="mdi-dots-horizontal" flat dense @click="router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.walletHash } })"></q-btn>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -473,8 +473,8 @@ const handleWalletActions = async (action) => {
     if (action.value === 'scan-wallet-utxos') {
       await handleScanWalletUtxosAction()
     }
-    if (action.value === 'view-wallet-details') {
-      router.push({ name: 'app-multisig-wallet-details', params: { wallethash: wallet.value.getWalletHash() } })
+    if (action.value === 'view-wallet-settings') {
+      router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.value.getWalletHash() } })
     }
 }
   
@@ -509,8 +509,8 @@ const openWalletActionsDialog = () => {
       },
       {
         icon: 'mdi-file-cog',
-        label: $t('WalletDetails', {}, 'Wallet Details'),
-        value: 'view-wallet-details',
+        label: $t('WalletSettings', {}, 'Wallet Settings'),
+        value: 'view-wallet-settings',
         color: 'primary'
       },
 
@@ -626,18 +626,16 @@ watch(wallet, async (newWallet) => {
   }
 })
 
-
-
 onMounted(async () => {
   try {
     await loadHdPrivateKeys(wallet.value?.signers)
     await refreshBalance()
     await loadCashtokenIdentitiesToBalances()
+    await wallet.value?.syncId()
     if (!proposals.value || proposals.value?.length === 0) {
       await queryServerForProposals()
     }
-  } 
-  catch (error) {
+  } catch (error) {
     $q.notify({
       type: 'warning',
       message: `Warning: ${error.message}`,
