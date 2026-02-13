@@ -901,16 +901,9 @@ export default {
                 _fromWebsocket: true
               }
               
-              // Check if transaction exists in history before redirecting
-              const existsInHistory = await vm.checkTransactionExistsInHistory(data.txid, data.token_id)
-              
-              if (!existsInHistory) {
-                // Show receive success page for consolidation transactions (not in history)
-                const assetSymbol = asset?.symbol || data.token_symbol?.toUpperCase() || 'TOKEN'
-                vm.showReceiveSuccess(data.txid, amount, assetSymbol, data.token_id)
-                return // Exit early to prevent notification
-              }
-              
+              // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed
+              // when the websocket notification arrives, so it would return false for virtually all
+              // incoming transactions and incorrectly show the success page instead of transaction detail.
               const query = { new: 'true' }
               if (category) {
                 query.category = category
@@ -978,17 +971,9 @@ export default {
               _fromWebsocket: true
             }
             
-            // Check if transaction exists in history before redirecting
-            const assetId = data.token_id === 'bch' ? 'bch' : data.token_id
-            const existsInHistory = await vm.checkTransactionExistsInHistory(data.txid, assetId)
-            
-            if (!existsInHistory) {
-              // Show receive success page for consolidation transactions (not in history)
-              const assetSymbol = asset?.symbol || data.token_symbol?.toUpperCase() || (data.token_id === 'bch' ? 'BCH' : 'TOKEN')
-              vm.showReceiveSuccess(data.txid, txAmount, assetSymbol, assetId)
-              return // Exit early to prevent notification and token addition
-            }
-            
+            // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed
+            // when the websocket notification arrives, so it would return false for virtually all
+            // incoming transactions and incorrectly show the success page and skip token addition.
             // Extract category from token_id if it's a token transaction, otherwise it's BCH
             const query = { new: 'true' }
             if (data.token_id && data.token_id !== 'bch') {
