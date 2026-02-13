@@ -610,12 +610,13 @@ export default {
   margin-left: 0px;
 }
 
-.active-transaction-btn {
+.latest-transactions-section .btn-custom.active-transaction-btn {
   background-color: white !important;
+  color: rgba(0, 0, 0, 0.87) !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.active-transaction-btn.border {
+.latest-transactions-section .active-transaction-btn.border {
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 </style>
