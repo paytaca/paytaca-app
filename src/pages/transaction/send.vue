@@ -1146,6 +1146,51 @@ export default {
       
       this.txid = txid
       this.txTimestamp = Date.now()
+
+      // Set amount and recipient data from JPP so showSendSuccess displays correctly
+      const totalSats = this.jpp?.totalSendAmountSats ?? this.jpp?.total ?? 0
+      if (totalSats > 0) {
+        const bchAmount = totalSats / 10 ** 8
+        this.totalAmountSent = bchAmount
+        this.totalFiatAmountSent = Number(this.convertToFiatAmount(bchAmount))
+      }
+      if (this.jpp?.parsed?.outputs?.length) {
+        const walletAddress = sendPageUtils.getWallet('bch')?.lastAddress
+        this.recipients = this.jpp.parsed.outputs.map((output) => {
+          const amountBch = (output.amount || 0) / 10 ** 8
+          return {
+            amount: amountBch,
+            fiatAmount: this.convertToFiatAmount(amountBch),
+            fixedAmount: true,
+            recipientAddress: output.address ?? '',
+            paymentAckMemo: ''
+          }
+        })
+        this.inputExtras = this.jpp.parsed.outputs.map((output) => {
+          const [, , isWalletAddress] = sendPageUtils.addressPrechecks(
+            output.address ?? '',
+            [],
+            walletAddress
+          )
+          const amountBch = (output.amount || 0) / 10 ** 8
+          return {
+            amountFormatted: formatWithLocale(amountBch, this.decimalObj(false)),
+            fiatFormatted: formatWithLocale(
+              this.convertToFiatAmount(amountBch),
+              this.decimalObj(true)
+            ),
+            balanceExceeded: false,
+            setMax: false,
+            emptyRecipient: false,
+            selectedDenomination: this.denomination,
+            isBip21: false,
+            isLegacyAddress: false,
+            isWalletAddress,
+            cashbackData: null,
+            incorrectAddress: false
+          }
+        })
+      }
       
       // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
       // Do not use checkTransactionExistsInHistory here: the watchtower is not yet indexed right after broadcast.
