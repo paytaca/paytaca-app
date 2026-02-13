@@ -7,7 +7,7 @@
 	    
 	    <!-- Instructional Text -->
 	    <div v-if="isloaded" class="q-px-lg text-center" style="padding-top: 4px; padding-bottom: 8px;">
-	    	<p :class="darkmode ? 'text-grey-4' : 'text-grey-6'" class="text-body2" style="font-size: 14px; line-height: 1.5; letter-spacing: 0.2px; margin: 0;">
+	    	<p :class="darkmode ? 'text-grey-4' : 'text-grey-8'" class="text-body2" style="font-size: 14px; line-height: 1.5; letter-spacing: 0.2px; margin: 0;">
 	    		Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens.
 	    	</p>
 	    </div>
