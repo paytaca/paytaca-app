@@ -1909,12 +1909,13 @@ export default {
       }
     },
     /**
-     * Check if transaction is a consolidation (sending to own wallet address)
-     * @returns {boolean} True if any recipient is a wallet address
+     * Check if transaction is a consolidation (sending only to own wallet address(es))
+     * @returns {boolean} True if every recipient is a wallet address; false if any recipient is external
      */
     isConsolidationTransaction () {
-      return this.recipients.some(recipient => {
-        const extra = this.inputExtras[this.recipients.indexOf(recipient)]
+      if (!this.recipients?.length) return false
+      return this.recipients.every((_recipient, index) => {
+        const extra = this.inputExtras[index]
         return extra?.isWalletAddress === true
       })
     },
