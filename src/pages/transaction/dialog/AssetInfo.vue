@@ -752,9 +752,10 @@ export default {
     }
     
     .action-label {
-      font-size: 12px;
       font-weight: 600;
       line-height: 1.2;
+      padding-left: 5px;
+      font-size: clamp(13px, 2.5vw, 16px);
     }
     
     &:hover {
@@ -786,14 +787,6 @@ export default {
       min-height: 52px;
       padding: 8px 10px;
       gap: 3px;
-      
-      .action-icon {
-        font-size: 16px;
-      }
-      
-      .action-label {
-        font-size: 11px;
-      }
     }
   }
   
