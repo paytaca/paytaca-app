@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
+  <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless class="no-click-outside">
     <q-card
       class="q-dialog-plugin br-15 pt-card text-bow"
       style="padding: 5px 0;"
