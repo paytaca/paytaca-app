@@ -1,16 +1,6 @@
 <template>
   <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-    <SendSuccessPage
-      v-if="showReceiveSuccessPage"
-      :txid="receivedTxid"
-      :amount="receivedAmount"
-      :asset-symbol="receivedAssetSymbol"
-      :fiat-amount="receivedFiatAmount"
-      :is-cash-token="assetId?.startsWith?.('ct/')"
-      mode="receive"
-    />
-    <template v-else>
-      <header-nav
+    <header-nav
         :title="assetId && assetId.startsWith('ct/') ? ($t('Receive') + ' Token') : ($t('Receive') + (asset?.symbol ? ' ' + asset.symbol : ''))"
         :backnavpath="backNavPath"
         class="header-nav"
@@ -200,7 +190,6 @@
         </div>
       </div>
     </div>
-    </template>
   </div>
 </template>
 
@@ -212,7 +201,6 @@ import {
   convertCashAddress,
   getWatchtowerApiUrl
 } from 'src/wallet/chipnet'
-import { checkTransactionExistsInHistory as checkTransactionExistsInHistoryUtil } from 'src/utils/watchtower-history-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
@@ -228,7 +216,6 @@ import walletAssetsMixin from '../../mixins/wallet-assets-mixin.js'
 
 import HeaderNav from '../../components/header-nav'
 import CustomInput from 'src/components/CustomInput.vue'
-import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 
 export default {
   name: 'receive-page',
@@ -237,8 +224,7 @@ export default {
   ],
   components: {
     HeaderNav,
-    CustomInput,
-    SendSuccessPage
+    CustomInput
   },
   data () {
     return {
@@ -257,12 +243,7 @@ export default {
       tokens: [],
       dynamicAddress: '', // Store dynamically generated address (for display, may be token format)
       dynamicAddressRegular: '', // Store regular format address (for API calls, subscriptions, listeners)
-      isInitializing: true, // Flag to prevent watcher from triggering during initial load
-      showReceiveSuccessPage: false,
-      receivedTxid: '',
-      receivedAmount: null,
-      receivedAssetSymbol: 'BCH',
-      receivedFiatAmount: null
+      isInitializing: true // Flag to prevent watcher from triggering during initial load
     }
   },
   props: {
@@ -361,36 +342,6 @@ export default {
       return this.$store.getters['global/getWallet'](type)
     },
 
-    /**
-     * Check if transaction exists in wallet history
-     * @param {string} txid - Transaction ID to check
-     * @param {string} assetId - Asset ID (e.g., 'bch', 'ct/tokenId', 'slp/tokenId')
-     * @returns {Promise<boolean>} True if transaction exists in history
-     */
-    async checkTransactionExistsInHistory (txid, assetId) {
-      const wallet = this.getWallet('bch')
-      const walletHash = wallet?.walletHash
-      return checkTransactionExistsInHistoryUtil(txid, {
-        walletHash,
-        assetId,
-        isChipnet: this.isChipnet
-      })
-    },
-
-    /**
-     * Show receive success page for consolidation transactions
-     * @param {string} txid - Transaction ID
-     * @param {number} amount - Amount received
-     * @param {string} assetSymbol - Asset symbol
-     * @param {string} assetId - Asset ID
-     */
-    showReceiveSuccess (txid, amount, assetSymbol, assetId) {
-      this.receivedTxid = txid
-      this.receivedAmount = amount
-      this.receivedAssetSymbol = assetSymbol || 'BCH'
-      this.receivedFiatAmount = null // Can be calculated if needed
-      this.showReceiveSuccessPage = true
-    },
     async getMainchainTokens () {
       const tokenWalletHashes = [this.getWallet('bch').walletHash, this.getWallet('slp').walletHash]
       const mainchainTokens = []
