@@ -41,9 +41,6 @@ import { getMerchantList } from 'src/services/card/merchants';
         activeCard: null,
         cashInamount: null,
         selectedCurrency: 'PHP',
-        // Manage Auth NFT
-        showManageAuthNFTdialog: false,
-        genericAuthEnabled: false,
         // Transaction History
         showTransactionHistoryDialog: false,
         showSpendLimitDialog: false,
@@ -60,8 +57,11 @@ import { getMerchantList } from 'src/services/card/merchants';
           zip: '',
           country: ''
         },
-        // Merchants
+        // Merchants - in managing auth nft
+        showManageAuthNFTdialog: false,
         merchantSearch: '',
+        selectedMerchants: '',
+        genericAuthEnabled: false,
         allMerchants: [],
         // Card Replacement
         cardReplacementDialog: false,
@@ -88,11 +88,12 @@ import { getMerchantList } from 'src/services/card/merchants';
       },
 
       filteredMerchants () {
-        if (!this.merchantSearch) return this.allMerchants
+        const search = this.merchantSearch.toLowerCase().trim()
+        if (!search) return []
 
-        const search = this.merchantSearch.toLowerCase()
         return this.allMerchants.filter(merchant => {
-          return merchant.name.toLowerCase().includes(search)
+          merchant.name.toLowerCase().includes(search) ||
+          merchant.address.toLowerCase.includes(search)
         })
       },
 
@@ -127,6 +128,7 @@ import { getMerchantList } from 'src/services/card/merchants';
         return cards
       },
 
+      // Merchant methods
       async refreshMerchants() {
         try {
           const data = await this.getMerchantList({ limit: 100, page: 1})
@@ -137,6 +139,24 @@ import { getMerchantList } from 'src/services/card/merchants';
         }
       },
 
+      addMerchantToList (merchant) {
+        // check if already added to prevent duplicates
+        const exists = this.selectedMerchants.some(m => m.id === merchant.id)
+
+        if (!exists) {
+          this.selectedMerchants.push({
+            ...merchant,
+            isEnabled: false // default merchant toggle is disabled
+          })
+        }
+
+        // clear search to hide dropdown results
+        this.merchantSearch = ''
+      },
+
+      removeMerchant (index) {
+        this.selectedMerchants.splice(index, 1)
+      },
 
       /**
        * 
