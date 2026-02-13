@@ -15,7 +15,7 @@
       <!-- Action Buttons Header -->
       <div class="action-header q-mb-lg" id="action-buttons">
         <div class="row justify-between items-center q-py-sm">
-          <span class="text-h6 text-weight-bold col-6">
+          <span class="text-weight-bold col-6" style="font-size: 17px;">
             {{ $t('AddNewContact').toLocaleUpperCase() }}
           </span>
 
