@@ -16,7 +16,7 @@
         </p>
 
         <!-- Amount Display -->
-        <div v-if="amount && Number(amount) > 0" class="amount-section q-mb-lg">
+        <div v-if="formattedAmount" class="amount-section q-mb-lg">
           <div class="text-caption text-grey q-mb-xs">{{ $t('Amount') }}</div>
           <div class="amount-label text-h4 text-weight-bold text-grad">
             {{ formattedAmount }}
