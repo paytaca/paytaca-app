@@ -89,6 +89,14 @@ import { title } from 'process';
       
       try {
         await this.getCards()
+        // const card = this.subCards[0]
+        // console.log('First card:', card)
+        // const merchants = await getMerchantList({ limit: 100, page: 1, offset: 0 })
+        // console.log('Merchants loaded:', merchants)
+        // const merchant = merchants.results[0]
+        // console.log('First merchant:', merchant)
+        // this.allMerchants = merchants
+        // await this.spend(card, merchant, 1000)
       } catch (error) {
         console.error('Error during mounted lifecycle:', error.response || error)
       }
