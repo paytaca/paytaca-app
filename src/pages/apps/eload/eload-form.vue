@@ -90,7 +90,7 @@
 			</div>
 
 			<!-- Info Card -->
-			<promo-info-card v-if="step > 0 && filters?.service" class="q-mx-lg q-mt-lg" :filters="filters" :step="step" @update="changeValue"/>
+			<promo-info-card v-if="step > 0 && filters?.service" class="q-mx-lg q-mt-lg" :filters="filters" :show-category="showCategory" :step="step" @update="changeValue"/>
 
 			<!-- Selecting Service Group -->
 			<div>
@@ -528,6 +528,9 @@ export default {
 		formattedAmountToPayBch () {
 			if (!Number.isFinite(this.amountToPayBch)) return ''
 			return formatWithLocale(this.amountToPayBch, { max: 8 })
+		},
+		showCategory () {
+			return this.categories.length > 1
 		}
 	},
 	components: {
