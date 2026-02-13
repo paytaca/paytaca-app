@@ -212,6 +212,7 @@ import {
   convertCashAddress,
   getWatchtowerApiUrl
 } from 'src/wallet/chipnet'
+import { checkTransactionExistsInHistory as checkTransactionExistsInHistoryUtil } from 'src/utils/watchtower-history-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useWakeLock } from '@vueuse/core'
 import { formatWithLocale } from 'src/utils/denomination-utils.js'
@@ -367,30 +368,13 @@ export default {
      * @returns {Promise<boolean>} True if transaction exists in history
      */
     async checkTransactionExistsInHistory (txid, assetId) {
-      try {
-        const wallet = this.getWallet('bch')
-        if (!wallet?.walletHash) {
-          return false
-        }
-
-        const baseUrl = getWatchtowerApiUrl(this.isChipnet)
-        let categoryPath = ''
-        
-        // Handle token categories
-        if (assetId?.startsWith?.('ct/') || assetId?.startsWith?.('slp/')) {
-          const tokenId = assetId.split('/')[1]
-          categoryPath = `/${tokenId}`
-        }
-        
-        const url = `${baseUrl}/history/wallet/${encodeURIComponent(wallet.walletHash)}${categoryPath}/`
-        const { data } = await axios.get(url, { params: { txids: txid } })
-        const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
-        
-        return !!tx
-      } catch (error) {
-        console.error('Error checking transaction in history:', error)
-        return false
-      }
+      const wallet = this.getWallet('bch')
+      const walletHash = wallet?.walletHash
+      return checkTransactionExistsInHistoryUtil(txid, {
+        walletHash,
+        assetId,
+        isChipnet: this.isChipnet
+      })
     },
 
     /**

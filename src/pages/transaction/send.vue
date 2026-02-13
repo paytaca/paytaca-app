@@ -404,9 +404,9 @@ import { toTokenAddress } from 'src/utils/crypto'
 import axios from 'axios'
 import {
   getWalletByNetwork,
-  convertTokenAmount,
-  getWatchtowerApiUrl
+  convertTokenAmount
 } from 'src/wallet/chipnet'
+import { checkTransactionExistsInHistory as checkTransactionExistsInHistoryUtil } from 'src/utils/watchtower-history-utils'
 import {
   getAssetDenomination,
   parseFiatCurrency,
@@ -1924,44 +1924,22 @@ export default {
      * @returns {Promise<boolean>} True if transaction exists in history
      */
     async checkTransactionExistsInHistory (txid) {
-      try {
-        if (!this.wallet) {
-          return false
-        }
-
-        // Get the correct wallet based on asset type
-        let walletHash = null
-        if (this.assetId?.startsWith?.('slp/')) {
-          const slpWallet = getWalletByNetwork(this.wallet, 'slp')
-          walletHash = slpWallet?.getWalletHash?.()
-        } else {
-          // For BCH and CT tokens, use BCH wallet
-          const bchWallet = getWalletByNetwork(this.wallet, 'bch')
-          walletHash = bchWallet?.getWalletHash?.()
-        }
-
-        if (!walletHash) {
-          return false
-        }
-
-        const baseUrl = getWatchtowerApiUrl(this.isChipnet)
-        let categoryPath = ''
-        
-        // Handle token categories
-        if (this.assetId?.startsWith?.('ct/') || this.assetId?.startsWith?.('slp/')) {
-          const tokenId = this.assetId.split('/')[1]
-          categoryPath = `/${tokenId}`
-        }
-        
-        const url = `${baseUrl}/history/wallet/${encodeURIComponent(walletHash)}${categoryPath}/`
-        const { data } = await axios.get(url, { params: { txids: txid } })
-        const tx = Array.isArray(data?.history) ? data.history[0] : (Array.isArray(data) ? data[0] : data)
-        
-        return !!tx
-      } catch (error) {
-        console.error('Error checking transaction in history:', error)
+      if (!this.wallet) {
         return false
       }
+      let walletHash = null
+      if (this.assetId?.startsWith?.('slp/')) {
+        const slpWallet = getWalletByNetwork(this.wallet, 'slp')
+        walletHash = slpWallet?.getWalletHash?.()
+      } else {
+        const bchWallet = getWalletByNetwork(this.wallet, 'bch')
+        walletHash = bchWallet?.getWalletHash?.()
+      }
+      return checkTransactionExistsInHistoryUtil(txid, {
+        walletHash: walletHash ?? undefined,
+        assetId: this.assetId,
+        isChipnet: this.isChipnet
+      })
     },
 
     /**
