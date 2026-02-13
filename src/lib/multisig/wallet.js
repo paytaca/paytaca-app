@@ -1436,6 +1436,20 @@ async generateAuthCredentials(xpub) {
   return null
 }
 
+async syncId () {
+  try {
+    if (!this.options?.coordinationServer) return
+    const response = 
+      await this.options?.coordinationServer?.getWallet({identifier: this.generateBsmsDescriptorId()})
+    this.id = response?.id
+  } catch (error) {
+    if (error?.response?.status === 404 && this.id) {
+      this.options?.store?.commit('multisig/updateWalletId', { oldId: this.id, newId: '' })
+    } 
+  }
+}
+
+
 async loadSignersServerIdentity() {
   if (!this.options?.coordinationServer) return
   let modified = false
