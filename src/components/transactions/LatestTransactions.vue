@@ -611,7 +611,7 @@ export default {
   transition: 0.2s;
   font-weight: 500;
   white-space: nowrap;
-  font-size: clamp(13px, 2.5vw, 16px);
+  font-size: clamp(12px, 2.5vw, 16px);
   overflow: hidden;
 }
 
