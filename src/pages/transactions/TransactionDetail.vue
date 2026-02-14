@@ -2113,6 +2113,40 @@ export default {
           margin-bottom: 35px;
         `
 
+        // Network Fee (only when present and > 0)
+        const hasFee = vm.txFee !== null && !Number.isNaN(vm.txFee) && vm.txFee > 0
+        if (hasFee && vm.txFeeFormatted) {
+          const feeContainer = document.createElement('div')
+          feeContainer.style.cssText = `
+            margin-bottom: 20px;
+          `
+          const feeLabel = document.createElement('div')
+          feeLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          `
+          feeLabel.textContent = vm.$t('NetworkFee', {}, 'Network Fee')
+          feeContainer.appendChild(feeLabel)
+          const feeValue = document.createElement('div')
+          feeValue.style.cssText = `
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            letter-spacing: 0.2px;
+          `
+          let feeText = vm.txFeeFormatted
+          if (vm.txFeeInFiat !== null && !Number.isNaN(vm.txFeeInFiat)) {
+            feeText += ` (${vm.parseFiatCurrency(vm.txFeeInFiat, vm.selectedMarketCurrency)})`
+          }
+          feeValue.textContent = feeText
+          feeContainer.appendChild(feeValue)
+          detailsSection.appendChild(feeContainer)
+        }
+
         // Reference ID
         if (referenceId) {
           const refContainer = document.createElement('div')
