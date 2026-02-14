@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Beschikbaar saldo",
   AvailableBchMessage: "Beschikbare BCH na storting",
   AwaitingPayment: "Awaiting Payment",
+  BalanceIncludes: "Saldo omvat: ",
   BCH: "BCH",
   BCHAddressRequired: "BCH address required.",
   BCHAmount: "BCH-bedrag",

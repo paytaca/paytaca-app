@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Verfügbares Guthaben",
   AvailableBchMessage: "Verfügbares BCH nach Einzahlung",
   AwaitingPayment: "Warten auf Zahlung",
+  BalanceIncludes: "Kontostand enthält: ",
   BCH: "BCH",
   BCHAddressRequired: "BCH-Adresse erforderlich.",
   BCHAmount: "BCH-Betrag",

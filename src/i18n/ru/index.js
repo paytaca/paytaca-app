@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Доступный баланс",
   AvailableBchMessage: "Доступен BCH после депозита",
   AwaitingPayment: "Ожидание оплаты",
+  BalanceIncludes: "Баланс включает: ",
   BCH: "БЧ",
   BCHAddressRequired: "Требуется адрес BCH.",
   BCHAmount: "Сумма BCH",

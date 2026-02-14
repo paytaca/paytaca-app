@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "可用餘額",
   AvailableBchMessage: "充值後可用BCH",
   AwaitingPayment: "等待付款",
+  BalanceIncludes: "餘額包含：",
   BCH: "生物安全信息交換所",
   BCHAddressRequired: "需要 BCH 地址。",
   BCHAmount: "生物安全信息交換所數量",

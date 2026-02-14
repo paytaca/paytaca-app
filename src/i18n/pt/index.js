@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Saldo disponível",
   AvailableBchMessage: "BCH disponível após depósito",
   AwaitingPayment: "Aguardando Pagamento",
+  BalanceIncludes: "O saldo inclui: ",
   BCH: "BCH",
   BCHAddressRequired: "Endereço BCH necessário.",
   BCHAmount: "Montante BCH",

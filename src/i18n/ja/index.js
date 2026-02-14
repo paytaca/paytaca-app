@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "利用可能残高",
   AvailableBchMessage: "入金後に利用可能なBCH",
   AwaitingPayment: "支払い待ち",
+  BalanceIncludes: "残高に含む: ",
   BCH: "BCH",
   BCHAddressRequired: "BCH アドレスが必要です。",
   BCHAmount: "BCHの量",

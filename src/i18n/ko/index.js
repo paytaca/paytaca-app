@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "사용 가능한 잔액",
   AvailableBchMessage: "BCH 입금 후 이용 가능",
   AwaitingPayment: "결제 대기 중",
+  BalanceIncludes: "잔액 포함: ",
   BCH: "BCH",
   BCHAddressRequired: "BCH 주소가 필요합니다.",
   BCHAmount: "BCH 금액",

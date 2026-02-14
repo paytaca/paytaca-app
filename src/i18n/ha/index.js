@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Akwai Ma'auni",
   AvailableBchMessage: "Akwai BCH bayan ajiya",
   AwaitingPayment: "Jiran Biya",
+  BalanceIncludes: "Ma'auni ya haɗa: ",
   BCH: "BCH",
   BCHAddressRequired: "Ana buƙatar adireshin BCH.",
   BCHAmount: "Adadin BCH",

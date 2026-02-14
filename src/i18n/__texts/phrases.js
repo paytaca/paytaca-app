@@ -67,6 +67,7 @@ const phrases = {
       GetBCH: "Get BCH",
       AddMemo: "Add memo",
       DateAndTime: "Date & Time",
+      BalanceIncludes: "Balance includes: ",
       BCHOnly: "BCH only",
       BCHPlusFavorites: "BCH + favorite tokens",
       DerivationPath: "Derivation Path",

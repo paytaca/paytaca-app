@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "الرصيد المتاح",
   AvailableBchMessage: "غرفة تبادل معلومات السلامة الأحيائية متاحة بعد الإيداع",
   AwaitingPayment: "في انتظار الدفع",
+  BalanceIncludes: "الرصيد يتضمن: ",
   BCH: "غرفة تبادل معلومات السلامة الأحيائية",
   BCHAddressRequired: "مطلوب عنوان غرفة تبادل معلومات السلامة الأحيائية (BCH).",
   BCHAmount: "مبلغ غرفة تبادل معلومات السلامة الأحيائية",

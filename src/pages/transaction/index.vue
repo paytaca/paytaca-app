@@ -100,7 +100,8 @@
                           </div>
                         </div>
                         <div class="bch-card-controls row items-center no-wrap">
-                          <div @click.stop style="display: inline-block;">
+                          <div v-if="favoriteTokens.length" @click.stop class="balance-mode-control">
+                            <span class="text-caption text-white balance-mode-label">{{ $t('BalanceIncludes', {}, 'Balance includes: ') }}</span>
                             <q-select
                               :model-value="bchBalanceMode"
                               :options="balanceModeOptions"
@@ -112,7 +113,7 @@
                               map-options
                               dense
                               borderless
-                              class="balance-mode-selector q-mt-xs"
+                              class="balance-mode-selector"
                               :popup-content-class="`text-bow ${getDarkModeClass(darkMode)}`"
                               style="max-width: 200px; font-size: 12px; height: 24px;"
                               @update:model-value="onBalanceModeChange"
@@ -2719,6 +2720,24 @@ export default {
       // Allow the select to shrink so it doesn't push the badge or wrap.
       > div {
         min-width: 0;
+      }
+
+      .balance-mode-control {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: baseline;
+        flex-wrap: nowrap;
+      }
+
+      .balance-mode-label {
+        margin-right: 4px;
+        opacity: 0.9;
+        white-space: nowrap;
+        line-height: 24px;
+      }
+
+      .balance-mode-control .balance-mode-selector .q-field__control {
+        min-height: 24px;
       }
 
       .balance-mode-selector {

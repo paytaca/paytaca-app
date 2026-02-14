@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Solde disponible",
   AvailableBchMessage: "BCH disponible après dépôt",
   AwaitingPayment: "En attente de paiement",
+  BalanceIncludes: "Le solde inclut : ",
   BCH: "CEPRB",
   BCHAddressRequired: "Adresse BCH requise.",
   BCHAmount: "Montant du CEPRB",

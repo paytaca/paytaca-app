@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Beskikbare balans",
   AvailableBchMessage: "Beskikbaar BCH na deposito",
   AwaitingPayment: "Wag op betaling",
+  BalanceIncludes: "Balans sluit in: ",
   BCH: "BCH",
   BCHAddressRequired: "BCH-adres vereis.",
   BCHAmount: "BCH bedrag",

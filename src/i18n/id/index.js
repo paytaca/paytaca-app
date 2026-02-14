@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Saldo Tersedia",
   AvailableBchMessage: "BCH tersedia setelah deposit",
   AwaitingPayment: "Menunggu Pembayaran",
+  BalanceIncludes: "Saldo mencakup: ",
   BCH: "SM",
   BCHAddressRequired: "Alamat BCH diperlukan.",
   BCHAmount: "Jumlah BCH",

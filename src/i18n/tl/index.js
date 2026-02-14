@@ -187,6 +187,7 @@ export default {
   AvailableBalance: "Magagamit na Balanse",
   AvailableBchMessage: "Available ang BCH pagkatapos ng deposito",
   AwaitingPayment: "Naghihintay ng Bayad",
+  BalanceIncludes: "Kasama sa balanse: ",
   BCH: "BCH",
   BCHAddressRequired: "Kinakailangan ang BCH address.",
   BCHAmount: "Halaga ng BCH",
