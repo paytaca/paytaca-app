@@ -102,7 +102,7 @@
             <div class="text-grey">{{ $t('NetworkFee') }}</div>
             {{ txFeeFormatted }}
             <template v-if="txFeeInFiat !== null && !Number.isNaN(txFeeInFiat)">
-              ({{ parseFiatCurrency(txFeeInFiat, selectedMarketCurrency) }})
+              ({{ formatTxFeeInFiat(txFeeInFiat) }})
             </template>
           </div>
         </div>
@@ -376,7 +376,7 @@ import headerNav from 'src/components/header-nav'
 import { cachedLoadWallet } from 'src/wallet'
 import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
-import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
@@ -975,6 +975,14 @@ export default {
     },
     getDarkModeClass,
     parseFiatCurrency,
+    formatTxFeeInFiat (value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return ''
+      const num = Number(value)
+      const code = String(this.selectedMarketCurrency || '').toUpperCase()
+      if (num < 0.001) return `< 0.001 ${code}`
+      if (num < 0.01) return `${formatWithLocale(num, { min: 0, max: 3 })} ${code}`
+      return this.parseFiatCurrency(num, code)
+    },
     getAssetDenomination,
     parseAssetDenomination,
     createMutableCopy (obj) {
@@ -2140,7 +2148,7 @@ export default {
           `
           let feeText = vm.txFeeFormatted
           if (vm.txFeeInFiat !== null && !Number.isNaN(vm.txFeeInFiat)) {
-            feeText += ` (${vm.parseFiatCurrency(vm.txFeeInFiat, vm.selectedMarketCurrency)})`
+            feeText += ` (${vm.formatTxFeeInFiat(vm.txFeeInFiat)})`
           }
           feeValue.textContent = feeText
           feeContainer.appendChild(feeValue)
