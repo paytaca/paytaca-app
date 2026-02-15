@@ -5,7 +5,7 @@ import { binToHex } from "@bitauth/libauth";
 import { attemptTrade } from "./transact";
 
 // const SERVER_URL = 'wss://rostrum.cauldron.quest:50002'
-const SERVER_URL = 'wss://rostrum.moria.money:443'
+const SERVER_URL = 'wss://rostrum.riften.net:443'
 
 
 /**
