@@ -1,6 +1,6 @@
 <template>
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
-        <header-nav :title="$t('WalletDetails', {}, 'Wallet Details')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav header-nav apps-header" />
+        <header-nav :title="$t('WalletSettings', {}, 'Wallet Settings')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav header-nav apps-header" />
         <div class="row text-bow" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
           
           <div class="col-12 q-px-lg q-mt-md">
@@ -164,7 +164,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'src/components/CopyButton.vue'
-import { generateCoordinatorServerIdentityFromMnemonic } from 'src/lib/multisig/wallet'
+import { generateCoordinatorServerIdentityFromMnemonic } from 'src/lib/multisig/coordination.js'
 
 
 const { t: $t } = useI18n()
