@@ -6,6 +6,7 @@ import Card from 'src/services/card/card.js';
 import { loadCardUser } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
 import { getMerchantList } from 'src/services/card/merchants';
+import { title } from 'process';
 
   export const createCardLogic = {
       
@@ -43,6 +44,15 @@ import { getMerchantList } from 'src/services/card/merchants';
         selectedCurrency: 'PHP',
         // Transaction History
         showTransactionHistoryDialog: false,
+        transactionSearch: '',
+        // dummy transaction data:
+        transactions: Array.from({length: 10}, (_, i) => ({
+          id: i + 1, 
+          name: `Merchant: ${i + 1}`, // merchant name
+          amount: i % 2 === 0 ? 150.00 : -45.50,
+          date: '2026-2-16'
+        })),
+        // Spend Limit
         showSpendLimitDialog: false,
         tempSpendLimitAmount: 0,
         isSweep: false,
@@ -90,6 +100,17 @@ import { getMerchantList } from 'src/services/card/merchants';
         }))
       },
 
+      filteredTransactions () {
+        if (!this.transactionSearch) {
+          return this.transactions
+        }
+
+        const search = this.transactionSearch.toLowerCase()
+        return this.transactions.filter(merch => {
+          return merch.name.toLowerCase().includes(search)
+        })
+      },
+
       allMerchants () {
         return this.merchantList.merchants
       },
@@ -114,6 +135,7 @@ import { getMerchantList } from 'src/services/card/merchants';
           overflow: 'hidden'
         }
       },
+
       walletBalance() {
         const asset = this.$store.getters['assets/getAssets'][0]
         return asset?.spendable || 0
@@ -542,7 +564,7 @@ import { getMerchantList } from 'src/services/card/merchants';
       },
 
       viewTransactionHistory(card) {
-        if (card instanceof Event || !card) {
+        if (!card || card instanceof Event) {
           this.selectedCard = null
         }
         else {
