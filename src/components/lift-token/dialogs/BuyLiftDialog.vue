@@ -202,7 +202,7 @@ import {
   executePurchaseFlow
 } from 'src/utils/engagementhub-utils/lift-token'
 import { formatWithLocale } from 'src/utils/denomination-utils'
-import { raiseNotifyError } from 'src/utils/send-page-utils'
+import { raiseNotifyError } from 'src/utils/notify-utils'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
 import { getMnemonic, Wallet } from 'src/wallet'
 import CustomInput from 'src/components/CustomInput.vue'

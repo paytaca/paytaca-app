@@ -374,6 +374,26 @@ const routes = [
             component: () => import('src/pages/apps/lift-token/index.vue')
           }
         ]
+      },
+      {
+        path: 'address-book',
+        children: [
+          {
+            path: '',
+            name: 'app-address-book',
+            component: () => import('src/pages/apps/address-book/index.vue')
+          },
+          {
+            path: 'view-record/:id/',
+            name: 'app-address-book-view-record',
+            component: () => import('src/pages/apps/address-book/view-record.vue')
+          },
+          {
+            path: 'add-record',
+            name: 'app-address-book-add-record',
+            component: () => import('src/pages/apps/address-book/add-record.vue')
+          }
+        ]
       }
     ]
   },

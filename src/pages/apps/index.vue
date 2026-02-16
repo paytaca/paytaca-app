@@ -192,7 +192,15 @@ export default {
           smartBCHOnly: false
         },
         {
-          id: 'gifts',
+          name: this.$t('AddressBook'),
+          description: this.$t('Apps.AddressBook.Description', {}, 'Create and manage contacts and addresses.'),
+          iconName: 'mdi-book-account',
+          path: '/apps/address-book/',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           name: this.$t('Gifts'),
           description: this.$t('Apps.Gifts.Description', {}, 'Create and redeem BCH gifts.'),
           iconName: 'mdi-gift',

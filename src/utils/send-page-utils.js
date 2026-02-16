@@ -1,6 +1,6 @@
 import { Store } from 'src/store'
 import { markRaw } from '@vue/reactivity'
-import { Notify, Dialog } from 'quasar'
+import { Dialog } from 'quasar'
 import { i18n } from 'src/boot/i18n'
 import { Address } from 'src/wallet'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
@@ -10,6 +10,7 @@ import axios from 'axios'
 import { isValidTokenAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { isTokenAddress } from 'src/utils/address-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { raiseNotifyError } from './notify-utils'
 import { decodeCashAddress, decodeCashAddressFormatWithoutPrefix } from '@bitauth/libauth'
 import {
   generateChangeAddress,
@@ -258,16 +259,6 @@ export function parseAddressWithoutPrefix(prefixlessAddress) {
     valid: true,
     address: `${result.prefix}:${prefixlessAddress}`,
   }
-}
-
-
-export function raiseNotifyError (message, timeout = 3000) {
-  Notify.create({
-    type: 'negative',
-    color: 'red-4',
-    timeout: timeout,
-    message: message
-  })
 }
 
 export function paymentUriPromiseResponseHandler (error, opts = { defaultError: '' }) {
