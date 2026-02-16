@@ -589,9 +589,42 @@
               <q-input v-model="transactionSearch" label="Search" outlined dense class="q-mb-md"/>
           </q-card-section>
 
-          <q-card-section>
-            Contents
+          <q-card-section class="row items-center q-mb-none">
+            <div class="text-subtitle1 text-weight-bold">Contents</div>
+            <q-space />
+            <div class="row q-gutter-x-sm">
+              <q-btn
+                flat
+                dense
+                size="sm"
+                :color="sortKey === 'date' ? 'primary' : 'grey-7'"
+                label="Date"
+                @click="toggleSort('date')"
+              >
+                <q-icon 
+                  :name="sortKey === 'date' ? (sortOrder === 'asc' ? 'expand_less' : 'expand_more') : 'unfold_more' "
+                  size="xs"
+                  class="q-ml-xs"
+                />
+              </q-btn>
+
+              <q-btn
+                flat
+                dense
+                size="sm"
+                :color="sortKey === 'amount' ? 'primary' : 'grey-7'"
+                label="Amount"
+                @click="toggleSort('amount')"
+              >
+                <q-icon 
+                  :name="sortKey === 'amount' ? (sortOrder === 'asc' ? 'expand_less' : 'expand_more') : 'unfold_more' "
+                  size="xs"
+                />
+              </q-btn>
+            </div>
           </q-card-section>
+
+          <q-card-section>Transaction id.................................Amount</q-card-section>
 
           <q-card-actions align="right">
               <q-btn flat label="Close" color="primary" v-close-popup />
