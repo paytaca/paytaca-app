@@ -72,14 +72,6 @@ import { getMerchantList } from 'src/services/card/merchants';
       
       try {
         await this.getCards()
-        // const card = this.subCards[0]
-        // console.log('First card:', card)
-        // const merchants = await getMerchantList({ limit: 100, page: 1, offset: 0 })
-        // console.log('Merchants loaded:', merchants)
-        // const merchant = merchants.results[0]
-        // console.log('First merchant:', merchant)
-        // this.allMerchants = merchants
-        // await this.spend(card, merchant, 1000)
       } catch (error) {
         console.error('Error during mounted lifecycle:', error.response || error)
       }
@@ -201,8 +193,10 @@ import { getMerchantList } from 'src/services/card/merchants';
        * This is here only for testing purposes
        */
       async spend(card, merchant, amountSats = 1000) {
+        console.log('card:', card)
         const proof = {
-          mac: "1368411506b1f4ec6dca2e319ce2eb9a", // dummy
+          // uid: card.uid,
+          mac: "a3ff3b94857b1eafffff4d4fc68e7379", // dummy
           counter: 1,
         }
         const spendResult = await card.spend(
