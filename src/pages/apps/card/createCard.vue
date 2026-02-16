@@ -560,6 +560,31 @@
               <div class="text-h6">Transaction History</div>
           </q-card-section>
 
+          <q-card-section class="q-pb-none">
+            <q-select
+              v-model="selectedCard"
+              :options="cardOptions"
+              label="Select Card"
+              outlined
+              dense
+              emit-value
+              map-options
+              class="q-mb-sm"
+            >
+              <template v-slot:prepend>
+                <q-icon name="credit_card" color="primary" />
+              </template>
+
+              <template>
+                <q-item>
+                  <q-item-section class="text-italic text-grey">
+                    No cards found
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+          </q-card-section>
+
           <q-card-section class="q-pt-none">
               <q-input v-model="transactionSearch" label="Search" outlined dense class="q-mb-md"/>
           </q-card-section>
