@@ -1,5 +1,5 @@
 import { bigIntToCompactUint, binToHex, hash256, secp256k1, utf8ToBin } from "bitauth-libauth-v3"
-import { encryptECIESMessage } from "./ecies";
+import { encryptECIESMessage } from "./ecies.js";
 
 
 export class BsmsDescriptor {

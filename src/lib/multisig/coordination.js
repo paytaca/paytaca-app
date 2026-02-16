@@ -8,7 +8,7 @@ import {
     secp256k1,
   } from 'bitauth-libauth-v3'
 
-import { deriveHdKeysFromMnemonic } from './utils'
+import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const generateCoordinationServerSignature = (privateKey, message) => {
     const hash = sha256.hash(utf8ToBin(message))
