@@ -322,7 +322,7 @@ const routes = [
           { path: 'wallet/import-from-server', component: () => import('src/pages/apps/multisig/wallet/import-from-server.vue'), name: 'app-multisig-wallet-import-from-server' },
           { path: 'wallet/signer/qrcode', component: () => import('src/pages/apps/multisig/wallet/signer/qrcode.vue'), name: 'app-multisig-signer-qrcode' },
           { path: 'wallet/:wallethash', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
-          { path: 'wallet/:wallethash/details', component: () => import('src/pages/apps/multisig/wallet/details.vue'), name: 'app-multisig-wallet-details' },
+          { path: 'wallet/:wallethash/settings', component: () => import('src/pages/apps/multisig/wallet/settings.vue'), name: 'app-multisig-wallet-settings' },
           { 
             path: 'wallet/:wallethash/asset',
             component: () => import('src/pages/apps/multisig/wallet/asset.vue'),
