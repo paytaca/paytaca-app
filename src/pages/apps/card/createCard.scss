@@ -118,10 +118,8 @@ animation: float 6s ease-in-out infinite;
 .half-right-btn {
   border-radius: 25px 0px 0px 25px !important;
 	height: 44px;
+	right: 0px;
 	padding: 11px 13px 13px 20px;
-	// position: absolute;
-	// right: -10px;
-	// z-index: 100;
 	box-shadow: inset 2px 2px 4px rgba(255, 255, 255, 1.0),
 							inset -2px -2px 4px rgba(0, 0, 0, 0.2),
 							-4px 4px 10px rgba(0, 0, 0, 0.3);
@@ -141,5 +139,20 @@ animation: float 6s ease-in-out infinite;
 	transform: translateX(2px);
 }
 
+.scroll {
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
 
+	&::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.1);
+		border-radius: 10px;
+
+		&:hover {
+			background: var(--q-primary);
+		}
+	}
+}
 

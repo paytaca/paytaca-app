@@ -36,7 +36,7 @@
               <span>My Cards</span>
           </div>
 
-          <div class="absolute-right full-height row items-center" style="right: -12px;"> 
+          <div class="absolute-right row items-center"> 
             <q-btn 
               label="Transactions"
               class="half-right-btn"
@@ -575,7 +575,7 @@
                 <q-icon name="credit_card" color="primary" />
               </template>
 
-              <template>
+              <template v-slot:no-option>
                 <q-item>
                   <q-item-section class="text-italic text-grey">
                     No cards found
@@ -586,7 +586,7 @@
           </q-card-section>
 
           <q-card-section class="q-pt-none">
-              <q-input v-model="transactionSearch" label="Search" outlined dense class="q-mb-md"/>
+              <q-input v-model="transactionSearch" label="Search..." outlined dense class="q-mb-md"/>
           </q-card-section>
 
           <q-card-section class="row items-center q-mb-none">
@@ -623,8 +623,29 @@
               </q-btn>
             </div>
           </q-card-section>
+ 
+          <!-- filter merchants in transaction search -->
+          <q-card-section class="scroll" style="height: 300px; max-height: 50vh;">
+            <div v-if="filteredTransactions && filteredTransactions.length > 0">
+              <q-list separator>
+                <q-item v-for="merch in filteredTransactions" :key="merch.id" class="q-px-none">
+                  <q-item-section>
+                    <q-item-label>{{ merch.name }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <div class="text-weight-bold" :class="merch.amount > 0 ? 'text-positive' : 'text-negative' ">
+                      {{ merch.amount > 0 ? '+' : '' }}{{ merch.amount }}
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
 
-          <q-card-section>Transaction id.................................Amount</q-card-section>
+            <div v-else class="text-center q-pa-lg text-grey">
+              <q-icon name="history" size="lg" class="q-mb-sm" />
+              <div>No transactions found</div>
+            </div>
+          </q-card-section>
 
           <q-card-actions align="right">
               <q-btn flat label="Close" color="primary" v-close-popup />
