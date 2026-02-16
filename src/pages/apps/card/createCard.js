@@ -83,6 +83,13 @@ import { getMerchantList } from 'src/services/card/merchants';
     },
 
     computed: {
+      cardOptions () {
+        return this.subCards.map(card => ({
+          label: card.name,
+          value: card.id
+        }))
+      },
+
       allMerchants () {
         return this.merchantList.merchants
       },
@@ -312,8 +319,8 @@ import { getMerchantList } from 'src/services/card/merchants';
         ];
 
         for (const pattern of patterns) {
-          const match = message.match(pattern);
-          if (match) return Number(match[1]);
+          const match = message.match(pattern)
+          if (match) return Number(match[1])
         }
 
         return null;
@@ -321,8 +328,8 @@ import { getMerchantList } from 'src/services/card/merchants';
 
       // Open dialog
       openCreateCardDialog(){
-        this.newCardName = '';
-        this.createCardDialog = true;
+        this.newCardName = ''
+        this.createCardDialog = true
       },
 
       cardReplacement(){
@@ -403,7 +410,7 @@ import { getMerchantList } from 'src/services/card/merchants';
       async handleCreateCard(){
         if(!this.newCardName){
           this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
-          return;
+          return
         }
 
         try {
@@ -456,14 +463,14 @@ import { getMerchantList } from 'src/services/card/merchants';
           persistent: true
         }).onOk(data => {
           if (data.length <= 10){
-            card.name = data;
+            card.name = data
           }
         })
       },
 
       viewCard(card){
-        this.selectedCard = card;
-        this.viewCardDialog = true;
+        this.selectedCard = card
+        this.viewCardDialog = true
       },
 
       copyToClipboard(text){
@@ -472,57 +479,57 @@ import { getMerchantList } from 'src/services/card/merchants';
             message: 'Copied to clipboard',
             color: 'positive',
             position: 'top'
-          });
+          })
         }).catch(() => {
           this.$q.notify({
             message: 'Failed to copy',
             color: 'negative',
             position: 'top'
-          });
-        });
+          })
+        })
       },
 
       handleCashIn(card) {   
-        this.viewCardDialog = false; 
-        this.activeCard = card;
-        this.tempAmount = 0;
-        this.showCashInDialog = true;
+        this.viewCardDialog = false
+        this.activeCard = card
+        this.tempAmount = 0
+        this.showCashInDialog = true
       },
 
       confirmCashIn() {
-        const amount = parseFloat(this.tempAmount);
+        const amount = parseFloat(this.tempAmount)
 
         if (!amount || amount <= 0) {
           this.$q.notify({
             message: 'Please enter a valid amount',
             color: 'negative',
             icon: 'warning'
-          });
-          return;
+          })
+          return
         }
 
-        this.cashInAmount = amount;
-        this.showCashInDialog = false;
+        this.cashInAmount = amount
+        this.showCashInDialog = false
         
-        console.log(`Cashing in ${this.cashInAmount} ${this.selectedCurrency} for card:`, this.activeCard);
+        console.log(`Cashing in ${this.cashInAmount} ${this.selectedCurrency} for card:`, this.activeCard)
         
         // Call actual Cash in function
       },
 
       openCardMenu(evt, card){
-        this.cardMenu.card = card;
-        this.cardMenu.visible = true;
+        this.cardMenu.card = card
+        this.cardMenu.visible = true
         
         this.$nextTick(() => {
-          this.cardMenu.anchorOrigin = 'top right';
-          this.cardMenu.selfOrigin = 'top right';
+          this.cardMenu.anchorOrigin = 'top right'
+          this.cardMenu.selfOrigin = 'top right'
         })
         
       },
 
       manageAuthNFTs(card) {
-        this.selectedCard = card;
-        this.merchantSearch = '';
+        this.selectedCard = card
+        this.merchantSearch = ''
         this.genericAuthEnabled = card.hasGenericAuth || false;
 
         this.showManageAuthNFTdialog = true;
@@ -535,15 +542,21 @@ import { getMerchantList } from 'src/services/card/merchants';
       },
 
       viewTransactionHistory(card) {
-        this.selectedCard = card;
-        this.showTransactionHistoryDialog = true;
-        this.transactionSearch = '';
+        if (card instanceof Event || !card) {
+          this.selectedCard = null
+        }
+        else {
+          this.selectedCard = card.id
+        }
+        
+        this.showTransactionHistoryDialog = true
+        this.transactionSearch = ''
       },
 
       editSpendLimit(card){
-        this.selectedCard = card;
+        this.selectedCard = card
         this.tempSpendLimitAmount = card.spendLimitAmount || 0
-        this.showSpendLimitDialog = true;
+        this.showSpendLimitDialog = true
       },
 
       async updateSpendLimit(){
