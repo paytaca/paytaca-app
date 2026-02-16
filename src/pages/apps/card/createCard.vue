@@ -30,9 +30,22 @@
       <div class="q-mt-lg q-ml-lg">
         
         <!-- Header -->
-        <div class="text-h6 q-mb-md q-mt-md row items-center">
-          <q-icon name="credit_card" class="q-mr-sm" color="primary" />
-          My Cards
+        <div class="row items-center justify-between relative-position overflow-visible" style="height: 50px; margin-bottom: 24px;">
+          <div class="row items-center text-h6">
+            <q-icon name="credit_card" class="q-mr-sm" color="primary" />
+              <span>My Cards</span>
+          </div>
+
+          <div class="absolute-right full-height row items-center" style="right: -12px;"> 
+            <q-btn 
+              label="Transactions"
+              class="half-right-btn"
+              unelevated
+              no-caps
+              @click="viewTransactionHistory(null)"
+            />
+          </div>
+          
         </div>
 
         <!-- Cards Grid -->
