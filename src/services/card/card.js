@@ -107,7 +107,7 @@ export class Card {
    * @returns {Promise<void>}
    */
   async _ensureCardUserAuthenticated() {
-    const user = await loadCardUser();
+    await loadCardUser();
   }
 
   // ==================== WORKFLOWS ====================
@@ -233,6 +233,7 @@ export class Card {
     });
 
     const data = response.data;
+    console.log('Preimage response:', data);
     if (data.success === false) {
       throw new Error(data.error || 'Failed to get preimages for spend transaction');
     }
@@ -244,13 +245,14 @@ export class Card {
       wif: privkey
     });
 
+    console.log('signatures:', signatures);
+
     const spendResponse = await backend.post(`/cards/${this.raw.cash_address}/spend/`, {
       merchant_id: merchantId,
-      to_address: toAddress,
-      amount_sats: amountSats,
       tx: {
         hex: data.txHex,
-        signatures: signatures
+        signatures: signatures,
+        inputs: data.inputs
       }
     });
     

@@ -144,7 +144,7 @@ export class TapToPay {
         })
 
         // Filter UTXOs to only those matching the token category and merchant hashes
-        const tokenCategory = reverseHex(this.contractCreationParams.authCategory)
+        const tokenCategory = this.contractCreationParams.authCategory
         const utxosToMutate = utxos.filter(utxo => {
             if (utxo.token?.nft?.commitment) {
                 const commitment = utxo.token?.nft?.commitment
