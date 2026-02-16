@@ -612,8 +612,14 @@ export class Pst {
    * @returns {string} Unsigned transaction hex
    */
   getUnsignedTransaction(){
+    const inputs = this.inputs.map(input => {
+       return {
+          ...input,
+          unlockingBytecode: []
+       }
+    })
     return (new MultisigTransactionBuilder())
-      .addInputs(this.inputs)
+      .addInputs(inputs)
       .addOutputs(this.outputs)
       .build()
   }
@@ -913,6 +919,12 @@ export class Pst {
 
   getSigningProgress() {
     return getSigningProgress(this)
+  }
+
+  getStatus() {
+    return this.options?.coordinationServer?.getProposalStatus({ 
+      unsignedTransactionHash: this.unsignedTransactionHash 
+    })
   }
 
   /**
