@@ -128,6 +128,14 @@ export const SIGNING_PROGRESS = {
   INCONSISTENT: 'inconsistent'
 }
 
+export const BROADCAST_STATUS = {
+  PENDING: 'pending',
+  BROADCASTED: 'broadcasted',
+  CONFLICTED: 'conflicted',
+  MEMPOOL: 'mempool',
+  CONFIRMED: 'confirmed'
+}
+
 /**
  * Revives special types formatted by the stringify function:
  * - `<Uint8Array: 0x...>` → Uint8Array
@@ -921,10 +929,20 @@ export class Pst {
     return getSigningProgress(this)
   }
 
-  getStatus() {
-    return this.options?.coordinationServer?.getProposalStatus({ 
+  async fetchStatus({ deleteIfBroadcasted }) {
+    const status = await this.options?.coordinationServer?.getProposalStatus({ 
       unsignedTransactionHash: this.unsignedTransactionHash 
     })
+
+    if (
+      status.broadcast_status === BROADCAST_STATUS.BROADCASTED || 
+      status.broadcast_status === BROADCAST_STATUS.MEMPOOL || 
+      status.broadcast_status === BROADCAST_STATUS.CONFIRMED
+    )
+    if(deleteIfBroadcasted) {
+      return await this.delete()
+    }
+    this.status = status
   }
 
   /**

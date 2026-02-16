@@ -669,6 +669,9 @@ onMounted(async () => {
   await loadSignerXPrvs()
   await loadPst()
   await loadPstInputsTransactionData()
+  if (pst.value.id) {
+    await pst.value.fetchStatus({ deleteIfBroadcasted: true })
+  }
 })
 
 </script>
