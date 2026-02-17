@@ -3,6 +3,7 @@ import { NATIVE_BCH_TOKEN_ID, PayoutAmountRuleType } from '@cashlab/common';
 import { cashAddressToLockingBytecode, privateKeyToP2pkhLockingBytecode } from "@cashlab/common/libauth.js";
 import { buildPoolV0UnlockingBytecode } from '@cashlab/cauldron';
 import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
+import { calcTradeSummary, calcTradeWithTargetDemandFromAPair } from "@cashlab/cauldron/util.js";
 
 
 /**
@@ -30,6 +31,7 @@ export function attemptTrade(opts) {
   }
 
   if (demand) {
+    console.log('Target demand', demand)
     return exlab.constructTradeBestRateForTargetDemand(
       supply_token_id,
       demand_token_id,
@@ -47,6 +49,52 @@ export function attemptTrade(opts) {
     )
   }
 }
+
+/**
+ * @param {Object} opts
+ * @param {import("@cashlab/cauldron").ExchangeLab} opts.exlab
+ * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult 
+ * @param {bigint} opts.amount
+ * @returns {import("@cashlab/cauldron").TradeResult}
+ */
+export function reduceDemand(opts) {
+  const exlab = opts?.exlab ?? new ExchangeLab();
+  const tradeResult = opts?.tradeResult;
+  const amount = opts?.amount;
+
+  const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
+  const entriesLength = BigInt(tradeResult.entries.length);
+  const amountPerEntry = amount / entriesLength;
+  let remainder = Number(amount % entriesLength);
+
+  const changes = [];
+  for (var i = 0; i < tradeResult.entries.length; i++) {
+    const reducedAmount = amountPerEntry + (i < remainder ? 1n : 0n);
+    if (reducedAmount == 0n) continue;
+    const entry = tradeResult.entries[i];
+    const targetDemand = entry.demand - reducedAmount;
+
+    const calcResult = calcTradeWithTargetDemandFromAPair({
+      a: isSupplyBch ? entry.pool.output.amount : entry.pool.output.token.amount,
+      b: isSupplyBch ? entry.pool.output.token.amount : entry.pool.output.amount,
+      a_min_reserve: exlab.getMinTokenReserve(entry.supply_token_id),
+      b_min_reserve: exlab.getMinTokenReserve(entry.demand_token_id),
+    }, targetDemand)
+
+    console.log(`Entry ${i}\n\tDemand: ${entry.demand} => ${targetDemand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
+
+    tradeResult.entries[i].demand = targetDemand;
+    tradeResult.entries[i].supply = calcResult.supply;
+    tradeResult.entries[i].trade_fee = calcResult.trade_fee;
+  }
+
+  const newTradeSummary = calcTradeSummary(tradeResult.entries, tradeResult.summary.rate.denominator);
+  return {
+    entries: tradeResult.entries,
+    summary: newTradeSummary,
+  }
+}
+
 
 
 const P2PKH_INPUT_SIZE = 141n;

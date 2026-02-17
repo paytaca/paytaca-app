@@ -313,7 +313,7 @@
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
-import { attemptTrade, createInputAndOutput, getEntriesSize } from 'src/wallet/cauldron/transact';
+import { attemptTrade, createInputAndOutput, getEntriesSize, reduceDemand } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -532,12 +532,18 @@ export default defineComponent({
           isRecomputingTrade.value = false;
           return;
         }
-        const result = attemptTrade({
+        let result = attemptTrade({
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
           demand: isSupplyMode.value ? 0n : amountInUnits.value,
           supply: isSupplyMode.value ? amountInUnits.value : 0n,
         })
+
+        if (!isSupplyMode.value && amountInUnits.value < result.summary.demand) {
+          const reducedAmount = result.summary.demand - amountInUnits.value;
+          console.warn(`Resulting demand is above ${reducedAmount} units, reducing demand`)
+          result = reduceDemand({ tradeResult: result, amount: reducedAmount });
+        }
         tradeResult.value = result;
         tradeResultError.value = '';
         isRecomputingTrade.value = false;
@@ -936,6 +942,7 @@ export default defineComponent({
           spendableCoins,
           platformFee: _platformFee
         })
+
         const exlab = new ExchangeLab()
         const txFeePerByte = 1n;
         const tradeTxBuildResult = exlab.createTradeTx(
