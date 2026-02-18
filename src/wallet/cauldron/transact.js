@@ -1,9 +1,9 @@
 import { ExchangeLab } from "@cashlab/cauldron";
 import { NATIVE_BCH_TOKEN_ID, PayoutAmountRuleType } from '@cashlab/common';
-import { cashAddressToLockingBytecode, privateKeyToP2pkhLockingBytecode } from "@cashlab/common/libauth.js";
+import { cashAddressToLockingBytecode, generateRandomBytes, privateKeyToP2pkhLockingBytecode, addressContentsToLockingBytecode } from "@cashlab/common/libauth.js";
 import { buildPoolV0UnlockingBytecode } from '@cashlab/cauldron';
 import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
-import { calcTradeSummary, calcTradeWithTargetDemandFromAPair } from "@cashlab/cauldron/util.js";
+import { calcTradeSummary, calcTradeWithTargetDemandFromAPair, calcTradeWithTargetSupplyFromAPair } from "@cashlab/cauldron/util.js";
 
 
 /**
@@ -55,23 +55,28 @@ export function attemptTrade(opts) {
  * @param {import("@cashlab/cauldron").ExchangeLab} opts.exlab
  * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult 
  * @param {bigint} opts.amount
+ * @param {Boolean} opts.testCreate
  * @returns {import("@cashlab/cauldron").TradeResult}
  */
 export function reduceDemand(opts) {
   const exlab = opts?.exlab ?? new ExchangeLab();
   const tradeResult = opts?.tradeResult;
   const amount = opts?.amount;
+  const testCreate = opts?.testCreate;
 
   const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
   const entriesLength = BigInt(tradeResult.entries.length);
   const amountPerEntry = amount / entriesLength;
   let remainder = Number(amount % entriesLength);
 
-  const changes = [];
-  for (var i = 0; i < tradeResult.entries.length; i++) {
+  // We create a copy of the list (but not totally deep copy, since only `supply`, `demand`, and `trade_fee` is updated)
+  const entries = tradeResult.entries.map(entry => {
+    return { ...entry }
+  })
+  for (var i = 0; i < entries.length; i++) {
     const reducedAmount = amountPerEntry + (i < remainder ? 1n : 0n);
     if (reducedAmount == 0n) continue;
-    const entry = tradeResult.entries[i];
+    const entry = entries[i];
     const targetDemand = entry.demand - reducedAmount;
 
     const calcResult = calcTradeWithTargetDemandFromAPair({
@@ -83,19 +88,102 @@ export function reduceDemand(opts) {
 
     console.log(`Entry ${i}\n\tDemand: ${entry.demand} => ${targetDemand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
 
-    tradeResult.entries[i].demand = targetDemand;
-    tradeResult.entries[i].supply = calcResult.supply;
-    tradeResult.entries[i].trade_fee = calcResult.trade_fee;
+    entries[i].demand = targetDemand;
+    entries[i].supply = calcResult.supply;
+    entries[i].trade_fee = calcResult.trade_fee;
   }
 
-  const newTradeSummary = calcTradeSummary(tradeResult.entries, tradeResult.summary.rate.denominator);
-  return {
-    entries: tradeResult.entries,
+  const newTradeSummary = calcTradeSummary(entries, tradeResult.summary.rate.denominator);
+  const newTradeResult = {
+    entries: entries,
     summary: newTradeSummary,
   }
+  if (testCreate) {
+    try {
+      testTradeResult({ exlab, tradeResult: newTradeResult })
+    } catch(error) {
+      console.error(error);
+      console.warn('Encountered error in increassing supply, returning initial trade result')
+      return tradeResult;
+    }
+  }
+
+  return newTradeResult
 }
 
 
+
+/**
+ * @param {Object} opts
+ * @param {import("@cashlab/cauldron").ExchangeLab} opts.exlab
+ * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult 
+ * @param {bigint} opts.amount
+ * @param {Boolean} opts.testCreate
+ * @returns {import("@cashlab/cauldron").TradeResult}
+ */
+export function increaseSupply(opts) {
+  const exlab = opts?.exlab ?? new ExchangeLab();
+  const tradeResult = opts?.tradeResult;
+  const amount = opts?.amount;
+  const testCreate = opts?.testCreate;
+
+  const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
+  const entriesLength = BigInt(tradeResult.entries.length);
+  const amountPerEntry = amount / entriesLength;
+  let remainder = Number(amount % entriesLength);
+
+  // We create a copy of the list (but not totally deep copy, since only `supply`, `demand`, and `trade_fee` is updated)
+  const entries = tradeResult.entries.map(entry => {
+    return { ...entry }
+  })
+  for (var i = 0; i < entries.length; i++) {
+    const increaseAmount = amountPerEntry + (i < remainder ? 1n : 0n);
+    if (increaseAmount === 0n) continue;
+
+    // tradeResult.entries[i].demand -= increaseAmount;
+    // tradeResult.entries[i].supply += increaseAmount;
+    const entry = entries[i];
+
+    const targetSupply = entry.supply + increaseAmount;
+
+    const calcResult = calcTradeWithTargetSupplyFromAPair({
+      a: isSupplyBch ? entry.pool.output.amount : entry.pool.output.token.amount,
+      b: isSupplyBch ? entry.pool.output.token.amount : entry.pool.output.amount,
+      a_min_reserve: exlab.getMinTokenReserve(entry.supply_token_id),
+      b_min_reserve: exlab.getMinTokenReserve(entry.demand_token_id),
+    }, targetSupply)
+
+    if (calcResult.supply != targetSupply) {
+      console.log(`Entry ${i}: Doesnt meet target of ${targetSupply}, manually setting`);
+      calcResult.supply = targetSupply;
+      calcResult.demand += 1n;
+    }
+
+    console.log(`Entry ${i}\n\tDemand: ${entry.demand} => ${calcResult.demand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
+
+
+    entries[i].supply = calcResult.supply;
+    entries[i].demand = calcResult.demand;
+    entries[i].trade_fee = calcResult.trade_fee;
+  }
+
+  const newTradeSummary = calcTradeSummary(entries, tradeResult.summary.rate.denominator);
+  const newTradeResult = {
+    entries: entries,
+    summary: newTradeSummary,
+  }
+
+  if (testCreate) {
+    try {
+      testTradeResult({ exlab, tradeResult: newTradeResult, verify: true })
+    } catch(error) {
+      console.error(error);
+      console.warn('Encountered error in increassing supply, returning initial trade result')
+      return tradeResult;
+    }
+  }
+  return newTradeResult;
+}
 
 const P2PKH_INPUT_SIZE = 141n;
 
@@ -214,4 +302,67 @@ export function getEntriesSize(tradeResult) {
     inputFees,
     outputFees,
   }
+}
+
+/**
+ * @param {Object} opts
+ * @param {import("@cashlab/cauldron").ExchangeLab} opts.exlab
+ * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult 
+ * @param {Boolean} opts.verify
+ */
+export function testTradeResult(opts) {
+  const exlab = opts?.exlab ?? new ExchangeLab();
+  const tradeResult = opts?.tradeResult;
+
+  const firstEntry = tradeResult.entries[0];
+  const isSupplyBch = firstEntry.supply_token_id === NATIVE_BCH_TOKEN_ID;
+  const tokenId = isSupplyBch ? firstEntry.demand_token_id : firstEntry.supply_token_id;
+
+  const key = generateRandomBytes(32);
+  const lockingBytecode = addressContentsToLockingBytecode({ payload: generateRandomBytes(20), type: 'P2PKH' });
+
+  const tokenAmount = isSupplyBch ? 0n : (tradeResult.summary.supply * 3n / 2n);
+  const satsAmount = (isSupplyBch ? tradeResult.summary.supply : 0n) + tradeResult.summary.trade_fee + 100_000n;
+
+  /** @type {import("@cashlab/common").SpendableCoin[]} */
+  const coins = [];
+  coins.push({
+    type: 'P2PKH',
+    key: key,
+    outpoint: { txhash: generateRandomBytes(32), index: 1 },
+    output: { locking_bytecode: lockingBytecode, amount: satsAmount }
+  })
+  if (tokenAmount) {
+    coins.push({
+      type: 'P2PKH',
+      key: key,
+      outpoint: { txhash: generateRandomBytes(32), index: 1 },
+      output: {
+        locking_bytecode: lockingBytecode,
+        amount: 1000n,
+        token: { token_id: tokenId, amount: tokenAmount },
+      }
+    })
+  }
+
+  /** @type {import("@cashlab/common").PayoutRule[]} */
+  const payoutRules = [];
+  if (isSupplyBch) {
+    payoutRules.push({
+      type: 'FIXED',
+      locking_bytecode: lockingBytecode,
+      amount: 1000n,
+      token: { token_id: tokenId, amount: tradeResult.summary.demand }
+    })
+  }
+  payoutRules.push({
+    type: 'CHANGE',
+    locking_bytecode: lockingBytecode,
+    allow_mixing_native_and_token: false,
+    allow_mixing_native_and_token_when_bch_change_is_dust: true,
+  })
+
+  const tradeTx = exlab.createTradeTx(tradeResult.entries, coins, payoutRules, null, 1n)
+  if (opts?.verify) exlab.verifyTradeTx(tradeTx);
+  return tradeTx;
 }
