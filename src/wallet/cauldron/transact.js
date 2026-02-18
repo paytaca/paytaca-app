@@ -100,10 +100,10 @@ export function reduceDemand(opts) {
   }
   if (testCreate) {
     try {
-      testTradeResult({ exlab, tradeResult: newTradeResult })
+      testTradeResult({ exlab, tradeResult: newTradeResult, verify: true })
     } catch(error) {
       console.error(error);
-      console.warn('Encountered error in increassing supply, returning initial trade result')
+      console.warn('Encountered error in reducing demand, returning initial trade result')
       return tradeResult;
     }
   }
