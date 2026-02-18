@@ -8,8 +8,9 @@ import { getWallet } from 'src/utils/send-page-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 
-const ENGAGEMENT_HUB_URL =
-  process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+// const ENGAGEMENT_HUB_URL =
+//   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
+const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 
 export const Promos = {
