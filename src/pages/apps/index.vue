@@ -210,6 +210,16 @@ export default {
           active: !this.$store.getters['global/isChipnet']
         },
         {
+          id: 'rewards',
+          name: 'Rewards',
+          description: 'Rewards',
+          iconName: 'stars',
+          path: '/apps/rewards',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           id: 'multisig',
           name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           description: this.$t('Apps.MultisigWallets.Description', {}, 'Create and manage multi-signature wallets for extra security.'),
