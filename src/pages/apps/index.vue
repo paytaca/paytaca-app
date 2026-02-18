@@ -192,6 +192,7 @@ export default {
           smartBCHOnly: false
         },
         {
+          id: 'address-book',
           name: this.$t('AddressBook'),
           description: this.$t('Apps.AddressBook.Description', {}, 'Create and manage contacts and addresses.'),
           iconName: 'mdi-book-account',
@@ -201,6 +202,7 @@ export default {
           smartBCHOnly: false
         },
         {
+          id: 'gifts',
           name: this.$t('Gifts'),
           description: this.$t('Apps.Gifts.Description', {}, 'Create and redeem BCH gifts.'),
           iconName: 'mdi-gift',
