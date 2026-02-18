@@ -100,23 +100,18 @@
                           </div>
                         </div>
                         <div class="bch-card-controls row items-center no-wrap">
-                          <div @click.stop style="display: inline-block;">
-                            <q-select
-                              :model-value="bchBalanceMode"
-                              :options="balanceModeOptions"
-                              :dark="darkMode"
-                              label-color="white"
-                              option-label="label"
-                              option-value="value"
-                              emit-value
-                              map-options
-                              dense
-                              borderless
-                              class="balance-mode-selector q-mt-xs"
-                              :popup-content-class="`text-bow ${getDarkModeClass(darkMode)}`"
-                              style="max-width: 200px; font-size: 12px; height: 24px;"
-                              @update:model-value="onBalanceModeChange"
-                            />
+                          <div v-if="favoriteTokens.length" @click.stop class="balance-mode-control">
+                            <q-btn
+                              flat
+                              no-caps
+                              align="left"
+                              padding="0 4px"
+                              class="balance-mode-trigger text-white"
+                              @click="openBalanceModeDialog"
+                            >
+                              <span class="text-caption">{{ currentBalanceModeLabel }}</span>
+                              <q-icon name="arrow_drop_down" size="sm" />
+                            </q-btn>
                           </div>
                           <q-badge
                             rounded
@@ -511,6 +506,7 @@ import TransactionList from 'src/components/transactions/TransactionList'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown'
 import packageInfo from '../../../package.json'
 import versionUpdate from './dialog/versionUpdate.vue'
+import BalanceModeDialog from './dialog/BalanceModeDialog.vue'
 import NotificationButton from 'src/components/notifications/NotificationButton.vue'
 import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
@@ -845,6 +841,10 @@ export default {
         { label: this.$t('BCHOnly', {}, 'BCH only'), value: 'bch-only' },
         { label: this.$t('BCHPlusFavorites', {}, 'BCH + favorite tokens'), value: 'bch+favorites' }
       ]
+    },
+    currentBalanceModeLabel () {
+      const opt = this.balanceModeOptions.find(o => o.value === this.bchBalanceMode)
+      return opt ? opt.label : this.$t('BCHOnly', {}, 'BCH only')
     },
     favoriteTokens () {
       // Always use API data only - never use Vuex store for favorite tokens
@@ -1258,6 +1258,18 @@ export default {
       localStorage.setItem('bchBalanceMode', value)
       this.bchBalanceMode = value
     },
+    openBalanceModeDialog () {
+      this.$q.dialog({
+        component: BalanceModeDialog,
+        componentProps: {
+          modelValue: this.bchBalanceMode,
+          options: this.balanceModeOptions,
+          darkMode: this.darkMode
+        }
+      }).onOk(value => {
+        this.onBalanceModeChange(value)
+      })
+    },
     async fetchAllTokensFromAPI () {
       // Fetch favorite tokens directly from API for the home page tokens section
       if (!this.isCashToken) {
@@ -1608,10 +1620,8 @@ export default {
       // Check if click is on the dropdown or its menu
       if (event && event.target) {
         const target = event.target
-        const isDropdownClick = target.closest('.balance-mode-selector') || 
-                                target.closest('.q-menu') ||
-                                target.closest('.q-select__dropdown-icon') ||
-                                target.classList.contains('balance-mode-selector')
+        const isDropdownClick = target.closest('.balance-mode-trigger') ||
+                                target.closest('.balance-mode-control')
         
         if (isDropdownClick) {
           return // Don't handle click if it's on the dropdown
@@ -2716,21 +2726,25 @@ export default {
       justify-content: space-between;
       min-width: 0;
 
-      // Allow the select to shrink so it doesn't push the badge or wrap.
       > div {
         min-width: 0;
       }
 
-      .balance-mode-selector {
-        max-width: 170px !important;
+      .balance-mode-control {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
       }
 
-      // Force single-line selection label.
-      .balance-mode-selector .q-field__native,
-      .balance-mode-selector .q-field__native > .ellipsis {
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
+      .balance-mode-trigger {
+        min-height: 24px;
+        max-width: 180px;
+        .text-caption {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
       }
     }
 
@@ -2844,12 +2858,5 @@ export default {
 <style lang="scss">
 .q-notifications__list--bottom {
   margin-bottom: 70px;
-}
-.balance-mode-selector {
-  .q-field__inner
-  .q-field__control .q-field__control-container
-  .q-field__native > .ellipsis, .q-field__append .q-icon {
-    color: white !important;
-  }
 }
 </style>

@@ -10,16 +10,16 @@
     </div>
 
     <div class="row q-px-lg q-pt-md q-pb-sm" :class="darkMode ? 'text-light' : 'text-dark'">
-      <div class="col pt-card transaction-filters-container" :class="getDarkModeClass(darkMode)"
-      :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`" >
+      <div class="col transaction-filters-container" :class="getDarkModeClass(darkMode)">
         <button
           v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
           class="btn-custom q-mt-none"
           :class="[
-            darkMode ? 'text-light' : 'text-dark', 
-            `btn-${transactionFilterOpt.value}`,
-            {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
+            darkMode ? 'dark' : '',
+            tabButtonClass(transactionFilterOpt.value),
+            `theme-${theme}`
           ]"
+          :style="transactionsFilter === transactionFilterOpt?.value ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
           @click="setTransactionsFilter(transactionFilterOpt.value)"
         >
           {{ transactionFilterOpt?.label }}
@@ -122,6 +122,9 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
     selectedNetwork () {
       return this.$store.getters['global/network']
     },
@@ -152,6 +155,18 @@ export default {
   
   methods: {
     getDarkModeClass,
+    tabButtonClass (tab) {
+      return this.transactionsFilter === tab ? 'active-theme-btn' : ''
+    },
+    getThemeColor () {
+      const themeMap = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeMap[this.theme] || '#42a5f5'
+    },
     getTutorialDummyTransactions () {
       const now = Date.now()
       const bchAsset = {
@@ -582,51 +597,74 @@ export default {
   gap: 0;
 }
 
-.btn-transaction {
-  font-size: 16px;
-  background-color: rgb(242, 243, 252);
-  border-radius: 24px;
-  padding: 4px;
-  padding-left: 2px;
-  padding-right: 2px;
-}
-
 .transaction-filters-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 4px;
-  gap: 6px;
-  border-radius: 20px;
+  gap: clamp(4px, 1.5vw, 8px);
+  border-radius: 24px;
+  font-size: 16px;
+  box-sizing: border-box;
+  background-color: rgb(242, 243, 252);
+
+  &.dark {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
 }
 
 .btn-custom {
   height: 40px;
   flex: 1 1 0;
+  min-width: 0;
   border-radius: 20px;
   border: none;
   background-color: transparent;
   outline: 0;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.3s;
   font-weight: 500;
   white-space: nowrap;
   font-size: clamp(12px, 2.5vw, 16px);
   overflow: hidden;
+  color: #4C4F4F;
+
+  &:hover:not(.active-theme-btn) {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &.dark {
+    color: rgba(255, 255, 255, 0.7);
+
+    &:hover:not(.active-theme-btn) {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+  }
 }
 
-.btn-all {
-  margin-left: 0px;
+.latest-transactions-section .btn-custom.active-theme-btn {
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.latest-transactions-section .btn-custom.active-transaction-btn {
-  background-color: white !important;
-  color: rgba(0, 0, 0, 0.87) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.latest-transactions-section .btn-custom.active-theme-btn.dark {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
-.latest-transactions-section .active-transaction-btn.border {
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+.latest-transactions-section .btn-custom.active-theme-btn.theme-glassmorphic-blue:hover {
+  background-color: #1e88e5 !important;
+}
+
+.latest-transactions-section .btn-custom.active-theme-btn.theme-glassmorphic-gold:hover {
+  background-color: #fb8c00 !important;
+}
+
+.latest-transactions-section .btn-custom.active-theme-btn.theme-glassmorphic-green:hover {
+  background-color: #43a047 !important;
+}
+
+.latest-transactions-section .btn-custom.active-theme-btn.theme-glassmorphic-red:hover {
+  background-color: #e91e63 !important;
 }
 </style>
 
