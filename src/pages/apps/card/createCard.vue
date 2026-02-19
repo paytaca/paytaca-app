@@ -13,9 +13,7 @@
       <div class="col">
         <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
       </div>
-
       <div class="q-pa-xs" style="width: 32px"></div>
-      
     </div>
      
     <div>
@@ -148,20 +146,30 @@
                 <q-card
                   bordered
                   flat
-                  class="bg-grey-1 fixed-card-size cursor-pointer transition-hover"
-                  @click="openCreateCardDialog"
+                  
+                  :class="['bg-grey-1 fixed-card-size transition-hover',
+                            (subCards && subCards.length >= 1) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          ]"
+                  @click="subCards?.length >= 1 ? null : openCreateCardDialog()"
                 >
                   <q-card-section class="text-center q-pa-lg">
                     <q-icon
-                      name="add_circle_outline"
+                      :name="(subCards && subCards.length >= 1) ? 'block' : 'add_circle_outline'"
                       size="56px"
-                      color="primary"
+                      :color="(subCards && subCards.length >= 1) ? 'grey-5' : 'primary'"
                       class="q-mb-sm"
                     />
-                    <div class="text-subtitle-1 text-weight-bold text-primary text-center">
-                      Create Card
+                    <div 
+                      class="text-subtitle-1 text-weight-bold text-primary text-center"
+                      :class="(subCards && subCards.length >= 1) ? 'text-grey-6' : 'text-primary'"
+                    >
+                      {{ (subCards && subCards.length >= 1) ? 'Limit Reached' : 'Create Card' }}
                     </div>
                   </q-card-section>
+
+                  <q-tooltip v-if="subCards && subCards.length >= 1">
+                    You can only have one active card at a time.
+                  </q-tooltip>
                 </q-card>
              </div>
 

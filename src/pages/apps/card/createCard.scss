@@ -156,3 +156,13 @@ animation: float 6s ease-in-out infinite;
 	}
 }
 
+.cursor-not-allowed {
+  cursor: not-allowed !important;
+  pointer-events: all !important; 
+}
+
+.opacity-50 {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
