@@ -7,7 +7,7 @@ import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
 const watchtower = new Watchtower(false)
-const promoTokensDecimals = 2
+const liftTokenDecimals = 2
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -45,40 +45,17 @@ export default class PromoContract {
   }
 
   /**
-   * Computes the promo token balance of the contract. It first retrieves
-   * the balance on Watchtower. If it fails, it retrieves the balance
-   * from the contract itself.
-   * @returns the computed promo token balance
+   * Computes the LIFT token balance of the contract.
+   * @returns the computed LIFT token balance
    */
   async getTokenBalance () {
-    let balance = 0
-
-    // retrieve balance from watchtower
-    await watchtower.BCH._api.get(
-      `cts/balances/${this.contract.tokenAddress}/fts`,
-      { limit: 100 }
-    ).then(resp => {
-      const tokens = resp.data.results.map(token => {
-        return {
-          category: token?.tokenId,
-          balance: token?.balance
-        }
-      })
-      const promoToken = tokens.filter(t => t.category === LIFT_TOKEN_CATEGORY)
-      if (promoToken.length > 0) {
-        balance = Number(promoToken[0].balance) / (10 ** promoTokensDecimals)
-      }
-    }).catch(async _error => {
-      // retrieve balance from contract token utxos
-      const promoTokenUtxos = await this.contract.getUtxos()
-        .then(result => {
-          return result.filter(r => r.token?.category === LIFT_TOKEN_CATEGORY)
-        })
-      balance = promoTokenUtxos.reduce((total, el) => {
-        return total + (Number(el.token?.amount) / (10 ** promoTokensDecimals))
+    const tokenUtxos = await this.contract.getUtxos()
+      .then(utxos => utxos.filter(r => r.token?.category === LIFT_TOKEN_CATEGORY)
+    )
+    if (tokenUtxos.length === 0) return 0
+    return tokenUtxos
+      .reduce((total, el) => {
+        return total + (Number(el.token?.amount) / (10 ** liftTokenDecimals))
       }, 0)
-    })
-
-    return balance
   }
 }

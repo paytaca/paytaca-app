@@ -15,7 +15,7 @@
       <div
         class="row col-12 justify-between items-center q-pa-md group-currency"
         :class="getDarkModeClass(darkMode)"
-        v-for="(promo, index) in promos"
+        v-for="(promo, index) in Object.values(promos)"
         :key="index"
       >
         <div class="col-8">
@@ -84,25 +84,25 @@ export default {
       isLoading: false,
       swapContractAddress: '',
       pointsType: ['up', 'rp'/*, 'lp', 'cp', 'mp' */],
-      promos: [
-        {
+      promos: {
+        up: {
           name: this.$t('UserRewards'),
           id: null,
           points: 0,
           path: 'user-rewards',
           shortName: Promos.USERREWARDS
         },
-        {
+        rp: {
           name: this.$t('RFPromo'),
           id: null,
           points: 0,
           path: 'rfp',
           shortName: Promos.RFPROMO
         } //,
-        // { name: 'Loyalty Promo', id: null, points: 0, path: '', shortName: 'lp' },
-        // { name: 'Champion Promo', id: null, points: 0, path: '', shortName: 'cp' },
-        // { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, path: '', shortName: 'pprp' }
-      ]
+        // lp: { name: 'Loyalty Promo', id: null, points: 0, path: '' },
+        // cp: { name: 'Champion Promo', id: null, points: 0, path: '' },
+        // mp: { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, path: '' }
+      }
     }
   },
 
@@ -130,6 +130,8 @@ export default {
           if (promoId) {
             const contract = new PromoContract(keyPair.pubkey, PromosBytes[type].toString())
             await contract.subscribeAddress()
+            const promoBalance = await contract.getTokenBalance()
+            this.promos[type].points = promoBalance
           }
         }
       } catch (error) {
