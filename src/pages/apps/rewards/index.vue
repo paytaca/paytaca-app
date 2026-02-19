@@ -60,6 +60,7 @@ import {
   createUserPromoData,
   getUserPromoData,
   Promos,
+  PromosBytes
 } from 'src/utils/engagementhub-utils/rewards'
 import { ensureKeypair } from 'src/utils/memo-service'
 
@@ -117,9 +118,19 @@ export default {
     this.isLoading = true
 
     const data = await getUserPromoData()
-    console.log(data)
     if (data) {
-      console.log('yey')
+      try {
+        const keyPair = await ensureKeypair()
+        for (const type of this.pointsType) {
+          const promoId = data[type]
+          if (promoId) {
+            const contract = new PromoContract(keyPair.pubkey, PromosBytes[type].toString())
+            await contract.subscribeAddress()
+          }
+        }
+      } catch (error) {
+        console.error(error)
+      }
     } else {
       this.$q.dialog({
         component: HelpDialog,

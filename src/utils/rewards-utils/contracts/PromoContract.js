@@ -1,13 +1,6 @@
-import { ElectrumNetworkProvider, Network, Contract, SignatureTemplate } from "cashscript"
-import { getChangeAddress } from "src/utils/send-page-utils"
-import { getMnemonic, Wallet } from "src/wallet"
-import { markRaw } from "vue"
-import { Store } from "src/store"
-import { getWalletByNetwork } from "src/wallet/chipnet"
-import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards"
+import { ElectrumNetworkProvider, Network, Contract } from "cashscript"
 import { LIFT_TOKEN_CATEGORY } from "src/utils/subscription-utils"
 
-import axios from "axios"
 import Watchtower from "watchtower-cash-js"
 
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
@@ -22,6 +15,9 @@ const promoTokensDecimals = 2
  */
 export default class PromoContract {
   /**
+   * Constructor of the PromoContract class
+   * @param {String} userPubKey the public key derived from the user's wallet mnemonic
+   * @param {String} promo 1-byte hex string representing the target promo
    */
   constructor (userPubKey, promo) {
     this.promo = promo
@@ -32,7 +28,7 @@ export default class PromoContract {
   /**
    * Initializes the contract by compiling its source code, generating
    * the contract parameters, and creating a new Contract instance.
-   * @param {any} userPubKey the public key derived from the user's wallet mnemonic
+   * @param {String} userPubKey the public key derived from the user's wallet mnemonic
    */
   initializeContract (userPubKey) {
     const provider = new ElectrumNetworkProvider(Network.MAINNET)
