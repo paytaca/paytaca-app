@@ -562,11 +562,11 @@ export default defineComponent({
 
         if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
           const adjustAmount = amountInUnits.value - result.summary.demand;
-          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount, testCreate: true });
+          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
           const adjustAmount = amountInUnits.value - result.summary.supply;
-          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount, testCreate: true });
+          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
         tradeResult.value = result;

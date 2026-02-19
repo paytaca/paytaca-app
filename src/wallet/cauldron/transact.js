@@ -60,7 +60,6 @@ export function adjustDemand(opts) {
   const exlab = opts?.exlab ?? new ExchangeLab();
   const tradeResult = opts?.tradeResult;
   const amount = opts?.amount;
-  console.log(`Demand: ${tradeResult.summary.demand}, Adjusting: ${amount}`);
 
   const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
   const entriesLength = BigInt(tradeResult.entries.length);
@@ -118,7 +117,6 @@ export function adjustSupply(opts) {
   const exlab = opts?.exlab ?? new ExchangeLab();
   const tradeResult = opts?.tradeResult;
   const amount = opts?.amount;
-  console.log(`Supply: ${tradeResult.summary.supply}, Adjusting: ${amount}`);
 
   const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
   const entriesLength = BigInt(tradeResult.entries.length);
