@@ -402,6 +402,10 @@ export class MultisigWallet {
     this.options.store = store
   }
 
+  setProvider(provider) {
+    this.options.provider = provider
+  }
+
   set utxos(utxos) {
     this._utxos = utxos
   }
@@ -803,10 +807,15 @@ export class MultisigWallet {
   }
 
   async subscribeWalletAddressIndex(addressIndex, type) {
+    const receiveAddress = this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address
+    const changeAddress = this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address
+    const addresses = {
+      receiving: receiveAddress,
+      change: changeAddress
+    }
     return retryWithBackoff(async () => {
-      return await this.options?.store?.dispatch(
-        'multisig/subscribeWalletAddressIndex',
-        { wallet: this, addressIndex: addressIndex, type: type }
+      return await this.options?.provider?.subscribeWalletAddressIndex(
+        { walletHash: this.walletHash, addresses, addressIndex: addressIndex, type: type }
       )},
       2,
       1000
@@ -840,6 +849,7 @@ export class MultisigWallet {
 
     // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
     await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
+    
 
   }
 
@@ -1120,7 +1130,6 @@ export class MultisigWallet {
     }
     
     const pst = new Pst()
-
     pst
       .setOrigin(proposal.origin)
       .setCreator(proposal.creator)
@@ -1131,12 +1140,17 @@ export class MultisigWallet {
       .setStore(options?.store)
       .setProvider(options?.provider)
       .setCoordinationServer(options?.coordinationServer)
+    
+    if (this.isOnline()) {
+      await pst.upload()
+    }
+    
     return pst 
   }
 
-  async fetchProposals() {
+  async fetchProposals(status='pending') {
     if (!this.options?.coordinationServer) return 
-    return await this.options.coordinationServer.getWalletProposals(this.generateBsmsDescriptorId())
+    return await this.options.coordinationServer.getWalletProposals(this.generateBsmsDescriptorId(), status)
   }
 
   isOnline() {
