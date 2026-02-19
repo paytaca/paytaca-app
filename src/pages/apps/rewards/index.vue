@@ -55,18 +55,19 @@
 </template>
 
 <script>
+import { ensureKeypair } from 'src/utils/memo-service'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
-  createUserPromoData,
-  getUserPromoData,
   Promos,
-  PromosBytes
+  PromosBytes,
+  getUserPromoData,
+  createUserPromoData,
+  updateUserPromoData,
 } from 'src/utils/engagementhub-utils/rewards'
-import { ensureKeypair } from 'src/utils/memo-service'
 
 import HeaderNav from 'src/components/header-nav'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+import ProgressLoader from 'src/components/ProgressLoader.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -119,6 +120,9 @@ export default {
 
     const data = await getUserPromoData()
     if (data) {
+      // background update of last_viewed
+      updateUserPromoData({ last_viewed: new Date() })
+
       try {
         const keyPair = await ensureKeypair()
         for (const type of this.pointsType) {
