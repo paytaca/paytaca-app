@@ -4,67 +4,53 @@
       class="apps-header"
       backnavpath="/apps"
       :title="$t('Rewards')"
-      :rewardsPage="isPageLive ? 'home' : ''"
+      rewardsPage="home"
     />
 
-    <template v-if="isPageLive">
+    <div
+      class="row q-mx-lg q-gutter-y-md"
+      style="padding-top: 50px; font-size: 18px;"
+      :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
+    >
       <div
-        class="row q-mx-lg q-gutter-y-md"
-        style="padding-top: 50px; font-size: 18px;"
-        :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
+        class="row col-12 justify-between items-center q-pa-md group-currency"
+        :class="getDarkModeClass(darkMode)"
+        v-for="(promo, index) in promos"
+        :key="index"
       >
-        <div
-          class="row col-12 justify-between items-center q-pa-md group-currency"
-          :class="getDarkModeClass(darkMode)"
-          v-for="(promo, index) in promos"
-          :key="index"
-        >
-          <div class="col-8">
-            <span
-              class="text-token"
-              :class="darkMode ? 'dark' : 'light'"
-            >
-              {{ promo.name }}
-            </span><br/>
-            <template v-if="isLoading">
-              <progress-loader
-                
-                :isTight="true"
-              />
-            </template>
-            <span
-              v-else
-              class="amount-text"
-              :class="getDarkModeClass(darkMode, '', 'text-grad')"
-            >
-              {{ promo.points }}
-              {{ `${pointsType[index] === 'rfp' ? 'rp' : pointsType[index]}`.toUpperCase() }}
-            </span>
-          </div>
-  
-          <div class="row col-3 justify-end">
-            <q-btn
-              rounded
-              class="btn-scan button text-white bg-grad"
-              icon="chevron_right"
-              :disable="isLoading"
-              @click="redirectToPromoPage(promo)"
+        <div class="col-8">
+          <span
+            class="text-token"
+            :class="darkMode ? 'dark' : 'light'"
+          >
+            {{ promo.name }}
+          </span><br/>
+          <template v-if="isLoading">
+            <progress-loader
+              
+              :isTight="true"
             />
-          </div>
+          </template>
+          <span
+            v-else
+            class="amount-text"
+            :class="getDarkModeClass(darkMode, '', 'text-grad')"
+          >
+            {{ promo.points }} {{ pointsType[index].toUpperCase() }}
+          </span>
+        </div>
+
+        <div class="row col-3 justify-end">
+          <q-btn
+            rounded
+            class="btn-scan button text-white bg-grad"
+            icon="chevron_right"
+            :disable="isLoading"
+            @click="redirectToPromoPage(promo)"
+          />
         </div>
       </div>
-    </template>
-
-    <template v-else>
-      <div
-        class="row flex-center q-mx-lg q-gutter-y-md text-center text-bow"
-        style="padding-top: 100px;"
-        :class="getDarkModeClass(darkMode)"
-        :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
-      >
-        <countdown-timer />
-      </div>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -73,17 +59,13 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   createUserPromoData,
   getUserPromoData,
-  getKeyPairFromWalletMnemonic,
-  sendAuthkeyNftToWallet,
   Promos,
-  getWalletTokenAddress,
-  getRewardsPageToggle,
 } from 'src/utils/engagementhub-utils/rewards'
+import { ensureKeypair } from 'src/utils/memo-service'
 
 import HeaderNav from 'src/components/header-nav'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
-import CountdownTimer from 'src/components/rewards/CountdownTimer.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -92,16 +74,14 @@ export default {
 
   components: {
     HeaderNav,
-    ProgressLoader,
-    CountdownTimer
+    ProgressLoader
   },
 
   data () {
     return {
       isLoading: false,
-      isPageLive: false,
       swapContractAddress: '',
-      pointsType: ['up', 'rfp'/*, 'lp', 'cp', 'mp' */],
+      pointsType: ['up', 'rp'/*, 'lp', 'cp', 'mp' */],
       promos: [
         {
           name: this.$t('UserRewards'),
@@ -134,49 +114,21 @@ export default {
   },
 
   async mounted () {
-    const vm = this
-    vm.isLoading = true
+    this.isLoading = true
 
-    // check if rewards page is already live
-    vm.isPageLive = await getRewardsPageToggle().then(data => { return data.is_live })
-    if (vm.isPageLive) {
-      // retrieve points from engagement-hub
-      const keyPair = await getKeyPairFromWalletMnemonic()
-  
-      await getUserPromoData()
-        .then(async data => {
-          if (data) {
-            vm.swapContractAddress = data.swap_contract_ct_address
-            for (let i = 0; i < vm.promos.length; i++) {
-              const promoId = data['id'][vm.pointsType[i]]
-              vm.promos[i].id = promoId
-  
-              if (promoId) {
-                const contract = new PromoContract(vm.promos[i].shortName, keyPair.pubKey)
-                await contract.subscribeAddress()
-                vm.promos[i].points = await contract.getTokenBalance()
-              } else vm.promos[i].points = 0
-            }
-  
-            if (!data.sent_authkeynft) {
-              vm.$q.dialog({
-                component: HelpDialog,
-                componentProps: { page: 'home' }
-              })
-              const walletTokenAddress = await getWalletTokenAddress() 
-              await sendAuthkeyNftToWallet(walletTokenAddress)
-            }
-          } else {
-            vm.$q.dialog({
-              component: HelpDialog,
-              componentProps: { page: 'home' }
-            })
-            await createUserPromoData()
-          }
-        })
+    const data = await getUserPromoData()
+    console.log(data)
+    if (data) {
+      console.log('yey')
+    } else {
+      this.$q.dialog({
+        component: HelpDialog,
+        componentProps: { page: 'home' }
+      })
+      await createUserPromoData()
     }
 
-    vm.isLoading = false
+    this.isLoading = false
   },
 
   methods: {

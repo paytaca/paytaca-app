@@ -20,6 +20,13 @@ export const Promos = {
   // CHAMPIONPROMO: 'cp',
   // PPRPROMO: 'pprp'
 }
+export const PromosBytes = {
+  up: 0x01,
+  rp: 0x02,
+  // lp: 0x03,
+  // cp: 0x04,
+  // mp: 0x05
+}
 
 // ================================
 // local functions
@@ -43,6 +50,7 @@ function bchMarketPrice () {
 // util functions
 // ================================
 
+// TODO remove
 export async function getKeyPairFromWalletMnemonic () {
   const mnemonic = await getMnemonic(Store.getters['global/getWalletIndex'])
     .then(mnemonic => {
