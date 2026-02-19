@@ -31,7 +31,6 @@ export function attemptTrade(opts) {
   }
 
   if (demand) {
-    console.log('Target demand', demand)
     return exlab.constructTradeBestRateForTargetDemand(
       supply_token_id,
       demand_token_id,
@@ -86,7 +85,7 @@ export function reduceDemand(opts) {
       b_min_reserve: exlab.getMinTokenReserve(entry.demand_token_id),
     }, targetDemand)
 
-    console.log(`Entry ${i}\n\tDemand: ${entry.demand} => ${targetDemand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
+    console.debug(`Entry ${i}\n\tDemand: ${entry.demand} => ${targetDemand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
 
     entries[i].demand = targetDemand;
     entries[i].supply = calcResult.supply;
@@ -153,14 +152,15 @@ export function increaseSupply(opts) {
       b_min_reserve: exlab.getMinTokenReserve(entry.demand_token_id),
     }, targetSupply)
 
+    // In some cases, this works. Ideally should enable `testCreate`
+    // to ensure validity
     if (calcResult.supply != targetSupply) {
-      console.log(`Entry ${i}: Doesnt meet target of ${targetSupply}, manually setting`);
+      console.debug(`Entry ${i}: Doesnt meet target of ${targetSupply}, manually setting`);
       calcResult.supply = targetSupply;
       calcResult.demand += 1n;
     }
 
-    console.log(`Entry ${i}\n\tDemand: ${entry.demand} => ${calcResult.demand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
-
+    console.debug(`Entry ${i}\n\tDemand: ${entry.demand} => ${calcResult.demand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
 
     entries[i].supply = calcResult.supply;
     entries[i].demand = calcResult.demand;
@@ -243,7 +243,6 @@ export function createInputAndOutput(opts) {
     satoshisToSupply += 1000n + 25n
   }
 
-  // console.log({ tokensToSupply, satoshisToSupply })
 
   let remainingSats = satoshisToSupply
   for(const spendableCoin of bchCoins) {

@@ -561,10 +561,14 @@ export default defineComponent({
         })
 
         if (!isSupplyMode.value && amountInUnits.value < result.summary.demand) {
+          // We only reduce demand since tradeResult always
+          // returns atleast the expected demand
           const reducedAmount = result.summary.demand - amountInUnits.value;
           console.warn(`Resulting demand is above ${reducedAmount} units, reducing demand`)
           result = reduceDemand({ tradeResult: result, amount: reducedAmount, testCreate: true });
         } else if (isSupplyMode.value && result.summary.supply < amountInUnits.value) {
+          // We only increase supply since tradeResult always
+          // returns at most the expected supply amount
           const increasedAmount = amountInUnits.value - result.summary.supply;
           console.warn(`Resulting supply is below ${increasedAmount} units, increasing supply`);
           result = increaseSupply({ tradeResult: result, amount: increasedAmount, testCreate: true });
@@ -1010,7 +1014,6 @@ export default defineComponent({
 
         const broadcastResult = await bchWallet.watchtower.BCH.broadcastTransaction(txHex)
         if (broadcastResult.data?.error) throw new Error(broadcastResult?.data?.error)
-        // console.log(txHex)
         // const broadcastResult = {
         //   data: { txid: 'test' }
         // }
