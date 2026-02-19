@@ -172,7 +172,8 @@ const {
   multisigCoordinationServer,
   network,
   getAssetTokenIdentity,
-  resolveXprvOfXpub
+  resolveXprvOfXpub,
+  resolveMnemonicOfXpub
 } = useMultisigHelpers()
 
 const darkMode = computed(() => {
@@ -188,7 +189,8 @@ const wallet = computed(() => {
       store: $store,
       provider: multisigNetworkProvider,
       coordinationServer: multisigCoordinationServer,
-      resolveXprvOfXpub
+      resolveXprvOfXpub,
+      resolveMnemonicOfXpub
     })
   }
   return null
