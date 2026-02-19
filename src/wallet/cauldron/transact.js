@@ -54,14 +54,13 @@ export function attemptTrade(opts) {
  * @param {import("@cashlab/cauldron").ExchangeLab} opts.exlab
  * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult 
  * @param {bigint} opts.amount
- * @param {Boolean} opts.testCreate
- * @returns {import("@cashlab/cauldron").TradeResult}
+ * @returns {import("@cashlab/cauldron").TradeResult | void}
  */
-export function reduceDemand(opts) {
+export function adjustDemand(opts) {
   const exlab = opts?.exlab ?? new ExchangeLab();
   const tradeResult = opts?.tradeResult;
   const amount = opts?.amount;
-  const testCreate = opts?.testCreate;
+  console.log(`Demand: ${tradeResult.summary.demand}, Adjusting: ${amount}`);
 
   const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
   const entriesLength = BigInt(tradeResult.entries.length);
@@ -73,10 +72,10 @@ export function reduceDemand(opts) {
     return { ...entry }
   })
   for (var i = 0; i < entries.length; i++) {
-    const reducedAmount = amountPerEntry + (i < remainder ? 1n : 0n);
-    if (reducedAmount == 0n) continue;
+    const adjustAmount = amountPerEntry + (i < remainder ? 1n : 0n);
+    if (adjustAmount == 0n) continue;
     const entry = entries[i];
-    const targetDemand = entry.demand - reducedAmount;
+    const targetDemand = entry.demand + adjustAmount;
 
     const calcResult = calcTradeWithTargetDemandFromAPair({
       a: isSupplyBch ? entry.pool.output.amount : entry.pool.output.token.amount,
@@ -85,7 +84,6 @@ export function reduceDemand(opts) {
       b_min_reserve: exlab.getMinTokenReserve(entry.demand_token_id),
     }, targetDemand)
 
-    console.debug(`Entry ${i}\n\tDemand: ${entry.demand} => ${targetDemand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
 
     entries[i].demand = targetDemand;
     entries[i].supply = calcResult.supply;
@@ -97,16 +95,13 @@ export function reduceDemand(opts) {
     entries: entries,
     summary: newTradeSummary,
   }
-  if (testCreate) {
-    try {
-      testTradeResult({ exlab, tradeResult: newTradeResult, verify: true })
-    } catch(error) {
-      console.error(error);
-      console.warn('Encountered error in reducing demand, returning initial trade result')
-      return tradeResult;
-    }
-  }
 
+  try {
+    testTradeResult({ exlab, tradeResult: newTradeResult, verify: true })
+  } catch(error) {
+    console.error(error);
+    return;
+  }
   return newTradeResult
 }
 
@@ -117,14 +112,13 @@ export function reduceDemand(opts) {
  * @param {import("@cashlab/cauldron").ExchangeLab} opts.exlab
  * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult 
  * @param {bigint} opts.amount
- * @param {Boolean} opts.testCreate
- * @returns {import("@cashlab/cauldron").TradeResult}
+ * @returns {import("@cashlab/cauldron").TradeResult | void}
  */
-export function increaseSupply(opts) {
+export function adjustSupply(opts) {
   const exlab = opts?.exlab ?? new ExchangeLab();
   const tradeResult = opts?.tradeResult;
   const amount = opts?.amount;
-  const testCreate = opts?.testCreate;
+  console.log(`Supply: ${tradeResult.summary.supply}, Adjusting: ${amount}`);
 
   const isSupplyBch = tradeResult.entries[0].supply_token_id === NATIVE_BCH_TOKEN_ID;
   const entriesLength = BigInt(tradeResult.entries.length);
@@ -136,14 +130,12 @@ export function increaseSupply(opts) {
     return { ...entry }
   })
   for (var i = 0; i < entries.length; i++) {
-    const increaseAmount = amountPerEntry + (i < remainder ? 1n : 0n);
-    if (increaseAmount === 0n) continue;
+    const adjustAmount = amountPerEntry + (i < remainder ? 1n : 0n);
+    if (adjustAmount === 0n) continue;
 
-    // tradeResult.entries[i].demand -= increaseAmount;
-    // tradeResult.entries[i].supply += increaseAmount;
     const entry = entries[i];
 
-    const targetSupply = entry.supply + increaseAmount;
+    const targetSupply = entry.supply + adjustAmount;
 
     const calcResult = calcTradeWithTargetSupplyFromAPair({
       a: isSupplyBch ? entry.pool.output.amount : entry.pool.output.token.amount,
@@ -152,15 +144,18 @@ export function increaseSupply(opts) {
       b_min_reserve: exlab.getMinTokenReserve(entry.demand_token_id),
     }, targetSupply)
 
-    // In some cases, this works. Ideally should enable `testCreate`
-    // to ensure validity
+    // - In some rare cases, manual override works. This is assumed to work on
+    //   very small values since trade_fee will not be affected by the change
+    // - Having to recalculate trade_fee would be complex and
+    //   just be the same as `calcTradeWithTargetSupplyFromAPair` above
     if (calcResult.supply != targetSupply) {
-      console.debug(`Entry ${i}: Doesnt meet target of ${targetSupply}, manually setting`);
+      // - An attempt to balance the K_out = outputSats * outputTokens
+      // - By having demand and supply have opposite movement
+      // - Only 1n is adjusted since it is assumed that this case only happens
+      //   with small amounts
+      calcResult.demand += targetSupply > calcResult.supply  ? -1n : 1n;
       calcResult.supply = targetSupply;
-      calcResult.demand += 1n;
     }
-
-    console.debug(`Entry ${i}\n\tDemand: ${entry.demand} => ${calcResult.demand}\n\tSupply: ${entry.supply} => ${calcResult.supply}\n\tFee: ${entry.trade_fee} => ${calcResult.trade_fee}`);
 
     entries[i].supply = calcResult.supply;
     entries[i].demand = calcResult.demand;
@@ -173,14 +168,11 @@ export function increaseSupply(opts) {
     summary: newTradeSummary,
   }
 
-  if (testCreate) {
-    try {
-      testTradeResult({ exlab, tradeResult: newTradeResult, verify: true })
-    } catch(error) {
-      console.error(error);
-      console.warn('Encountered error in increassing supply, returning initial trade result')
-      return tradeResult;
-    }
+  try {
+    testTradeResult({ exlab, tradeResult: newTradeResult, verify: true })
+  } catch(error) {
+    console.error(error);
+    return;
   }
   return newTradeResult;
 }

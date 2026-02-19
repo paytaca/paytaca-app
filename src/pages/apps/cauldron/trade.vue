@@ -334,7 +334,7 @@
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
-import { attemptTrade, createInputAndOutput, getEntriesSize, increaseSupply, reduceDemand } from 'src/wallet/cauldron/transact';
+import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -560,18 +560,14 @@ export default defineComponent({
           supply: isSupplyMode.value ? amountInUnits.value : 0n,
         })
 
-        if (!isSupplyMode.value && amountInUnits.value < result.summary.demand) {
-          // We only reduce demand since tradeResult always
-          // returns atleast the expected demand
-          const reducedAmount = result.summary.demand - amountInUnits.value;
-          console.warn(`Resulting demand is above ${reducedAmount} units, reducing demand`)
-          result = reduceDemand({ tradeResult: result, amount: reducedAmount, testCreate: true });
-        } else if (isSupplyMode.value && result.summary.supply < amountInUnits.value) {
-          // We only increase supply since tradeResult always
-          // returns at most the expected supply amount
-          const increasedAmount = amountInUnits.value - result.summary.supply;
-          console.warn(`Resulting supply is below ${increasedAmount} units, increasing supply`);
-          result = increaseSupply({ tradeResult: result, amount: increasedAmount, testCreate: true });
+        if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
+          const adjustAmount = amountInUnits.value - result.summary.demand;
+          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount, testCreate: true });
+          if (adjustedTradeResult) result = adjustedTradeResult;
+        } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
+          const adjustAmount = amountInUnits.value - result.summary.supply;
+          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount, testCreate: true });
+          if (adjustedTradeResult) result = adjustedTradeResult;
         }
         tradeResult.value = result;
         tradeResultError.value = '';
