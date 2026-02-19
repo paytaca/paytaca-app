@@ -435,6 +435,16 @@ import { title } from 'process';
           return
         }
 
+        // check - one card per user/wallet
+        if (this.subCards && this.subCards.length >= 1) {
+          this.q.notify({
+            message: 'You already have an active card. Only one card is allowed per wallet.',
+            color: 'warning',
+            icon: 'warning'
+          })
+          return
+        }
+
         try {
           this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
 
