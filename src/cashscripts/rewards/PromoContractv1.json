@@ -1,0 +1,171 @@
+{
+  "contractName": "PromoContract",
+  "constructorInputs": [
+    {
+      "name": "adminPubKey",
+      "type": "pubkey"
+    },
+    {
+      "name": "userPubKey",
+      "type": "pubkey"
+    },
+    {
+      "name": "tokenId",
+      "type": "bytes32"
+    },
+    {
+      "name": "promo",
+      "type": "bytes1"
+    }
+  ],
+  "abi": [
+    {
+      "name": "withdraw",
+      "inputs": [
+        {
+          "name": "userSig",
+          "type": "sig"
+        },
+        {
+          "name": "targetPromo",
+          "type": "bytes1"
+        }
+      ]
+    },
+    {
+      "name": "drain",
+      "inputs": [
+        {
+          "name": "adminSig",
+          "type": "sig"
+        },
+        {
+          "name": "targetPromo",
+          "type": "bytes1"
+        }
+      ]
+    },
+    {
+      "name": "easyWithdraw",
+      "inputs": [
+        {
+          "name": "userSig",
+          "type": "sig"
+        },
+        {
+          "name": "targetPromo",
+          "type": "bytes1"
+        }
+      ]
+    }
+  ],
+  "bytecode": "OP_4 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_5 OP_ROLL OP_2 OP_PICK OP_CHECKSIGVERIFY OP_5 OP_ROLL OP_4 OP_ROLL OP_EQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_LESSTHANOREQUAL OP_VERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_GREATERTHAN OP_0 OP_OUTPUTTOKENCATEGORY OP_4 OP_PICK OP_EQUAL OP_BOOLAND OP_VERIFY OP_SWAP OP_HASH160 76a914 OP_SWAP OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_EQUALVERIFY OP_ACTIVEBYTECODE OP_HASH256 aa20 OP_SWAP OP_CAT 87 OP_CAT OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUAL OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUAL OP_BOOLOR OP_IF OP_1 OP_OUTPUTVALUE OP_0 OP_GREATERTHAN OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUAL OP_1 OP_OUTPUTTOKENCATEGORY OP_0 OP_EQUAL OP_2 OP_PICK OP_2 OP_PICK OP_BOOLAND OP_OVER OP_BOOLAND OP_VERIFY OP_1 OP_OUTPUTBYTECODE OP_4 OP_PICK OP_EQUALVERIFY OP_2DROP OP_DROP OP_ENDIF OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUAL OP_IF OP_2 OP_OUTPUTTOKENAMOUNT OP_0 OP_GREATERTHAN OP_2 OP_OUTPUTTOKENCATEGORY OP_4 OP_PICK OP_EQUAL OP_2DUP OP_BOOLAND OP_VERIFY OP_2 OP_OUTPUTBYTECODE OP_3 OP_PICK OP_EQUALVERIFY OP_2DROP OP_ENDIF OP_2DROP OP_2DROP OP_1 OP_ELSE OP_4 OP_PICK OP_1 OP_NUMEQUAL OP_IF OP_5 OP_ROLL OP_OVER OP_CHECKSIGVERIFY OP_5 OP_ROLL OP_4 OP_ROLL OP_EQUALVERIFY OP_0 OP_INPUTSEQUENCENUMBER OP_DUP 0065cd1d OP_LESSTHANOREQUAL OP_VERIFY 50cd00 OP_2 OP_DIV OP_GREATERTHANOREQUAL OP_VERIFY OP_TXOUTPUTCOUNT OP_2 OP_NUMEQUALVERIFY OP_0 OP_OUTPUTTOKENAMOUNT OP_0 OP_GREATERTHAN OP_0 OP_OUTPUTTOKENCATEGORY OP_4 OP_ROLL OP_EQUAL OP_BOOLAND OP_VERIFY OP_1 OP_OUTPUTVALUE OP_0 OP_GREATERTHAN OP_1 OP_OUTPUTTOKENAMOUNT OP_0 OP_NUMEQUAL OP_1 OP_OUTPUTTOKENCATEGORY OP_0 OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY OP_HASH160 76a914 OP_SWAP OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_OVER OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_ROT OP_EQUAL OP_BOOLAND OP_NIP OP_NIP OP_ELSE OP_4 OP_ROLL OP_2 OP_NUMEQUALVERIFY OP_4 OP_ROLL OP_ROT OP_CHECKSIGVERIFY OP_2SWAP OP_EQUAL OP_NIP OP_NIP OP_ENDIF OP_ENDIF",
+  "source": "pragma cashscript ^0.11.5;\n\n/**\n * A contract which will hold the user's accummulated promo points in the form of LIFT tokens.\n *\n * Params:\n * - adminPubKey: public key of an admin account\n * - pubkey userPubKey: public key of the user generated from wallet mnemonic (address 0/0)\n * - bytes32 tokenId: LIFT token category\n * - byte promo: 1-byte promo type\n *    - 0x01 - up | user points     | user rewards\n *    - 0x02 - rp | referral points | refer-a-friend promo\n *    - 0x03 - lp | loyalty points  | loyalty promo\n *    - 0x04 - cp | champion points | champion promo\n *    - 0x05 - mp | merchant points | ppr promo\n */\ncontract PromoContract(pubkey adminPubKey, pubkey userPubKey, bytes32 tokenId, byte promo) {\n    function withdraw(sig userSig, byte targetPromo) {\n        // ensure that only the user can withdraw tokens\n        require(checkSig(userSig, userPubKey), \"Only the user can withdraw from the contract\");\n\n        // check that target promo is correct\n        require(targetPromo == promo, \"Target promo is incorrect\");\n\n        // ensure at least 3 outputs are present\n        // 1 for tokens to be sent, 2 optional bch and token change outputs\n        require(tx.outputs.length <= 3, \"Outputs length is not within the expected range\");\n\n        // ensure outputs[0] holds the tokens to send\n        bool hasTokens0th = tx.outputs[0].tokenAmount > 0;\n        bool isCorrectId0th = tx.outputs[0].tokenCategory == tokenId;\n        require(hasTokens0th && isCorrectId0th, \"Expected token not found on outputs[0]\");\n\n        // make sure that outputs[0] is sent to the user's address\n        bytes20 userPkh = hash160(userPubKey);\n        bytes25 userLockingBytecode = new LockingBytecodeP2PKH(userPkh);\n        require(tx.outputs[0].lockingBytecode == userLockingBytecode, \"outputs[0] has the wrong receiver\");\n\n        bytes32 selfScriptHash = hash256(this.activeBytecode);\n        bytes35 swapLock = new LockingBytecodeP2SH32(selfScriptHash);\n\n        // if existing, ensure outputs[1] holds the change bch to be sent back to the contract\n        if(tx.outputs.length == 2 || tx.outputs.length == 3) {\n            bool hasBch1st = tx.outputs[1].value > 0;\n            bool hasNoToken1st = tx.outputs[1].tokenAmount == 0;\n            bool hasNoCategory1st = tx.outputs[1].tokenCategory == 0x;\n            require(hasBch1st && hasNoToken1st && hasNoCategory1st, \"Either no BCH or a token is found in outputs[1]\");\n            require(tx.outputs[1].lockingBytecode == swapLock, \"outputs[1] has the wrong receiver\");\n        }\n\n        // if existing, ensure outputs[2] holds the change token to be sent back to the contract\n        if (tx.outputs.length == 3) {\n            bool hasTokens2nd = tx.outputs[2].tokenAmount > 0;\n            bool isCorrectId2nd = tx.outputs[2].tokenCategory == tokenId;\n            require(hasTokens2nd && isCorrectId2nd, \"Expected token not found on outputs[2]\");\n            require(tx.outputs[2].lockingBytecode == swapLock, \"outputs[2] has the wrong receiver\");\n        }\n    }\n\n    /**\n     * Drain funds if user is inactive for a certain period.\n     * An off-chain check is done first to check if the user is inactive for 6 months\n     * (time since they last visited the Rewards app). Then an on-chain check is done\n     * to check the sequence number of the UTXO the contract has received recently\n     * (this is done in case the contract is still receiving UTXOs despite the user\n     * being inactive) if it has exceeded at least 6 months.\n     */\n    function drain(sig adminSig, byte targetPromo) {\n        // ensure that only the admin can drain the contract\n        require(checkSig(adminSig, adminPubKey), \"Only the admin can drain the contract\");\n\n        // check that target promo is correct\n        require(targetPromo == promo, \"Target promo is incorrect\");\n\n        // require that the sequence number from inputs[0] is using block height based locktime\n        int seqNum0th = tx.inputs[0].sequenceNumber;\n        require(seqNum0th <= 500000000, \"Sequence number must be height-based\");\n\n        // check sequence number of inputs[0] if 6 months have passed (in block height)\n        int constant BLOCKS_PER_YEAR = 52560;\n        int constant BLOCKS_IN_HALF_YEAR = BLOCKS_PER_YEAR / 2;\n        require(seqNum0th >= BLOCKS_IN_HALF_YEAR, \"Latest UTXO sequence number is still within timeframe\");\n\n        // ensure 2 outputs are present\n        require(tx.outputs.length == 2, \"Outputs length is not the same as expected\");\n\n        // ensure outputs[0] holds the total tokens\n        bool hasTokens0th = tx.outputs[0].tokenAmount > 0;\n        bool isCorrectId0th = tx.outputs[0].tokenCategory == tokenId;\n        require(hasTokens0th && isCorrectId0th, \"Expected token not found on outputs[0]\");\n\n        // ensure outputs[1] holds the extra bch from inputs' dust and/or extra bch\n        bool hasBch1st = tx.outputs[1].value > 0;\n        bool hasNoToken1st = tx.outputs[1].tokenAmount == 0;\n        bool hasNoCategory1st = tx.outputs[1].tokenCategory == 0x;\n        require(hasBch1st && hasNoToken1st && hasNoCategory1st, \"Either no BCH or a token is found in outputs[1]\");\n\n        // make sure both outputs are sent to the admin's address\n        bytes20 adminPkh = hash160(adminPubKey);\n        bytes25 adminLockingBytecode = new LockingBytecodeP2PKH(adminPkh);\n        bool correctReceiver0th = tx.outputs[0].lockingBytecode == adminLockingBytecode;\n        bool correctReceiver1st = tx.outputs[1].lockingBytecode == adminLockingBytecode;\n        require(correctReceiver0th && correctReceiver1st, \"Only the admin can receive the funds\");\n    }\n\n    // remove before this is pushed to production\n    // same covenant as withdraw but with less rules\n    // meant for easy withdrawal of funds during development period\n    function easyWithdraw(sig userSig, byte targetPromo) {\n        // ensure that only the user can withdraw tokens\n        require(checkSig(userSig, userPubKey), \"Only the user can withdraw their tokens\");\n\n        // check that target promo is correct\n        require(targetPromo == promo, \"Target promo is incorrect\");\n    }\n}\n",
+  "debug": {
+    "bytecode": "5479009c63557a5279ad557a547a88c453a16900d300a000d15479879a697ca90376a9147c7e0288ac7e00cd88c1aa02aa207c7e01877ec4529cc4539c9b6351cc00a051d3009c51d10087527952799a789a6951cd5479886d7568c4539c6352d300a052d15479876e9a6952cd5379886d686d6d51675479519c63557a78ad557a547a8800cb76040065cd1da1690350cd005296a269c4529d00d300a000d1547a879a6951cc00a051d3009c51d100877b7b9a7c9a69a90376a9147c7e0288ac7e00cd788751cd7b879a777767547a529d547a7bad728777776868",
+    "sourceMap": "18:4:58:5;;;;;20:25:20:32;;:34::44;;:8::95:1;23:16:23:27:0;;:31::36;;:8::67:1;27:16:27:33:0;:37::38;:16:::1;:8::91;30:39:30:40:0;:28::53:1;:56::57:0;:28:::1;31:41:31:42:0;:30::57:1;:61::68:0;;:30:::1;32:16:32:46;:8::90;35:34:35:44:0;:26::45:1;36:38:36:71:0;:63::70;:38::71:1;;;37:27:37:28:0;:16::45:1;:8::107;39:41:39:60:0;:33::61:1;40:27:40:68:0;:53::67;:27::68:1;;;43:11:43:28:0;:32::33;:11:::1;:37::54:0;:58::59;:37:::1;:11;:61:49:9:0;44:40:44:41;:29::48:1;:51::52:0;:29:::1;45:44:45:45:0;:33::58:1;:62::63:0;:33:::1;46:47:46:48:0;:36::63:1;:67::69:0;:36:::1;47:20:47:29:0;;:33::46;;:20:::1;:50::66:0;:20:::1;:12::119;48:31:48:32:0;:20::49:1;:53::61:0;;:12::100:1;43:61:49:9;;;52:12:52:29:0;:33::34;:12:::1;:36:57:9:0;53:43:53:44;:32::57:1;:60::61:0;:32:::1;54:45:54:46:0;:34::61:1;:65::72:0;;:34:::1;55:20:55:50:0;::::1;:12::94;56:31:56:32:0;:20::49:1;:53::61:0;;:12::100:1;52:36:57:9;;18:4:58:5;;;;68::104::0;;;;;70:25:70:33;;:35::46;:8::90:1;73:16:73:27:0;;:31::36;;:8::67:1;76:34:76:35:0;:24::51:1;77:16:77:25:0;:29::38;:16:::1;:8::80;80:39:80:44:0;81:61:81:62;:43:::1;82:16:82:48;:8::107;85:16:85:33:0;:37::38;:8::86:1;88:39:88:40:0;:28::53:1;:56::57:0;:28:::1;89:41:89:42:0;:30::57:1;:61::68:0;;:30:::1;90:16:90:46;:8::90;93:36:93:37:0;:25::44:1;:47::48:0;:25:::1;94:40:94:41:0;:29::54:1;:58::59:0;:29:::1;95:43:95:44:0;:32::59:1;:63::65:0;:32:::1;96:16:96:25:0;:29::42;:16:::1;:46::62:0;:16:::1;:8::115;99:27:99:47;100:39:100:73:0;:64::72;:39::73:1;;;101:45:101:46:0;:34::63:1;:67::87:0;:34:::1;102:45:102:46:0;:34::63:1;:67::87:0;:34:::1;103:8:103:98;68:4:104:5;;;109::115::0;;;;111:25:111:32;;:34::44;:8::90:1;114:16:114:36:0;:8::67:1;109:4:115:5;;17:0:116:1;",
+    "logs": [],
+    "requires": [
+      {
+        "ip": 13,
+        "line": 20,
+        "message": "Only the user can withdraw from the contract"
+      },
+      {
+        "ip": 18,
+        "line": 23,
+        "message": "Target promo is incorrect"
+      },
+      {
+        "ip": 22,
+        "line": 27,
+        "message": "Outputs length is not within the expected range"
+      },
+      {
+        "ip": 33,
+        "line": 32,
+        "message": "Expected token not found on outputs[0]"
+      },
+      {
+        "ip": 43,
+        "line": 37,
+        "message": "outputs[0] has the wrong receiver"
+      },
+      {
+        "ip": 78,
+        "line": 47,
+        "message": "Either no BCH or a token is found in outputs[1]"
+      },
+      {
+        "ip": 83,
+        "line": 48,
+        "message": "outputs[1] has the wrong receiver"
+      },
+      {
+        "ip": 102,
+        "line": 55,
+        "message": "Expected token not found on outputs[2]"
+      },
+      {
+        "ip": 107,
+        "line": 56,
+        "message": "outputs[2] has the wrong receiver"
+      },
+      {
+        "ip": 122,
+        "line": 70,
+        "message": "Only the admin can drain the contract"
+      },
+      {
+        "ip": 127,
+        "line": 73,
+        "message": "Target promo is incorrect"
+      },
+      {
+        "ip": 133,
+        "line": 77,
+        "message": "Sequence number must be height-based"
+      },
+      {
+        "ip": 138,
+        "line": 82,
+        "message": "Latest UTXO sequence number is still within timeframe"
+      },
+      {
+        "ip": 141,
+        "line": 85,
+        "message": "Outputs length is not the same as expected"
+      },
+      {
+        "ip": 152,
+        "line": 90,
+        "message": "Expected token not found on outputs[0]"
+      },
+      {
+        "ip": 170,
+        "line": 96,
+        "message": "Either no BCH or a token is found in outputs[1]"
+      },
+      {
+        "ip": 186,
+        "line": 103,
+        "message": "Only the admin can receive the funds"
+      },
+      {
+        "ip": 196,
+        "line": 111,
+        "message": "Only the user can withdraw their tokens"
+      },
+      {
+        "ip": 199,
+        "line": 114,
+        "message": "Target promo is incorrect"
+      }
+    ]
+  },
+  "compiler": {
+    "name": "cashc",
+    "version": "0.11.5"
+  },
+  "updatedAt": "2026-02-19T03:01:43.037Z"
+}

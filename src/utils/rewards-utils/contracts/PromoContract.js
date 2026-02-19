@@ -10,7 +10,7 @@ import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards"
 import axios from "axios"
 import Watchtower from "watchtower-cash-js"
 
-import PromoContractArtifact from 'src/cashscripts/rewards/PromoContract.json'
+import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
 
 const watchtower = new Watchtower(false)
 const promoTokensDecimals = 2
