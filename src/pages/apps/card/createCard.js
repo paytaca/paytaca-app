@@ -19,7 +19,7 @@ import { title } from 'process';
       MultiWalletDropdown,
     },
 
-    data() {
+    data () {
       return {
         createCardDialog: false,
         subCards: [],
@@ -52,6 +52,8 @@ import { title } from 'process';
           amount: i % 2 === 0 ? 150.00 : -45.50,
           date: '2026-2-16'
         })),
+        sortKey: 'amount', // default sort key
+        sortOrder: 'desc', // default sort order
         // Spend Limit
         showSpendLimitDialog: false,
         tempSpendLimitAmount: 0,
@@ -101,13 +103,27 @@ import { title } from 'process';
       },
 
       filteredTransactions () {
-        if (!this.transactionSearch) {
-          return this.transactions
-        }
+        // filter by search text
+        let results = this.transactions.filter(merch => {
+          if (!this.transactionSearch) return true
+          
+          return merch.name.toLowerCase().includes(this.transactionSearch.toLowerCase())
+        })
 
-        const search = this.transactionSearch.toLowerCase()
-        return this.transactions.filter(merch => {
-          return merch.name.toLowerCase().includes(search)
+        // sort the filtered results
+        return [...results].sort((a, b) => {
+          let modifier = this.sortOrder === 'desc' ? -1 : 1
+
+          if (this.sortKey === 'amount') {
+            return (a.amount - b.amount) * modifier
+          }
+
+          if (this.sortKey === 'date') {
+            // Date sort (converts strings to timestamp for comparison)
+            return (new Date(a.date) - new Date(b.date)) * modifier
+          }
+
+          return 0
         })
       },
 
@@ -795,8 +811,15 @@ import { title } from 'process';
         }
       },
 
+      toggleSort (key) {
+        if (this.sortKey === key) {
+          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc'
+        }
+        else {
+          this.sortKey = key
+          this.sortOrder = 'desc'
+        }
+      }
+
     }
-
-    
-
   }
