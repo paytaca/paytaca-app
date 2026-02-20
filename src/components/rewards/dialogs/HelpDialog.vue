@@ -8,8 +8,7 @@
     class="no-click-outside"
   >
     <q-card
-      class="q-pa-md pt-card-2 text-bow br-15"
-      style="height: 70vh;"
+      class="q-pa-md pt-card-2 text-bow br-15 bottom-card-medium"
       :class="getDarkModeClass(darkMode)"
     >
       <div class="row justify-between items-center">
@@ -17,9 +16,11 @@
         <q-btn
           flat
           round
-          padding="xs"
+          dense
+          size="sm"
           icon="close"
           class="close-button"
+          :class="getDarkModeClass(darkMode)"
           v-close-popup
         />
       </div>
@@ -29,7 +30,7 @@
         swipeable
         animated
         arrows
-        height="58vh"
+        height="90%"
         transition-prev="slide-right"
         transition-next="slide-left"
         :control-color="darkMode ? 'white' : 'black'"
@@ -38,39 +39,50 @@
         :dark="darkMode"
       >
         <template v-if="page === 'home'">
-          <q-carousel-slide name="home-1" class="help-carousel-slide">
-            <h5 class="q-ma-xs q-pb-md text-center text-bold">{{ $t('RewardsHelpHome11') }}</h5>
+          <q-carousel-slide name="home-1" class="q-px-xl">
+            <div class="q-my-md text-center">
+              <q-icon name="stars" size="56px" class="text-primary" />
+            </div>
+            <h5 class="q-ma-xs q-pb-md text-center text-bold">
+              {{ $t('RewardsHelpHome11', 'Welcome to the Rewards Page') }}
+            </h5>
             <div class="row text-left">
-              <p>{{ $t('RewardsHelpHome12') }}</p>
-              <p>{{ $t('RewardsHelpHome13') }}</p>
-              <p>{{ $t('RewardsHelpHome14') }}</p>
+              <p>{{ $t('RewardsHelpHome12', 'Start earning points today!') }}</p>
+              <p>{{ $t('RewardsHelpHome13', "As a valued user, you'll accumulate points for engaging with the Paytaca ecosystem. The more you explore and interact with the ecosystem, the more points you'll earn. These points are directly convertible into LIFT tokens, rewarding your loyalty and engagement.") }}</p>
+              <p>{{ $t('RewardsHelpHome14', 'Get started today and watch your points—and rewards—grow!') }}</p>
             </div>
           </q-carousel-slide>
 
-          <q-carousel-slide name="home-2" class="help-carousel-slide">
-            <h6 class="q-ma-xs q-pb-md text-center">{{ $t('RewardsHelpHome21') }}</h6>
-            <div class="row text-left">
-              <p>{{ $t('RewardsHelpHome22') }}</p>
+          <q-carousel-slide name="home-2" class="q-px-xl">
+            <h6 class="q-ma-xs q-pb-md text-center">
+              {{ $t('RewardsHelpHome21', 'Paytaca Promos') }}
+            </h6>
+            <div class="row text-left q-pb-md">
+              <p>{{ $t('RewardsHelpHome22', 'We have designed different promos for each kind of user, each with its own earning potential. Other promos will be added soon.') }}</p>
               <q-list class="full-width q-gutter-y-md">
                 <q-item class="no-padding">
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
-                      <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">{{ $t('RewardsHelpHome23') }}</span>
+                      <q-icon name="redeem" size="24px" class="text-primary" />
+                      <span style="font-size: 18px;">
+                        {{ $t('RewardsHelpHome23', 'User Rewards') }}
+                      </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      {{ $t('RewardsHelpHome24') }}
+                      {{ $t('RewardsHelpHome24', 'A collection of points, called UP (User Points), earned by users from engaging with the different features of the app.') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-item class="no-padding">
                   <q-item-section>
                     <q-item-label class="q-gutter-x-sm row items-center">
-                      <q-icon name="fiber_manual_record" />
-                      <span style="font-size: 18px;">{{ $t('RewardsHelpHome25') }}</span>
+                      <q-icon name="diversity_3" size="24px" class="text-primary" />
+                      <span style="font-size: 18px;">
+                        {{ $t('RewardsHelpHome25', 'Refer-a-friend Promo') }}
+                      </span>
                     </q-item-label>
                     <q-item-label class="q-pl-xl">
-                      {{ $t('RewardsHelpHome26') }}
+                      {{ $t('RewardsHelpHome26', 'Promo for referrals. Users who successfully invite friends to use Paytaca with a referral code will receive RP (Referral Points).') }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
@@ -78,7 +90,7 @@
             </div>
           </q-carousel-slide>
         </template>
-        
+        <!--
         <template v-if="page === Promos.USERREWARDS">
           <q-carousel-slide :name="`${Promos.USERREWARDS}-1`" class="help-carousel-slide">
             <h5 class="q-ma-xs q-pb-md text-center text-bold">{{ $t('RewardsHelpUR11') }}</h5>
@@ -219,7 +231,7 @@
               </q-list>
             </div>
           </q-carousel-slide>
-        </template>
+        </template>-->
       </q-carousel>
     </q-card>
   </q-dialog>
@@ -258,10 +270,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.help-carousel-slide {
-  padding-left: 50px;
-  padding-right: 50px;
-}
-</style>
