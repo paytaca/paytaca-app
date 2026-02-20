@@ -115,6 +115,7 @@ export default {
       } catch (error) {
         console.error('Error ensuring keypair or encrypting record name:', error)
         raiseNotifyError(this.$t('EncryptNameError'), 3000, 'top')
+        this.isLoading = false
         return
       }
 
