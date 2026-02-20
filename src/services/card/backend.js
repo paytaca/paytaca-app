@@ -13,6 +13,9 @@ export const backend = axios.create({
 })
 
 backend.interceptors.request.use(async (config) => {
+  if (config.authorize === false) {
+    return config
+  }
   const wallet = await loadWallet();
   config.headers['wallet-hash'] = wallet.walletHash
   await getAuthToken().then(token => {

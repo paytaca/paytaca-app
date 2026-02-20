@@ -206,6 +206,26 @@ export class CardUser {
     }
 
     /**
+     * Fetches a specific card by its identifier
+     * @param {string} identifier (id | uid | cashaddress | tokenaddress)
+     * @returns {Promise<Card>}
+     */
+    async fetchCardByIdentifier(identifier) {
+        console.log(`Fetching card info for identifier: ${identifier}`);
+        try {
+            const response = await backend.get(`/cards/by-identifier/${identifier}/`);
+            const cardData = response.data;
+            const card = cardData?.contract_id
+                ? await Card.createInitialized(cardData)
+                : await Card.createWithWallet(cardData);
+            return card;
+        } catch (error) {
+            console.error(`Error fetching card info for identifier ${identifier}:`, error);
+            throw error;
+        }
+    }
+
+    /**
      * Fetches auth token UTXOs for the current wallet.
      * @param {string} tokenId Token ID/category to fetch.
      * @returns {Promise<void>}
