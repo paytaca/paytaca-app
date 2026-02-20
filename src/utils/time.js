@@ -61,19 +61,18 @@ export async function getServerTime() {
 export function formatDateLocaleRelative(date, useRelative=true, currentTime=new Date()) {
   const dt = new Date(date);
   if (Number.isNaN(dt.getTime())) return '';
+  const userLocale = () => {
+      // Prefer app-selected language; fall back to i18n locale; then browser locale.
+      const fromStore = Store.getters['global/language']
+      const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
+      return String(candidate).replace('_', '-')
+    }
 
   if (useRelative) {
     // Calculate the time difference from now (in user locale)
     const nowMs = Number(currentTime) || Date.now();
     const diffMs = dt.getTime() - nowMs; // negative means in the past
     const diffSeconds = Math.round(diffMs / 1000);
-
-    const userLocale = () => {
-      // Prefer app-selected language; fall back to i18n locale; then browser locale.
-      const fromStore = Store.getters['global/language']
-      const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
-      return String(candidate).replace('_', '-')
-    }
 
     const absSeconds = Math.abs(diffSeconds);
     const rtf = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
@@ -108,7 +107,7 @@ export function formatDateLocaleRelative(date, useRelative=true, currentTime=new
 
   // Absolute timestamp formatted per user's locale.
   try {
-    return new Intl.DateTimeFormat(userLocale.value, {
+    return new Intl.DateTimeFormat(userLocale(), {
       year: 'numeric',
       month: 'short',
       day: '2-digit',
