@@ -76,9 +76,12 @@
           class="col-12"
         >
           <div
-            class="row col-12 justify-between items-center q-pa-md br-15 group-currency"
+            class="row full-width justify-between items-center q-pa-md br-15 group-currency"
             :class="getDarkModeClass(darkMode)"
           >
+            <div class="row col-2">
+              <q-icon :name="promo.icon" size="md" color="primary" />
+            </div>
             <div class="col-8">
               <span class="text-token" :class="getDarkModeClass(darkMode)">
                 {{ promo.name }}
@@ -91,9 +94,9 @@
               </span>
             </div>
 
-            <div class="row col-auto justify-end">
+            <div class="row col-2 justify-end">
               <q-btn
-                rounded
+                round
                 class="btn-scan button text-white bg-grad"
                 icon="chevron_right"
                 @click="redirectToPromoPage(promo)"
@@ -138,15 +141,17 @@ export default {
       pointsType: ['up', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
         up: {
-          name: this.$t('UserRewards'),
+          name: this.$t('UserRewards', 'User Rewards'),
           id: null,
           points: 0,
+          icon: 'redeem',
           path: 'user-rewards'
         },
         rp: {
-          name: this.$t('RFPromo'),
+          name: this.$t('RFPromo', 'Refer-a-Friend Promo'),
           id: null,
           points: 0,
+          icon: 'diversity_3',
           path: 'rfp'
         },
         // lp: { name: 'Loyalty Promo', id: null, points: 0, path: '' },
