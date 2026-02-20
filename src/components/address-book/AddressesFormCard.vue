@@ -105,6 +105,7 @@
 <script>
 import QrScanner from 'src/components/qr-scanner.vue'
 import QRUploader from 'src/components/QRUploader'
+import { Address } from 'watchtower-cash-js';
 
 export default {
   name: 'AddressesFormCard',
@@ -170,10 +171,13 @@ export default {
       return value
     },
     checkAddressFormat (address) {
-      return (
-        address.includes('bitcoincash:q') ||
-        address.includes('bitcoincash:z')
-      ) && address.length === 54
+      try {
+        // eslint-disable-next-line no-new
+        new Address(address)
+        return true
+      } catch (e) { // NOSONAR - invalid inputs may throw; this is treated as validation failure
+        return false
+      }
     },
 
     scrollAddressesToBottom () {
