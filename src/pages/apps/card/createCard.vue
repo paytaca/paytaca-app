@@ -13,9 +13,7 @@
       <div class="col">
         <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
       </div>
-
       <div class="q-pa-xs" style="width: 32px"></div>
-      
     </div>
      
     <div>
@@ -30,9 +28,22 @@
       <div class="q-mt-lg q-ml-lg">
         
         <!-- Header -->
-        <div class="text-h6 q-mb-md q-mt-md row items-center">
-          <q-icon name="credit_card" class="q-mr-sm" color="primary" />
-          My Cards
+        <div class="row items-center justify-between relative-position overflow-visible" style="height: 50px; margin-bottom: 24px;">
+          <div class="row items-center text-h6">
+            <q-icon name="credit_card" class="q-mr-sm" color="primary" />
+              <span>My Cards</span>
+          </div>
+
+          <div class="absolute-right row items-center"> 
+            <q-btn 
+              label="Transactions"
+              class="half-right-btn"
+              unelevated
+              no-caps
+              @click="viewTransactionHistory(null)"
+            />
+          </div>
+          
         </div>
 
         <!-- Cards Grid -->
@@ -135,20 +146,30 @@ c
                 <q-card
                   bordered
                   flat
-                  class="bg-grey-1 fixed-card-size cursor-pointer transition-hover"
-                  @click="openCreateCardDialog"
+                  
+                  :class="['bg-grey-1 fixed-card-size transition-hover',
+                            (subCards && subCards.length >= 1) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          ]"
+                  @click="subCards?.length >= 1 ? null : openCreateCardDialog()"
                 >
                   <q-card-section class="text-center q-pa-lg">
                     <q-icon
-                      name="add_circle_outline"
+                      :name="(subCards && subCards.length >= 1) ? 'block' : 'add_circle_outline'"
                       size="56px"
-                      color="primary"
+                      :color="(subCards && subCards.length >= 1) ? 'grey-5' : 'primary'"
                       class="q-mb-sm"
                     />
-                    <div class="text-subtitle-1 text-weight-bold text-primary text-center">
-                      Create Card
+                    <div 
+                      class="text-subtitle-1 text-weight-bold text-primary text-center"
+                      :class="(subCards && subCards.length >= 1) ? 'text-grey-6' : 'text-primary'"
+                    >
+                      {{ (subCards && subCards.length >= 1) ? 'Limit Reached' : 'Create Card' }}
                     </div>
                   </q-card-section>
+
+                  <q-tooltip v-if="subCards && subCards.length >= 1">
+                    You can only have one active card at a time.
+                  </q-tooltip>
                 </q-card>
              </div>
 
@@ -453,7 +474,7 @@ c
     </q-dialog>
 
     <!-- Manage Auth NFT Pop-up -->
-     <q-dialog v-model="showManageAuthNFTdialog" persistent>
+     <q-dialog v-model="showManageAuthNFTdialog" @show="refreshMerchants" persistent>
         <q-card style="min-width: 300px" class="br-15 q-pa-sm">
             <q-card-section>
               <div class="text-h6">Manage Auth NFTs</div>
@@ -466,43 +487,71 @@ c
                 outlined 
                 dense 
                 class="q-mb-md"
+                placeholder="Type to search..."
               />
 
               <q-list
                 v-if="filteredMerchants.length > 0" 
                 bordered
                 separator
-                class="q-mb-md"
+                class="q-mb-md scroll shadow-1"
+                style="max-height: 200px; border-radius: 8px;"
               >
                 <q-item
                   v-for="merchant in filteredMerchants"
                   :key="merchant.id"
                   clickable
                   v-ripple
-                  @click="selectMerchant(merchant)"
+                  @click="addMerchantToList(merchant)"
                 >
                   <q-item-section>
                     <q-item-label>{{ merchant.name }}</q-item-label>
                     <q-item-label caption>{{ merchant.address }}</q-item-label>
                   </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="add" color="primary" />
+                  </q-item-section>
                 </q-item>
               </q-list>
 
-              <div 
-                v-else-if="merchantSearch.length > 0"
-                class="text-caption text-grey q-mb-md"
-              >
-                No merchants found.
-              </div>
+              <div class="column q-gutter-y-sm">
+                <div class="row items-center justify-between q-pa-md border-outlined br-10">
+                  <div class="text-subtitle2 text-primary">Generic Auth NFT</div>
+                  <q-toggle 
+                    v-model="genericAuthEnabled"
+                    color="primary"
+                  />
+                </div>
 
-              <div class="row items-center justify-between q-pa-md border-outlined">
-                <div class="text-subtitle2">Generic Auth NFT</div>
-                <q-toggle
-                  v-model="genericAuthEnabled"
-                  color="primary"
-                  keep-color
-                />
+                <div
+                  v-for="(m, index) in selectedMerchants"
+                  :key="m.id"
+                  class="row items-center justify-between q-pa-sm q-pl-md border-outlined br-10 bg-grey-1"
+                >
+                  <div class="column">
+                    <div class="text-subtitle2 ">{{ m.name }}</div>
+                    <div class="text-caption text-grey-7">{{ m.address }}</div>
+                  </div>
+
+                  <div class="row items-center">
+                    <q-toggle 
+                      v-model="m.isEnabled"
+                      color="secondary"
+                    />
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="close"
+                      color="negative"
+                      size="sm"
+                      class="q-ml-sm"
+                      @click="removeMerchant(index)"
+                    />
+                  </div>
+                </div> 
               </div>
+  
             </q-card-section>
 
             <q-card-actions align="right">
@@ -519,12 +568,91 @@ c
               <div class="text-h6">Transaction History</div>
           </q-card-section>
 
-          <q-card-section class="q-pt-none">
-              <q-input v-model="transactionSearch" label="Search" outlined dense class="q-mb-md"/>
+          <q-card-section class="q-pb-none">
+            <q-select
+              v-model="selectedCard"
+              :options="cardOptions"
+              label="Select Card"
+              outlined
+              dense
+              emit-value
+              map-options
+              class="q-mb-sm"
+            >
+              <template v-slot:prepend>
+                <q-icon name="credit_card" color="primary" />
+              </template>
+
+              <template v-slot:no-option>
+                <q-item>
+                  <q-item-section class="text-italic text-grey">
+                    No cards found
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
           </q-card-section>
 
-          <q-card-section>
-            Contents
+          <q-card-section class="q-pt-none">
+              <q-input v-model="transactionSearch" label="Search..." outlined dense class="q-mb-md"/>
+          </q-card-section>
+
+          <q-card-section class="row items-center q-mb-none">
+            <div class="text-subtitle1 text-weight-bold">Contents</div>
+            <q-space />
+            <div class="row q-gutter-x-sm">
+              <q-btn
+                flat
+                dense
+                size="sm"
+                :color="sortKey === 'date' ? 'primary' : 'grey-7'"
+                label="Date"
+                @click="toggleSort('date')"
+              >
+                <q-icon 
+                  :name="sortKey === 'date' ? (sortOrder === 'asc' ? 'expand_less' : 'expand_more') : 'unfold_more' "
+                  size="xs"
+                  class="q-ml-xs"
+                />
+              </q-btn>
+
+              <q-btn
+                flat
+                dense
+                size="sm"
+                :color="sortKey === 'amount' ? 'primary' : 'grey-7'"
+                label="Amount"
+                @click="toggleSort('amount')"
+              >
+                <q-icon 
+                  :name="sortKey === 'amount' ? (sortOrder === 'asc' ? 'expand_less' : 'expand_more') : 'unfold_more' "
+                  size="xs"
+                />
+              </q-btn>
+            </div>
+          </q-card-section>
+ 
+          <!-- filter merchants in transaction search -->
+          <q-card-section class="scroll" style="height: 300px; max-height: 50vh;">
+            <div v-if="filteredTransactions && filteredTransactions.length > 0">
+              <q-list separator>
+                <q-item v-for="merch in filteredTransactions" :key="merch.id" class="q-px-none">
+                  <q-item-section>
+                    <q-item-label>{{ merch.name }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <div class="text-weight-bold" :class="merch.amount > 0 ? 'text-positive' : 'text-negative' ">
+                      {{ merch.amount > 0 ? '+' : '' }}{{ merch.amount }}
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+
+            <div v-else class="text-center q-pa-lg text-grey">
+              <q-icon name="history" size="lg" class="q-mb-sm" />
+              <div>No transactions found</div>
+            </div>
           </q-card-section>
 
           <q-card-actions align="right">

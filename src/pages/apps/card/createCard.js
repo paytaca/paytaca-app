@@ -6,14 +6,20 @@ import Card from 'src/services/card/card.js';
 import { loadCardUser, fetchCardByIdentifier } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
 import { getMerchantList } from 'src/services/card/merchants';
+import { title } from 'process';
 
   export const createCardLogic = {
       
+    setup () {
+      const merchantList = getMerchantList()
+      return {merchantList}
+    },
+
     components: {
       MultiWalletDropdown,
     },
 
-    data() {
+    data () {
       return {
         createCardDialog: false,
         subCards: [],
@@ -36,11 +42,19 @@ import { getMerchantList } from 'src/services/card/merchants';
         activeCard: null,
         cashInamount: null,
         selectedCurrency: 'PHP',
-        // Manage Auth NFT
-        showManageAuthNFTdialog: false,
-        genericAuthEnabled: false,
         // Transaction History
         showTransactionHistoryDialog: false,
+        transactionSearch: '',
+        // dummy transaction data:
+        transactions: Array.from({length: 10}, (_, i) => ({
+          id: i + 1, 
+          name: `Merchant: ${i + 1}`, // merchant name
+          amount: i % 2 === 0 ? 150.00 : -45.50,
+          date: '2026-2-16'
+        })),
+        sortKey: 'amount', // default sort key
+        sortOrder: 'desc', // default sort order
+        // Spend Limit
         showSpendLimitDialog: false,
         tempSpendLimitAmount: 0,
         isSweep: false,
@@ -55,8 +69,11 @@ import { getMerchantList } from 'src/services/card/merchants';
           zip: '',
           country: ''
         },
-        // Merchants
+        // Merchants - in managing auth nft
+        showManageAuthNFTdialog: false,
         merchantSearch: '',
+        selectedMerchants: '',
+        genericAuthEnabled: false,
         allMerchants: [],
         // Card Replacement
         cardReplacementDialog: false,
@@ -78,13 +95,49 @@ import { getMerchantList } from 'src/services/card/merchants';
     },
 
     computed: {
-      // merchant search in manage auth nfts
-      filteredMerchants () {
-        if (!this.merchantSearch) return []
+      cardOptions () {
+        return this.subCards.map(card => ({
+          label: card.name,
+          value: card.id
+        }))
+      },
 
-        const search = this.merchantSearch.toLowerCase()
+      filteredTransactions () {
+        // filter by search text
+        let results = this.transactions.filter(merch => {
+          if (!this.transactionSearch) return true
+          
+          return merch.name.toLowerCase().includes(this.transactionSearch.toLowerCase())
+        })
+
+        // sort the filtered results
+        return [...results].sort((a, b) => {
+          let modifier = this.sortOrder === 'desc' ? -1 : 1
+
+          if (this.sortKey === 'amount') {
+            return (a.amount - b.amount) * modifier
+          }
+
+          if (this.sortKey === 'date') {
+            // Date sort (converts strings to timestamp for comparison)
+            return (new Date(a.date) - new Date(b.date)) * modifier
+          }
+
+          return 0
+        })
+      },
+
+      allMerchants () {
+        return this.merchantList.merchants
+      },
+
+      filteredMerchants () {
+        const search = this.merchantSearch.toLowerCase().trim()
+        if (!search) return []
+
         return this.allMerchants.filter(merchant => {
-          return merchant.name.toLowerCase().includes(search)
+          merchant.name.toLowerCase().includes(search) ||
+          merchant.address.toLowerCase.includes(search)
         })
       },
 
@@ -98,6 +151,7 @@ import { getMerchantList } from 'src/services/card/merchants';
           overflow: 'hidden'
         }
       },
+
       walletBalance() {
         const asset = this.$store.getters['assets/getAssets'][0]
         return asset?.spendable || 0
@@ -118,6 +172,36 @@ import { getMerchantList } from 'src/services/card/merchants';
         this.subCards = cards
         console.log('Fetched Cards:', cards)
         return cards
+      },
+
+      // Merchant methods
+      async refreshMerchants() {
+        try {
+          const data = await this.getMerchantList({ limit: 100, page: 1})
+          this.allMerchants = data.results || data
+        }
+        catch (error) {
+          console.error("Error fetching merchants: ", error)
+        }
+      },
+
+      addMerchantToList (merchant) {
+        // check if already added to prevent duplicates
+        const exists = this.selectedMerchants.some(m => m.id === merchant.id)
+
+        if (!exists) {
+          this.selectedMerchants.push({
+            ...merchant,
+            isEnabled: false // default merchant toggle is disabled
+          })
+        }
+
+        // clear search to hide dropdown results
+        this.merchantSearch = ''
+      },
+
+      removeMerchant (index) {
+        this.selectedMerchants.splice(index, 1)
       },
 
       /**
@@ -278,8 +362,8 @@ import { getMerchantList } from 'src/services/card/merchants';
         ];
 
         for (const pattern of patterns) {
-          const match = message.match(pattern);
-          if (match) return Number(match[1]);
+          const match = message.match(pattern)
+          if (match) return Number(match[1])
         }
 
         return null;
@@ -287,8 +371,8 @@ import { getMerchantList } from 'src/services/card/merchants';
 
       // Open dialog
       openCreateCardDialog(){
-        this.newCardName = '';
-        this.createCardDialog = true;
+        this.newCardName = ''
+        this.createCardDialog = true
       },
 
       cardReplacement(){
@@ -369,7 +453,17 @@ import { getMerchantList } from 'src/services/card/merchants';
       async handleCreateCard(){
         if(!this.newCardName){
           this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
-          return;
+          return
+        }
+
+        // check - one card per user/wallet
+        if (this.subCards && this.subCards.length >= 1) {
+          this.q.notify({
+            message: 'You already have an active card. Only one card is allowed per wallet.',
+            color: 'warning',
+            icon: 'warning'
+          })
+          return
         }
 
         try {
@@ -422,14 +516,14 @@ import { getMerchantList } from 'src/services/card/merchants';
           persistent: true
         }).onOk(data => {
           if (data.length <= 10){
-            card.name = data;
+            card.name = data
           }
         })
       },
 
       viewCard(card){
-        this.selectedCard = card;
-        this.viewCardDialog = true;
+        this.selectedCard = card
+        this.viewCardDialog = true
       },
 
       copyToClipboard(text){
@@ -438,57 +532,57 @@ import { getMerchantList } from 'src/services/card/merchants';
             message: 'Copied to clipboard',
             color: 'positive',
             position: 'top'
-          });
+          })
         }).catch(() => {
           this.$q.notify({
             message: 'Failed to copy',
             color: 'negative',
             position: 'top'
-          });
-        });
+          })
+        })
       },
 
       handleCashIn(card) {   
-        this.viewCardDialog = false; 
-        this.activeCard = card;
-        this.tempAmount = 0;
-        this.showCashInDialog = true;
+        this.viewCardDialog = false
+        this.activeCard = card
+        this.tempAmount = 0
+        this.showCashInDialog = true
       },
 
       confirmCashIn() {
-        const amount = parseFloat(this.tempAmount);
+        const amount = parseFloat(this.tempAmount)
 
         if (!amount || amount <= 0) {
           this.$q.notify({
             message: 'Please enter a valid amount',
             color: 'negative',
             icon: 'warning'
-          });
-          return;
+          })
+          return
         }
 
-        this.cashInAmount = amount;
-        this.showCashInDialog = false;
+        this.cashInAmount = amount
+        this.showCashInDialog = false
         
-        console.log(`Cashing in ${this.cashInAmount} ${this.selectedCurrency} for card:`, this.activeCard);
+        console.log(`Cashing in ${this.cashInAmount} ${this.selectedCurrency} for card:`, this.activeCard)
         
         // Call actual Cash in function
       },
 
       openCardMenu(evt, card){
-        this.cardMenu.card = card;
-        this.cardMenu.visible = true;
+        this.cardMenu.card = card
+        this.cardMenu.visible = true
         
         this.$nextTick(() => {
-          this.cardMenu.anchorOrigin = 'top right';
-          this.cardMenu.selfOrigin = 'top right';
+          this.cardMenu.anchorOrigin = 'top right'
+          this.cardMenu.selfOrigin = 'top right'
         })
         
       },
 
       manageAuthNFTs(card) {
-        this.selectedCard = card;
-        this.merchantSearch = '';
+        this.selectedCard = card
+        this.merchantSearch = ''
         this.genericAuthEnabled = card.hasGenericAuth || false;
 
         this.showManageAuthNFTdialog = true;
@@ -501,15 +595,21 @@ import { getMerchantList } from 'src/services/card/merchants';
       },
 
       viewTransactionHistory(card) {
-        this.selectedCard = card;
-        this.showTransactionHistoryDialog = true;
-        this.transactionSearch = '';
+        if (!card || card instanceof Event) {
+          this.selectedCard = null
+        }
+        else {
+          this.selectedCard = card.id
+        }
+        
+        this.showTransactionHistoryDialog = true
+        this.transactionSearch = ''
       },
 
       editSpendLimit(card){
-        this.selectedCard = card;
+        this.selectedCard = card
         this.tempSpendLimitAmount = card.spendLimitAmount || 0
-        this.showSpendLimitDialog = true;
+        this.showSpendLimitDialog = true
       },
 
       async updateSpendLimit(){
@@ -716,8 +816,15 @@ import { getMerchantList } from 'src/services/card/merchants';
         }
       },
 
-
+      toggleSort (key) {
+        if (this.sortKey === key) {
+          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc'
+        }
+        else {
+          this.sortKey = key
+          this.sortOrder = 'desc'
+        }
+      }
 
     }
-
   }
