@@ -1268,8 +1268,11 @@ export class Pst {
   async delete({ sync = false } = {}) {
     if (!this.options?.store) return
     this.options.store.commit('multisig/deletePsbt', this.unsignedTransactionHash) 
-    if (sync) {
-      return await this.options.store.dispatch('multisig/deletePsbt', this.unsignedTransactionHash)
+    if (this.id) {
+      await this.options?.coordinationServer?.deleteProposal({
+        id: this.id,
+        authCredentialsGenerator: this.wallet
+      })
     }
   }
 
