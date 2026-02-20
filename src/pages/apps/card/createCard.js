@@ -3,7 +3,7 @@ import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown
 //import { createCard } from 'src/services/card/backend/api';
 import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
-import { loadCardUser } from 'src/services/card/user';
+import { loadCardUser, fetchCardByIdentifier } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
 import { getMerchantList } from 'src/services/card/merchants';
 import { title } from 'process';
