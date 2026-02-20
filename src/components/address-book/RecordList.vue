@@ -33,7 +33,7 @@
               <q-item-label id="name-label">{{ rec.name }}</q-item-label>
               <q-item-label caption>
                 {{ rec.address_count }}
-                {{ rec.address_count === 1 ? 'address' : 'addresses' }}
+                {{ rec.address_count === 1 ? $t('Address') : $t('Addresses') }}
               </q-item-label>
             </q-item-section>
           </q-item>
