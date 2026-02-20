@@ -604,9 +604,10 @@ export default {
       this.loading = true
       this.error = null
 
-      const resp = await getRecord(id)
-
       try {
+        const resp = await getRecord(id)
+        if (!resp) throw new Error('Unable to get record details')
+
         const keypair = await ensureKeypair()
         const decryptedName = await decryptMemo(keypair.privkey, resp.name)
 
