@@ -68,33 +68,39 @@
 
       <!-- Promo Cards -->
       <template v-else>
-        <div
-          class="row col-12 justify-between items-center q-pa-md br-15 group-currency"
-          :class="getDarkModeClass(darkMode)"
+        <q-intersection
           v-for="(promo, index) in Object.values(promos)"
           :key="index"
+          transition="jump-up"
+          once
+          class="col-12"
         >
-          <div class="col-8">
-            <span class="text-token" :class="getDarkModeClass(darkMode)">
-              {{ promo.name }}
-            </span><br/>
-            <span
-              class="amount-text"
-              :class="getDarkModeClass(darkMode, '', 'text-grad')"
-            >
-              {{ promo.points }} {{ pointsType[index].toUpperCase() }}
-            </span>
-          </div>
+          <div
+            class="row col-12 justify-between items-center q-pa-md br-15 group-currency"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <div class="col-8">
+              <span class="text-token" :class="getDarkModeClass(darkMode)">
+                {{ promo.name }}
+              </span><br/>
+              <span
+                class="amount-text"
+                :class="getDarkModeClass(darkMode, '', 'text-grad')"
+              >
+                {{ promo.points }} {{ pointsType[index].toUpperCase() }}
+              </span>
+            </div>
 
-          <div class="row col-auto justify-end">
-            <q-btn
-              rounded
-              class="btn-scan button text-white bg-grad"
-              icon="chevron_right"
-              @click="redirectToPromoPage(promo)"
-            />
+            <div class="row col-auto justify-end">
+              <q-btn
+                rounded
+                class="btn-scan button text-white bg-grad"
+                icon="chevron_right"
+                @click="redirectToPromoPage(promo)"
+              />
+            </div>
           </div>
-        </div>
+        </q-intersection>
       </template>
     </div>
   </div>
