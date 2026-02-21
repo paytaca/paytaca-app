@@ -53,6 +53,14 @@ function getLocale () {
     currentLocale = new Intl.Locale(countryCode)
   }
 
+  // Use Latin numerals for Arabic locales to ensure readability
+  // (Eastern Arabic numerals ٠١٢٣٤٥٦٧٨٩ are often hard to read in financial contexts)
+  if (typeof currentLocale === 'string' && currentLocale.startsWith('ar')) {
+    currentLocale = currentLocale + '-u-nu-latn'
+  } else if (currentLocale instanceof Intl.Locale && currentLocale.language === 'ar') {
+    currentLocale = new Intl.Locale(currentLocale, { numberingSystem: 'latn' })
+  }
+
   return currentLocale
 }
 
