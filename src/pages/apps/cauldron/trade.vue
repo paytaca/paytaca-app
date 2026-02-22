@@ -9,13 +9,10 @@
       title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
-    >
-      <template v-slot:top-right-menu>
-        <CauldronHeaderMenu />
-      </template>
-    </HeaderNav>
+    />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <CauldronHeaderMenu class="q-mb-md" />
       <!-- Success Display -->
       <div v-if="completedTradeData.txid" class="q-mb-md">
         <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
