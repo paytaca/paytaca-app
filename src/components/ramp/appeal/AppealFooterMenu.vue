@@ -2,7 +2,7 @@
   <div
     class="row justify-center fixed-footer"
     :class="getDarkModeClass()"
-    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
+    :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto', 'padding-bottom': 'calc(16px + env(safe-area-inset-bottom, 0px))'}">
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
       <q-btn flat no-caps dense class="footer-icon-btn q-mr-xs btn-ellipse cursor-pointer" :class="{'text-white': darkMode}" @click="onSelectMenu('list')">
           <q-icon class="mb-2" :class="isActive('arbiter-appeals') ? 'default-text-color' : 'inactive-color'" size="30px" name="sym_o_receipt_long"/>
@@ -62,7 +62,7 @@ export default {
     height: 67px;
     padding-top: 5px;
     width: 100%;
-    bottom: 0;
+    bottom: env(safe-area-inset-bottom, 0px);
     background-color: #fff;
     border-top-right-radius: 20px;
     border-top-left-radius: 20px;
