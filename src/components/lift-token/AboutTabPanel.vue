@@ -29,7 +29,7 @@
             </div>
             <div class="col-6">
               <div class="text-caption text-grey-6">{{ $t('YourHoldings') }}</div>
-              <div class="text-h6 text-weight-bold">{{ userLiftBalance }} LIFT</div>
+              <div class="text-h6 text-weight-bold">{{ formattedUserLiftBalance }} LIFT</div>
             </div>
             <div class="col-12" v-if="seedRoundPrice">
               <q-separator class="q-my-sm" />
@@ -355,6 +355,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { formatWithLocale } from 'src/utils/denomination-utils'
 import LiftInfoSection from './LiftInfoSection.vue'
 import SaleRoundCard from './SaleRoundCard.vue'
 import LiftFAQItem from './LiftFAQItem.vue'
@@ -426,6 +427,12 @@ export default {
           ctaAction: ''
         }
       ]
+    }
+  },
+  computed: {
+    formattedUserLiftBalance() {
+      const hasFraction = this.userLiftBalance % 1 !== 0
+      return formatWithLocale(this.userLiftBalance, { min: hasFraction ? 2 : 0, max: 2 })
     }
   },
   methods: {
