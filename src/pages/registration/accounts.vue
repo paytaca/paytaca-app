@@ -304,6 +304,18 @@
     <!-- Restore Step 2: Seed Phrase Entry -->
     <div v-if="restoreStep === 2 && mnemonic.length === 0" class="content-section center-viewport step-2-container restore-step-2" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <template v-if="authenticationPhase === 'shards'">
+        <div class="row justify-start q-mb-md q-px-lg">
+          <q-btn
+            flat
+            no-caps
+            padding="xs sm"
+            icon="arrow_back"
+            class="glass-button-text"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('Back')"
+            @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
+          />
+        </div>
         <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
