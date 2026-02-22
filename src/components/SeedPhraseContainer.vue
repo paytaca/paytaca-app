@@ -10,7 +10,8 @@
           :class="[getDarkModeClass(darkMode), { 'word-visible': isWordVisible(index) }]"
           :style="{ animationDelay: `${index * 300}ms` }"
         >
-          {{ word }}
+          <span class="word-number">{{ index + 1 }}</span>
+          <span class="word-text">{{ word }}</span>
         </span>
       </div>
       <!-- Replay Button -->
@@ -211,11 +212,36 @@ export default {
         &.dark {
           background: rgba(170, 178, 233, 0.85);
           color: #000000;
+          
+          .word-number {
+            background: rgba(0, 0, 0, 0.2);
+            color: #000000;
+          }
         }
 
         &.light {
           background: rgba(108, 117, 173, 0.9);
           color: #ffffff;
+          
+          .word-number {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+          }
+        }
+        
+        .word-number {
+          min-width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        
+        .word-text {
+          text-transform: capitalize;
         }
       }
       
