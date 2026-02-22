@@ -79,6 +79,7 @@ export default {
   Afrikaans: "Afrikaans",
   Ago: "gelede",
   Agreed: "Ooreengekom",
+  AggregatedBalanceFromAllWallets: "Saamgestelde balans van alle beursies in die toepassing",
   All: "Almal",
   AllCurrencies: "Alle geldeenhede",
   AllGiftsLoaded: "Alle geskenke gelaai",

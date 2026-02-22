@@ -79,6 +79,7 @@ export default {
   Afrikaans: "南非荷蘭語",
   Ago: "前",
   Agreed: "同意",
+  AggregatedBalanceFromAllWallets: "應用中所有錢包的聚合餘額",
   All: "全部",
   AllCurrencies: "所有貨幣",
   AllGiftsLoaded: "所有禮物已加載",

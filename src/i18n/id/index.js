@@ -79,6 +79,7 @@ export default {
   Afrikaans: "Afrikaans",
   Ago: "lalu",
   Agreed: "Setuju",
+  AggregatedBalanceFromAllWallets: "Saldo agregat dari semua dompet di aplikasi",
   All: "Semua",
   AllCurrencies: "Semua Mata Uang",
   AllGiftsLoaded: "Semua hadiah dimuat",

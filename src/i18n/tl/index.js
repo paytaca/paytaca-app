@@ -79,6 +79,7 @@ export default {
   Afrikaans: "Afrikaans",
   Ago: "kanina",
   Agreed: "Sumang-ayon",
+  AggregatedBalanceFromAllWallets: "Pinagsamang balanse mula sa lahat ng wallet sa app",
   All: "Lahat",
   AllCurrencies: "Lahat ng Pera",
   AllGiftsLoaded: "Na-load ang lahat ng regalo",

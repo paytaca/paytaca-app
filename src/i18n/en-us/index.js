@@ -79,6 +79,7 @@ export default {
   Afrikaans: "Afrikaans",
   Ago: "ago",
   Agreed: "Agreed",
+  AggregatedBalanceFromAllWallets: "Aggregated balance from all wallets in the app",
   All: "All",
   AllCurrencies: "All Currencies",
   AllGiftsLoaded: "All gifts loaded",

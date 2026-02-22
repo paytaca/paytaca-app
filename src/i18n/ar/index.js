@@ -79,6 +79,7 @@ export default {
   Afrikaans: "الأفريكانية",
   Ago: "منذ",
   Agreed: "متفق عليه",
+  AggregatedBalanceFromAllWallets: "رصيد مجمع من جميع المحافظ في التطبيق",
   All: "الكل",
   AllCurrencies: "جميع العملات",
   AllGiftsLoaded: "تم تحميل جميع الهدايا",

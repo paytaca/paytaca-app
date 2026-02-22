@@ -79,6 +79,7 @@ export default {
   Afrikaans: "아프리칸스어",
   Ago: "전",
   Agreed: "동의함",
+  AggregatedBalanceFromAllWallets: "앱의 모든 지갑에서 집계된 잔액",
   All: "모두",
   AllCurrencies: "모든 통화",
   AllGiftsLoaded: "모든 선물이 로드되었습니다.",

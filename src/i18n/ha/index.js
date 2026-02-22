@@ -79,6 +79,7 @@ export default {
   Afrikaans: "Afrikaans",
   Ago: "da suka wuce",
   Agreed: "An amince",
+  AggregatedBalanceFromAllWallets: "Ma'auni na haɗe daga duk walat ɗin cikin app ɗin",
   All: "Duka",
   AllCurrencies: "Dukan Kuɗi",
   AllGiftsLoaded: "An ɗora duk kyaututtuka",

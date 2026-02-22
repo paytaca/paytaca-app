@@ -79,6 +79,7 @@ export default {
   Afrikaans: "Африкаанс",
   Ago: "назад",
   Agreed: "Согласен",
+  AggregatedBalanceFromAllWallets: "Агрегированный баланс со всех кошельков в приложении",
   All: "Все",
   AllCurrencies: "Все валюты",
   AllGiftsLoaded: "Все подарки загружены",
