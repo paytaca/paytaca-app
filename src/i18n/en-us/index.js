@@ -696,6 +696,7 @@ export default {
   ErrorPreparingFunds: "Error preparing funds",
   ErrorRestoringWallet: "Error restoring wallet",
   ErrorSavingKeys: "Error in saving keys",
+  InvalidSeedPhraseError: "Invalid seed phrase. Please check the words for spelling mistakes.",
   ErrorSavingMemo: "Error saving memo",
   ErrorSavingQR: "Error saving QR",
   ErrorSavingReceipt: "Error saving receipt",

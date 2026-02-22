@@ -409,6 +409,12 @@
               </template>
         </div>
         
+        <div v-if="showSeedPhraseError" class="q-px-md q-mt-sm">
+          <p class="text-negative text-center text-body2">
+            {{ $t('InvalidSeedPhraseError') || 'Invalid seed phrase. Please check the words for spelling mistakes.' }}
+          </p>
+        </div>
+        
               <q-btn
                 rounded
           :label="$t('RestoreWallet')"
@@ -845,6 +851,12 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    hasAllSeedPhraseWords () {
+      return countWords(this.seedPhraseBackup) === 12
+    },
+    showSeedPhraseError () {
+      return this.hasAllSeedPhraseWords && !this.validateSeedPhrase()
     },
     // isOnboarding () {
     //   return this.isVaultEmpty
