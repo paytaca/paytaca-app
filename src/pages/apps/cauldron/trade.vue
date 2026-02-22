@@ -198,7 +198,14 @@
                   :disable="isSwapping || updatingPool"
                 />
                 <div v-if="formattedMaxAmount" class="row items-center justify-end">
-                  <q-btn flat @click="amountInputString = formattedMaxAmount" class="q-r-mr-md">
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    class="max-button"
+                    :class="getDarkModeClass(darkMode)"
+                    @click="amountInputString = formattedMaxAmount"
+                  >
                     {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
                   </q-btn>
                 </div>
@@ -1202,6 +1209,20 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.max-button {
+  min-height: unset;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #3b7bf6;
+
+  &.dark {
+    color: #6fa8ff;
+  }
+}
+
 .insufficient-balance-alert {
   display: flex;
   align-items: center;
