@@ -1,6 +1,7 @@
 import { deleteMnemonic, deleteMnemonicByHash } from './../../wallet'
 import { deleteAuthToken as deleteP2PExchangeAuthToken } from 'src/exchange/auth'
 import { removeWalletName } from 'src/utils/wallet-name-cache'
+import { clearLiftBalanceCache } from 'src/utils/subscription-utils'
 
 /**
  * Get default wallet settings
@@ -132,15 +133,16 @@ export function updateVault (state, details) {
     if (!state.vault[targetIndex].name) {
       state.vault[targetIndex].name = ''
     }
-    // Initialize settings if not present
     if (!state.vault[targetIndex].settings) {
       state.vault[targetIndex].settings = getDefaultWalletSettings()
     }
   }
+  clearLiftBalanceCache()
 }
 
 export function clearVault (state) {
   state.vault = []
+  clearLiftBalanceCache()
 }
 
 /**
@@ -152,6 +154,7 @@ export function clearVault (state) {
 export function removeVaultEntry (state, index) {
   if (index >= 0 && index < state.vault.length) {
     state.vault.splice(index, 1)
+    clearLiftBalanceCache()
   }
 }
 
