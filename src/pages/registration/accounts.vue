@@ -330,22 +330,38 @@
     <!-- Restore Step 2: Seed Phrase Entry -->
     <div v-if="restoreStep === 2 && mnemonic.length === 0" class="content-section center-viewport step-2-container restore-step-2" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <template v-if="authenticationPhase === 'shards'">
-        <div class="row justify-start q-mb-md q-px-lg">
+        <div class="row no-wrap items-center q-mb-sm full-width" style="margin-left: -16px; margin-right: -16px; padding: 0 16px;">
           <q-btn
             flat
-            no-caps
-            padding="xs sm"
+            round
+            dense
             icon="arrow_back"
             class="glass-button-text"
+            style="margin-top: -6px;"
             :class="getDarkModeClass(darkMode)"
-            :label="$t('Back')"
             @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
           />
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('RestoreFromShards') }}</div>
+          <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
         </div>
+        <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('RestoreShardsDescription') }}</p>
         <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
-        <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('RestoreExistingWallet') }}</h5>
+        <div class="row no-wrap items-center q-mb-sm full-width" style="margin-left: -16px; margin-right: -16px; padding: 0 16px;">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="glass-button-text"
+            style="margin-top: -6px;"
+            :class="getDarkModeClass(darkMode)"
+            @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
+          />
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('RestoreFromSeedPhrase') }}</div>
+          <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
+        </div>
         <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('RestoreWalletDescription') }}</p>
         
         <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">

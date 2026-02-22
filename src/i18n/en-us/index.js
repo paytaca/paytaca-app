@@ -1717,6 +1717,7 @@ export default {
   Resources: "Resources",
   RestoreExistingWallet: "Restore Existing Wallet",
   RestoreFromSeedPhrase: "Restore From Seed Phrase",
+  RestoreFromShards: "Restore From Shards",
   RestoreShardsDescription: "Restore your Paytaca wallet from the QR code of its shards",
   RestoreWallet: "Restore Wallet",
   RestoreWalletDescription: "Restore your Paytaca wallet from a 12-word seed phrase backup",
