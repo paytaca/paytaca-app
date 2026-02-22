@@ -339,6 +339,8 @@ const phrases = {
       OnBoardSettingDescription: "Adjust settings to fit your native experience",
       POSAdmin: "POS Admin",
       RenameWallet: "Rename Wallet",
+      NameYourWallet: "Name Your Wallet",
+      WalletNameDescription: "Give your wallet a custom name",
       ShowTokens: "Show Tokens",
       SwitchWallet: "Switch Wallet",
       SwitchingWallet: "Switching wallet",
