@@ -13,7 +13,12 @@ export function normalizeDenomination (denomination) {
   if (!denomination) return denomination
   if (denomination === 'Satoshis') return 'sats'
   // Be forgiving in case old values are stored with different casing
-  if (typeof denomination === 'string' && denomination.toLowerCase() === 'satoshis') return 'sats'
+  if (typeof denomination === 'string') {
+    const lower = denomination.toLowerCase()
+    if (lower === 'satoshis') return 'sats'
+    if (lower === 'bch') return 'BCH'
+    if (lower === 'mbch') return 'mBCH'
+  }
   return denomination
 }
 

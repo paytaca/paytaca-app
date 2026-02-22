@@ -45,3 +45,4 @@ src-capacitor/ios/
 
 # npm cache
 .npm-cache
+.opencode
