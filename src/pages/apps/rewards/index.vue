@@ -205,7 +205,7 @@ export default {
             for (const type of this.pointsType) {
               const promoId = data[type]
               if (promoId) {
-                const targetPromo = PromosBytes[type].toString()
+                const targetPromo = PromosBytes[type.toUpperCase()]
                 const contract = new PromoContract(keyPair.pubkey, targetPromo)
                 await contract.subscribeAddress()
                 const promoBalance = await contract.getTokenBalance()

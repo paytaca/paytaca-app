@@ -21,11 +21,11 @@ export const Promos = {
   // PPRPROMO: 'pprp'
 }
 export const PromosBytes = {
-  up: 0x01,
-  rp: 0x02,
-  // lp: 0x03,
-  // cp: 0x04,
-  // mp: 0x05
+  UP: 0x01.toString(),
+  RP: 0x02.toString(),
+  // LP: 0x03,
+  // CP: 0x04,
+  // MP: 0x05
 }
 
 // ================================
