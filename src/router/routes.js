@@ -299,7 +299,7 @@ const routes = [
             path: 'user-rewards',
             name: 'user-rewards',
             props: route => route.query,
-            component: () => import('src/pages/apps/rewards/promos/user-rewards.vue')
+            component: () => import('src/pages/apps/rewards/user-rewards.vue')
           },
           {
             path: 'rfp',
