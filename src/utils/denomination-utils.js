@@ -13,7 +13,12 @@ export function normalizeDenomination (denomination) {
   if (!denomination) return denomination
   if (denomination === 'Satoshis') return 'sats'
   // Be forgiving in case old values are stored with different casing
-  if (typeof denomination === 'string' && denomination.toLowerCase() === 'satoshis') return 'sats'
+  if (typeof denomination === 'string') {
+    const lower = denomination.toLowerCase()
+    if (lower === 'satoshis') return 'sats'
+    if (lower === 'bch') return 'BCH'
+    if (lower === 'mbch') return 'mBCH'
+  }
   return denomination
 }
 
@@ -51,6 +56,14 @@ function getLocale () {
   } else {
     // use locale from country code
     currentLocale = new Intl.Locale(countryCode)
+  }
+
+  // Use Latin numerals for Arabic locales to ensure readability
+  // (Eastern Arabic numerals ٠١٢٣٤٥٦٧٨٩ are often hard to read in financial contexts)
+  if (typeof currentLocale === 'string' && currentLocale.startsWith('ar')) {
+    currentLocale = currentLocale + '-u-nu-latn'
+  } else if (currentLocale instanceof Intl.Locale && currentLocale.language === 'ar') {
+    currentLocale = new Intl.Locale(currentLocale, { numberingSystem: 'latn' })
   }
 
   return currentLocale
