@@ -2,7 +2,7 @@
 <div id="app-container" class="row" :class="getDarkModeClass(darkMode)">
     <!-- back button -->
     <div class="fixed back-btn" :style="$q.platform.is.ios ? 'top: 45px;' : 'top: 10px;'" v-if="state != 'form'" @click="clickBack"></div>
-    <HeaderNav :title="$t('CryptoSwap')" :backnavpath="backnav" class="header-nav" />
+    <HeaderNav :title="$t('CryptoSwap')" :backnavpath="previousRoute" class="header-nav" />
     
     <div class="crypto-swap-content">
       <!-- Tabs Section -->
@@ -213,7 +213,7 @@ export default {
       isAllowed: true,
       isloaded: false,
       state: 'form',
-      backnav: '/apps',
+      previousRoute: '/apps',
       activeTab: 'swap',
       // History tab data
       selectedData: {},
@@ -248,6 +248,11 @@ export default {
         this.getTransactions()
       }
     }
+  },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path || '/apps'
+    })
   },
   created () {
     // Register bus event listener for state updates
