@@ -144,7 +144,7 @@ import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
 import { encryptECIESMessage } from './ecies.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
-import { generateCoordinationServerCredentialsFromMnemonic } from './coordination.js'
+import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
@@ -222,6 +222,13 @@ export const derivePublicKey = (xpub, relativeDerivationPath) => {
   const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, relativeDerivationPath)
   return publicKey
 }
+
+export const derivePrivateKey = (xprv, relativeDerivationPath) => {
+  const decodedHdPrivateKey = decodeHdPrivateKey(xprv, relativeDerivationPath)
+  const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, relativeDerivationPath)
+  return privateKey
+}
+
 /**
  * @param {Object} params
  * @param {MultisigWalletSigner[]} params.signers
@@ -1433,6 +1440,22 @@ async generateAuthCredentials(xpub) {
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     if (mnemonic) {
       return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
+    }
+  }
+  return null
+}
+
+async generateCosignerAuthCredentials(xpub) {
+  if (xpub) {
+    const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub })
+    if (!mnemonic) return null
+    return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
+  }
+  for (const signer of this.signers) {
+    // use first mnemonic found
+    const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+    if (mnemonic) {
+      return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
     }
   }
   return null
