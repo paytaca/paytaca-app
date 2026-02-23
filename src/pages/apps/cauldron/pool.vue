@@ -6,15 +6,12 @@
   >
     <HeaderNav
       title="Cauldron Pool"
+      backnavpath="/apps"
       class="apps-header"
-    >
-      <template v-slot:top-right-menu>
-        <CauldronHeaderMenu />
-      </template>
-    </HeaderNav>
+    />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
-      <!-- Loading State -->
+      <CauldronHeaderMenu class="q-mb-md" />
       <div v-if="fetchingHistory" class="text-center q-pa-lg">
         <q-spinner size="3em" color="primary" />
         <div class="q-mt-md text-grey">{{ $t('LoadingHistory') }}</div>

@@ -125,6 +125,7 @@ const words = [
     Version: "Version",
     Wallet: "Wallet",
     Wallets: "Wallets",
+    PersonalWallet: "Personal Wallet",
     Details: "Details",
     Transaction: "Transaction",
     Extensions: "Extensions",

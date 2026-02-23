@@ -242,6 +242,7 @@ import {
   getReservationsData,
   updateRsvpPublicKeys,
 } from "src/utils/engagementhub-utils/lift-token";
+import { checkLiftTokenBalance } from "src/utils/subscription-utils";
 
 import HeaderNav from "src/components/header-nav.vue";
 import AboutTabPanel from "src/components/lift-token/AboutTabPanel.vue";
@@ -308,10 +309,12 @@ export default {
         getReservationsData(),
         getPurchasesData(),
         getContractAddressApi(),
+        checkLiftTokenBalance(),
       ]);
       this.reservationsList = results[0].value;
       this.purchasesList = results[1].value;
       this.liftSwapContractAddress = results[2].value;
+      this.userLiftBalance = results[3].value || 0;
 
       // work in background
       // update the public keys of reservations if they are empty

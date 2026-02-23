@@ -100,12 +100,12 @@
                           </div>
                         </div>
                         <div class="bch-card-controls row items-center no-wrap">
-                          <div v-if="favoriteTokens.length" @click.stop class="balance-mode-control">
+                          <div @click.stop class="balance-mode-control">
                             <q-btn
                               flat
                               no-caps
                               align="left"
-                              padding="0 4px"
+                              padding="0"
                               class="balance-mode-trigger text-white"
                               @click="openBalanceModeDialog"
                             >

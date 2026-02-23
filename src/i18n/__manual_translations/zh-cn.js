@@ -184,4 +184,23 @@ export default {
   UnpaidLift: "LIFT未支付",
   WhatIsLIFT: "什么是LIFT？",
   PayForLIFT: "支付LIFT费用",
+
+  // Fix Google-translated BCH + balance strings
+  BCH: 'BCH',
+  BCHAmount: 'BCH 数量',
+  BCHGift: 'BCH 礼物',
+  BCHOnly: '仅显示比特币现金',
+  BchAddress: 'BCH 地址',
+  BchAddresses: 'BCH 地址',
+  BchBalance: 'BCH 余额',
+  GetBCH: '获取比特币现金',
+  InBCH: '以 BCH',
+  ShareGiftLink: '分享礼物链接',
+  Balance: '余额',
+  BalanceModeTitle: '余额',
+  HasBalance: '有余额',
+
+  BuyBCH: '购买比特币现金',
+  SellBCH: '出售比特币现金',
+  ReleaseBCH: '释放比特币现金',
 }
