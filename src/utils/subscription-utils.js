@@ -1,70 +1,84 @@
 import { Store } from 'src/store'
-import { loadWallet } from 'src/wallet'
-import { getWalletByNetwork } from 'src/wallet/chipnet'
+import Watchtower from 'watchtower-cash-js'
 
-// LIFT token category ID from environment variable
 export const LIFT_TOKEN_CATEGORY = process.env.LIFT_TOKEN_CATEGORY || '5932b2fd4915d6a75d3ec53282cd49118149a2176ee67ed68b1111ff0786f7fc'
 
-// LIFT token has 2 decimals
 const LIFT_TOKEN_DECIMALS = 2
+const CACHE_DURATION = 30000 // 30 seconds
+const balanceCache = {
+  totalBalance: null,
+  timestamp: 0
+}
 
 /**
- * Check LIFT token balance for the current wallet
- * Uses the standard wallet balance checking method
+ * Check LIFT token balance across all wallets in the vault
+ * Uses the watchtower API directly to avoid loading wallets into memory
+ * Results are cached for CACHE_DURATION to prevent API burst
  * @returns {Promise<number>} LIFT token balance (in human-readable format, e.g., 100.50)
  */
 export async function checkLiftTokenBalance () {
+  if (balanceCache.totalBalance !== null && Date.now() - balanceCache.timestamp < CACHE_DURATION) {
+    return balanceCache.totalBalance
+  }
+
   try {
-    // Get the current wallet index first
-    const walletIndex = Store.getters['global/getWalletIndex']
-    
-    // Get wallet hash from vault at current index to ensure we're checking the correct wallet
-    // This is important because the in-memory wallet state might be stale after a wallet switch
+    const vault = Store.getters['global/getVault'] || []
     const getWalletHashByIndex = Store.getters['global/getWalletHashByIndex']
-    const walletHash = getWalletHashByIndex(walletIndex)
     
-    if (!walletHash) {
-      console.warn('No wallet hash available for checking LIFT token balance')
+    if (vault.length === 0) {
       return 0
     }
+
+    const isChipnet = Store.getters['global/isChipnet']
+    const watchtower = new Watchtower(isChipnet)
     
-    // Load wallet using the standard method
-    const wallet = await loadWallet('BCH', walletIndex)
-    if (!wallet) {
-      console.warn('Failed to load wallet for checking LIFT token balance')
-      return 0
-    }
-    
-    // Get the correct wallet network (chipnet or mainnet)
-    const bchWallet = getWalletByNetwork(wallet, 'bch')
-    if (!bchWallet) {
-      console.warn('Failed to get BCH wallet for checking LIFT token balance')
-      return 0
-    }
-    
-    try {
-      // Use the standard wallet getBalance method with token category
-      const response = await bchWallet.getBalance(LIFT_TOKEN_CATEGORY)
+    const balancePromises = vault.map(async (wallet, index) => {
+      if (!wallet || wallet.deleted) return 0
       
-      // Response format from watchtower: { balance: number, spendable: number, pending: number }
-      // The balance is in the smallest unit (satoshis for tokens), need to divide by 10^decimals
-      const balance = response?.spendable || response?.balance || 0
-      const humanReadableBalance = balance / Math.pow(10, LIFT_TOKEN_DECIMALS)
-      
-      return humanReadableBalance
-    } catch (error) {
-      // If balance check fails (e.g., no tokens, 404), return 0
-      if (error?.response?.status === 404 || error?.message?.includes('404')) {
-        // No tokens found, which is fine
+      const walletHash = getWalletHashByIndex(index)
+                         
+      if (!walletHash) {
+        console.warn(`No wallet hash available for vault index ${index} when checking LIFT token balance`)
         return 0
       }
-      console.debug('LIFT token balance check failed:', error)
-      return 0
-    }
+      
+      try {
+        const response = await watchtower.Wallet.getBalance({ 
+          walletHash, 
+          tokenId: LIFT_TOKEN_CATEGORY 
+        })
+        
+        const balance = response?.spendable || response?.balance || 0
+        return balance / Math.pow(10, LIFT_TOKEN_DECIMALS)
+      } catch (error) {
+        if (error?.response?.status === 404 || error?.message?.includes('404')) {
+          return 0
+        }
+        console.debug(`LIFT token balance check failed for wallet ${walletHash}:`, error)
+        return 0
+      }
+    })
+
+    const balances = await Promise.all(balancePromises)
+    const totalBalance = balances.reduce((sum, balance) => sum + balance, 0)
+    
+    balanceCache.totalBalance = totalBalance
+    balanceCache.timestamp = Date.now()
+    
+    return totalBalance
   } catch (error) {
-    console.error('Error checking LIFT token balance:', error)
+    console.error('Error checking total LIFT token balance:', error)
     return 0
   }
+}
+
+/**
+ * Clear the LIFT token balance cache
+ * Call this when wallet balances may have changed (e.g., after a transaction)
+ */
+export function clearLiftBalanceCache () {
+  balanceCache.totalBalance = null
+  balanceCache.timestamp = 0
 }
 
 /**
@@ -84,4 +98,3 @@ export function isPlusEligible (balance) {
 export function getSubscriptionTier (balance) {
   return isPlusEligible(balance) ? 'plus' : 'free'
 }
-

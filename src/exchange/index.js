@@ -59,6 +59,14 @@ export function formatNumber (num) {
   }
 }
 
+function getLocaleWithLatinNumerals () {
+  const browserLocale = navigator.language || 'en-US'
+  if (browserLocale.startsWith('ar')) {
+    return browserLocale + '-u-nu-latn'
+  }
+  return browserLocale
+}
+
 export function formatCurrency (value, currency) {
   let formattedNumber = null
   const parsedValue = parseFloat(value)
@@ -72,14 +80,15 @@ export function formatCurrency (value, currency) {
   if (parsedValue < 0.0001) {
     maximumFractionDigits = parsedValue % 1 === 0 ? 0 : 8
   }
+  const locale = getLocaleWithLatinNumerals()
   if (currency) {
-    formattedNumber = parsedValue.toLocaleString(undefined, {
+    formattedNumber = parsedValue.toLocaleString(locale, {
       currency: currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: maximumFractionDigits
     })
   } else {
-    formattedNumber = parsedValue.toLocaleString(undefined, {
+    formattedNumber = parsedValue.toLocaleString(locale, {
       minimumFractionDigits: 0,
       maximumFractionDigits: maximumFractionDigits
     })
@@ -103,7 +112,8 @@ export function formatDate (
   if (relative) {
     dateString = formatRelativeDate(datetime)
   } else {
-    dateString = datetime.toLocaleString(undefined, options)
+    const locale = getLocaleWithLatinNumerals()
+    dateString = datetime.toLocaleString(locale, options)
     dateString = dateString.replace(' at', '')
   }
 
