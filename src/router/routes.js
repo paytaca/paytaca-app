@@ -296,9 +296,8 @@ const routes = [
             component: () => import('src/pages/apps/rewards/index.vue'),
           },
           {
-            path: 'user-rewards',
+            path: 'user-rewards/:id/',
             name: 'user-rewards',
-            props: route => route.query,
             component: () => import('src/pages/apps/rewards/user-rewards.vue')
           },
           {
