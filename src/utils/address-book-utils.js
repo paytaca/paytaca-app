@@ -5,7 +5,15 @@ import axios from 'axios'
 const WATCHTOWER_CASH_URL = 
   process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
 const ADDRESS_BOOK_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book/` })
+ADDRESS_BOOK_URL.interceptors.request.use(async (config) => {
+    config.headers['wallet-hash'] = getWalletHash()
+    return config
+  })
 const ADDRESSES_URL = axios.create({ baseURL: `${WATCHTOWER_CASH_URL}/address-book-address/` })
+ADDRESSES_URL.interceptors.request.use(async (config) => {
+    config.headers['wallet-hash'] = getWalletHash()
+    return config
+  })
 
 export async function getWalletAddressBook () {
   return await ADDRESS_BOOK_URL
