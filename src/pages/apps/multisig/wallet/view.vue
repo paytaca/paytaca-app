@@ -614,6 +614,7 @@ const onUpdateTransactionFile = (file) => {
 }
 
 const queryServerForProposals = async () => {
+  
   if (!proposals.value || proposals.value?.length === 0) {
     const p = await wallet.value?.fetchProposals()
     proposalsFromServer.value = p
@@ -633,6 +634,7 @@ onMounted(async () => {
     await loadCashtokenIdentitiesToBalances()
     await wallet.value?.syncId()
     if (!proposals.value || proposals.value?.length === 0) {
+      if (!wallet.id) return
       await queryServerForProposals()
     }
   } catch (error) {
