@@ -133,7 +133,6 @@ import {
 import HeaderNav from 'src/components/header-nav'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -218,7 +217,6 @@ export default {
             this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
           }
         } else {
-          // this.openHelpCard()
           this.isHelpActive = true
           await createUserPromoData()
         }
@@ -230,14 +228,6 @@ export default {
       }
     },
 
-    // TODO remove
-    openHelpCard () {
-      // this.$q.dialog({
-      //   component: HelpDialog,
-      //   componentProps: { page: 'home' }
-      // })
-      this.isHelpActive = true
-    },
     redirectToPromoPage (promo) {
       this.$router.push({
         name: promo.path,
