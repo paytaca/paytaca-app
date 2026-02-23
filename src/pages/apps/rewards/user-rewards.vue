@@ -241,26 +241,28 @@
 </template>
 
 <script>
+import { ensureKeypair } from 'src/utils/memo-service'
+import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
+  Promos,
+  PromosBytes,
   convertPoints,
   createUserRewardsData,
   getUserRewardsData,
   updateUserPromoData,
   getPromoPointsDivisorData,
   updateUserRewardsData,
-  Promos,
   getKeyPairFromWalletMnemonic,
   getContractInitialBalance,
   awardInitialUP
 } from 'src/utils/engagementhub-utils/rewards'
-import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
-import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -314,6 +316,30 @@ export default {
   },
 
   async mounted () {
+    this.isLoading = true
+
+    // check if id from params is not -1
+    const upId = Number(this.$route.params.id || -1)
+    console.log(upId)
+    if (upId === -1) console.log('help dialog yey')
+    else {
+      // retrieve necessary details from server
+      console.log('retrieve from server yey')
+    }
+    
+    // compile contract to get points
+    try {
+      const keyPair = await ensureKeypair()
+      const contract = new PromoContract(keyPair.pubkey, PromosBytes.UP)
+      const contractBalance = await contract.getTokenBalance()
+      console.log(contractBalance)
+    } catch (error) {
+      console.error(error)
+      this.error = this.$t('FailedToLoadPromoData', 'Failed to load points balance. Please try again later.')
+    }
+
+    this.isLoading = false
+    /*
     const vm = this
 
     vm.isLoading = true
@@ -400,6 +426,7 @@ export default {
     }
 
     vm.isLoading = false
+    */
   },
 
   methods: {
