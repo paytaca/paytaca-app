@@ -1,86 +1,40 @@
 <template>
   <div class="header-nav-wrapper">
-    <template v-if="rewardsPage === ''">
-      <div
-        ref="header-nav"
-        class="pt-header row no-wrap items-center"
-        :style="headerNavStyle"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <div class="pt-header-left col-auto row items-center">
-          <router-link
-            :to="backTo"
-            class="pt-arrow-left-link"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-            <span class="material-icons" @click="onClick">
-                arrow_back
-            </span>
-          </router-link>
-        </div>
-        <div class="pt-header-title col">
-          <p
-            ref="header-title"
-            class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-            v-on-long-press="onLongPressTitle"
-          >
-            <span class="pt-header-title-text">{{ title }}</span>
-            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
-              <slot name="title-append" />
-            </span>
-          </p>
-        </div>
-        <div class="pt-header-right col-auto row items-center justify-end">
-          <slot name="top-right-menu">&nbsp;</slot>
-        </div>
+    <div
+      ref="header-nav"
+      class="pt-header row no-wrap items-center"
+      :style="headerNavStyle"
+      :class="getDarkModeClass(darkMode)"
+    >
+      <div class="pt-header-left col-auto row items-center">
+        <router-link
+          :to="backTo"
+          class="pt-arrow-left-link"
+          :class="{'text-grad': darkMode}"
+          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
+          <span class="material-icons" @click="onClick">
+              arrow_back
+          </span>
+        </router-link>
       </div>
-    </template>
-
-    <template v-else>
-      <div
-        ref="header-nav"
-        class="row no-wrap pt-header justify-between items-center"
-        :style="headerNavStyle"
-        :class="{'pt-card-3': darkMode}"
-      >
-        <div class="pt-header-left col-auto row items-center">
-          <router-link
-            :to="backTo"
-            class="pt-arrow-left-link"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-            <span class="material-icons" @click="onClick">
-                arrow_back
-            </span>
-          </router-link>
-        </div>
-        <div class="pt-header-title col">
-          <p
-            ref="header-title"
-            class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-            v-on-long-press="onLongPressTitle"
-          >
-            <span class="pt-header-title-text">{{ title }}</span>
-            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
-              <slot name="title-append" />
-            </span>
-          </p>
-        </div>
-        <div class="pt-header-right col-auto q-mr-sm">
-          <q-btn
-            round
-            class="button"
-            icon="question_mark"
-            size="sm"
-            @click="openRewardsHelpDialog"
-          />
-        </div>
+      <div class="pt-header-title col">
+        <p
+          ref="header-title"
+          class="text-h5 text-uppercase text-center q-my-none"
+          :class="{'text-grad': darkMode}"
+          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          v-on-long-press="onLongPressTitle"
+        >
+          <span class="pt-header-title-text">{{ title }}</span>
+          <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
+            <slot name="title-append" />
+          </span>
+        </p>
       </div>
-    </template>
+      <div class="pt-header-right col-auto row items-center justify-center">
+        <slot name="top-right-menu">&nbsp;</slot>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -102,16 +56,12 @@ export default {
     backnavpath: {
       type: [String, Object],
       default: ''
-    },
-    rewardsPage: {
-      type: String,
-      default: ''
     }
   },
   components: {
     HelpDialog
   },
-  emits: ['click', 'long-press-title', 'on-rewards-help-click'],
+  emits: ['click', 'long-press-title'],
   data () {
     return {
       addedBodyPadding: false
@@ -201,13 +151,6 @@ export default {
         this.$router.go(-1)
       }
       this.$emit('click')
-    },
-    openRewardsHelpDialog () {
-      // this.$q.dialog({
-      //   component: HelpDialog,
-      //   componentProps: { page: this.rewardsPage }
-      // })
-      this.$emit('on-rewards-help-click')
     },
     onLongPressTitle () {
       this.$emit('long-press-title')

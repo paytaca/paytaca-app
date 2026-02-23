@@ -8,9 +8,17 @@
       class="apps-header"
       backnavpath="/apps"
       :title="$t('Rewards')"
-      rewardsPage="home"
-      @on-rewards-help-click="openHelpCard"
-    />
+    >
+      <template #top-right-menu>
+        <q-btn
+          round
+          class="button"
+          icon="question_mark"
+          size="sm"
+          @click="isHelpActive = true"
+        />
+      </template>
+    </header-nav>
 
     <!-- Welcome Message -->
     <div class="q-mx-lg q-mt-md q-mb-md">
@@ -210,7 +218,8 @@ export default {
             this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
           }
         } else {
-          this.openHelpCard()
+          // this.openHelpCard()
+          this.isHelpActive = true
           await createUserPromoData()
         }
       } catch (error) {
@@ -221,6 +230,7 @@ export default {
       }
     },
 
+    // TODO remove
     openHelpCard () {
       // this.$q.dialog({
       //   component: HelpDialog,
