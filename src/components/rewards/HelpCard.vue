@@ -5,10 +5,10 @@
       class="text-bow rewards-help-container"
       :class="[getDarkModeClass(darkMode), isHighlighting ? '' : 'blanket']"
     >
-      <template v-if="isHighlighting">
+      <template v-if="isHighlighting && hasBoundingRects">
         <!-- scrims -->
         <div
-          v-for="(rect, key) in scrims[highlightIndex]"
+          v-for="(rect, key) in currentScrims"
           :key="key"
           class="scrim"
           :style="{
@@ -23,10 +23,10 @@
         <div
           class="highlight"
           :style="{
-            top: highlightEls[highlightIndex].top + 'px',
-            left: highlightEls[highlightIndex].left + 'px',
-            width: highlightEls[highlightIndex].width + 'px',
-            height: highlightEls[highlightIndex].height + 'px',
+            top: currentHighlightEl.top + 'px',
+            left: currentHighlightEl.left + 'px',
+            width: currentHighlightEl.width + 'px',
+            height: currentHighlightEl.height + 'px',
           }"
         />
       </template>
@@ -106,21 +106,22 @@
               label="Next"
               class="button"
               :class="getDarkModeClass(darkMode)"
-              @click="homeGroupStep = '3', isHighlighting = true"
+              @click="homeGroupStep = '3', isHighlighting = true, highlightIndex = 0"
             />
           </div>
         </q-card-actions>
       </q-card>
 
       <q-card
+        v-if="hasBoundingRects"
         class="pt-card help-card"
         :class="getDarkModeClass(darkMode)"
         v-morph:3:homegroup:350.resize="homeGroupStep"
         key="homegroup-3"
         :style="{
           position: 'fixed',
-          top: cardPosition[highlightIndex].top + 5 + 'px',
-          left: cardPosition[highlightIndex].left + 'px',
+          top: currentCardPosition.top + 5 + 'px',
+          left: currentCardPosition.left + 'px',
         }"
       >
         <q-card-section>
@@ -158,14 +159,15 @@
       </q-card>
 
       <q-card
+        v-if="hasBoundingRects"
         class="pt-card help-card"
         :class="getDarkModeClass(darkMode)"
         v-morph:4:homegroup:350.resize="homeGroupStep"
         key="homegroup-4"
         :style="{
           position: 'fixed',
-          top: cardPosition[highlightIndex].top + 5 + 'px',
-          left: cardPosition[highlightIndex].left + 'px',
+          top: currentCardPosition.top + 5 + 'px',
+          left: currentCardPosition.left + 'px',
         }"
       >
         <q-card-section>
@@ -190,7 +192,7 @@
               label="Back"
               class="button"
               :class="getDarkModeClass(darkMode)"
-              @click="homeGroupStep = '3', isHighlighting = true"
+              @click="homeGroupStep = '3', isHighlighting = true, highlightIndex = 0"
             />
             <q-btn
               label="Done"
@@ -241,62 +243,87 @@ export default {
       set (val) {
         this.$emit('update:modelValue', val)
       }
+    },
+
+    currentHighlightEl () {
+      return this.highlightEls[this.highlightIndex] || { top: 0, left: 0, width: 0, height: 0 }
+    },
+
+    currentCardPosition () {
+      return this.cardPosition[this.highlightIndex] || { top: 0, left: 0 }
+    },
+
+    currentScrims () {
+      return this.scrims[this.highlightIndex] || {}
+    },
+
+    hasBoundingRects () {
+      return this.highlightEls.length > 0
+    }
+  },
+
+  watch: {
+    isActive (newVal) {
+      if (newVal) {
+        this.$nextTick(() => {
+          this.calculateBoundingRects()
+        })
+      }
     }
   },
 
   methods: {
-    getDarkModeClass
-  },
+    getDarkModeClass,
 
-  mounted () {
-    const promoCards = document.getElementsByClassName('promo-card')
-    for (const card of promoCards) {
-      const rect = card.getBoundingClientRect()
-      const targetRect = {
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height
-      }
-      this.highlightEls.push(targetRect)
-      
-      // compute for scrims dimensions
-      const bottomTop = targetRect.top + targetRect.height
-      const rightLeft = targetRect.left + targetRect.width
-      const skrim = {
-        top: {
-          top: 0,
-          left: 0,
-          width: window.innerWidth,
-          height: Math.max(0, targetRect.top),
-        },
-        bottom: {
-          top: bottomTop,
-          left: 0,
-          width: window.innerWidth,
-          height: Math.max(0, window.innerHeight - bottomTop),
-        },
-        left: {
-          top: targetRect.top,
-          left: 0,
-          width: Math.max(0, targetRect.left),
-          height: targetRect.height,
-        },
-        right: {
-          top: targetRect.top,
-          left: rightLeft,
-          width: Math.max(0, window.innerWidth - rightLeft),
-          height: targetRect.height,
-        },
-      }
-      this.scrims.push(skrim)
+    calculateBoundingRects () {
+      this.highlightEls = []
+      this.scrims = []
+      this.cardPosition = []
 
-      // compute for height of help card
-      this.cardPosition.push({ top: bottomTop, left: targetRect.left })
+      const promoCards = document.getElementsByClassName('promo-card')
+      for (const card of promoCards) {
+        const rect = card.getBoundingClientRect()
+        const targetRect = {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height
+        }
+        this.highlightEls.push(targetRect)
+
+        const bottomTop = targetRect.top + targetRect.height
+        const rightLeft = targetRect.left + targetRect.width
+        const skrim = {
+          top: {
+            top: 0,
+            left: 0,
+            width: window.innerWidth,
+            height: Math.max(0, targetRect.top),
+          },
+          bottom: {
+            top: bottomTop,
+            left: 0,
+            width: window.innerWidth,
+            height: Math.max(0, window.innerHeight - bottomTop),
+          },
+          left: {
+            top: targetRect.top,
+            left: 0,
+            width: Math.max(0, targetRect.left),
+            height: targetRect.height,
+          },
+          right: {
+            top: targetRect.top,
+            left: rightLeft,
+            width: Math.max(0, window.innerWidth - rightLeft),
+            height: targetRect.height,
+          },
+        }
+        this.scrims.push(skrim)
+
+        this.cardPosition.push({ top: bottomTop, left: targetRect.left })
+      }
     }
-    console.log(this.highlightEls)
-    console.log(this.scrims)
-    console.log(this.cardPosition)
   },
 }
 </script>
@@ -336,7 +363,25 @@ export default {
       pointer-events: none;
       border: 2px solid rgba(59, 123, 246, 0.95);
       box-shadow: 0 0 10px 1px rgba(59, 123, 246, 0.25);
-      animation: appsTourGlow 1.6s ease-in-out infinite;
+      animation: cardsHighlightGlow 1.6s ease-in-out infinite;
+    }
+  }
+
+  @keyframes cardsHighlightGlow {
+    0% {
+      box-shadow:
+        0 0 10px 1px rgba(59, 123, 246, 0.22),
+        0 0 0 0 rgba(59, 123, 246, 0);
+    }
+    50% {
+      box-shadow:
+        0 0 18px 3px rgba(59, 123, 246, 0.38),
+        0 0 34px 10px rgba(59, 123, 246, 0.18);
+    }
+    100% {
+      box-shadow:
+        0 0 10px 1px rgba(59, 123, 246, 0.22),
+        0 0 0 0 rgba(59, 123, 246, 0);
     }
   }
 
