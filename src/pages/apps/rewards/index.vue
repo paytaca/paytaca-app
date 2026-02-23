@@ -74,7 +74,7 @@
           :key="index"
           transition="jump-up"
           once
-          class="col-12"
+          class="col-12 promo-card"
         >
           <div
             class="row full-width justify-between items-center q-pa-md br-15 group-currency"
