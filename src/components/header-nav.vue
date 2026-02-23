@@ -11,8 +11,9 @@
           :to="backTo"
           class="pt-arrow-left-link"
           :class="{'text-grad': darkMode}"
-          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}">
-          <span class="material-icons" @click="onClick">
+          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          @click.prevent.stop="onClick">
+          <span class="material-icons">
               arrow_back
           </span>
         </router-link>

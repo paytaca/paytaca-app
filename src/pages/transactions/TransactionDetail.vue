@@ -2272,6 +2272,38 @@ export default {
         header.appendChild(detailsSection)
         contentContainer.appendChild(header)
 
+        // Memo section (if memo exists)
+        if (vm.hasMemo && vm.transactionMemo) {
+          const memoSection = document.createElement('div')
+          memoSection.style.cssText = `
+            margin-top: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+          `
+          const memoLabel = document.createElement('div')
+          memoLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+          `
+          memoLabel.textContent = vm.$t('Memo', {}, 'Memo')
+          memoSection.appendChild(memoLabel)
+          const memoValue = document.createElement('div')
+          memoValue.style.cssText = `
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            word-break: break-word;
+            line-height: 1.5;
+          `
+          memoValue.textContent = vm.transactionMemo
+          memoSection.appendChild(memoValue)
+          contentContainer.appendChild(memoSection)
+        }
+
         // Footer with logo and website
         const footer = document.createElement('div')
         footer.style.cssText = `

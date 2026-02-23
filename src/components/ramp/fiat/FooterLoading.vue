@@ -2,7 +2,7 @@
   <div
     class="row justify-center fixed-footer rounded-0 pt-card"
     :class="getDarkModeClass(darkMode)"
-    :style="{'padding-bottom': $q.platform.is.ios ? '80px' : '0'}">
+    :style="{'padding-bottom': 'calc(16px + env(safe-area-inset-bottom, 0px))'}">
     <div class="col row justify-center footer-container">
         <q-spinner-dots class="q-my-xs" size="lg" :color="darkMode? 'white': 'blue'"/>
     </div>
@@ -31,7 +31,7 @@ export default {
     padding-top: 5px;
     left: 13px;
     width: 93%;
-    bottom: 42px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     background-color: #fff;
     border-radius: 0 !important;
     // border-top-right-radius: 20px;

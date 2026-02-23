@@ -772,7 +772,8 @@ export default {
       const vm = this
       vm.generateAddressOnLeave = vm.$store.getters['global/autoGenerateAddress']
       
-      if (!vm.$q.platform.is.mobile) {
+      const isMobile = vm.$q.platform.is.mobile || vm.$q.platform.is.android || vm.$q.platform.is.ios
+      if (!isMobile) {
         vm.$q.notify({
           classes: 'br-15 text-body1',
           message: `${amount} ${symbol} received!`,
