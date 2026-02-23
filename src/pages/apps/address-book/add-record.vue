@@ -129,10 +129,19 @@ export default {
         }
       }
 
-      const newRecordId = await addNewRecord(payload)
-      if (newRecordId > -1) {
+      const newRecordResp = await addNewRecord(payload)
+      const recordId = newRecordResp.id
+      if (recordId > -1) {
         raiseNotifySuccess(this.$t('CreateContactSuccess'), 2000, 'top')
-        this.$router.push(`view-record/${newRecordId}/`)
+        if (newRecordResp.error !== '') {
+          this.$q.notify({
+            type: 'warning',
+            timeout: 4000,
+            message: this.$t('UpdateAddressesWarning'),
+            position: 'top'
+          })
+        }
+        this.$router.push(`view-record/${recordId}/`)
       } else {
         raiseNotifyError(this.$t('CreateContactError'), 3000, 'top')
       }

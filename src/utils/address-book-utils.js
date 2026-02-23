@@ -32,12 +32,11 @@ export async function addNewRecord (data) {
   return await ADDRESS_BOOK_URL
     .post('', data)
     .then(resp => {
-      if (resp.status === 201) return resp.data
-      else return -1
+      return resp.data
     })
     .catch(error => {
       console.error('An error occured while creating new record: ', error)
-      return -1
+      return { id: -1, error: error }
     })
 }
 
