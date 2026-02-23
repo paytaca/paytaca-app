@@ -9,6 +9,7 @@
       backnavpath="/apps"
       :title="$t('Rewards')"
       rewardsPage="home"
+      @on-rewards-help-click="openHelpCard"
     />
 
     <!-- Welcome Message -->
@@ -107,6 +108,8 @@
       </template>
     </div>
   </div>
+
+  <help-card v-model="isHelpActive" />
 </template>
 
 <script>
@@ -120,8 +123,9 @@ import {
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
-import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+import HelpCard from 'src/components/rewards/HelpCard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -130,14 +134,17 @@ export default {
 
   components: {
     HeaderNav,
-    ProgressLoader
+    ProgressLoader,
+    HelpCard
   },
 
   data () {
     return {
       isLoading: false,
+      isHelpActive: false,
       error: null,
       swapContractAddress: '',
+
       pointsType: ['up', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
         up: {
@@ -154,9 +161,9 @@ export default {
           icon: 'diversity_3',
           path: 'rfp'
         },
-        // lp: { name: 'Loyalty Promo', id: null, points: 0, path: '' },
-        // cp: { name: 'Champion Promo', id: null, points: 0, path: '' },
-        // mp: { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, path: '' }
+        // lp: { name: 'Loyalty Promo', id: null, points: 0, icon: '', path: '' },
+        // cp: { name: 'Champion Promo', id: null, points: 0, icon: '', path: '' },
+        // mp: { name: 'Paytaca Partner Rewards (PPR) Promo', id: null, points: 0, icon: '', path: '' }
       }
     }
   },
@@ -191,7 +198,8 @@ export default {
             for (const type of this.pointsType) {
               const promoId = data[type]
               if (promoId) {
-                const contract = new PromoContract(keyPair.pubkey, PromosBytes[type].toString())
+                const targetPromo = PromosBytes[type].toString()
+                const contract = new PromoContract(keyPair.pubkey, targetPromo)
                 await contract.subscribeAddress()
                 const promoBalance = await contract.getTokenBalance()
                 this.promos[type].points = promoBalance
@@ -202,10 +210,7 @@ export default {
             this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
           }
         } else {
-          this.$q.dialog({
-            component: HelpDialog,
-            componentProps: { page: 'home' }
-          })
+          this.openHelpCard()
           await createUserPromoData()
         }
       } catch (error) {
@@ -216,6 +221,13 @@ export default {
       }
     },
 
+    openHelpCard () {
+      // this.$q.dialog({
+      //   component: HelpDialog,
+      //   componentProps: { page: 'home' }
+      // })
+      this.isHelpActive = true
+    },
     redirectToPromoPage (promo) {
       this.$router.push({
         name: promo.path,

@@ -111,7 +111,7 @@ export default {
   components: {
     HelpDialog
   },
-  emits: ['click', 'long-press-title'],
+  emits: ['click', 'long-press-title', 'on-rewards-help-click'],
   data () {
     return {
       addedBodyPadding: false
@@ -203,10 +203,11 @@ export default {
       this.$emit('click')
     },
     openRewardsHelpDialog () {
-      this.$q.dialog({
-        component: HelpDialog,
-        componentProps: { page: this.rewardsPage }
-      })
+      // this.$q.dialog({
+      //   component: HelpDialog,
+      //   componentProps: { page: this.rewardsPage }
+      // })
+      this.$emit('on-rewards-help-click')
     },
     onLongPressTitle () {
       this.$emit('long-press-title')
