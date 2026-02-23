@@ -280,7 +280,7 @@ export default {
       this.scrims = []
       this.cardPosition = []
 
-      const promoCards = document.getElementsByClassName('promo-card')
+      const promoCards = document.getElementsByClassName('card-help-highlight')
       for (const card of promoCards) {
         const rect = card.getBoundingClientRect()
         const targetRect = {
