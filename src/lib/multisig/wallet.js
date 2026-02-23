@@ -8,6 +8,7 @@
  * @property {string} xpub - The extended public key of the signer
  * @property {string} name - The name of the signer
  * @property {string} [publicKey] - The public key derived from the xpub
+ * @property {string} [authPublicKey] - The public key derived from the signer's xpub at the relative path defined in SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH, used for signing authentication messages with ECIES to wallet connect peers
  */
 
 /**
@@ -145,6 +146,8 @@ import { encryptECIESMessage } from './ecies.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCoordinationServerCredentialsFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
+
+export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
@@ -1231,8 +1234,7 @@ export class MultisigWallet {
         signer.derivationPath = signer.path || signer.derivationPath || `m/44'/145'/0'`
         signer.publicKey = binToHex(MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub))
         signer.walletDescriptor = encryptedBsmsDescriptor 
-        
-        
+        signer.authPublicKey = binToHex(derivePublicKey(signer.xpub, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH))
         if (coordinator && signer.xpub === coordinator.xpub) {
           signer.coordinator = true
         }
