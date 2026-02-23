@@ -2,6 +2,7 @@ import {
     decodeHdPublicKey,
     decodeHdPrivateKey,
     deriveHdPublicKey,
+    deriveHdPathRelative,
     utf8ToBin,
     binToHex,
     sha256,
@@ -9,6 +10,8 @@ import {
   } from 'bitauth-libauth-v3'
 
 import { deriveHdKeysFromMnemonic } from './utils.js'
+
+export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
 
 export const generateCoordinationServerSignature = (privateKey, message) => {
     const hash = sha256.hash(utf8ToBin(message))
@@ -44,11 +47,10 @@ export const generateCoordinationServerCredentialsFromXprv = ({ xprv }) => {
     const privateKey = decodeHdPrivateKey(xprv).node.privateKey
     const publicKey  = decodeHdPublicKey(hdPublicKey).node.publicKey
     const message = `multisig:${Date.now()}`
-    
     return {
         'X-Auth-PubKey': binToHex(publicKey),
         'X-Auth-Signature': generateCoordinationServerSignature(privateKey, message),
-        'X-Auth-Message': message
+        'X-Auth-Message': message,
     }
   }
 
@@ -59,5 +61,28 @@ export const generateCoordinationServerCredentialsFromMnemonic = ({ mnemonic, ne
       hdPath 
     })
     return generateCoordinationServerCredentialsFromXprv({ xprv: hdPrivateKey })
+}
+
+export const generateCoordinationServerCosignerCredentialsFromXprv = ({ xprv }) => {
+    const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
+    const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
+    const decodedHdPublicKey = decodeHdPublicKey(xpub)
+    const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
+    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
+    const message = `multisig:cosigner-auth:${Date.now()}`
+    return {
+        'X-Auth-Cosigner-Auth-PubKey': binToHex(publicKey),
+        'X-Auth-Cosigner-Auth-Signature': generateCoordinationServerSignature(privateKey, message),
+        'X-Auth-Cosigner-Auth-Message': message,
+    }
+  }
+
+export const generateCoordinationServerCosignerCredentialsFromMnemonic = ({ mnemonic, network = 'mainnet', hdPath = `m/44'/145'/0'` }) => {
+    const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
+      mnemonic,
+      network, 
+      hdPath 
+    })
+    return generateCoordinationServerCosignerCredentialsFromXprv({ xprv: hdPrivateKey })
 }
   
