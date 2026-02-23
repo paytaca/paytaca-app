@@ -675,6 +675,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    parseFiatCurrency,
     async loadFormData () {
       this.loading = true
       this.getInitialMarketPrice()
