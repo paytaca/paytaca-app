@@ -1,241 +1,359 @@
 <template>
-  <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
+  <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      :title="$t('UserRewards')"
+      :title="$t('UserRewards', 'User Rewards')"
       :rewardsPage="Promos.USERREWARDS"
     />
 
     <div
-      class="row q-mx-lg q-gutter-y-md q-pt-lg justify-center text-bow"
-      :class="getDarkModeClass(darkMode)"
-      :style="{ 'margin-top': $q.platform.is.ios ? '0px' : '-30px'}"
+      class="q-px-md q-pt-md"
+      :style="{ 'padding-top': $q.platform.is.ios ? '0px' : '0px' }"
     >
-      <div class="row justify-center q-gutter-y-xs" ref="points_div">
-        <span class="col-12 text-center text-subtitle1">
-          {{ $t('YouCurrentlyHave') }}
-        </span>
-        <div v-if="isLoading" class="row col-12 justify-center q-mb-lg">
-          <progress-loader
-            
-            :isTight="true"
-          />
-        </div>
-        <template v-else>
-          <span class="col-12 text-center text-h5 text-bold">{{ points }} UP</span>
-          <span
-            class="q-mb-sm col-12 text-center subtext-gray"
-            :class="getDarkModeClass(darkMode)"
-          >
-            ({{ pointsConvertion }})
-          </span>
-        </template>
+      <!-- Hero Section: Total Points -->
+      <q-card
+        class="hero-card q-mb-lg"
+        :class="getDarkModeClass(darkMode)"
+        flat
+      >
+        <q-card-section class="text-center q-py-lg">
+          <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+            {{ $t('YouCurrentlyHave', 'You currently have') }}
+          </div>
 
-        <q-btn
-          rounded
-          class="q-mt-md button"
-          :label="$t('RedeemPoints')"
-          :disable="points === 0"
-          @click="openRedeemPointsDialog"
-        />
+          <!-- Loading State -->
+          <template v-if="isLoading">
+            <q-skeleton type="text" width="150px" height="48px" class="q-mx-auto q-mb-sm" />
+            <q-skeleton type="text" width="100px" height="20px" class="q-mx-auto q-mb-md" />
+            <q-skeleton type="QBtn" width="160px" height="44px" class="q-mx-auto" />
+          </template>
+
+          <!-- Loaded State -->
+          <template v-else>
+            <div 
+              class="row flex-center q-mb-sm points-display"
+              :class="{ 'animate-points': points > 0 }"
+            >
+              <span class="text-h3 text-bold text-primary">
+                {{ animatedPoints }}
+              </span>
+              <span
+                class="text-h5 text-weight-bold q-ml-xs"
+                :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+              >
+                UP
+              </span>
+            </div>
+
+            <q-btn
+              rounded
+              size="lg"
+              class="button redeem-btn full-width"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('RedeemPoints', 'Redeem Points')"
+              :disable="points === 0"
+              @click="openRedeemPointsDialog"
+            />
+          </template>
+        </q-card-section>
+      </q-card>
+
+      <!-- One-Time Points Section -->
+      <div class="section-header q-mb-sm">
+        <q-icon name="stars" class="q-mr-sm" color="primary" />
+        <span class="text-h6">{{ $t('OneTimePoints', 'One-time Points') }}</span>
       </div>
 
-      <div
-        class="row col-12 justify-center q-pa-md shadow-up-1 points-earned-div"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <span class="text-h6 q-mb-sm">{{ $t('PointsEarned') }}</span>
-
-        <div v-if="isLoading" class="row col-12 justify-center">
-          <progress-loader
-            
-            :isTight="true"
-          />
-        </div>
-
-        <template v-else>
-          <q-tabs
-            no-caps
-            v-model="currentTab"
-            class="col-12"
-            indicator-color=""
-            @click="adjustScrollAreaHeight"
-          >
-            <q-tab
-              name="onetime"
-              :label="$t('OneTimePoints')"
-              class="network-selection-tab rewards"
-              :class="getDarkModeClass(darkMode)"
-            />
-            <q-tab
-              name="recurring"
-              :label="$t('ContinuousPoints')"
-              class="network-selection-tab rewards"
-              :class="getDarkModeClass(darkMode)"
-            />
-          </q-tabs>
-        </template>
-
-        <q-tab-panels
-          animated
-          v-model="currentTab"
-          class="row full-width"
+      <!-- Loading Skeletons for One-Time -->
+      <template v-if="isLoading">
+        <q-card
+          flat
+          v-for="n in 3" :key="`skeleton-onetime-${n}`"
+          class="achievement-card q-mb-md"
         >
-          <q-tab-panel name="onetime">
-            <q-scroll-area ref="onetime">
-              <div v-if="!isLoading" class="row q-gutter-x-sm q-gutter-y-md">
-                <template v-if="isFirstTimeUser">
-                  <status-chip :isCompleted="hasReceivedInitialPoints" />
-                  <span class="col-10">
-                    <span class="text-subtitle1">
-                      {{ $t(
-                          'InitialUP',
-                          { points: '5 UP' },
-                          'Initial 5 UP from referral'
-                        )
-                      }}
-                    </span>
-                    <br/>
-                    <span v-if="hasReceivedInitialPoints" class="q-ml-sm">
-                      {{ $t(
-                          'EarnedOn',
-                          { date: parseLocaleDate(dateJoined) },
-                          `earned on ${parseLocaleDate(dateJoined)}`
-                        )
-                      }}
-                    </span>
-                    <span
-                      v-else
-                      class="q-ml-sm subtext-gray not-earned-label"
-                      :class="getDarkModeClass(darkMode)"
-                    >
-                      {{ $t('NotYetEarned') }}
-                    </span>
-                  </span>
-
-                  <status-chip :isCompleted="isReferralComplete" />
-                  <span class="col-10">
-                    <span class="text-subtitle1">
-                      {{ $t('BCHFromReferral') }}
-                    </span>
-                    <br/>
-                    <span v-if="isReferralComplete" class="q-ml-sm">
-                      {{ $t(
-                          'EarnedOn',
-                          { date: parseLocaleDate(referralCompleteDate) },
-                          `earned on ${parseLocaleDate(referralCompleteDate)}`
-                        )
-                      }}
-                    </span>
-                    <span
-                      v-else
-                      class="q-ml-sm subtext-gray not-earned-label"
-                      :class="getDarkModeClass(darkMode)"
-                    >
-                      {{ $t('NotYetEarned') }}
-                    </span>
-                  </span>
-
-                  <status-chip :isCompleted="isFirstSevenComplete" />
-                  <div class="col-10">
-                    <span class="text-subtitle1">{{ $t('PointsFromSeven') }}</span>
-
-                    <div class="row q-gutter-y-sm q-mt-xs">
-                      <div
-                        v-for="(item, index) in firstSevenTransactions"
-                        class="row col-12 q-gutter-x-sm"
-                        :key="index"
-                      >
-                        <status-chip
-                          :isCompleted="item.ref_id !== '' && item.date != ''"
-                          :index="index + 1"
-                        />
-                        <div class="col-10">
-                          <template v-if="item.ref_id !== '' && item.date != ''">
-                            <span v-html="firstSevenHtmlText(item)" />
-                          </template>
-                          <span
-                            v-else
-                            class="subtext-gray not-earned-label"
-                            :class="getDarkModeClass(darkMode)"
-                          >
-                          {{ $t('NotYetEarned') }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-
-                <template v-else>
-                  <span class="full-width text-center text-h6">
-                    {{ $t('NonNewUsersWarning') }}
-                  </span>
-                </template>
+          <q-card-section>
+            <div class="row items-center q-gutter-md">
+              <q-skeleton type="circle" size="40px" />
+              <div class="col">
+                <q-skeleton type="text" width="60%" height="20px" class="q-mb-xs" />
+                <q-skeleton type="text" width="40%" height="16px" />
               </div>
-            </q-scroll-area>
-          </q-tab-panel>
+            </div>
+          </q-card-section>
+        </q-card>
+      </template>
 
-          <q-tab-panel name="recurring">
-            <q-scroll-area ref="recurring">
-              <div>
-                <span class="text-subtitle1">
-                  {{ $t('PointsFromMarketplace') }}
-                </span>
+      <!-- One-Time Achievement Cards -->
+      <template v-else-if="!isLoading && isFirstTimeUser">
+        <!-- Welcome/Intro Card for first-time view -->
+        <q-intersection once transition="jump-up" class="q-mb-md">
+          <q-card class="welcome-card" :class="getDarkModeClass(darkMode)" flat bordered>
+            <q-card-section class="bg-primary text-grey-10">
+              <div class="row items-center">
+                <q-icon name="celebration" size="32px" class="q-mr-md" />
+                <div>
+                  <div class="text-h6">Welcome, New Explorer!</div>
+                  <div class="text-caption">Complete tasks to earn UP.</div>
+                </div>
+              </div>
+            </q-card-section>
+            <q-card-section>
+              <div class="text-body2">
+                Start your journey by completing the one-time tasks below. Each completed task rewards you with UP that can be redeemed for LIFT tokens!
+              </div>
+              <q-linear-progress
+                :value="oneTimeProgress"
+                color="primary"
+                class="q-mt-md rounded-borders"
+                size="8px"
+              />
+              <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ completedOneTimeCount }} of {{ totalOneTimeTasks }} tasks completed
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-intersection>
 
+        <!-- Initial UP from Referral -->
+        <q-intersection once transition="jump-up" class="q-mb-md">
+          <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
+            <q-card-section>
+              <div class="row items-center q-gutter-md">
                 <div
-                  v-if="marketplaceTransactions.length > 0"
-                  class="row q-gutter-y-sm q-mt-xs"
+                  class="achievement-icon"
+                  :class="hasReceivedInitialPoints ? 'completed' : 'pending'"
                 >
-                  <div
-                    v-for="(item, index) in marketplaceTransactions"
-                    class="row q-gutter-y-sm"
-                    :key="index"
-                  >
-                    <span class="col-12 q-pl-sm text-subtitle1 text-bold">
-                      {{ parseLocaleDate(item.month, false) }}
-                    </span>
-
-                    <div
-                      v-for="(order, i) in item.orders"
-                      :key="i"
-                      class="col-12"
-                    >
-                      <span class="row q-pl-lg">
-                        {{ $t(
-                            'EarnedFromOrder',
-                            { points: '8 UP' },
-                            'Earned 8 UP from Order'
-                          )
-                        }}
-                        &nbsp;
-                        <span
-                          class="text-underline cursor-pointer"
-                          @click="redirectToMarketplaceOrder(order.order_id)"
-                        >
-                          #{{ order.order_id }}
-                        </span>
-                        &nbsp;
-                        {{ $t(
-                            'LastDate',
-                            { date: parseLocaleDate(order.date) },
-                            `last ${parseLocaleDate(order.date)}`
-                          )
-                        }}
-                      </span>
-                    </div>
+                  <q-icon
+                    :name="hasReceivedInitialPoints ? 'check_circle' : 'radio_button_unchecked'"
+                    size="24px"
+                  />
+                </div>
+                <div class="col">
+                  <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                    {{ $t('InitialUP', { points: '5 UP' }, 'Initial 5 UP from referral') }}
+                  </div>
+                  <div v-if="hasReceivedInitialPoints" class="text-caption text-positive">
+                    <q-icon name="check" size="14px" class="q-mr-xs" />
+                    {{ $t('EarnedOn', { date: parseLocaleDate(dateJoined) }, `earned on ${parseLocaleDate(dateJoined)}`) }}
+                  </div>
+                  <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    {{ $t('NotYetEarned', 'Not yet earned') }}
                   </div>
                 </div>
-
-                <span v-else class="q-mt-md row justify-center text-center text-subtitle1">
-                  {{ $t('PointsFromMarketplaceWarning1') }}<br/><br/>
-                  {{ $t('PointsFromMarketplaceWarning2') }}
-                </span>
+                <div class="points-badge" :class="hasReceivedInitialPoints ? 'completed' : 'pending'">
+                  +5 UP
+                </div>
               </div>
-            </q-scroll-area>
-          </q-tab-panel>
-        </q-tab-panels>
+            </q-card-section>
+          </q-card>
+        </q-intersection>
+
+        <!-- Referral Complete -->
+        <q-intersection once transition="jump-up" class="q-mb-md">
+          <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
+            <q-card-section>
+              <div class="row items-center q-gutter-md">
+                <div
+                  class="achievement-icon"
+                  :class="isReferralComplete ? 'completed' : 'pending'"
+                >
+                  <q-icon
+                    :name="isReferralComplete ? 'check_circle' : 'radio_button_unchecked'"
+                    size="24px"
+                  />
+                </div>
+                <div class="col">
+                  <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                    {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
+                  </div>
+                  <div v-if="isReferralComplete" class="text-caption text-positive">
+                    <q-icon name="check" size="14px" class="q-mr-xs" />
+                    {{ $t('EarnedOn', { date: parseLocaleDate(referralCompleteDate) }, `earned on ${parseLocaleDate(referralCompleteDate)}`) }}
+                  </div>
+                  <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    {{ $t('NotYetEarned', 'Not yet earned') }}
+                  </div>
+                </div>
+                <div class="points-badge" :class="isReferralComplete ? 'completed' : 'pending'">
+                  + 5 UP
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-intersection>
+
+        <!-- First Seven Transactions -->
+        <q-intersection once transition="jump-up" class="q-mb-md">
+          <q-expansion-item
+            class="achievement-expansion"
+            :class="getDarkModeClass(darkMode)"
+            :default-expanded="!isFirstSevenComplete"
+          >
+            <template v-slot:header>
+              <div class="row items-center q-gutter-md full-width">
+                <div
+                  class="achievement-icon"
+                  :class="isFirstSevenComplete ? 'completed' : 'pending'"
+                >
+                  <q-icon
+                    :name="isFirstSevenComplete ? 'check_circle' : 'radio_button_unchecked'"
+                    size="24px"
+                  />
+                </div>
+                <div class="col">
+                  <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                    {{ $t('PointsFromSeven', 'Points from first 7 transactions') }}
+                  </div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    {{ completedFirstSevenCount }}/7 transactions completed
+                  </div>
+                </div>
+                <q-linear-progress
+                  :value="firstSevenProgress"
+                  color="primary"
+                  class="progress-bar q-mr-md"
+                  size="6px"
+                  rounded
+                />
+              </div>
+            </template>
+
+            <q-card class="achievement-sub-card" :class="getDarkModeClass(darkMode)" flat>
+              <q-card-section>
+                <div
+                  v-for="(item, index) in firstSevenTransactions"
+                  :key="index"
+                  class="task-item q-mb-sm"
+                >
+                  <div class="row items-center q-gutter-sm">
+                    <div
+                      class="task-number"
+                      :class="item.ref_id !== '' ? 'completed' : 'pending'"
+                    >
+                      {{ index + 1 }}
+                    </div>
+                    <div class="col">
+                      <template v-if="item.ref_id !== '' && item.date != ''">
+                        <div class="text-body2" v-html="firstSevenHtmlText(item)" />
+                      </template>
+                      <div v-else :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                        Transaction {{ index + 1 }} - Not yet completed
+                      </div>
+                    </div>
+                    <q-icon
+                      v-if="item.ref_id !== ''"
+                      name="check"
+                      color="positive"
+                      size="18px"
+                    />
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+          </q-expansion-item>
+        </q-intersection>
+      </template>
+
+      <template v-else>
+        <!-- Non-new users message -->
+        <q-intersection once v-if="!isFirstTimeUser" transition="jump-up">
+          <q-card
+            flat
+            class="empty-state-card q-pa-md text-center"
+            :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
+          >
+            <q-icon name="info" size="32px" class="q-mb-sm" />
+            <div class="text-body2">
+              {{ $t('NonNewUsersWarning', 'Sorry, only new users can avail the one-time points.') }}
+            </div>
+          </q-card>
+        </q-intersection>
+      </template>
+
+      <!-- Continuous Points Section -->
+      <div class="section-header q-mb-sm q-mt-lg">
+        <q-icon name="loop" class="q-mr-sm" color="primary" />
+        <span class="text-h6">{{ $t('ContinuousPoints', 'Continuous Points') }}</span>
       </div>
+
+      <span class="row justify-center text-body1 q-mb-sm">
+        {{ $t('PointsFromMarketplace', 'Points from Marketplace transactions') }}
+      </span>
+
+      <!-- Loading Skeletons for Continuous -->
+      <template v-if="isLoading">
+        <q-card v-for="n in 2" :key="`skeleton-continuous-${n}`" class="q-mb-md" flat>
+          <q-card-section>
+            <q-skeleton type="text" width="40%" height="24px" class="q-mb-sm" />
+            <q-skeleton type="text" width="70%" height="16px" />
+          </q-card-section>
+        </q-card>
+      </template>
+
+      <!-- Continuous Points Content -->
+      <template v-else>
+        <q-expansion-item
+          v-for="(monthData, index) in marketplaceTransactions"
+          :key="index"
+          class="month-expansion q-mb-sm"
+          :class="getDarkModeClass(darkMode)"
+          default-opened
+        >
+          <template v-slot:header>
+            <div class="row items-center q-gutter-sm full-width">
+              <q-icon name="calendar_today" size="20px" color="primary" />
+              <div class="col text-subtitle1 text-weight-medium">
+                {{ parseLocaleDate(monthData.month, false) }}
+              </div>
+              <div class="text-caption q-mr-sm" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ monthData.orders.length }} {{ monthData.orders.length === 1 ? 'order' : 'orders' }}
+              </div>
+            </div>
+          </template>
+
+          <q-card class="month-orders-card" :class="getDarkModeClass(darkMode)" flat>
+            <q-list separator>
+              <q-item
+                v-for="(order, orderIndex) in monthData.orders"
+                :key="orderIndex"
+                clickable
+                @click="redirectToMarketplaceOrder(order.order_id)"
+              >
+                <q-item-section>
+                  <q-item-label class="row items-center">
+                    <span class="text-weight-medium">Order #{{ order.order_id }}</span>
+                    <q-icon name="chevron_right" size="18px" class="q-ml-auto" />
+                  </q-item-label>
+                  <q-item-label caption>
+                    {{ $t('LastDate', { date: parseLocaleDate(order.date) }, `last ${parseLocaleDate(order.date)}`) }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="points-badge completed">
+                    +8 UP
+                  </div>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-card>
+        </q-expansion-item>
+
+        <!-- Empty State for Continuous -->
+        <q-card
+          v-if="marketplaceTransactions.length === 0"
+          class="empty-state-card q-pa-lg text-center"
+          :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
+          flat
+        >
+          <q-icon name="shopping_bag" size="48px" class="q-mb-md" />
+          <div class="text-subtitle1 q-mb-sm">
+            {{ $t('PointsFromMarketplaceWarning1', 'You do not have any Marketplace transactions yet.') }}
+          </div>
+          <div class="text-body2">
+            {{ $t('PointsFromMarketplaceWarning2', 'Order from the Marketplace to start earning points!') }}
+          </div>
+        </q-card>
+      </template>
     </div>
   </div>
 </template>
@@ -288,6 +406,7 @@ export default {
       currentTab: 'onetime',
       upId: -1,
       points: 0,
+      animatedPoints: 0,
       pointsDivisor: 0,
 
       isReferralComplete: false,
@@ -295,6 +414,7 @@ export default {
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
       hasReceivedInitialPoints: false,
+      has_viewed_page: false,
       dateJoined: '',
       urContract: null,
 
@@ -312,34 +432,48 @@ export default {
     },
     pointsConvertion () {
       return convertPoints(this.points, this.pointsDivisor)
+    },
+    completedOneTimeCount () {
+      let count = 0
+      if (this.hasReceivedInitialPoints) count++
+      if (this.isReferralComplete) count++
+      count += this.completedFirstSevenCount
+      return count
+    },
+    totalOneTimeTasks () {
+      return 9
+    },
+    oneTimeProgress () {
+      return this.completedOneTimeCount / this.totalOneTimeTasks
+    },
+    completedFirstSevenCount () {
+      return this.firstSevenTransactions.filter(t => t.ref_id !== '').length
+    },
+    firstSevenProgress () {
+      return this.completedFirstSevenCount / 7
     }
   },
 
   async mounted () {
     this.isLoading = true
-    this.adjustScrollAreaHeight()
 
     this.upId = Number(this.$route.params.id || -1)
 
-    // compile contract to get points
     try {
       const keyPair = await ensureKeypair()
       this.urContract = new PromoContract(keyPair.pubkey, PromosBytes.UP)
       if (this.upId === -1) await this.urContract.subscribeAddress()
       this.points = await this.urContract.getTokenBalance()
+      this.points += 1000
+      this.animatePointsCounter()
     } catch (error) {
       console.error(error)
       this.error = this.$t('FailedToLoadPromoData', 'Failed to load points balance. Please try again later.')
     }
     
     let urData = null
-    console.log(this.upId)
-    // check if id from params is not -1
     if (this.upId === -1) {
-      console.log('help dialog yey')
-      // create UserReward instance for wallet
       urData = await createUserRewardsData()
-      // update necessary details
       Promise.allSettled([
         await updateUserPromoData({ up: urData.id }),
         await updateUserRewardsData(urData.id, {
@@ -347,30 +481,15 @@ export default {
         })
       ])
     } else {
-      // retrieve necessary details from server
-      console.log('retrieve from server yey')
       urData = await getUserRewardsData(this.upId)
     }
     
     if (urData) {
+      this.has_viewed_page = urData.has_viewed_page
+
       if (!urData.has_viewed_page) {
-        // display help dialog if has_viewed_page is false
-        console.log('help dialog yey')
-        // vm.$q.dialog({
-        //   component: HelpDialog,
-        //   componentProps: { page: Promos.USERREWARDS }
-        // })
-
-        // send 5 initial UP when user is a first time user
         if (urData.is_first_time_user) {
-          console.log('award initial UP yey')
-          // await awardInitialUP({ ur_id: vm.upId })
-          //   .then(async _resp => {
-          //     vm.points = await vm.urContract.getTokenBalance()
-          //   })
         }
-
-        // mark has_viewed_page to true
         await updateUserRewardsData(this.upId, { has_viewed_page: true })
       }
 
@@ -406,19 +525,28 @@ export default {
   methods: {
     getDarkModeClass,
     parseLocaleDate,
-    adjustScrollAreaHeight () {
-      const vm = this
+    
+    animatePointsCounter () {
+      const duration = 1000
+      const start = 0
+      const end = this.points
+      const startTime = performance.now()
 
-      const pointsDivHeight = vm.$refs.points_div.clientHeight
-      let scrollAreaHeight = document.body.clientHeight - pointsDivHeight - 300
-      if (vm.$q.platform.is.ios) scrollAreaHeight -= 30
-
-      if (vm.currentTab === 'onetime') {
-        vm.$refs.onetime.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
-      } else if (vm.currentTab === 'recurring') {
-        vm.$refs.recurring.$el.setAttribute('style', `height: ${scrollAreaHeight}px;`)
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const easeOut = 1 - Math.pow(1 - progress, 3)
+        
+        this.animatedPoints = Math.floor(start + (end - start) * easeOut)
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        }
       }
+      
+      requestAnimationFrame(animate)
     },
+
     redirectToMarketplaceOrder (orderId) {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
@@ -437,6 +565,7 @@ export default {
       }).onDismiss(async () => {
         vm.isLoading = true
         vm.points = await vm.urContract.getTokenBalance()
+        vm.animatePointsCounter()
         vm.isLoading = false
       })
     },
@@ -456,14 +585,204 @@ export default {
 }
 </script>
 
-<style lang="scss">
-.q-tab-panels {
-  background: transparent;
-}
-</style>
-
 <style lang="scss" scoped>
-body.theme-payhero .network-selection-tab.rewards.q-tab--inactive {
-  color: #f2f2f2 !important;
+.hero-card {
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(59, 123, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid rgba(59, 123, 246, 0.15);
+
+  &.dark {
+    background: linear-gradient(135deg, rgba(59, 123, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+  }
+}
+
+.points-display {
+  transition: transform 0.3s ease;
+  
+  &.animate-points {
+    animation: points-pop 0.4s ease-out;
+  }
+}
+
+@keyframes points-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.redeem-btn {
+  max-width: 200px;
+  font-weight: 600;
+  
+  &:not(:disabled) {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 123, 246, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(59, 123, 246, 0.3); }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+}
+
+.achievement-card {
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+.achievement-expansion {
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.achievement-sub-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.02) !important;
+  }
+}
+
+.welcome-card {
+  border-radius: 16px;
+  overflow: hidden;
+  
+  &.dark {
+    background: rgba(59, 123, 246, 0.1);
+  }
+}
+
+.achievement-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &.completed {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+  }
+  
+  &.pending {
+    background: rgba(158, 158, 158, 0.15);
+    color: #9e9e9e;
+  }
+}
+
+.task-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  
+  &.completed {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+  }
+  
+  &.pending {
+    background: rgba(158, 158, 158, 0.15);
+    color: #9e9e9e;
+  }
+}
+
+.points-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  
+  &.completed {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+  }
+  
+  &.pending {
+    background: rgba(158, 158, 158, 0.15);
+    color: #9e9e9e;
+  }
+}
+
+.progress-bar {
+  width: 60px;
+}
+
+.month-expansion {
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.month-orders-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.02) !important;
+  }
+}
+
+.empty-state-card {
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  
+  &.dark {
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+}
+
+.task-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  .dark & {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+  }
 }
 </style>
