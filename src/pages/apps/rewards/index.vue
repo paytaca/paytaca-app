@@ -230,14 +230,10 @@ export default {
     },
 
     redirectToPromoPage (promo) {
-      this.$router.push(`rewards/${promo.path}/${promo.id ?? -1}/`)
-      // this.$router.push({
-      //   name: promo.path,
-      //   query: {
-      //     id: promo.id ?? -1,
-      //     address: this.swapContractAddress
-      //   }
-      // })
+      this.$router.push({
+        name: promo.path,
+        params: { id: promo.id ?? -1 }
+      })
     }
   }
 }
