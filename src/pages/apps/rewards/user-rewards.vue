@@ -121,7 +121,7 @@
               <div class="row items-center q-gutter-md">
                 <div
                   class="achievement-icon"
-                  :class="hasReceivedInitialPoints ? 'completed' : 'pending'"
+                  :class="[hasReceivedInitialPoints ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
                 >
                   <q-icon
                     :name="hasReceivedInitialPoints ? 'check_circle' : 'radio_button_unchecked'"
@@ -132,7 +132,7 @@
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                     {{ $t('InitialUP', { points: '5 UP' }, 'Initial 5 UP from referral') }}
                   </div>
-                  <div v-if="hasReceivedInitialPoints" class="text-caption text-positive">
+                  <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
                     <q-icon name="check" size="14px" class="q-mr-xs" />
                     {{ $t('EarnedOn', { date: parseLocaleDate(dateJoined) }, `earned on ${parseLocaleDate(dateJoined)}`) }}
                   </div>
@@ -140,7 +140,10 @@
                     {{ $t('NotYetEarned', 'Not yet earned') }}
                   </div>
                 </div>
-                <div class="points-badge" :class="hasReceivedInitialPoints ? 'completed' : 'pending'">
+                <div
+                  class="points-badge"
+                  :class="[hasReceivedInitialPoints ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
+                >
                   +5 UP
                 </div>
               </div>
@@ -155,7 +158,7 @@
               <div class="row items-center q-gutter-md">
                 <div
                   class="achievement-icon"
-                  :class="isReferralComplete ? 'completed' : 'pending'"
+                  :class="[isReferralComplete ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
                 >
                   <q-icon
                     :name="isReferralComplete ? 'check_circle' : 'radio_button_unchecked'"
@@ -166,7 +169,7 @@
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                     {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
                   </div>
-                  <div v-if="isReferralComplete" class="text-caption text-positive">
+                  <div v-if="isReferralComplete" class="text-caption text-green-7">
                     <q-icon name="check" size="14px" class="q-mr-xs" />
                     {{ $t('EarnedOn', { date: parseLocaleDate(referralCompleteDate) }, `earned on ${parseLocaleDate(referralCompleteDate)}`) }}
                   </div>
@@ -174,7 +177,10 @@
                     {{ $t('NotYetEarned', 'Not yet earned') }}
                   </div>
                 </div>
-                <div class="points-badge" :class="isReferralComplete ? 'completed' : 'pending'">
+                <div
+                  class="points-badge"
+                  :class="[isReferralComplete ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
+                >
                   + 5 UP
                 </div>
               </div>
@@ -190,17 +196,17 @@
             :default-expanded="!isFirstSevenComplete"
           >
             <template v-slot:header>
-              <div class="row items-center q-gutter-md full-width">
+              <div class="row items-center q-py-sm full-width">
                 <div
                   class="achievement-icon"
-                  :class="isFirstSevenComplete ? 'completed' : 'pending'"
+                  :class="[isFirstSevenComplete ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
                 >
                   <q-icon
                     :name="isFirstSevenComplete ? 'check_circle' : 'radio_button_unchecked'"
                     size="24px"
                   />
                 </div>
-                <div class="col">
+                <div class="col q-px-md">
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                     {{ $t('PointsFromSeven', 'Points from first 7 transactions') }}
                   </div>
@@ -211,7 +217,7 @@
                 <q-linear-progress
                   :value="firstSevenProgress"
                   color="primary"
-                  class="progress-bar q-mr-md"
+                  class="q-mr-xs progress-bar"
                   size="6px"
                   rounded
                 />
@@ -228,7 +234,7 @@
                   <div class="row items-center q-gutter-sm">
                     <div
                       class="task-number"
-                      :class="item.ref_id !== '' ? 'completed' : 'pending'"
+                      :class="[item.ref_id !== '' ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
                     >
                       {{ index + 1 }}
                     </div>
@@ -329,7 +335,7 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <div class="points-badge completed">
+                  <div class="points-badge completed" :class="getDarkModeClass(darkMode)">
                     +8 UP
                   </div>
                 </q-item-section>
@@ -633,8 +639,8 @@ export default {
 
 .achievement-card {
   border-radius: 16px;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   transition: all 0.2s ease;
 
   &:hover {
@@ -655,8 +661,8 @@ export default {
 .achievement-expansion {
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.12);
 
   &.dark {
     background: rgba(255, 255, 255, 0.03);
@@ -691,13 +697,26 @@ export default {
   justify-content: center;
   
   &.completed {
-    background: rgba(76, 175, 80, 0.15);
-    color: #4caf50;
+    &.dark {
+      background: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+    }
+
+    &.light {
+      background: rgba(76, 175, 80, 0.20);
+      color: #2e7d32;
+    }
   }
   
   &.pending {
-    background: rgba(158, 158, 158, 0.15);
-    color: #9e9e9e;
+    &.dark {
+      background: rgba(158, 158, 158, 0.15);
+      color: #9e9e9e;
+    }
+    &.light {
+      background: rgba(158, 158, 158, 0.25);
+      color: #616161;
+    }
   }
 }
 
@@ -712,13 +731,26 @@ export default {
   font-weight: 600;
   
   &.completed {
-    background: rgba(76, 175, 80, 0.2);
-    color: #4caf50;
+    &.dark {
+      background: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+    }
+
+    &.light {
+      background: rgba(76, 175, 80, 0.20);
+      color: #2e7d32;
+    }
   }
   
   &.pending {
-    background: rgba(158, 158, 158, 0.15);
-    color: #9e9e9e;
+    &.dark {
+      background: rgba(158, 158, 158, 0.15);
+      color: #9e9e9e;
+    }
+    &.light {
+      background: rgba(158, 158, 158, 0.25);
+      color: #616161;
+    }
   }
 }
 
@@ -729,13 +761,26 @@ export default {
   font-weight: 600;
   
   &.completed {
-    background: rgba(76, 175, 80, 0.15);
-    color: #4caf50;
+    &.dark {
+      background: rgba(76, 175, 80, 0.15);
+      color: #4caf50;
+    }
+
+    &.light {
+      background: rgba(76, 175, 80, 0.20);
+      color: #2e7d32;
+    }
   }
   
   &.pending {
-    background: rgba(158, 158, 158, 0.15);
-    color: #9e9e9e;
+    &.dark {
+      background: rgba(158, 158, 158, 0.15);
+      color: #9e9e9e;
+    }
+    &.light {
+      background: rgba(158, 158, 158, 0.25);
+      color: #616161;
+    }
   }
 }
 
@@ -746,8 +791,8 @@ export default {
 .month-expansion {
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.12);
 
   &.dark {
     background: rgba(255, 255, 255, 0.03);
