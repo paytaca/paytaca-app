@@ -1094,6 +1094,22 @@ export class Pst {
     }
   }
 
+  async fetchAndMergeSignatures() {
+    if (this.id && this.options?.coordinationServer) {
+      const signatures = await this.options.coordinationServer.getSignatures({ 
+        proposalUnsignedTransactionHash: this.unsignedTransactionHash 
+      })
+      if (signatures) {
+        try {
+          this.mergeSignerSignatures(signatures)
+          this.save()
+        } catch (error) {
+          // Ignore Signatures That Fail Verification
+        }
+      }
+    }
+  }
+
   getTotalSatsInput() {
     return this.inputs.filter(i => !i.sourceOutput?.token).reduce((total, input) => {
       return total + Number(input.sourceOutput.valueSatoshis)

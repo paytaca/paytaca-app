@@ -8,16 +8,19 @@
             <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
               {{ $t('ClearAll') }}
             </q-btn>
-            <q-btn color="primary" icon="upload" @click="importPsbt" rounded outline>
-              {{ $t('Import') }}
-            </q-btn>
           </div>
         </div>
         <div v-if="psts?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
-          {{ $t('NoTxProposalsFound') }}
-          <q-btn color="primary" icon="download" @click="importPsbt" rounded>
-            {{ $t('Import') }}
-          </q-btn>
+          <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
+            <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>{{ $t('NoTxProposalsFound') }}
+          </q-banner>
+          <div>
+            <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+              <q-icon class="default-text-color"  name="mdi-file-import" @click="importProposals"/>
+            </q-btn>
+            <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('Import') }}</div>
+          </div>
+          
         </div>
         <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
           <q-card
@@ -121,7 +124,7 @@ watch(
   { immediate: true }
 )
 
-const importPsbt = () => {
+const importProposals = () => {
   router.push({ 
     name: 'app-multisig-wallet-pst-import',
     params: {
@@ -129,7 +132,7 @@ const importPsbt = () => {
       unsignedtransactionhash: 'unknown'
     },
     query: {
-      description: 'You can import an unsigned or partially signed transaction proposal by scanning a QR code or loading from file.',
+      description: $t('ImportProposalsInfoText', {}, 'You can import a transaction proposal in different ways'),
     }
   })
 }
