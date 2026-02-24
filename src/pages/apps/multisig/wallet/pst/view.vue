@@ -261,7 +261,7 @@
 <script setup>
 
 import { useStore } from 'vuex'
-import { copyToClipboard, QSpinnerDots, useQuasar } from 'quasar'
+import { copyToClipboard, useInterval, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -274,7 +274,6 @@ import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
 import Big from 'big.js'
 import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDialog.vue'
-import { withTimeout } from 'src/utils/async-utils'
 import ShareProposalOptionsDialog from 'components/multisig/ShareProposalOptionsDialog.vue'
 import ShareSignatureOptionsDialog from 'components/multisig/ShareSignatureOptionsDialog.vue'
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
@@ -287,18 +286,23 @@ const {
 } = useMultisigHelpers()
 const $q = useQuasar()
 const $store = useStore()
+const { registerInterval } = useInterval()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
-const signingProgress = ref({})
 const isBroadcasting = ref(false)
 const pst = ref()
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
+})
+
+const signingProgress = computed(() => {
+  if (!pst.value) return {}
+  return pst.value.getSigningProgress()
 })
 
 const wallet = computed(() => {
@@ -499,10 +503,7 @@ const cancelActionConfirmationSlider = () => {
 
 const commitSignTransaction = async () => {
   if (!signingInitiatedBy.value) return
-
   await pst.value.sign(signingInitiatedBy.value.xprv)
-  
-  signingProgress.value = pst.value.getSigningProgress()
   signingInitiatedBy.value = null
 }
 
@@ -594,7 +595,7 @@ const loadSignerXPrvs = async () => {
     }
   }
 }
-
+ 
 const loadPst = async () => {
   const storedPst = 
     (new Pst())
@@ -605,7 +606,6 @@ const loadPst = async () => {
   
   if (storedPst) {
     pst.value = storedPst
-    signingProgress.value = pst.value.getSigningProgress()
     await pst.value.fetchServerId()?.catch((e) => {
       if (e?.response?.status === 404) {
         return
@@ -637,14 +637,13 @@ const loadPstInputsTransactionData = async () => {
   }
 }
 
-
-
 onMounted(async () => {
   await loadSignerXPrvs()
   await loadPst()
   await loadPstInputsTransactionData()
   if (pst.value.id) {
     await pst.value.fetchStatus({ deleteIfBroadcasted: true })
+    registerInterval(() => pst.value.fetchAndMergeSignatures(), 5000)
   }
 })
 
