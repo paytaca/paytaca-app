@@ -195,41 +195,37 @@ export default {
       this.isLoading = true
       this.error = null
 
-      let data = null
-      try {
-        data = await getUserPromoData()
-        if (data) {
-          try {
-            const keyPair = await ensureKeypair()
-            for (const type of this.pointsType) {
-              const promoId = data[type]
-              if (promoId) {
-                const targetPromo = PromosBytes[type.toUpperCase()]
-                const contract = new PromoContract(keyPair.pubkey, targetPromo)
-                const promoBalance = await contract.getTokenBalance()
-                this.promos[type].points = promoBalance
-              }
+      const data = await getUserPromoData()
+      if (data && Object.keys(data).length > 0) {
+        try {
+          const keyPair = await ensureKeypair()
+          for (const type of this.pointsType) {
+            const promoId = data[type]
+            if (promoId) {
+              const targetPromo = PromosBytes[type.toUpperCase()]
+              const contract = new PromoContract(keyPair.pubkey, targetPromo)
+              const promoBalance = await contract.getTokenBalance()
+              this.promos[type].points = promoBalance
             }
-          } catch (error) {
-            console.error(error)
-            this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
           }
-        } else {
-          await createUserPromoData()
+        } catch (error) {
+          console.error(error)
+          this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
         }
-      } catch (error) {
-        console.error(error)
-        this.error = this.$t('FailedToLoadRewards', 'Failed to load rewards. Please try again later.')
-      } finally {
-        this.isLoading = false
-
-        setTimeout(() => {
-          this.$nextTick(() => {
-            if (!data?.last_viewed) this.isHelpActive = true
-            updateUserPromoData({ last_viewed: new Date() })
-          })
-        }, 250)
+      } else if (data && Object.keys(data.length === 0)) {
+        await createUserPromoData()
+      } else {
+        this.error = this.$t('FailedToLoadPage', 'Failed to load page. Please try again later.')
       }
+
+      this.isLoading = false
+
+      setTimeout(() => {
+        this.$nextTick(() => {
+          if (data && !data?.last_viewed) this.isHelpActive = true
+          updateUserPromoData({ last_viewed: new Date() })
+        })
+      }, 250)
     },
 
     redirectToPromoPage (promo) {
