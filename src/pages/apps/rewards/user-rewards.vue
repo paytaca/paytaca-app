@@ -119,15 +119,10 @@
           <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
             <q-card-section>
               <div class="row items-center q-gutter-md">
-                <div
-                  class="achievement-icon"
-                  :class="[hasReceivedInitialPoints ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
-                >
-                  <q-icon
-                    :name="hasReceivedInitialPoints ? 'check_circle' : 'radio_button_unchecked'"
-                    size="24px"
-                  />
-                </div>
+                <achievement-icon
+                  :complete="hasReceivedInitialPoints"
+                  :dark-mode-class="getDarkModeClass(darkMode)"
+                />
                 <div class="col">
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                     {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
@@ -140,12 +135,11 @@
                     {{ $t('NotYetEarned', 'Not yet earned') }}
                   </div>
                 </div>
-                <div
-                  class="points-badge"
-                  :class="[hasReceivedInitialPoints ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
-                >
-                  +5 UP
-                </div>
+                <points-badge
+                  :complete="hasReceivedInitialPoints"
+                  :dark-mode-class="getDarkModeClass(darkMode)"
+                  :points="5"
+                />
               </div>
             </q-card-section>
           </q-card>
@@ -156,15 +150,10 @@
           <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
             <q-card-section>
               <div class="row items-center q-gutter-md">
-                <div
-                  class="achievement-icon"
-                  :class="[isReferralComplete ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
-                >
-                  <q-icon
-                    :name="isReferralComplete ? 'check_circle' : 'radio_button_unchecked'"
-                    size="24px"
-                  />
-                </div>
+                <achievement-icon
+                  :complete="isReferralComplete"
+                  :dark-mode-class="getDarkModeClass(darkMode)"
+                />
                 <div class="col">
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                     {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
@@ -180,12 +169,11 @@
                     {{ $t('NotYetEarned', 'Not yet earned') }}
                   </div>
                 </div>
-                <div
-                  class="points-badge"
-                  :class="[isReferralComplete ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
-                >
-                  + 5 UP
-                </div>
+                <points-badge
+                  :complete="isReferralComplete"
+                  :dark-mode-class="getDarkModeClass(darkMode)"
+                  :points="5"
+                />
               </div>
             </q-card-section>
           </q-card>
@@ -200,15 +188,10 @@
           >
             <template v-slot:header>
               <div class="row items-center q-py-sm full-width">
-                <div
-                  class="achievement-icon"
-                  :class="[isFirstSevenComplete ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
-                >
-                  <q-icon
-                    :name="isFirstSevenComplete ? 'check_circle' : 'radio_button_unchecked'"
-                    size="24px"
-                  />
-                </div>
+                <achievement-icon
+                  :complete="isFirstSevenComplete"
+                  :dark-mode-class="getDarkModeClass(darkMode)"
+                />
                 <div class="col q-px-md">
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                     {{ $t('PointsFromSeven', 'Points from first 7 transactions') }}
@@ -220,7 +203,8 @@
                 <q-linear-progress
                   :value="firstSevenProgress"
                   color="primary"
-                  class="q-mr-xs progress-bar"
+                  class="q-mr-xs"
+                  style="width: 60px;"
                   size="6px"
                   rounded
                 />
@@ -257,9 +241,11 @@
                     Transaction {{ index + 1 }}: Not yet completed
                   </q-item-section>
                   <q-item-section side v-if="item.ref_id !== '' && item.date != ''">
-                    <span class="points-badge completed" :class="getDarkModeClass(darkMode)">
-                      +{{ item.points_earned }} UP
-                    </span>
+                    <points-badge
+                      :complete="true"
+                      :dark-mode-class="getDarkModeClass(darkMode)"
+                      :points="item.points_earned"
+                    />
                   </q-item-section>
                 </q-item>
               </q-card-section>
@@ -343,9 +329,11 @@
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <div class="points-badge completed" :class="getDarkModeClass(darkMode)">
-                    +8 UP
-                  </div>
+                  <points-badge
+                    :complete="true"
+                    :dark-mode-class="getDarkModeClass(darkMode)"
+                    :points="8"
+                  />
                 </q-item-section>
               </q-item>
             </q-list>
@@ -380,19 +368,19 @@ import {
   Promos,
   PromosBytes,
   convertPoints,
-  createUserRewardsData,
   getUserRewardsData,
   updateUserPromoData,
-  getPromoPointsDivisorData,
   updateUserRewardsData,
+  createUserRewardsData,
+  getPromoPointsDivisorData,
   getContractInitialBalance,
   awardInitialUP
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
-import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
+import PointsBadge from 'src/components/rewards/PointsBadge.vue'
+import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
@@ -403,7 +391,8 @@ export default {
   components: {
     HeaderNav,
     StatusChip,
-    ProgressLoader
+    PointsBadge,
+    AchievementIcon
   },
 
   props: {
@@ -702,38 +691,6 @@ export default {
   }
 }
 
-.achievement-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &.completed {
-    &.dark {
-      background: rgba(76, 175, 80, 0.15);
-      color: #4caf50;
-    }
-
-    &.light {
-      background: rgba(76, 175, 80, 0.20);
-      color: #2e7d32;
-    }
-  }
-  
-  &.pending {
-    &.dark {
-      background: rgba(158, 158, 158, 0.15);
-      color: #9e9e9e;
-    }
-    &.light {
-      background: rgba(158, 158, 158, 0.25);
-      color: #616161;
-    }
-  }
-}
-
 .task-number {
   width: 28px;
   height: 28px;
@@ -766,40 +723,6 @@ export default {
       color: #616161;
     }
   }
-}
-
-.points-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  
-  &.completed {
-    &.dark {
-      background: rgba(76, 175, 80, 0.15);
-      color: #4caf50;
-    }
-
-    &.light {
-      background: rgba(76, 175, 80, 0.20);
-      color: #2e7d32;
-    }
-  }
-  
-  &.pending {
-    &.dark {
-      background: rgba(158, 158, 158, 0.15);
-      color: #9e9e9e;
-    }
-    &.light {
-      background: rgba(158, 158, 158, 0.25);
-      color: #616161;
-    }
-  }
-}
-
-.progress-bar {
-  width: 60px;
 }
 
 .month-expansion {
