@@ -93,7 +93,7 @@
                 <q-icon name="celebration" size="32px" class="q-mr-md" />
                 <div>
                   <div class="text-h6">Welcome, New Explorer!</div>
-                  <div class="text-caption">Complete tasks to earn UP.</div>
+                  <div class="text-caption">Complete tasks to earn UP</div>
                 </div>
               </div>
             </q-card-section>
@@ -130,7 +130,7 @@
                 </div>
                 <div class="col">
                   <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                    {{ $t('InitialUP', { points: '5 UP' }, 'Initial 5 UP from referral') }}
+                    {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
                   </div>
                   <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
                     <q-icon name="check" size="14px" class="q-mr-xs" />
@@ -170,8 +170,11 @@
                     {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
                   </div>
                   <div v-if="isReferralComplete" class="text-caption text-green-7">
-                    <q-icon name="check" size="14px" class="q-mr-xs" />
-                    {{ $t('EarnedOn', { date: parseLocaleDate(referralCompleteDate) }, `earned on ${parseLocaleDate(referralCompleteDate)}`) }}
+                    {{ $t(
+                        'EarnedOn',
+                        { date: parseLocaleDate(referralCompleteDate) },
+                        `Earned on ${parseLocaleDate(referralCompleteDate)}`
+                      ) }}
                   </div>
                   <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                     {{ $t('NotYetEarned', 'Not yet earned') }}
@@ -224,36 +227,41 @@
               </div>
             </template>
 
-            <q-card class="achievement-sub-card" :class="getDarkModeClass(darkMode)" flat>
+            <q-card flat class="achievement-sub-card" :class="getDarkModeClass(darkMode)">
               <q-card-section>
-                <div
+                <q-item
                   v-for="(item, index) in firstSevenTransactions"
                   :key="index"
-                  class="task-item q-mb-sm"
+                  class="task-item q-mb-sm row items-center"
                 >
-                  <div class="row items-center q-gutter-sm">
-                    <div
+                  <q-item-section avatar>
+                    <span
                       class="task-number"
                       :class="[item.ref_id !== '' ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
                     >
                       {{ index + 1 }}
-                    </div>
-                    <div class="col">
-                      <template v-if="item.ref_id !== '' && item.date != ''">
-                        <div class="text-body2" v-html="firstSevenHtmlText(item)" />
-                      </template>
-                      <div v-else :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                        Transaction {{ index + 1 }} - Not yet completed
-                      </div>
-                    </div>
-                    <q-icon
-                      v-if="item.ref_id !== ''"
-                      name="check"
-                      color="positive"
-                      size="18px"
-                    />
-                  </div>
-                </div>
+                    </span>
+                  </q-item-section>
+                  <q-item-section v-if="item.ref_id !== '' && item.date != ''">
+                    <q-item-label class="row items-center" @click="redirectToTx(item.tx_id)">
+                      <span class="text-weight-medium">
+                        Ref ID {{ item.ref_id }}
+                      </span>
+                      <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
+                    </q-item-label>
+                    <q-item-label caption>
+                      {{ $t('LastDate', { date: parseLocaleDate(item.date) }, `last ${parseLocaleDate(item.date)}`) }}
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section v-else :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    Transaction {{ index + 1 }}: Not yet completed
+                  </q-item-section>
+                  <q-item-section side v-if="item.ref_id !== '' && item.date != ''">
+                    <span class="points-badge completed" :class="getDarkModeClass(darkMode)">
+                      +{{ item.points_earned }} UP
+                    </span>
+                  </q-item-section>
+                </q-item>
               </q-card-section>
             </q-card>
           </q-expansion-item>
@@ -328,7 +336,7 @@
                 <q-item-section>
                   <q-item-label class="row items-center">
                     <span class="text-weight-medium">Order #{{ order.order_id }}</span>
-                    <q-icon name="chevron_right" size="18px" class="q-ml-auto" />
+                    <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
                   </q-item-label>
                   <q-item-label caption>
                     {{ $t('LastDate', { date: parseLocaleDate(order.date) }, `last ${parseLocaleDate(order.date)}`) }}
@@ -377,7 +385,6 @@ import {
   updateUserPromoData,
   getPromoPointsDivisorData,
   updateUserRewardsData,
-  getKeyPairFromWalletMnemonic,
   getContractInitialBalance,
   awardInitialUP
 } from 'src/utils/engagementhub-utils/rewards'
@@ -470,7 +477,6 @@ export default {
       this.urContract = new PromoContract(keyPair.pubkey, PromosBytes.UP)
       if (this.upId === -1) await this.urContract.subscribeAddress()
       this.points = await this.urContract.getTokenBalance()
-      this.points += 1000
       this.animatePointsCounter()
     } catch (error) {
       console.error(error)
@@ -494,9 +500,26 @@ export default {
       this.has_viewed_page = urData.has_viewed_page
 
       if (!urData.has_viewed_page) {
-        if (urData.is_first_time_user) {
+        if (!urData.has_viewed_page) {
+          // display help dialog if has_viewed_page is false
+          console.log('help dialog yey')
+          // vm.$q.dialog({
+          //   component: HelpDialog,
+          //   componentProps: { page: Promos.USERREWARDS }
+          // })
+
+          // send 5 initial UP when user is a first time user
+          if (urData.is_first_time_user) {
+            console.log('award initial UP yey')
+            // await awardInitialUP({ ur_id: vm.upId })
+            //   .then(async _resp => {
+            //     vm.points = await vm.urContract.getTokenBalance()
+            //   })
+          }
+
+          // mark has_viewed_page to true
+          await updateUserRewardsData(this.upId, { has_viewed_page: true })
         }
-        await updateUserRewardsData(this.upId, { has_viewed_page: true })
       }
 
       this.isReferralComplete = urData.is_referral_complete
@@ -556,6 +579,9 @@ export default {
     redirectToMarketplaceOrder (orderId) {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
+    redirectToTx (txId) {
+      this.$router.push(`/transaction/tx/${txId}`)
+    },
     async openRedeemPointsDialog () {
       const vm = this
 
@@ -574,18 +600,6 @@ export default {
         vm.animatePointsCounter()
         vm.isLoading = false
       })
-    },
-    firstSevenHtmlText (item) {
-      return this.$t(
-        'EarnedFirstSeven',
-        {
-          pointsEarned: item.points_earned,
-          refId: item.ref_id,
-          date: this.parseLocaleDate(item.date)
-        },
-        `Earned <strong>${item.points_earned}</strong> from `
-          + `${item.ref_id} last ${this.parseLocaleDate(item.date)}`
-      )
     }
   }
 }
