@@ -48,25 +48,29 @@
                   </div>
 
                   <!-- Create Card button -->
-                  <div class="col-auto">
-                    <q-card
-                      bordered
-                      flat
-                      @click="openCreateCardDialog"
-                    >
-                      <q-card-section class="text-center q-pa-lg">
-                        <q-icon
-                          name="add_circle_outline"
-                          size="56px"
-                          color="primary"
-                          class="q-mb-sm"
-                        />
-                        <div class="text-subtitle-1 text-weight-bold text-primary text-center">
-                          Create Card
-                        </div>
-                      </q-card-section>
-                    </q-card>
+                  <div class="full-width flex justify-center q-mt-md">
+                    <div class="col-auto">
+                      <q-card
+                        bordered
+                        flat
+                        class="bg-transparent fixed-card-size"
+                        @click="openCreateCardDialog"
+                      >
+                        <q-card-section class="text-center q-pa-lg">
+                          <q-icon
+                            name="add_circle_outline"
+                            size="56px"
+                            color="white"
+                            class="q-mb-sm"
+                          />
+                          <div class="text-subtitle-1 text-weight-bold text-primary text-center text-white">
+                            Create Card
+                          </div>
+                        </q-card-section>
+                      </q-card>
+                    </div>
                   </div>
+                  
                 </div>
               </div>
             </div>
@@ -78,12 +82,16 @@
       </div>
     </transition> 
 
-    <!-- Order physical card form to be component -->
+    <!-- Order physical card form-->
      
   </q-layout>
 
   <!-- CREATE CARD DIALOG -->
-  <createCardDialog />
+  <createCardDialog 
+    v-model="createCardDialog"
+    v-model:newCardName="newCardName"
+    @handleCreateCard="handleCreateCard"
+  />
   
   <!-- VIEW CARD DIALOG -->
    
@@ -106,13 +114,26 @@
 
 <script>
   
-import { createCardLogic } from './createCard.js';
+import cashInDialog from './cashInDialog.vue';
 import createCardDialog from './createCardDialog.vue';
+import manageAuthNFTdialog from './manageAuthNFTdialog.vue';
+import spendLimitDialog from './spendLimitDialog.vue';
+import transactionHistoryDialog from './transactionHistoryDialog.vue';
+import viewCardDialog from './viewCardDialog.vue';
+// import { createCardLogic } from './createCard.js'; --restore this after testing
+import {createCardLogic} from './noBackend.js'
+import cardReplacementDialog from './cardReplacement.vue';
 
   export default {
     mixins: [createCardLogic],
     components: {
-      createCardDialog
+      createCardDialog,
+      viewCardDialog,
+      cashInDialog,
+      manageAuthNFTdialog,
+      transactionHistoryDialog,
+      spendLimitDialog,
+      cardReplacementDialog
     }
   }
 

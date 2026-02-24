@@ -450,7 +450,6 @@ import { title } from 'process';
           this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
           return
         }
-
         // check - one card per user/wallet
         if (this.subCards && this.subCards.length >= 1) {
           this.q.notify({
@@ -461,38 +460,12 @@ import { title } from 'process';
           return
         }
 
-        try {
-          this.$q.loading.show({ message: 'Minting your card on the blockchain...' })
+        this.createCardDialog = false; // close dialog
 
-          // initializing the card helper
-          const card = await Card.createInitialized()
-          const estimatedFees = card.estimateCreateCardSatsRequirement()
-          const balanceSats = BigInt(Math.floor(this.walletBalance * 1e8))
-          if (balanceSats < estimatedFees) {
-            this.$q.notify({
-              message: `Insufficient balance. You need at least ${Number(estimatedFees) / 1e8} BCH to create a card.`,
-              color: 'negative'
-            })
-            return
-          }
-
-          await card.create(this.newCardName)
-          this.createCardDialog = false; // close dialog
-
-          this.$q.notify({
-            message: 'Card created successfully!',
-            color: 'positive',
-          });
-          this.getCards() // refresh cards to get real data from blockchain
-        } catch (error) {
-          console.error('Final Workflow Error: ', error)
-          this.$q.notify({
-            message: 'Failed to create card. Please check your balance.',
-            color: 'negative'
-          })
-        } finally {
-          this.$q.loading.hide()
-        }
+        this.$q.notify({
+        message: 'Card created successfully!',
+        color: 'positive',
+        });
       },
 
       editCardName(card){

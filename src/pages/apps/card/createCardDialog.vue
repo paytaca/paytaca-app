@@ -1,7 +1,8 @@
 <template>
   
   <q-dialog
-    v-model="createCardDialog"
+    :model-value="modelValue"
+    @update:model-value="val => $emit('update:modelValue', val)"
     persistent
     transition-show="fade"
     transition-hide="fade"
@@ -18,13 +19,7 @@
           <div class="text-caption text-center">Provide an alias for your card</div>
         </div>
         <q-space />
-        <q-btn 
-          icon="close"
-          flat
-          round
-          dense
-          @click="createCardDialog = false"
-        />
+        <q-btn icon="close" flat round dense @click="$emit('update:modelValue', false)" />
       </q-card-section>
 
       <q-separator />
@@ -32,7 +27,8 @@
       <!-- Dialog Content -->
       <q-card-section>
         <q-input 
-          v-model="newCardName" 
+          :model-value="newCardName"
+          @update:model-value="val => $emit('update:newCardName', val)"
           label="Name" 
           outlined 
           dense 
@@ -54,14 +50,14 @@
           flat
           label="Cancel"
           color="grey-7"
-          @click="createCardDialog = false"
+          @click="$emit('update:modelValue',false)"
         />
         <q-btn 
           unelevated
           label="Create"
           color="primary"
           :disable="!newCardName || newCardName.length > 10"
-          @click="handleCreateCard"
+          @click="$emit('handleCreateCard')"
         />
       </q-card-actions>
     </q-card>
@@ -71,9 +67,15 @@
 
 
 <script>
-  import { createCardLogic } from './createCard.js';
-
   export default {
-    mixins: [createCardLogic]
+    props: {
+      modelValue: Boolean,
+      newCardName: String,
+    },
+    emits: ['update:modelValue', 'update:newCardName', 'handleCreateCard'],
   }
 </script>
+
+<style lang="scss" scoped>
+  @import "./createCard.scss"
+</style>
