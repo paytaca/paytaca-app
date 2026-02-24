@@ -60,7 +60,7 @@
 
       <!-- One-Time Points Section -->
       <div class="section-header q-mb-sm">
-        <q-icon name="stars" class="q-mr-sm" color="primary" />
+        <q-icon name="repeat_one" size="md" class="q-mr-sm" color="primary" />
         <span class="text-h6">{{ $t('OneTimePoints', 'One-time Points') }}</span>
       </div>
 
@@ -128,8 +128,11 @@
                     {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
                   </div>
                   <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
-                    <q-icon name="check" size="14px" class="q-mr-xs" />
-                    {{ $t('EarnedOn', { date: parseLocaleDate(dateJoined) }, `earned on ${parseLocaleDate(dateJoined)}`) }}
+                    {{ $t(
+                        'EarnedOn',
+                        { date: parseLocaleDate(dateJoined) },
+                        `Earned on ${parseLocaleDate(dateJoined)}`
+                      ) }}
                   </div>
                   <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                     {{ $t('NotYetEarned', 'Not yet earned') }}
@@ -272,7 +275,7 @@
 
       <!-- Continuous Points Section -->
       <div class="section-header q-mb-sm q-mt-lg">
-        <q-icon name="loop" class="q-mr-sm" color="primary" />
+        <q-icon name="loop" size="md" class="q-mr-sm" color="primary" />
         <span class="text-h6">{{ $t('ContinuousPoints', 'Continuous Points') }}</span>
       </div>
 
