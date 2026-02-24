@@ -195,11 +195,10 @@ export default {
       this.isLoading = true
       this.error = null
 
+      let data = null
       try {
-        const data = await getUserPromoData()
+        data = await getUserPromoData()
         if (data) {
-          updateUserPromoData({ last_viewed: new Date() })
-
           try {
             const keyPair = await ensureKeypair()
             for (const type of this.pointsType) {
@@ -207,7 +206,6 @@ export default {
               if (promoId) {
                 const targetPromo = PromosBytes[type.toUpperCase()]
                 const contract = new PromoContract(keyPair.pubkey, targetPromo)
-                await contract.subscribeAddress()
                 const promoBalance = await contract.getTokenBalance()
                 this.promos[type].points = promoBalance
               }
@@ -217,7 +215,6 @@ export default {
             this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
           }
         } else {
-          this.isHelpActive = true
           await createUserPromoData()
         }
       } catch (error) {
@@ -225,6 +222,13 @@ export default {
         this.error = this.$t('FailedToLoadRewards', 'Failed to load rewards. Please try again later.')
       } finally {
         this.isLoading = false
+
+        setTimeout(() => {
+          this.$nextTick(() => {
+            if (!data?.last_viewed) this.isHelpActive = true
+            updateUserPromoData({ last_viewed: new Date() })
+          })
+        }, 250)
       }
     },
 
