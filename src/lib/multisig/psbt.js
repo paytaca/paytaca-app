@@ -86,7 +86,11 @@ export const ProprietaryFields = Object.freeze({
       network: {
         subType: bigIntToCompactUint(3),
         subKeyData: utf8ToBin('network')
-      }
+      },
+      creator: {
+        subType: bigIntToCompactUint(4),
+        subKeyData: utf8ToBin('creator')
+      },
     } 
   },
   metadata: {
@@ -107,7 +111,11 @@ export const ProprietaryFields = Object.freeze({
       network: {
         subType: bigIntToCompactUint(3),
         subKeyData: utf8ToBin('network')
-      }
+      },
+      creator: {
+        subType: bigIntToCompactUint(4),
+        subKeyData: utf8ToBin('creator')
+      },
     } 
   }
 })
@@ -1431,6 +1439,13 @@ export class Psbt {
       ProprietaryFields.paytaca.subKey.origin.subKeyData
     )
 
+    decoded.creator && this.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+      utf8ToBin(decoded.creator), 
+      ProprietaryFields.paytaca.subKey.creator.subType, 
+      ProprietaryFields.paytaca.subKey.creator.subKeyData
+    )
+
     decoded.purpose && this.globalMap.addProprietaryField(
       ProprietaryFields.paytaca.identifier, 
       utf8ToBin(decoded.purpose), 
@@ -1450,6 +1465,13 @@ export class Psbt {
       utf8ToBin(decoded.origin), 
       ProprietaryFields.metadata.subKey.origin.subType, 
       ProprietaryFields.metadata.subKey.origin.subKeyData
+    )
+
+    decoded.creator && this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+      utf8ToBin(decoded.creator), 
+      ProprietaryFields.metadata.subKey.creator.subType, 
+      ProprietaryFields.metadata.subKey.creator.subKeyData
     )
 
     decoded.purpose && this.globalMap.addProprietaryField(
