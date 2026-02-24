@@ -119,6 +119,7 @@ import { bip32ExtractRelativePath } from './utils.js'
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerCoordinationServer, WatchtowerNetworkProvider } from './network.js'
+import { generateCosignerAuthPublicKeyFromFromXpub } from './coordination.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -644,10 +645,10 @@ export class Pst {
     }
   }
 
-  sign(xprv) {
+  async sign(xprv) {
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
     let signer = this.wallet.signers.find(signer => signer.xpub === xpub)
-  
+    
     if (!signer) {
       throw new Error('Private key provided does not match any signer')
     }
@@ -739,6 +740,9 @@ export class Pst {
       this.inputs[inputIndex].signatures[binToHex(signerPublicKey)] = signature
       
       if (this.options?.store) {
+        if (this.id) {
+          await this.uploadSignerPsbt(signer.masterFingerprint)
+        }
         this.save()
       }
     }
@@ -1304,6 +1308,16 @@ export class Pst {
     const response = 
       await this.options?.coordinationServer?.getProposalByUnsignedTransactionHash(this.unsignedTransactionHash)
     this.id = response?.id
+  }
+
+  /**
+   * Identifies and returns the signer that created this proposal based on the `creator` metadata.
+   */
+  getSignerWhoCreatedProposal() {
+    if (!this.wallet || !this.wallet.signers || !this.creator) return
+    return this.wallet.signers.find(signer => {
+      return this.creator === generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
+    })
   }
 
   /**
