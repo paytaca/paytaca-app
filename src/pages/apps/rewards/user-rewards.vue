@@ -286,7 +286,7 @@ export default {
       
       isLoading: false,
       currentTab: 'onetime',
-      urId: -1,
+      upId: -1,
       points: 0,
       pointsDivisor: 0,
 
@@ -317,98 +317,73 @@ export default {
 
   async mounted () {
     this.isLoading = true
+    this.adjustScrollAreaHeight()
 
-    // check if id from params is not -1
-    const upId = Number(this.$route.params.id || -1)
-    console.log(upId)
-    if (upId === -1) console.log('help dialog yey')
-    else {
-      // retrieve necessary details from server
-      console.log('retrieve from server yey')
-    }
-    
+    this.upId = Number(this.$route.params.id || -1)
+
     // compile contract to get points
     try {
       const keyPair = await ensureKeypair()
-      const contract = new PromoContract(keyPair.pubkey, PromosBytes.UP)
-      const contractBalance = await contract.getTokenBalance()
-      console.log(contractBalance)
+      this.urContract = new PromoContract(keyPair.pubkey, PromosBytes.UP)
+      if (this.upId === -1) await this.urContract.subscribeAddress()
+      this.points = await this.urContract.getTokenBalance()
     } catch (error) {
       console.error(error)
       this.error = this.$t('FailedToLoadPromoData', 'Failed to load points balance. Please try again later.')
     }
-
-    this.isLoading = false
-    /*
-    const vm = this
-
-    vm.isLoading = true
-    vm.adjustScrollAreaHeight()
-
-    const keyPair = await getKeyPairFromWalletMnemonic()
-    vm.urContract = new PromoContract(Promos.USERREWARDS, keyPair.pubKey)
-
+    
     let urData = null
-    vm.urId = Number(vm.id)
-    if (vm.urId > -1) {
-      urData = await getUserRewardsData(vm.urId)
-    } else {
-      // open help dialog
-      vm.$q.dialog({
-        component: HelpDialog,
-        componentProps: { page: Promos.USERREWARDS }
-      })
-      
-      // create UserReward entry in engagement-hub
+    console.log(this.upId)
+    // check if id from params is not -1
+    if (this.upId === -1) {
+      console.log('help dialog yey')
+      // create UserReward instance for wallet
       urData = await createUserRewardsData()
-      await updateUserPromoData({ ur_id: urData.id })
-      await updateUserRewardsData(urData.id, {
-        contract_ct_address: vm.urContract.contract.tokenAddress
-      })
-
-      await vm.urContract.subscribeAddress()
-      // call API to add BCH balance to newly-created contract
-      await getContractInitialBalance({
-        contract_address: vm.urContract.contract.address
-      })
+      // update necessary details
+      Promise.allSettled([
+        await updateUserPromoData({ up: urData.id }),
+        await updateUserRewardsData(urData.id, {
+          contract_ct_address: this.urContract.contract.tokenAddress
+        })
+      ])
+    } else {
+      // retrieve necessary details from server
+      console.log('retrieve from server yey')
+      urData = await getUserRewardsData(this.upId)
     }
-
+    
     if (urData) {
-      await getPromoPointsDivisorData()
-        .then(data => {
-          vm.pointsDivisor = data.ur_divisor
-        })
-
-      // display help dialog if has_viewed_page is false
       if (!urData.has_viewed_page) {
-        vm.$q.dialog({
-          component: HelpDialog,
-          componentProps: { page: Promos.USERREWARDS }
-        })
+        // display help dialog if has_viewed_page is false
+        console.log('help dialog yey')
+        // vm.$q.dialog({
+        //   component: HelpDialog,
+        //   componentProps: { page: Promos.USERREWARDS }
+        // })
 
         // send 5 initial UP when user is a first time user
         if (urData.is_first_time_user) {
-          await awardInitialUP({ ur_id: vm.urId })
-            .then(async _resp => {
-              vm.points = await vm.urContract.getTokenBalance()
-            })
+          console.log('award initial UP yey')
+          // await awardInitialUP({ ur_id: vm.upId })
+          //   .then(async _resp => {
+          //     vm.points = await vm.urContract.getTokenBalance()
+          //   })
         }
 
         // mark has_viewed_page to true
-        await updateUserRewardsData(vm.urId, { has_viewed_page: true })
+        await updateUserRewardsData(this.upId, { has_viewed_page: true })
       }
 
-      vm.points = await vm.urContract.getTokenBalance()
-      vm.isReferralComplete = urData.is_referral_complete
-      vm.isFirstSevenComplete = urData.is_first_seven_complete
-      vm.referralCompleteDate = urData.referral_complete_date
-      vm.isFirstTimeUser = urData.is_first_time_user
-      vm.hasReceivedInitialPoints = urData.has_received_initial_points
-      vm.dateJoined = urData.date_joined
+      this.isReferralComplete = urData.is_referral_complete
+      this.isFirstSevenComplete = urData.is_first_seven_complete
+      this.referralCompleteDate = urData.referral_complete_date
+      this.isFirstTimeUser = urData.is_first_time_user
+      this.hasReceivedInitialPoints = urData.has_received_initial_points
+      this.dateJoined = urData.date_joined
 
       if (urData.ur_months.length > 0) {
         for (const transaction of urData.ur_months) {
-          vm.marketplaceTransactions.push({
+          this.marketplaceTransactions.push({
             month: transaction.timeframe,
             orders: transaction.ur_mp_transactions.sort((a, b) => {
               return new Date(b.date) - new Date(a.date)
@@ -418,15 +393,14 @@ export default {
       }
 
       if (urData.ur_seven_transactions.length > 0) {
-        vm.firstSevenTransactions = urData.ur_seven_transactions
+        this.firstSevenTransactions = urData.ur_seven_transactions
       }
-      for (let i = vm.firstSevenTransactions.length; i < 7; i++) {
-        vm.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
+      for (let i = this.firstSevenTransactions.length; i < 7; i++) {
+        this.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
       }
     }
 
-    vm.isLoading = false
-    */
+    this.isLoading = false
   },
 
   methods: {
@@ -457,7 +431,7 @@ export default {
           points: vm.points,
           pointsType: Promos.USERREWARDS,
           pointsDivisor: vm.pointsDivisor,
-          promoId: vm.urId,
+          promoId: vm.upId,
           address: vm.address
         }
       }).onDismiss(async () => {

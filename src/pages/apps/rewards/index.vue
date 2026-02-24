@@ -206,6 +206,7 @@ export default {
               const contract = new PromoContract(keyPair.pubkey, targetPromo)
               const promoBalance = await contract.getTokenBalance()
               this.promos[type].points = promoBalance
+              this.promos[type].id = promoId
             }
           }
         } catch (error) {
