@@ -146,7 +146,18 @@ export async function getRewardsPageToggle () {
 }
 
 export async function getUserPromoData () {
-  return await getData(`userpromo/${getWalletHash()}/`)
+  return await REWARDS_URL
+    .get(`userpromo/${getWalletHash()}/`)
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else if (resp.status === 404) return {}
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      if (error?.message.includes('404')) return {}
+      else return null
+    })
 }
 
 export async function getUserRewardsData (id) {
