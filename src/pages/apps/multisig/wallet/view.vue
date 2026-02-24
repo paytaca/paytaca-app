@@ -596,7 +596,6 @@ const onUpdateTransactionFile = (file) => {
         }
       })
     } catch (e) {
-      console.error('Error importing transaction file:', e)
       $q.notify({
         message: $t('FailedToImportTransaction', {}, 'Failed to import transaction'),
         color: 'negative'
@@ -615,9 +614,8 @@ const onUpdateTransactionFile = (file) => {
 
 const queryServerForProposals = async () => {
   
-  if (!proposals.value || proposals.value?.length === 0) {
-    const p = await wallet.value?.fetchProposals()
-    proposalsFromServer.value = p
+  if ((!proposals.value || proposals.value?.length === 0) && wallet.value?.id) {
+    proposalsFromServer.value = await wallet.value?.fetchProposals()
   }
 }
 
@@ -633,10 +631,7 @@ onMounted(async () => {
     await refreshBalance()
     await loadCashtokenIdentitiesToBalances()
     await wallet.value?.syncId()
-    if (!proposals.value || proposals.value?.length === 0) {
-      if (!wallet.id) return
-      await queryServerForProposals()
-    }
+    await queryServerForProposals()
   } catch (error) {
     $q.notify({
       type: 'warning',

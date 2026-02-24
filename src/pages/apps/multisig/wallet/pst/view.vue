@@ -27,44 +27,12 @@
                     <div class="col-12 text-caption">{{ $t('Network') }}: {{ pst.network || pst?.metadata?.network || 'Not Specified' }}</div>
                     <div class="col-12 text-caption">{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</div>
                     <div class="col-12 text-caption">{{ $t('WalletName') }}: {{ wallet?.name }}</div>
+                    <div class="col-12 text-caption">{{ $t('ProposedBy') }}: {{ proposedBy }}</div>
                   </q-card-section>
                 </q-card>
               </div>
             </div>
           <q-list>
-            <!-- <q-item>
-              <q-item-section>
-                <q-item-label class="text-h5 text-bold">
-                  {{ pst.purpose || pst?.metadata?.purpose || 'Unknown Origin' }}
-                </q-item-label>
-              </q-item-section>
-            </q-item> -->
-            <!-- <q-item>
-              <q-item-section>
-                <q-item-label>
-                  Unsigned Hash
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label>
-                  {{ shortenString(pst.unsignedTransactionHash, 20) }}
-                </q-item-label>
-              </q-item-section>
-            </q-item> -->
-            <!-- <q-item v-if="wallet">
-              <q-item-section>
-                <q-item-label>
-                  <div class="flex items-center">
-                    <q-icon name="wallet" size="sm"></q-icon><span class="q-ml-xs"></span>
-                  </div>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <q-item-label class="flex flex-wrap items-center">
-                {{ wallet?.name }}
-                </q-item-label>
-              </q-item-section>
-            </q-item> -->
             <template v-if="pst.getTotalSatsDebit() > 0">
               <q-item >
                 <q-item-section>
@@ -364,6 +332,12 @@ const signButtonIcon = computed(() => {
   }
 })
 
+const proposedBy = computed(() => {
+  if (!pst.value || !wallet.value || !wallet.value.signers) return
+  const creator = pst.value.getSignerWhoCreatedProposal()
+  return creator?.name || $t('Unknown')
+})
+
 const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
   $q.dialog({
     title: dialogTitle,
@@ -526,7 +500,7 @@ const cancelActionConfirmationSlider = () => {
 const commitSignTransaction = async () => {
   if (!signingInitiatedBy.value) return
 
-  pst.value.sign(signingInitiatedBy.value.xprv)
+  await pst.value.sign(signingInitiatedBy.value.xprv)
   
   signingProgress.value = pst.value.getSigningProgress()
   signingInitiatedBy.value = null
