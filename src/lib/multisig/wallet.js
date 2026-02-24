@@ -1467,6 +1467,7 @@ async syncId () {
     const response = 
       await this.options?.coordinationServer?.getWallet({identifier: this.generateBsmsDescriptorId()})
     this.id = response?.id
+    this.save()
   } catch (error) {
     if (error?.response?.status === 404 && this.id) {
       this.options?.store?.commit('multisig/updateWalletId', { oldId: this.id, newId: '' })
