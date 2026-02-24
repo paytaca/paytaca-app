@@ -63,15 +63,19 @@ export const generateCoordinationServerCredentialsFromMnemonic = ({ mnemonic, ne
     return generateCoordinationServerCredentialsFromXprv({ xprv: hdPrivateKey })
 }
 
+export const generateCosignerAuthPublicKeyFromFromXpub = ({ xpub }) => {
+  const decodedHdPublicKey = decodeHdPublicKey(xpub)
+  const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH) 
+  return binToHex(publicKey)
+}
+
 export const generateCoordinationServerCosignerCredentialsFromXprv = ({ xprv }) => {
     const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
-    const decodedHdPublicKey = decodeHdPublicKey(xpub)
     const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
-    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
     const message = `multisig:cosigner-auth:${Date.now()}`
     return {
-        'X-Auth-Cosigner-Auth-PubKey': binToHex(publicKey),
+        'X-Auth-Cosigner-Auth-PubKey': generateCosignerAuthPublicKeyFromFromXpub({ xpub }),
         'X-Auth-Cosigner-Auth-Signature': generateCoordinationServerSignature(privateKey, message),
         'X-Auth-Cosigner-Auth-Message': message,
     }
