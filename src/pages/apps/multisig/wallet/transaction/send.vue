@@ -153,6 +153,7 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import darkmode from 'src/store/darkmode'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
+import { generateCosignerAuthPublicKeyFromFromXpub } from 'src/lib/multisig/coordination'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -331,13 +332,13 @@ const addRecipient = async () => {
 }
 
 const createProposal = async () => {
-    
+  
   const walletVault = $store.getters['global/getVault']
   let creator = ''
   for (const signer of wallet.value.signers) {
     const signerWallet = getSignerWalletFromVault({ walletVault, xpub: signer.xpub })
     if (signerWallet) {
-      creator = signer.xpub
+      creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
     }
   }
 
@@ -355,6 +356,7 @@ const createProposal = async () => {
       purpose: purpose.value,
       recipients: recipients.value
     }, options)
+    
     
     await proposal.save()
     
