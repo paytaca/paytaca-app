@@ -388,6 +388,11 @@ const routes = [
             name: 'card-auth-nfts',
             component: () => import('src/pages/apps/card/auth-nfts.vue')
           },
+          {
+            path: 'my-cards',
+            name: 'stacked-cards',
+            component: () => import('src/pages/apps/card/stackedCards.vue')
+          },
         ]
       }
     ]

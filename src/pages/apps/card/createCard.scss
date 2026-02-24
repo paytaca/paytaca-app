@@ -165,3 +165,38 @@ animation: float 6s ease-in-out infinite;
   filter: grayscale(1);
 }
 
+.wallet-container {
+	position: relative;
+	width: 100%;
+	max-width: 400px;
+	height: 450px;
+	margin: 0 auto;
+}
+
+.stacked-card {
+	position: absolute;
+	width: 90%;
+	left: 5%;
+	height: 180px;
+	background: white;
+	border: 2px solid black;
+	border-radius: 15px;
+	transition: transform 0.3s ease;
+
+	&:hover {
+		transform: translateY(-10px); // pop up effect on hover
+	}
+}
+
+.front-wallet-card {
+	position: absolute;
+	top: -60px;
+	width: 100%;
+}
+
+.see-all-container {
+  position: absolute;
+  top: -50px;
+  width: 100%;
+}
+
