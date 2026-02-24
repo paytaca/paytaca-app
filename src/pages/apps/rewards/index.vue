@@ -9,7 +9,7 @@
       backnavpath="/apps"
       :title="$t('Rewards')"
     >
-      <template #top-right-menu>
+      <template #top-right-menu v-if="!isLoading && !error">
         <q-btn
           round
           class="button"
