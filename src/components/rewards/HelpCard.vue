@@ -176,10 +176,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'redeem',
-            titleKey: 'RewardsHelpHome23',
+            titleKey: 'RewardsHelpHome31',
             titleDefault: 'User Rewards',
             content: [
-              { key: 'RewardsHelpHome24', default: 'The User Rewards program is a collection of points, called UP (User Points), earned by engaging with the different features of the app.' }
+              { key: 'RewardsHelpHome32', default: 'The User Rewards program is a collection of points, called UP (User Points), earned by engaging with the different features of the app.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -194,10 +194,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 1,
             icon: 'diversity_3',
-            titleKey: 'RewardsHelpHome25',
+            titleKey: 'RewardsHelpHome41',
             titleDefault: 'Refer-a-friend Promo',
             content: [
-              { key: 'RewardsHelpHome26', default: 'Refer-a-friend Promo is for referrals. Users who successfully invite friends to Paytaca using a referral code will receive RP (Referral Points).' }
+              { key: 'RewardsHelpHome42', default: 'Refer-a-friend Promo is for referrals. Users who successfully invite friends to Paytaca using a referral code will receive RP (Referral Points).' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -205,6 +205,111 @@ export default {
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
             onNext: () => this.close()
           }
+        ],
+        ur: [
+          {
+            id: '1',
+            isCentered: true,
+            icon: 'redeem',
+            titleKey: 'RewardsHelpUR11',
+            titleDefault: 'Welcome to the User Rewards Page',
+            content: [
+              { key: 'RewardsHelpUR12', default: 'The User Rewards program is a collection of points, earned throughout your interaction with the Paytaca app.' },
+            ],
+            hasBack: false,
+            primaryBtn: 'Next',
+            nextStep: '2',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 0
+            }
+          },
+          {
+            id: '2',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 0,
+            icon: 'redeem',
+            titleKey: 'RewardsHelpUR21',
+            titleDefault: 'User Reward Points',
+            content: [
+              { key: 'RewardsHelpUR22', default: 'Accummulated points are displayed here. To redeem them, click on the Redeem Points button.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '3',
+            backStep: '1',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 0
+            },
+            onNext: () => {
+              this.isHighlighting = false
+            }
+          },
+          {
+            id: '3',
+            isCentered: true,
+            icon: 'redeem',
+            titleKey: 'RewardsHelpUR31',
+            titleDefault: 'Earning User Reward Points',
+            content: [
+              { key: 'RewardsHelpUR32', default: 'There are 2 ways you can earn user reward points, but they are awarded only after successfully completing the specified actions.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '4',
+            backStep: '2',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 1
+            }
+          },
+          {
+            id: '4',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 1,
+            icon: 'repeat_one',
+            titleKey: 'RewardsHelpUR41',
+            titleDefault: 'One-time Points',
+            content: [
+              { key: 'RewardsHelpUR42', default: 'One-time points are points you can earn only once. They are awarded after you complete the specified tasks.' },
+              { key: 'RewardsHelpUR43', default: 'Note that this points are only available for new Paytaca users. Existing users cannot earn these points.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '5',
+            backStep: '3',
+            onEnter: () => {
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 1
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 2
+            }
+          },
+          {
+            id: '5',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 2,
+            icon: 'loop',
+            titleKey: 'RewardsHelpUR51',
+            titleDefault: 'Continuous Points',
+            content: [
+              { key: 'RewardsHelpUR52', default: 'Continuous points are points you can earn multiple times. They are awarded after completing an order in the Marketplace or after paying over the counter.' },
+              { key: 'RewardsHelpUR53', default: 'You can get even more points if you transact with inactive merchants, so check the Paytaca Map to find merchants to transact with.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Done',
+            backStep: '4',
+            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            onNext: () => this.close()
+          },
         ]
       }
     }
@@ -303,9 +408,29 @@ export default {
       if (step.needsBoundingRects && this.hasBoundingRects) {
         this.isHighlighting = true
         this.highlightIndex = step.highlightIndex ?? 0
+        
+        this.$nextTick(() => {
+          this._ensureTargetVisible(step.highlightIndex)
+        })
       } else {
         this.isHighlighting = false
       }
+    },
+
+    _ensureTargetVisible (index) {
+      const cards = document.getElementsByClassName('card-help-highlight')
+      const targetEl = cards[index]
+      if (!targetEl) return
+
+      try {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      } catch (_) {
+        targetEl.scrollIntoView(true)
+      }
+
+      setTimeout(() => {
+        this.calculateBoundingRects()
+      }, 650)
     },
 
     close () {
