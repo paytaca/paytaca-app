@@ -3,8 +3,17 @@
     <header-nav
       class="apps-header"
       :title="$t('UserRewards', 'User Rewards')"
-      :rewardsPage="Promos.USERREWARDS"
-    />
+    >
+      <template #top-right-menu v-if="!isLoading && !error">
+        <q-btn
+          round
+          class="button"
+          icon="question_mark"
+          size="sm"
+          @click="isHelpActive = true"
+        />
+      </template>
+    </header-nav>
 
     <div
       class="q-px-md q-pt-md"
@@ -12,7 +21,7 @@
     >
       <!-- Hero Section: Total Points -->
       <q-card
-        class="hero-card q-mb-lg"
+        class="q-mb-lg hero-card card-help-highlight"
         :class="getDarkModeClass(darkMode)"
         flat
       >
@@ -59,7 +68,7 @@
       </q-card>
 
       <!-- One-Time Points Section -->
-      <div class="section-header q-mb-sm">
+      <div class="section-header q-mb-sm card-help-highlight">
         <q-icon name="repeat_one" size="md" class="q-mr-sm" color="primary" />
         <span class="text-h6">{{ $t('OneTimePoints', 'One-time Points') }}</span>
       </div>
@@ -274,7 +283,7 @@
       </template>
 
       <!-- Continuous Points Section -->
-      <div class="section-header q-mb-sm q-mt-lg">
+      <div class="section-header q-mb-sm q-mt-lg card-help-highlight">
         <q-icon name="loop" size="md" class="q-mr-sm" color="primary" />
         <span class="text-h6">{{ $t('ContinuousPoints', 'Continuous Points') }}</span>
       </div>
@@ -361,6 +370,8 @@
       </template>
     </div>
   </div>
+
+  <help-card v-model="isHelpActive" :page="'ur'" />
 </template>
 
 <script>
@@ -381,6 +392,7 @@ import {
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
+import HelpCard from 'src/components/rewards/HelpCard.vue'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
@@ -392,6 +404,7 @@ export default {
   name: 'UserRewards',
 
   components: {
+    HelpCard,
     HeaderNav,
     StatusChip,
     PointsBadge,
@@ -408,6 +421,7 @@ export default {
       Promos,
       
       isLoading: false,
+      isHelpActive: false,
       currentTab: 'onetime',
       upId: -1,
       points: 0,
