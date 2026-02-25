@@ -125,7 +125,7 @@ export default {
 
   data () {
     return {
-      homeGroupStep: '1',
+      groupStep: '1',
       isHighlighting: false,
       highlightIndex: 0,
 
@@ -248,14 +248,14 @@ export default {
     isActive (newVal) {
       if (newVal) {
         this.$nextTick(() => {
-          this.helpSteps = this.helpStepsPages[page]
+          this.helpSteps = this.helpStepsPages[this.page]
           this.calculateBoundingRects()
         })
       } else {
         this.resetState()
       }
     },
-    homeGroupStep (newStep) {
+    groupStep (newStep) {
       const step = this.helpSteps.find(s => s.id === newStep)
       if (step?.onEnter) {
         step.onEnter()
@@ -268,9 +268,9 @@ export default {
 
     shouldShowStep (step) {
       if (step.isCentered) {
-        return this.homeGroupStep === step.id
+        return this.groupStep === step.id
       }
-      return this.hasBoundingRects && this.homeGroupStep === step.id
+      return this.hasBoundingRects && this.groupStep === step.id
     },
 
     stepPositionStyle (step) {
@@ -298,7 +298,7 @@ export default {
       const step = this.helpSteps.find(s => s.id === stepId)
       if (!step) return
 
-      this.homeGroupStep = stepId
+      this.groupStep = stepId
 
       if (step.needsBoundingRects && this.hasBoundingRects) {
         this.isHighlighting = true
@@ -313,7 +313,7 @@ export default {
     },
 
     resetState () {
-      this.homeGroupStep = '1'
+      this.groupStep = '1'
       this.isHighlighting = false
       this.highlightIndex = 0
       this.highlightEls = []
