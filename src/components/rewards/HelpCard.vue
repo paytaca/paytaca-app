@@ -382,10 +382,18 @@ export default {
       if (step.isCentered) {
         return {}
       }
-      const pos = this.cardPosition[step.highlightIndex] || { top: 0, left: 0 }
+      const pos = this.cardPosition[step.highlightIndex] || { top: 0, left: 0, placement: 'below' }
+      
+      let top = pos.top
+      if (pos.placement === 'below') {
+        top += 5
+      } else {
+        top -= 5
+      }
+      
       return {
         position: 'fixed',
-        top: pos.top + 5 + 'px',
+        top: top + 'px',
         left: pos.left + 'px'
       }
     },
@@ -451,8 +459,14 @@ export default {
       this.scrims = []
       this.cardPosition = []
 
+      const CARD_HEIGHT_ESTIMATE = 250
+      const CARD_WIDTH_ESTIMATE = window.innerWidth * 0.85
+      const centeredLeft = (window.innerWidth - CARD_WIDTH_ESTIMATE) / 2
+
       const promoCards = document.getElementsByClassName('card-help-highlight')
-      for (const card of promoCards) {
+      const totalCards = promoCards.length
+      for (let index = 0; index < totalCards; index++) {
+        const card = promoCards[index]
         const rect = card.getBoundingClientRect()
         const targetRect = {
           top: rect.top,
@@ -492,7 +506,23 @@ export default {
         }
         this.scrims.push(scrim)
 
-        this.cardPosition.push({ top: bottomTop, left: targetRect.left })
+        const availableBelow = window.innerHeight - (targetRect.top + targetRect.height)
+        const isLastCard = index === totalCards - 1
+        const placement = isLastCard || availableBelow < CARD_HEIGHT_ESTIMATE ? 'above' : 'below'
+
+        if (placement === 'below') {
+          this.cardPosition.push({
+            top: targetRect.top + targetRect.height,
+            left: centeredLeft,
+            placement
+          })
+        } else {
+          this.cardPosition.push({
+            top: 0,
+            left: centeredLeft,
+            placement
+          })
+        }
       }
     }
   }
