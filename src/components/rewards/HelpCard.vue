@@ -179,7 +179,7 @@ export default {
             titleKey: 'RewardsHelpHome31',
             titleDefault: 'User Rewards',
             content: [
-              { key: 'RewardsHelpHome32', default: 'The User Rewards program is a collection of points, called UP (User Points), earned by engaging with the different features of the app.' }
+              { key: 'RewardsHelpHome32', default: 'The User Rewards program is a collection of points, earned by engaging with the different features of the app.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -197,7 +197,7 @@ export default {
             titleKey: 'RewardsHelpHome41',
             titleDefault: 'Refer-a-friend Promo',
             content: [
-              { key: 'RewardsHelpHome42', default: 'Refer-a-friend Promo is for referrals. Users who successfully invite friends to Paytaca using a referral code will receive RP (Referral Points).' }
+              { key: 'RewardsHelpHome42', default: 'Refer-a-friend Promo is for referrals; users who successfully invite friends to Paytaca using a referral code will receive points.' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -302,7 +302,7 @@ export default {
             titleDefault: 'Continuous Points',
             content: [
               { key: 'RewardsHelpUR52', default: 'Continuous points are points you can earn multiple times. They are awarded after completing an order in the Marketplace or after paying over the counter.' },
-              { key: 'RewardsHelpUR53', default: 'You can get even more points if you transact with inactive merchants, so check the Paytaca Map to find merchants to transact with.' },
+              { key: 'RewardsHelpUR53', default: 'You can get even more points if you transact with inactive merchants, so check the Paytaca Map to find merchants to transact with near you.' },
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -507,7 +507,7 @@ export default {
         this.scrims.push(scrim)
 
         const availableBelow = window.innerHeight - (targetRect.top + targetRect.height)
-        const isLastCard = index === totalCards - 1
+        const isLastCard = index === totalCards - 1 && this.page === 'ur'
         const placement = isLastCard || availableBelow < CARD_HEIGHT_ESTIMATE ? 'above' : 'below'
 
         if (placement === 'below') {
@@ -518,7 +518,7 @@ export default {
           })
         } else {
           this.cardPosition.push({
-            top: 0,
+            top: window.innerHeight > 800 ? 100 : 10,
             left: centeredLeft,
             placement
           })
