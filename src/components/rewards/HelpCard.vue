@@ -179,7 +179,7 @@ export default {
             titleKey: 'RewardsHelpHome31',
             titleDefault: 'User Rewards',
             content: [
-              { key: 'RewardsHelpHome32', default: 'The User Rewards program is a collection of points, earned by engaging with the different features of the app.' }
+              { key: 'RewardsHelpHome32', default: 'The User Rewards (UR) program is a collection of points, earned by engaging with the different features of the app.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -197,7 +197,7 @@ export default {
             titleKey: 'RewardsHelpHome41',
             titleDefault: 'Refer-a-friend Promo',
             content: [
-              { key: 'RewardsHelpHome42', default: 'Refer-a-friend Promo is for referrals; users who successfully invite friends to Paytaca using a referral code will receive points.' }
+              { key: 'RewardsHelpHome42', default: 'Refer-a-friend Promo (RFP) is for referrals; users who successfully invite friends to Paytaca using a referral code will receive points.' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -214,7 +214,7 @@ export default {
             titleKey: 'RewardsHelpUR11',
             titleDefault: 'Welcome to the User Rewards Page',
             content: [
-              { key: 'RewardsHelpUR12', default: 'The User Rewards program is a collection of points, earned throughout your interaction with the Paytaca app.' },
+              { key: 'RewardsHelpUR12', default: 'The User Rewards (UR) program is a collection of points earned throughout your interaction with the Paytaca app.' },
             ],
             hasBack: false,
             primaryBtn: 'Next',
@@ -234,7 +234,7 @@ export default {
             titleKey: 'RewardsHelpUR21',
             titleDefault: 'User Reward Points',
             content: [
-              { key: 'RewardsHelpUR22', default: 'Accummulated points are displayed here. To redeem them, click on the Redeem Points button.' }
+              { key: 'RewardsHelpUR22', default: 'Accummulated UR points are displayed here. To redeem them, click on the Redeem Points button.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -255,7 +255,7 @@ export default {
             titleKey: 'RewardsHelpUR31',
             titleDefault: 'Earning User Reward Points',
             content: [
-              { key: 'RewardsHelpUR32', default: 'There are 2 ways you can earn user reward points, but they are awarded only after successfully completing the specified actions.' },
+              { key: 'RewardsHelpUR32', default: 'There are 2 ways you can earn UR points, but they are awarded only after successfully completing the specified actions.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',

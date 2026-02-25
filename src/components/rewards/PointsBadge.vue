@@ -3,7 +3,7 @@
     class="points-badge"
     :class="[complete ? 'completed' : 'pending', darkModeClass]"
   >
-    +{{ points }} UP
+    +{{ points }} points
   </span>
 </template>
 

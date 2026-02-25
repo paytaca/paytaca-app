@@ -50,7 +50,7 @@
                 class="text-h5 text-weight-bold q-ml-xs"
                 :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
               >
-                UP
+                points
               </span>
             </div>
 
@@ -102,13 +102,13 @@
                 <q-icon name="celebration" size="32px" class="q-mr-md" />
                 <div>
                   <div class="text-h6">Welcome, New Explorer!</div>
-                  <div class="text-caption">Complete tasks to earn UP</div>
+                  <div class="text-caption">Complete tasks to earn points</div>
                 </div>
               </div>
             </q-card-section>
             <q-card-section>
               <div class="text-body2">
-                Start your journey by completing the one-time tasks below. Each completed task rewards you with UP that can be redeemed for LIFT tokens!
+                Start your journey by completing the one-time tasks below. Each completed task rewards you with points that can be redeemed and exchanged for LIFT tokens!
               </div>
               <q-linear-progress
                 :value="oneTimeProgress"
