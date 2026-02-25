@@ -342,7 +342,7 @@ const showProposalsImportSelectionDialog = () => {
 
     if (p.proposalFormat && p.proposalFormat !== 'psbt') continue 
     try {
-      const decoded = Pst.import(p.proposal) 
+      const decoded = Pst.import(p.proposalCombined || p.proposal) 
       decoded.id = p.id     
       decodedProposals.push(decoded)
     } catch (error) {
