@@ -117,7 +117,8 @@ export default {
   name: 'HelpCard',
 
   props: {
-    modelValue: { type: Boolean, default: false }
+    modelValue: { type: Boolean, default: false },
+    page: { type: String, default: 'home' }
   },
 
   emits: ['update:modelValue'],
@@ -132,77 +133,80 @@ export default {
       scrims: [],
       cardPosition: [],
 
-      helpSteps: [
-        {
-          id: '1',
-          isCentered: true,
-          icon: 'stars',
-          titleKey: 'RewardsHelpHome11',
-          titleDefault: 'Welcome to the Rewards Page',
-          content: [
-            { key: 'RewardsHelpHome12', default: 'Start earning points today!' },
-            { key: 'RewardsHelpHome13', default: 'As a valued user, you can accumulate points for engaging with the Paytaca ecosystem. The more you explore and interact with the ecosystem, the more points you will earn. These points are directly convertible into LIFT tokens, rewarding your loyalty and engagement.' },
-            { key: 'RewardsHelpHome14', default: 'Get started today and watch your points—and rewards—grow!' }
-          ],
-          hasBack: false,
-          primaryBtn: 'Next',
-          nextStep: '2'
-        },
-        {
-          id: '2',
-          isCentered: true,
-          icons: ['redeem', 'diversity_3'],
-          titleKey: 'RewardsHelpHome21',
-          titleDefault: 'Paytaca Promos',
-          content: [
-            { key: 'RewardsHelpHome22', default: 'We have designed different promos for each kind of user, each with its own earning potential. Other promos will be added soon.' }
-          ],
-          hasBack: true,
-          primaryBtn: 'Next',
-          nextStep: '3',
-          backStep: '1',
-          onEnter: () => { this.isHighlighting = false },
-          onNext: () => {
-            this.isHighlighting = true
-            this.highlightIndex = 0
+      helpSteps: [],
+      helpStepsPages: {
+        home: [
+          {
+            id: '1',
+            isCentered: true,
+            icon: 'stars',
+            titleKey: 'RewardsHelpHome11',
+            titleDefault: 'Welcome to the Rewards Page',
+            content: [
+              { key: 'RewardsHelpHome12', default: 'Start earning points today!' },
+              { key: 'RewardsHelpHome13', default: 'As a valued user, you can accumulate points for engaging with the Paytaca ecosystem. The more you explore and interact with the ecosystem, the more points you will earn. These points are directly convertible into LIFT tokens, rewarding your loyalty and engagement.' },
+              { key: 'RewardsHelpHome14', default: 'Get started today and watch your points—and rewards—grow!' }
+            ],
+            hasBack: false,
+            primaryBtn: 'Next',
+            nextStep: '2'
+          },
+          {
+            id: '2',
+            isCentered: true,
+            icons: ['redeem', 'diversity_3'],
+            titleKey: 'RewardsHelpHome21',
+            titleDefault: 'Paytaca Promos',
+            content: [
+              { key: 'RewardsHelpHome22', default: 'We have designed different promos for each kind of user, each with its own earning potential. Other promos will be added soon.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '3',
+            backStep: '1',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 0
+            }
+          },
+          {
+            id: '3',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 0,
+            icon: 'redeem',
+            titleKey: 'RewardsHelpHome23',
+            titleDefault: 'User Rewards',
+            content: [
+              { key: 'RewardsHelpHome24', default: 'The User Rewards program is a collection of points, called UP (User Points), earned by engaging with the different features of the app.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '4',
+            backStep: '2',
+            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            onNext: () => { this.highlightIndex = 1 }
+          },
+          {
+            id: '4',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 1,
+            icon: 'diversity_3',
+            titleKey: 'RewardsHelpHome25',
+            titleDefault: 'Refer-a-friend Promo',
+            content: [
+              { key: 'RewardsHelpHome26', default: 'Refer-a-friend Promo is for referrals. Users who successfully invite friends to Paytaca using a referral code will receive RP (Referral Points).' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Done',
+            backStep: '3',
+            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            onNext: () => this.close()
           }
-        },
-        {
-          id: '3',
-          isCentered: false,
-          needsBoundingRects: true,
-          highlightIndex: 0,
-          icon: 'redeem',
-          titleKey: 'RewardsHelpHome23',
-          titleDefault: 'User Rewards',
-          content: [
-            { key: 'RewardsHelpHome24', default: 'The User Rewards program is a collection of points, called UP (User Points), earned by engaging with the different features of the app.' }
-          ],
-          hasBack: true,
-          primaryBtn: 'Next',
-          nextStep: '4',
-          backStep: '2',
-          onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
-          onNext: () => { this.highlightIndex = 1 }
-        },
-        {
-          id: '4',
-          isCentered: false,
-          needsBoundingRects: true,
-          highlightIndex: 1,
-          icon: 'diversity_3',
-          titleKey: 'RewardsHelpHome25',
-          titleDefault: 'Refer-a-friend Promo',
-          content: [
-            { key: 'RewardsHelpHome26', default: 'Refer-a-friend Promo is for referrals. Users who successfully invite friends to Paytaca using a referral code will receive RP (Referral Points).' }
-          ],
-          hasBack: true,
-          primaryBtn: 'Done',
-          backStep: '3',
-          onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
-          onNext: () => this.close()
-        }
-      ]
+        ]
+      }
     }
   },
 
@@ -244,6 +248,7 @@ export default {
     isActive (newVal) {
       if (newVal) {
         this.$nextTick(() => {
+          this.helpSteps = this.helpStepsPages[page]
           this.calculateBoundingRects()
         })
       } else {

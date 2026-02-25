@@ -117,7 +117,7 @@
     </div>
   </div>
 
-  <help-card v-model="isHelpActive" />
+  <help-card v-model="isHelpActive" :page="'home'" />
 </template>
 
 <script>
