@@ -79,15 +79,6 @@
 
             <q-card-actions class="justify-between q-px-lg q-pb-sm">
               <q-btn
-                v-if="step.hasBack"
-                label="Back"
-                outline
-                class="button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
-                @click="goToStep(step.backStep)"
-              />
-              <q-btn
-                v-else
                 label="Skip"
                 outline
                 class="button button-text-primary"
@@ -96,6 +87,14 @@
               />
 
               <div class="q-gutter-x-sm" :class="{ 'q-ml-auto': !step.hasBack }">
+                <q-btn
+                  v-if="step.hasBack"
+                  label="Back"
+                  outline
+                  class="button button-text-primary"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="goToStep(step.backStep)"
+                />
                 <q-btn
                   :label="step.primaryBtn"
                   class="button"
