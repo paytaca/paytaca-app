@@ -28,6 +28,7 @@
                     <div class="col-12 text-caption">{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</div>
                     <div class="col-12 text-caption">{{ $t('WalletName') }}: {{ wallet?.name }}</div>
                     <div class="col-12 text-caption">{{ $t('ProposedBy') }}: {{ proposedBy }}</div>
+                    <div class="col-12 text-caption">{{ $t('Coordinator') }}: {{ coordinator }}</div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -342,6 +343,10 @@ const proposedBy = computed(() => {
   return creator?.name || $t('Unknown')
 })
 
+const coordinator = computed(() => {
+    return pst.value?.coordinatorInfo?.name
+})
+
 const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
   $q.dialog({
     title: dialogTitle,
@@ -437,7 +442,7 @@ const showProposalQrDialog = () => {
 
 const onDeleteProposalAction = async () => {
   $q.dialog({
-    message: $t('MultisigDeleteProposalConfirmationMessage', {}, 'Are you sure you want to delete this transaction proposal? This action cannot be undone.'),
+    message: $t('MultisigDeleteProposalConfirmationMessage', {}, 'Are you sure you want to delete this transaction proposal?'),
     ok: { 
       label: $t('Yes'),
       color: 'primary',
@@ -451,6 +456,7 @@ const onDeleteProposalAction = async () => {
       rounded: true,
       class: `button-default ${getDarkModeClass(darkMode.value)} `,
     },
+    html: true,
     class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
   }).onOk(() => {
     pst.value.delete({ sync: false })
@@ -607,6 +613,7 @@ const loadPst = async () => {
   if (storedPst) {
     pst.value = storedPst
     await pst.value.fetchServerId()?.catch((e) => {
+      
       if (e?.response?.status === 404) {
         return
       }
@@ -616,6 +623,8 @@ const loadPst = async () => {
         textColor: 'black'
       })
     })
+
+    await pst.value.fetchCoordinatorInfo()
   }
 }
 
