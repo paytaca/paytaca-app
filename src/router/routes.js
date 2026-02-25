@@ -297,15 +297,14 @@ const routes = [
             component: () => import('src/pages/apps/rewards/index.vue'),
           },
           {
-            path: 'user-rewards/:id/',
+            path: 'user-rewards/:id',
             name: 'user-rewards',
             component: () => import('src/pages/apps/rewards/user-rewards.vue')
           },
           {
-            path: 'rfp',
+            path: 'rfp/:id',
             name: 'rfp',
-            props: route => route.query,
-            component: () => import('src/pages/apps/rewards/promos/rfp.vue')
+            component: () => import('src/pages/apps/rewards/rfp.vue')
           }
         ]
       },

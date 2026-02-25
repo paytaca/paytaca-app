@@ -99,7 +99,7 @@
                 class="amount-text"
                 :class="getDarkModeClass(darkMode, '', 'text-grad')"
               >
-                {{ promo.points }} {{ pointsType[index].toUpperCase() }}
+                {{ promo.points }} points
               </span>
             </div>
 
