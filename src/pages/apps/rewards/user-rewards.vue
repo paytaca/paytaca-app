@@ -34,25 +34,13 @@
           </template>
 
           <!-- Error State -->
-          <div v-else-if="!isLoading && pointsError" class="row flex-center">
-            <q-icon 
-              :name="darkMode ? 'mdi-emoticon-sad' : 'mdi-emoticon-sad-outline'" 
-              size="52px" 
-              class="row text-bow-muted q-mb-md" 
-              :class="getDarkModeClass(darkMode)" 
-            />
-            <span class="text-body1 q-mb-sm">{{ pointsError }}</span>
-            <q-btn
-              rounded
-              outline
-              no-caps
-              :label="$t('Retry')"
-              icon="refresh"
-              class="text-bow-muted"
-              :class="getDarkModeClass(darkMode)"
-              @click="loadData()"
-            />
-          </div>
+          <error-card
+            v-else-if="!isLoading && pointsError"
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            :error-text="pointsError"
+            @on-retry="loadData()"
+          />
 
           <!-- Loaded State -->
           <template v-else>
@@ -88,29 +76,14 @@
         </q-card-section>
       </q-card>
 
-      <div v-if="dataError" class="row flex-center" style="min-height: 33vh;">
-        <div class="error-state-card text-center q-pa-xl" :class="getDarkModeClass(darkMode)">
-          <q-icon 
-            name="cloud_off" 
-            size="64px" 
-            class="text-bow-muted q-mb-md" 
-            :class="getDarkModeClass(darkMode)" 
-          />
-          <div class="text-subtitle1 text-bow-muted q-mb-md" :class="getDarkModeClass(darkMode)">
-            {{ dataError }}
-          </div>
-          <q-btn
-            rounded
-            outline
-            no-caps
-            :label="$t('Retry')"
-            icon="refresh"
-            class="text-bow-muted"
-            :class="getDarkModeClass(darkMode)"
-            @click="loadData()"
-          />
-        </div>
-      </div>
+      <!-- Error state -->
+      <error-card
+        v-if="dataError"
+        :is-points-card="false"
+        :is-rewards-home-page="false"
+        :error-text="dataError"
+        @on-retry="loadData()"
+      />
 
       <template v-else>
         <!-- One-Time Points Section -->
@@ -440,6 +413,7 @@ import {
 
 import HeaderNav from 'src/components/header-nav'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
+import ErrorCard from 'src/components/rewards/ErrorCard.vue'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
@@ -453,6 +427,7 @@ export default {
   components: {
     HelpCard,
     HeaderNav,
+    ErrorCard,
     StatusChip,
     PointsBadge,
     AchievementIcon
@@ -833,19 +808,6 @@ export default {
   
   .dark & {
     border-bottom-color: rgba(255, 255, 255, 0.05);
-  }
-}
-
-.error-state-card {
-  border-radius: 16px;
-  max-width: 400px;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-
-  &.dark {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
 </style>

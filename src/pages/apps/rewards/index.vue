@@ -28,29 +28,13 @@
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="row flex-center q-mx-lg q-pt-md" style="min-height: 33vh;">
-      <div class="error-state-card text-center q-pa-xl" :class="getDarkModeClass(darkMode)">
-        <q-icon 
-          :name="darkMode ? 'mdi-emoticon-sad' : 'mdi-emoticon-sad-outline'" 
-          size="64px" 
-          class="text-bow-muted q-mb-md" 
-          :class="getDarkModeClass(darkMode)" 
-        />
-        <div class="text-subtitle1 text-bow-muted q-mb-md" :class="getDarkModeClass(darkMode)">
-          {{ error }}
-        </div>
-        <q-btn
-          rounded
-          outline
-          no-caps
-          :label="$t('Retry')"
-          icon="refresh"
-          class="text-bow-muted"
-          :class="getDarkModeClass(darkMode)"
-          @click="loadRewards()"
-        />
-      </div>
-    </div>
+    <error-card
+      v-if="error"
+      :is-points-card="false"
+      :is-rewards-home-page="true"
+      :error-text="error"
+      @on-retry="loadRewards()"
+    />
 
     <div
       v-else
@@ -132,7 +116,7 @@ import {
 
 import HeaderNav from 'src/components/header-nav'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
+import ErrorCard from 'src/components/rewards/ErrorCard.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -140,9 +124,9 @@ export default {
   name: 'RewardsPage',
 
   components: {
+    HelpCard,
+    ErrorCard,
     HeaderNav,
-    ProgressLoader,
-    HelpCard
   },
 
   data () {
@@ -178,9 +162,6 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
-    },
-    theme () {
-      return this.$store.getters['global/theme']
     }
   },
 
@@ -211,12 +192,12 @@ export default {
           }
         } catch (error) {
           console.error(error)
-          this.error = this.$t('FailedToLoadPromoData', 'Failed to load promo data. Please try again later.')
+          this.error = this.$t('FailedToLoadPromoData', 'Unable to load promo data at the moment. Please try again later.')
         }
       } else if (data && Object.keys(data.length === 0)) {
         await createUserPromoData()
       } else {
-        this.error = this.$t('FailedToLoadPage', 'Failed to load page. Please try again later.')
+        this.error = this.$t('FailedToLoadPage', 'Unable to load page at the moment. Please try again later.')
       }
 
       this.isLoading = false
@@ -238,18 +219,3 @@ export default {
   }
 }
 </script>
-
-<style lang="scss" scoped>
-.error-state-card {
-  border-radius: 16px;
-  max-width: 400px;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-
-  &.dark {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-}
-</style>
