@@ -128,31 +128,63 @@ export default {
           {
             id: '1',
             isCentered: true,
-            icon: 'stars',
+            icon: 'celebration',  // Alternative: 'auto_awesome', 'emoji_events', 'card_giftcard'
             titleKey: 'RewardsHelpHome11',
             titleDefault: 'Welcome to the Rewards Page',
             content: [
               { key: 'RewardsHelpHome12', default: 'Start earning points today!' },
-              { key: 'RewardsHelpHome13', default: 'As a valued user, you can accumulate points for engaging with the Paytaca ecosystem. The more you explore and interact with the ecosystem, the more points you will earn. These points are directly convertible into LIFT tokens, rewarding your loyalty and engagement.' },
-              { key: 'RewardsHelpHome14', default: 'Get started today and watch your points—and rewards—grow!' }
+              { key: 'RewardsHelpHome13', default: 'The Paytaca Rewards program lets you accumulate points for engaging with our ecosystem.' }
             ],
             hasBack: false,
             primaryBtn: 'Next',
-            nextStep: '2'
+            nextStep: '2',
+            onNext: () => { this.isHighlighting = false }
           },
           {
             id: '2',
             isCentered: true,
-            icon: 'stars',
+            icon: 'insights',  // Alternative: 'lightbulb', 'query_builder', 'psychology', 'school'
             titleKey: 'RewardsHelpHome21',
-            titleDefault: 'Paytaca Promos',
+            titleDefault: 'How It Works',
             content: [
-              { key: 'RewardsHelpHome22', default: "We have designed different promos for each type of user, each offering its own earning potential. More promos will be added soon." }
+              { key: 'RewardsHelpHome22', default: 'The more you explore and interact, the more you earn. Points convert directly into LIFT tokens.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
             nextStep: '3',
             backStep: '1',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => { this.isHighlighting = false }
+          },
+          {
+            id: '3',
+            isCentered: true,
+            icon: 'rocket_launch',  // Alternative: 'flag', 'touch_app', 'play_circle', 'swipe_right'
+            titleKey: 'RewardsHelpHome31',
+            titleDefault: 'Get Started',
+            content: [
+              { key: 'RewardsHelpHome32', default: 'Your journey begins now! Complete actions across the app to start earning immediately.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '4',
+            backStep: '2',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => { this.isHighlighting = false }
+          },
+          {
+            id: '4',
+            isCentered: true,
+            icon: 'stars',
+            titleKey: 'RewardsHelpHome41',
+            titleDefault: 'Paytaca Promos',
+            content: [
+              { key: 'RewardsHelpHome42', default: 'We have designed different promos for each type of user, each offering its own earning potential. More promos will be added soon.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '5',
+            backStep: '3',
             onEnter: () => { this.isHighlighting = false },
             onNext: () => {
               this.isHighlighting = true
@@ -160,53 +192,53 @@ export default {
             }
           },
           {
-            id: '3',
+            id: '5',
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'redeem',
-            titleKey: 'RewardsHelpHome31',
+            titleKey: 'RewardsHelpHome51',
             titleDefault: 'User Rewards',
             content: [
-              { key: 'RewardsHelpHome32', default: 'In the User Rewards (UR) program, points are earned by exploring and enjoying the different features of the app.' }
+              { key: 'RewardsHelpHome52', default: 'In the User Rewards (UR) program, points are earned by exploring and enjoying the different features of the app.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
-            nextStep: '4',
-            backStep: '2',
+            nextStep: '6',
+            backStep: '4',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
             onNext: () => { this.highlightIndex = 1 }
           },
           {
-            id: '4',
+            id: '6',
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 1,
             icon: 'diversity_3',
-            titleKey: 'RewardsHelpHome41',
+            titleKey: 'RewardsHelpHome61',
             titleDefault: 'Refer-a-friend Promo',
             content: [
-              { key: 'RewardsHelpHome42', default: 'In the Refer-a-Friend Promo (RFP), points are rewarded to users who successfully invite friends to use the Paytaca app using a referral code.' }
+              { key: 'RewardsHelpHome62', default: 'In the Refer-a-Friend Promo (RFP), points are rewarded to users who successfully invite friends to use the Paytaca app using a referral code.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
-            nextStep: '5',
-            backStep: '3',
+            nextStep: '7',
+            backStep: '5',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
           },
           {
-            id: '5',
+            id: '7',
             isCentered: true,
             icon: 'stars',
-            titleKey: 'RewardsHelpHome51',
+            titleKey: 'RewardsHelpHome71',
             titleDefault: 'Points Conversion Rate',
             content: [
-              { key: 'RewardsHelpHome52', default: 'Each point you earn is currently worth 1 LIFT, making it easy to see the value of your rewards.' },
-              { key: 'RewardsHelpHome53', default: 'Please note that this conversion rate may be updated in the future to keep things fair and exciting for everyone.' }
+              { key: 'RewardsHelpHome72', default: 'Each point you earn is currently worth 1 LIFT, making it easy to see the value of your rewards.' },
+              { key: 'RewardsHelpHome73', default: 'Please note that this conversion rate may be updated in the future to keep things fair and exciting for everyone.' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
-            backStep: '4',
+            backStep: '6',
             onEnter: () => { this.isHighlighting = false },
             onNext: () => this.close()
           },
