@@ -27,21 +27,22 @@
       <div class="flex flex-center full-width">
         <div class="wallet-container">
           <div
-            v-for="(card, index) in subCards"
+            v-for="(card, index) in displayedCards"
             :key="card.id"
             class="stacked-card shadow-5"
+            :class="{ 'swipe-hint': index === displayedCards.length -1 }"
             :style="getCardStyle(index)"
           >
-            <div class="row justify-between items-center full-height q-px-md">
-              <div class="text-weight bold">{{ card.raw.alias }}</div>
-              <div class="text-weight-bold">{{ card.balance }} BCH</div>
+            <div class="row justify-between items-start q-px-md q-pt-sm">
+              <div class="text-weight bold text-black text-subtitle2">{{ card.raw?.alias }}</div>
+              <div class="text-weight-bold text-black text-subtitle2">{{ card.balance }} BCH</div>
             </div>
           </div>
 
           <q-card
             flat
             bordered
-            class="front-wallet-card flex flex-center shadow-10"
+            class="front-wallet-card flex flex-center shadow-10 cursor-pointer"
             @click="$router.push({name: 'app-card'})"
           >
             <q-card-section class="text-center">
@@ -50,10 +51,14 @@
             </q-card-section>
           </q-card>
 
-          <div class="see-all-container text-center q-mt-xl">
-            <q-icon name="keyboard_double_arrow_up" size="sm" />
-            <div class="text-caption">See all</div>
-          </div>
+          <div 
+            v-if="subCards.length > 3"
+            class="see-all-container text-center q-mt-xl"
+            @click="showAllCards"
+          >
+            <q-icon name="keyboard_double_arrow_up" size="sm" color="primary" />
+            <div class="text-caption text-primary text-weight-bold">See all ({{ hiddenCount }} more)</div>
+          </div>  
         </div>
       </div>
       
@@ -71,6 +76,16 @@ export default {
     MultiWalletDropdown,
   },
 
+  computed: {
+    displayedCards () {
+      return this.subCards.slice(0,3)
+    },
+
+    hiddenCount () {
+      return this.subCards.length - 3
+    }
+  },
+
   mounted () {
     // when the page loads, fetch the cards in localStorage
     this.fetchCards()
@@ -85,11 +100,12 @@ export default {
         top: `${offset}px`,
         zIndex: index + 1,
         position: 'absolute',
-        width: '100%',
+        width: '90%',
         background: 'white',
         border: '2px solid black',
         borderRadius: '15px',
-        height: '160px'
+        height: '180px',
+        filter: `brightness(${1-index * 0.1})`
       }
     }
   }
