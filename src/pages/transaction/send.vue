@@ -1674,17 +1674,23 @@ export default {
       const toSendData = vm.recipients
 
       // check if total amount being sent is greater than current wallet amount
-      const totalAmount = toSendData
-        .map(a => Number(a.amount))
-        .reduce((acc, curr) => acc + curr, 0)
-        .toFixed(8)
+      // Skip this check for NFTs - they have different validation (commitment/capability/utxo)
+      if (!vm.isNFT) {
+        const totalAmount = toSendData
+          .map(a => Number(a.amount))
+          .reduce((acc, curr) => acc + curr, 0)
+          .toFixed(8)
 
-      if (totalAmount > vm.asset.balance) {
-        raiseNotifyError(vm.$t('TotalAmountError'))
-        return
+        if (Number(totalAmount) > vm.asset.balance) {
+          raiseNotifyError(vm.$t('TotalAmountError'))
+          return
+        }
+
+        vm.totalAmountSent = parseFloat(totalAmount)
+      } else {
+        // For NFTs, set totalAmountSent to 0 (NFTs don't have fungible amounts)
+        vm.totalAmountSent = 0
       }
-
-      vm.totalAmountSent = parseFloat(totalAmount)
       if (vm.asset.id === 'bch') {
         vm.totalFiatAmountSent = toSendData
           .map(a => Number(a.fiatAmount))
