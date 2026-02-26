@@ -45,18 +45,7 @@
           >
             <q-card-section>
               <div class="q-my-sm text-center">
-                <template v-if="step.icons">
-                  <q-icon
-                    v-for="(icon, idx) in step.icons"
-                    :key="idx"
-                    :name="icon"
-                    size="48px"
-                    :class="idx === 0 ? 'col-6 text-right' : 'col-6 text-left'"
-                    class="text-primary"
-                  />
-                </template>
                 <q-icon
-                  v-else-if="step.icon"
                   :name="step.icon"
                   size="56px"
                   class="text-primary"
@@ -154,11 +143,11 @@ export default {
           {
             id: '2',
             isCentered: true,
-            icons: ['redeem', 'diversity_3'],
+            icon: 'stars',
             titleKey: 'RewardsHelpHome21',
             titleDefault: 'Paytaca Promos',
             content: [
-              { key: 'RewardsHelpHome22', default: 'We have designed different promos for each kind of user, each with its own earning potential. Other promos will be added soon.' }
+              { key: 'RewardsHelpHome22', default: "We have designed different promos for each type of user, each offering its own earning potential. More promos will be added soon." }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -179,7 +168,7 @@ export default {
             titleKey: 'RewardsHelpHome31',
             titleDefault: 'User Rewards',
             content: [
-              { key: 'RewardsHelpHome32', default: 'The User Rewards (UR) program is a collection of points, earned by engaging with the different features of the app.' }
+              { key: 'RewardsHelpHome32', default: 'In the User Rewards (UR) program, points are earned by exploring and enjoying the different features of the app.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -197,14 +186,30 @@ export default {
             titleKey: 'RewardsHelpHome41',
             titleDefault: 'Refer-a-friend Promo',
             content: [
-              { key: 'RewardsHelpHome42', default: 'Refer-a-friend Promo (RFP) is for referrals; users who successfully invite friends to Paytaca using a referral code will receive points.' }
+              { key: 'RewardsHelpHome42', default: 'In the Refer-a-Friend Promo (RFP), points are rewarded to users who successfully invite friends to use the Paytaca app using a referral code.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '5',
+            backStep: '3',
+            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+          },
+          {
+            id: '5',
+            isCentered: true,
+            icon: 'stars',
+            titleKey: 'RewardsHelpHome51',
+            titleDefault: 'Points Conversion Rate',
+            content: [
+              { key: 'RewardsHelpHome52', default: 'Each point you earn is currently worth 1 LIFT, making it easy to see the value of your rewards.' },
+              { key: 'RewardsHelpHome53', default: 'Please note that this conversion rate may be updated in the future to keep things fair and exciting for everyone.' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
-            backStep: '3',
-            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            backStep: '4',
+            onEnter: () => { this.isHighlighting = false },
             onNext: () => this.close()
-          }
+          },
         ],
         ur: [
           {
@@ -214,7 +219,7 @@ export default {
             titleKey: 'RewardsHelpUR11',
             titleDefault: 'Welcome to the User Rewards Page',
             content: [
-              { key: 'RewardsHelpUR12', default: 'The User Rewards (UR) program is a collection of points earned throughout your interaction with the Paytaca app.' },
+              { key: 'RewardsHelpUR12', default: 'The User Rewards (UR) program allows you to earn points by engaging with various features of the Paytaca app.' },
             ],
             hasBack: false,
             primaryBtn: 'Next',
@@ -234,7 +239,8 @@ export default {
             titleKey: 'RewardsHelpUR21',
             titleDefault: 'User Reward Points',
             content: [
-              { key: 'RewardsHelpUR22', default: 'Accummulated UR points are displayed here. To redeem them, click on the Redeem Points button.' }
+              { key: 'RewardsHelpUR22', default: 'Accumulated points are displayed here. To redeem them, click the Redeem Points button.' },
+              { key: 'RewardsHelpUR23', default: "Redeem them soon to make the most of your rewards. Don't let your hard-earned benefits wait too long; treat yourself whenever you're ready!" }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -255,7 +261,7 @@ export default {
             titleKey: 'RewardsHelpUR31',
             titleDefault: 'Earning User Reward Points',
             content: [
-              { key: 'RewardsHelpUR32', default: 'There are 2 ways you can earn UR points, but they are awarded only after successfully completing the specified actions.' },
+              { key: 'RewardsHelpUR32', default: 'There are two ways to earn points, which are awarded only after successfully completing the specified actions.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -276,8 +282,8 @@ export default {
             titleKey: 'RewardsHelpUR41',
             titleDefault: 'One-time Points',
             content: [
-              { key: 'RewardsHelpUR42', default: 'One-time points are points you can earn only once. They are awarded after you complete the specified tasks.' },
-              { key: 'RewardsHelpUR43', default: 'Note that this points are only available for new Paytaca users. Existing users cannot earn these points.' },
+              { key: 'RewardsHelpUR42', default: 'One-time points can be earned only once and are awarded after completing specified tasks.' },
+              { key: 'RewardsHelpUR43', default: 'Please note that these points are only available for new Paytaca users. Existing users cannot earn them.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -301,8 +307,8 @@ export default {
             titleKey: 'RewardsHelpUR51',
             titleDefault: 'Continuous Points',
             content: [
-              { key: 'RewardsHelpUR52', default: 'Continuous points are points you can earn multiple times. They are awarded after completing an order in the Marketplace or after paying over the counter.' },
-              { key: 'RewardsHelpUR53', default: 'You can get even more points if you transact with inactive merchants, so check the Paytaca Map to find merchants to transact with near you.' },
+              { key: 'RewardsHelpUR52', default: 'Continuous points can be earned multiple times and are awarded after completing a Marketplace order or paying over the counter.' },
+              { key: 'RewardsHelpUR53', default: 'You can get even more points if you transact with inactive merchants, so check the Paytaca Map to find merchants near you to transact with.' },
             ],
             hasBack: true,
             primaryBtn: 'Done',
