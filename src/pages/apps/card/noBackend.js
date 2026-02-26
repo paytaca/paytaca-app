@@ -35,6 +35,16 @@ export const createCardLogic = {
   },
 
   methods: {
+    checkExistingCards () {
+      const savedCards = localStorage.getItem('mock_subcards')
+      const cards = savedCards ? JSON.parse(savedCards) : []
+
+      // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
+      if (cards.length > 0 && this.$route.name === 'app-card'){
+        this.$router.push({ name: 'stacked-cards'})
+      }
+    },
+
     openCreateCardDialog(){
       this.newCardName = ''
       this.createCardDialog = true
