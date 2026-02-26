@@ -134,6 +134,11 @@ import cardReplacementDialog from './cardReplacement.vue';
       transactionHistoryDialog,
       spendLimitDialog,
       cardReplacementDialog
+    },
+
+    mounted () {
+      // check if cards exists as soon as the component loads
+      this.checkExistingCards()
     }
   }
 
