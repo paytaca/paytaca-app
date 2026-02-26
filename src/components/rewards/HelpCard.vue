@@ -432,7 +432,8 @@ export default {
 
       try {
         targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
-      } catch (_) {
+      } catch {
+        // Fallback for older browsers that don't support smooth scrolling options
         targetEl.scrollIntoView(true)
       }
 
