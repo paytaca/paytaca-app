@@ -97,13 +97,6 @@ async function processPoints (url, data) {
 async function getData (url) {
   return await REWARDS_URL
     .get(url)
-    .then(response => { return response.data })
-    .catch(_error => { return null })
-}
-
-async function createData (url) {
-  return await REWARDS_URL
-    .post(url)
     .then(resp => {
       if (resp.status === 200) return resp.data
       else if (resp.status === 404) return {}
@@ -113,6 +106,16 @@ async function createData (url) {
       console.error(error)
       if (error?.message.includes('404')) return {}
       else return null
+    })
+}
+
+async function createData (url) {
+  return await REWARDS_URL
+    .post(url)
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return null
     })
 }
 
