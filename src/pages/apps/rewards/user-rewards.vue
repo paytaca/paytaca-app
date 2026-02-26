@@ -498,7 +498,7 @@ export default {
   },
 
   async mounted () {
-    this.loadData()
+    await this.loadData()
   },
 
   methods: {
@@ -527,6 +527,7 @@ export default {
       // fetch and load data
       let urData = null
       if (this.upId === -1) {
+        // new user; create and update necessary data
         urData = await createUserRewardsData()
         Promise.allSettled([
           await updateUserPromoData({ up: urData.id }),

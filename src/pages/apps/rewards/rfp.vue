@@ -124,13 +124,14 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
+  Promos,
+  PromosBytes,
   convertPoints,
   getRfPromoData,
   createRfPromoData,
   updateUserPromoData,
   getPromoPointsDivisorData,
   updateRfPromoData,
-  Promos,
   getKeyPairFromWalletMnemonic,
   getContractInitialBalance
 } from 'src/utils/engagementhub-utils/rewards'
@@ -143,6 +144,7 @@ import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialo
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+import { ensureKeypair } from 'src/utils/memo-service'
 
 export default {
   name: 'RFPromo',
@@ -162,12 +164,14 @@ export default {
       Promos,
       
       isLoading: false,
-      rfpId: -1,
+      rpId: -1,
       points: 0,
       pointsDivisor: 0,
       redeemablePoints: 10000,
       referralCode: '',
-      rfpContract: null,
+      rpContract: null,
+      pointsError: '',
+      dataError: '',
 
       referralsList: []
     }
@@ -186,68 +190,59 @@ export default {
   },
 
   async mounted () {
-    const vm = this
-
-    vm.isLoading = true
-
-    const pointsDivHeight = vm.$refs.points_div.clientHeight
-    let scrollAreaHeight = document.body.clientHeight - pointsDivHeight - 200
-    if (vm.$q.platform.is.ios) scrollAreaHeight -= 50
-    vm.$refs.referrals_list.$el.setAttribute(
-      'style',
-      `height: ${scrollAreaHeight}px; width: 100vw;`
-    )
-
-    const keyPair = await getKeyPairFromWalletMnemonic()
-    vm.rfpContract = new PromoContract(Promos.RFPROMO, keyPair.pubKey)
-
-    let rfpData = null
-    vm.rfpId = Number(vm.id)
-    if (vm.rfpId > -1) {
-      rfpData = await getRfPromoData(vm.rfpId)
-    } else {
-      // open help dialog
-      vm.$q.dialog({
-        component: HelpDialog,
-        componentProps: { page: Promos.RFPROMO }
-      })
-
-      // create RFPromo entry in engagement-hub
-      rfpData = await createRfPromoData()
-      await updateUserPromoData({ rfp_id: rfpData.id })
-      await updateRfPromoData(rfpData.id, {
-        contract_ct_address: vm.rfpContract.contract.tokenAddress
-      })
-
-      await vm.rfpContract.subscribeAddress()
-      // call API to add BCH balance to newly-created contract
-      await getContractInitialBalance({
-        contract_address: vm.rfpContract.contract.address
-      })
-    }
-
-
-    if (rfpData) {
-      await getPromoPointsDivisorData()
-        .then(data => {
-          vm.pointsDivisor = data.rfp_divisor
-        })
-
-      vm.points = await vm.rfpContract.getTokenBalance()
-      vm.redeemablePoints = rfpData.redeemable_points
-      vm.referralCode = rfpData.referral_code
-      vm.referralsList = rfpData.rfp_referrals.sort((a, b) => {
-        return new Date(b.date_created) - new Date(a.date_created)
-      })
-      vm.pointsDivisor = 4
-    }
-
-    vm.isLoading = false
+    await this.loadData()
   },
 
   methods: {
     getDarkModeClass,
     parseLocaleDate,
+
+    async loadData () {
+      this.isLoading = true
+
+      this.rpId = Number(this.$route.params.id || -1)
+
+      // initialize UR Promo Contract and retrieve points
+      try {
+        const keyPair = await ensureKeypair()
+        this.rpContract = new PromoContract(keyPair.pubkey, PromosBytes.RP)
+        if (this.rpId === -1) await this.rpContract.subscribeAddress()
+        this.points = await this.rpContract.getTokenBalance()
+        // this.animatePointsCounter()
+      } catch (error) {
+        console.error(error)
+        this.pointsError = this.$t('FailedToLoadPoints', 'Unable to load your points at the moment. Please try again later. Rest assured, your points remain safe and intact.')
+      }
+
+      // fetch and load data
+      let rpData = null
+      if (this.rpId === -1) {
+        // TODO: add open help dialog
+        // new user; create and update necessary data
+        rpData = await createRfPromoData()
+        Promise.allSettled([
+          await updateUserPromoData({ rp: rpData.id }),
+          await updateRfPromoData(rpData.id, {
+            contract_ct_address: this.rpContract.contract.tokenAddress
+          })
+        ])
+      } else {
+        rpData = await getRfPromoData(this.rpId)
+      }
+
+      if (rpData && Object.keys(rpData).length > 0) {
+        this.redeemablePoints = rpData.redeemable_points
+        this.referralCode = rpData.referral_code
+        this.referralsList = rpData.rfp_referrals.sort((a, b) => {
+          return new Date(b.date_created) - new Date(a.date_created)
+        })
+      } else {
+        this.dataError = this.$t('FailedToLoadData', 'Unable to load at the moment. Please try again later.')
+      }
+
+      this.isLoading = false
+    },
+
     formatWalletHashDisplay (walletHash) {
       const length = walletHash.length
       const prefix = walletHash.substring(0, 10)
@@ -259,7 +254,7 @@ export default {
         component: ReferralQrDialog,
         componentProps: {
           code: this.referralCode,
-          rfpId: this.rfpId,
+          rpId: this.rpId,
           referralType: 'Friend'
         }
       })
@@ -273,13 +268,13 @@ export default {
           points: vm.points,
           pointsType: Promos.RFPROMO,
           pointsDivisor: vm.pointsDivisor,
-          promoId: vm.rfpId,
+          promoId: vm.rpId,
           address: vm.address,
           redeemablePoints: vm.redeemablePoints
         }
       }).onDismiss(async () => {
         vm.isLoading = true
-        vm.points = await vm.rfpContract.getTokenBalance()
+        vm.points = await vm.rpContract.getTokenBalance()
         vm.isLoading = false
       })
     }
