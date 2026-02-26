@@ -41,30 +41,9 @@ function fiatCurrency () {
   return currency?.symbol
 }
 
-function bchMarketPrice () {
-  if (!fiatCurrency()) return 0
-  return Store.getters['market/getAssetPrice']('bch', fiatCurrency())
-}
-
 // ================================
 // util functions
 // ================================
-
-// TODO remove
-export async function getKeyPairFromWalletMnemonic () {
-  const mnemonic = await getMnemonic(Store.getters['global/getWalletIndex'])
-    .then(mnemonic => {
-      return mnemonic
-    })
-  const rootNode = deriveHdPrivateNodeFromSeed(mnemonic, true)
-  const childNode = deriveHdPath(rootNode, getWallet('bch').derivationPath)
-  const childPub = secp256k1.derivePublicKeyCompressed(childNode.privateKey)
-  const childPriv = childNode.privateKey
-
-  if (typeof childPub === 'string') throw new Error(childPub)
-
-  return { pubKey: childPub, privKey: childPriv }
-}
 
 export async function getWalletTokenAddress () {
   const { generateReceivingAddress, getDerivationPathForWalletType } = await import('src/utils/address-generation-utils.js')
@@ -125,10 +104,15 @@ async function getData (url) {
 async function createData (url) {
   return await REWARDS_URL
     .post(url)
-    .then(response => { return response.data })
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else if (resp.status === 404) return {}
+      else return null
+    })
     .catch(error => {
       console.error(error)
-      return null
+      if (error?.message.includes('404')) return {}
+      else return null
     })
 }
 
@@ -141,23 +125,8 @@ async function updateData (url, data) {
 
 // ========== get functions ==========
 
-export async function getRewardsPageToggle () {
-  return await getData('rewardspagetoggle/')
-}
-
 export async function getUserPromoData () {
-  return await REWARDS_URL
-    .get(`userpromo/${getWalletHash()}/`)
-    .then(resp => {
-      if (resp.status === 200) return resp.data
-      else if (resp.status === 404) return {}
-      else return null
-    })
-    .catch(error => {
-      console.error(error)
-      if (error?.message.includes('404')) return {}
-      else return null
-    })
+  return await getData(`userpromo/${getWalletHash()}/`)
 }
 
 export async function getUserRewardsData (id) {
