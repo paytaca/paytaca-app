@@ -630,7 +630,7 @@ onMounted(async () => {
     await loadHdPrivateKeys(wallet.value?.signers)
     await refreshBalance()
     await loadCashtokenIdentitiesToBalances()
-    await wallet.value?.syncId()
+    await wallet.value?.sync()
     await queryServerForProposals()
   } catch (error) {
     $q.notify({

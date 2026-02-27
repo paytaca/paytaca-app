@@ -2,7 +2,7 @@
     <div class="static-container">
       <div id="app-container" class="sticky-header-container multisig-app text-bow" :class="getDarkModeClass(darkMode)">
         <HeaderNav
-          :title="$t('Import')"
+          :title="$t('ImportProposal', {}, 'Import Proposal')"
           :backnavpath="`/apps/multisig/wallet/${route.params.wallethash}`"
           class="q-px-sm apps-header gift-app-header"
         />
@@ -17,21 +17,22 @@
                   <q-icon class="default-text-color"  name="qr_code" />
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize text-bold">{{ $t('ScanQrCode') }}</div>
-                <div class="text-subtitle-2 text-center text-bow text-bow-muted">{{ $t('ScanPstQRCodeDescription', {}, 'Ask one of your cosigners to show you the transaction QR code then scan it') }}</div>
+                <div class="text-subtitle-2 text-center text-bow text-bow-muted">{{ $t('ScanPstQRCodeDescription', {}, 'Ask one of your cosigners to show you the QR code of the Transaction Proposal then scan it') }}</div>
               </div>
               <div>
                 <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
                   <q-icon class="default-text-color"  name="upload_file" @click="importPsbt"/>
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize text-bold">{{ $t('FromFile') }}</div>
-                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('PstFromFileDescription', {}, 'Browse and import a Partially Signed Transaction File you get from your cosigner') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('PstFromFileDescription', {}, 'Browse and import a Transaction Proposal File you get from your cosigner') }}</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
-                  <q-icon class="default-text-color"  name="upload_file" @click="importPsbt"/>
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" :disable="proposalsFromServer?.length === 0" round >
+                  <q-icon class="default-text-color"  name="mdi-cloud-download-outline" @click="()=> importPsbtFromServer()"/>
+                  <q-badge v-if="proposalsFromServer" floating :color="proposalsFromServer?.length > 0? 'negative': 'grey'">{{ proposalsFromServer.length }}</q-badge>
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize text-bold">{{ $t('FromServer') }}</div>
-                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('PstFromServerDescription', {}, 'Download a Partially Signed Transaction Submitted by a Cosigner from Paytaca\'s Multisig Coordinator Server') }}</div>
+                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('PstFromServerDescription', {}, 'Download a Transaction Proposal from Paytaca\'s Multisig Coordinator Server') }}</div>
               </div>
               <div>
                 <q-btn :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
@@ -53,26 +54,103 @@
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref } from 'vue'
+import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRoute, useRouter } from 'vue-router'
-import { Pst } from 'src/lib/multisig'
-import { useQuasar } from 'quasar'
+import { Pst, MultisigWallet } from 'src/lib/multisig'
+import { useMultisigHelpers } from 'src/composables/multisig/helpers'
+
+import ImportProposalSelectionDialog from 'components/multisig/ImportProposalSelectionDialog'
+
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { 
+  multisigCoordinationServer, 
+  multisigNetworkProvider, 
+  resolveXprvOfXpub,
+  getSignerXPrv, 
+  getAssetTokenIdentity,
+  cashAddressNetworkPrefix,
+  resolveMnemonicOfXpub
+} = useMultisigHelpers()
+
+
 const pstFileElementRef = ref()
 const pstFileModel = ref()  
 const canonicalPsbt = ref(null)
-
+const proposalsFromServer = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
+const wallet = computed(() => {
+  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  if (savedWallet) {
+    return MultisigWallet.importFromObject(savedWallet, {
+      store: $store,
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer,
+      resolveXprvOfXpub,
+      resolveMnemonicOfXpub
+    })
+  }
+  return null
+})
+
+
 const importPsbt = () => {
   pstFileElementRef.value.pickFiles()
+}
+
+const importPsbtFromServer = async () => {
+  if (proposalsFromServer.value?.length > 0) {
+    const decodedProposals = []
+
+    for(const p of proposalsFromServer.value) {
+
+      if (p.proposalFormat && p.proposalFormat !== 'psbt') continue 
+      try {
+        const decoded = Pst.import(p.proposalCombined || p.proposal) 
+        decoded.id = p.id     
+        decodedProposals.push(decoded)
+      } catch (error) {
+        console.log(error)
+        // ignore proposal that can't be decoded
+      }
+    }
+
+    $q.dialog({
+      component: ImportProposalSelectionDialog,
+      componentProps: {
+        darkMode: darkMode.value,
+        proposals: decodedProposals
+      }
+    }).onOk(async (selectedProposal) => {
+      try {
+        selectedProposal.setStore($store)
+        selectedProposal.save()  
+        router.push({ 
+          name: 'app-multisig-wallet-pst-view', 
+          params: { 
+            wallethash: wallet.value.walletHash, 
+            unsignedtransactionhash: selectedProposal.unsignedTransactionHash 
+          } 
+        })
+      } catch (error) {
+        $q.notify({
+          message: $t('ImportSelectedProposalError', {}, 'Error importing proposal'),
+          color: 'negative'
+        })
+      }
+      
+    }).onCancel(() => {
+      // Dialog was closed without action
+    })
+  }
 }
 
 const onUpdatePstFile = (file) => {
@@ -80,16 +158,13 @@ const onUpdatePstFile = (file) => {
     const reader = new FileReader()
     reader.onload = () => {
       const importedPst = Pst.import(reader.result)
-      console.log('IMPORTED PST', importedPst)
       
       canonicalPsbt.value = 
         $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
-      console.log('Canocical', canonicalPsbt.value)
-
+      
       try {
         if (canonicalPsbt.value) {
           const canonicalPst = Pst.import(canonicalPsbt.value)
-          console.log('canonicalPst', canonicalPst)
           canonicalPst.combine([importedPst])
           canonicalPst.setStore($store)
           canonicalPst.save()
@@ -122,10 +197,18 @@ const onUpdatePstFile = (file) => {
   }
 }
 
-onMounted(() => {
-  if (route.params.unsignedTransactionHash) { 
-    canonicalPsbt.value = 
-      $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
+onMounted(async () => {
+  // if (route.params.unsignedTransactionHash && route.params.unsignedTransactionHash !== 'unknown') { 
+  //   canonicalPsbt.value = 
+  //     $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
+  // }
+  // if (!canonicalPsbt.value) {
+
+  // }
+
+  if (wallet.value) {
+    proposalsFromServer.value = await wallet.value.fetchProposals('pending')
+
   }
 })
 

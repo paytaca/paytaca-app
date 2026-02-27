@@ -2,11 +2,11 @@
   <q-dialog ref="dialogRef" full-width full-height maximized transition-show="slide-up" transition-hide="slide-down">
     <q-card class="q-dialog-plugin pt-card row justify-center text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
-        <div class="text-grad text-center text-h6">{{$t('ShareTransactionProposal')}}</div>
+        <div class="text-grad text-center text-h6">{{$t('ImportTransactionProposal')}}</div>
         <div class="text-caption text-center text-bow-muted">
             <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
               <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>
-              {{ $t('ShareTransactionProposalDescription') }}
+              {{ $t('ImportTransactionProposalDescription') }}
             </q-banner>
           </div>
           <q-list bordered separator class="pt-card br-15">
