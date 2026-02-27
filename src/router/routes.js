@@ -393,6 +393,11 @@ const routes = [
             name: 'stacked-cards',
             component: () => import('src/pages/apps/card/stackedCards.vue')
           },
+          {
+            path: 'card-details',
+            name: 'card-details',
+            component: () => import('src/pages/apps/card/cardDetails.vue')
+          }
         ]
       }
     ]
