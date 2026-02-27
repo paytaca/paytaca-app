@@ -32,6 +32,9 @@
             class="stacked-card shadow-5"
             :class="{ 'swipe-hint': index === displayedCards.length -1 }"
             :style="getCardStyle(index)"
+            v-touch-pan.horizontal.prevent.mouse="index === (displayedCards.length - 1) ? handleSwipe : null"
+            @keyup.right="index === (displayedCards.length - 1) ? goToCardDetails() : null"
+            tabindex="0"
           >
             <div class="row justify-between items-start q-px-md q-pt-sm">
               <div class="text-weight bold text-black text-subtitle2">{{ card.raw?.alias }}</div>
@@ -76,6 +79,12 @@ export default {
     MultiWalletDropdown,
   },
 
+  data () {
+    return {
+      dragX: 0,
+    }
+  },
+
   computed: {
     displayedCards () {
       return this.subCards.slice(0,3)
@@ -93,9 +102,9 @@ export default {
 
   methods: {
     getCardStyle (index) {
-      // pushes each card down
-      // last card will be at the bottom of the 'peeking' stack
-      const offset = index * 40
+      const isFrontCard = index === (this.displayedCards.length -1)
+      const offset = index * 45
+      
       return {
         top: `${offset}px`,
         zIndex: index + 1,
@@ -105,8 +114,42 @@ export default {
         border: '2px solid black',
         borderRadius: '15px',
         height: '180px',
+        // apply horizontal drag only to the front card
+        transform: isFrontCard ? `translateX(${this.dragX}px)` : 'translateX(0)',
+        // disable transitions while dragging so it feels responsive,
+        // but enable it for the 'snap back' or 'slide off'
+        transition: this.dragX === 0 || this.dragX === 500 ? 'transform 0.3s ease' : 'none',
         filter: `brightness(${1-index * 0.1})`
       }
+    },
+
+    handleSwipe (details) {
+      // while the user is dragging
+      if (details.isFirst !== true && details.isFinal !== true) {
+        this.dragX = details.offset.x > 0 ? details.offset.x : 0
+      }
+
+      // when the user lets go
+      if (details.isFinal === true) {
+        if (this.dragX > 120) {
+          // successful swipe -- slide the card off the screen then navigate
+          this.dragX = 500
+          setTimeout(() => {
+            this.$router.push({ name: 'card-details' })
+          }, 200)
+        }
+        else {
+          // failed swipe
+          this.dragX = 0
+        }
+      }
+
+      
+    },
+
+    goToCardDetails () {
+      // navigate to the individual card page
+      this.$router.push({ name: 'card-details' })
     }
   }
 }
