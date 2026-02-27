@@ -193,7 +193,7 @@
                       v-if="item.has_transacted"
                       :complete="true"
                       :dark-mode-class="getDarkModeClass(darkMode)"
-                      :points="5"
+                      :points="10"
                     />
                   </div>
                 </q-card-section>
