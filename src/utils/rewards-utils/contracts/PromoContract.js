@@ -1,12 +1,11 @@
 import { ElectrumNetworkProvider, Network, Contract } from "cashscript"
 import { LIFT_TOKEN_CATEGORY } from "src/utils/subscription-utils"
 
-import Watchtower from "watchtower-cash-js"
+import axios from "axios"
 
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
-const watchtower = new Watchtower(false)
 const liftTokenDecimals = 2
 
 /**
@@ -41,7 +40,9 @@ export default class PromoContract {
    * to watch for transactions to and from the address.
    */
   async subscribeAddress () {
-    await watchtower.BCH._api.post('subscription/', { address: this.contract.address })
+    try {
+      await axios.post("https://watchtower.cash/api/subscription/", { address: this.contract.address });
+    } catch {}
   }
 
   /**
