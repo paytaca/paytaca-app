@@ -265,7 +265,7 @@ import {
 } from 'src/utils/address-generation-utils.js'
 import {
   convertPoints,
-  getKeyPairFromWalletMnemonic,
+  // getKeyPairFromWalletMnemonic,
   getWalletTokenAddress,
   processPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
@@ -329,9 +329,9 @@ export default {
   },
 
   async mounted () {
-    this.computeBalance()
-    const keyPair = await getKeyPairFromWalletMnemonic()
-    this.contract = new PromoContract(this.pointsType, keyPair.pubKey)
+    // this.computeBalance()
+    // const keyPair = await getKeyPairFromWalletMnemonic()
+    // this.contract = new PromoContract(this.pointsType, keyPair.pubKey)
   },
 
   methods: {
@@ -420,7 +420,7 @@ export default {
     async redeemPoints () {
       this.isSending = true
 
-      const keyPair = await getKeyPairFromWalletMnemonic()
+      // const keyPair = await getKeyPairFromWalletMnemonic()
       if (this.redeemTab === 'swap') {
         const txId = await this.contract.redeemPromoTokenToBch(
           Number(this.pointsToRedeem), getWallet('bch').walletHash,

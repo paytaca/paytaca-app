@@ -1,5 +1,5 @@
 import { ElectrumNetworkProvider, Network, Contract } from "cashscript"
-import { LIFT_TOKEN_CATEGORY } from "src/utils/subscription-utils"
+import { PROMO_TOKEN_CATEGORY } from "src/utils/engagementhub-utils/rewards"
 
 import axios from "axios"
 
@@ -31,7 +31,7 @@ export default class PromoContract {
    */
   initializeContract (userPubKey) {
     const provider = new ElectrumNetworkProvider(Network.MAINNET)
-    const contractParams = [ADMIN_PUBKEY, userPubKey, LIFT_TOKEN_CATEGORY, this.promo]
+    const contractParams = [ADMIN_PUBKEY, userPubKey, PROMO_TOKEN_CATEGORY, this.promo]
     this.contract = new Contract(PromoContractArtifact, contractParams, { provider })
   }
 
@@ -51,7 +51,7 @@ export default class PromoContract {
    */
   async getTokenBalance () {
     const tokenUtxos = await this.contract.getUtxos()
-      .then(utxos => utxos.filter(r => r.token?.category === LIFT_TOKEN_CATEGORY)
+      .then(utxos => utxos.filter(r => r.token?.category === PROMO_TOKEN_CATEGORY)
     )
     if (tokenUtxos.length === 0) return 0
     return tokenUtxos
