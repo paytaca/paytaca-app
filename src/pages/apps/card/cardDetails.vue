@@ -20,17 +20,16 @@
         <MultiWalletDropdown></MultiWalletDropdown>
       </div>
 
-      <q-page padding class="bg-grey-2">
+      <q-page padding class="primary">
         <div class="row items-center q-mb-lg">
-          <q-btn flat round icon="arrow_back" @click="$router.back()" />
-          <div class="text-h6 q-ml-md">Card Settings</div>
+          <div class="text-h6 q-ml-md">{{activeCard?.raw?.alias}} Details</div>
         </div>
         
         <q-card flat bordered class="q-pa-md bg-white shadow-2" style="border-radius: 20px;">
           <div class="column items-center q-py-lg">
             <q-icon name="credit_card" size="100px" color="primary" />
-            <div class="text-h5 text-weight-bold q-mt-md">{{ card.raw?.alias }}</div>
-            <div class="text-subtitle1 text-grey-7">{{ card.balance }}</div>
+            <div class="text-h5 text-weight-bold q-mt-md text-grey-7">{{ activeCard?.raw?.alias || 'no alias' }}</div>
+            <div class="text-subtitle1 text-grey-7">{{ activeCard?.balance }}</div>
           </div>
 
           <q-separator q-my-md />
@@ -38,12 +37,12 @@
           <q-list>
             <q-item clickable v-ripple>
               <q-item-section avatar><q-icon name="edit" /></q-item-section>
-              <q-item-section>Rename Card</q-item-section>
+              <q-item-section class="text-grey-7">Rename Card</q-item-section>
             </q-item>
 
             <q-item clickable v-ripple>
               <q-item-section><q-icon name="lock" /></q-item-section>
-              <q-item-section>Freeze Card</q-item-section>
+              <q-item-section class="text-grey-7">Freeze Card</q-item-section>
             </q-item>
 
             <q-item clickable v-ripple class="text-negative">
@@ -60,4 +59,44 @@
 <script>
 import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+
+export default {
+  mixins: [createCardLogic],
+ 
+  data () {
+    return {
+      activeCard: null,
+    }
+  },
+
+  mounted () {
+    this.loadSpecificCard()
+  },
+
+  methods: {
+    loadSpecificCard () {
+      const cardId = this.$route.query.id
+      // get all cards from localStorage
+      const savedCards = localStorage.getItem('mock_subcards')
+
+      if (savedCards) {
+        const allCards = JSON.parse(savedCards)
+        // find the specifc card
+        const found = allCards.find(c => String(c.id) === String(cardId))
+        
+        if (found) {
+          this.activeCard = found
+        }
+        else {
+          console.error("Card not found in storage");
+          this.$router.push({ name: 'stacked-cards' });
+        }
+      }
+
+      
+      
+    }
+  }
+
+}
 </script>
