@@ -287,7 +287,7 @@ const {
 } = useMultisigHelpers()
 const $q = useQuasar()
 const $store = useStore()
-const { registerInterval } = useInterval()
+const { registerInterval, removeInterval } = useInterval()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
@@ -652,7 +652,14 @@ onMounted(async () => {
   await loadPstInputsTransactionData()
   if (pst.value.id) {
     await pst.value.fetchStatus({ deleteIfBroadcasted: true })
-    registerInterval(() => pst.value.fetchAndMergeSignatures(), 5000)
+    registerInterval(() => {
+      const signingProgress = pst.value.getSigningProgress()
+      if (signingProgress.signingProgress !== 'fully-signed') {
+        pst.value.fetchAndMergeSignatures()
+        return 
+      }
+      removeInterval()
+    }, 5000)
   }
 })
 

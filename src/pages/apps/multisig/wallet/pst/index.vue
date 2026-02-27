@@ -34,7 +34,7 @@
             >
               <q-card-section class="q-pa-md">
                 <div class="flex items-center q-mb-sm">
-                  <q-icon name="info" color="grad" size="md" class="q-mr-sm"></q-icon>
+                  <q-icon name="receipt" color="grad" size="md" class="q-mr-sm"></q-icon>
                   <div class="text-weight-bold text-h6">
                     <span>{{ $t('PurposeLabel') }}: {{ pst.purpose }}</span>
                   </div>
