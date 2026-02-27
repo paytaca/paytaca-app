@@ -14,14 +14,14 @@
       </div>
 
       <div class="text-subtitle1 q-mb-sm">
-        {{ $t('ReferralQRDescription') }}
+        {{ $t('ReferralQRDescription', 'Have new users scan this QR code during wallet creation.') }}
       </div>
 
       <div>
         <qr-code
           name="rfp-qr"
           border-width="3px"
-          border-color="#ed5f59"
+          border-color="var(--q-primary)"
           :qr-id="0"
           :text="`${promoType}-${code}-${promoId}`"
           :size="200"
