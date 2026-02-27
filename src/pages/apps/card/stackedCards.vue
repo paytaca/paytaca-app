@@ -81,7 +81,8 @@ export default {
 
   data () {
     return {
-      dragX: 0,
+      swipeX: 0,
+      isPanning: false,
     }
   },
 
@@ -104,43 +105,48 @@ export default {
     getCardStyle (index) {
       const isFrontCard = index === (this.displayedCards.length -1)
       const offset = index * 45
-      
+      const translateX = isFrontCard ? this.swipeX : 0 
+
       return {
         top: `${offset}px`,
         zIndex: index + 1,
         position: 'absolute',
         width: '90%',
+        left: '5%',
         background: 'white',
         border: '2px solid black',
         borderRadius: '15px',
         height: '180px',
-        // apply horizontal drag only to the front card
-        transform: isFrontCard ? `translateX(${this.dragX}px)` : 'translateX(0)',
-        // disable transitions while dragging so it feels responsive,
-        // but enable it for the 'snap back' or 'slide off'
-        transition: this.dragX === 0 || this.dragX === 500 ? 'transform 0.3s ease' : 'none',
+        transform: `translateX(${translateX}px)`,
+        
+        transition: this.isPanning
+          ? 'none'
+          : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+
         filter: `brightness(${1-index * 0.1})`
       }
     },
 
     handleSwipe (details) {
-      // while the user is dragging
-      if (details.isFirst !== true && details.isFinal !== true) {
-        this.dragX = details.offset.x > 0 ? details.offset.x : 0
+      if (details.isFirst) {
+        this.isPanning = true
       }
 
-      // when the user lets go
-      if (details.isFinal === true) {
-        if (this.dragX > 120) {
-          // successful swipe -- slide the card off the screen then navigate
-          this.dragX = 500
-          setTimeout(() => {
-            this.$router.push({ name: 'card-details' })
-          }, 200)
+      // follow finger/cursor
+      if (this.isPanning && details.offset.x > 0) {
+        this.swipeX = details.offset.x
+      }
+
+      if (details.isFinal) {
+        this.isPanning = false
+
+        // if swipe distance is enough, navigate
+        if (this.swipeX > 150) {
+          this.goToCardDetails()
         }
         else {
-          // failed swipe
-          this.dragX = 0
+          // brings card back to initial position
+          this.swipeX = 0
         }
       }
 
@@ -148,8 +154,11 @@ export default {
     },
 
     goToCardDetails () {
-      // navigate to the individual card page
-      this.$router.push({ name: 'card-details' })
+      const frontCard = this.displayedCards[this.displayedCards.length -1]
+
+      if (frontCard && frontCard.id) {
+        this.$router.push({ name: 'card-details', query: {id: frontCard.id} })
+      }
     }
   }
 }
