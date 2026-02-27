@@ -111,10 +111,9 @@ const importPsbtFromServer = async () => {
     const decodedProposals = []
 
     for(const p of proposalsFromServer.value) {
-
       if (p.proposalFormat && p.proposalFormat !== 'psbt') continue 
       try {
-        const decoded = Pst.import(p.proposalCombined || p.proposal) 
+        const decoded = Pst.import(p.combinedPsbt || p.proposal) 
         decoded.id = p.id     
         decodedProposals.push(decoded)
       } catch (error) {
