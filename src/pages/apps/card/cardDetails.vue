@@ -20,37 +20,50 @@
         <MultiWalletDropdown></MultiWalletDropdown>
       </div>
 
-      <q-page padding class="primary">
-        <div class="row items-center q-mb-lg">
-          <div class="text-h6 q-ml-md">{{activeCard?.raw?.alias}} Details</div>
-        </div>
-        
-        <q-card flat bordered class="q-pa-md bg-white shadow-2" style="border-radius: 20px;">
-          <div class="column items-center q-py-lg">
-            <q-icon name="credit_card" size="100px" color="primary" />
-            <div class="text-h5 text-weight-bold q-mt-md text-grey-7">{{ activeCard?.raw?.alias || 'no alias' }}</div>
-            <div class="text-subtitle1 text-grey-7">{{ activeCard?.balance }}</div>
+      <q-page v-if="activeCard" class="q-px-md">
+        <div class="column items-center q-mb-lg">
+          <div class="row items-center q-mb-sm full-width q-gutter-sm">
+            <div class="text-subtitle1 q-mr-sm">{{activeCard?.raw?.alias}}</div>
+            <q-badge rounded color="green" size="xs" />
+            <q-btn flat dense icon="edit" size="sm"/>
           </div>
 
-          <q-separator q-my-md />
+          <div class="virtual-card-container flex flex-center shadow-2">
+            <div class="text-grey-6">Virtual Card UI / Ad Content</div>
+          </div>
 
-          <q-list>
-            <q-item clickable v-ripple>
-              <q-item-section avatar><q-icon name="edit" /></q-item-section>
-              <q-item-section class="text-grey-7">Rename Card</q-item-section>
-            </q-item>
+          <div class="row justify-center full-width q-mt-sm">
+            <div class="row items-center">
+              <div class="q-mr-sm">{{ activeCard.balance }} BCH</div>
+              <q-btn outline dense label="Cash In" size="sm" />
+            </div>
+          </div>
+        </div>
 
-            <q-item clickable v-ripple>
-              <q-item-section><q-icon name="lock" /></q-item-section>
-              <q-item-section class="text-grey-7">Freeze Card</q-item-section>
-            </q-item>
+        <div class="row q-gutter-q-sm justify-between q-mb-md">
+          <q-btn 
+            v-for="tab in ['Transactions', 'Manage Merchants', 'Card Replacement', 'Other Settings']"
+            :key="tab"
+            outline
+            square
+            :label="tab"
+            :color="activeTab === tab ? 'primary' : 'white'"
+            :class="{ 'bg-blue-1': activeTab === tab }"
+            class="text-caption q-px-sm"
+            @click="activeTab = tab"
+          />
+        </div>
 
-            <q-item clickable v-ripple class="text-negative">
-              <q-item-section><q-icon name="delete" color="negative" /></q-item-section>
-              <q-item-section>Remove from Wallet</q-item-section>
-            </q-item>
-          </q-list>
-        </q-card>
+        <div class="content-box flex flex-center">
+          <div class="text-center text-grey-7">
+            Content varies based on clicked tab<br>
+            <strong>{{ activeTab }}</strong>
+          </div>
+        </div>
+      </q-page>
+
+      <q-page v-else class flex flex-center>
+        <q-spinner-dots color="primary" size="40px" />
       </q-page>
     </q-page-container>
   </q-layout>
@@ -66,6 +79,7 @@ export default {
   data () {
     return {
       activeCard: null,
+      activeTab: null,
     }
   },
 
@@ -100,3 +114,8 @@ export default {
 
 }
 </script>
+
+
+<style lang="scss" scoped>
+  @import "./createCard.scss"
+</style>

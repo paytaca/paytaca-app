@@ -229,3 +229,27 @@ animation: float 6s ease-in-out infinite;
 	animation: swipeRightHint 2.5s ease-in-out 0.5s 3;
 }
 
+.virtual-card-container {
+	width: 100%;
+	max-width: 320px;
+	height: 180px;
+	border: 2px solid black;
+	border-radius: 15px;
+	background: #f0f0f0;
+}
+
+.content-box {
+	width: 100%;
+	min-height: 300px;
+	border: 2px solid black;
+	border-radius: 15px;
+	padding: 20px;
+	background: white;
+}
+
+.q-btn--outline {
+	border: 1.5px solid black ! important;
+	.q-btn-content {
+		color: black;
+	}
+}
