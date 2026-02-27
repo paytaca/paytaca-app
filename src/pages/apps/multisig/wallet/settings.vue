@@ -236,13 +236,13 @@ const openCreateServerIdentityDialog = (signer) => {
   const firstLineIndentStyle = 'text-indent: 2em; margin-top: 0;text-align: justify;';
   const messageHtml = `
     <p style="${firstLineIndentStyle}">
-      ${$t('CreateMultisigServerIdentityConfirmation', {}, 'This action will create a multisig server identity for this wallet.')}
+      ${$t('CreateMultisigServerIdentityConfirmation', {}, 'This action will create a Server-Identity for this signer.')}
     </p>
     <p style="${firstLineIndentStyle}">
-      ${$t('WhatIsAServerIdentity', {}, 'The multisig Server-Identity contains the name, a public key derived from this wallet using a different derivation path from the wallet that holds your funds. This is used when interacting with Paytaca\'s multisig coordination server.')}
+      ${$t('WhatIsAServerIdentity', {}, 'The multisig coordination Server-Identity contains the name, a public key derived from this wallet using a different derivation path from the wallet that holds your funds. This is used when interacting with Paytaca\'s Multisig Coordination Server.')}
     </p>
     <p style="${firstLineIndentStyle}">
-      ${$t('NoPrivateKeyIsUploadedGuarantee', {}, 'This action is safe, as no private key is uploaded to the server.')}
+      ${$t('NoPrivateKeyIsUploadedGuarantee', {}, 'This action is considered safe, as no private key is uploaded to the server.')}
     </p>
     <p style="${firstLineIndentStyle}">
       ${$t('DoYouWantToProceed', {}, 'Do you want to proceed?')}

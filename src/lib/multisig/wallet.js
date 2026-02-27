@@ -1461,11 +1461,11 @@ async generateCosignerAuthCredentials(xpub) {
   return null
 }
 
-async syncId () {
+async sync() {
   try {
     if (!this.options?.coordinationServer) return
-    const response = 
-      await this.options?.coordinationServer?.getWallet({identifier: this.generateBsmsDescriptorId()})
+    const response =
+      await this.options?.coordinationServer?.getWallet({ identifier: this.generateBsmsDescriptorId() })
     this.id = response?.id
     this.save()
   } catch (error) {
