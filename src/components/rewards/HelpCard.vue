@@ -229,7 +229,7 @@ export default {
           {
             id: '7',
             isCentered: true,
-            icon: 'stars',
+            icon: 'local_activity',
             titleKey: 'RewardsHelpHome71',
             titleDefault: 'Points Conversion Rate',
             content: [
@@ -267,12 +267,12 @@ export default {
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 0,
-            icon: 'redeem',
+            icon: 'local_activity',
             titleKey: 'RewardsHelpUR21',
             titleDefault: 'User Reward Points',
             content: [
-              { key: 'RewardsHelpUR22', default: 'Accumulated points are displayed here. To redeem them, click the Redeem Points button.' },
-              { key: 'RewardsHelpUR23', default: "Redeem them soon to make the most of your rewards. Don't let your hard-earned benefits wait too long; treat yourself whenever you're ready!" }
+              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here. To redeem them, tap the Redeem Points button.' },
+              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points soon to make the most of your rewards.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -289,9 +289,9 @@ export default {
           {
             id: '3',
             isCentered: true,
-            icon: 'redeem',
+            icon: 'local_activity',
             titleKey: 'RewardsHelpUR31',
-            titleDefault: 'Earning User Reward Points',
+            titleDefault: 'Earning UR Points',
             content: [
               { key: 'RewardsHelpUR32', default: 'There are two ways to earn points, which are awarded only after successfully completing the specified actions.' },
             ],
@@ -346,6 +346,135 @@ export default {
             primaryBtn: 'Done',
             backStep: '4',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            onNext: () => this.close()
+          },
+        ],
+        rfp: [
+          {
+            id: '1',
+            isCentered: true,
+            icon: 'diversity_3',
+            titleKey: 'RewardsHelpRFP11',
+            titleDefault: 'Welcome to the Refer-a-friend Promo Page',
+            content: [
+              { key: 'RewardsHelpRFP12', default: 'The Refer-a-friend Promo (RFP) program is built to encourage users to invite friends to use the Paytaca app and explore the Paytaca ecosystem.' },
+            ],
+            hasBack: false,
+            primaryBtn: 'Next',
+            nextStep: '2',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 0
+            }
+          },
+          {
+            id: '2',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 0,
+            icon: 'local_activity',
+            titleKey: 'RewardsHelpRFP21',
+            titleDefault: 'Refer-a-friend Promo Points',
+            content: [
+              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here. To redeem them, tap the Redeem Points button.' },
+              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points soon to make the most of your rewards.' }
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '3',
+            backStep: '1',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 0
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 1
+            }
+          },
+          {
+            id: '3',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 1,
+            icon: 'hourglass_bottom',
+            titleKey: 'RewardsHelpRFP31',
+            titleDefault: 'RFP Points Limit',
+            content: [
+              { key: 'RewardsHelpRFP32', default: "You can only redeen a certain number of points each month. But don't worry; the limit resets at the start of each month." },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '4',
+            backStep: '2',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 1
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 2
+            }
+          },
+          {
+            id: '4',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 2,
+            icon: 'qr_code_scanner',
+            titleKey: 'RewardsHelpRFP41',
+            titleDefault: 'Referral Code',
+            content: [
+              { key: 'RewardsHelpRFP42', default: 'Tap the button to show your referral code QR, and have your referrals scan it to earn points.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '5',
+            backStep: '3',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 2
+            },
+            onNext: () => { this.isHighlighting = false }
+          },
+          {
+            id: '5',
+            isCentered: true,
+            icon: 'local_activity',
+            titleKey: 'RewardsHelpRFP51',
+            titleDefault: 'Earning RFP Points',
+            content: [
+              { key: 'RewardsHelpRFP52', default: 'You will earn points once your referrals successfully set up their wallet and send their first transaction.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '6',
+            backStep: '4',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = false
+              this.highlightIndex = 3
+            }
+          },
+          {
+            id: '6',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 3,
+            icon: 'group',
+            titleKey: 'RewardsHelpRFP61',
+            titleDefault: 'Referral Status',
+            content: [
+              { key: 'RewardsHelpRFP62', default: 'See the status of your referrals here and keep tabs on your successful ones.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Done',
+            backStep: '5',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 3
+            },
             onNext: () => this.close()
           },
         ]

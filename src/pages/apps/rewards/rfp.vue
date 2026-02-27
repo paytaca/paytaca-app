@@ -66,39 +66,41 @@
             </div>
 
             <!-- Redeemable Points Badge and Progress -->
-            <div class="q-mb-md">
-              <q-badge
-                class="q-px-md q-py-xs text-subtitle2"
-                :color="darkMode ? 'deep-purple-4' : 'deep-purple-6'"
-                text-color="white"
-              >
-                <q-icon name="local_activity" size="16px" class="q-mr-xs" />
-                {{ $t('RFPRedeemable', { redeemedPoints: getRemainingRedeemable }, `${getRemainingRedeemable} points redeemable this month`) }}
-              </q-badge>
-            </div>
-
-            <!-- Progress Bar for Redeemable Points -->
-            <div class="q-mx-auto q-mb-lg" style="max-width: 280px;">
-              <div class="row justify-between text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                <span>{{ $t('MonthlyLimit', 'Monthly limit') }}</span>
-                <span>
-                  {{ $t(
-                      'PercentageUsed',
-                      { 
-                        percent: Math.round(redeemedPoints / MAX_REDEEMABLE_RFP * 100),
-                        points: redeemedPoints
-                      },
-                      `${Math.round(redeemedPoints / MAX_REDEEMABLE_RFP * 100)}% (${redeemedPoints} points) used`
-                    ) }}
-                </span>
+            <div class="card-help-highlight">
+              <div class="q-mb-md">
+                <q-badge
+                  class="q-px-md q-py-xs text-subtitle2"
+                  :color="darkMode ? 'deep-purple-4' : 'deep-purple-6'"
+                  text-color="white"
+                >
+                  <q-icon name="local_activity" size="16px" class="q-mr-xs" />
+                  {{ $t('RFPRedeemable', { redeemedPoints: getRemainingRedeemable }, `${getRemainingRedeemable} points redeemable this month`) }}
+                </q-badge>
               </div>
-              <q-linear-progress
-                :value="redeemedPoints / MAX_REDEEMABLE_RFP"
-                color="primary"
-                class="rounded-borders"
-                size="8px"
-                track-color="purple-6"
-              />
+  
+              <!-- Progress Bar for Redeemable Points -->
+              <div class="q-mx-auto q-mb-lg" style="max-width: 280px;">
+                <div class="row justify-between text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  <span>{{ $t('MonthlyLimit', 'Monthly limit') }}</span>
+                  <span>
+                    {{ $t(
+                        'PercentageUsed',
+                        { 
+                          percent: Math.round(redeemedPoints / MAX_REDEEMABLE_RFP * 100),
+                          points: redeemedPoints
+                        },
+                        `${Math.round(redeemedPoints / MAX_REDEEMABLE_RFP * 100)}% (${redeemedPoints} points) used`
+                      ) }}
+                  </span>
+                </div>
+                <q-linear-progress
+                  :value="redeemedPoints / MAX_REDEEMABLE_RFP"
+                  color="primary"
+                  class="rounded-borders"
+                  size="8px"
+                  track-color="purple-6"
+                />
+              </div>
             </div>
 
             <q-btn
@@ -115,7 +117,7 @@
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width referral-btn"
+              class="button button-text-primary full-width referral-btn card-help-highlight"
               :label="$t('ShowReferralQR', 'Show Referral QR')"
               @click="openReferralQrDialog"
             />
@@ -332,7 +334,9 @@ export default {
       // fetch and load data
       let rpData = null
       if (this.rpId === -1) {
-        // TODO: add open help dialog
+        // open help dialog
+        this.isHelpActive = true
+
         // new user; create and update necessary data
         rpData = await createRfPromoData()
         Promise.allSettled([
