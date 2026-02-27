@@ -186,6 +186,15 @@ animation: float 6s ease-in-out infinite;
 	&:hover {
 		transform: translateY(-10px); // pop up effect on hover
 	}
+
+	// for swiping card events
+	user-select: none; // prevents the cursor from turning into a text-selector
+	touch-action: none; // prevents the browser from handled the drag
+	cursor: grab; // visual feedback that the object is movable
+	&:active {
+		cursor: grabbing;
+	}
+
 }
 
 .front-wallet-card {
@@ -207,16 +216,16 @@ animation: float 6s ease-in-out infinite;
 	flex-direction: column;
 	align-items: center;
 }
-
+ 
 // The swipe right hint animation
 @keyframes swipeRightHint {
 	0% { transform: translateX(0); }
-	30% { transform: translateX(50px); }
-	60% { transform: translateX(50px); }
+	40% { transform: translateX(60px); }
+	70% { transform: translateX(60px); }
 	100% { transform: translateX(0); }
 }
 
 .swipe-hint {
-	animation: swipeRightHint 1.5s ease-in-out 0.5s 5;
+	animation: swipeRightHint 2.5s ease-in-out 0.5s 5;
 }
 
