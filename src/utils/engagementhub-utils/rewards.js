@@ -13,6 +13,8 @@ import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 
+export const MAX_REDEEMABLE_RFP = 10000
+
 export const Promos = {
   USERREWARDS: 'ur',
   RFPROMO: 'rfp' //,
