@@ -129,12 +129,13 @@ export const SIGNING_PROGRESS = {
   INCONSISTENT: 'inconsistent'
 }
 
-export const BROADCAST_STATUS = {
+export const STATUS = {
   PENDING: 'pending',
   BROADCASTED: 'broadcasted',
   CONFLICTED: 'conflicted',
   MEMPOOL: 'mempool',
-  CONFIRMED: 'confirmed'
+  CONFIRMED: 'confirmed',
+  DELETED: 'deleted'
 }
 
 /**
@@ -937,11 +938,10 @@ export class Pst {
     const status = await this.options?.coordinationServer?.getProposalStatus({ 
       unsignedTransactionHash: this.unsignedTransactionHash 
     })
-
     if (
-      status.broadcast_status === BROADCAST_STATUS.BROADCASTED || 
-      status.broadcast_status === BROADCAST_STATUS.MEMPOOL || 
-      status.broadcast_status === BROADCAST_STATUS.CONFIRMED
+      status.status === STATUS.BROADCASTED || 
+      status.status === STATUS.MEMPOOL || 
+      status.status === STATUS.CONFIRMED
     )
     if(deleteIfBroadcasted) {
       return await this.delete()
@@ -1027,12 +1027,11 @@ export class Pst {
   async uploadSignerPsbt(masterFingerprint) {
     if (!this.options.coordinationServer) return 
     const psbt = this.getSignerPsbt(masterFingerprint)
-    const response = await this.options.coordinationServer.submitPartialSignature({
-      payload: psbt,
+    const response = await this.options.coordinationServer.submitPsbt({
+      content: psbt,
       proposalUnsignedTransactionHash: this.unsignedTransactionHash
     })
-
-    console.log('response', response)
+    return response?.status
   }
 
   /**
@@ -1183,6 +1182,8 @@ export class Pst {
     const data = {
       origin: this.origin,
       purpose: this.purpose,
+      creator: this.creator,
+      network: this.network,
       unsignedTransactionHex: this.unsignedTransactionHex,
       inputs: this.inputs,
       outputs: this.outputs
@@ -1285,12 +1286,13 @@ export class Pst {
   }
 
 
-  async delete({ sync = false } = {}) {
+  async delete() {
     if (!this.options?.store) return
     this.options.store.commit('multisig/deletePsbt', this.unsignedTransactionHash) 
     if (this.id) {
       await this.options?.coordinationServer?.deleteProposal({
         id: this.id,
+        walletId: this.wallet.id,
         authCredentialsGenerator: this.wallet
       })
     }
@@ -1324,6 +1326,14 @@ export class Pst {
     const response = 
       await this.options?.coordinationServer?.getProposalByUnsignedTransactionHash(this.unsignedTransactionHash)
     this.id = response?.id
+  }
+
+  async fetchCoordinatorInfo() {
+    if (!this.id || !this.options?.coordinationServer) return
+    const response = await this.options?.coordinationServer?.getProposalCoordinator({
+      unsignedTransactionHash: this.unsignedTransactionHash
+    })
+    this.coordinatorInfo = response?.coordinator
   }
 
   /**
