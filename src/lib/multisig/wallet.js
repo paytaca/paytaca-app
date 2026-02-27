@@ -1150,11 +1150,6 @@ export class MultisigWallet {
       .setStore(options?.store)
       .setProvider(options?.provider)
       .setCoordinationServer(options?.coordinationServer)
-    
-    if (this.isOnline()) {
-      await pst.upload()
-    }
-    
     return pst 
   }
 
