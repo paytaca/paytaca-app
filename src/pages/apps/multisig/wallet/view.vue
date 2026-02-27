@@ -26,7 +26,7 @@
                   <q-card-section class="row items-center justify-between">
                     <div class="flex justify-start items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                      <span class="text-h5 text-bold">{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : "..." }}</span>
+                      <span class="text-h5 text-bold">{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : 0 }}</span>
                       <q-btn 
                         @click="refreshBalance"
                         :icon="!balancesRefreshing? 'refresh': ''"
@@ -320,6 +320,7 @@ const showWalletDepositDialog = () => {
     if (payload?.addressIndex) {
       wallet.value.issueDepositAddress(payload.addressIndex)
     }
+    refreshBalance()
   })
 }
 
@@ -342,7 +343,7 @@ const showProposalsImportSelectionDialog = () => {
 
     if (p.proposalFormat && p.proposalFormat !== 'psbt') continue 
     try {
-      const decoded = Pst.import(p.proposalCombined || p.proposal) 
+      const decoded = Pst.import(p.combinedPsbt || p.proposal) 
       decoded.id = p.id     
       decodedProposals.push(decoded)
     } catch (error) {
@@ -550,7 +551,6 @@ const refreshBalance = async () => {
   try {
     balancesRefreshing.value = true
     balances.value = await wallet.value.getWalletBalances()
-    
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
