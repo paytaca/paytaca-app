@@ -23,7 +23,7 @@
           border-width="3px"
           border-color="#ed5f59"
           :qr-id="0"
-          :text="`rfp-${code}-${rfpId}`"
+          :text="`${promoType}-${code}-${promoId}`"
           :size="200"
         />
       </div>
@@ -39,7 +39,8 @@ export default {
 
   props: {
     code: { type: String, default: '' },
-    rfpId: { type: Number, default: -1 },
+    promoId: { type: Number, default: -1 },
+    promoType: { type: String, default: '' },
     referralType: { type: String, default: '' }
   },
 

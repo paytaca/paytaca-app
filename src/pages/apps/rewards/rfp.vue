@@ -395,28 +395,27 @@ export default {
         component: ReferralQrDialog,
         componentProps: {
           code: this.referralCode,
-          rpId: this.rpId,
+          promoId: this.rpId,
+          promoType: 'rp',
           referralType: 'Friend'
         }
       })
     },
     openRedeemPointsDialog () {
-      const vm = this
-
-      vm.$q.dialog({
+      this.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
-          points: vm.points,
+          points: this.points,
           pointsType: Promos.RFPROMO,
-          pointsDivisor: vm.pointsDivisor,
-          promoId: vm.rpId,
-          address: vm.address,
-          redeemedPoints: vm.redeemedPoints
+          pointsDivisor: this.pointsDivisor,
+          promoId: this.rpId,
+          address: this.address,
+          redeemedPoints: this.redeemedPoints
         }
       }).onDismiss(async () => {
-        vm.isLoading = true
-        vm.points = await vm.rpContract.getTokenBalance()
-        vm.isLoading = false
+        this.isLoading = true
+        this.points = await this.rpContract.getTokenBalance()
+        this.isLoading = false
       })
     }
   }
