@@ -14,7 +14,7 @@
         <template v-if="wallet">
             <div class="row q-gutter-y-lg">
               <div class="col-xs-12">
-                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
+                <q-card id="bch-card" class="q-ma-md br-15" style="color:white">
                   <q-card-section>
                     <div class="row q-gutter-y-md">
                       <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
