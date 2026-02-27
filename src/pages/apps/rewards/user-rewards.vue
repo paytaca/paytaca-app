@@ -706,7 +706,6 @@ export default {
 .section-header {
   display: flex;
   align-items: center;
-  padding-left: 4px;
 }
 
 .achievement-card {
