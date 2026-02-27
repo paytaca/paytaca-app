@@ -134,8 +134,7 @@ export const STATUS = {
   BROADCASTED: 'broadcasted',
   CONFLICTED: 'conflicted',
   MEMPOOL: 'mempool',
-  CONFIRMED: 'confirmed',
-  DELETED: 'deleted'
+  CONFIRMED: 'confirmed'
 }
 
 /**
@@ -850,7 +849,7 @@ export class Pst {
 
         for (const partialSignature of Object.entries(this.inputs[inputIndex].signatures || {})) {
           const publicKeyOfSigner = partialSignature[0]
-          const signatureValue = partialSignature[1]
+          const signatureValue = typeof(partialSignature[1]) === 'string' ? hexToBin(partialSignature[1]) : partialSignature[1]
           const sigHash = signatureValue.slice(-1)[0]
           const signingSerializationType = SigningSerializationType[sigHash]
           const signingSerializationTypeAlgorithmIdentifier = SigningSerializationAlgorithmIdentifier[signingSerializationType]
@@ -905,13 +904,8 @@ export class Pst {
       throw new Error('No signed transaction hex available')  
     }
 
-    const result = await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
+    return await this.options?.provider?.broadcastTransaction(this.signedTransactionHex)
 
-    this.broadcastResult = result?.data
-
-    await this.options?.store?.dispatch('multisig/updateBroadcastResult', { pst: this, broadcastResult: this.broadcastResult })
-
-    return result
   }
 
   combine(psts) {
@@ -934,7 +928,7 @@ export class Pst {
     return getSigningProgress(this)
   }
 
-  async fetchStatus({ deleteIfBroadcasted }) {
+  async fetchStatus(deleteIfBroadcasted = false) {
     const status = await this.options?.coordinationServer?.getProposalStatus({ 
       unsignedTransactionHash: this.unsignedTransactionHash 
     })
@@ -947,6 +941,7 @@ export class Pst {
       return await this.delete()
     }
     this.status = status
+    return this.status 
   }
 
   /**
@@ -1029,7 +1024,9 @@ export class Pst {
     const psbt = this.getSignerPsbt(masterFingerprint)
     const response = await this.options.coordinationServer.submitPsbt({
       content: psbt,
-      proposalUnsignedTransactionHash: this.unsignedTransactionHash
+      proposalUnsignedTransactionHash: this.unsignedTransactionHash,
+      walletId: this.wallet.id,
+      authCredentialsGenerator: this.wallet
     })
     return response?.status
   }
@@ -1089,7 +1086,7 @@ export class Pst {
       if (!input.signatures) {
         input.signatures = {}
       }
-      input.signatures[signerSignature.publicKey] = signerSignature.signature
+      input.signatures[signerSignature.publicKey] = hexToBin(signerSignature.signature)
     }
   }
 
@@ -1101,7 +1098,7 @@ export class Pst {
       if (signatures) {
         try {
           this.mergeSignerSignatures(signatures)
-          this.save()
+          await this.save()
         } catch (error) {
           // Ignore Signatures That Fail Verification
         }
