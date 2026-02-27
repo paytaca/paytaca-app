@@ -18,7 +18,7 @@ export const MAX_REDEEMABLE_RFP = 10000
 
 export const Promos = {
   USERREWARDS: 'ur',
-  RFPROMO: 'rfp' //,
+  RFPROMO: 'rp' //,
   // LOYALTYPROMO: 'lp',
   // CHAMPIONPROMO: 'cp',
   // PPRPROMO: 'pprp'

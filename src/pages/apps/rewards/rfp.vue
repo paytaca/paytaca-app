@@ -396,7 +396,7 @@ export default {
         componentProps: {
           code: this.referralCode,
           promoId: this.rpId,
-          promoType: 'rp',
+          promoType: Promos.RFPROMO,
           referralType: 'Friend'
         }
       })
