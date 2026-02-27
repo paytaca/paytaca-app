@@ -23,12 +23,10 @@
                       <q-icon v-if="pst.id" name="mdi-cloud-check" size="sm" flat></q-icon>
                     </div>
                     <div v-if="pst.id" class="col-12 text-caption">{{ $t('ID') }}: {{ pst.id || '<Local Only>' }}</div>
-                    <div class="col-12 text-caption">{{ $t('Origin') }}: {{ pst.origin || pst?.metadata?.origin || 'Not Specified' }}</div>
-                    <div class="col-12 text-caption">{{ $t('Network') }}: {{ pst.network || pst?.metadata?.network || 'Not Specified' }}</div>
                     <div class="col-12 text-caption">{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</div>
-                    <div class="col-12 text-caption">{{ $t('WalletName') }}: {{ wallet?.name }}</div>
                     <div class="col-12 text-caption">{{ $t('ProposedBy') }}: {{ proposedBy }}</div>
                     <div class="col-12 text-caption">{{ $t('Coordinator') }}: {{ coordinator }}</div>
+                    <div class="col-12 text-caption">{{ $t('Status') }}: {{ pst.status?.status }}</div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -278,6 +276,7 @@ import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDial
 import ShareProposalOptionsDialog from 'components/multisig/ShareProposalOptionsDialog.vue'
 import ShareSignatureOptionsDialog from 'components/multisig/ShareSignatureOptionsDialog.vue'
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
+import { STATUS } from 'src/lib/multisig/pst'
 const {
   getSignerXPrv,
   multisigNetworkProvider,
@@ -613,7 +612,6 @@ const loadPst = async () => {
   if (storedPst) {
     pst.value = storedPst
     await pst.value.fetchServerId()?.catch((e) => {
-      
       if (e?.response?.status === 404) {
         return
       }
@@ -625,6 +623,7 @@ const loadPst = async () => {
     })
 
     await pst.value.fetchCoordinatorInfo()
+    console.log('PST VALUE', pst.value)
   }
 }
 
@@ -650,17 +649,21 @@ onMounted(async () => {
   await loadSignerXPrvs()
   await loadPst()
   await loadPstInputsTransactionData()
-  if (pst.value.id) {
-    await pst.value.fetchStatus({ deleteIfBroadcasted: true })
-    registerInterval(() => {
-      const signingProgress = pst.value.getSigningProgress()
-      if (signingProgress.signingProgress !== 'fully-signed') {
-        pst.value.fetchAndMergeSignatures()
-        return 
-      }
-      removeInterval()
-    }, 5000)
-  }
+  
+  registerInterval(() => {
+    const signingProgress = pst.value.getSigningProgress()
+    if (signingProgress.signingProgress !== 'fully-signed') {
+      pst.value.fetchAndMergeSignatures()
+      return 
+    }
+    removeInterval()
+  }, 5000)
+
+  const status = await pst.value.fetchStatus()
+    if (status.txid && (status.status === STATUS.BROADCASTED || status.status === STATUS.MEMPOOL || status.status === STATUS.CONFIRMED)) {
+      showBroadcastSuccessDialog(status.txid)
+    }
+
 })
 
 </script>
