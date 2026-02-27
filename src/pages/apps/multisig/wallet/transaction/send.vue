@@ -360,6 +360,10 @@ const createProposal = async () => {
     
     await proposal.save()
     
+    if (wallet.value.isOnline()) {
+      await proposal.upload()
+    }
+
     router.push({ 
       name: 'app-multisig-wallet-pst-view', 
       params: { unsignedtransactionhash: proposal.unsignedTransactionHash }
@@ -368,7 +372,7 @@ const createProposal = async () => {
   } catch (error) {
     $q.dialog({
       message: error,
-      class: `q-my-mdpt-card text-bow br-15${getDarkModeClass(darkMode.value)}`,
+      class: `q-my-md pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)}`,
       ok: {
         rounded: true,
         padding: 'xs md',
