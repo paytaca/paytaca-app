@@ -225,7 +225,9 @@
 </template>
 
 <script>
+import { ensureKeypair } from 'src/utils/memo-service'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import {
   MAX_REDEEMABLE_RFP,
   Promos,
@@ -235,32 +237,25 @@ import {
   createRfPromoData,
   updateRfPromoData,
   updateUserPromoData,
-  getPromoPointsDivisorData,
-  getKeyPairFromWalletMnemonic,
-  getContractInitialBalance
 } from 'src/utils/engagementhub-utils/rewards'
-import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 
 import HeaderNav from 'src/components/header-nav'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/ErrorCard.vue'
-import ProgressLoader from 'src/components/ProgressLoader.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
-import ReferralQrDialog from 'src/components/rewards/ReferralQrDialog.vue'
+import ReferralQrDialog from 'src/components/rewards/dialogs/ReferralQrDialog.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
-import { ensureKeypair } from 'src/utils/memo-service'
 
 export default {
   name: 'RFPromo',
 
   components: {
     HeaderNav,
-    ProgressLoader,
-    ErrorCard,
     HelpCard,
+    ErrorCard,
     PointsBadge,
     AchievementIcon
   },

@@ -41,7 +41,6 @@
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
-import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 
 export default {
@@ -58,9 +57,6 @@ export default {
       type: [String, Object],
       default: ''
     }
-  },
-  components: {
-    HelpDialog
   },
   emits: ['click', 'long-press-title'],
   data () {

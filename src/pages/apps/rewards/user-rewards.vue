@@ -396,8 +396,8 @@
 
 <script>
 import { ensureKeypair } from 'src/utils/memo-service'
-import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import {
   Promos,
   PromosBytes,
@@ -405,10 +405,7 @@ import {
   getUserRewardsData,
   updateUserPromoData,
   updateUserRewardsData,
-  createUserRewardsData,
-  getPromoPointsDivisorData,
-  getContractInitialBalance,
-  awardInitialUP
+  createUserRewardsData
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav'
@@ -616,22 +613,20 @@ export default {
       this.$router.push(`/transaction/tx/${txId}`)
     },
     async openRedeemPointsDialog () {
-      const vm = this
-
-      vm.$q.dialog({
+      this.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
-          points: vm.points,
+          points: this.points,
           pointsType: Promos.USERREWARDS,
-          pointsDivisor: vm.pointsDivisor,
-          promoId: vm.upId,
-          address: vm.address
+          pointsDivisor: this.pointsDivisor,
+          promoId: this.upId,
+          address: this.address
         }
       }).onDismiss(async () => {
-        vm.isLoading = true
-        vm.points = await vm.urContract.getTokenBalance()
-        vm.animatePointsCounter()
-        vm.isLoading = false
+        this.isLoading = true
+        this.points = await this.urContract.getTokenBalance()
+        this.animatePointsCounter()
+        this.isLoading = false
       })
     }
   }
