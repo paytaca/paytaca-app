@@ -253,7 +253,21 @@
 import { computed, onMounted, onUnmounted, ref, onBeforeMount, watchEffect, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
+import {
+  initWeb3Wallet,
+  getWeb3Wallet,
+  isWalletConnectInitialized,
+  resetWallectConnectDatabase,
+  disconnectAllSessions,
+  parseSessionRequest,
+  signBchTransaction,
+  signMessage,
+  setPendingDialog,
+  clearPendingDialog,
+  startPollingForCancellationRequest,
+  stopPollingForCancellationRequest,
+  cancelPendingRequestsForTopic
+} from 'src/wallet/walletconnect2'
 import { convertCashAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { loadLibauthHdWallet } from 'src/wallet'
 import axios from 'axios'
@@ -1478,21 +1492,28 @@ const rejectSessionRequest = async (sessionRequest) => {
   } catch (error) {} finally { await loadSessionRequests({ showLoading: false }) }
 }
 
-const disconnectAllSessions = async () => {
-  const sessions = await web3Wallet.value.getActiveSessions()
-  for (const topic of Object.keys(sessions)) {
-    await web3Wallet.value.disconnectSession({
-      topic: topic,
-      reason: getSdkError('USER_DISCONNECTED')
-    })
-  }
-}
-
 const resetWallectConnect = async (opts = { silent: false }) => {
-  await disconnectAllSessions()
-  await resetWallectConnectDatabase()
-  await loadActiveSessions()
-  if (!opts?.silent) alert('Reset done!')
+  try {
+    await disconnectAllSessions()
+    await resetWallectConnectDatabase()
+    await loadActiveSessions()
+    if (!opts?.silent) {
+      $q.dialog({
+        title: $t('Success'),
+        message: $t('WalletConnect reset successfully'),
+        ok: { label: $t('Ok'), color: 'primary', noCaps: true }
+      })
+    }
+  } catch (error) {
+    console.error('Error resetting WalletConnect:', error)
+    if (!opts?.silent) {
+      $q.dialog({
+        title: $t('Error'),
+        message: $t('Failed to reset WalletConnect'),
+        ok: { label: $t('Ok'), color: 'negative', noCaps: true }
+      })
+    }
+  }
 }
 
 window.test = compareAppVersions
@@ -1512,7 +1533,14 @@ async function wcVersionUpgradeMigration() {
 }
 
 const loadWeb3Wallet = async () => {
-  web3Wallet.value = await initWeb3Wallet()
+  // Use singleton pattern - initialization now happens in boot file
+  // but we need to get the reference here
+  if (isWalletConnectInitialized()) {
+    web3Wallet.value = getWeb3Wallet()
+  } else {
+    // Fallback: initialize if not already done (e.g., if boot failed)
+    web3Wallet.value = await initWeb3Wallet()
+  }
   window.w3w = web3Wallet.value
 }
 
@@ -1545,7 +1573,16 @@ const onSessionEvent = async (data) => {
 }
 
 const onSessionExpire = async (data) => {
+  console.log('Session expired:', data)
   await loadActiveSessions()
+}
+
+const onSessionRequestExpire = async (event) => {
+  console.log('Session request expired:', event)
+  // Clear pending dialog if it matches the expired request
+  clearPendingDialog()
+  // Reload session requests to clear the expired one from UI
+  await loadSessionRequests({ showLoading: false })
 }
 
 /**
@@ -1559,7 +1596,7 @@ const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('session_update', onSessionUpdate)
   _web3Wallet?.on?.('session_event', onSessionEvent)
   _web3Wallet?.on?.('session_expire', onSessionExpire)
-  _web3Wallet?.on?.('session_request_expire', onSessionExpire)
+  _web3Wallet?.on?.('session_request_expire', onSessionRequestExpire)
 }
 
 /**
@@ -1573,7 +1610,7 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_update', onSessionUpdate)
   _web3Wallet?.off?.('session_event', onSessionEvent)
   _web3Wallet?.off?.('session_expire', onSessionExpire)
-  _web3Wallet?.off?.('session_request_expire', onSessionExpire)
+  _web3Wallet?.off?.('session_request_expire', onSessionRequestExpire)
 }
 
 // Helper function to ensure walletAddresses is loaded when needed
@@ -1670,11 +1707,22 @@ watch(
   async (newIndex, oldIndex) => {
     // Only reload if wallet actually changed (not initial load)
     if (oldIndex !== undefined && newIndex !== oldIndex && web3Wallet.value) {
+      // IMPORTANT: Disconnect all WalletConnect sessions when switching wallets
+      // This prevents the new wallet from inheriting sessions from the old wallet
+      // which can cause signing errors and security issues
+      try {
+        await disconnectAllSessions()
+        console.log('Disconnected all WalletConnect sessions due to wallet switch')
+      } catch (error) {
+        console.error('Error disconnecting sessions during wallet switch:', error)
+      }
+
       // Clear stale mappings from previous wallet. WalletConnect sessions are global;
       // without clearing, mapSessionTopicWithAddress would skip topics that already
       // have a mapping with wif, causing filteredActiveSessions to incorrectly
       // show old-wallet sessions as belonging to the new wallet.
       sessionTopicWalletAddressMapping.value = {}
+
       // Refresh walletAddresses for the new wallet. The fallback mapper
       // (mapSessionTopicWithAddressLocal) uses walletAddresses to match session
       // accounts; without refreshing, stale addresses from the previous wallet
@@ -1686,7 +1734,49 @@ watch(
       } catch (err) {
         console.error('Error refreshing wallet addresses on wallet switch:', err)
       }
+
+      // Reload active sessions (should be empty after disconnect)
       await loadActiveSessions({ showLoading: false })
+
+      // Show notification to user
+      Notify.create({
+        type: 'info',
+        message: $t('WalletConnect sessions disconnected due to wallet switch'),
+        timeout: 3000
+      })
+    }
+  }
+)
+
+// Watch for network changes and disconnect sessions
+watch(
+  isChipnet,
+  async (newValue, oldValue) => {
+    // Only handle if network actually changed and component is mounted
+    if (oldValue !== undefined && newValue !== oldValue && web3Wallet.value) {
+      console.log(`Network changed from ${oldValue ? 'chipnet' : 'mainnet'} to ${newValue ? 'chipnet' : 'mainnet'}`)
+
+      // IMPORTANT: Disconnect all WalletConnect sessions when switching networks
+      // Sessions are network-specific and cannot be reused across networks
+      try {
+        await disconnectAllSessions()
+        console.log('Disconnected all WalletConnect sessions due to network switch')
+      } catch (error) {
+        console.error('Error disconnecting sessions during network switch:', error)
+      }
+
+      // Clear all mappings
+      sessionTopicWalletAddressMapping.value = {}
+
+      // Reload active sessions (should be empty after disconnect)
+      await loadActiveSessions({ showLoading: false })
+
+      // Show notification to user
+      Notify.create({
+        type: 'info',
+        message: $t('WalletConnect sessions disconnected due to network switch'),
+        timeout: 3000
+      })
     }
   }
 )
@@ -1743,6 +1833,10 @@ onUnmounted(() => {
   if (web3Wallet.value) {
     detachEventsListeners(web3Wallet.value)
   }
+  // Stop polling for cancellation requests
+  stopPollingForCancellationRequest()
+  // Clear pending dialog reference
+  clearPendingDialog()
 })
 
 defineExpose({
