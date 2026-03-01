@@ -136,24 +136,13 @@
           </div>
         </div>
         <div class="row">
-          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold text-right q-px-sm">
-            <q-toggle
-              v-model="showActiveSessions"
-              left-label
-              :disable="Boolean(loading)"
-              color="primary"
-            >
-            <div class="row items-center">
-              <div style="position:relative">
-                <span class="q-mr-xs">{{ $t('ShowConnectedApps') }}</span>
-                <q-badge v-if="activeSessionsCount > 0" color="green">
-                {{ activeSessionsCount }}
-                </q-badge>
-              </div>
-            </div>
-            </q-toggle>
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm">
+            <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
+            <q-badge v-if="activeSessionsCount > 0" color="green" class="q-ml-sm">
+              {{ activeSessionsCount }}
+            </q-badge>
           </div>
-          <div v-if="activeSessionsCount > 0 && showActiveSessions" class="col-xs-12 q-gutter-y-sm">
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 q-gutter-y-sm">
             <SessionInfo
               v-for="activeSession in activeSessionsArray"
               :session="activeSession"
@@ -277,7 +266,6 @@ const walletAddresses = ref([])
  * @type {import("vue").Ref<Record<String, SingleWalletInfo>>}
  * */
 const sessionTopicWalletAddressMapping = ref({})
-const showActiveSessions = ref(false)
 const activeSessions = ref({})
 const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
@@ -1174,7 +1162,6 @@ const approveSessionProposal = async (sessionProposal) => {
     // Now safe to delete pairingTopic mapping (session.topic is already in activeSessions, so it's protected)
     delete sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
     processingSession.value[sessionProposal.pairingTopic] = ''
-    showActiveSessions.value = true
     await saveConnectedApp(session)
     const deffered = [loadSessionProposals(), $store.dispatch('global/loadWalletConnectedApps')]
     const isMultisigWallet = Boolean(selectedAddress.template)

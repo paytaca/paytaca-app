@@ -1,52 +1,67 @@
 <template>
   <q-card :class=" flat ? 'session session-info-flat q-pa-sm': 'session session-info q-pa-sm'"  :flat="flat">
     <q-card-section style="padding-bottom: 0px">
-      <template v-if="sessionType==='proposal'">
-          <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"> 
-            <template v-slot:name> 
-              <div class="row flex items-center">
-                <span>{{ peerMetadata?.name || 'App'}} wants to connect. </span>
-              </div>
-            </template>
-          </PeerInfo>
-      </template>
-      <template v-if="sessionType==='active'">
-          <PeerInfo  :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"/>
-      </template>
-      <template v-if="sessionType==='request'">
-          <PeerInfo  :metadata="peerMetadata" :session-id="!hideSessionId && session?.id" :session-topic="!hideTopic && session?.topic"> 
-            <template v-slot:name> 
-              <div class="row items-center">
-                <div v-if="session?.params?.request?.params?.userPrompt" class="text-bold col-auto">
-                  {{ session?.params?.request?.params?.userPrompt || `Sign a ${method}`}}
-                </div>
-                <div class="col q-mr-xs">
-                  <q-icon name="notifications_active" color="warning" size="sm"></q-icon>
-                </div>
-              </div>
-            </template>
-            <template v-slot:url>
-              <div class="row">
-                <div class="col-12 text-light session-info-attribute-url">
-                  Origin: <span style="word-break: break-all;">{{ session.verifyContext?.verified?.origin }}</span>
-                </div>
-                <div class="col-12 text-light session-info-attribute">
-                  Method: {{ session.params?.request?.method }}
-                </div>
-                <div v-if="!hideSessionId" class="col-12 text-light session-info-attribute">
-                  Sid: {{ session?.id}}
-                </div>
-                <div v-if="!hideTopic" class="col-12 text-light session-info-attribute">
-                  Topic: {{session.session?.topic?.replace(session.session.topic.slice(3, session.session.topic.length - 6), '...') }}
-                </div>
-              </div>
-            </template>
-          </PeerInfo>
-      </template>
+      <div class="row items-start">
+        <div class="col">
+          <template v-if="sessionType==='proposal'">
+              <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"> 
+                <template v-slot:name> 
+                  <div class="row flex items-center">
+                    <span>{{ peerMetadata?.name || 'App'}} {{ $t('WantsToConnect', {}, 'wants to connect') }}. </span>
+                  </div>
+                </template>
+              </PeerInfo>
+          </template>
+          <template v-if="sessionType==='active'">
+              <PeerInfo  :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"/>
+          </template>
+          <template v-if="sessionType==='request'">
+              <PeerInfo  :metadata="peerMetadata" :session-id="!hideSessionId && session?.id" :session-topic="!hideTopic && session?.topic"> 
+                <template v-slot:name> 
+                  <div class="row items-center">
+                    <div v-if="session?.params?.request?.params?.userPrompt" class="text-bold col-auto">
+                      {{ session?.params?.request?.params?.userPrompt || `Sign a ${method}`}}
+                    </div>
+                    <div class="col q-mr-xs">
+                      <q-icon name="notifications_active" color="warning" size="sm"></q-icon>
+                    </div>
+                  </div>
+                </template>
+                <template v-slot:url>
+                  <div class="row">
+                    <div class="col-12 text-light session-info-attribute-url">
+                      {{ $t('OriginLabel', {}, 'Origin:') }} <span style="word-break: break-all;">{{ session.verifyContext?.verified?.origin }}</span>
+                    </div>
+                    <div class="col-12 text-light session-info-attribute">
+                      {{ $t('MethodLabel', {}, 'Method:') }} {{ session.params?.request?.method }}
+                    </div>
+                    <div v-if="!hideSessionId" class="col-12 text-light session-info-attribute">
+                      Sid: {{ session?.id}}
+                    </div>
+                    <div v-if="!hideTopic" class="col-12 text-light session-info-attribute">
+                      {{ $t('TopicLabel', {}, 'Topic:') }} {{session.session?.topic?.replace(session.session.topic.slice(3, session.session.topic.length - 6), '...') }}
+                    </div>
+                  </div>
+                </template>
+              </PeerInfo>
+          </template>
+        </div>
+        <div v-if="sessionType === 'active'" class="col-auto q-ml-sm flex flex-center">
+          <q-btn
+            :icon="isExpanded ? 'expand_less' : 'chevron_right'"
+            @click="toggleExpand"
+            class="expand-btn"
+            color="grey-7"
+            flat
+            round
+            size="lg"
+          />
+        </div>
+      </div>
       
-      <div v-if="sessionType === 'active'" class="q-mt-md q-mb-sm text-center">
+      <div v-if="sessionType === 'active' && isExpanded" class="q-mt-md q-mb-sm text-center">
         <div v-if="addressBalance !== null" class="q-mb-sm">
-          <span v-if="addressBalanceLoading" class="text-grey">Loading balance...</span>
+          <span v-if="addressBalanceLoading" class="text-grey">{{ $t('LoadingBalance', {}, 'Loading balance...') }}</span>
           <span v-else class="text-weight-bold text-primary" style="font-size: 16px;">{{ addressBalance }} BCH</span>
         </div>
         <q-btn
@@ -55,7 +70,7 @@
           size="sm"
           color="primary"
           icon="fas fa-qrcode"
-          label="Show Connected Address"
+          :label="$t('ShowConnectedAddress', {}, 'Show Connected Address')"
           @click="openAddressDialog"
           no-caps
           :disable="!account"
@@ -73,7 +88,7 @@
     >
       <q-card class="address-dialog br-15 pt-card" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Connected Address</div>
+          <div class="text-h6">{{ $t('ConnectedAddress', {}, 'Connected Address') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense @click="showAddressDialog = false" />
         </q-card-section>
@@ -119,7 +134,7 @@
               size="sm"
               color="primary"
               icon="fas fa-copy"
-              label="Copy"
+              :label="$t('Copy')"
               @click="copyCurrentAddress"
             />
             <q-btn
@@ -128,20 +143,20 @@
               size="sm"
               color="primary"
               icon="fas fa-arrows-down-to-line"
-              label="Deposit"
+              :label="$t('Deposit')"
               @click="goToDeposit"
             />
           </div>
         </q-card-section>
       </q-card>
     </q-dialog>
-    <q-card-actions class="row justify-around q-gutter-x-md q-mt-lg" style="padding-top: 0px">
+    <q-card-actions v-if="sessionType !== 'active' || isExpanded" class="row justify-around q-gutter-x-md q-mt-lg" style="padding-top: 0px">
       <slot name="actions"></slot>
     </q-card-actions>
   </q-card>
 </template>
 <script setup>
-import { computed, inject, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from "vue-router";
 import PeerInfo from './PeerInfo.vue'
@@ -180,7 +195,6 @@ const peerMetadata = computed(() => {
 
 const $q = useQuasar()
 const $router = useRouter()
-const $copyText = inject('$copyText')
 const $store = useStore()
 
 // Address dialog state - defined early to avoid render issues
@@ -189,6 +203,17 @@ const addressFormat = ref('cash')
 const qrCodeDataUrl = ref('')
 const addressBalance = ref(null)
 const addressBalanceLoading = ref(false)
+
+// Collapsible state - start collapsed by default
+const isExpanded = ref(false)
+
+function toggleExpand() {
+  isExpanded.value = !isExpanded.value
+  // Load balance when expanding if not already loaded
+  if (isExpanded.value && addressBalance.value === null && !addressBalanceLoading.value) {
+    fetchAddressBalance()
+  }
+}
 
 const watchtower = new Watchtower()
 
@@ -210,11 +235,7 @@ async function fetchAddressBalance() {
   }
 }
 
-onMounted(() => {
-  if (props.sessionType === 'active') {
-    fetchAddressBalance()
-  }
-})
+
 
 const isTokenFormat = computed({
   get: () => addressFormat.value === 'token',
@@ -325,9 +346,21 @@ watch(showAddressDialog, (newVal, oldVal) => {
 
 async function copyCurrentAddress() {
   if (!displayAddress.value) return
-  
+
   try {
-    $copyText(displayAddress.value)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(displayAddress.value)
+    } else {
+      // Fallback for browsers without clipboard API
+      const textarea = document.createElement('textarea')
+      textarea.value = displayAddress.value
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
     $q.notify({
       message: `${addressFormat.value === 'token' ? 'Token' : 'Cash'} address copied to clipboard`,
       timeout: 800,
@@ -449,5 +482,18 @@ async function copyCurrentAddress() {
 
 .address-format-toggle {
   margin-top: 8px;
+}
+
+.expand-btn {
+  transition: transform 0.3s ease;
+}
+
+.expand-btn:hover {
+  transform: scale(1.15);
+}
+
+.expand-btn .q-icon {
+  font-size: 28px;
+  font-weight: bold;
 }
 </style>
