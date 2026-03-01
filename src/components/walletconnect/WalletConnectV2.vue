@@ -1042,47 +1042,37 @@ const disconnectSession = async (activeSession) => {
 
 const openManualAddressEntryDialog = async (sessionProposal) => {
   try {
-    const addressAddressIndexAndWif = await new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       $q.dialog({
         component: ManualAddressEntryDialog,
         componentProps: {
-          darkMode: darkMode.value
+          darkMode: darkMode.value,
+          validateAddress: async (address, addressIndex) => {
+            return await $store.dispatch('global/depositAddressIsFromWallet', { 
+              address, addressIndex
+            })
+          }
         }
       })
-      .onOk(async(payload) => {
-        const { ok, addressIndex, address, wif } = 
-          await $store.dispatch('global/depositAddressIsFromWallet', { 
-            address: payload.address, addressIndex: payload.addressIndex
-          })
-          if (ok) {
-            return resolve({ address, addressIndex, wif }) 
-          }
-        reject(new Error($t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')))
+      .onOk((payload) => {
+        resolve(payload)
       })
       .onCancel(() => {
-        // Just close the dialog and return control to SelectAddressForSessionDialog
         reject(new Error('MANUAL_ADDRESS_ENTRY_CANCELLED'))
       })
     })
-    return addressAddressIndexAndWif
+    if (result) {
+      return { 
+        address: result.address, 
+        addressIndex: result.addressIndexResult ?? result.addressIndex, 
+        wif: result.wif 
+      }
+    }
   } catch (error) {
     if (error.message === 'MANUAL_ADDRESS_ENTRY_CANCELLED') {
-      // Just return undefined to give control back to SelectAddressForSessionDialog
       openAddressSelectionDialog(sessionProposal)
-      return
     }
-    $q.dialog({
-      title: 'Error',
-      message: error.message,
-      ok: {
-        rounded: true,
-        label: $t('Ok'),
-        noCaps: true,
-        color: 'primary'
-      },
-      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
-    })
-  }   
+  }
 }
 
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
