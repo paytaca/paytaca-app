@@ -1719,6 +1719,7 @@ export default {
   ReservedAmount: "Reserved Amount",
   Reset: "Reset",
   ResetWalletConnect: "Reset Wallet Connect",
+  ResetWalletConnectConfirmMessage: "This will disconnect all active WalletConnect sessions and clear pending requests. Are you sure?",
   ResolveAddress: "Resolve address",
   Resolved: "Resolved",
   ResolvedDate: "Resolved {date}",

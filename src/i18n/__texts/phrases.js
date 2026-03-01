@@ -1457,7 +1457,8 @@ const phrases = {
       MerchantMapDescription: 'Find nearby merchants in our network accepting BCH',
       MarketplaceDescription: 'Shop directly within Paytaca from merchants selling products for BCH',
       SpendBCHFooter: 'More merchants are joining the BCH network every day. Check back often for new options!',
-      ResetWalletConnect: 'Reset Wallet Connect'
+      ResetWalletConnect: 'Reset Wallet Connect',
+      ResetWalletConnectConfirmMessage: 'This will disconnect all active WalletConnect sessions and clear pending requests. Are you sure?'
     },
     {
       // LIFT Token - About Tab

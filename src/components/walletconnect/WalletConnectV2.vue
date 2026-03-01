@@ -1,68 +1,6 @@
 <template>
   <div>
     <div class="row items-center q-gutter-y-xs">
-      <div class="col-xs-12 text-right q-mb-md">
-        <!-- <q-btn icon="refresh" @click.stop="() => refreshComponent()" flat></q-btn> -->
-        <q-btn icon="settings" flat dense>
-          <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md text-bow" :class="getDarkModeClass(darkMode)">
-            <q-item>
-              <q-item-section>
-                {{ $t('AddressDisplayFormat') }}
-              </q-item-section>
-              <q-item-section side>
-                <q-btn-group rounded>
-                  <q-btn
-                    @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'cashaddr')"
-                    :color="settings.addressDisplayFormat === 'cashaddr' ? 'primary': 'grey'"
-                    :outline="settings.addressDisplayFormat !== 'cashaddr'"
-                    size="sm"
-                    no-caps
-                    dense
-                    >
-                    cashaddr
-                  </q-btn>
-                  <q-btn
-                    @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'tokenaddr')"
-                    :color="settings.addressDisplayFormat === 'tokenaddr' ? 'primary': 'grey'"
-                    :outline="settings.addressDisplayFormat !== 'tokenaddr'"
-                    size="sm"
-                    no-caps
-                    dense
-                    >
-                    tokenaddr
-                  </q-btn>
-                </q-btn-group>
-              </q-item-section>
-            </q-item>
-            <q-separator></q-separator>
-            <q-item>
-              <q-item-section>
-                <div style="position:relative">
-                  <span class="q-mr-xs">{{ $t('ShowConnectedApps') }}</span>
-                  <q-badge :color="activeSessionsCount > 0 ? 'green' : 'grey'">
-                  {{ activeSessionsCount }}
-                  </q-badge>
-                </div>
-              </q-item-section>
-              <q-item-section side>
-                <q-toggle
-                  v-model="showActiveSessions"
-                  left-label
-                  :disable="Boolean(loading) || activeSessionsCount === 0"
-                  checked-icon="check"
-                  unchecked-icon="clear"
-                  color="primary"
-                >
-                </q-toggle>
-              </q-item-section>
-            </q-item>
-            <q-separator></q-separator>
-            <q-item>
-              <span @click="resetWallectConnect">{{ $t('ResetWalletConnect') }}<q-icon name="danger" /></span>
-            </q-item>
-          </q-menu>
-        </q-btn>
-      </div>
       <div class="col-xs-12">
         <div class="send-option-card pt-card q-mb-md q-pa-lg br-15" :class="getDarkModeClass(darkMode)">
             <div class="send-option-header">
@@ -216,7 +154,6 @@
             </q-toggle>
           </div>
           <div v-if="activeSessionsCount > 0 && showActiveSessions" class="col-xs-12 q-gutter-y-sm">
-            <q-separator spaced></q-separator>
             <SessionInfo
               v-for="activeSession in activeSessionsArray"
               :session="activeSession"
@@ -1832,7 +1769,8 @@ onUnmounted(() => {
 defineExpose({
   onScannerDecode,
   refreshComponent,
-  connectNewSession
+  connectNewSession,
+  resetWallectConnect
 })
 </script>
 <style lang="scss" scoped>
