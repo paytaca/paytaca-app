@@ -1720,6 +1720,7 @@ export default {
   ReservedAmount: "预留金额",
   Reset: "重置",
   ResetWalletConnect: "重置钱包连接",
+  ResetWalletConnectConfirmMessage: "这将断开所有活动的 WalletConnect 会话并清除待处理的请求。你确定吗？",
   ResolveAddress: "输入位置",
   Resolved: "已解决",
   ResolvedDate: "已解决 {date}",
