@@ -1062,10 +1062,10 @@ const openManualAddressEntryDialog = async (sessionProposal) => {
       })
     })
     if (result) {
-      return { 
-        address: result.address, 
-        addressIndex: result.addressIndexResult ?? result.addressIndex, 
-        wif: result.wif 
+      return {
+        address: result.address,
+        address_index: result.addressIndexResult ?? result.addressIndex,
+        wif: result.wif
       }
     }
   } catch (error) {
