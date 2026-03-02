@@ -428,6 +428,7 @@ import {
   processOnetimePoints
 } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
+import { raiseNotifyError } from 'src/utils/notify-utils'
 
 import DragSlide from 'src/components/drag-slide.vue'
 import Pin from 'src/components/pin/index.vue'
@@ -838,7 +839,7 @@ export default {
         sendPageUtils.getWallet('bch')?.lastAddress
       )
 
-      if (isDuplicate) sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
+      if (isDuplicate) raiseNotifyError(this.$t('AddressAlreadyAdded'))
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     }
   },
@@ -1103,7 +1104,7 @@ export default {
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError(vm.$t('AddressAlreadyAdded'))
+        raiseNotifyError(vm.$t('AddressAlreadyAdded'))
         return
       }
 
@@ -1142,7 +1143,7 @@ export default {
             
             // Validate price exists and is a valid number before division
             if (!priceToUse || typeof priceToUse !== 'number' || priceToUse <= 0 || !isFinite(priceToUse)) {
-              sendPageUtils.raiseNotifyError(
+              raiseNotifyError(
                 vm.$t('NoPriceDataFound', 'No price data found for currency conversion')
               )
               currentRecipient.recipientAddress = ''
@@ -1161,7 +1162,7 @@ export default {
             )
             currentRecipient.fixedAmount = true
           } else if (!newSelectedCurrency?.symbol && amount) {
-            sendPageUtils.raiseNotifyError(
+            raiseNotifyError(
               vm.$t('DetectedUnknownCurrency', currency, `Detected unknown currency: ${currency}`)
             )
             currentRecipient.recipientAddress = ''
@@ -1382,7 +1383,7 @@ export default {
           const now = Math.floor(Date.now() / 1000) + (this.networkTimeDiff / 1000)
           if (now >= expires) {
             this.disableSending = true
-            sendPageUtils.raiseNotifyError(this.$t('PaymentRequestIsExpired'))
+            raiseNotifyError(this.$t('PaymentRequestIsExpired'))
           }
           return false
         }
@@ -1585,7 +1586,7 @@ export default {
           this.expandedItems[`R${i}`] = false
         }
         this.sliderStatus = false
-      } else sendPageUtils.raiseNotifyError(this.$t('CannotAddRecipient'))
+      } else raiseNotifyError(this.$t('CannotAddRecipient'))
     },
     removeLastRecipient (index) {
       delete this.expandedItems[`R${index}`]
@@ -1604,7 +1605,7 @@ export default {
         const now = Math.floor(Date.now() / 1000) + (vm.networkTimeDiff / 1000)
         if (now >= expires) {
           vm.disableSending = true
-          sendPageUtils.raiseNotifyError(vm.$t('PaymentRequestIsExpired'))
+          raiseNotifyError(vm.$t('PaymentRequestIsExpired'))
           return
         }
       }
@@ -1682,7 +1683,7 @@ export default {
           .toFixed(8)
 
         if (Number(totalAmount) > vm.asset.balance) {
-          sendPageUtils.raiseNotifyError(vm.$t('TotalAmountError'))
+          raiseNotifyError(vm.$t('TotalAmountError'))
           return
         }
 
@@ -1915,7 +1916,7 @@ export default {
               })
             }
           } catch (e) {
-            sendPageUtils.raiseNotifyError(e.message)
+            raiseNotifyError(e.message)
           }
         } else vm.sendingPromiseResponseHandler(addressIsValid, amountIsValid)
       })
@@ -1946,7 +1947,7 @@ export default {
       )
 
       if (isDuplicate) {
-        sendPageUtils.raiseNotifyError(this.$t('AddressAlreadyAdded'))
+        raiseNotifyError(this.$t('AddressAlreadyAdded'))
         this.recipients[this.currentRecipientIndex].recipientAddress = ''
         return
       }
@@ -2022,7 +2023,7 @@ export default {
         currentRecipient.recipientAddress = addressValidation.address
         return true
       } else {
-        sendPageUtils.raiseNotifyError(this.$t('InvalidAddress'))
+        raiseNotifyError(this.$t('InvalidAddress'))
         this.sliderStatus = false
         return false
       }
@@ -2039,14 +2040,14 @@ export default {
       vm.sliderStatus = true
 
       if (!addressIsValid) {
-        sendPageUtils.raiseNotifyError(vm.$t(
+        raiseNotifyError(vm.$t(
           'InvalidRecipient',
           { walletType: vm.walletType.toUpperCase() },
           `Recipient should be a valid ${vm.walletType.toUpperCase()} address`
         ))
       }
       if (!amountIsValid) {
-        sendPageUtils.raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
+        raiseNotifyError(vm.$t('SendAmountGreaterThanZero'))
       }
     },
     /**
@@ -2416,7 +2417,7 @@ export default {
         // Keep selection visible to show which wallet was chosen
       } catch (error) {
         console.error('Error generating address for other wallet:', error)
-        sendPageUtils.raiseNotifyError(
+        raiseNotifyError(
           vm.$t('FailedToGenerateAddress', {}, 'Failed to generate address. Please try again.')
         )
         // Reset selection on error to allow retry

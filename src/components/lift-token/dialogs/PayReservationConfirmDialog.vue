@@ -81,7 +81,7 @@ import { parseLiftToken } from "src/utils/engagementhub-utils/shared";
 import {
   executePurchaseFlow
 } from "src/utils/engagementhub-utils/lift-token";
-import { raiseNotifyError } from "src/utils/send-page-utils";
+import { raiseNotifyError } from 'src/utils/notify-utils';
 import { getMnemonic, Wallet } from "src/wallet"
 
 import DragSlide from "src/components/drag-slide.vue";
