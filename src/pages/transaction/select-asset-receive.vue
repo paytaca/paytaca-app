@@ -184,8 +184,22 @@ export default {
 
       // For CashTokens, use API data directly
       if (this.isCashToken) {
-        // Get BCH asset from store
-        const bchAsset = this.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
+        // Get BCH asset from store, or use default if not found
+        let bchAsset = this.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
+        
+        // Fallback to default BCH if not found in store
+        if (!bchAsset) {
+          bchAsset = {
+            id: 'bch',
+            symbol: 'BCH',
+            name: 'Bitcoin Cash',
+            logo: 'bch-logo.png',
+            balance: 0,
+            spendable: 0,
+            yield: {},
+            favorite: 0
+          }
+        }
         
         // Use tokens from API - they already have favorite and favorite_order
         // Filter out tokens without an id to prevent rendering errors
@@ -258,7 +272,22 @@ export default {
       }
       
       // Ordering: BCH first, then unlisted SLP token, then others
-      const bchAsset = _assets.find(asset => asset?.id === 'bch')
+      let bchAsset = _assets.find(asset => asset?.id === 'bch')
+      
+      // Fallback to default BCH if not found
+      if (!bchAsset) {
+        bchAsset = {
+          id: 'bch',
+          symbol: 'BCH',
+          name: 'Bitcoin Cash',
+          logo: 'bch-logo.png',
+          balance: 0,
+          spendable: 0,
+          yield: {},
+          favorite: 0
+        }
+      }
+      
       const otherAssets = _assets.filter(asset => asset?.id !== 'bch')
       
       const allAssets = [

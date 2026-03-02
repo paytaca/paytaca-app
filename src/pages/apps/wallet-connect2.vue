@@ -13,7 +13,45 @@
     <HeaderNav
       :title="$t('WalletConnect')"
       backnavpath="/apps"
-    />
+    >
+      <template #top-right-menu>
+        <q-btn icon="more_vert" flat dense round>
+          <q-menu
+            anchor="bottom end"
+            self="top end"
+            class="br-15 pt-card q-py-md text-bow"
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-item
+              clickable
+              v-close-popup
+              @click="showResetConfirm = true"
+            >
+              <q-item-section class="text-negative">
+                {{ $t('ResetWalletConnect') }}
+              </q-item-section>
+            </q-item>
+          </q-menu>
+        </q-btn>
+      </template>
+    </HeaderNav>
+
+    <q-dialog v-model="showResetConfirm">
+      <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="row items-center">
+          <div class="text-h6">{{ $t('ResetWalletConnect') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section>
+          {{ $t('ResetWalletConnectConfirmMessage') }}
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('Cancel')" color="primary" v-close-popup no-caps />
+          <q-btn flat :label="$t('Reset')" color="negative" @click="resetWalletConnect" v-close-popup no-caps />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <q-tabs
       dense
       v-if="enableSmartBCH"
@@ -94,8 +132,14 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const theme =  computed(() => $store.getters['global/theme'])
 const enableSmartBCH = computed(() => $store.getters['global/enableSmartBCH'])
 const selectedNetwork = computed(() => $store.getters['global/network'])
+const showResetConfirm = ref(false)
+
 function changeNetwork(newNetwork = 'BCH') {
   return $store.commit('global/setNetwork', newNetwork)
+}
+
+async function resetWalletConnect() {
+  await walletConnectV2.value?.resetWallectConnect?.()
 }
 
 onMounted(async () => {

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import crypto from 'crypto'
 import Watchtower from 'watchtower-cash-js'
 import { decodePrivateKeyWif } from '@bitauth/libauth'
 import WatchtowerExtended from '../../lib/watchtower'
@@ -1193,31 +1194,41 @@ export async function depositAddressIsFromWallet(context, {address, addressIndex
     return { ok: false, walletIndex: selectedWalletIndex  }
   }
 
-  let lastIndex = 
-    context.state.wallets.bch.lastAddressAndIndex?.address_index ||
-    context.state.wallets.bch.lastAddressIndex || 0
+  const isChipnet = Boolean(context.state.isChipnet)
+  const addressUri = encodeURIComponent(address)
+  const watchtowerUrl = isChipnet
+    ? `https://chipnet.watchtower.cash/api/address-info/bch/${addressUri}/`
+    : `https://watchtower.cash/api/address-info/bch/${addressUri}/`
 
-  if (context.state.isChipnet) {
-    lastIndex =
-    context.state.chipnet__wallets.bch.lastAddressAndIndex?.address_index ||
-    context.state.chipnet__wallets.bch.lastAddressIndex || 0
-  }
+  try {
+    const response = await axios.get(watchtowerUrl)
+    const apiDigest = response.data?.wallet_digest
+    if (!apiDigest) return { ok: false, walletIndex: selectedWalletIndex }
 
-  const stopAtIndex = lastIndex + 50 // search within 50 addresses gap limit
-  for (let i = 0; i < stopAtIndex; i++) {
-    try {
-      const wif = libauthWallet.getPrivateKeyWifAt(`0/${i}`)
+    const walletHashHex = context.getters.getWalletHashByIndex(selectedWalletIndex)
+    if (walletHashHex) {
+      const walletHashBuffer = Buffer.from(walletHashHex, 'hex')
+      const ourDigest = crypto.createHash('sha224').update(walletHashBuffer).digest('hex')
+      if (ourDigest.toLowerCase() !== String(apiDigest).toLowerCase()) {
+        return { ok: false, walletIndex: selectedWalletIndex }
+      }
+    }
+
+    const path = response.data?.address_path
+    if (path) {
+      const wif = libauthWallet.getPrivateKeyWifAt(path)
       const decodedPrivkey = decodePrivateKeyWif(wif)
       let cashAddress = privateKeyToCashAddress(decodedPrivkey.privateKey)
-
-      if (context.state.isChipnet) {
+      if (isChipnet) {
         cashAddress = toP2pkhTestAddress(cashAddress)
       }
 
       if (cashAddress === address) {
-        return { ok: true, walletIndex: selectedWalletIndex, addressIndex: i, address, wif }
+        const addressIndex = parseInt(path.split('/').pop(), 10)
+        return { ok: true, walletIndex: selectedWalletIndex, addressIndex, address, wif }
       }
-    } catch (error) {}
-  }
+    }
+  } catch (error) {}
+
   return { ok: false, walletIndex: selectedWalletIndex }
 }
