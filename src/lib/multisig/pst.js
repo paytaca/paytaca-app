@@ -929,19 +929,10 @@ export class Pst {
     return getSigningProgress(this)
   }
 
-  async fetchStatus(deleteIfBroadcasted = false) {
-    const status = await this.options?.coordinationServer?.getProposalStatus({ 
+  async fetchStatus() {
+    this.status = await this.options?.coordinationServer?.getProposalStatus({ 
       unsignedTransactionHash: this.unsignedTransactionHash 
     })
-    if (
-      status.status === STATUS.BROADCASTED || 
-      status.status === STATUS.MEMPOOL || 
-      status.status === STATUS.CONFIRMED
-    )
-    if(deleteIfBroadcasted) {
-      return await this.delete()
-    }
-    this.status = status
     return this.status 
   }
 
@@ -1092,6 +1083,8 @@ export class Pst {
   }
 
   async fetchAndMergeSignatures() {
+    const signingProgress = this.getSigningProgress()
+    if (signingProgress?.signingProgress === 'fully-signed') return
     if (this.id && this.options?.coordinationServer) {
       const signatures = await this.options.coordinationServer.getSignatures({ 
         proposalUnsignedTransactionHash: this.unsignedTransactionHash 
