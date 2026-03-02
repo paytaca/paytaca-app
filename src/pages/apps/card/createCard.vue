@@ -113,27 +113,17 @@
 </template>
 
 <script>
-  
-import cashInDialog from './cashInDialog.vue';
+
 import createCardDialog from './createCardDialog.vue';
-import manageAuthNFTdialog from './manageAuthNFTdialog.vue';
-import spendLimitDialog from './spendLimitDialog.vue';
-import transactionHistoryDialog from './transactionHistoryDialog.vue';
-import viewCardDialog from './viewCardDialog.vue';
+
 // import { createCardLogic } from './createCard.js'; --restore this after testing
 import {createCardLogic} from './noBackend.js'
-import cardReplacementDialog from './cardReplacement.vue';
+
 
   export default {
     mixins: [createCardLogic],
     components: {
       createCardDialog,
-      viewCardDialog,
-      cashInDialog,
-      manageAuthNFTdialog,
-      transactionHistoryDialog,
-      spendLimitDialog,
-      cardReplacementDialog
     },
 
     mounted () {
