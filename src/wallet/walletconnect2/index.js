@@ -15,99 +15,298 @@ import {
   sha256
 } from '@bitauth/libauth'
 import { Core } from '@walletconnect/core'
-import { WalletKit /*, type IWalletKit */ } from '@reown/walletkit'
+import { WalletKit } from '@reown/walletkit'
+import { getSdkError } from '@walletconnect/utils'
 import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, unpackSourceOutput } from './tx-sign-utils'
 import BCHJS from '@psf/bch-js'
 
 const bchjs = new BCHJS()
 
+// Singleton state to prevent multiple initializations
+let web3WalletInstance = null
+let isInitializing = false
+let isInitialized = false
+
+// Track pending dialog for cancellation support
+let pendingDialog = null
+let cancellationPollingInterval = null
+
+/**
+ * Initialize Web3Wallet with proper singleton pattern
+ * Prevents multiple initializations which can cause event handler duplication
+ */
 export async function initWeb3Wallet () {
-  const core = new Core({
-    projectId: process.env.WALLETCONNECT_PROJECT_ID
+  // Return existing instance if already initialized
+  if (isInitialized && web3WalletInstance) {
+    return web3WalletInstance
+  }
+
+  // Prevent concurrent initialization attempts
+  if (isInitializing) {
+    // Wait for initialization to complete
+    while (isInitializing) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    return web3WalletInstance
+  }
+
+  isInitializing = true
+
+  try {
+    const core = new Core({
+      projectId: process.env.WALLETCONNECT_PROJECT_ID
+    })
+
+    web3WalletInstance = await WalletKit.init({
+      core: core,
+      metadata: {
+        name: 'Paytaca',
+        description: 'Paytaca - BCH Wallet App',
+        url: 'https://www.paytaca.com',
+        icons: ['https://walletconnect.org/walletconnect-logo.png'],
+      }
+    })
+
+    // Attach critical event handlers immediately
+    attachCoreEventHandlers(web3WalletInstance)
+
+    isInitialized = true
+    return web3WalletInstance
+  } catch (error) {
+    console.error('Failed to initialize WalletConnect:', error)
+    throw error
+  } finally {
+    isInitializing = false
+  }
+}
+
+/**
+ * Get the existing Web3Wallet instance without initializing
+ */
+export function getWeb3Wallet() {
+  return web3WalletInstance
+}
+
+/**
+ * Check if WalletConnect is initialized
+ */
+export function isWalletConnectInitialized() {
+  return isInitialized && web3WalletInstance !== null
+}
+
+/**
+ * Attach core event handlers that should always be active
+ */
+function attachCoreEventHandlers(web3wallet) {
+  if (!web3wallet) return
+
+  // Handle session deletion (e.g., dApp disconnects)
+  web3wallet.on('session_delete', ({ topic }) => {
+    console.log('Session deleted by dApp:', topic)
+    stopPollingForCancellationRequest()
   })
 
-  return await WalletKit.init({
-    core: core,
-    metadata: {
-      name: 'Paytaca',
-      description: 'Paytaca - BCH Wallet App',
-      url: 'https://www.paytaca.com',
-      icons: ['https://walletconnect.org/walletconnect-logo.png'],
+  // Handle session expiration
+  web3wallet.on('session_expire', ({ topic }) => {
+    console.log('Session expired:', topic)
+    stopPollingForCancellationRequest()
+  })
+
+  // Handle request expiration - CRITICAL for preventing hangs
+  web3wallet.on('session_request_expire', (event) => {
+    console.log('Session request expired:', event)
+    if (pendingDialog?.id === event.id) {
+      pendingDialog.handle.hide()
+      pendingDialog = null
+      stopPollingForCancellationRequest()
     }
   })
 }
 
+/**
+ * Set the pending dialog for cancellation tracking
+ */
+export function setPendingDialog(id, handle, dappName) {
+  pendingDialog = { id, handle, dappName }
+}
 
+/**
+ * Clear the pending dialog
+ */
+export function clearPendingDialog() {
+  pendingDialog = null
+  stopPollingForCancellationRequest()
+}
+
+/**
+ * Start polling for cancellation requests from dApp
+ */
+export function startPollingForCancellationRequest(callback) {
+  if (cancellationPollingInterval) return // Already polling
+
+  console.debug('Started polling for WalletConnect cancellation requests')
+  cancellationPollingInterval = setInterval(() => {
+    if (web3WalletInstance && callback) {
+      checkForCancellationRequest(callback)
+    }
+  }, 500) // Poll every 500ms
+}
+
+/**
+ * Stop polling for cancellation requests
+ */
+export function stopPollingForCancellationRequest() {
+  if (cancellationPollingInterval) {
+    clearInterval(cancellationPollingInterval)
+    cancellationPollingInterval = null
+    console.debug('Stopped polling for WalletConnect cancellation requests')
+  }
+}
+
+/**
+ * Check for queued cancellation requests
+ */
+async function checkForCancellationRequest(callback) {
+  if (!web3WalletInstance || !pendingDialog) return
+
+  try {
+    const queuedRequests = web3WalletInstance.getPendingSessionRequests()
+    for (const request of queuedRequests) {
+      if (request.params.request.method === 'bch_cancelPendingRequests') {
+        console.log('Cancelling pending WalletConnect requests as requested by dApp')
+        await callback(request)
+      }
+    }
+  } catch (error) {
+    console.error('Error checking for cancellation requests:', error)
+  }
+}
+
+/**
+ * Cancel all pending requests for a topic
+ */
+export async function cancelPendingRequestsForTopic(cancellationRequest) {
+  if (!web3WalletInstance) return
+
+  const { topic: cancellationRequestTopic, id: cancellationRequestId } = cancellationRequest
+  let cancelledCount = 0
+
+  const queuedRequests = web3WalletInstance.getPendingSessionRequests()
+
+  for (const request of queuedRequests) {
+    if (request.topic !== cancellationRequestTopic) continue
+
+    // When we reach the cancellation request itself we respond to it
+    if (request.id === cancellationRequestId) {
+      const response = {
+        id: cancellationRequestId,
+        jsonrpc: '2.0',
+        result: { cancelledCount }
+      }
+      await web3WalletInstance.respondSessionRequest({
+        topic: cancellationRequestTopic,
+        response
+      })
+      return
+    }
+
+    // Hide the pending dialog if it matches this request
+    if (pendingDialog?.id === request.id) {
+      pendingDialog.handle.hide()
+    }
+
+    // Reject the request
+    await rejectRequest(request)
+    cancelledCount++
+  }
+}
+
+/**
+ * Reject a session request
+ */
+async function rejectRequest(request) {
+  const { id, topic } = request
+
+  // Check if request is still pending
+  const stillPending = web3WalletInstance?.getPendingSessionRequests()
+    .some(r => r.id === id)
+
+  if (!stillPending) return
+
+  const response = {
+    id,
+    jsonrpc: '2.0',
+    error: getSdkError('USER_REJECTED')
+  }
+
+  try {
+    await web3WalletInstance.respondSessionRequest({ topic, response })
+  } catch (error) {
+    console.error('Error rejecting request:', error)
+  }
+}
+
+/**
+ * Reset WalletConnect state safely
+ * Uses WalletConnect's API instead of manual IndexedDB manipulation
+ */
 export async function resetWallectConnectDatabase() {
-  const request = indexedDB.open('WALLET_CONNECT_V2_INDEXED_DB');
+  if (!web3WalletInstance) {
+    console.log('No WalletConnect instance to reset')
+    return
+  }
 
-  request.onerror = (event) => {
-      console.error("Error opening database:", event.target.error);
-  };
+  try {
+    // Get all active sessions and disconnect them properly
+    const sessions = web3WalletInstance.getActiveSessions()
+    for (const [topic, session] of Object.entries(sessions)) {
+      try {
+        await web3WalletInstance.disconnectSession({
+          topic,
+          reason: getSdkError('USER_DISCONNECTED')
+        })
+      } catch (error) {
+        console.error(`Error disconnecting session ${topic}:`, error)
+      }
+    }
 
-  request.onsuccess = (event) => {
-      const db = event.target.result;
+    // Clear any pending requests
+    const pendingRequests = web3WalletInstance.getPendingSessionRequests()
+    for (const request of pendingRequests) {
+      try {
+        await rejectRequest(request)
+      } catch (error) {
+        console.error(`Error rejecting pending request ${request.id}:`, error)
+      }
+    }
 
-      db.objectStoreNames.forEach((storeName) => {
-          const transaction = db.transaction(storeName, "readwrite");
-          const objectStore = transaction.objectStore(storeName);
+    console.log('WalletConnect reset completed successfully')
+  } catch (error) {
+    console.error('Error during WalletConnect reset:', error)
+    throw error
+  }
+}
 
-          const getAllKeysRequest = objectStore.getAllKeys();
+/**
+ * Disconnect all sessions - useful for network/wallet switches
+ */
+export async function disconnectAllSessions() {
+  if (!web3WalletInstance) return
 
-          getAllKeysRequest.onsuccess = () => {
-              const keys = getAllKeysRequest.result;
+  const sessions = web3WalletInstance.getActiveSessions()
+  const disconnectPromises = Object.keys(sessions).map(async (topic) => {
+    try {
+      await web3WalletInstance.disconnectSession({
+        topic,
+        reason: getSdkError('USER_DISCONNECTED')
+      })
+    } catch (error) {
+      console.error(`Error disconnecting session ${topic}:`, error)
+    }
+  })
 
-              keys.forEach((key) => {
-                  const getRequest = objectStore.get(key);
-
-                  getRequest.onsuccess = () => {
-                      let record = getRequest.result;
-
-                      if (record && typeof record === "object") {
-                          // Create a clone to avoid modifying the original
-                          const clonedRecord = JSON.parse(JSON.stringify(record));
-
-                          // Set all properties of the cloned record to empty strings
-                          Object.keys(clonedRecord).forEach((prop) => {
-                              clonedRecord[prop] = "";
-                          });
-
-                          const updateRequest = objectStore.put(clonedRecord, key);
-                          updateRequest.onerror = (err) => {
-                              console.error(`Failed to update key ${key}:`, err.target.error);
-                          };
-                          updateRequest.onsuccess = () => {
-                              console.log(`Key ${key} updated successfully.`);
-                          };
-                      } else {
-                          // If the value is not an object, simply replace it with an empty string
-                          const updateRequest = objectStore.put("", key);
-                          updateRequest.onerror = (err) => {
-                              console.error(`Failed to update key ${key}:`, err.target.error);
-                          };
-                          updateRequest.onsuccess = () => {
-                              console.log(`Key ${key} updated successfully.`);
-                          };
-                      }
-                  };
-
-                  getRequest.onerror = () => {
-                      console.error(`Failed to retrieve key ${key}.`);
-                  };
-              });
-          };
-
-          getAllKeysRequest.onerror = () => {
-              console.error("Failed to retrieve keys from the object store.");
-          };
-      });
-  };
-
-  request.onupgradeneeded = () => {
-      console.error(
-          "The database requires an upgrade, no existing keys can be updated."
-      );
-  };
+  await Promise.all(disconnectPromises)
+  stopPollingForCancellationRequest()
 }
 
 export function parseSessionRequest(sessionRequest) {

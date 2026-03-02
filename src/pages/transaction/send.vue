@@ -28,6 +28,7 @@
           :asset-symbol="asset?.symbol || symbol || 'BCH'"
           :fiat-amount="formattedFiatAmountSent"
           :is-cash-token="isCashToken"
+          :back-path="backPath"
         />
         <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel

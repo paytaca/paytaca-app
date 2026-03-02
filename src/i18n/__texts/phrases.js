@@ -1369,6 +1369,13 @@ const phrases = {
       SelectChangeAddressHelp: 'Some of your accounts were used on one or more(D)apps. Click below if you want to send the change to one of this account.',
       WillSendChangeTo: 'Will send change to',
       ShowConnectedApps: 'Show connected apps',
+      ConnectedApps: 'Connected Apps',
+      WantsToConnect: 'wants to connect',
+      OriginLabel: 'Origin:',
+      MethodLabel: 'Method:',
+      TopicLabel: 'Topic:',
+      LoadingBalance: 'Loading balance...',
+      ShowConnectedAddress: 'Show Connected Address',
       SelectChangeAddressHint: 'Paytaca detected that one or more of your accounts were used on (D)apps. You may choose to send the change to one of this address.',
       SendTokenChangeTo: 'Send token change to',
       CheckingForActiveConnections: 'Checking for active connections',
@@ -1457,7 +1464,8 @@ const phrases = {
       MerchantMapDescription: 'Find nearby merchants in our network accepting BCH',
       MarketplaceDescription: 'Shop directly within Paytaca from merchants selling products for BCH',
       SpendBCHFooter: 'More merchants are joining the BCH network every day. Check back often for new options!',
-      ResetWalletConnect: 'Reset Wallet Connect'
+      ResetWalletConnect: 'Reset Wallet Connect',
+      ResetWalletConnectConfirmMessage: 'This will disconnect all active WalletConnect sessions and clear pending requests. Are you sure?'
     },
     {
       // LIFT Token - About Tab
