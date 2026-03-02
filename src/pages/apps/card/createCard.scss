@@ -241,10 +241,11 @@ animation: float 6s ease-in-out infinite;
 .content-box {
 	width: 100%;
 	min-height: 300px;
-	border: 2px solid black;
+	border: 2px solid currentColor;
 	border-radius: 15px;
 	padding: 20px;
-	background: white;
+
+	background: var(--q-card-background, #ffffff);
 }
 
 .q-btn--outline {

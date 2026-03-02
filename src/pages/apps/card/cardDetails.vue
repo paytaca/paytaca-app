@@ -55,9 +55,16 @@
         </div>
 
         <div class="content-box flex flex-center">
-          <div class="text-center text-grey-7">
-            Content varies based on clicked tab<br>
-            <strong>{{ activeTab }}</strong>
+          <TransactionHistory 
+            v-if="activeTab === 'Transactions' && activeCard" 
+            :card="activeCard"
+          />
+          <div v-else-if="activeTab === 'Manage Merchants'" class="flex flex-center full-height">
+            <div>Manage Merchants Content</div>
+          </div>
+
+          <div v-else-if="!activeCard" class="flex flex-center full-height">
+            <q-spinner-dots color="primary" size="40px"/>
           </div>
         </div>
       </q-page>
@@ -72,14 +79,16 @@
 <script>
 import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+import TransactionHistory from './transactionHistory.vue'
 
 export default {
   mixins: [createCardLogic],
- 
+  components: {TransactionHistory},
+
   data () {
     return {
       activeCard: null,
-      activeTab: null,
+      activeTab: 'Transactions',
     }
   },
 
@@ -105,16 +114,12 @@ export default {
           console.error("Card not found in storage");
           this.$router.push({ name: 'stacked-cards' });
         }
-      }
-
-      
-      
+      }   
     }
   }
 
 }
 </script>
-
 
 <style lang="scss" scoped>
   @import "./createCard.scss"
