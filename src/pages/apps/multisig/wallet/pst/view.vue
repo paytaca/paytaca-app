@@ -262,7 +262,7 @@
 import { useStore } from 'vuex'
 import { copyToClipboard, useInterval, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { binToHex, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
@@ -645,25 +645,23 @@ const loadPstInputsTransactionData = async () => {
   }
 }
 
+watch(() => pst.value?.status, async (newVal) => {
+  if (newVal && newVal?.txid && (newVal.status === STATUS.BROADCASTED || newVal.status === STATUS.MEMPOOL || newVal.status === STATUS.CONFIRMED)) {
+    return showBroadcastSuccessDialog(newVal.txid)
+  }
+}, { deep: true })
+
 onMounted(async () => {
   await loadSignerXPrvs()
   await loadPst()
   await loadPstInputsTransactionData()
-  
+  await pst.value.fetchStatus()
   registerInterval(() => {
-    const signingProgress = pst.value.getSigningProgress()
-    if (signingProgress.signingProgress !== 'fully-signed') {
-      pst.value.fetchAndMergeSignatures()
-      return 
+    pst.value.fetchAndMergeSignatures()
+    if (pst.value?.status?.status === STATUS.PENDING) {
+      pst.value.fetchStatus()
     }
-    removeInterval()
-  }, 5000)
-
-  const status = await pst.value.fetchStatus()
-    if (status.txid && (status.status === STATUS.BROADCASTED || status.status === STATUS.MEMPOOL || status.status === STATUS.CONFIRMED)) {
-      showBroadcastSuccessDialog(status.txid)
-    }
-
+  }, 3000) 
 })
 
 </script>
