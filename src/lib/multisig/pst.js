@@ -891,6 +891,7 @@ export class Pst {
       })
       this.vmVerificationSuccess = verificationResult
     }
+
     return { finalCompilationResult: finalCompilation, vmVerificationSuccess: this.vmVerificationSuccess }
   }
 
@@ -1285,12 +1286,27 @@ export class Pst {
 
   async delete() {
     if (!this.options?.store) return
+  
     this.options.store.commit('multisig/deletePsbt', this.unsignedTransactionHash) 
-    if (this.id) {
+
+    if (this.id && this.coordinatorInfo && this.wallet.signers.length > 0 && this.wallet?.options?.resolveXprvOfXpub) {
+
+      const coordinator = this.wallet.signers.find((s) => {
+        return s.masterFingerprint === this.coordinatorInfo.masterFingerprint
+      })
+
+      if (!coordinator) return
+
+      const coordinatorXprv = await this.wallet.options.resolveXprvOfXpub({ xpub: coordinator.xpub })
+
+      if (!coordinatorXprv) return
+
+      const authCosignerCredentials = await this.wallet.generateCosignerAuthCredentials(coordinator.xpub)
+      
       await this.options?.coordinationServer?.deleteProposal({
         id: this.id,
         walletId: this.wallet.id,
-        authCredentialsGenerator: this.wallet
+        authCosignerCredentials
       })
     }
   }
