@@ -25,7 +25,7 @@
           <div class="row items-center q-mb-sm full-width q-gutter-sm">
             <div class="text-subtitle1 q-mr-sm">{{activeCard?.raw?.alias}}</div>
             <q-badge rounded color="green" size="xs" />
-            <q-btn flat dense icon="edit" size="sm"/>
+            <q-btn flat dense icon="edit" size="sm" @click="showEditNameDialog = true"/>
           </div>
 
           <div class="virtual-card-container flex flex-center shadow-2">
@@ -72,6 +72,30 @@
       <q-page v-else class flex flex-center>
         <q-spinner-dots color="primary" size="40px" />
       </q-page>
+
+      <q-dialog v-model="showEditNameDialog">
+        <q-card style="min-width: 300px">
+          <q-card-section>
+            <div class="text-h6">Edit Card Name</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <q-input
+              v-model="newCardName"
+              filled
+              maxlength="10"
+              counter
+              autofocus
+              placeholder="Enter new card name"
+            />
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Close" color="primary" @click="showEditNameDialog = false" />
+            <q-btn flat label="Save" color="primary" @click="saveCardName" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
@@ -89,6 +113,8 @@ export default {
     return {
       activeCard: null,
       activeTab: 'Transactions',
+      showEditNameDialog: false,
+      newCardName: ''
     }
   },
 
@@ -109,12 +135,29 @@ export default {
         
         if (found) {
           this.activeCard = found
+          this.newCardName = found.raw?.alias || ''
         }
         else {
           console.error("Card not found in storage");
           this.$router.push({ name: 'stacked-cards' });
         }
       }   
+    },
+    saveCardName () {
+      if (this.newCardName && this.newCardName.trim()) {
+        this.activeCard.raw.alias = this.newCardName.trim()
+        
+        const savedCards = localStorage.getItem('mock_subcards')
+        if (savedCards) {
+          const allCards = JSON.parse(savedCards)
+          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+          if (cardIndex !== -1) {
+            allCards[cardIndex] = this.activeCard
+            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+          }
+        }
+      }
+      this.showEditNameDialog = false
     }
   }
 
