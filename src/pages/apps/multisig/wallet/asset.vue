@@ -55,14 +55,10 @@
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="send" class="col-12" color="primary" style="position:relative">
-                        <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
-                        {{ transactions?.length }}
-                        </q-badge>
                       </q-icon>
                       <div class="col-12 tile-label">{{ $t('Send') }}</div>
                     </div>
                   </template>
-                  
                 </q-btn>
               </div>
             </div>
@@ -121,19 +117,6 @@
               <template v-else>
                 <div class="col-12 row br-15 pt-card" :class="getDarkModeClass(darkMode)"
                   :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`" >
-                    <!-- <button
-                      v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
-                      class="btn-custom q-mt-none"
-                      :class="[
-                        darkMode ? 'text-light' : 'text-dark', 
-                        `btn-${transactionFilterOpt.value}`,
-                        {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
-                      ]"
-                      @click="setTransactionsFilter(transactionFilterOpt.value)"
-                    >
-                      {{ transactionFilterOpt?.label }}
-                    </button> -->
-                    
                     <q-btn 
                       class="btn-custom q-mt-none col-4"
                       :class="[
@@ -269,7 +252,8 @@ const historyRecordTypeMap = {
 } 
 
 const {
-  getAssetTokenIdentity 
+  getAssetTokenIdentity,
+  multisigCoordinationServer
 } = useMultisigHelpers()
 
 const darkMode = computed(() => {
@@ -284,15 +268,19 @@ const wallet = computed(() => {
       store: $store,
       provider: new WatchtowerNetworkProvider({
         network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-      })
+      }),
+      coordinationServer: multisigCoordinationServer
     })
   }
   return null
 })
 
-const psbts = computed(() => {
+const proposals = computed(() => {
   return $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
 })
+
+const proposalsFromServer = ref([])
+
 
 const assetHeaderName = computed(() => {
   if (route.query.asset === 'bch') return 'BCH'
@@ -317,11 +305,16 @@ const assetPrice = computed(() => {
   }
 })
 
-const send = () => {
-  if (psbts && psbts.value?.length > 0) {
+const send = async () => {
+  
+  if (!proposals || proposals.value.length === 0) {
+    proposalsFromServer.value = await wallet.value?.fetchProposals()
+  }
+  
+  if (proposals && proposals.value?.length > 0 || proposalsFromServer.value?.length > 0) {
     $q.dialog({
       title: $t('NotAllowed'),
-      message: $t('TransactionProposalPending', { count: psbts.value?.length }, `You have ${psbts.value?.length} transaction proposal pending. This feature doesn't support creating of tx proposal while there's atleast 1 pending! This will change in the future.`),
+      message: $t('TransactionProposalPending', { count: proposals.value?.length || proposalsFromServer.value?.length }),
       class: `pt-card br-15 text-bow ${getDarkModeClass(darkMode.value)}`,
       ok: {
         rounded: true,
@@ -422,6 +415,7 @@ const refreshPage = async (done) => {
     if (done) done()
   }
 }
+
 
 onMounted(async () => {
   const tokenCategory = route.query.asset !== 'bch'? route.query.asset : '' 
