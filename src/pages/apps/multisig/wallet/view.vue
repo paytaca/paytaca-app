@@ -219,7 +219,7 @@ import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { useQuasar, useInterval } from 'quasar'
 import Big from 'big.js'
 import { binToBase64, sortObjectKeys } from 'bitauth-libauth-v3'
 import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
@@ -243,6 +243,7 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { registerInterval, removeInterval } = useInterval()
 const { 
   multisigCoordinationServer, 
   multisigNetworkProvider, 
@@ -613,9 +614,19 @@ const onUpdateTransactionFile = (file) => {
 }
 
 const queryServerForProposals = async () => {
-  
   if ((!proposals.value || proposals.value?.length === 0) && wallet.value?.id) {
     proposalsFromServer.value = await wallet.value?.fetchProposals()
+    registerInterval(() => {
+      if (proposals.value?.length > 0 || proposalsFromServer.value?.length > 0) {
+        removeInterval()
+        return
+      }
+      wallet.value?.fetchProposals().then((p) => {
+        if ((!proposals.value || proposals.value?.length === 0) && wallet.value?.id) {
+          proposalsFromServer.value = p
+        }
+      })
+    }, 5000)
   }
 }
 
