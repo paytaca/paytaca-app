@@ -33,8 +33,8 @@
 					<div
 						v-for="(promo, index) in searchResult"
 						:key="index"
-						class="promo-result"
-						:class="darkMode ? 'text-white' : 'text-black'"
+						class="promo-result"						
+						:class="darkMode ? 'text-white' : 'text-grey-9'"
 						@click="selectPromo(promo)"
 					>
 						<div class="md-font-size text-weight-bold text-overflow">

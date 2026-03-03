@@ -20,14 +20,22 @@
 		<q-separator :dark="darkMode" class="q-my-md"/>
 
 		<!-- Sort Type -->
-		<div class="md-fomt-size text text-weight-bold">Sort Type</div>
+		<div class="text text-weight-bold">Sort Type</div>
 		<div class="q-gutter-sm q-pt-sm">			
 			<q-badge class="q-px-sm q-py-sm" rounded :outline="filterData.sort_type !== 'DESCENDING'" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Default: Newest First" @click="updateFilter('sort_type', 'DESCENDING')"/>
 			<q-badge class="q-px-sm q-py-sm" rounded :outline="filterData.sort_type !== 'ASCENDING'" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Oldest First" @click="updateFilter('sort_type', 'ASCENDING')"/>
 		</div>
 
+		<!-- Status -->
+		<div class="text text-weight-bold q-pt-md">Status</div>
+		<div class="q-gutter-sm q-pt-sm">
+			<q-badge size="md" class="q-px-sm q-py-sm" rounded :outline="!isAllStatusSelected" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Default: ALL" @click="updateFilter('status', 'ALL')"/>
+			<q-badge size="md" class="q-px-sm q-py-sm" rounded color="red" label="Clear" @click="updateFilter('status', 'CLEAR')"/>
+			<q-badge v-for="status in filterOption.status" size="md" class="q-px-sm q-py-sm text-capitalize" rounded :outline="!selectedStatus.includes(status)" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" :label="status" @click="updateFilter('status', status)"/>			
+		</div>
+
 		<!-- Services -->
-		<div class="md-font-size text text-weight-bold q-pt-md">Services</div>
+		<div class="text text-weight-bold q-pt-md">Services</div>
 		<div class="q-gutter-sm q-pt-sm" v-if="filterOption.services">			
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded :outline="!isAllServicesSelected" :color="darkMode ? 'blue-grey-5' : 'blue-grey-6'" label="Default: ALL" @click="updateFilter('service', 'ALL')"/>
 			<q-badge size="md" class="q-px-sm q-py-sm" rounded color="red" label="Clear" @click="updateFilter('service', 'CLEAR')"/>
@@ -69,12 +77,14 @@ export default {
 			filterDialog: false,
 			filterData: {
 				sort_type: 'DESCENDING',
-				service: []
+				service: [],
+				status: []
 			},
 			loading: true,				
 			filterOption: {
 				services: [],
-				sort_types: [ 'DESCENDING', 'ASCENDING']				
+				sort_types: [ 'DESCENDING', 'ASCENDING'],
+				status: ['success', 'pending', 'failed']			
 			}
 		}
 	},
@@ -86,10 +96,17 @@ export default {
 		selectedServices () {
 			return Array.isArray(this.filterData?.service) ? this.filterData.service : []
 		},
+		selectedStatus () {
+			return this.filterData.status
+		},
 		isAllServicesSelected() {			
 			const allCount = Array.isArray(this.filterOption?.services) ? this.filterOption.services.length : 0
 			if (allCount <= 0) return false
 			return this.selectedServices.length === allCount
+		},
+		isAllStatusSelected () {
+			const allCount = this.filterOption.status.length				
+			return this.selectedStatus.length === allCount
 		}
 	},
 	emits: ['submitData'],
@@ -128,7 +145,7 @@ export default {
 			const cloned = vm.clonePlainObject(filters)
 
 			vm.filterData = cloned || {}
-			if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'
+			if (!vm.filterData.sort_type) vm.filterData.sort_type = 'DESCENDING'						
 
 			// Service filter behavior:
 			// - If not an array: default to ALL when services exist; otherwise empty array.
@@ -163,6 +180,20 @@ export default {
 						this.filterData.service.push(data)
 					}
 				}				
+			} else if (type === 'status') {
+				if (data === 'ALL') {
+					if (!this.isAllStatusSelected) {
+						this.filterData.status = this.filterOption.status
+					}
+				}else if (data === 'CLEAR') {
+					this.filterData.status = []
+				} else {
+					if (this.filterData.status.includes(data)) {
+						this.filterData.status = this.filterData.status.filter(item => item !== data)
+					} else {
+						this.filterData.status.push(data)
+					}
+				}
 			} else {
 				this.filterData[type] = data
 			}			
@@ -173,6 +204,7 @@ export default {
 		resetFilters () {
 			this.filterData.sort_type = 'DESCENDING'
 			this.setServiceAll()
+			this.filterData.status = this.filterOption.status
 		},
 		setServiceAll () {
 			this.ensureServiceArray()
@@ -182,12 +214,8 @@ export default {
 	mounted () {		
 		const vm = this
 		
-	    vm.filterOption.services = vm.services || []
-	    vm.applyIncomingFilters(vm.filters, { defaultAllIfEmpty: true })
-	    
-
-		// initalize service filter
-		// this.setServiceAll()		
+		vm.filterOption.services = vm.services || []
+		vm.applyIncomingFilters(vm.filters, { defaultAllIfEmpty: true })	 	  
 
 		vm.loading = false
 	}

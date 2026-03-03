@@ -26,18 +26,19 @@
 			</div>			
 		</div>
 
-		<div v-if="step > 2 && filters.category">
-			<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Category</div>
+		<div v-if="showCategory">
+			<div v-if="step > 2 && filters.category">
+				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Category</div>
 
-			<div class="row justify-between">
-				<div class="text-weight-bold">
-					{{ category }}
+				<div class="row justify-between">
+					<div class="text-weight-bold">
+						{{ category }}
+					</div>
+					
+					<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('category')"/>
 				</div>
-				
-				<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('category')"/>
 			</div>
-		</div>	
-
+		</div>			
 	</q-card>
 </template>
 <script>
@@ -55,7 +56,11 @@ export default {
 			type: Object,
 			default: null
 		},
-		step: Number,		
+		step: Number,
+		showCategory: {
+			type: Boolean,
+			default: true
+		}	
 	},
 	computed: {
 		serviceMeta () {
