@@ -14,7 +14,6 @@ const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY || '8473d94f604de351cdee3030f6c354d36b257861ad8e95bbc0a06fbab2a2f9cf'
-export const MAX_REDEEMABLE_RFP = 10000
 
 export const Promos = {
   USERREWARDS: 'ur',
@@ -141,6 +140,12 @@ export async function getUserRewardsData (id) {
 
 export async function getRfPromoData (id) {
   return await getData(`rfpromo/${id}/`)
+}
+
+export async function getRpMaxRedeemable () {
+  const rpMax = await getData('rfpromo/get_rp_max_redeemable/')
+  // fallback to original 10_000 when something goes wrong with server fetch
+  return rpMax && Object.keys(rpMax).length > 0 ? rpMax.rp_max : 10000
 }
 
 // ========== create functions ==========

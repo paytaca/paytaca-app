@@ -86,15 +86,15 @@
                     {{ $t(
                         'PercentageUsed',
                         { 
-                          percent: Math.round(redeemedPoints / MAX_REDEEMABLE_RFP * 100),
+                          percent: Math.round(redeemedPoints / rpMax * 100),
                           points: redeemedPoints
                         },
-                        `${Math.round(redeemedPoints / MAX_REDEEMABLE_RFP * 100)}% (${redeemedPoints} points) used`
+                        `${Math.round(redeemedPoints / rpMax * 100)}% (${redeemedPoints} points) used`
                       ) }}
                   </span>
                 </div>
                 <q-linear-progress
-                  :value="redeemedPoints / MAX_REDEEMABLE_RFP"
+                  :value="redeemedPoints / rpMax"
                   color="primary"
                   class="rounded-borders"
                   size="8px"
@@ -229,13 +229,13 @@ import { ensureKeypair } from 'src/utils/memo-service'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import {
-  MAX_REDEEMABLE_RFP,
   Promos,
   PromosBytes,
   convertPoints,
   getRfPromoData,
   createRfPromoData,
   updateRfPromoData,
+  getRpMaxRedeemable,
   updateUserPromoData,
 } from 'src/utils/engagementhub-utils/rewards'
 
@@ -268,7 +268,6 @@ export default {
   data () {
     return {
       Promos,
-      MAX_REDEEMABLE_RFP,
       
       isLoading: false,
       isHelpActive: false,
@@ -281,6 +280,7 @@ export default {
       rpContract: null,
       pointsError: '',
       dataError: '',
+      rpMax: 0,
 
       referralsList: []
     }
@@ -294,7 +294,7 @@ export default {
       return this.$store.getters['global/theme']
     },
     getRemainingRedeemable () {
-      return MAX_REDEEMABLE_RFP - this.redeemedPoints
+      return this.rpMax - this.redeemedPoints
     },
     pointsConvertion () {
       return convertPoints(this.points, this.pointsDivisor)
@@ -345,6 +345,7 @@ export default {
       }
 
       if (rpData && Object.keys(rpData).length > 0) {
+        this.rpMax = await getRpMaxRedeemable()
         this.redeemedPoints = rpData.redeemed_points
         this.referralCode = rpData.referral_code
         this.referralsList = rpData.rfp_referrals.sort((a, b) => {
