@@ -181,20 +181,52 @@ animation: float 6s ease-in-out infinite;
 	background: white;
 	border: 2px solid black;
 	border-radius: 15px;
-	transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-	&:hover {
-		transform: translateY(-10px); // pop up effect on hover
-	}
+	overflow: hidden;
 
 	// for swiping card events
-	user-select: none; // prevents the cursor from turning into a text-selector
-	touch-action: none; // prevents the browser from handled the drag
-	cursor: grab; // visual feedback that the object is movable
-	&:active {
+	user-select: none;
+	touch-action: none;
+	cursor: grab;
+	
+	&:active, &.is-dragging {
 		cursor: grabbing;
 	}
 
+}
+
+// Grabbable handle at the top of each card
+.card-handle {
+	width: 100%;
+	height: 30px;
+	background: rgba(25, 118, 210, 0.25);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: grab;
+	position: relative;
+	flex-shrink: 0;
+	
+	&:active {
+		cursor: grabbing;
+		background: rgba(25, 118, 210, 0.4);
+	}
+}
+
+.handle-indicator {
+	width: 50px;
+	height: 4px;
+	background: rgba(255, 255, 255, 0.9);
+	border-radius: 3px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.card-info {
+	padding: 8px 12px;
+	background: white;
+	flex-shrink: 0;
 }
 
 .front-wallet-card {
