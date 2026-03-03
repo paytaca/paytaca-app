@@ -360,7 +360,7 @@ const loadActiveSessions = async ({ showLoading } = { showLoading: true }) => {
   try {
     if (web3Wallet.value) {
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
-      const sessions = await web3Wallet.value.getActiveSessions()
+      const sessions = web3Wallet.value.getActiveSessions()
       activeSessions.value = Object.fromEntries(
         Object.entries(sessions).filter(([topicKey, sessionValue]) => {
           return sessionValue.namespaces?.bch?.chains?.includes(chainIdFilter)
@@ -545,7 +545,7 @@ const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, 
   const multisigMap = new Map()
   if (multisigWallets?.length) {
     multisigWallets.forEach(wallet => {
-      const fullAddress = wallet?.address
+      const fullAddress = wallet?.getDepositAddress(0).address
       // Skip if address is missing or invalid
       if (!fullAddress || typeof fullAddress !== 'string') {
         return
@@ -1188,49 +1188,52 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      // if (wallet.template) { // Account with active session is a multisig wallet
-      //   const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
-      //     sessionRequest,
-      //     addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
-      //   })
-      //   const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
-      //   await $store.dispatch('multisig/createTransaction', {
-      //     multisigWallet: wallet,
-      //     multisigTransaction
-      //   })
-      //   await web3Wallet.value.respondSessionRequest({
-      //     topic: sessionRequest.topic,
-      //     response: {
-      //       id: sessionRequest.id,
-      //       jsonrpc: '2.0',
-      //       result: {
-      //         status: 'accepted',
-      //         walletType: 'p2shMultisig',
-      //         walletLockingType: 'p2shMultisig',
-      //         walletSpec: {
-      //           m: getRequiredSignatures(wallet.template),
-      //           n: getTotalSigners(wallet.template),
-      //           sigAlgo: 'schnorr'
-      //         },
-      //         message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
-      //         statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
-      //         txid: unsignedTransactionHash,
-      //         unsignedHash: unsignedTransactionHash,
-      //         txidIsUnsignedHash: true
-      //       }
-      //     }
-      //   })
-      //   return $router.push({
-      //     name: 'app-multisig-wallet-transaction-view',
-      //     params: {
-      //       address: wallet.address,
-      //       hash: unsignedTransactionHash
-      //     },
-      //     query: {
-      //       backnavpath: '/apps/wallet-connect'
-      //     }
-      //   })
-      // }
+      if (wallet.signers) {
+        const proposal = await wallet.createProposalFromWcSessionRequest(sessionRequest)
+
+        let statusUrl = `https://watchtower.cash/api/multisig/proposals/${proposal.unsignedTransactionHash}/status/`
+
+        if (isChipnet.value) {
+          `https://chipnet.watchtower.cash/api/multisig/proposals/${proposal.unsignedTransactionHash}/status/`
+        }
+
+        await web3Wallet.value.respondSessionRequest({
+          topic: sessionRequest.topic,
+          response: {
+            id: sessionRequest.id,
+            jsonrpc: '2.0',
+            result: {
+              status: 'accepted',
+              walletType: 'p2shMultisig',
+              walletLockingType: 'p2shMultisig',
+              walletSpec: {
+                m: proposal.wallet.m,
+                n: proposal.wallet.signers.length,
+                sigAlgo: 'schnorr'
+              },
+              message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
+              txid: proposal.unsignedTransactionHash,
+              unsignedHash: proposal.unsignedTransactionHash,
+              txidIsUnsignedHash: true,
+              statusUrl
+            }
+          }
+        })
+
+        await proposal.save({ sync: true })
+
+        return $router.push({
+          name: 'app-multisig-wallet-pst-view',
+          params: {
+            wallethash: proposal.wallet.walletHash,
+            unsignedtransactionhash: proposal.unsignedTransactionHash
+          },
+          query: {
+            backnavpath: '/apps/wallet-connect'
+          }
+        })
+      }
+      
       if (!wallet?.wif) {
         return await new Promise((resolve, reject) => {
           $q.dialog({
@@ -1256,6 +1259,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       }
       processingSession.value[sessionRequest.topic] = 'Confirming request'
     } catch (err) {
+      console.log("ERROR", err)
       response.error = {
         code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
@@ -1594,6 +1598,7 @@ const refreshComponent = async (showLoading = true) => {
 watch(
   [() => activeSessions.value, () => walletAddresses.value, () => multisigWallets.value],
   ([newActiveSessions, newWalletAddresses, newMultisigWallets]) => {
+
     // Execute async mapping operation (non-blocking)
     // The function uses Watchtower API for on-demand lookups, so it's already optimized
     // Still defer slightly to allow UI to remain responsive during initialization
@@ -1672,7 +1677,6 @@ watch(
   async (newValue, oldValue) => {
     // Only handle if network actually changed and component is mounted
     if (oldValue !== undefined && newValue !== oldValue && web3Wallet.value) {
-      console.log(`Network changed from ${oldValue ? 'chipnet' : 'mainnet'} to ${newValue ? 'chipnet' : 'mainnet'}`)
 
       // IMPORTANT: Disconnect all WalletConnect sessions when switching networks
       // Sessions are network-specific and cannot be reused across networks
