@@ -37,10 +37,10 @@
             </div>
             <div class="col">
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                {{ $t('BuyBCHWithLocalCurrency', {}, 'Buy BCH With Local Currency') }}
+                {{ $t('CashIn', {}, 'Cash In') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('BuyBCHDescription', {}, 'Purchase Bitcoin Cash through P2P Ramp with your local currency') }}
+                {{ $t('CashInDescription', {}, 'Buy BCH with local currency') }}
               </div>
             </div>
             <div class="col-auto">
@@ -64,10 +64,10 @@
             </div>
             <div class="col">
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                {{ $t('SwapFromOtherCryptocurrencies', {}, 'Swap From Other Cryptocurrencies') }}
+                {{ $t('Swap', {}, 'Swap') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('SwapFromCryptosDescription', {}, 'Exchange other cryptocurrencies for Bitcoin Cash') }}
+                {{ $t('SwapDescription', {}, 'Swap other cryptos like BTC, ETH, SOL, etc. to BCH') }}
               </div>
             </div>
             <div class="col-auto">
@@ -90,10 +90,10 @@
             </div>
             <div class="col">
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                {{ $t('AcceptBCHPayments', {}, 'Accept BCH Payments') }}
+                {{ $t('Accept', {}, 'Accept') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('AcceptBCHPaymentsShortDescription', {}, 'Get onboarded as a BCH-accepting merchant using Paytaca POS') }}
+                {{ $t('AcceptDescription', {}, 'Accept BCH payments as a merchant') }}
               </div>
             </div>
             <div class="col-auto">
@@ -116,10 +116,10 @@
             </div>
             <div class="col">
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                {{ $t('CollectBCHCashdrops', {}, 'Collect BCH Cashdrops With PurelyPeer') }}
+                {{ $t('Collect', {}, 'Collect') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('PurelyPeerDescription', {}, 'Find and collect hidden Bitcoin Cash cashdrops around quest centers') }}
+                {{ $t('CollectDescription', {}, 'Collect BCH cashdrops with PurelyPeer') }}
               </div>
             </div>
             <div class="col-auto">
@@ -142,10 +142,10 @@
             </div>
             <div class="col">
               <div class="text-h6 text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
-                {{ $t('EarnBCHWithWorkHippo', {}, 'Earn BCH With WorkHippo') }}
+                {{ $t('Earn', {}, 'Earn') }}
               </div>
               <div class="text-body2" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                {{ $t('WorkHippoDescription', {}, 'Earn Bitcoin Cash by completing freelance work on WorkHippo') }}
+                {{ $t('EarnDescription', {}, 'Earn BCH with WorkHippo') }}
               </div>
             </div>
             <div class="col-auto">

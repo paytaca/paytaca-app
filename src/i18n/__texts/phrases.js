@@ -67,6 +67,9 @@ const phrases = {
       GetBCH: "Get BCH",
       AddMemo: "Add memo",
       DateAndTime: "Date & Time",
+      BalanceIncludes: "Balance includes: ",
+      ChooseBalanceAssetsCaption: "Choose which assets are included in computing BCH balance of your wallet",
+      BalanceModeTitle: "Balance",
       BCHOnly: "BCH only",
       BCHPlusFavorites: "BCH + favorite tokens",
       DerivationPath: "Derivation Path",
@@ -272,6 +275,12 @@ const phrases = {
       PerformingTrade: 'Performing trade',
       CauldronUsePoolPricingWarning: 'Submitting liquidity at a price that differs from the market can lead to instant arbitrage opportunities, potentially resulting in financial losses for you. Please proceed with caution.',
       CauldronTokenSelectSearchSuggestion: 'Find more tokens by searching token name or symbol',
+      CauldronAmountAdjusted: 'The amount was rounded to {actual} (you entered {expected}).',
+      CauldronRoundingShortBuy: 'Final amounts may vary slightly due to rounding. You may receive a small surplus based on current rates. Difference: {diff} {symbol}',
+      CauldronRoundingDetailedBuy: "Trades settle in whole-number base units on the Bitcoin Cash network. Because fractional units aren't supported, exchange amounts are rounded to the nearest valid integer. This may result in a small surplus being credited to you.",
+      CauldronRoundingShortSell: 'Final amounts may vary slightly due to rounding. A small portion of tokens may remain unsold based on current rates. Difference: {diff} {symbol}',
+      CauldronRoundingDetailedSell: "Trades settle in whole-number base units on the Bitcoin Cash network. Since fractional units can't be processed, amounts are rounded to the nearest valid integer. A small portion may remain unsold and stay in your balance.",
+      CauldronRoundingLearnMore: 'Learn more',
       AddLiquidity: 'Add Liquidity',
       APY: 'APY',
       BasedOnSelectedPeriod: 'Based on selected period',
@@ -330,6 +339,8 @@ const phrases = {
       OnBoardSettingDescription: "Adjust settings to fit your native experience",
       POSAdmin: "POS Admin",
       RenameWallet: "Rename Wallet",
+      NameYourWallet: "Name Your Wallet",
+      WalletNameDescription: "Give your wallet a custom name",
       ShowTokens: "Show Tokens",
       SwitchWallet: "Switch Wallet",
       SwitchingWallet: "Switching wallet",
@@ -355,6 +366,7 @@ const phrases = {
       ViewIgnoredTokens: "View ignored tokens",
       ViewInExplorer: "View in explorer",
       ViewTokens: "View Tokens",
+      ViewTransactions: "View Transactions",
       ViewTransactionInExplorer: "View transaction in explorer",
       WaitingSmartBchTransaction: "Waiting for transaction in Smart BCH",
       WaitingBchTransaction: "Waiting for transaction in Bitcoin Cash",
@@ -1136,6 +1148,10 @@ const phrases = {
       CreatingTransaction: 'Creating transaction',
       WaitingForTransactionToComplete: 'Waiting for transaction to complete',
       TransactionSentButTookLongerToComplete: 'Transaction sent but took longer to complete',
+      TransactionSentSuccessfully: 'Transaction Sent Successfully!',
+      TransactionReceived: 'Transaction Received',
+      TransactionReceivedSuccessfully: 'Transaction Received Successfully!',
+      ConsolidationTransactionNote: 'This transaction consolidates funds within your wallet.',
     }, 
     {
       Volume24hr: 'Volume (24 hr)',
@@ -1353,6 +1369,13 @@ const phrases = {
       SelectChangeAddressHelp: 'Some of your accounts were used on one or more(D)apps. Click below if you want to send the change to one of this account.',
       WillSendChangeTo: 'Will send change to',
       ShowConnectedApps: 'Show connected apps',
+      ConnectedApps: 'Connected Apps',
+      WantsToConnect: 'wants to connect',
+      OriginLabel: 'Origin:',
+      MethodLabel: 'Method:',
+      TopicLabel: 'Topic:',
+      LoadingBalance: 'Loading balance...',
+      ShowConnectedAddress: 'Show Connected Address',
       SelectChangeAddressHint: 'Paytaca detected that one or more of your accounts were used on (D)apps. You may choose to send the change to one of this address.',
       SendTokenChangeTo: 'Send token change to',
       CheckingForActiveConnections: 'Checking for active connections',
@@ -1441,7 +1464,8 @@ const phrases = {
       MerchantMapDescription: 'Find nearby merchants in our network accepting BCH',
       MarketplaceDescription: 'Shop directly within Paytaca from merchants selling products for BCH',
       SpendBCHFooter: 'More merchants are joining the BCH network every day. Check back often for new options!',
-      ResetWalletConnect: 'Reset Wallet Connect'
+      ResetWalletConnect: 'Reset Wallet Connect',
+      ResetWalletConnectConfirmMessage: 'This will disconnect all active WalletConnect sessions and clear pending requests. Are you sure?'
     },
     {
       // LIFT Token - About Tab
@@ -2071,6 +2095,8 @@ const phrases = {
       PaymentTransactionId: 'Payment Transaction ID',
       FailedToGetContractData: 'Failed to get contract data. Please try again later.',
       FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',
+      SLPLimitedWarning: 'SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.',
+      TokensInstruction: 'Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens.'
     }
   ],
   dynamic: [

@@ -1,68 +1,6 @@
 <template>
   <div>
     <div class="row items-center q-gutter-y-xs">
-      <div class="col-xs-12 text-right q-mb-md">
-        <!-- <q-btn icon="refresh" @click.stop="() => refreshComponent()" flat></q-btn> -->
-        <q-btn icon="settings" flat dense>
-          <q-menu fit anchor="bottom start" self="top end" class="br-15 pt-card q-py-md text-bow" :class="getDarkModeClass(darkMode)">
-            <q-item>
-              <q-item-section>
-                {{ $t('AddressDisplayFormat') }}
-              </q-item-section>
-              <q-item-section side>
-                <q-btn-group rounded>
-                  <q-btn
-                    @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'cashaddr')"
-                    :color="settings.addressDisplayFormat === 'cashaddr' ? 'primary': 'grey'"
-                    :outline="settings.addressDisplayFormat !== 'cashaddr'"
-                    size="sm"
-                    no-caps
-                    dense
-                    >
-                    cashaddr
-                  </q-btn>
-                  <q-btn
-                    @click="() => $store.commit('walletconnect/setAddressDisplayFormatSetting', 'tokenaddr')"
-                    :color="settings.addressDisplayFormat === 'tokenaddr' ? 'primary': 'grey'"
-                    :outline="settings.addressDisplayFormat !== 'tokenaddr'"
-                    size="sm"
-                    no-caps
-                    dense
-                    >
-                    tokenaddr
-                  </q-btn>
-                </q-btn-group>
-              </q-item-section>
-            </q-item>
-            <q-separator></q-separator>
-            <q-item>
-              <q-item-section>
-                <div style="position:relative">
-                  <span class="q-mr-xs">{{ $t('ShowConnectedApps') }}</span>
-                  <q-badge :color="activeSessionsCount > 0 ? 'green' : 'grey'">
-                  {{ activeSessionsCount }}
-                  </q-badge>
-                </div>
-              </q-item-section>
-              <q-item-section side>
-                <q-toggle
-                  v-model="showActiveSessions"
-                  left-label
-                  :disable="Boolean(loading) || activeSessionsCount === 0"
-                  checked-icon="check"
-                  unchecked-icon="clear"
-                  color="primary"
-                >
-                </q-toggle>
-              </q-item-section>
-            </q-item>
-            <q-separator></q-separator>
-            <q-item>
-              <span @click="resetWallectConnect">{{ $t('ResetWalletConnect') }}<q-icon name="danger" /></span>
-            </q-item>
-          </q-menu>
-        </q-btn>
-      </div>
       <div class="col-xs-12">
         <div class="send-option-card pt-card q-mb-md q-pa-lg br-15" :class="getDarkModeClass(darkMode)">
             <div class="send-option-header">
@@ -198,25 +136,13 @@
           </div>
         </div>
         <div class="row">
-          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold text-right q-px-sm">
-            <q-toggle
-              v-model="showActiveSessions"
-              left-label
-              :disable="Boolean(loading)"
-              color="primary"
-            >
-            <div class="row items-center">
-              <div style="position:relative">
-                <span class="q-mr-xs">{{ $t('ShowConnectedApps') }}</span>
-                <q-badge v-if="activeSessionsCount > 0" color="green">
-                {{ activeSessionsCount }}
-                </q-badge>
-              </div>
-            </div>
-            </q-toggle>
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm">
+            <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
+            <q-badge v-if="activeSessionsCount > 0" color="green" class="q-ml-sm">
+              {{ activeSessionsCount }}
+            </q-badge>
           </div>
-          <div v-if="activeSessionsCount > 0 && showActiveSessions" class="col-xs-12 q-gutter-y-sm">
-            <q-separator spaced></q-separator>
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 q-gutter-y-sm">
             <SessionInfo
               v-for="activeSession in activeSessionsArray"
               :session="activeSession"
@@ -253,7 +179,21 @@
 import { computed, onMounted, onUnmounted, ref, onBeforeMount, watchEffect, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { initWeb3Wallet, resetWallectConnectDatabase, parseSessionRequest, signBchTransaction, signMessage } from 'src/wallet/walletconnect2'
+import {
+  initWeb3Wallet,
+  getWeb3Wallet,
+  isWalletConnectInitialized,
+  resetWallectConnectDatabase,
+  disconnectAllSessions,
+  parseSessionRequest,
+  signBchTransaction,
+  signMessage,
+  setPendingDialog,
+  clearPendingDialog,
+  startPollingForCancellationRequest,
+  stopPollingForCancellationRequest,
+  cancelPendingRequestsForTopic
+} from 'src/wallet/walletconnect2'
 import { convertCashAddress, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { loadLibauthHdWallet } from 'src/wallet'
 import axios from 'axios'
@@ -326,7 +266,6 @@ const walletAddresses = ref([])
  * @type {import("vue").Ref<Record<String, SingleWalletInfo>>}
  * */
 const sessionTopicWalletAddressMapping = ref({})
-const showActiveSessions = ref(false)
 const activeSessions = ref({})
 const whitelistedMethods = ['bch_getAddresses', 'bch_getAccounts']
 const sessionProposals = ref([])
@@ -338,9 +277,21 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
 
-// Convert activeSessions object to array for efficient v-for iteration
-const activeSessionsArray = computed(() => Object.values(activeSessions.value || {}))
-const activeSessionsCount = computed(() => Object.keys(activeSessions.value || {}).length)
+// Filter activeSessions to only include sessions belonging to the current wallet
+// Sessions that belong to the current wallet will have mappings in sessionTopicWalletAddressMapping
+const filteredActiveSessions = computed(() => {
+  const sessions = activeSessions.value || {}
+  const mappings = sessionTopicWalletAddressMapping.value || {}
+  
+  // Only include sessions that have mappings (meaning their addresses belong to current wallet)
+  return Object.fromEntries(
+    Object.entries(sessions).filter(([topic]) => mappings[topic])
+  )
+})
+
+// Convert filtered activeSessions object to array for efficient v-for iteration
+const activeSessionsArray = computed(() => Object.values(filteredActiveSessions.value || {}))
+const activeSessionsCount = computed(() => Object.keys(filteredActiveSessions.value || {}).length)
 
 const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
@@ -1016,47 +967,37 @@ const disconnectSession = async (activeSession) => {
 
 const openManualAddressEntryDialog = async (sessionProposal) => {
   try {
-    const addressAddressIndexAndWif = await new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       $q.dialog({
         component: ManualAddressEntryDialog,
         componentProps: {
-          darkMode: darkMode.value
+          darkMode: darkMode.value,
+          validateAddress: async (address, addressIndex) => {
+            return await $store.dispatch('global/depositAddressIsFromWallet', { 
+              address, addressIndex
+            })
+          }
         }
       })
-      .onOk(async(payload) => {
-        const { ok, addressIndex, address, wif } = 
-          await $store.dispatch('global/depositAddressIsFromWallet', { 
-            address: payload.address, addressIndex: payload.addressIndex
-          })
-          if (ok) {
-            return resolve({ address, addressIndex, wif }) 
-          }
-        reject(new Error($t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')))
+      .onOk((payload) => {
+        resolve(payload)
       })
       .onCancel(() => {
-        // Just close the dialog and return control to SelectAddressForSessionDialog
         reject(new Error('MANUAL_ADDRESS_ENTRY_CANCELLED'))
       })
     })
-    return addressAddressIndexAndWif
+    if (result) {
+      return {
+        address: result.address,
+        address_index: result.addressIndexResult ?? result.addressIndex,
+        wif: result.wif
+      }
+    }
   } catch (error) {
     if (error.message === 'MANUAL_ADDRESS_ENTRY_CANCELLED') {
-      // Just return undefined to give control back to SelectAddressForSessionDialog
       openAddressSelectionDialog(sessionProposal)
-      return
     }
-    $q.dialog({
-      title: 'Error',
-      message: error.message,
-      ok: {
-        rounded: true,
-        label: $t('Ok'),
-        noCaps: true,
-        color: 'primary'
-      },
-      class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
-    })
-  }   
+  }
 }
 
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
@@ -1221,7 +1162,6 @@ const approveSessionProposal = async (sessionProposal) => {
     // Now safe to delete pairingTopic mapping (session.topic is already in activeSessions, so it's protected)
     delete sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic]
     processingSession.value[sessionProposal.pairingTopic] = ''
-    showActiveSessions.value = true
     await saveConnectedApp(session)
     const deffered = [loadSessionProposals(), $store.dispatch('global/loadWalletConnectedApps')]
     const isMultisigWallet = Boolean(selectedAddress.template)
@@ -1466,21 +1406,28 @@ const rejectSessionRequest = async (sessionRequest) => {
   } catch (error) {} finally { await loadSessionRequests({ showLoading: false }) }
 }
 
-const disconnectAllSessions = async () => {
-  const sessions = await web3Wallet.value.getActiveSessions()
-  for (const topic of Object.keys(sessions)) {
-    await web3Wallet.value.disconnectSession({
-      topic: topic,
-      reason: getSdkError('USER_DISCONNECTED')
-    })
-  }
-}
-
 const resetWallectConnect = async (opts = { silent: false }) => {
-  await disconnectAllSessions()
-  await resetWallectConnectDatabase()
-  await loadActiveSessions()
-  if (!opts?.silent) alert('Reset done!')
+  try {
+    await disconnectAllSessions()
+    await resetWallectConnectDatabase()
+    await loadActiveSessions()
+    if (!opts?.silent) {
+      $q.dialog({
+        title: $t('Success'),
+        message: $t('WalletConnect reset successfully'),
+        ok: { label: $t('Ok'), color: 'primary', noCaps: true }
+      })
+    }
+  } catch (error) {
+    console.error('Error resetting WalletConnect:', error)
+    if (!opts?.silent) {
+      $q.dialog({
+        title: $t('Error'),
+        message: $t('Failed to reset WalletConnect'),
+        ok: { label: $t('Ok'), color: 'negative', noCaps: true }
+      })
+    }
+  }
 }
 
 window.test = compareAppVersions
@@ -1500,7 +1447,14 @@ async function wcVersionUpgradeMigration() {
 }
 
 const loadWeb3Wallet = async () => {
-  web3Wallet.value = await initWeb3Wallet()
+  // Use singleton pattern - initialization now happens in boot file
+  // but we need to get the reference here
+  if (isWalletConnectInitialized()) {
+    web3Wallet.value = getWeb3Wallet()
+  } else {
+    // Fallback: initialize if not already done (e.g., if boot failed)
+    web3Wallet.value = await initWeb3Wallet()
+  }
   window.w3w = web3Wallet.value
 }
 
@@ -1533,7 +1487,16 @@ const onSessionEvent = async (data) => {
 }
 
 const onSessionExpire = async (data) => {
+  console.log('Session expired:', data)
   await loadActiveSessions()
+}
+
+const onSessionRequestExpire = async (event) => {
+  console.log('Session request expired:', event)
+  // Clear pending dialog if it matches the expired request
+  clearPendingDialog()
+  // Reload session requests to clear the expired one from UI
+  await loadSessionRequests({ showLoading: false })
 }
 
 /**
@@ -1547,7 +1510,7 @@ const attachEventListeners = (_web3Wallet) => {
   _web3Wallet?.on?.('session_update', onSessionUpdate)
   _web3Wallet?.on?.('session_event', onSessionEvent)
   _web3Wallet?.on?.('session_expire', onSessionExpire)
-  _web3Wallet?.on?.('session_request_expire', onSessionExpire)
+  _web3Wallet?.on?.('session_request_expire', onSessionRequestExpire)
 }
 
 /**
@@ -1561,7 +1524,7 @@ const detachEventsListeners = (_web3Wallet) => {
   _web3Wallet?.off?.('session_update', onSessionUpdate)
   _web3Wallet?.off?.('session_event', onSessionEvent)
   _web3Wallet?.off?.('session_expire', onSessionExpire)
-  _web3Wallet?.off?.('session_request_expire', onSessionExpire)
+  _web3Wallet?.off?.('session_request_expire', onSessionRequestExpire)
 }
 
 // Helper function to ensure walletAddresses is loaded when needed
@@ -1652,6 +1615,86 @@ watch(
   { flush: 'post' }
 )
 
+// Watch for wallet changes and reload sessions to filter by new wallet
+watch(
+  () => $store.getters['global/getWalletIndex'],
+  async (newIndex, oldIndex) => {
+    // Only reload if wallet actually changed (not initial load)
+    if (oldIndex !== undefined && newIndex !== oldIndex && web3Wallet.value) {
+      // IMPORTANT: Disconnect all WalletConnect sessions when switching wallets
+      // This prevents the new wallet from inheriting sessions from the old wallet
+      // which can cause signing errors and security issues
+      try {
+        await disconnectAllSessions()
+        console.log('Disconnected all WalletConnect sessions due to wallet switch')
+      } catch (error) {
+        console.error('Error disconnecting sessions during wallet switch:', error)
+      }
+
+      // Clear stale mappings from previous wallet. WalletConnect sessions are global;
+      // without clearing, mapSessionTopicWithAddress would skip topics that already
+      // have a mapping with wif, causing filteredActiveSessions to incorrectly
+      // show old-wallet sessions as belonging to the new wallet.
+      sessionTopicWalletAddressMapping.value = {}
+
+      // Refresh walletAddresses for the new wallet. The fallback mapper
+      // (mapSessionTopicWithAddressLocal) uses walletAddresses to match session
+      // accounts; without refreshing, stale addresses from the previous wallet
+      // could incorrectly include old-wallet sessions in filteredActiveSessions.
+      try {
+        await $store.dispatch('global/loadWalletLastAddressIndex')
+        await $store.dispatch('global/loadWalletAddresses')
+        walletAddresses.value = $store.getters['global/walletAddresses'] || []
+      } catch (err) {
+        console.error('Error refreshing wallet addresses on wallet switch:', err)
+      }
+
+      // Reload active sessions (should be empty after disconnect)
+      await loadActiveSessions({ showLoading: false })
+
+      // Show notification to user
+      Notify.create({
+        type: 'info',
+        message: $t('WalletConnect sessions disconnected due to wallet switch'),
+        timeout: 3000
+      })
+    }
+  }
+)
+
+// Watch for network changes and disconnect sessions
+watch(
+  isChipnet,
+  async (newValue, oldValue) => {
+    // Only handle if network actually changed and component is mounted
+    if (oldValue !== undefined && newValue !== oldValue && web3Wallet.value) {
+      console.log(`Network changed from ${oldValue ? 'chipnet' : 'mainnet'} to ${newValue ? 'chipnet' : 'mainnet'}`)
+
+      // IMPORTANT: Disconnect all WalletConnect sessions when switching networks
+      // Sessions are network-specific and cannot be reused across networks
+      try {
+        await disconnectAllSessions()
+        console.log('Disconnected all WalletConnect sessions due to network switch')
+      } catch (error) {
+        console.error('Error disconnecting sessions during network switch:', error)
+      }
+
+      // Clear all mappings
+      sessionTopicWalletAddressMapping.value = {}
+
+      // Reload active sessions (should be empty after disconnect)
+      await loadActiveSessions({ showLoading: false })
+
+      // Show notification to user
+      Notify.create({
+        type: 'info',
+        message: $t('WalletConnect sessions disconnected due to network switch'),
+        timeout: 3000
+      })
+    }
+  }
+)
+
 onBeforeMount(async () => {
   await refreshComponent(false)
 })
@@ -1704,12 +1747,17 @@ onUnmounted(() => {
   if (web3Wallet.value) {
     detachEventsListeners(web3Wallet.value)
   }
+  // Stop polling for cancellation requests
+  stopPollingForCancellationRequest()
+  // Clear pending dialog reference
+  clearPendingDialog()
 })
 
 defineExpose({
   onScannerDecode,
   refreshComponent,
-  connectNewSession
+  connectNewSession,
+  resetWallectConnect
 })
 </script>
 <style lang="scss" scoped>

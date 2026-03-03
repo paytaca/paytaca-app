@@ -1,6 +1,6 @@
 <template>
   <div v-if="$route.name === 'p2p-store'">
-    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="previousRoute" class="header-nav" />
     <StoreListings :key="storeListingsKey"/>
   </div>
   <div v-else>
@@ -20,8 +20,14 @@ export default {
   },
   data () {
     return {
-      storeListingsKey: 0
+      storeListingsKey: 0,
+      previousRoute: '/apps'
     }
+  },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      vm.previousRoute = from.path || '/apps'
+    })
   },
   created () {
     bus.on('relogged', this.refreshPage)

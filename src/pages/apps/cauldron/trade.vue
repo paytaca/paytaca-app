@@ -9,13 +9,10 @@
       title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
-    >
-      <template v-slot:top-right-menu>
-        <CauldronHeaderMenu />
-      </template>
-    </HeaderNav>
+    />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <CauldronHeaderMenu class="q-mb-md" />
       <!-- Success Display -->
       <div v-if="completedTradeData.txid" class="q-mb-md">
         <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
@@ -198,7 +195,14 @@
                   :disable="isSwapping || updatingPool"
                 />
                 <div v-if="formattedMaxAmount" class="row items-center justify-end">
-                  <q-btn flat @click="amountInputString = formattedMaxAmount" class="q-r-mr-md">
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    class="max-button"
+                    :class="getDarkModeClass(darkMode)"
+                    @click="amountInputString = formattedMaxAmount"
+                  >
                     {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
                   </q-btn>
                 </div>
@@ -270,7 +274,38 @@
                   </div>
                 </template>
               </div>
-  
+
+              <!-- Insufficient Balance Message - Always show when applicable -->
+              <div
+                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
+                class="insufficient-balance-alert q-my-sm"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs" />
+                <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
+              </div>
+
+              <!-- Summary amount mismatch: short message + expandable detailed explanation -->
+              <div
+                v-if="summaryAmountMismatch"
+                class="summary-mismatch-alert q-my-sm q-pa-sm"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs summary-mismatch-icon" />
+                <div class="summary-mismatch-content">
+                  <span class="summary-mismatch-text">{{ summaryAmountMismatch.shortMessage }}</span>
+                  <q-expansion-item
+                    :label="$t('CauldronRoundingLearnMore')"
+                    expand-icon-class="summary-mismatch-expand-icon"
+                    class="summary-mismatch-expansion q-pl-none"
+                    dense
+                    :content-class="getDarkModeClass(darkMode)"
+                  >
+                    <div class="summary-mismatch-detailed text-body2 q-pt-xs">{{ summaryAmountMismatch.detailedMessage }}</div>
+                  </q-expansion-item>
+                </div>
+              </div>
+
               <!-- Swap Button -->
               <q-slide-transition>
                 <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken && !isKeyboardVisible">
@@ -282,16 +317,6 @@
                   />
                 </div>
               </q-slide-transition>
-              
-              <!-- Insufficient Balance Message - Always show when applicable -->
-              <div
-                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
-                class="insufficient-balance-alert q-mt-md"
-                :class="getDarkModeClass(darkMode)"
-              >
-                <q-icon name="info" size="16px" class="q-mr-xs" />
-                <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
-              </div>
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
@@ -313,7 +338,7 @@
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
-import { attemptTrade, createInputAndOutput, getEntriesSize } from 'src/wallet/cauldron/transact';
+import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -532,12 +557,22 @@ export default defineComponent({
           isRecomputingTrade.value = false;
           return;
         }
-        const result = attemptTrade({
+        let result = attemptTrade({
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
           demand: isSupplyMode.value ? 0n : amountInUnits.value,
           supply: isSupplyMode.value ? amountInUnits.value : 0n,
         })
+
+        if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
+          const adjustAmount = amountInUnits.value - result.summary.demand;
+          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount });
+          if (adjustedTradeResult) result = adjustedTradeResult;
+        } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
+          const adjustAmount = amountInUnits.value - result.summary.supply;
+          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
+          if (adjustedTradeResult) result = adjustedTradeResult;
+        }
         tradeResult.value = result;
         tradeResultError.value = '';
         isRecomputingTrade.value = false;
@@ -690,6 +725,29 @@ export default defineComponent({
     const requiredSupplyAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return 0n;
       return isSupplyMode.value ? amountInUnits.value : tradeResult.value.summary.supply;
+    })
+
+    // Detect when trade result summary supply/demand does not match user input (amountInUnits)
+    const summaryAmountMismatch = computed(() => {
+      if (!tradeResult.value?.summary || !selectedToken.value || amountInUnits.value === 0n) return null;
+      const actual = isSupplyMode.value ? tradeResult.value.summary.supply : tradeResult.value.summary.demand;
+      const expected = amountInUnits.value;
+      if (actual === expected) return null;
+      const diff = actual - expected;
+      const decimals = amountInputDecimals.value;
+      const symbol = amountInputSymbol.value
+      const diffSign = diff > 0n ? '+' : '';
+      const diffFormatted = `${diffSign}${formatAmount(diff, decimals)}`;
+      const shortMessage = isBuyingToken.value
+        ? $t('CauldronRoundingShortBuy', { diff: diffFormatted, symbol: symbol })
+        : $t('CauldronRoundingShortSell', { diff: diffFormatted, symbol: symbol });
+      const detailedMessage = isBuyingToken.value
+        ? $t('CauldronRoundingDetailedBuy')
+        : $t('CauldronRoundingDetailedSell');
+      return {
+        shortMessage,
+        detailedMessage
+      };
     })
 
     // Check if there's sufficient balance
@@ -936,6 +994,7 @@ export default defineComponent({
           spendableCoins,
           platformFee: _platformFee
         })
+
         const exlab = new ExchangeLab()
         const txFeePerByte = 1n;
         const tradeTxBuildResult = exlab.createTradeTx(
@@ -1122,6 +1181,7 @@ export default defineComponent({
       hasSufficientBalance,
       showInsufficientBalance,
       insufficientBalanceMessage,
+      summaryAmountMismatch,
       bchBalanceSats,
       selectedTokenBalance,
       maxAmount,
@@ -1146,6 +1206,20 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.max-button {
+  min-height: unset;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #3b7bf6;
+
+  &.dark {
+    color: #6fa8ff;
+  }
+}
+
 .insufficient-balance-alert {
   display: flex;
   align-items: center;
@@ -1155,29 +1229,97 @@ export default defineComponent({
   background: rgba(237, 94, 89, 0.08);
   border: 1px solid rgba(237, 94, 89, 0.2);
   transition: all 0.2s ease;
-  
+
   .insufficient-balance-text {
     font-size: 13px;
     font-weight: 500;
     color: #ed5e59;
     text-align: center;
   }
-  
+
   .q-icon {
     color: #ed5e59;
     opacity: 0.8;
   }
-  
+
   &.dark {
     background: rgba(237, 94, 89, 0.12);
     border-color: rgba(237, 94, 89, 0.3);
-    
+
     .insufficient-balance-text {
       color: #ff6b6b;
     }
-    
+
     .q-icon {
       color: #ff6b6b;
+    }
+  }
+}
+
+.summary-mismatch-alert {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+
+  .summary-mismatch-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .summary-mismatch-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .summary-mismatch-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: #e65100;
+    display: block;
+  }
+
+  .summary-mismatch-expansion {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #e65100;
+  }
+
+  .summary-mismatch-expansion .q-item {
+    min-height: 28px;
+    padding: 0;
+  }
+
+  .summary-mismatch-detailed {
+    font-size: 12px;
+    color: #e65100;
+    opacity: 0.95;
+    line-height: 1.4;
+  }
+
+  .q-icon {
+    color: #e65100;
+    opacity: 0.9;
+  }
+
+  &.dark {
+    background: rgba(255, 152, 0, 0.12);
+    border-color: rgba(255, 152, 0, 0.4);
+
+    .summary-mismatch-text,
+    .summary-mismatch-expansion,
+    .summary-mismatch-detailed {
+      color: #ffb74d;
+    }
+
+    .summary-mismatch-expansion .q-item {
+      color: #ffb74d;
+    }
+
+    .q-icon {
+      color: #ffb74d;
     }
   }
 }
