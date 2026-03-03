@@ -101,17 +101,18 @@ animation: float 6s ease-in-out infinite;
 }
 
 .transition-hover:hover {
-  background-color: #f0f4ff !important;
+  background-color: var(--q-primary-opacity-10, rgba(25, 118, 210, 0.1)) !important;
 }
 
 .unselected-card {
-  background-color: white !important;
+  background-color: transparent !important;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   color: #9e9e9e;
 }
 
 .selected-card-active {
-  background-color: white !important; 
-  border: 1px solid #027be3 !important;
+  background-color: rgba(25, 118, 210, 0.1) !important; 
+  border: 1px solid var(--q-primary) !important;
 }
 
 .half-right-btn {
@@ -270,19 +271,43 @@ animation: float 6s ease-in-out infinite;
 	background: #f0f0f0;
 }
 
-.content-box {
+.bg-white-opacity-10 {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.bg-dark-opacity-30 {
+	background-color: rgba(0, 0, 0, 0.3);
+}
+
+.content-box-light {
 	width: 100%;
 	min-height: 300px;
-	border: 2px solid currentColor;
+	border: 2px solid #e0e0e0;
 	border-radius: 15px;
 	padding: 20px;
+	background: #ffffff;
+}
 
-	background: var(--q-card-background, #ffffff);
+.content-box-dark {
+	width: 100%;
+	min-height: 300px;
+	border: 2px solid #424242;
+	border-radius: 15px;
+	padding: 20px;
+	background: #1d1d1d;
+}
+
+.disabled-merchant {
+	opacity: 0.4;
+	pointer-events: none;
+	filter: grayscale(100%);
+	transition: all 0.3s ease;
+	
+	* {
+		opacity: 0.6;
+	}
 }
 
 .q-btn--outline {
-	border: 1.5px solid black ! important;
-	.q-btn-content {
-		color: black;
-	}
+	border: 1.5px solid currentColor;
 }

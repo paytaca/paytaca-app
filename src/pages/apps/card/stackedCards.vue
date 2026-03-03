@@ -48,8 +48,20 @@
             </div>
             <!-- Card info positioned right below handle -->
             <div class="card-info row justify-between items-center no-wrap">
-              <div class="text-weight-bold text-black text-subtitle2 ellipsis" style="max-width: 120px; font-size: 13px;">{{ card.raw?.alias }}</div>
-              <div class="text-weight-bold text-black text-subtitle2" style="font-size: 13px;">{{ card.balance }} BCH</div>
+              <div 
+                class="text-weight-bold text-subtitle2 ellipsis" 
+                style="max-width: 120px; font-size: 13px;"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                {{ card.raw?.alias }}
+              </div>
+              <div 
+                class="text-weight-bold text-subtitle2" 
+                style="font-size: 13px;"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                {{ card.balance }} BCH
+              </div>
             </div>
           </div>
 
@@ -130,8 +142,8 @@ export default {
         position: 'absolute',
         width: '90%',
         left: '5%',
-        background: 'white',
-        border: '2px solid black',
+        background: this.$q.dark.isActive ? '#1d1d1d' : 'white',
+        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid black',
         borderRadius: '15px',
         height: '180px',
         transform: `translateX(${translateX}px)`,

@@ -8,7 +8,6 @@
           outlined 
           dense
           :dark="$q.dark.isActive"
-          input-class="text-grey-7"
         >
           <template v-slot:append>
             <q-icon name="search" />
@@ -18,11 +17,11 @@
     </div>
 
     <div class="row items-center q-mb-sm">
-      <div class="text-subtitle2">History</div>
+      <div class="text-subtitle2" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">History</div>
       <q-space />
       <q-btn
         flat dense size="sm"
-        :color="sortKey === 'date' ? 'primary' : 'grey'"
+        :color="sortKey === 'date' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
         label="Date"
         @click="toggleSort('date')"
       >
@@ -30,7 +29,7 @@
       </q-btn>
       <q-btn
         flat dense size="sm"
-        :color="sortKey === 'amount' ? 'primary' : 'grey'"
+        :color="sortKey === 'amount' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
         label="Amount"
         @click="toggleSort('amount')"
       >
@@ -50,8 +49,13 @@
                        size="xs" />
             </q-item-section>
             <q-item-section>
-              <div class="text-weight-bold text-grey-7">{{ t.name }}</div>
-              <div class="text-caption text-weight-bold text-grey-6">{{ t.date }}</div>
+              <div 
+                class="text-weight-bold"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                {{ t.name }}
+              </div>
+              <div class="text-caption text-weight-bold text-grey">{{ t.date }}</div>
             </q-item-section>
             <q-item-section side>
               <div class="text-weight-bold" :class="t.amount > 0 ? 'text-positive' : 'text-negative'">
@@ -61,7 +65,7 @@
           </q-item>
         </q-list>
       </div>
-      <div v-else class="text-center q-pa-xl text-grey">
+      <div v-else class="text-center q-pa-xl" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
         No transactions found
       </div>
     </div>
