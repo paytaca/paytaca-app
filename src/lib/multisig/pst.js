@@ -1307,10 +1307,13 @@ export class Pst {
   /**
    * @param {boolean} [sync=false] - If true, syncs the pst to the relay server.
    */
-  async save(sync) {
+  async save({ sync = false }) {
     if (!this.options?.store) return
     const psbt = await this.toPsbt()
-    return await this.options.store.commit('multisig/savePsbt', psbt)
+    await this.options.store.commit('multisig/savePsbt', psbt)
+    if (sync) {
+      return await this.upload()
+    }
   }
 
   async upload() {
