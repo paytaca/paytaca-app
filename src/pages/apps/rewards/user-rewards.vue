@@ -10,7 +10,7 @@
           class="button"
           icon="question_mark"
           size="sm"
-          @click="isHelpActive = true"
+          @click="isOneTimeSectionExpanded = false, isHelpActive = true"
         />
       </template>
     </header-nav>
@@ -415,7 +415,11 @@
     </div>
   </div>
 
-  <help-card v-model="isHelpActive" :page="'ur'" />
+  <help-card
+    v-model="isHelpActive"
+    :page="'ur'"
+    @on-exit-postprocess="isOneTimeSectionExpanded = completedOneTimeCount !== totalOneTimeTasks"
+  />
 </template>
 
 <script>
