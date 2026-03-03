@@ -1018,17 +1018,16 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
       addressSelection.unshift(lastUsedAddress)
     }
     addressSelection = addressSelection.slice(0, 5)
-    const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
+    const selected = await new Promise((resolve, reject) => {
       $q.dialog({
         component: SelectAddressForSessionDialog,
         componentProps: {
           peerId: `${sessionProposal?.id}`,
-          // peerMeta: sessionProposal?.proposer?.metadata,
+          peerMeta: sessionProposal?.proposer?.metadata,
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
           walletAddresses: addressSelection,
-          // multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
-          // multisigWallets: [],
+          multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
@@ -1047,8 +1046,10 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
         })
         // .onDismiss(() => reject())
     })
-    return { selectedWalletAddress, isMultisig }
-  } catch (error) {}
+    return { selectedWalletAddress: selected.selectedWalletAddress, isMultisig: selected.isMultisig }
+  } catch (error) {
+    console.log('ERROR',error)
+  }
 }
 
 const rejectSessionProposal = async (sessionProposal) => {
@@ -1113,6 +1114,11 @@ const approveSessionProposal = async (sessionProposal) => {
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
   processingSession.value[sessionProposal.pairingTopic] = 'Connecting'
+  let account = selectedAddress.address
+  if (selectedAddress.signers) {
+    // Is Multisig Wallet
+    account = selectedAddress.getDepositAddress(0).address
+  } 
   try {
     const chains = [
       $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
@@ -1129,7 +1135,7 @@ const approveSessionProposal = async (sessionProposal) => {
         events: [
           'addressesChanged'
         ],
-        accounts: [`bch:${selectedAddress.address}`]
+        accounts: [`bch:${account}`]
       }
     }
     const approvedNamespaces = buildApprovedNamespaces({
@@ -1250,7 +1256,6 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       }
       processingSession.value[sessionRequest.topic] = 'Confirming request'
     } catch (err) {
-      console.log('🚀 ~ respondToSignTransactionRequest ~ err:', err)
       response.error = {
         code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
@@ -1260,7 +1265,6 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
     } finally {
       if (!response.result) delete response.result
       if (!response.error) delete response.error
-      console.log(sessionRequest?.params?.request?.method, 'response', response);
       await web3Wallet.value.respondSessionRequest({
         topic: sessionRequest.topic, response
       })
