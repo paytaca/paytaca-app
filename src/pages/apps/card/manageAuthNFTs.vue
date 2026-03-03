@@ -33,7 +33,7 @@
     <q-separator class="q-mb-sm" :dark="$q.dark.isActive" />
 
     <!-- Merchants List -->
-    <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Authorized Merchants</div>
+    <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Merchants</div>
     
     <div class="scroll" style="height: 350px;">
       <div v-if="filteredMerchants.length > 0">
@@ -64,12 +64,11 @@
             </q-item-section>
             <q-item-section side>
               <q-toggle 
-                :model-value="genericAuthEnabled ? true : merchant.isEnabled"
+                v-model="merchant.isEnabled"
+                :disable="genericAuthEnabled"
                 :color="genericAuthEnabled 
                   ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
                   : 'secondary'"
-                :disable="genericAuthEnabled"
-                @update:model-value="(val) => onMerchantToggle(merchant, val)"
               />
             </q-item-section>
           </q-item>
