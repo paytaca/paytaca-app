@@ -2,6 +2,7 @@ import axios from 'axios'
 import crypto from 'crypto'
 import { Store } from 'src/store'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
+import { getMnemonic } from 'src/wallet'
 
 export const backend = axios.create()
 const baseURL = process.env.ELOAD_SERVICE_API || ''
@@ -472,10 +473,17 @@ export async function getAuthToken() { // adjust later
 }
 
 export async function generateUserHash (walletHash) {
- 	const hashVal = 'GBITS_' + walletHash
-
- 	return sha256(hashVal)
- }
+	// Use the wallet's mnemonic (private) combined with the walletHash to create
+	// a non-deterministic password that cannot be computed from public data.
+	// This prevents attackers who know the walletHash (sent in headers) from
+	// deriving valid credentials.
+	const mnemonic = await getMnemonic(walletHash)
+	if (!mnemonic) {
+		throw new Error('Unable to retrieve wallet mnemonic for authentication')
+	}
+	const hashVal = 'GBITS_' + walletHash + '_' + mnemonic
+	return sha256(hashVal)
+}
 
  /**
  * @param {String} data

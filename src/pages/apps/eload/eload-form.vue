@@ -278,7 +278,7 @@
 						rounded
 						dense
 						class="br-15 q-mt-md q-mb-md"
-						:class="darkMode ? 'bg-grey-10 text-white' : 'bg-grey-2 text-black'"
+						:class="darkMode ? 'bg-grey-10 text-white' : 'bg-grey-2 text-grey-9'"
 					>
 						<div class="sm-font-size text-negative">
 							{{ txnPrepareError }}
