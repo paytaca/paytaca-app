@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
+import { binToHex, CashAddressNetworkPrefix, decodeCashAddress, decodeHdPrivateKey, decodeHdPublicKey, secp256k1, utf8ToBin } from "bitauth-libauth-v3";
 import { MultisigWallet } from './wallet.js';
 import { ElectrumNetworkProvider } from 'cashscript';
 
@@ -40,6 +40,7 @@ import { ElectrumNetworkProvider } from 'cashscript';
  */
 
 
+
 /**
  * @type {{ [key in Network]: Network }}
  */
@@ -75,6 +76,7 @@ export class WatchtowerNetworkProvider {
      */
     constructor(config) {
         this.hostname = 'https://watchtower.cash'
+        // this.hostname = 'http://localhost:8000'
         this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
         this.network = config?.network || WatchtowerNetwork.mainnet
         if (this.network === WatchtowerNetwork.chipnet) {
@@ -144,7 +146,7 @@ export class WatchtowerNetworkProvider {
     }
 
     async getRawTransaction(txid) {
-        const provider = new ElectrumNetworkProvider(this.network)
+        const provider = new ElectrumNetworkProvider(this.network)  
         return await provider.getRawTransaction(txid)
     }
 
@@ -161,6 +163,37 @@ export class WatchtowerNetworkProvider {
         return await axios.get(url)
       }
       
+
+    async subscribeWalletAddressIndex ({ walletHash, addresses, addressIndex, type = 'pair' }) {
+      
+        if (type === 'pair') {
+            addresses.receiving = receiveAddress
+            addresses.change = changeAddress
+        }
+
+        if (type === 'deposit') {
+            delete addresses.change 
+        }
+        
+        if (type === 'change') {
+            delete addresses.receiving
+        }
+        
+        const projectId = {
+            mainnet: process.env.WATCHTOWER_PROJECT_ID,
+            chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
+        }
+
+        return await axios.post(`${this.hostname}/api/subscription/`, {
+            project_id: projectId[this.network],
+            addresses,
+            address_index: addressIndex,
+            wallet_hash: walletHash
+        }) 
+    }
+
+
+
       
 }
 
@@ -196,12 +229,12 @@ export class WatchtowerCoordinationServer {
         this.network = config.network || WatchtowerNetwork.mainnet
         switch (this.network) {
             case WatchtowerNetwork.chipnet:
-                this.hostname = 'https://chipnet.watchtower.cash'
-                // this.hostname = 'http://localhost:8000'
+                // this.hostname = 'https://chipnet.watchtower.cash'
+                this.hostname = 'http://localhost:8000'
                 break
             case WatchtowerNetwork.mainnet:
-                this.hostname = 'https://watchtower.cash'    
-                // this.hostname = 'http://localhost:8000'
+                // this.hostname = 'https://watchtower.cash'    
+                this.hostname = 'http://localhost:8000'
                 break
             case WatchtowerNetwork.local:
                 this.hostname = 'http://localhost:8000'
@@ -226,14 +259,15 @@ export class WatchtowerCoordinationServer {
      * @param {import('./wallet').MultisigWallet} wallet
      * @return {Promise<import('./wallet').MultisigWallet>} 
      */
-    async syncWallet(wallet) {
+    async uploadWallet({ wallet, authCredentialsGenerator }) {
+        if (!authCredentialsGenerator) return null
         const response = await axios.post(
-            `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/sync/`,
+            `${this.hostname}/api/multisig/wallets/`,
             wallet, 
-            { headers: await wallet.generateAuthCredentials() }
+            { headers: await authCredentialsGenerator.generateAuthCredentials() }
         )
         return response.data   
-    }
+    } 
 
     async updateWalletLastIssuedDepositAddressIndex(wallet, lastIssuedDepositAddressIndex, network) {
         const response = await axios.post(
@@ -262,19 +296,179 @@ export class WatchtowerCoordinationServer {
         return response.data
     }
 
-    async fetchWallets({ xpub, xprv }) {
-        const response = await axios.get(
-            `${this.hostname}/api/multisig/wallets/?xpub=${xpub}`,
-            { headers: MultisigWallet.generateAuthCredentials({ xprv, xpub }) }
-        )
-        return response.data
-    }
+    
     
     async uploadPst(pst) {
         const response = await axios.post(
             `${this.hostname}/api/multisig/psts/`,
             pst, 
             { headers: await pst.wallet.generateAuthCredentials() }
+        )
+        return response.data
+    }
+     
+    // --
+
+    async createServerIdentity({ serverIdentity, authCredentialsGenerator }) {
+        const authCredentials = await authCredentialsGenerator.generateAuthCredentials()
+        console.log('authCredentials', authCredentials)
+        if (!authCredentials) return null
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/coordinator/server-identities/`,
+            serverIdentity,
+            { headers: { ...authCredentials } }
+        )
+        return response.data
+    }
+
+    async getServerIdentity({ publicKey, authCredentialsGenerator }) {
+        const authCredentials = await authCredentialsGenerator.generateAuthCredentials()
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/coordinator/server-identities/${publicKey}/`,
+            { headers: { ...authCredentials } }
+        )
+        console.log('response', response)
+        return response.data
+    }
+
+    async getWallet({ identifier }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/wallets/${identifier}/`
+        )
+        console.log('response', response)
+        return response.data
+    }
+
+    async getSignerWallets({ publicKey }) {        
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/signers/${publicKey}/wallets/`
+        )
+        return response.data
+    }
+
+    /**
+     * @typedef {Object} Proposal
+     * @property {string} [wallet] - The wallet id associated with the proposal.
+     * @property {string} [proposal] - The serialized/encoded proposal.
+     * @property {string} [proposalFormat] - Example: 'psbt' | 'libauth-template' only 'psbt' is supported now.
+     * @param {Object} params
+     * @param {Proposal} params.proposal - The proposal to upload.
+     * @param {*} params.authCredentialsGenerator
+     */
+    async uploadProposal({ payload, authCredentialsGenerator }) {
+        const authCredentials = await authCredentialsGenerator.generateAuthCredentials()
+        const authCosignerAuthCredentials = await authCredentialsGenerator.generateCosignerAuthCredentials()
+        console.log('AUTHcosigner', authCosignerAuthCredentials)
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/proposals/`,
+            payload, 
+            { headers: { ...authCredentials, ...authCosignerAuthCredentials } }
+        )
+        return response.data
+    }
+
+    /**
+     * @typedef {Object} Proposal
+     * @property {string} [wallet] - The wallet id associated with the proposal.
+     * @property {string} [proposal] - The serialized/encoded proposal.
+     * @property {string} [proposalFormat] - Example: 'psbt' | 'libauth-template' only 'psbt' is supported now.
+     * @param {Object} params
+     * @param {Proposal} params.proposal - The proposal to upload.
+     * @param {*} [params.authCosignerCredentials] - Cosigner auth credentials 
+     * @param {*} [params.authCredentialsGenerator] - 
+     */
+    async deleteProposal({ id, walletId, authCosignerCredentials, authCredentialsGenerator }) {
+        let credentials = authCosignerCredentials
+        if (!authCosignerCredentials && authCredentialsGenerator) {
+            credentials = await authCredentialsGenerator.generateCosignerAuthCredentials()    
+        }
+        const response = await axios.delete(
+            `${this.hostname}/api/multisig/proposals/${id}/?wallet_id=${walletId}`, 
+            { headers: { ...credentials } }
+        )
+        return response.data
+    }
+
+    async getProposalStatus({ unsignedTransactionHash }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/status/`
+        )
+        return response?.data
+    }
+
+    async getProposalByUnsignedTransactionHash(unsignedTransactionHash) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/`
+        )
+        return response.data
+    }
+
+    async getProposalCoordinator({ unsignedTransactionHash }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/coordinator/`
+        )
+        return response?.data
+    }
+
+    /**
+     * Fetches the list of decoded signer signature data for a proposal and signer.
+     *
+     * @param {Object} params
+     * @param {string} params.masterFingerprint - The signer's master fingerprint.
+     * @param {string} params.proposalUnsignedTransactionHash - The unsigned transaction hash for the proposal.
+     * @returns {Promise<import('./pst.js').DecodedSignerSignatureData[]>} Array of decoded signature data relevant to the provided master fingerprint.
+     */
+    async getSignerSignatures({ masterFingerprint, proposalUnsignedTransactionHash }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/signatures/${masterFingerprint}/`
+        )
+        return response.data
+    }
+
+    async getSignatures({ proposalUnsignedTransactionHash }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/signatures/`
+        )
+        return response.data
+    }
+
+    /**
+     * Submits a partial signature for a multisig proposal.
+     *
+     * @param {Object} params
+     * @param {string} params.proposalUnsignedTransactionHash - The unsigned transaction hash for the proposal.
+     * @param {string} params.content - The partial signature payload; could be a PSBT base64 string or some other format. Currently only supports PSBT.
+     * @param {string} [params.standard='psbt'] - The standard serialization format of the payload, default is 'psbt'.
+     * @param {string} params.authCredentialsGenerator - Object or class instance that knows how to generate cosigner credential for this particular proposal.
+     * @returns {Promise<Object>} Response data from the signature submission.
+     */
+    async submitPsbt({ content, standard = 'psbt', encoding = 'base64', proposalUnsignedTransactionHash, walletId, authCredentialsGenerator }) {
+        
+        const authCosignerAuthCredentials = await authCredentialsGenerator.generateCosignerAuthCredentials()
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/psbts/?wallet_id=${walletId}`,
+            { content, standard, encoding },
+            { headers: { ...authCosignerAuthCredentials } }
+        )
+
+        return response?.data
+    }
+
+     /**
+      * Fetches proposals for a wallet.
+      *
+      * @param {string} walletIdentifier - Identifier for the wallet; can be a wallet id, walletHash, or walletDescriptorId.
+      * @returns {Promise<Array<{ 
+      *   id: number, 
+      *   wallet: number, 
+      *   proposal: string, 
+      *   proposalFormat: string, 
+      *   unsignedTransactionHex: string 
+      * }>>} Array of proposals associated with the given wallet.
+      */
+    async getWalletProposals(walletIdentifier, status='pending') {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/wallets/${walletIdentifier}/proposals/?status=${status}`
         )
         return response.data
     }
