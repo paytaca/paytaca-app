@@ -110,7 +110,7 @@ export default {
     page: { type: String, default: 'home' }
   },
 
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'on-exit-postprocess'],
 
   data () {
     return {
@@ -630,6 +630,7 @@ export default {
 
     close () {
       this.isActive = false
+      this.$emit('on-exit-postprocess')
     },
 
     resetState () {
