@@ -1,17 +1,45 @@
 import axios from 'axios'
-import crypto from 'crypto'
 import { Store } from 'src/store'
+import { BitcoinCashOAuthClient } from 'bitcoincash-oauth-client'
+import {
+  binToHex,
+  deriveHdPath,
+  deriveHdPrivateNodeFromSeed,
+  deriveHdPublicNode,
+  encodePrivateKeyWif,
+  sha256,
+} from "@bitauth/libauth"
+import { mnemonicToSeedSync } from 'bip39'
+import { getMnemonicByHash } from 'src/wallet'
+import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
-import { getMnemonic } from 'src/wallet'
 
 export const backend = axios.create()
 const baseURL = process.env.ELOAD_SERVICE_API || ''
 
-const TOKEN_STORAGE_KEY = process.env.GBITS_AUTH_KEY || 'gbits-auth-key'
 const MAX_AUTH_RETRIES = 1
+const OAUTH_TOKEN_KEY = 'eload-oauth-token'
+const OAUTH_ADDRESS_PATH = "0/0" // Address path for OAuth authentication
+const BCH_DERIVATION_PATH = "m/44'/145'/0'" // Standard BCH derivation path
 
 function getWalletHash () {
 	return Store.getters['global/getWallet']('bch')?.walletHash
+}
+
+/**
+ * Extract domain from baseURL for OAuth message signing
+ * e.g., "https://gbits.paytaca.com/api" -> "gbits.paytaca.com"
+ */
+function getOAuthDomain() {
+	if (!baseURL) return 'localhost'
+	try {
+		const url = new URL(baseURL)
+		return url.hostname
+	} catch (e) {
+		// Fallback: extract hostname from string
+		const match = baseURL.match(/https?:\/\/([^\/]+)/)
+		return match ? match[1] : 'localhost'
+	}
 }
 
 function buildTxnUrl () {
@@ -24,156 +52,456 @@ function buildTxnUrl () {
 	return `${trimmed}/api/txn/`
 }
 
-export async function fetchService () {
+/**
+ * Derive OAuth credentials from wallet mnemonic
+ * Derives the key at path m/44'/145'/0'/0/0
+ * Does NOT store the private key - derives it fresh each time
+ */
+async function deriveOAuthCredentials() {
+	const walletHash = getWalletHash()
+	if (!walletHash) {
+		throw new Error('Wallet hash not available')
+	}
+
+	// Get mnemonic for this wallet
+	const mnemonic = await getMnemonicByHash(walletHash)
+	if (!mnemonic) {
+		throw new Error('Mnemonic not available for wallet')
+	}
+
 	try {
-		const response = await backend.get(baseURL + '/service/')		
+		// Derive the HD node from mnemonic seed
+		const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
+		const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
+
+		// Derive directly to address level: m/44'/145'/0'/0/0
+		const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
+		const addressNode = deriveHdPath(rootNode, fullPath)
+		if (typeof addressNode === 'string') {
+			throw new Error(`Failed to derive address node: ${addressNode}`)
+		}
+
+		// Get private key in WIF format for OAuth client
+		const privateKeyWif = encodePrivateKeyWif(addressNode.privateKey, 'mainnet')
+
+		// Get public key
+		const publicNode = deriveHdPublicNode(addressNode)
+		const publicKey = binToHex(publicNode.publicKey)
+
+		// Get address
+		const address = pubkeyToAddress(publicKey, false) // false = mainnet
 
 		return {
-			success: true,
-			data: response.data,
-			error: null
+			privateKey: privateKeyWif,
+			publicKey: publicKey,
+			address: address,
+			walletHash: walletHash
 		}
 	} catch (error) {
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch service'
-		console.error('[fetchService] Error:', errorMessage)
-
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
-		}
+		console.error('[OAuth] Failed to derive credentials:', error)
+		throw new Error(`Failed to derive OAuth credentials: ${error.message}`)
 	}
 }
 
+/**
+ * Custom fetch implementation using axios to avoid Window.fetch issues in Capacitor
+ * This provides a fetch-compatible interface for the bitcoincash-oauth-client
+ */
+async function axiosFetch(url, options = {}) {
+  const { method = 'GET', headers = {}, body } = options
+  
+  try {
+    const response = await backend({
+      url,
+      method,
+      headers,
+      data: body
+    })
+    
+    return {
+      ok: response.status >= 200 && response.status < 300,
+      status: response.status,
+      statusText: response.statusText,
+      headers: new Headers(response.headers),
+      json: async () => response.data,
+      text: async () => JSON.stringify(response.data)
+    }
+  } catch (error) {
+    if (error.response) {
+      return {
+        ok: false,
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: new Headers(error.response.headers),
+        json: async () => error.response.data,
+        text: async () => JSON.stringify(error.response.data)
+      }
+    }
+    throw error
+  }
+}
 
-
-export async function fetchServiceGroup (data) {
+/**
+ * Get stored OAuth token from secure storage
+ * @returns {Promise<string|null>} The stored token or null
+ */
+async function getStoredToken() {
 	try {
-		let params = {
-			'service-id': data.service.id,
-			limit: data.limit,
-			page: data.page
+		const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
+		return result.value
+	} catch (error) {
+		return null
+	}
+}
+
+/**
+ * Save OAuth token to secure storage
+ * @param {string} token - The access token to save
+ */
+async function saveToken(token) {
+	try {
+		await SecureStoragePlugin.set({ key: OAUTH_TOKEN_KEY, value: token })
+		console.log('[OAuth] Token saved to secure storage')
+	} catch (error) {
+		console.error('[OAuth] Failed to save token:', error)
+	}
+}
+
+/**
+ * Clear stored OAuth token
+ */
+async function clearToken() {
+	try {
+		await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
+		console.log('[OAuth] Token cleared from secure storage')
+	} catch (error) {
+		// Token might not exist, that's OK
+	}
+}
+
+/**
+ * Get authentication headers for API requests
+ * Uses BitcoinCashOAuthClient for authentication with dynamically derived keys
+ * Reuses existing token if available, otherwise authenticates and saves new token
+ */
+async function getAuthHeaders() {
+	const walletHash = getWalletHash()
+	if (!walletHash) {
+		throw new Error('Wallet hash not available')
+	}
+
+	// Check if we have a stored token
+	const storedToken = await getStoredToken()
+	if (storedToken) {
+		console.log('[OAuth] Using stored token')
+		return {
+			'wallet-hash': walletHash,
+			'Authorization': `Bearer ${storedToken}`
+		}
+	}
+
+	// No stored token, need to authenticate
+	console.log('[OAuth] No stored token, authenticating...')
+	const credentials = await deriveOAuthCredentials()
+
+	// Create OAuth client (no secureStorage needed since we derive keys on-demand)
+	// Use custom axios-based fetch to avoid Window.fetch issues in Capacitor WebView
+	const client = new BitcoinCashOAuthClient({
+		serverUrl: baseURL,
+		network: 'mainnet',
+		fetch: axiosFetch
+		// No secureStorage - we handle key derivation ourselves
+	})
+
+	// Re-derive to get raw private key bytes
+	const mnemonic = await getMnemonicByHash(walletHash)
+	const mnemonicBin = new Uint8Array(mnemonicToSeedSync(mnemonic))
+	const rootNode = deriveHdPrivateNodeFromSeed(mnemonicBin)
+	const fullPath = `${BCH_DERIVATION_PATH}/${OAUTH_ADDRESS_PATH}`
+	const addressNode = deriveHdPath(rootNode, fullPath)
+
+	// Convert private key to hex format expected by OAuth client
+	const privateKeyHex = binToHex(addressNode.privateKey)
+
+	// Get domain for message signing
+	const domain = getOAuthDomain()
+
+	// Create auth message and sign it manually (to include domain in payload)
+	const timestamp = Math.floor(Date.now() / 1000)
+	const message = client.createAuthMessage(walletHash, timestamp, domain)
+	console.log('[OAuth] Message to sign:', message)
+
+	const signature = await client.signAuthMessage(message, privateKeyHex)
+	console.log('[OAuth] Signature:', signature)
+
+	// Try to authenticate first (optimistic - assumes user is already registered)
+	let authResponse = await axiosFetch(`${baseURL}/auth/token`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			user_id: walletHash,
+			timestamp: timestamp,
+			domain: domain,
+			public_key: credentials.publicKey,
+			signature: signature
+		})
+	})
+
+	// If authentication fails with 404 (user not found), register first then retry
+	if (authResponse.status === 404) {
+		console.log('[OAuth] User not found, registering...')
+		
+		try {
+			await client.register(credentials.address, walletHash)
+			console.log('[OAuth] User registered successfully')
+		} catch (regError) {
+			console.error('[OAuth] Registration failed:', regError.message)
+			throw new Error(`Registration failed: ${regError.message}`)
 		}
 
-		const response = await backend.get(baseURL + '/service/group/', { params: params })
+		// Retry authentication with a fresh timestamp
+		console.log('[OAuth] Retrying authentication after registration...')
+		const newTimestamp = Math.floor(Date.now() / 1000)
+		const newMessage = client.createAuthMessage(walletHash, newTimestamp, domain)
+		const newSignature = await client.signAuthMessage(newMessage, privateKeyHex)
+
+		authResponse = await axiosFetch(`${baseURL}/auth/token`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				user_id: walletHash,
+				timestamp: newTimestamp,
+				domain: domain,
+				public_key: credentials.publicKey,
+				signature: newSignature
+			})
+		})
+	}
+
+	if (!authResponse.ok) {
+		const errorText = await authResponse.text()
+		throw new Error(`Authentication failed: ${authResponse.status} ${authResponse.statusText} - ${errorText}`)
+	}
+
+	const auth = await authResponse.json()
+	console.log('[OAuth] Authentication successful')
+
+	// Save the token for future use
+	if (auth.access_token) {
+		await saveToken(auth.access_token)
+	}
+
+	return {
+		'wallet-hash': walletHash,
+		'Authorization': `Bearer ${auth.access_token}`
+	}
+}
+
+export async function fetchService () {
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			const headers = await getAuthHeaders()
+			const response = await backend.get(baseURL + '/service/', { headers })
 
 			return {
 				success: true,
 				data: response.data,
 				error: null
 			}
-	} catch (error) {
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch service group'
-		console.error('[fetchServiceGroup] Error:', errorMessage)
+		} catch (error) {
+			// 401/403 - token expired or invalid; clear and retry
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				console.log('[OAuth] Token invalid, clearing and retrying...')
+				await clearToken()
+				continue
+			}
 
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
-		}
-	}
-}
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch service'
+			console.error('[fetchService] Error:', errorMessage)
 
-
-export async function fetchCategory (data) {
-	try {
-		const serviceGroupId = data?.serviceGroup?.id
-		if (!serviceGroupId) {
 			return {
 				success: false,
 				data: null,
-				error: 'Missing service group id'
+				error: `Network error: ${errorMessage}`
 			}
 		}
-
-		let params = {
-			'service-group-id': serviceGroupId,
-			limit: data.limit,
-			page: data.page
-		}
-
-		const response = await backend.get(baseURL + '/category/', { params: params})
-
-		return {
-			success: true,
-			data: response.data,
-			error: null
-		}
-	} catch (error) {
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch category'
-		console.error('[fetchCategory] Error:', errorMessage)
-
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
-		}
 	}
+	return { success: false, data: null, error: 'Failed to fetch service' }
 }
 
+export async function fetchServiceGroup (data) {
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			const headers = await getAuthHeaders()
+			let params = {
+				'service-id': data.service.id,
+				limit: data.limit,
+				page: data.page
+			}
 
-export async function fetchPromo (data) {
-	try {
-		let params = {
-			limit: data.limit || 10,
-			page: data.page || 1,		
+			const response = await backend.get(baseURL + '/service/group/', { params: params, headers: headers })
+
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+		} catch (error) {
+			// 401/403 - token expired or invalid; clear and retry
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				console.log('[OAuth] Token invalid, clearing and retrying...')
+				await clearToken()
+				continue
+			}
+
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch service group'
+			console.error('[fetchServiceGroup] Error:', errorMessage)
+
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
 		}
+	}
+	return { success: false, data: null, error: 'Failed to fetch service group' }
+}
 
-		if ('service' in data) {
-			params['service'] = data.service
-		}
-
-		if ('serviceGroup' in data) {
-			params['service-group'] = data.serviceGroup
-		}
-
-		if ('category' in data) {
-			params['category'] = data.category
-		}
-
-		if ('promoName' in data) {
-			params['promo-name'] = data.promoName
-		} 		
-
-		const response = await backend.get(baseURL + "/promo/", { params: params })
-
-		return {
-			success: true,
-			data: response.data,
-			error: null
-		}
-
-	} catch (error) {
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch promos'
-		console.error('[fetchPromo] Error:', errorMessage)
-
+export async function fetchCategory (data) {
+	const serviceGroupId = data?.serviceGroup?.id
+	if (!serviceGroupId) {
 		return {
 			success: false,
 			data: null,
-			error: `Network error: ${errorMessage}`
+			error: 'Missing service group id'
 		}
 	}
+
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			const headers = await getAuthHeaders()
+			let params = {
+				'service-group-id': serviceGroupId,
+				limit: data.limit,
+				page: data.page
+			}
+
+			const response = await backend.get(baseURL + '/category/', { params: params, headers: headers })
+
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+		} catch (error) {
+			// 401/403 - token expired or invalid; clear and retry
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				console.log('[OAuth] Token invalid, clearing and retrying...')
+				await clearToken()
+				continue
+			}
+
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch category'
+			console.error('[fetchCategory] Error:', errorMessage)
+
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
+		}
+	}
+	return { success: false, data: null, error: 'Failed to fetch category' }
+}
+
+export async function fetchPromo (data) {
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			const headers = await getAuthHeaders()
+			let params = {
+				limit: data.limit || 10,
+				page: data.page || 1,
+			}
+
+			if ('service' in data) {
+				params['service'] = data.service
+			}
+
+			if ('serviceGroup' in data) {
+				params['service-group'] = data.serviceGroup
+			}
+
+			if ('category' in data) {
+				params['category'] = data.category
+			}
+
+			if ('promoName' in data) {
+				params['promo-name'] = data.promoName
+			}
+
+			const response = await backend.get(baseURL + "/promo/", { params: params, headers: headers })
+
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+
+		} catch (error) {
+			// 401/403 - token expired or invalid; clear and retry
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				console.log('[OAuth] Token invalid, clearing and retrying...')
+				await clearToken()
+				continue
+			}
+
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch promos'
+			console.error('[fetchPromo] Error:', errorMessage)
+
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
+		}
+	}
+	return { success: false, data: null, error: 'Failed to fetch promos' }
 }
 
 export async function fetchPromoDetails(pk) {
-	try {
-		const response = await backend.get(baseURL  +  '/promo/' + pk)
+	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
+		try {
+			const headers = await getAuthHeaders()
+			const response = await backend.get(baseURL  +  '/promo/' + pk, { headers })
 
-		return {
-			success: true,
-			data: response.data,
-			error: null
-		}
-	} catch (error) {
-		const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch promo details'
-		console.error('[fetchPromoDetails] Error:', errorMessage)
+			return {
+				success: true,
+				data: response.data,
+				error: null
+			}
+		} catch (error) {
+			// 401/403 - token expired or invalid; clear and retry
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				console.log('[OAuth] Token invalid, clearing and retrying...')
+				await clearToken()
+				continue
+			}
 
-		return {
-			success: false,
-			data: null,
-			error: `Network error: ${errorMessage}`
+			const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch promo details'
+			console.error('[fetchPromoDetails] Error:', errorMessage)
+
+			return {
+				success: false,
+				data: null,
+				error: `Network error: ${errorMessage}`
+			}
 		}
 	}
+	return { success: false, data: null, error: 'Failed to fetch promo details' }
 }
 
 export async function createOrder (data) {
@@ -184,15 +512,7 @@ export async function createOrder (data) {
 
 	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
 		try {
-			let token = await getAuthToken()
-			if (!token) {
-				// Best-effort: authenticate and retry token retrieval.
-				await authUser()
-				token = await getAuthToken()
-			}
-			if (!token) {
-				throw new Error('Auth token not available')
-			}
+			const headers = await getAuthHeaders()
 
 			const payload = {
 				promo: data.promo,
@@ -202,12 +522,7 @@ export async function createOrder (data) {
 			}
 
 			const response = await backend.post(buildTxnUrl(), payload, {
-				// NOTE: avoid underscore header names (often blocked by proxies/CORS).
-				// Use the same convention used elsewhere in the app (e.g. watchtower/ramp): `wallet-hash`.
-				headers: {
-					'wallet-hash': walletHash,
-					Authorization: `Bearer ${token}`
-				}
+				headers: headers
 			})
 
 			return {
@@ -216,9 +531,11 @@ export async function createOrder (data) {
 				error: null
 			}
 		} catch (error) {
-			// 403 - token expired or server rejecting token; retry only a bounded number of times
-			if (error.response?.status === 403 && attempt < MAX_AUTH_RETRIES) {
-				await authUser()
+			// 401/403 - token expired or server rejecting token; retry only a bounded number of times
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				// Clear stored token and retry with fresh authentication
+				console.log('[OAuth] Token expired or invalid, clearing and retrying...')
+				await clearToken()
 				continue
 			}
 
@@ -246,15 +563,7 @@ export async function fetchOrders (data) {
 
 	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
 		try {
-			let token = await getAuthToken()
-			if (!token) {
-				// Best-effort: authenticate and retry token retrieval.
-				await authUser()
-				token = await getAuthToken()
-			}
-			if (!token) {
-				throw new Error('Auth token not available')
-			}
+			const headers = await getAuthHeaders()
 
 			let params = {
 				limit: data.limit,
@@ -277,11 +586,6 @@ export async function fetchOrders (data) {
 				params = _params
 			}
 
-			const headers = {
-				'wallet-hash': walletHash,
-				Authorization: `Bearer ${token}`
-			}
-
 			const response = await backend.get(buildTxnUrl(), {
 				params: params,
 				headers: headers
@@ -293,9 +597,11 @@ export async function fetchOrders (data) {
 				error: null
 			}
 		} catch (error) {
-			// 403 - token expired or server rejecting token; retry only a bounded number of times
-			if (error.response?.status === 403 && attempt < MAX_AUTH_RETRIES) {
-				await authUser()
+			// 401/403 - token expired or server rejecting token; retry only a bounded number of times
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				// Clear stored token and retry with fresh authentication
+				console.log('[OAuth] Token expired or invalid, clearing and retrying...')
+				await clearToken()
 				continue
 			}
 
@@ -323,20 +629,7 @@ export async function fetchOrderDetails (pk) {
 
 	for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
 		try {
-			let token = await getAuthToken()
-			if (!token) {
-				// Best-effort: authenticate and retry token retrieval.
-				await authUser()
-				token = await getAuthToken()
-			}
-			if (!token) {
-				throw new Error('Auth token not available')
-			}
-
-			const headers = {
-				'wallet-hash': walletHash,
-				Authorization: `Bearer ${token}`
-			}
+			const headers = await getAuthHeaders()
 
 			const response = await backend.get(buildTxnUrl() + pk, { headers: headers })
 
@@ -346,9 +639,11 @@ export async function fetchOrderDetails (pk) {
 				error: null
 			}
 		} catch (error) {
-			// 403 - token expired or server rejecting token; retry only a bounded number of times
-			if (error.response?.status === 403 && attempt < MAX_AUTH_RETRIES) {
-				await authUser()
+			// 401/403 - token expired or server rejecting token; retry only a bounded number of times
+			if ((error.response?.status === 403 || error.response?.status === 401) && attempt < MAX_AUTH_RETRIES) {
+				// Clear stored token and retry with fresh authentication
+				console.log('[OAuth] Token expired or invalid, clearing and retrying...')
+				await clearToken()
 				continue
 			}
 
@@ -368,129 +663,41 @@ export async function fetchOrderDetails (pk) {
 }
 
 /**
- * Performs the auth API request without fallback to register.
- * Used by registerUser to avoid recursion (authUser -> registerUser -> authUser).
+ * Legacy auth functions - kept for backward compatibility
+ * These now use the OAuth client internally
  */
-async function performAuthRequest () {
-	const walletHash = getWalletHash()
-	if (!walletHash) return null
-
-	const user = 'GBITS_' + walletHash
-	const userHash = await generateUserHash(walletHash)
-
-	const response = await backend.post(baseURL + '/auth/', {
-		username: user,
-		password: userHash
-	})
-
-	if (response.data && response.data.access) {
-		await saveAuthToken(response.data.access)
-		// Read-after-write: ensure token is readable before returning, so callers
-		// that do await authUser() then await getAuthToken() always see the token.
-		const stored = await getAuthToken()
-		if (stored) return true
-	}
-	return false
-}
-
-export async function registerUser () {
-	const walletHash = getWalletHash()
-	if (!walletHash) {
-		console.error('[registerUser] Wallet hash not available')
-		return false
-	}
-
-	try {
-		const user = 'GBITS_' + walletHash
-		const userHash = await generateUserHash(walletHash)
-
-		await backend.post(baseURL + '/register/', {}, {
-			headers: {
-				'x-auth-wallethash': user,
-				'x-auth-pass': userHash
-			}
-		})
-
-		// After registration, authenticate using raw request to avoid recursion
-		return await performAuthRequest()
-	} catch (error) {
-		// 400 means user already exists, try to authenticate directly (no authUser call)
-		if (error.response && error.response.status === 400) {
-			try {
-				return await performAuthRequest()
-			} catch (authErr) {
-				console.error('[registerUser] Auth after 400 failed:', authErr.message)
-				return false
-			}
-		}
-
-		console.error('[registerUser] Registration error:', error.message)
-		return false
-	}
-}
-
 export async function authUser () {
-	const walletHash = getWalletHash()
-	if (!walletHash) {
-		console.error('[authUser] Wallet hash not available')
-		return false
-	}
-
 	try {
-		return await performAuthRequest()
+		await getAuthHeaders()
+		console.log('[OAuth] User authenticated successfully')
+		return true
 	} catch (error) {
-		// If auth fails (401/404), try to register the user
-		if (error.response && (error.response.status === 401 || error.response.status === 404)) {
-			try {
-				return await registerUser()
-			} catch (registerError) {
-				console.error('[authUser] Registration failed:', registerError)
-				return false
-			}
-		}
-
 		console.error('[authUser] Authentication error:', error.message)
 		return false
 	}
 }
 
-export async function saveAuthToken(value) {	
-	const key = TOKEN_STORAGE_KEY
-
-	return await SecureStoragePlugin.set({ key: key, value: value}).then(success => { return success.value })
+export async function registerUser () {
+	// Registration is now handled automatically by getAuthHeaders
+	return await authUser()
 }
 
-export async function getAuthToken() { // adjust later
-	try {
-		const key = TOKEN_STORAGE_KEY
+export async function saveAuthToken(value) {
+	// Token management is now handled by BitcoinCashOAuthClient
+	// This function is kept for backward compatibility
+	console.log('[OAuth] saveAuthToken is deprecated, tokens managed by BitcoinCashOAuthClient')
+	return true
+}
 
-		const token = await SecureStoragePlugin.get({ key })
-		return token.value
-	} catch (error) {
-		console.error(error)
-		return false
-	}
+export async function getAuthToken() {
+	// Token retrieval is now handled internally by BitcoinCashOAuthClient
+	// This function is kept for backward compatibility
+	console.log('[OAuth] getAuthToken is deprecated, tokens managed by BitcoinCashOAuthClient')
+	return null
 }
 
 export async function generateUserHash (walletHash) {
-	// Use the wallet's mnemonic (private) combined with the walletHash to create
-	// a non-deterministic password that cannot be computed from public data.
-	// This prevents attackers who know the walletHash (sent in headers) from
-	// deriving valid credentials.
-	const mnemonic = await getMnemonic(walletHash)
-	if (!mnemonic) {
-		throw new Error('Unable to retrieve wallet mnemonic for authentication')
-	}
-	const hashVal = 'GBITS_' + walletHash + '_' + mnemonic
-	return sha256(hashVal)
-}
-
- /**
- * @param {String} data
- * @returns {String}
- */
-export function sha256 (data) {
-  const _sha256 = crypto.createHash('sha256')
-  _sha256.update(Buffer.from(data, 'utf8'))
-  return _sha256.digest().toString('hex')
+	// Deprecated: No longer needed with bitcoincash-oauth
+	console.log('[OAuth] generateUserHash is deprecated, using BitcoinCashOAuthClient')
+	return null
 }
