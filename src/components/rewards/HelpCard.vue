@@ -272,7 +272,7 @@ export default {
             titleDefault: 'User Reward Points',
             content: [
               { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here. To redeem them, tap the Redeem Points button.' },
-              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points soon to make the most of your rewards.' }
+              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -340,11 +340,30 @@ export default {
             titleDefault: 'Continuous Points',
             content: [
               { key: 'RewardsHelpUR52', default: 'Continuous points can be earned multiple times and are awarded after completing a Marketplace order or paying over the counter.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            backStep: '4',
+            nextStep: '6',
+            onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
+            onNext: () => {
+              this.isHighlighting = true
+            }
+          },
+          {
+            id: '6',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 2,
+            icon: 'loop',
+            titleKey: 'RewardsHelpUR51',
+            titleDefault: 'Continuous Points',
+            content: [
               { key: 'RewardsHelpUR53', default: 'You can get even more points if you transact with inactive merchants, so check the Paytaca Map to find merchants near you to transact with.' },
             ],
             hasBack: true,
             primaryBtn: 'Done',
-            backStep: '4',
+            backStep: '5',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
             onNext: () => this.close()
           },
@@ -378,7 +397,7 @@ export default {
             titleDefault: 'Refer-a-friend Promo Points',
             content: [
               { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here. To redeem them, tap the Redeem Points button.' },
-              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points soon to make the most of your rewards.' }
+              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -674,23 +693,35 @@ export default {
         }
         this.scrims.push(scrim)
 
-        const availableBelow = window.innerHeight - (targetRect.top + targetRect.height)
-        const isLastCard = index === totalCards - 1 && this.page === 'ur'
-        const placement = isLastCard || availableBelow < CARD_HEIGHT_ESTIMATE ? 'above' : 'below'
+        // Tooltip placement computation
+        const tooltipH = CARD_HEIGHT_ESTIMATE
 
-        if (placement === 'below') {
-          this.cardPosition.push({
-            top: targetRect.top + targetRect.height,
-            left: centeredLeft,
-            placement
-          })
-        } else {
-          this.cardPosition.push({
-            top: window.innerHeight > 800 ? 100 : 10,
-            left: centeredLeft,
-            placement
-          })
+        const availableBelow = window.innerHeight - (targetRect.top + targetRect.height)
+        const availableAbove = targetRect.top
+
+        // Determine preferred placement
+        const step = this.helpSteps.find(s => s.highlightIndex === index && s.needsBoundingRects)
+        let place = step?.prefer || 'below'
+
+        // Smart placement: switch if preferred side doesn't have enough space
+        if (place === 'below' && availableBelow < tooltipH && availableAbove > availableBelow) {
+          place = 'above'
         }
+        if (place === 'above' && availableAbove < tooltipH && availableBelow > availableAbove) {
+          place = 'below'
+        }
+
+        // Calculate position
+        let top = place === 'above'
+          ? (targetRect.top - tooltipH)
+          : (targetRect.top + targetRect.height)
+        top = Math.max(0, Math.min(window.innerHeight - tooltipH, top))
+
+        this.cardPosition.push({
+          top: top,
+          left: centeredLeft,
+          placement: place
+        })
       }
     }
   }
