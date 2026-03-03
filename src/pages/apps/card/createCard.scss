@@ -226,7 +226,7 @@ animation: float 6s ease-in-out infinite;
 
 .card-info {
 	padding: 8px 12px;
-	background: white;
+	background: transparent;
 	flex-shrink: 0;
 }
 
@@ -235,9 +235,10 @@ animation: float 6s ease-in-out infinite;
 	width: 100%;
 	height: 280px;
 	bottom: 0;
-	border: 3px solid black;
+	border: 3px solid currentColor;
 	border-radius: 25px;
 	z-index: 10;
+	background: var(--q-card-background, #ffffff);
 }
 
 .see-all-container {

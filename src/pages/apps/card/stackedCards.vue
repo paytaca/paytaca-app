@@ -43,8 +43,8 @@
             tabindex="0"
           >
             <!-- Grabbable handle at top with info -->
-            <div class="card-handle">
-              <div class="handle-indicator"></div>
+            <div class="card-handle" :class="$q.dark.isActive ? 'bg-dark' : ''">
+              <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
             </div>
             <!-- Card info positioned right below handle -->
             <div class="card-info row justify-between items-center no-wrap">
@@ -69,11 +69,17 @@
             flat
             bordered
             class="front-wallet-card flex flex-center shadow-10 cursor-pointer"
+            :class="$q.dark.isActive ? 'bg-dark' : ''"
             @click="$router.push({name: 'app-card'})"
           >
             <q-card-section class="text-center">
-              <div class="text-h6 q-mb-sm">Add a new card</div>
-              <q-icon name="add" size="56px" />
+              <div 
+                class="text-h6 q-mb-sm"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Add a new card
+              </div>
+              <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
             </q-card-section>
           </q-card>
 
