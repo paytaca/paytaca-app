@@ -109,9 +109,47 @@
                 </q-item>
               </q-list>
           </div>
-  
+          
+          <div v-if="wcActiveSessions" class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletConnectSessions') }}</p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+              <q-item v-for="session in wcActiveSessions" :key="session.topic">
+                  <q-item-section avatar>
+                    <q-avatar v-if="session.peer.metadata.icons?.length > 0">
+                        <img :src="session.peer.metadata.icons[0]" alt="">
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label caption class="ellipsis">ID: {{ session.topic }}</q-item-label>
+                    <q-item-label class="pt-label q-gutter-y-sm" :class="getDarkModeClass(darkMode)">
+                      <div class="ellipsis">{{ session.peer.metadata.name }}</div>
+                      <div v-if="session.peer.metadata.url">
+                        {{ session.peer.metadata.url }}
+                      </div>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn 
+                      @click="() => wcDisconnectSession(session)" 
+                      icon="mdi-connection" color="red" 
+                      rounded flat no-caps
+                      :loading="wcProcessingSession[session.topic]"
+                      >
+                    </q-btn>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="wcActiveSessions?.length === 0">
+                  <q-item-section>
+                    <q-item-label caption>
+                      {{ $t("NoActiveSessions") }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+            </q-list>
+          </div>
+
           <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Cosigner Coordination', {}, 'Cosigner Coordination') }}</p>
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('CosignerCoordination') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item>
                   <q-item-section>
@@ -121,7 +159,6 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-              
               <q-item>
                 <q-item-section>
                   <q-item-label caption>{{ $t('TransactionSigning', {}, 'Transaction Signing') }}</q-item-label>
@@ -165,7 +202,8 @@ import { MultisigWallet, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'src/components/CopyButton.vue'
 import { generateCoordinatorServerIdentityFromMnemonic } from 'src/lib/multisig/coordination.js'
-
+import { getWeb3Wallet as wcGetWalletKit, disconnectAllSessions as wcDisconnectAllSessions, disconnectAllSessions } from 'src/wallet/walletconnect2'
+import { getSdkError } from '@walletconnect/utils'
 
 const { t: $t } = useI18n()
 const $store = useStore()
@@ -184,6 +222,10 @@ const hdPrivateKeys = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
+
+const wcActiveSessions = ref([])
+const wcProcessingSession = ref({})
+
 const wallet = computed(() => {
   const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (storedWallet) {
@@ -197,6 +239,7 @@ const wallet = computed(() => {
   }
   return null
 })
+
 
 const loadHdPrivateKeys = async (signers) => {
   if (!hdPrivateKeys.value) {
@@ -280,9 +323,62 @@ const openRenameDialog = () => {
   })
 }
 
+const wcLoadActiveSessions = async () => {
+  wcActiveSessions.value = []
+  const activeSessions = await wcGetWalletKit().getActiveSessions()
+  for (const topic of Object.keys(activeSessions || {})) {
+    const accountFound = activeSessions[topic]?.namespaces?.bch?.accounts?.find((account) => {
+      return account.includes(wallet.value.wcGetDefaultAddress())
+    })
+    if (accountFound) {
+      wcActiveSessions.value.push(activeSessions[topic])
+    }
+  }
+}
+
+const wcDisconnectSession = async (activeSession) => {
+  const wcWalletKit = wcGetWalletKit()
+  wcProcessingSession.value[activeSession.topic] = 'Disconnecting'
+  try {
+    await new Promise((resolve, reject) => {
+      $q.dialog({
+        message: `Are you sure you want to disconnect ${activeSession.peer?.metadata?.name}?`,
+        ok: {
+          label: $t('Yes'),
+          noCaps: true,
+          color: 'primary',
+          rounded: true
+        },
+        cancel: {
+          noCaps: true,
+          rounded: true,
+          outline: true,
+          color: 'negative',
+          label: $t('No')
+        },
+        class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
+      }).onOk(() => resolve()).onCancel(() => reject())
+    })
+    
+    await wcWalletKit.disconnectSession({
+      topic: activeSession.topic,
+      reason: getSdkError('USER_DISCONNECTED')
+    })
+
+    await wcLoadActiveSessions()
+  } catch (error) {
+    console.log(error)
+    // console.log('🚀 ~ disconnectSession ~ error:', error)
+  } finally {
+    delete wcProcessingSession.value[activeSession.topic]
+  }
+}
+
 onMounted(async () => {
   await loadHdPrivateKeys(wallet.value?.signers)
   await wallet.value.loadSignersServerIdentity()
+  await wcLoadActiveSessions()
+  
 })
 
 </script>
