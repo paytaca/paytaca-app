@@ -4,16 +4,14 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav
-      title="Cauldron"
+<HeaderNav
+      title="Cauldron Pools"
+      backnavpath="/apps"
       class="apps-header"
-    >
-      <template v-slot:top-right-menu>
-        <CauldronHeaderMenu />
-      </template>
-    </HeaderNav>
+    />
     
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <CauldronHeaderMenu class="q-mb-md" />
       <!-- Loading State -->
       <div v-if="fetchingPools && pools.length === 0" class="text-center q-pa-lg">
         <q-spinner size="3em" color="primary" />

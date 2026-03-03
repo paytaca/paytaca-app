@@ -125,6 +125,7 @@ const words = [
     Version: "Version",
     Wallet: "Wallet",
     Wallets: "Wallets",
+    PersonalWallet: "Personal Wallet",
     Details: "Details",
     Transaction: "Transaction",
     Extensions: "Extensions",
@@ -557,6 +558,22 @@ const words = [
     ContractDetails: 'Contract Details',
     ContractAddress: 'Contract Address',
     or: 'Or',
+  },
+  {
+    AddressBook: 'Address Book',
+    SearchName: 'Search name',
+    EditContact: 'Edit Contact',
+    DeleteContact: 'Delete Contact',
+    AddressesList: 'Addresses List',
+    SearchAddresses: 'Search addresses',
+    FilterAddresses: 'Filter addresses',
+    AddAddress: 'Add address',
+    AddressActions: 'Address actions',
+    RemoveAddress: 'Remove address',
+    RemoveAddressTitle: 'Remove Address',
+    EditAddresses: 'Edit Addresses',
+    ContactName: 'Contact Name',
+    AddressAdded: 'Address added'
   }
 ]
 

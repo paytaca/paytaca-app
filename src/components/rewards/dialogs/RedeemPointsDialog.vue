@@ -85,13 +85,15 @@
               {{ pointsBalance }}
               {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
             </span>
-            <span
-              class="max-button text-grad"
+            <q-btn
+              flat
+              dense
+              no-caps
+              class="max-button"
               :class="getDarkModeClass(darkMode)"
+              :label="$t('MAX')"
               @click="onMaxClick"
-            >
-              {{ $t('MAX') }}
-            </span>
+            />
           </div>
 
           <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
@@ -180,13 +182,15 @@
               {{ pointsBalance }}
               {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
             </span>
-            <span
-              class="max-button text-grad"
+            <q-btn
+              flat
+              dense
+              no-caps
+              class="max-button"
               :class="getDarkModeClass(darkMode)"
+              :label="$t('MAX')"
               @click="onMaxClick"
-            >
-              {{ $t('MAX') }}
-            </span>
+            />
           </div>
 
           <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
@@ -266,7 +270,8 @@ import {
   processPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
-import { raiseNotifyError, getWallet } from 'src/utils/send-page-utils'
+import { getWallet } from 'src/utils/send-page-utils'
+import { raiseNotifyError } from 'src/utils/notify-utils'
 
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
@@ -492,6 +497,20 @@ export default {
   .q-field__label,
   .q-field__control.text-negative {
     color: #e57373 !important
+  }
+}
+
+.max-button {
+  min-height: unset;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #3b7bf6;
+
+  &.dark {
+    color: #6fa8ff;
   }
 }
 </style>

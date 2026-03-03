@@ -84,6 +84,20 @@ export default function () {
       return
     }
 
+    // Block apps that are not available on chipnet (testnet)
+    const isChipnet = store.getters['global/isChipnet']
+    const chipnetBlockedRoutes = [
+      '/apps/exchange',
+      '/apps/marketplace',
+      '/apps/crypto-swap',
+      '/apps/stablehedge',
+      '/apps/gifts'
+    ]
+    if (isChipnet && chipnetBlockedRoutes.some(route => to.path.startsWith(route))) {
+      next({ name: 'apps-dashboard', replace: true })
+      return
+    }
+
     if (to.path === '/') {
       try {
         // Ensure current wallet index is valid (points to undeleted wallet)

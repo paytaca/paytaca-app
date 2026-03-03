@@ -168,15 +168,16 @@
           balance: currentWalletBalance * (10 ** (asset?.decimals || 0))
         }) }}
       </span>
-      <a
-        href="#"
+      <q-btn
+        flat
+        dense
+        no-caps
         v-if="!computingMax || !recipient.sending"
-        class="max-button text-grad"
+        class="max-button"
         :class="getDarkModeClass(darkMode)"
-        @click.prevent="onInputFocus(index, ''), handleMaxClick()"
-      >
-        {{ $t('MAX') }}
-      </a>
+        :label="$t('MAX')"
+        @click="onInputFocus(index, ''), handleMaxClick()"
+      />
     </div>
   </div>
   <q-card
@@ -456,7 +457,21 @@ export default {
 
     .max-button {
       float: right;
-      text-decoration: none;
+      min-height: unset;
+      padding: 2px 8px;
+      border: 1px solid;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #3b7bf6;
+
+      &.light {
+        color: #3b7bf6;
+      }
+
+      &.dark {
+        color: #6fa8ff;
+      }
     }
   }
 </style>

@@ -15,10 +15,6 @@
       <q-separator v-if="type !== 'Profile'" :dark="darkMode" class="q-mx-md"/>
 
       <div v-if="type != 'Profile'" class="subtext q-mx-lg q-mt-sm">{{ instructionMessage }}</div>
-      <!-- Single Add Method button for Profile view -->
-      <div v-if="type === 'Profile'" class="row q-mx-md q-mt-sm">
-        <q-btn outline rounded no-caps :label="$t('AddMethod')" class="q-space button button-text-primary" :class="getDarkModeClass(darkMode)" @click="createMethod()"/>
-      </div>
       <q-card-section class="q-mt-sm" :style="cardSectionStyle">
         <div v-if="type !== 'Profile' && paymentMethods.length === 0 && type !== 'General'" class="relative text-center" style="margin-top: 50px;">
           <q-icon class="q-pr-sm" :color="darkMode? 'grey-5' : 'grey-7'" size="lg" name="mdi-delete-empty"/>

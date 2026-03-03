@@ -102,7 +102,7 @@
             <div class="text-grey">{{ $t('NetworkFee') }}</div>
             {{ txFeeFormatted }}
             <template v-if="txFeeInFiat !== null && !Number.isNaN(txFeeInFiat)">
-              ({{ parseFiatCurrency(txFeeInFiat, selectedMarketCurrency) }})
+              ({{ formatTxFeeInFiat(txFeeInFiat) }})
             </template>
           </div>
         </div>
@@ -376,7 +376,7 @@ import headerNav from 'src/components/header-nav'
 import { cachedLoadWallet } from 'src/wallet'
 import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
-import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
@@ -975,6 +975,14 @@ export default {
     },
     getDarkModeClass,
     parseFiatCurrency,
+    formatTxFeeInFiat (value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return ''
+      const num = Number(value)
+      const code = String(this.selectedMarketCurrency || '').toUpperCase()
+      if (num < 0.001) return `< 0.001 ${code}`
+      if (num < 0.01) return `${formatWithLocale(num, { min: 0, max: 3 })} ${code}`
+      return this.parseFiatCurrency(num, code)
+    },
     getAssetDenomination,
     parseAssetDenomination,
     createMutableCopy (obj) {
@@ -2113,6 +2121,40 @@ export default {
           margin-bottom: 35px;
         `
 
+        // Network Fee (only when present and > 0)
+        const hasFee = vm.txFee !== null && !Number.isNaN(vm.txFee) && vm.txFee > 0
+        if (hasFee && vm.txFeeFormatted) {
+          const feeContainer = document.createElement('div')
+          feeContainer.style.cssText = `
+            margin-bottom: 20px;
+          `
+          const feeLabel = document.createElement('div')
+          feeLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+          `
+          feeLabel.textContent = vm.$t('NetworkFee', {}, 'Network Fee')
+          feeContainer.appendChild(feeLabel)
+          const feeValue = document.createElement('div')
+          feeValue.style.cssText = `
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            letter-spacing: 0.2px;
+          `
+          let feeText = vm.txFeeFormatted
+          if (vm.txFeeInFiat !== null && !Number.isNaN(vm.txFeeInFiat)) {
+            feeText += ` (${vm.formatTxFeeInFiat(vm.txFeeInFiat)})`
+          }
+          feeValue.textContent = feeText
+          feeContainer.appendChild(feeValue)
+          detailsSection.appendChild(feeContainer)
+        }
+
         // Reference ID
         if (referenceId) {
           const refContainer = document.createElement('div')
@@ -2229,6 +2271,38 @@ export default {
 
         header.appendChild(detailsSection)
         contentContainer.appendChild(header)
+
+        // Memo section (if memo exists)
+        if (vm.hasMemo && vm.transactionMemo) {
+          const memoSection = document.createElement('div')
+          memoSection.style.cssText = `
+            margin-top: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+          `
+          const memoLabel = document.createElement('div')
+          memoLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+          `
+          memoLabel.textContent = vm.$t('Memo', {}, 'Memo')
+          memoSection.appendChild(memoLabel)
+          const memoValue = document.createElement('div')
+          memoValue.style.cssText = `
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            word-break: break-word;
+            line-height: 1.5;
+          `
+          memoValue.textContent = vm.transactionMemo
+          memoSection.appendChild(memoValue)
+          contentContainer.appendChild(memoSection)
+        }
 
         // Footer with logo and website
         const footer = document.createElement('div')
