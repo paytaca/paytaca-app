@@ -224,6 +224,9 @@ export class Card {
    */
   async spend(merchantId, toAddress, amountSats, proof) {
     this._assertWallet();
+
+    console.log('to_address:', toAddress);
+    console.log('merchantId:', merchantId);
     
     const response = await backend.post(`/cards/${this.raw.cash_address}/preimage/`, {
       merchant_id: merchantId,
