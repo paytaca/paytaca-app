@@ -1153,6 +1153,72 @@ export class MultisigWallet {
     return pst 
   }
 
+  async createProposalFromWcSessionRequest(sessionRequest) {
+    const proposal = new Pst()
+    const inputs = sessionRequest.params.request.params.transaction.inputs?.map((input) => {
+      const mappedInput = JSON.parse(JSON.stringify(input, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver)
+      const wcExpectedLockingBytecode = cashAddressToLockingBytecode(this.getDepositAddress(0).address)
+      if (mappedInput.sourceOutput.lockingBytecode && binsAreEqual(mappedInput.sourceOutput.lockingBytecode, wcExpectedLockingBytecode.bytecode)) {
+        const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: '0/0' })
+        const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
+        const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + '0/0'
+            return {
+              [s.publicKey]: {
+                path: fullDerivationPath,
+                masterFingerprint: s.masterFingerprint
+              }
+            }
+          }))
+        
+        mappedInput.sigHash = SigningSerializationTypeBch.allOutputs
+        mappedInput.bip32Derivation = bip32Derivation
+        mappedInput.redeemScript = generateRedeemScript(this.m, signersWithPublicKeys.map(s => hexToBin(s.publicKey)))
+      }
+      return mappedInput
+    })
+
+    const outputs = sessionRequest.params.request.params.transaction.outputs.map(output => {
+      const wcExpectedLockingBytecode = cashAddressToLockingBytecode(this.getDepositAddress(0).address)
+      const mappedOutput = JSON.parse(JSON.stringify(output, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver)
+      if (mappedOutput.lockingBytecode && binsAreEqual(mappedOutput.lockingBytecode, wcExpectedLockingBytecode.bytecode)) {
+        const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: '0/0' })
+        const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
+        const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + '0/0'
+            return {
+              [s.publicKey]: {
+                path: fullDerivationPath,
+                masterFingerprint: s.masterFingerprint
+              }
+            }
+          }))
+        
+        mappedOutput.purpose = 'self-external'
+        mappedOutput.bip32Derivation = bip32Derivation
+        mappedOutput.redeemScript = generateRedeemScript(this.m, signersWithPublicKeys.map(s => hexToBin(s.publicKey)))
+      }
+      return mappedOutput
+    })
+
+    proposal
+      .setOrigin(sessionRequest.session.peer.metadata.url || "")
+      .setPurpose(sessionRequest.params.request.params.userPrompt || "Not Specified")
+      .addInputs(inputs)
+      .addOutputs(outputs)
+      .setLocktime(sessionRequest.params.request.params.transaction.locktime)
+      .setTxVersion(sessionRequest.params.request.params.transaction.version)
+      .setWallet(this)
+      .setStore(this.options?.store)
+      .setProvider(this.options?.provider)
+      .setCoordinationServer(this.options?.coordinationServer)
+
+    const cosignerAuthCredentials = await this.generateCosignerAuthCredentials()
+
+    if (cosignerAuthCredentials && cosignerAuthCredentials["X-Auth-Cosigner-Auth-PubKey"]) {
+      proposal.setCreator(cosignerAuthCredentials["X-Auth-Cosigner-Auth-PubKey"])
+    }
+    return proposal
+  }
+
   async fetchProposals(status='pending') {
     if (!this.options?.coordinationServer) return 
     return await this.options.coordinationServer.getWalletProposals(this.generateBsmsDescriptorId(), status)
