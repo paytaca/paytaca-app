@@ -168,8 +168,22 @@ export default {
 
       // For CashTokens, use API data directly
       if (vm.isCashToken) {
-        // Get BCH asset from store
+        // Get BCH asset from store, or use default if not found
         let bchAsset = vm.$store.getters['assets/getAssets'].find(asset => asset?.id === 'bch')
+        
+        // Fallback to default BCH if not found in store
+        if (!bchAsset) {
+          bchAsset = {
+            id: 'bch',
+            symbol: 'BCH',
+            name: 'Bitcoin Cash',
+            logo: 'bch-logo.png',
+            balance: 0,
+            spendable: 0,
+            yield: {},
+            favorite: 0
+          }
+        }
         
         // Handle special case: if address is zcash format, exclude BCH
         if (vm.address !== '' && vm.address.includes('bitcoincash:zq')) {
@@ -235,7 +249,22 @@ export default {
       }
 
       // Sort: BCH first, then others
-      const bchAsset = assets.find(asset => asset?.id === 'bch')
+      let bchAsset = assets.find(asset => asset?.id === 'bch')
+      
+      // Fallback to default BCH if not found
+      if (!bchAsset) {
+        bchAsset = {
+          id: 'bch',
+          symbol: 'BCH',
+          name: 'Bitcoin Cash',
+          logo: 'bch-logo.png',
+          balance: 0,
+          spendable: 0,
+          yield: {},
+          favorite: 0
+        }
+      }
+      
       const otherAssets = assets.filter(asset => asset?.id !== 'bch')
 
       const allAssets = [

@@ -112,6 +112,10 @@ export default {
       type: String,
       default: 'send',
       validator: (value) => ['send', 'receive'].includes(value)
+    },
+    backPath: {
+      type: String,
+      default: null
     }
   },
   computed: {
@@ -144,7 +148,11 @@ export default {
   methods: {
     getDarkModeClass,
     onDone () {
-      this.$router.push('/')
+      if (this.backPath) {
+        this.$router.push(this.backPath)
+      } else {
+        this.$router.push('/')
+      }
     },
     onViewTransactions () {
       this.$router.push({ name: 'transaction-list' })
