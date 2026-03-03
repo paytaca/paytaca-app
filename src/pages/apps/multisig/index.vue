@@ -9,7 +9,7 @@
       </HeaderNav>
       <div class="row justify-center">
         <div class="col-xs-12">
-          <q-banner class="q-ma-lg rounded text-caption text-justify q-pa-md" :class="getDarkModeClass(darkMode)" style="word-break: auto-phrase; border-radius: 15px;">
+          <q-banner class="q-my-lg rounded text-caption text-justify q-pa-md" :class="getDarkModeClass(darkMode)" style="word-break: auto-phrase; border-radius: 15px;">
             <q-icon name="warning" color="warning" size="sm" class="q-mr-sm"></q-icon>
             {{ $t('MultisigWalletsBetaDisclaimerMessage') }}
           </q-banner>
@@ -20,7 +20,7 @@
             <div v-if="multisigWallets" class="q-mb-sm">
               <div class="row justify-end q-gutter-x-sm q-mb-md">
                 <q-btn color="primary" icon="add" @click="onCreateWalletClick" round dense outline></q-btn>
-                <q-btn color="primary" icon="download" @click="onImportWalletClick" round dense outline></q-btn>
+                <q-btn color="primary" icon="mdi-file-import-outline" @click="onImportWalletClick" round dense outline></q-btn>
                 <q-btn color="red" icon="mdi-delete-sweep-outline" @click="onDeleteAllWalletsClick" round dense outline></q-btn>
               </div>
             </div>
@@ -97,7 +97,7 @@
             </div>
             <div class="col-xs-12 text-center">
               <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round>
-                <q-icon class="default-text-color" name="download" />
+                <q-icon class="default-text-color" name="mdi-file-import-outline" />
               </q-btn>
               <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
               <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportWalletDescripition', {}, `Import a multisig wallet setup/config from different sources`) }}</div>
