@@ -397,6 +397,11 @@ const routes = [
             path: 'card-details',
             name: 'card-details',
             component: () => import('src/pages/apps/card/cardDetails.vue')
+          },
+          {
+            path: 'all-cards',
+            name: 'all-cards',
+            component: () => import('src/pages/apps/card/allCards.vue')
           }
         ]
       }
