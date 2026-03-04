@@ -1,5 +1,5 @@
-import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
-import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload } from "./utils.js"
+import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin, hashTransaction, decodeTransactionCommon, stringify } from "bitauth-libauth-v3"
+import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload, verifyTransactionInputSignature } from "./utils.js"
 import { MultisigTransactionBuilder } from "./transaction-builder.js"
 export const PSBT_MAGIC = '70736274ff'
 
@@ -698,6 +698,7 @@ export class PsbtInput {
       this.keypairs[PSBT_IN_PARTIAL_SIG] = []
     }
 
+    console.log('ADDING PARTIAL SIGNATURE ', publicKey, sig)
     this.keypairs[PSBT_IN_PARTIAL_SIG].push(new KeyPair(k, v))
     return this
   }
@@ -1331,7 +1332,7 @@ export class Psbt {
       })
     }
 
-    for(const psbtOutput of psbt.outputMap?.outputs) {
+    for(const psbtOutput of this.outputMap?.outputs) {
       const o = {
         valueSatoshis: psbtOutput.getAmount()
       }
@@ -1342,9 +1343,16 @@ export class Psbt {
       tx.outputs.push(o)
     }
     const unsignedTx = new MultisigTransactionBuilder()
+
+    const unsignedInputs = tx.inputs.map(input => {
+       return {
+          ...input,
+          unlockingBytecode: []
+       }
+    })
     unsignedTx.setVersion(tx.version)
     unsignedTx.setLocktime(tx.locktime)
-    unsignedTx.addInputs(tx.inputs)
+    unsignedTx.addInputs(unsignedInputs)
     unsignedTx.addOutputs(tx.outputs)
     return hexToBin(unsignedTx.build())
   }
@@ -1558,7 +1566,6 @@ export class Psbt {
         signers: xpubs
       }
     }
-    
 
     this.globalMap.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.forEach(pf => {
       if (pf.subKeyData && pf.value) {
@@ -1622,6 +1629,84 @@ export class Psbt {
       if (purpose?.value) o.purpose = purpose.getValue(binToUtf8)
       decodeResult.outputs.push(o)
     }
+    return this
+  }
+
+  /**
+   * @param {string[]} psbts Base64 encoded string
+   */
+  combine(psbts) {
+    const problematicPsbts = []
+    const unsignedTransactionHash = hashTransaction(this.getUnsignedTx())
+    const base = structuredClone(this)
+    Object.setPrototypeOf(base, Psbt.prototype)
+    for (const [i, base64] of psbts.entries()) {
+      try {
+        const psbtInstance = new Psbt()
+        psbtInstance.deserialize(base64ToBin(base64))
+        const h = hashTransaction(psbtInstance.getUnsignedTx())
+        
+        if (unsignedTransactionHash !== h) {
+          throw Error(`Unsigned transaction hash mismatch with psbt at index ${i}. Expecting ${unsignedTransactionHash} but got ${h}`)
+        }
+        const sourceOutputs = psbtInstance.inputMap.inputs.map((input) => {
+          Object.setPrototypeOf(input, PsbtInput.prototype)
+          return input.getSourceUtxo()
+        })
+
+        for (const [inputIndex, input] of psbtInstance.inputMap.inputs.entries()) {
+          const correspondingBaseInput = base.inputMap.inputs[inputIndex]
+          Object.setPrototypeOf(correspondingBaseInput, PsbtInput.prototype)
+          if (correspondingBaseInput.getFinalScriptSig()) continue
+          const partialSigs = input.getPartialSigs()
+          const bip32Derivation = input.getBip32Derivation()
+          if (!bip32Derivation) continue
+          Object.setPrototypeOf(input, PsbtInput.prototype)
+          const context = {
+            transaction: decodeTransactionCommon(this.getUnsignedTx()),
+            sourceOutputs
+          }
+          const inputTransactionHash = input.getOutpointTransactionHash()
+          context.inputIndex = context.transaction.inputs.findIndex((i) => {
+            return (
+              binsAreEqual(i.outpointTransactionHash, inputTransactionHash) &&
+              i.outpointIndex === input.getOutpointIndex()
+            )
+          })
+
+          if (context.inputIndex === -1) {
+            throw new Error(`Missing expected input with outpointTransactionHash ${inputTransactionHash}`)
+          }
+
+          if (!binsAreEqual(correspondingBaseInput.getRedeemScript(), input.getRedeemScript())) {
+            throw new Error(`Redeem script mismatch between base input and target input at index ${inputIndex}`)
+          }
+
+          Object.keys(partialSigs).forEach((publicKey) => {
+            const signatureVerificationSuccess = verifyTransactionInputSignature({
+              signature: partialSigs[publicKey],
+              publicKey: hexToBin(publicKey),
+              redeemScript: input.getRedeemScript(),
+              context
+            })
+            if (!signatureVerificationSuccess) {
+              throw new Error(`Failed signature vefication on psbt at index${i} input ${inputIndex}`)
+            }
+            correspondingBaseInput.addPartialSig(hexToBin(publicKey), partialSigs[publicKey])
+          })
+        }
+
+      } catch (error) {
+        console.log(`@Psbt.combine: `, error)
+        problematicPsbts.push({ psbt: base64, error })
+      }
+    }
+    
+    if(!problematicPsbts?.length === 0) {
+      return stringify(problematicPsbts)
+    }
+    Object.setPrototypeOf(base.inputMap, InputMap.prototype)
+    this.inputMap = base.inputMap
     return this
   }
 

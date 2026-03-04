@@ -115,7 +115,11 @@ import {
 
 import { getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
-import { bip32ExtractRelativePath } from './utils.js'
+import { 
+  bip32ExtractRelativePath, 
+  verifyTransactionInputSignature, 
+  verifyTransactionInputsSignature 
+} from './utils.js'
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerCoordinationServer, WatchtowerNetworkProvider } from './network.js'
@@ -460,83 +464,6 @@ export const publicKeySigned = ({ publicKey, pst }) => {
 
     return allInputsAreSigned.every(isSigned => isSigned)
 }
-
-
-/**
- * Context object for signature verification and transaction processing.
- *
- * @typedef {Object} Context
- * @property {number} inputIndex - The index of the input being processed in the transaction.
- * @property {Array} sourceOutputs - Array of source outputs for the transaction inputs.
- * @property {Object} transaction - The transaction object (decoded).
- *
- * Verifies a Schnorr signature for a given transaction input context.
- *
- * @param {Object} params - The parameters for verification.
- * @param {Uint8Array} params.signature - The Schnorr signature to verify.
- * @param {Uint8Array} params.publicKey - The public key corresponding to the signature.
- * @param {Context} params.context - Context object containing transaction, input index, and source outputs.
- * @returns {boolean} True if signature is valid, otherwise false.
- */
-export const verifyTransactionInputSignature = ({ signature, publicKey, redeemScript, context }) => {
-  const sigHashFlag = signature.slice(-1)[0]
-  const signingSerialization = generateSigningSerializationBch(context, { 
-    coveredBytecode: redeemScript, 
-    signingSerializationType: new Uint8Array([sigHashFlag]) // Uint8Array([65]) for allOutputs
-  })
-  const sigHash = hash256(signingSerialization)
-  let signatureFormat = signature.length > 65 ? 'ecdsa' : 'schnorr'
-  if (signatureFormat === 'schnorr') {
-    const signatureVerificationResult = secp256k1.verifySignatureSchnorr(signature.slice(0, 64), publicKey, sigHash)
-    return signatureVerificationResult
-  }
-  return secp256k1.verifySignatureDERLowS(signature.slice(0, signature.length - 1), publicKey, sigHash)
-}
-
-/**
-/**
- * Verifies the signatures on all inputs of a transaction.
- *
- * @param {Object} params - The verification parameters.
- * @param {string} params.transaction - Unsigned transaction hex string.
- * @param {Array<Object>} params.inputs - Array of input objects, each optionally containing:
- *   @param {Object.<string, Uint8Array>} [params.inputs.signatures] - Object mapping public key hex strings to their corresponding signatures.
- *   @param {Uint8Array} [params.inputs.redeemScript] - The redeem script associated with each input.
- *   @param {SourceOutput} params.inputs.sourceOutput
- *
- * @returns {Array<boolean>} Array of boolean values indicating the verification result for each signature in order processed.
- */
-export const verifyTransactionInputsSignature = ({ transaction, inputs }) => {
-  const inputSignatureVerificationResults = []
-  for (const inputIndex in inputs) {
-    if (!inputs[inputIndex].redeemScript) continue 
-    const publicKeys = Object.keys(inputs[inputIndex].signatures || {})
-    if (publicKeys.length === 0) continue
-    publicKeys.forEach((publicKey) => {
-      const signature = inputs[inputIndex].signatures[publicKey]
-      const redeemScript = inputs[inputIndex].redeemScript 
-      if (!signature) return
-      if (!redeemScript) {
-        inputSignatureVerificationResults.push(false)
-        return
-      }
-      const sigVerifyResult = verifyTransactionInputSignature({ 
-        signature, 
-        publicKey: hexToBin(publicKey),
-        redeemScript,
-        context: {
-          inputIndex,
-          sourceOutputs: inputs.map((i) => i.sourceOutput),
-          transaction: decodeTransactionCommon(hexToBin(transaction))
-        }
-      })
-      inputSignatureVerificationResults.push(sigVerifyResult)
-    }) 
-  }
-  return inputSignatureVerificationResults.every(rOk => Boolean(rOk))
-}
-
-
 
 export class Pst {
 
@@ -1100,6 +1027,16 @@ export class Pst {
     }
   }
 
+  async fetchPsbts() {
+    if (this.id && this.options?.coordinationServer) {
+      const psbts = await this.options.coordinationServer.getPsbts({ 
+        proposalUnsignedTransactionHash: this.unsignedTransactionHash 
+      })
+      this.psbts = psbts
+    }
+    return this.psbts
+  }
+
   getTotalSatsInput() {
     return this.inputs.filter(i => !i.sourceOutput?.token).reduce((total, input) => {
       return total + Number(input.sourceOutput.valueSatoshis)
@@ -1305,13 +1242,14 @@ export class Pst {
   }
 
   /**
-   * @param {boolean} [sync=false] - If true, syncs the pst to the relay server.
+   * @param {Object}  [options] Save options
+   * @param {boolean} [options.sync] - If true, syncs the pst to the relay server.
    */
-  async save({ sync = false }) {
+  async save(options) {
     if (!this.options?.store) return
     const psbt = await this.toPsbt()
     await this.options.store.commit('multisig/savePsbt', psbt)
-    if (sync) {
+    if (options?.sync) {
       return await this.upload()
     }
   }
