@@ -370,3 +370,82 @@ animation: float 6s ease-in-out infinite;
     transform: translateY(-2px);
   }
 }
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  justify-items: center;
+}
+
+.card-grid-item {
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  width: 180px;
+  height: 100px;
+
+  &:hover {
+    transform: translateY(-4px);
+  }
+}
+
+.body--light {
+  .card-grid-item {
+    background: white;
+    border: 2px solid #9e9e9e;
+    
+    &:hover {
+      border: 1px solid white;
+      background: rgba(0, 122, 255, 0.05);
+    }
+  }
+  
+  .card-name {
+    color: #212121;
+  }
+  
+  .card-balance {
+    color: #757575;
+    font-style: italic;
+  }
+}
+
+.body--dark {
+  .card-grid-item {
+    background: #1d1d1d;
+    border: 2px solid #424242;
+    
+    &:hover {
+      border: 1px solid white;
+      background: rgba(0, 122, 255, 0.1);
+    }
+  }
+  
+  .card-name {
+    color: white;
+  }
+  
+  .card-balance {
+    color: #9e9e9e;
+    font-style: italic;
+  }
+}
+
+.card-grid-info {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  justify-content: center;
+}
+
+.card-name {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.card-balance {
+  font-size: 13px;
+}

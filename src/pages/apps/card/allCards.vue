@@ -36,28 +36,22 @@
           />
         </div>
 
-        <div v-else class="cards-list">
-          <q-card
+        <div v-else class="cards-grid">
+          <div
             v-for="card in subCards"
             :key="card.id"
-            flat
-            bordered
-            class="card-item q-mb-md cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-dark' : ''"
+            class="card-grid-item cursor-pointer"
             @click="goToCardDetails(card)"
           >
-            <q-card-section class="row items-center justify-between">
-              <div>
-                <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
-                  {{ card.raw?.alias }}
-                </div>
-                <div class="text-caption text-grey">Card ID: {{ card.id }}</div>
+            <div class="card-grid-info">
+              <div class="card-name text-weight-bold ellipsis">
+                {{ card.raw?.alias }}
               </div>
-              <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+              <div class="card-balance text-weight-bold">
                 {{ card.balance }} BCH
               </div>
-            </q-card-section>
-          </q-card>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -91,24 +85,4 @@ export default {
 
 <style lang="scss" scoped>
 @import "./createCard.scss";
-
-.card-item {
-  border-radius: 12px;
-  transition: all 0.2s ease;
-  background: #1d1d1d !important;
-
-  &:hover {
-    background: rgba(0, 122, 255, 0.2) !important;
-    border-color: rgba(0, 122, 255, 0.5);
-  }
-}
-
-.body--light .card-item {
-  background: white !important;
-
-  &:hover {
-    background: rgba(0, 122, 255, 0.1) !important;
-    border-color: rgba(0, 122, 255, 0.3);
-  }
-}
 </style>
