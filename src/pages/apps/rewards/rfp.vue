@@ -178,8 +178,8 @@
                       <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                         {{ $t(
                             'WalletCreatedOn',
-                            { dateCreated: parseLocaleDate(item.date_created) },
-                            `Wallet created on ${parseLocaleDate(item.date_created)}`
+                            { dateCreated: formatDateLocaleRelative(item.date_created, false) },
+                            `Wallet created on ${formatDateLocaleRelative(item.date_created, false)}`
                           ) }}
                       </div>
                       <div v-if="item.has_transacted" class="text-caption text-green-7">
@@ -225,8 +225,8 @@
 
 <script>
 import { ensureKeypair } from 'src/utils/memo-service'
+import { formatDateLocaleRelative } from 'src/utils/time'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import {
   Promos,
   PromosBytes,
@@ -306,7 +306,7 @@ export default {
 
   methods: {
     getDarkModeClass,
-    parseLocaleDate,
+    formatDateLocaleRelative,
 
     async loadData () {
       this.isLoading = true

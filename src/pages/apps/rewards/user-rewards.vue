@@ -180,8 +180,8 @@
                         <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
                           {{ $t(
                               'EarnedOn',
-                              { date: parseLocaleDate(dateJoined) },
-                              `Earned on ${parseLocaleDate(dateJoined)}`
+                              { date: formatDateLocaleRelative(dateJoined, false) },
+                              `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
                             ) }}
                         </div>
                         <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -214,8 +214,8 @@
                         <div v-if="isReferralComplete" class="text-caption text-green-7">
                           {{ $t(
                               'EarnedOn',
-                              { date: parseLocaleDate(referralCompleteDate) },
-                              `Earned on ${parseLocaleDate(referralCompleteDate)}`
+                              { date: formatDateLocaleRelative(referralCompleteDate, false) },
+                              `Earned on ${formatDateLocaleRelative(referralCompleteDate, false)}`
                             ) }}
                         </div>
                         <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -287,7 +287,11 @@
                             <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
                           </q-item-label>
                           <q-item-label caption>
-                            {{ $t('LastDate', { date: parseLocaleDate(item.date) }, `last ${parseLocaleDate(item.date)}`) }}
+                            {{ $t(
+                                'LastDate',
+                                { date: formatDateLocaleRelative(item.date, false) },
+                                `last ${formatDateLocaleRelative(item.date, false)}`
+                              ) }}
                           </q-item-label>
                         </q-item-section>
                         <q-item-section v-else :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -358,7 +362,7 @@
               <div class="row items-center q-gutter-sm full-width">
                 <q-icon name="calendar_today" size="20px" color="primary" />
                 <div class="col text-subtitle1 text-weight-medium">
-                  {{ parseLocaleDate(monthData.month, false) }}
+                  {{ formatMonthDisplay(monthData.month) }}
                 </div>
                 <div class="text-caption q-mr-sm" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                   {{ monthData.orders.length }} {{ monthData.orders.length === 1 ? 'order' : 'orders' }}
@@ -380,7 +384,11 @@
                       <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
                     </q-item-label>
                     <q-item-label caption>
-                      {{ $t('LastDate', { date: parseLocaleDate(order.date) }, `last ${parseLocaleDate(order.date)}`) }}
+                      {{ $t(
+                          'LastDate',
+                          { date: formatDateLocaleRelative(order.date, false) },
+                          `last ${formatDateLocaleRelative(order.date, false)}`
+                        ) }}
                     </q-item-label>
                   </q-item-section>
                   <q-item-section side>
@@ -424,8 +432,8 @@
 
 <script>
 import { ensureKeypair } from 'src/utils/memo-service'
+import { formatDateLocaleRelative } from 'src/utils/time'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseLocaleDate } from 'src/utils/engagementhub-utils/shared'
 import {
   Promos,
   PromosBytes,
@@ -435,6 +443,8 @@ import {
   updateUserRewardsData,
   createUserRewardsData
 } from 'src/utils/engagementhub-utils/rewards'
+
+import i18n from 'src/i18n'
 
 import HeaderNav from 'src/components/header-nav'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
@@ -520,6 +530,12 @@ export default {
     },
     firstSevenProgress () {
       return this.completedFirstSevenCount / 7
+    },
+    userLocale () {
+      // Prefer app-selected language; fall back to i18n locale; then browser locale.
+      const fromStore = this.$store.getters['global/language']
+      const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
+      return String(candidate).replace('_', '-')
     }
   },
 
@@ -529,7 +545,7 @@ export default {
 
   methods: {
     getDarkModeClass,
-    parseLocaleDate,
+    formatDateLocaleRelative,
     
     async loadData () {
       this.isLoading = true
@@ -592,6 +608,7 @@ export default {
         this.hasReceivedInitialPoints = urData.has_received_initial_points
         this.dateJoined = urData.date_joined
 
+        // TODO filter latest date
         if (urData.ur_months.length > 0) {
           for (const transaction of urData.ur_months) {
             this.marketplaceTransactions.push({
@@ -640,6 +657,19 @@ export default {
       requestAnimationFrame(animate)
     },
 
+    formatMonthDisplay (date) {
+      const dt = new Date(date);
+      if (Number.isNaN(dt.getTime())) return '';
+
+      try {
+        return new Intl.DateTimeFormat(this.userLocale, {
+          year: 'numeric',
+          month: 'short'
+        }).format(dt)
+      } catch {
+        return dt.toLocaleString()
+      }
+    },
     redirectToMarketplaceOrder (orderId) {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
