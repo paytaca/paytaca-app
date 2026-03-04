@@ -514,11 +514,18 @@ export async function createOrder (data) {
 		try {
 			const headers = await getAuthHeaders()
 
+			// Get address
+			const credentials = await deriveOAuthCredentials()
+			const address = credentials.address
+			console.log('address: ', address)
+
+
 			const payload = {
 				promo: data.promo,
 				promo_snapshot: data.promo_snapshot,
 				bch_amount: data.bch_amount,
-				bch_price_quote: data.bch_price_quote
+				bch_price_quote: data.bch_price_quote,
+				refund_address: address
 			}
 
 			const response = await backend.post(buildTxnUrl(), payload, {
