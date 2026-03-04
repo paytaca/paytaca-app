@@ -20,8 +20,9 @@
         <MultiWalletDropdown></MultiWalletDropdown>
       </div>
 
-      <div>
-        My cards
+      <div class="q-px-md q-mt-md">
+        <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">My Cards</div>
+        <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
       </div>
 
       <div class="flex flex-center full-width">
