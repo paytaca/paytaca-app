@@ -30,7 +30,7 @@
           <div
             v-for="(card, index) in displayedCards"
             :key="card.id"
-            class="stacked-card shadow-5"
+            class="stacked-card"
             :class="{ 'swipe-hint': index === displayedCards.length -1, 'is-dragging': currentCardId === card.id }"
             :style="getCardStyle(index)"
             @mousedown="startDrag($event, card)"
@@ -66,14 +66,12 @@
             </div>
           </div>
 
-          <q-card
-            flat
-            bordered
-            class="front-wallet-card flex flex-center shadow-10 cursor-pointer"
+          <div
+            class="front-wallet-card flex flex-center cursor-pointer"
             :class="$q.dark.isActive ? 'bg-dark' : ''"
             @click="$router.push({name: 'app-card'})"
           >
-            <q-card-section class="text-center">
+            <q-card-section class="text-center slot-content">
               <div 
                 class="text-h6 q-mb-sm"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
@@ -82,15 +80,23 @@
               </div>
               <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
             </q-card-section>
-          </q-card>
+          </div>
 
           <div 
             v-if="subCards.length > 3"
-            class="see-all-container text-center q-mt-xl"
-            @click="showAllCards"
+            class="see-all-container text-center q-mt-lg"
           >
-            <q-icon name="keyboard_double_arrow_up" size="sm" color="primary" />
-            <div class="text-caption text-primary text-weight-bold">See all ({{ hiddenCount }} more)</div>
+            <q-btn
+              flat
+              no-caps
+              class="see-all-btn full-width"
+              @click="showAllCards"
+            >
+              <div class="row items-center no-wrap">
+                <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
+                <q-icon name="expand_more" size="20px" class="q-ml-xs" />
+              </div>
+            </q-btn>
           </div>  
         </div>
       </div>
@@ -150,7 +156,7 @@ export default {
         width: '90%',
         left: '5%',
         background: this.$q.dark.isActive ? '#1d1d1d' : 'white',
-        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid black',
+        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid #9e9e9e',
         borderRadius: '15px',
         height: '180px',
         transform: `translateX(${translateX}px)`,
@@ -265,11 +271,15 @@ export default {
       if (card && card.id) {
         this.$router.push({ name: 'card-details', query: {id: card.id} })
       }
+    },
+
+    showAllCards () {
+      this.$router.push({ name: 'all-cards' })
     }
   }
 }
 </script>
 
 <style lang="scss" scoped>
-  @import "./createCard.scss"
+  @import "./createCard.scss";
 </style>

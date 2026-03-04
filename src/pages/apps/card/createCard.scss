@@ -191,6 +191,7 @@ animation: float 6s ease-in-out infinite;
 	
 	&:active, &.is-dragging {
 		cursor: grabbing;
+		border-color: #007AFF;
 	}
 
 }
@@ -235,16 +236,59 @@ animation: float 6s ease-in-out infinite;
 	width: 100%;
 	height: 280px;
 	bottom: 0;
-	border: 3px solid currentColor;
 	border-radius: 25px;
 	z-index: 10;
-	background: var(--q-card-background, #ffffff);
+	background: #ffffff;
+	border: 2px solid #9e9e9e;
+	overflow: hidden;
+}
+
+.front-wallet-card::before {
+	content: '';
+	position: absolute;
+	top: -2px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 50%;
+	height: 26px;
+	background: #ffffff;
+	border-left: 2px solid transparent;
+	border-right: 2px solid transparent;
+	border-bottom: 2px solid transparent;
+	border-radius: 0 0 20px 20px;
+	z-index: 5;
+}
+
+.front-wallet-card .slot-content {
+	position: relative;
+	z-index: 12;
+	margin-top: 30px;
+}
+
+.front-wallet-card:hover::before {
+	background: rgba(0, 122, 255, 0.1);
+}
+
+.front-wallet-card:hover {
+	border-color: #007AFF;
+}
+
+.body--dark {
+	.front-wallet-card {
+		background: #1d1d1d;
+		border: 2px solid #616161;
+	}
+	
+	.front-wallet-card::before {
+		background: #1d1d1d;
+	}
 }
 
 .see-all-container {
   position: absolute;
-  top: -110px;
-  width: 100%;
+  top: -90px;
+  width: 80%;
+  left: 10%;
 	z-index: 20;
 	display: flex;
 	flex-direction: column;
@@ -311,4 +355,18 @@ animation: float 6s ease-in-out infinite;
 
 .q-btn--outline {
 	border: 1.5px solid currentColor;
+}
+
+.see-all-btn {
+  border-radius: 12px;
+  background: rgba(0, 122, 255, 0.1);
+  color: #007AFF;
+  padding: 12px 20px;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 122, 255, 0.3);
+
+  &:hover {
+    background: rgba(0, 122, 255, 0.2);
+    transform: translateY(-2px);
+  }
 }
