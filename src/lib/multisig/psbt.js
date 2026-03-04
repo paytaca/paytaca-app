@@ -1633,13 +1633,15 @@ export class Psbt {
   }
 
   /**
+   * Combines this instance and the passed psbts.
+   * This process mutates this psbt if there's a valid signature on
+   * the provided psbts and returns any error of the problematic psbts.
+   * 
    * @param {string[]} psbts Base64 encoded string
    */
   combine(psbts) {
-    const problematicPsbts = []
+    const results = []
     const unsignedTransactionHash = hashTransaction(this.getUnsignedTx())
-    const base = structuredClone(this)
-    Object.setPrototypeOf(base, Psbt.prototype)
     for (const [i, base64] of psbts.entries()) {
       try {
         const psbtInstance = new Psbt()
@@ -1650,18 +1652,15 @@ export class Psbt {
           throw Error(`Unsigned transaction hash mismatch with psbt at index ${i}. Expecting ${unsignedTransactionHash} but got ${h}`)
         }
         const sourceOutputs = psbtInstance.inputMap.inputs.map((input) => {
-          Object.setPrototypeOf(input, PsbtInput.prototype)
           return input.getSourceUtxo()
         })
 
         for (const [inputIndex, input] of psbtInstance.inputMap.inputs.entries()) {
-          const correspondingBaseInput = base.inputMap.inputs[inputIndex]
-          Object.setPrototypeOf(correspondingBaseInput, PsbtInput.prototype)
+          const correspondingBaseInput = this.inputMap.inputs[inputIndex]
           if (correspondingBaseInput.getFinalScriptSig()) continue
           const partialSigs = input.getPartialSigs()
           const bip32Derivation = input.getBip32Derivation()
           if (!bip32Derivation) continue
-          Object.setPrototypeOf(input, PsbtInput.prototype)
           const context = {
             transaction: decodeTransactionCommon(this.getUnsignedTx()),
             sourceOutputs
@@ -1695,19 +1694,14 @@ export class Psbt {
             correspondingBaseInput.addPartialSig(hexToBin(publicKey), partialSigs[publicKey])
           })
         }
-
+        results.push({ index: i, psbt: base64, combined: true })
       } catch (error) {
         console.log(`@Psbt.combine: `, error)
-        problematicPsbts.push({ psbt: base64, error })
+        results.push({ index: i, psbt: base64, combined: error })
       }
     }
     
-    if(!problematicPsbts?.length === 0) {
-      return stringify(problematicPsbts)
-    }
-    Object.setPrototypeOf(base.inputMap, InputMap.prototype)
-    this.inputMap = base.inputMap
-    return this
+    return results
   }
 
   toString() {
