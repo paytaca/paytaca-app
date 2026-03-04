@@ -8,7 +8,7 @@ export const createCardLogic = {
       createCardDialog: false,
       newCardName: '',
       subCards: [],
-      // contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
+      contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
     }
   },
 
@@ -66,7 +66,8 @@ export const createCardLogic = {
         id: Date.now(),
         raw: {alias: this.newCardName},
         balance: (Math.random() * 10).toFixed(2), // random balance
-        status: 'Active'
+        status: 'Active',
+        contractAddress: this.contractAddress
       }
 
       // save to localStorage
@@ -82,6 +83,16 @@ export const createCardLogic = {
       this.$router.push({name: 'stacked-cards'})
 
       this.newCardName = ''
+    },
+
+    navigateToCardDetails(card, tab = 'transactions') {
+      this.$router.push({
+        name: 'card-details',
+        query: { 
+          id: card.id,
+          tab: tab
+        }
+      })
     },
 
   }
