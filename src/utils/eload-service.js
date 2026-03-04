@@ -253,7 +253,15 @@ async function getAuthHeaders() {
 		console.log('[OAuth] User not found, registering...')
 		
 		try {
-			await client.register(credentials.address, walletHash)
+			// New register API requires signing: register(address, privateKeyHex, publicKeyHex, userId, timestamp, domain)
+			await client.register(
+				credentials.address,    // address
+				privateKeyHex,          // privateKeyHex
+				credentials.publicKey,  // publicKeyHex
+				walletHash,             // userId (wallet hash)
+				timestamp,              // timestamp
+				domain                  // domain
+			)
 			console.log('[OAuth] User registered successfully')
 		} catch (regError) {
 			console.error('[OAuth] Registration failed:', regError.message)
