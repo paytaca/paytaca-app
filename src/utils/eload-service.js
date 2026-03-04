@@ -195,7 +195,6 @@ async function getAuthHeaders() {
 	if (storedToken) {
 		console.log('[OAuth] Using stored token')
 		return {
-			'wallet-hash': walletHash,
 			'Authorization': `Bearer ${storedToken}`
 		}
 	}
@@ -296,7 +295,6 @@ async function getAuthHeaders() {
 	}
 
 	return {
-		'wallet-hash': walletHash,
 		'Authorization': `Bearer ${auth.access_token}`
 	}
 }
