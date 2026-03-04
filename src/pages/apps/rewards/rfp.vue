@@ -190,8 +190,7 @@
                       </div>
                     </div>
                     <points-badge
-                      v-if="item.has_transacted"
-                      :complete="true"
+                      :complete="item.has_transacted"
                       :dark-mode-class="getDarkModeClass(darkMode)"
                       :points="10"
                     />
