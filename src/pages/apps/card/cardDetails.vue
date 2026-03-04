@@ -50,26 +50,23 @@
               >
                 {{ activeCard.balance }} BCH
               </div>
-              <q-btn outline dense label="Cash In" size="sm" />
+              <q-btn outline dense label="Cash In" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="showCashInDialog = true" />
             </div>
           </div>
         </div>
 
-        <div class="row q-gutter-q-sm justify-between q-mb-md">
-          <q-btn 
-            v-for="tab in ['Transactions', 'Manage Merchants', 'Card Replacement', 'Other Settings']"
-            :key="tab"
-            outline
-            square
-            :label="tab"
-            :color="activeTab === tab ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
-            :class="{ 
-              'bg-blue-1': activeTab === tab && !$q.dark.isActive,
-              'bg-blue-grey-8': activeTab === tab && $q.dark.isActive
-            }"
-            class="text-caption q-px-sm"
-            @click="activeTab = tab"
-          />
+        <div class="tabs-container q-mb-md">
+          <div class="tabs-wrapper">
+            <div 
+              v-for="tab in ['Transactions', 'Manage Merchants', 'Card Replacement', 'Other Settings']"
+              :key="tab"
+              class="tab-item"
+              :class="{ 'tab-active': activeTab === tab }"
+              @click="activeTab = tab"
+            >
+              <span class="tab-label">{{ tab }}</span>
+            </div>
+          </div>
         </div>
 
         <div 
@@ -133,6 +130,73 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <q-dialog v-model="showCashInDialog">
+        <q-card class="cash-in-dialog">
+          <q-card-section class="row justify-between items-center q-pb-none">
+            <div class="text-h6 q-mb-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Cash In</div>
+            <q-btn flat round dense icon="close" @click="showCashInDialog = false" />
+          </q-card-section>
+
+          <q-card-section class="text-center q-pt-sm">
+            
+            <div class="qr-container q-mb-md">
+              <qr-code 
+                :text="getContractAddress(activeCard)"
+                :size="180"
+              />
+            </div>
+
+            <div class="row items-center justify-center q-gutter-sm q-mb-lg">
+              <div 
+                class="contract-address" 
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'"
+              >
+                {{ formatContractAddress(getContractAddress(activeCard)) }}
+              </div>
+              <q-btn 
+                flat 
+                round 
+                dense 
+                icon="content_copy" 
+                size="sm"
+                :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                @click="copyContractAddress"
+              />
+            </div>
+
+            <div class="row justify-center q-gutter-md q-mb-lg">
+              <q-input
+                v-model="cashInAmount"
+                type="number"
+                filled
+                :dark="$q.dark.isActive"
+                placeholder="Amount"
+                class="amount-input"
+                :rules="[val => (val && parseFloat(val) > 0) || 'Amount must be greater than 0']"
+                lazy-rules
+              />
+              <q-select
+                v-model="cashInCurrency"
+                :options="['Satoshis', 'PHP', 'BCH']"
+                filled
+                :dark="$q.dark.isActive"
+                emit-value
+                map-options
+                class="currency-select"
+              />
+            </div>
+
+            <q-btn
+              color="primary"
+              label="Cash In"
+              class="full-width"
+              unelevated
+              @click="handleCashIn"
+            />
+          </q-card-section>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
@@ -155,7 +219,10 @@ export default {
       activeCard: null,
       activeTab: 'Transactions',
       showEditNameDialog: false,
-      newCardName: ''
+      newCardName: '',
+      showCashInDialog: false,
+      cashInAmount: '',
+      cashInCurrency: 'BCH'
     }
   },
 
@@ -213,6 +280,73 @@ export default {
         }
       }
       this.showEditNameDialog = false
+    },
+    formatContractAddress (addr) {
+      if (!addr) return ''
+      const address = typeof addr === 'object' ? addr.contractAddress : addr
+      if (!address) return ''
+      const len = address.length
+      return address.substring(0, 12) + '...' + address.substring(len - 12, len)
+    },
+    copyContractAddress () {
+      const address = this.getContractAddress(this.activeCard)
+      if (address) {
+        navigator.clipboard.writeText(address)
+        this.$q.notify({
+          message: 'Contract address copied!',
+          color: 'positive',
+          position: 'top'
+        })
+      }
+    },
+    getContractAddress (card) {
+      return card?.contractAddress || this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw'
+    },
+    handleCashIn () {
+      if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
+        this.$q.notify({
+          message: 'Please enter a valid amount greater than 0',
+          color: 'negative',
+          position: 'top'
+        })
+        return
+      }
+
+      // Convert to BCH based on selected currency
+      // Exchange rates (approximate)
+      // 1 BCH = 100,000,000 satoshis
+      // 1 BCH ≈ 250,000 PHP (depends on market)
+      const exchangeRates = {
+        BCH: 1,
+        Satoshis: 1 / 100000000, // 1 satoshi = 0.00000001 BCH
+        PHP: 1 / 250000 // 1 PHP = 0.000004 BCH
+      }
+      
+      const amountInBCH = parseFloat(this.cashInAmount) * exchangeRates[this.cashInCurrency]
+
+      // Update card balance in localStorage
+      const savedCards = localStorage.getItem('mock_subcards')
+      if (savedCards && this.activeCard) {
+        const allCards = JSON.parse(savedCards)
+        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+        if (cardIndex !== -1) {
+          const currentBalance = parseFloat(allCards[cardIndex].balance) || 0
+          allCards[cardIndex].balance = (currentBalance + amountInBCH).toFixed(8)
+          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+          
+          // Update activeCard for display
+          this.activeCard.balance = allCards[cardIndex].balance
+        }
+      }
+
+      this.$q.notify({
+        message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(8)} BCH) to your card!`,
+        color: 'positive',
+        position: 'top'
+      })
+      
+      this.showCashInDialog = false
+      this.cashInAmount = ''
     }
   }
 
