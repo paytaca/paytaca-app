@@ -49,7 +49,7 @@
               <div class="recipient-amount">
                 <div class="amount-primary">{{ formatRecipientAmount(output.amount) }} {{ denomination }}</div>
                 <div v-if="selectedAssetMarketPrice" class="amount-secondary">
-                  {{ formatRecipientFiatAmount(output.amount) }} {{ String(currentSendPageCurrency()).toUpperCase() }}
+                  {{ formatRecipientFiatAmount(output.amount) }}
                 </div>
               </div>
             </div>
@@ -91,7 +91,7 @@
             <div class="total-amounts">
               <div class="total-amount-primary">{{ amountFormatted }} {{ denomination }}</div>
               <div v-if="selectedAssetMarketPrice" class="total-amount-secondary">
-                {{ fiatFormatted }} {{ String(currentSendPageCurrency()).toUpperCase() }}
+                {{ fiatFormatted }}
               </div>
             </div>
           </div>
@@ -204,7 +204,7 @@ import { useStore } from "vuex"
 import { computed, inject, ref, watch, onMounted, onUnmounted, nextTick } from "vue"
 import { useI18n } from "vue-i18n"
 import SecurityCheckDialog from "./SecurityCheckDialog.vue";
-import { formatWithLocale, getDenomDecimals } from 'src/utils/denomination-utils'
+import { formatWithLocale, getDenomDecimals, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { convertToFiatAmount } from 'src/utils/send-page-utils'
 
 const $copyText = inject('$copyText')
@@ -254,7 +254,7 @@ const fiatFormatted = computed(() => {
   if (!totalBCHAmount.value || !selectedAssetMarketPrice.value) return ''
   const fiatAmount = convertToFiatAmount(totalBCHAmount.value, selectedAssetMarketPrice.value)
   if (!fiatAmount) return ''
-  return formatWithLocale(fiatAmount, { min: 2, max: 2 })
+  return parseFiatCurrency(fiatAmount, String(currentSendPageCurrency.value()).toUpperCase())
 })
 
 function formatRecipientAmount(amount) {
@@ -280,7 +280,7 @@ function formatRecipientFiatAmount(amount) {
   if (!bchAmount || !selectedAssetMarketPrice.value) return ''
   const fiatAmount = convertToFiatAmount(bchAmount, selectedAssetMarketPrice.value)
   if (!fiatAmount) return ''
-  return formatWithLocale(fiatAmount, { min: 2, max: 2 })
+  return parseFiatCurrency(fiatAmount, String(currentSendPageCurrency.value()).toUpperCase())
 }
 
 const isNFT = computed(() => {

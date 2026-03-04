@@ -538,7 +538,8 @@ export default {
     },
     async fetchAppeal () {
       const vm = this
-      await backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: true })
+      // Peer-side endpoint; force peer token (URL-based heuristic may pick arbiter).
+      await backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: 'peer' })
         .then(response => {
           vm.appeal = response.data?.appeal
           console.log('appeal:', vm.appeal)

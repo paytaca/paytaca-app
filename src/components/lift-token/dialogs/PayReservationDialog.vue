@@ -56,14 +56,15 @@
 
       <div class="row full-width q-gutter-y-xs q-mb-xs">
         <div class="row col-12 justify-end q-px-md">
-          <span
-            class="text-weight-bolder max-button text-grad"
-            style="cursor: pointer"
+          <q-btn
+            flat
+            dense
+            no-caps
+            class="text-weight-bolder max-button"
             :class="getDarkModeClass(darkMode)"
+            :label="$t('MAX')"
             @click="onMaxClick"
-          >
-            {{ $t("MAX") }}
-          </span>
+          />
         </div>
 
         <span class="col-12 q-px-md">
@@ -384,6 +385,20 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.max-button {
+  min-height: unset;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #3b7bf6;
+
+  &.dark {
+    color: #6fa8ff;
+  }
+}
+
 .price-info-box {
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.03);

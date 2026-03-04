@@ -199,4 +199,23 @@ export default {
   UnpaidLift: "LIFT未支付",
   WhatIsLIFT: "什麼是LIFT？",
   PayForLIFT: "支付LIFT費用",
+
+  // Fix Google-translated BCH + balance strings
+  BCH: 'BCH',
+  BCHAmount: 'BCH 數量',
+  BCHGift: 'BCH 禮物',
+  BCHOnly: '僅顯示比特幣現金',
+  BchAddress: 'BCH 地址',
+  BchAddresses: 'BCH 地址',
+  BchBalance: 'BCH 餘額',
+  GetBCH: '獲取比特幣現金',
+  InBCH: '以 BCH',
+  ShareGiftLink: '分享禮物連結',
+  Balance: '餘額',
+  BalanceModeTitle: '餘額',
+  HasBalance: '有餘額',
+
+  BuyBCH: '購買比特幣現金',
+  SellBCH: '出售比特幣現金',
+  ReleaseBCH: '釋放比特幣現金',
 }

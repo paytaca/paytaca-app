@@ -2,19 +2,17 @@
   <q-pull-to-refresh
     id="app-container"
     :class="getDarkModeClass(darkMode)"
+    style="padding-bottom:250px;"
     @refresh="refreshPage"
   >
     <HeaderNav
       title="Cauldron DEX"
       backnavpath="/apps"
       class="apps-header"
-    >
-      <template v-slot:top-right-menu>
-        <CauldronHeaderMenu />
-      </template>
-    </HeaderNav>
+    />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <CauldronHeaderMenu class="q-mb-md" />
       <!-- Success Display -->
       <div v-if="completedTradeData.txid" class="q-mb-md">
         <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
@@ -168,6 +166,17 @@
                   />
                 </div>
               </div>
+
+              <div class="row items-center justify-end q-px-xs q-mb-sm">
+                Balance:
+                <template v-if="isBuyingToken">
+                  {{ formatAmount(bchBalanceSats, 8) }} BCH
+                </template>
+                <template v-else>
+                  {{ formatAmount(selectedTokenBalance, selectedToken?.bcmr?.token?.decimals || 0) }}
+                  {{ isNaN(selectedToken?.bcmr?.token?.decimals) ? $t('Tokens') : tokenSymbol }}
+                </template>
+              </div>
   
               <!-- Amount Input -->
               <div class="q-mb-md">
@@ -185,6 +194,18 @@
                   :asset="amountInputAsset"
                   :disable="isSwapping || updatingPool"
                 />
+                <div v-if="formattedMaxAmount" class="row items-center justify-end">
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    class="max-button"
+                    :class="getDarkModeClass(darkMode)"
+                    @click="amountInputString = formattedMaxAmount"
+                  >
+                    {{ $t('Max') }}: {{ formattedMaxAmount }} {{ amountInputSymbol }}
+                  </q-btn>
+                </div>
               </div>
 
               <div v-if="amountInput > 0" class="q-mb-md row justify-center">
@@ -253,7 +274,38 @@
                   </div>
                 </template>
               </div>
-  
+
+              <!-- Insufficient Balance Message - Always show when applicable -->
+              <div
+                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
+                class="insufficient-balance-alert q-my-sm"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs" />
+                <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
+              </div>
+
+              <!-- Summary amount mismatch: short message + expandable detailed explanation -->
+              <div
+                v-if="summaryAmountMismatch"
+                class="summary-mismatch-alert q-my-sm q-pa-sm"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-icon name="info" size="16px" class="q-mr-xs summary-mismatch-icon" />
+                <div class="summary-mismatch-content">
+                  <span class="summary-mismatch-text">{{ summaryAmountMismatch.shortMessage }}</span>
+                  <q-expansion-item
+                    :label="$t('CauldronRoundingLearnMore')"
+                    expand-icon-class="summary-mismatch-expand-icon"
+                    class="summary-mismatch-expansion q-pl-none"
+                    dense
+                    :content-class="getDarkModeClass(darkMode)"
+                  >
+                    <div class="summary-mismatch-detailed text-body2 q-pt-xs">{{ summaryAmountMismatch.detailedMessage }}</div>
+                  </q-expansion-item>
+                </div>
+              </div>
+
               <!-- Swap Button -->
               <q-slide-transition>
                 <div v-if="tradeResult && tradeResult.summary && amountInput > 0 && selectedToken && !isKeyboardVisible">
@@ -265,16 +317,6 @@
                   />
                 </div>
               </q-slide-transition>
-              
-              <!-- Insufficient Balance Message - Always show when applicable -->
-              <div
-                v-if="showInsufficientBalance && tradeResult && tradeResult.summary && amountInput > 0 && selectedToken"
-                class="insufficient-balance-alert q-mt-md"
-                :class="getDarkModeClass(darkMode)"
-              >
-                <q-icon name="info" size="16px" class="q-mr-xs" />
-                <span class="insufficient-balance-text">{{ insufficientBalanceMessage }}</span>
-              </div>
             </template>
           </q-card-section>
           <div class="row justify-center q-mb-md text-grey-6">
@@ -296,7 +338,7 @@
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
-import { attemptTrade, createInputAndOutput, getEntriesSize } from 'src/wallet/cauldron/transact';
+import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -364,6 +406,11 @@ export default defineComponent({
 
     /** @type {import("vue").Ref<CauldronTokenData>} */
     const selectedToken = ref()
+    // onMounted(() => {
+    //   mockFetchTokensList().then(response => {
+    //     selectToken(response[0]);
+    //   })
+    // })
     watch(() => selectedToken.value?.token_id, (tokenId) => {
       if (tokenId) {
         debouncedTokenUpdate()
@@ -510,12 +557,22 @@ export default defineComponent({
           isRecomputingTrade.value = false;
           return;
         }
-        const result = attemptTrade({
+        let result = attemptTrade({
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
           demand: isSupplyMode.value ? 0n : amountInUnits.value,
           supply: isSupplyMode.value ? amountInUnits.value : 0n,
         })
+
+        if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
+          const adjustAmount = amountInUnits.value - result.summary.demand;
+          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount });
+          if (adjustedTradeResult) result = adjustedTradeResult;
+        } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
+          const adjustAmount = amountInUnits.value - result.summary.supply;
+          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
+          if (adjustedTradeResult) result = adjustedTradeResult;
+        }
         tradeResult.value = result;
         tradeResultError.value = '';
         isRecomputingTrade.value = false;
@@ -592,10 +649,18 @@ export default defineComponent({
       const output = isSupplyMode.value
         ? tradeResult.value.summary.demand
         : tradeResult.value.summary.supply;
-      
+
+      // trade fee is accounted in tradeResult's summary, and is also included in totalBchFees
+      // We have to subtract the trade fee since it's included twice
+      const unaccountedFees = totalBchFees.value - tradeResult.value.summary.trade_fee;
+
+      let totalOutput = output
+      if (isSupplyMode.value) totalOutput -= unaccountedFees
+      else totalOutput += unaccountedFees
+
       if (!output) return '0';
       const decimals = formattedOutputDecimals.value;
-      return (Number(output) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
+      return (Number(totalOutput) / (10 ** decimals)).toFixed(decimals > 8 ? 8 : decimals);
     });
 
     const tradeFee = computed(() => {
@@ -641,19 +706,48 @@ export default defineComponent({
       return (feeSats / 10 ** 8).toFixed(8);
     })
 
+    // unaccountedFees are actually the additional fees that is not included in TradeResult
+    const unaccountedFees = computed(() => {
+      if (!tradeResult.value || !selectedToken.value) return 0n;
+      const platformFeeSats = platformFee.value ? platformFee.value.amount : 0n;
+      const txFeeSats = BigInt(Math.floor(Number(estimateTransactionFee.value) * 10 ** 8));
+      return platformFeeSats + txFeeSats;
+    })
+
     // Calculate total BCH fees needed
     const totalBchFees = computed(() => {
       if (!tradeResult.value || !selectedToken.value) return 0n;
       const tradeFeeSats = BigInt(Math.floor(Number(tradeFee.value) * 10 ** 8));
-      const platformFeeSats = platformFee.value ? platformFee.value.amount : 0n;
-      const txFeeSats = BigInt(Math.floor(Number(estimateTransactionFee.value) * 10 ** 8));
-      return tradeFeeSats + platformFeeSats + txFeeSats;
+      return tradeFeeSats + unaccountedFees.value;
     })
 
     // Calculate required supply amount in units
     const requiredSupplyAmount = computed(() => {
       if (!tradeResult.value || !selectedToken.value || !tradeResult.value.summary) return 0n;
       return isSupplyMode.value ? amountInUnits.value : tradeResult.value.summary.supply;
+    })
+
+    // Detect when trade result summary supply/demand does not match user input (amountInUnits)
+    const summaryAmountMismatch = computed(() => {
+      if (!tradeResult.value?.summary || !selectedToken.value || amountInUnits.value === 0n) return null;
+      const actual = isSupplyMode.value ? tradeResult.value.summary.supply : tradeResult.value.summary.demand;
+      const expected = amountInUnits.value;
+      if (actual === expected) return null;
+      const diff = actual - expected;
+      const decimals = amountInputDecimals.value;
+      const symbol = amountInputSymbol.value
+      const diffSign = diff > 0n ? '+' : '';
+      const diffFormatted = `${diffSign}${formatAmount(diff, decimals)}`;
+      const shortMessage = isBuyingToken.value
+        ? $t('CauldronRoundingShortBuy', { diff: diffFormatted, symbol: symbol })
+        : $t('CauldronRoundingShortSell', { diff: diffFormatted, symbol: symbol });
+      const detailedMessage = isBuyingToken.value
+        ? $t('CauldronRoundingDetailedBuy')
+        : $t('CauldronRoundingDetailedSell');
+      return {
+        shortMessage,
+        detailedMessage
+      };
     })
 
     // Check if there's sufficient balance
@@ -663,32 +757,17 @@ export default defineComponent({
       }
 
       try {
-        const assets = $store.getters['assets/getAssets'];
-        
         if (isBuyingToken.value) {
           // Need BCH: supply amount + all fees
-          const requiredBchSats = requiredSupplyAmount.value + totalBchFees.value;
-          const bchAsset = assets?.find(asset => asset?.id === 'bch');
-          // Convert BCH balance to satoshis (balance is in BCH units, multiply by 10^8)
-          const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
-          return bchBalanceSats >= requiredBchSats;
+          const requiredBchSats = requiredSupplyAmount.value + unaccountedFees.value;
+          return bchBalanceSats.value >= requiredBchSats;
         } else {
-          // Need Token: supply amount
-          // Need BCH: only fees (not the supply amount since supply is token)
-          const tokenAssetId = `ct/${selectedToken.value.token_id}`;
-          const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
-          const tokenBalance = BigInt(tokenAsset?.balance || 0);
-          
           // Check token balance
-          if (tokenBalance < requiredSupplyAmount.value) {
+          if (selectedTokenBalance.value < requiredSupplyAmount.value) {
             return false;
           }
-          
-          // Check BCH balance for fees
-          const bchAsset = assets?.find(asset => asset?.id === 'bch');
-          // Convert BCH balance to satoshis (balance is in BCH units, multiply by 10^8)
-          const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
-          return bchBalanceSats >= totalBchFees.value;
+
+          return bchBalanceSats.value >= unaccountedFees.value;
         }
       } catch (error) {
         console.error('Error checking balance:', error);
@@ -735,6 +814,98 @@ export default defineComponent({
       }
     })
 
+    const bchBalanceSats = computed(() => {
+      const assets = $store.getters['assets/getAssets'];
+      const bchAsset = assets?.find(asset => asset?.id === 'bch');
+      const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
+      return bchBalanceSats;
+    })
+
+    const selectedTokenBalance = ref(0n);
+    async function updateBalance() {
+      const { bchWallet } = await loadWalletForTrade();
+      const bchBalanceFetch = bchWallet.getBalance().then(response => {
+        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance })
+      })
+
+      const tokenId = selectedToken.value?.token_id
+      let tokenBalanceFetch
+      if (tokenId) {
+        const assets = $store.getters['assets/getAssets'];
+        const tokenAssetId = `ct/${tokenId}`;
+        const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+
+        // Update local variable with balance from store first
+        const tokenBalance = BigInt(tokenAsset?.balance || 0);
+        selectedTokenBalance.value = tokenBalance;
+
+        tokenBalanceFetch = bchWallet.getBalance(tokenId).then(response => {
+          $store.commit('assets/updateAssetBalance', { id: tokenAssetId, balance: response.balance })
+          if (selectedToken.value?.token_id == tokenId) {
+            selectedTokenBalance.value = BigInt(response.balance);
+          }
+        })
+      }
+      return Promise.all([bchBalanceFetch, tokenBalanceFetch])
+    }
+
+
+    const maxAmount = ref(0n);
+    const formattedMaxAmount = computed(() => {
+      let decimals = 8;
+      if ((isBuyingToken.value && !isSupplyMode.value) || (!isBuyingToken.value && isSupplyMode.value)) {
+        decimals = parseInt(selectedToken.value?.bcmr?.token?.decimals || 0);
+      }
+      const _maxAmount = Number(maxAmount.value) / 10 ** decimals;
+      if (!_maxAmount) return ''
+      return _maxAmount.toFixed(decimals);
+    })
+
+    const updateMaxAmount = debounce(() => {
+      const poolV0List = poolTracker.microPools
+      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
+      if (!arePoolsCorrect || !poolV0List.length) {
+        maxAmount.value = 0n
+        return
+      }
+
+      const supply = isBuyingToken.value ? bchBalanceSats.value : selectedTokenBalance.value;
+      if (!supply) {
+        maxAmount.value = 0n;
+        return
+      }
+
+      const supplyingBch = isBuyingToken.value;
+
+      if (!supplyingBch) {
+        maxAmount.value = supply;
+        return;
+      }
+
+      const estimatePlatformFee = supplyingBch ? (supply * 3n / 1000n) : 0n;
+      const estimateTxFee = 10_000n;
+      const baseSupply = supply - estimatePlatformFee - estimateTxFee;
+      if (!baseSupply || baseSupply <= 0n) {
+        maxAmount.value = 0n;
+        return;
+      }
+
+      const tradeResult = attemptTrade({
+        pools: poolV0List,
+        isBuyingToken: isBuyingToken.value,
+        supply: baseSupply,
+      })
+
+      if (isSupplyMode.value) {
+        maxAmount.value = tradeResult.summary.supply;
+      } else {
+        maxAmount.value = tradeResult.summary.demand - 1n;
+      }
+    })
+    poolTracker.on('pool-updated', () => updateMaxAmount())
+    watch(() => [bchBalanceSats.value, selectedTokenBalance.value, isBuyingToken.value, isSupplyMode.value], () => {
+      updateMaxAmount()
+    })
 
     const explorerLink = computed(() => {
       if (!completedTradeData.value.txid) return '';
@@ -743,12 +914,16 @@ export default defineComponent({
 
     // Methods
     function selectToken(token) {
+      const newToken = selectedToken.value?.token_id != token?.token_id;
       selectedToken.value = token;
       showTokenDialog.value = false;
       amountInput.value = 0;
       amountInputString.value = '';
       tradeResult.value = null;
       tradeResultError.value = '';
+      if (newToken) {
+        updateBalance();
+      }
     }
 
     function resetTrade() {
@@ -819,6 +994,7 @@ export default defineComponent({
           spendableCoins,
           platformFee: _platformFee
         })
+
         const exlab = new ExchangeLab()
         const txFeePerByte = 1n;
         const tradeTxBuildResult = exlab.createTradeTx(
@@ -835,16 +1011,6 @@ export default defineComponent({
         const txHex = binToHex(tradeTxBuildResult.txbin);
 
         dialog.update({ message: $t('BroadcastingTransaction') })
-  
-        // const userInputs = tradeTxBuildResult.libauth_source_outputs.slice(_tradeResult.entries.length);
-        // const totalUserInputs = userInputs.reduce((acc, input) => {
-        //   acc += input.valueSatoshis;
-        //   return acc;
-        // }, 0n);
-        // console.log('Total user inputs', totalUserInputs);
-        // console.log('Tx size', tradeTxBuildResult.txbin.byteLength);
-        // console.log('User inputs', userInputs);
-        // console.log('Payouts', tradeTxBuildResult.payouts_info);
 
         const broadcastResult = await bchWallet.watchtower.BCH.broadcastTransaction(txHex)
         if (broadcastResult.data?.error) throw new Error(broadcastResult?.data?.error)
@@ -852,11 +1018,17 @@ export default defineComponent({
         //   data: { txid: 'test' }
         // }
 
+        const otherFees = (_platformFee?.amount || 0n) + BigInt(txHex.length / 2);
+        let unitsSold = _tradeResult?.summary?.supply || 0n
+        let unitsBought = _tradeResult?.summary?.demand || 0n
+        if (_isBuyingToken) unitsSold += otherFees
+        else unitsBought -= otherFees
+
         completedTradeData.value = {
           txid: broadcastResult?.data?.txid,
           tradeType: _isBuyingToken ? 'token-buy' : 'token-sell',
-          unitsSold: _tradeResult?.summary?.supply || 0n,
-          unitsBought: _tradeResult?.summary?.demand || 0n,
+          unitsSold: unitsSold,
+          unitsBought: unitsBought,
           tokenData: {
             category: _tokenData?.bcmr?.token?.category || '',
             name: _tokenData?.bcmr?.name || '',
@@ -886,6 +1058,7 @@ export default defineComponent({
 
         bchWallet.watchtower.BCH._api.post("transactions/attributes/", data).catch(console.error)
         dialog.hide()
+        updateBalance()
       } catch(error) {
         console.error('Error committing trade:', error);
         dialog.update({ title: $t('Error'), message: String(error) })
@@ -929,6 +1102,7 @@ export default defineComponent({
             }
             // Setting selectedToken will trigger the watcher which handles setting the buy amount
             selectedToken.value = tokens[0];
+            updateBalance()
           } else {
             // Truncate category ID for display (first 8 + last 8 characters)
             const categoryId = props.selectTokenId || '';
@@ -1007,11 +1181,16 @@ export default defineComponent({
       hasSufficientBalance,
       showInsufficientBalance,
       insufficientBalanceMessage,
+      summaryAmountMismatch,
+      bchBalanceSats,
+      selectedTokenBalance,
+      maxAmount,
+      formattedMaxAmount,
       explorerLink,
 
       showSlider,
       securityCheck,
-
+    
       selectToken,
       formatAmount,
       copyTxid,
@@ -1027,6 +1206,20 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.max-button {
+  min-height: unset;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #3b7bf6;
+
+  &.dark {
+    color: #6fa8ff;
+  }
+}
+
 .insufficient-balance-alert {
   display: flex;
   align-items: center;
@@ -1036,29 +1229,97 @@ export default defineComponent({
   background: rgba(237, 94, 89, 0.08);
   border: 1px solid rgba(237, 94, 89, 0.2);
   transition: all 0.2s ease;
-  
+
   .insufficient-balance-text {
     font-size: 13px;
     font-weight: 500;
     color: #ed5e59;
     text-align: center;
   }
-  
+
   .q-icon {
     color: #ed5e59;
     opacity: 0.8;
   }
-  
+
   &.dark {
     background: rgba(237, 94, 89, 0.12);
     border-color: rgba(237, 94, 89, 0.3);
-    
+
     .insufficient-balance-text {
       color: #ff6b6b;
     }
-    
+
     .q-icon {
       color: #ff6b6b;
+    }
+  }
+}
+
+.summary-mismatch-alert {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+
+  .summary-mismatch-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .summary-mismatch-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .summary-mismatch-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: #e65100;
+    display: block;
+  }
+
+  .summary-mismatch-expansion {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #e65100;
+  }
+
+  .summary-mismatch-expansion .q-item {
+    min-height: 28px;
+    padding: 0;
+  }
+
+  .summary-mismatch-detailed {
+    font-size: 12px;
+    color: #e65100;
+    opacity: 0.95;
+    line-height: 1.4;
+  }
+
+  .q-icon {
+    color: #e65100;
+    opacity: 0.9;
+  }
+
+  &.dark {
+    background: rgba(255, 152, 0, 0.12);
+    border-color: rgba(255, 152, 0, 0.4);
+
+    .summary-mismatch-text,
+    .summary-mismatch-expansion,
+    .summary-mismatch-detailed {
+      color: #ffb74d;
+    }
+
+    .summary-mismatch-expansion .q-item {
+      color: #ffb74d;
+    }
+
+    .q-icon {
+      color: #ffb74d;
     }
   }
 }

@@ -312,6 +312,20 @@
       </q-card>
     </div>
   </div>
+  <div
+    v-if="showReleaseWithoutProofOption && showDragSlide"
+    class="release-without-proof-option q-px-md"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <q-card flat bordered class="pt-card q-pa-sm">
+      <q-checkbox
+        v-model="allowReleaseWithoutProof"
+        dense
+        class="text-body2"
+        :label="$t('paymentReceived')"
+      />
+    </q-card>
+  </div>
   <RampDragSlide
   v-touch-swipe.mouse="checkDragslideStatus"
   v-if="showDragSlide"
@@ -379,7 +393,8 @@ export default {
       loadAppealButton: false,
       errorDialogActive: false,
       showNoticeDialog: false,
-      appealSubmitted: false
+      appealSubmitted: false,
+      allowReleaseWithoutProof: false
     }
   },
   components: {
@@ -396,9 +411,20 @@ export default {
   watch: {
     sendingBch (val) {
       this.$emit('sending', val)
+    },
+    // Reset the override automatically once proof arrives.
+    proofMissingOnServer (val) {
+      if (!val) this.allowReleaseWithoutProof = false
     }
   },
   computed: {
+    showReleaseWithoutProofOption () {
+      return (
+        this.data?.type === 'seller' &&
+        this.order?.status?.value === 'PD_PN' &&
+        this.proofMissingOnServer
+      )
+    },
     showAppealBtn () {
       let showBtn = false
       const status = this.order?.status.value      
@@ -470,7 +496,7 @@ export default {
       // Seller-side: when buyer is "Paid Pending", do not allow release/confirm
       // until proof-of-payment attachments are present on the server.
       if (vm.data?.type === 'seller' && vm.order?.status?.value === 'PD_PN') {
-        lock = vm.proofMissingOnServer || vm.uploadingProof
+        lock = (vm.proofMissingOnServer && !vm.allowReleaseWithoutProof) || vm.uploadingProof
       }
       return lock
     },
@@ -507,7 +533,7 @@ export default {
     },
     noticeMessage () {
       if (this.data?.type === 'seller' && this.order?.status?.value === 'PD_PN' && this.proofMissingOnServer) {
-        return 'Waiting for buyer to finish uploading proof of payment. Please refresh in a moment.'
+        return 'Proof of payment is not uploaded yet. If you have already received the payment, tick the checkbox to allow releasing without proof.'
       }
       return 'Please select Payment Method and upload your Proof of Payment first to proceed with the transaction'
     }
@@ -738,7 +764,8 @@ export default {
           }
           case 'PD_PN': {
             // Seller confirm + release should be blocked until proof exists.
-            if (vm.data?.type === 'seller' && vm.proofMissingOnServer) {
+            // If seller explicitly allows release without proof, do not enforce the proof requirement.
+            if (vm.data?.type === 'seller' && vm.proofMissingOnServer && !vm.allowReleaseWithoutProof) {
               vm.sendErrors.push('Proof of payment is still missing. Please wait and refresh before releasing.')
               await vm.fetchOrderDetail()
               return
@@ -1143,6 +1170,15 @@ export default {
   letter-spacing: 0.2px;
   box-shadow: 0 6px 18px rgba(237, 95, 89, 0.35);
   animation: appealPulse 1.8s ease-in-out infinite;
+}
+
+.release-without-proof-option {
+  position: fixed;
+  left: 0;
+  right: 0;
+  // Place just above the swipe button area (plus safe-area inset).
+  bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  z-index: 4600;
 }
 
 @keyframes appealPulse {

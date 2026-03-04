@@ -115,16 +115,28 @@
                             </span>
                           </div>
                           <span class="text-weight-bold pt-label col-transaction lg-font-size" :class="getDarkModeClass(darkMode)">
-                            {{ listing.fiat_currency.symbol  }} {{ formatCurrency(listing.price, listing.fiat_currency.symbol).replace(/[^\d.,-]/g, '') }}
+                            {{ parseFiatCurrency(listing.price, listing.fiat_currency.symbol) }}
                           </span>
                           <span class="sm-font-size">/BCH</span>
                           <div class="sm-font-size row q-gutter-md" :class="listing.trade_amount === 0 ? 'text-red': ''">
                             <span>{{ $t('Quantity') }}</span>
-                            <span>{{ formatCurrency(listing.trade_amount, tradeAmountCurrency(listing)) }} {{ tradeAmountCurrency(listing) }}</span>
+                            <span>
+                              {{
+                                tradeAmountCurrency(listing) === listing?.fiat_currency?.symbol
+                                  ? parseFiatCurrency(listing.trade_amount, tradeAmountCurrency(listing))
+                                  : `${formatCurrency(listing.trade_amount, tradeAmountCurrency(listing))} ${tradeAmountCurrency(listing)}`
+                              }}
+                            </span>
                           </div>
                           <div class="sm-font-size row q-gutter-md" :class="listing.trade_amount === 0 ? 'text-red': ''">
                             <span>{{ $t('Limits') }}</span>
-                            <span>{{ formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing)) }} - {{ formatCurrency(listing.trade_ceiling, tradeLimitsCurrency(listing)) }} {{ tradeLimitsCurrency(listing) }}</span>
+                            <span>
+                              {{
+                                tradeLimitsCurrency(listing) === listing?.fiat_currency?.symbol
+                                  ? `${parseFiatCurrency(listing.trade_floor, tradeLimitsCurrency(listing))} - ${parseFiatCurrency(listing.trade_ceiling, tradeLimitsCurrency(listing))}`
+                                  : `${formatCurrency(listing.trade_floor, tradeLimitsCurrency(listing))} - ${formatCurrency(listing.trade_ceiling, tradeLimitsCurrency(listing))} ${tradeLimitsCurrency(listing)}`
+                              }}
+                            </span>
                           </div>
                           <div class="sm-font-size">
                             <span>
@@ -216,6 +228,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 
 export default {
   setup () {
@@ -304,6 +317,7 @@ export default {
   methods: {
     getDarkModeClass,
     formatCurrency,
+    parseFiatCurrency,
     getThemeColor () {
       const themeColors = {
         'glassmorphic-blue': '#42a5f5',

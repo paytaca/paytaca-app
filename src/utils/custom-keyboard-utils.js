@@ -50,20 +50,28 @@ export function parseKey (key, inputText, caret, asset) {
  * @returns the adjusted string if asset is a cashtoken; the unchanged string otherwise
  */
 function parseCtKey (amount, asset) {
-  // Validate decimals for both tokens and BCH
-  if (asset?.decimals !== undefined && asset.decimals !== null) {
-    if (asset.decimals === 0) {
-      // Remove decimal point for tokens with 0 decimals
-      amount = amount.toString().replace('.', '')
-    } else {
-      const parts = amount.toString().split('.')
+  // Enforce decimal rules based on the selected asset.
+  // IMPORTANT: BCH must always behave as 8-decimal, even if an `asset` object
+  // is passed in with `decimals: 0` (this happens in some navigation paths).
+  const assetId = String(asset?.id || '').toLowerCase()
+  const isBch = assetId === 'bch' || String(asset?.symbol || '').toUpperCase() === 'BCH'
 
-      if (parts.length > 1) { // Ensure there's a decimal part
-        // Truncate the decimal part to the desired length
-        parts[1] = parts[1].slice(0, asset.decimals)
-        amount = parts.join('.') // Recombine the integer and decimal parts
-      }
-    }
+  const decimalsRaw = asset?.decimals
+  const decimals = isBch
+    ? 8
+    : (decimalsRaw === undefined || decimalsRaw === null ? null : Number(decimalsRaw))
+
+  if (!Number.isFinite(decimals)) return amount
+
+  if (decimals === 0) {
+    // Tokens with 0 decimals: strip decimal point entirely.
+    return amount.toString().replace('.', '')
+  }
+
+  const parts = amount.toString().split('.')
+  if (parts.length > 1) {
+    parts[1] = parts[1].slice(0, decimals)
+    return parts.join('.')
   }
 
   return amount

@@ -73,7 +73,7 @@
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
-    <div class="row justify-center q-mt-xl">
+    <div class="row justify-center q-mt-xl cancel-container">
       <div class="col-xs-12 text-center">
         <q-btn size="md" label="Cancel" @click="$router.back()" class="glassmorphic-cancel-btn" v-close-popup></q-btn>
       </div>
@@ -696,6 +696,14 @@ export default {
     
     &:active {
       transform: translateY(0);
+    }
+  }
+  .cancel-container {
+    margin-top: 48px;
+  }
+  @media (max-height: 760px) {
+    .cancel-container {
+      margin-top: 24px;
     }
   }
 </style>

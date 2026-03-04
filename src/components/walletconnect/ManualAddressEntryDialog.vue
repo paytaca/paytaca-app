@@ -27,7 +27,13 @@
           required
           :rules="addressRules"
           filled/>
-        <div class="text-body1 q-my-sm">{{ $t('EnterAddressIndex') }}</div>
+        <div v-if="validationError" class="validation-error-banner q-pa-md q-mt-sm rounded-borders">
+          <div class="row items-start no-wrap">
+            <q-icon name="error_outline" color="negative" size="24px" class="q-mr-sm" />
+            <div class="text-body2 text-negative">{{ validationError }}</div>
+          </div>
+        </div>
+        <div class="text-body1 q-mt-md q-my-sm">{{ $t('EnterAddressIndex') }}</div>
         <q-input 
           v-model="addressIndex"
           type="number"
@@ -61,16 +67,21 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
+import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { decodeCashAddress } from '@bitauth/libauth'
 
+const { t } = useI18n()
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-const address = ref()
-const addressIndex = ref()
 
 const props = defineProps({
   darkMode: Boolean,
+  validateAddress: Function,
 })
+
+const address = ref()
+const addressIndex = ref()
+const validationError = ref('')
 
 const addressRules = computed(() => {
   const correctAddressFormat = (v) => {
@@ -84,7 +95,17 @@ const addressRules = computed(() => {
   return [correctAddressFormat]
 })
 
-const onOkClick = () => {
+const onOkClick = async () => {
+  validationError.value = ''
+  if (props.validateAddress) {
+    const result = await props.validateAddress(address.value, addressIndex.value)
+    if (!result.ok) {
+      validationError.value = result.error || t('AddressNotFoundOnThisWallet', 'Could not find address on this wallet. Try providing an address index.')
+      return
+    }
+    onDialogOK({ address: address.value, addressIndex: addressIndex.value, wif: result.wif, addressIndexResult: result.addressIndex })
+    return
+  }
   onDialogOK({ address: address.value, addressIndex: addressIndex.value })
 }
 
@@ -93,5 +114,12 @@ const onCancelClick = () => {
   onDialogHide()
 }
 </script>
+
+<style scoped>
+.validation-error-banner {
+  background-color: rgba(211, 47, 47, 0.1);
+  border: 1px solid rgba(211, 47, 47, 0.3);
+}
+</style>
 
 

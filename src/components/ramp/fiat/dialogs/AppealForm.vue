@@ -138,7 +138,9 @@ export default {
         type: vm.selectedAppealType?.value,
         reasons: vm.selectedReasons
       }
-      await backend.post('/ramp-p2p/appeal/', data, { authorize: true })
+      // This endpoint is used by peers (buyer/seller). Force peer token to avoid
+      // the backend client heuristic incorrectly selecting the arbiter token.
+      await backend.post('/ramp-p2p/appeal/', data, { authorize: 'peer' })
         .then(response => {
           bus.emit('update-status', response.data.status?.status)
         })
