@@ -75,7 +75,7 @@
 				</q-banner>
 			</div>
 
-			<div v-if="loading && step === 0" class="q-mx-lg q-pt-sm eload-skeleton">
+			<div v-if="isPhilippinesSelected && loading && step === 0" class="q-mx-lg q-pt-sm eload-skeleton">
 				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
 			</div>
 			<PromoSearch v-else-if="isPhilippinesSelected" class="q-px-lg" @select-promo="onPromoSearchSelect"/>
