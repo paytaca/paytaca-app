@@ -766,12 +766,6 @@ const props = defineProps({
   orderId: [String, Number],  
 })
 
-// Add validation to prevent early rejections
-if (!props.orderId) {
-  console.warn('Order ID is missing, initializing with empty order data');
-  order.value = Order.parse();
-}
-
 const pageActive = ref(false)
 onActivated(() => pageActive.value = true)
 onDeactivated(() => pageActive.value = false)
