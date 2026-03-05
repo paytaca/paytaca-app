@@ -548,12 +548,12 @@ import {
 import i18n from 'src/i18n'
 
 import HeaderNav from 'src/components/header-nav.vue'
-import HelpCard from 'src/components/rewards/HelpCard.vue'
-import ErrorCard from 'src/components/rewards/ErrorCard.vue'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
-import AchievementCard from 'src/components/rewards/AchievementCard.vue'
+import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
+import AchievementCard from 'src/components/rewards/cards/AchievementCard.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
@@ -563,12 +563,12 @@ export default {
 
   components: {
     HeaderNav,
-    HelpCard,
-    ErrorCard,
     StatusChip,
     PointsBadge,
+    HelpCard,
+    ErrorCard,
+    AchievementIcon,
     AchievementCard,
-    AchievementIcon
   },
 
   props: {

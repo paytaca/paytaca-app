@@ -239,11 +239,11 @@ import {
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
-import HelpCard from 'src/components/rewards/HelpCard.vue'
-import ErrorCard from 'src/components/rewards/ErrorCard.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
-import AchievementCard from 'src/components/rewards/AchievementCard.vue'
+import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
+import AchievementCard from 'src/components/rewards/cards/AchievementCard.vue'
 import ReferralQrDialog from 'src/components/rewards/dialogs/ReferralQrDialog.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
@@ -254,11 +254,11 @@ export default {
 
   components: {
     HeaderNav,
+    PointsBadge,
     HelpCard,
     ErrorCard,
-    PointsBadge,
+    AchievementIcon,
     AchievementCard,
-    AchievementIcon
   },
 
   props: {

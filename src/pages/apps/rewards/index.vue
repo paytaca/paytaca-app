@@ -115,8 +115,8 @@ import {
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
-import HelpCard from 'src/components/rewards/HelpCard.vue'
-import ErrorCard from 'src/components/rewards/ErrorCard.vue'
+import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
