@@ -478,7 +478,11 @@
                     unelevated
                     rounded
                     type="submit"
+                    :disable="hasCardBalance"
                   />
+                  <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
+                    Please sweep all funds before replacing your card
+                  </q-tooltip>
                 </div>
               </q-form>
             </div>
@@ -518,7 +522,11 @@
                   unelevated
                   rounded
                   @click="confirmCardReplacement"
+                  :disable="hasCardBalance"
                 />
+                <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
+                  Please sweep all funds before replacing your card
+                </q-tooltip>
               </div>
             </div>
 
@@ -542,8 +550,12 @@
                     class="q-ma-sm"
                     unelevated
                     rounded
+                    :disable="hasCardBalance"
                     @click="selectReplacementReason(option.value)"
                   />
+                  <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
+                    Please sweep all funds before replacing your card
+                  </q-tooltip>
                 </div>
               </div>
 
@@ -558,7 +570,7 @@
                 <div class="location-options">
                   <q-btn 
                     label="Yes, proceed" 
-                    :disable="!replacementReason"
+                    :disable="!replacementReason || hasCardBalance"
                     :outline="locationSame !== true"
                     :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
                     class="q-ma-sm q-px-xl"
@@ -568,7 +580,7 @@
                   />
                   <q-btn 
                     label="No, I need to update" 
-                    :disable="!replacementReason"
+                    :disable="!replacementReason || hasCardBalance"
                     :outline="locationSame !== false"
                     :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
                     class="q-ma-sm q-px-xl"
@@ -576,6 +588,9 @@
                     rounded
                     @click="handleLocationSame(false)"
                   />
+                  <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
+                    Please sweep all funds before replacing your card
+                  </q-tooltip>
                 </div>
               </div>
 
@@ -731,11 +746,15 @@
               <q-separator :dark="$q.dark.isActive" />
 
               <div class="settings-list">
-                <div class="settings-item clickable" @click="showDeleteCardDialog = true">
+                <div 
+                  class="settings-item" 
+                  :class="{ 'clickable': !hasCardBalance, 'disabled-item': hasCardBalance }"
+                  @click="hasCardBalance ? null : showDeleteCardDialog = true"
+                >
                   <div class="settings-item-content">
-                    <q-icon name="delete" color="negative" size="24px" />
+                    <q-icon name="delete" :color="hasCardBalance ? 'grey-5' : 'negative'" size="24px" />
                     <div class="q-ml-md">
-                      <div class="text-subtitle2 text-negative">Delete Card</div>
+                      <div :class="hasCardBalance ? 'text-grey-5' : 'text-subtitle2 text-negative'">Delete Card</div>
                       <div 
                         class="text-caption"
                         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
@@ -745,6 +764,9 @@
                     </div>
                   </div>
                   <q-icon name="chevron_right" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
+                  <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
+                    Please sweep all funds before deleting your card
+                  </q-tooltip>
                 </div>
               </div>
             </div>
@@ -975,6 +997,12 @@ export default {
       baseTabs.splice(2, 0, thirdTab)
       return baseTabs
     },
+    
+    hasCardBalance () {
+      const balance = parseFloat(this.activeCard?.balance) || 0
+      return balance > 0
+    },
+    
     replacementReasons () {
       return [
         { value: 'lost', label: 'Card Lost' },

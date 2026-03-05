@@ -588,6 +588,19 @@ animation: float 6s ease-in-out infinite;
   font-weight: 500;
 }
 
+// Disabled tab styles
+.tab-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+// Disabled settings item
+.disabled-item {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+}
+
 .cash-in-dialog {
   min-width: 320px;
   border-radius: 16px;
