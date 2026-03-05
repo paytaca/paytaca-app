@@ -147,8 +147,16 @@
       </transition>
     </div>
 
-    <!-- Step 2: Language and Currency Selection -->
-    <div v-if="(currentStep === 2 && !importSeedPhrase) || restoreStep === 3" class="content-section center-viewport step-2-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+    <!-- Step 2: Rewards/Referral Code -->
+    <div v-if="currentStep === 2 && !importSeedPhrase" class="content-section center-viewport step-2-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+      <RewardsStep 
+        :walletHash="newWalletHash" 
+        @on-proceed-to-next-step="goToStep3"
+      />
+    </div>
+
+    <!-- Step 3: Language and Currency Selection -->
+    <div v-if="(currentStep === 3 && !importSeedPhrase) || restoreStep === 3" class="content-section center-viewport step-3-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingHeader') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('OnBoardSettingDescription') }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -190,18 +198,18 @@
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
         :disable="step2Loading"
-        @click="goToStep3"
+        @click="goToStep4"
         id="Continue"
       />
     </div>
 
-    <!-- Step 3: Theme Selection -->
-    <div v-if="(currentStep === 3 && !importSeedPhrase) || restoreStep === 4" class="content-section center-viewport step-3-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
-      <ThemeSelectorPreview :choosePreferedSecurity="goToStep4" />
+    <!-- Step 4: Theme Selection -->
+    <div v-if="(currentStep === 4 && !importSeedPhrase) || restoreStep === 4" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+      <ThemeSelectorPreview :choosePreferedSecurity="goToStep5" />
     </div>
 
-    <!-- Step 4: Wallet Name (Creation only) -->
-    <div v-if="currentStep === 4 && !importSeedPhrase" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+    <!-- Step 5: Wallet Name (Creation only) -->
+    <div v-if="currentStep === 5 && !importSeedPhrase" class="content-section center-viewport step-5-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('NameYourWallet') || 'Name Your Wallet' }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('WalletNameDescription') || 'Give your wallet a custom name' }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -222,12 +230,12 @@
         rounded
         :label="$t('Continue')"
         class="q-mt-lg full-width primary-cta bg-grad"
-        @click="goToStep5"
+        @click="goToStep6"
       />
     </div>
 
-    <!-- Step 5: Security Authentication Setup -->
-    <div v-if="(currentStep === 5 && !importSeedPhrase) || restoreStep === 5" class="content-section center-viewport step-5-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+    <!-- Step 6: Security Authentication Setup -->
+    <div v-if="(currentStep === 6 && !importSeedPhrase) || restoreStep === 5" class="content-section center-viewport step-6-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('SecurityAuthentication') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('ChoosePreferredSecAuth') }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -612,7 +620,7 @@ import SeedPhraseContainer from 'src/components/SeedPhraseContainer'
 import Onboarding from 'src/components/registration/Onboarding.vue'
 import Login from 'src/components/registration/Login.vue'
 import { ensureCanPerformActionWithDeps } from 'src/composables/useTieredLimitGate'
-// import RewardsStep from 'src/components/registration/RewardsStep.vue'
+import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 // Keep in sync with country selector data source (code, currency, language).
 const COUNTRIES = require('../../countries-info.json')
@@ -647,8 +655,8 @@ export default {
     MnemonicProcessContainer,
     SeedPhraseContainer,
     Onboarding,
-    Login
-    // RewardsStep
+    Login,
+    RewardsStep
   },
   data () {
     return {
@@ -679,7 +687,7 @@ export default {
         }),
       },
       steps: -1,
-      totalSteps: 5,
+      totalSteps: 6,
       walletName: 'Personal Wallet',
       walletCreationInProgress: false,
       walletCreationComplete: false,
@@ -714,8 +722,8 @@ export default {
       this.$forceUpdate()
     },
     currentStep (val, oldVal) {
-      // Reset step2Initialized when leaving step 2
-      if (oldVal === 2 && val !== 2) {
+      // Reset step2Initialized when leaving step 3 (Language/Currency)
+      if (oldVal === 3 && val !== 3) {
         this.step2Initialized = false
         this.step2Loading = false
       }
@@ -724,15 +732,15 @@ export default {
       if (val === 1 && !this.mnemonic && !this.importSeedPhrase) {
         // Step 1: Generate seed phrase
         this.generateSeedPhrase()
-      } else if (val === 2 && !this.importSeedPhrase) {
-        // Step 2: Auto-detect language and currency (geoip call happens here)
+      } else if (val === 3 && !this.importSeedPhrase) {
+        // Step 3: Auto-detect language and currency (geoip call happens here)
         this.$nextTick(() => {
           this.initializeStep2().catch(error => {
-            console.error('[Step 2] Unhandled error in initializeStep2:', error)
+            console.error('[Step 3] Unhandled error in initializeStep2:', error)
           })
         })
-      } else if (val === 5 && !this.importSeedPhrase) {
-        // Step 5: Force theme update when entering step 5 to ensure theme changes from step 3 apply immediately
+      } else if (val === 6 && !this.importSeedPhrase) {
+        // Step 6: Force theme update when entering step 6 to ensure theme changes from step 4 apply immediately
         this.$nextTick(() => {
           this.$forceUpdate()
         })
@@ -770,10 +778,10 @@ export default {
           if (routeStep === 1 && !this.mnemonic && !this.importSeedPhrase) {
             // Will be handled by currentStep watcher
           }
-          // Initialize step 2 when navigating to it (geoip call happens here)
-          if (routeStep === 2 && !this.importSeedPhrase) {
+          // Initialize step 3 when navigating to it (geoip call happens here)
+          if (routeStep === 3 && !this.importSeedPhrase) {
             this.initializeStep2().catch(error => {
-              console.error('[Step 2] Unhandled error in initializeStep2:', error)
+              console.error('[Step 3] Unhandled error in initializeStep2:', error)
             })
           }
         }
@@ -847,7 +855,7 @@ export default {
       return 0
     },
     isFinalStep () {
-      return this.currentStep === 5
+      return this.currentStep === 6
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
@@ -1819,7 +1827,7 @@ export default {
       if (this.importSeedPhrase && this.restoreStep === 3) {
         this.$router.push('/accounts/restore/step-4')
       } else {
-      this.$router.push('/accounts/create/step-3')
+        this.$router.push('/accounts/create/step-4')
       }
     },
     goToStep4 () {
@@ -1827,11 +1835,15 @@ export default {
       if (this.importSeedPhrase && this.restoreStep === 4) {
         this.$router.push('/accounts/restore/step-5')
       } else {
-      this.$router.push('/accounts/create/step-4')
+        this.$router.push('/accounts/create/step-5')
       }
     },
     goToStep5 () {
-      this.$router.push('/accounts/create/step-5')
+      this.$router.push('/accounts/create/step-6')
+    },
+    goToStep6 () {
+      // This is the final step - no navigation needed, handled by setupSecurity
+      console.log('[Step 6] Security setup step reached')
     },
     setupSecurity (authType) {
       // Prevent multiple calls
@@ -2573,11 +2585,11 @@ export default {
       this.$nextTick(() => this.generateSeedPhrase())
     }
     
-    // If user lands directly on step-2, ensure geoip call happens
-    if (this.currentStep === 2 && !this.importSeedPhrase) {
+    // If user lands directly on step-3, ensure geoip call happens
+    if (this.currentStep === 3 && !this.importSeedPhrase) {
       this.$nextTick(() => {
         this.initializeStep2().catch(error => {
-          console.error('[Step 2] Unhandled error in initializeStep2:', error)
+          console.error('[Step 3] Unhandled error in initializeStep2:', error)
         })
       })
     }
@@ -2705,11 +2717,12 @@ export default {
   line-height: 1.4;
 }
 
-/* Step 2, 3, 4, and 5 containers with mobile-safe padding */
+/* Step 2, 3, 4, 5, and 6 containers with mobile-safe padding */
 .step-2-container,
 .step-3-container,
 .step-4-container,
-.step-5-container {
+.step-5-container,
+.step-6-container {
   padding-top: 24px;
   
   @media (max-width: 768px) {
