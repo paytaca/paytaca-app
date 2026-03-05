@@ -29,20 +29,50 @@
             >
               {{activeCard?.raw?.alias}}
             </div>
-            <q-badge rounded color="green" size="xs" />
+            <q-badge 
+              rounded 
+              :color="activeCard?.isLocked ? 'negative' : 'positive'" 
+              size="xs" 
+              class="cursor-pointer"
+            >
+              <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
+            </q-badge>
             <q-btn flat dense icon="edit" size="sm" @click="showEditNameDialog = true"/>
           </div>
 
           <div 
-            class="virtual-card-container flex flex-center shadow-2"
-            :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+            class="virtual-card-container flex flex-center shadow-4"
+            :class="$q.dark.isActive ? 'virtual-card-dark' : 'virtual-card-light'"
           >
-            <div :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
-              Virtual Card UI / Ad Content
+            <div class="virtual-card-content full-width full-height q-pa-sm">
+              <!-- Card Header with Logo -->
+              <div class="row items-center justify-between">
+                <div class="virtual-card-chip">
+                  <q-icon name="memory" size="20px" color="amber-3" />
+                </div>
+                <q-img
+                  src="~assets/paytaca_logo.png"
+                  style="width: 55px;"
+                  fit="contain"
+                />
+              </div>
+              
+              <!-- Contract Address (Card Number) -->
+              <div class="virtual-card-address text-caption text-weight-medium q-mt-sm">
+                {{ formatContractAddress(activeCard?.contractAddress) || 'bitcoincash:qz6zv...efvjw' }}
+              </div>
+              
+              <!-- Bottom Section: Card Name -->
+              <div class="q-mt-auto">
+                <div class="text-caption text-weight-medium virtual-card-label">CARD NAME</div>
+                <div class="text-body2 text-weight-bold ellipsis" style="max-width: 100%;">
+                  {{ activeCard?.raw?.alias || 'My Virtual Card' }}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="row justify-center full-width q-mt-sm">
+          <div class="row justify-center full-width q-mt-md">
             <div class="row items-center">
               <div 
                 class="q-mr-sm"
@@ -983,6 +1013,13 @@ export default {
   },
 
   methods: {
+    formatContractAddress (address) {
+      if (!address) return null
+      const str = String(address)
+      if (str.length <= 20) return str
+      return str.slice(0, 12) + '...' + str.slice(-8)
+    },
+
     loadSpecificCard () {
       const cardId = this.$route.query.id
       // get all cards from localStorage
@@ -1012,8 +1049,18 @@ export default {
     },
     saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
-        this.activeCard.raw.alias = this.newCardName.trim()
+        const trimmedName = this.newCardName.trim()
         
+        // Ensure raw object exists
+        if (!this.activeCard.raw) {
+          this.activeCard.raw = {}
+        }
+        
+        // Update the alias
+        this.activeCard.raw.alias = trimmedName
+        this.newCardName = trimmedName
+        
+        // Save to localStorage
         const savedCards = localStorage.getItem('mock_subcards')
         if (savedCards) {
           const allCards = JSON.parse(savedCards)
@@ -1023,6 +1070,15 @@ export default {
             localStorage.setItem('mock_subcards', JSON.stringify(allCards))
           }
         }
+        
+        // Show success notification
+        this.$q.notify({
+          message: 'Card name updated successfully',
+          color: 'positive',
+          icon: 'check',
+          position: 'top',
+          timeout: 2000
+        })
       }
       this.showEditNameDialog = false
     },
