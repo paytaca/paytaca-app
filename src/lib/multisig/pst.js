@@ -123,7 +123,7 @@ import {
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerCoordinationServer, WatchtowerNetworkProvider } from './network.js'
-import { generateCosignerAuthPublicKeyFromFromXpub } from './coordination.js'
+import { deriveCoordinationServerCosignerAuthPrivateKey, generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCosignerCredentialsFromXprv, generateCoordinationServerCredentialsFromMnemonic, generateCosignerAuthPublicKeyFromFromXpub } from './coordination.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -530,11 +530,9 @@ export class Pst {
     return this
   }
 
-
   get unsignedTransactionHex() {
     return this.getUnsignedTransaction()
   }
-
   
   get unsignedTransactionHash () {
     if (!this.getUnsignedTransaction()) {
@@ -1255,15 +1253,43 @@ export class Pst {
   }
 
   async upload() {
+
     if (!this.options?.coordinationServer) return
+
+    await this.wallet?.resolveXprvsOfXpubs?.()
+
+    const coordinator = this.wallet.getSigners().find(s=>s.xprv)
+
+    if (!coordinator?.xprv) return
+
+    const coordinatorMnemonic = 
+      await this.wallet.options?.resolveMnemonicOfXpub?.({ xpub: coordinator.xpub })
+
+    if (!coordinatorMnemonic) return 
+    
+    const authCredentials = this.wallet.generateAuthCredentials(coordinator.xpub)
+
+    const authCosignerAuthCredentials = 
+      generateCoordinationServerCosignerCredentialsFromXprv({ xprv: coordinator.xprv })
+
+    const coordinatorAuthPrivateKey = 
+      deriveCoordinationServerCosignerAuthPrivateKey({ xprv: coordinator.xprv })
+
+    const signature = secp256k1.signMessageHashSchnorr(
+      coordinatorAuthPrivateKey, hexToBin(this.unsignedTransactionHash)
+    )
+
     const response = 
       await this.options?.coordinationServer?.uploadProposal({
         payload: {
           wallet: this.wallet.id,
           proposal: (await this.toPsbt()).toString(),
-          proposalFormat: 'psbt'
+          proposalFormat: 'psbt',
+          coordinatorProposalSignature: binToHex(signature),
+          coordinatorProposalSignatureScheme: 'schnorr'
         },
-        authCredentialsGenerator: this.wallet
+        authCosignerAuthCredentials,
+        authCredentials
       })
     this.id = response?.id
   }
