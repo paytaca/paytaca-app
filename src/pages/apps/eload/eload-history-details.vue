@@ -72,14 +72,17 @@
 
           <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="order?.bch_txid && copyToClipboard(order?.bch_txid)">
             <span class="txid-text-ss">{{ order?.bch_txid ? `${order?.bch_txid.slice(0, 8)}...${order?.bch_txid.slice(-8)}` : '' }}</span>
+            <a class="view-explorer-link-ss" :class="darkMode ? 'text-white' : 'text-black'" :href="explorerLink" target="_blank">
+            	<q-icon name="open_in_new" size="18px" class="copy-icon-ss" @click.stop=""/>
+            </a>
             <q-icon name="content_copy" size="18px" class="copy-icon-ss" />
           </div>
-          <div class="view-explorer-container q-mt-sm">
+          <!-- <div class="view-explorer-container q-mt-sm">
             <a class="view-explorer-link-ss text-grad" :class="getDarkModeClass(darkMode)" :href="explorerLink" target="_blank">
               <q-icon name="open_in_new" size="16px" class="q-mr-xs" />
               {{ $t('ViewInExplorer') }}
             </a>
-          </div>
+          </div> -->
         </div>
 
         <div v-if="order?.completed_at">
@@ -210,19 +213,19 @@ export default {
   transition: all 0.25s ease;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
   background: rgba(128, 128, 128, 0.08);
   border: 1px solid rgba(128, 128, 128, 0.2);
 }
 .txid-text-ss {
+	padding-right: 7px;
   font-family: 'Courier New', monospace;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.5px;
 }
 .copy-icon-ss { opacity: 0.7; transition: all 0.2s ease; }
-.view-explorer-link-ss { display: inline-flex; align-items: center; text-decoration: none; font-size: 15px; font-weight: 500; padding: 8px 16px; border-radius: 8px; color: var(--q-primary); transition: all 0.2s ease; }
-.view-explorer-link-ss.dark { color: #4ade80; }
+.view-explorer-link-ss { display: inline-flex; align-items: center; text-decoration: none; font-size: 15px; color: var(--q-primary); transition: all 0.2s ease; }
 .date-prominent { text-align: center; font-size: 16px; font-weight: 500; }
 .date-prominent.dark { color: rgba(255,255,255,0.85); }
 .date-prominent:not(.dark) { color: rgba(0,0,0,0.85); }
