@@ -89,9 +89,9 @@
          		<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
          			{{ item.storefront?.name }}
          		</div>
-         		<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
-         			{{ item.status }}
-         		</div>
+<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+          			{{ formatMarketplaceStatus(item.status) }}
+          		</div>
          	</div>
         </div>
 	</div>
@@ -251,9 +251,9 @@ export default {
 	    		this.$router.push({ name: 'exchange', query: { appeal_id: transactionID }})
 	    	}
 	    },
-	    async fetchMarketOrders(opts={limit: 0, offset: 0 }) {	    	
-	    	const vm = this	
-		  	const params = {
+async fetchMarketOrders(opts={limit: 0, offset: 0 }) {    	
+    	const vm = this	
+  	  	const params = {
 			    ref: await vm.$store.dispatch('marketplace/getCartRef'),
 			    limit: vm.marketplacePagination?.limit || 100,
 			    offset: vm.marketplacePagination?.offset || undefined,
@@ -261,8 +261,8 @@ export default {
 			    exclude_statuses: ['completed', 'cancelled'].join(',')
 			  }
 
-		  	vm.fetchingOrders = true
-		  	return marketBackend.get(`connecta/orders/`, { params })
+  	  	vm.fetchingOrders = true
+  	  	return marketBackend.get(`connecta/orders/`, { params })
 		    	.then(response => {		    		
 		      		if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 		      		
@@ -273,7 +273,7 @@ export default {
 				        order.storefront = vm.$store.getters['marketplace/storefronts']
 				          .find(storefront => storefront?.id == order?.storefrontId)
 
-		        	// if (order.storefront) return
+        			// if (order.storefront) return
 
 			        // order.fetchStorefront()?.then(() => {
 			        //   $store.commit('marketplace/cacheStorefront', order.storefront?.raw)
@@ -289,9 +289,13 @@ export default {
 			    .finally(() => {
 			      vm.fetchingOrders = false
 			    })
+		},
+		formatMarketplaceStatus(status) {
+			if (!status) return ''
+			return status.replace(/_/g, ' ')
 		}
 	}
-}	
+}
 </script>
 <style lang="scss" scoped>
 .pending-container {
