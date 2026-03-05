@@ -551,10 +551,11 @@ import {
   Promos,
   PromosBytes,
   convertPoints,
+  awardInitialUP,
   getUserRewardsData,
   updateUserPromoData,
   updateUserRewardsData,
-  createUserRewardsData
+  createUserRewardsData,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import i18n from 'src/i18n'
@@ -732,16 +733,19 @@ export default {
           // display help dialog if has_viewed_page is false
           this.isHelpActive = true
 
-          // send 5 initial UP when user is a first time user
+          // send 5 initial points when user is a first time user
           if (urData.is_first_time_user) {
             await awardInitialUP({ up: this.upId })
               .then(async _resp => {
-                vm.points = await vm.urContract.getTokenBalance()
+                this.points = await this.urContract.getTokenBalance()
               })
           }
 
           // mark has_viewed_page to true
-          await updateUserRewardsData(this.upId, { has_viewed_page: true })
+          urData = await updateUserRewardsData(this.upId, {
+            has_viewed_page: true,
+            contract_ct_address: this.urContract.contract.tokenAddress
+          })
         }
 
         this.isReferralComplete = urData.is_referral_complete
