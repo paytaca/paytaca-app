@@ -716,6 +716,7 @@ export default {
       if (this.upId === -1) {
         // new user; create and update necessary data
         urData = await createUserRewardsData()
+        this.upId = urData.id
         Promise.allSettled([
           await updateUserPromoData({ up: urData.id }),
           await updateUserRewardsData(urData.id, {

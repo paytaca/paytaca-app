@@ -335,6 +335,8 @@ export default {
 
         // new user; create and update necessary data
         rpData = await createRfPromoData()
+        console.log('rpData', rpData)
+        this.rpId = rpData.id
         Promise.allSettled([
           await updateUserPromoData({ rp: rpData.id }),
           await updateRfPromoData(rpData.id, {
