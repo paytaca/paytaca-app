@@ -44,12 +44,11 @@ function getOAuthDomain() {
 
 function buildTxnUrl () {
 	const trimmed = String(baseURL || '').replace(/\/+$/, '')
-	if (!trimmed) return '/api/txn/'
+	if (!trimmed) return '/txn/'
 	// Support both configurations:
-	// - baseURL = https://server            -> POST https://server/api/txn/
-	// - baseURL = https://server/api        -> POST https://server/api/txn/
-	if (trimmed.endsWith('/api')) return `${trimmed}/txn/`
-	return `${trimmed}/api/txn/`
+	// - baseURL = https://server            -> POST https://server/txn/
+	// - baseURL = https://server/           -> POST https://server/txn/
+	return `${trimmed}/txn/`
 }
 
 /**

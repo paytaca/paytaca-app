@@ -150,7 +150,6 @@ export async function getChangeAddress (walletType) {
 
 export function getExplorerLink (txid, isCashToken) {
   let url = 'https://bchexplorer.info/tx/'
-  if (isCashToken) url = 'https://bchexplorer.info/tx/'
   if (isChipnet()) url = 'https://chipnet.bchexplorer.info/tx/'
   return `${url}${txid}`
 }

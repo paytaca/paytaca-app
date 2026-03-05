@@ -684,16 +684,6 @@ export default {
 			this.txnPrepareAutoRetryKey = ''
 			this.txnPrepareAutoRetryCount = 0
 		},
-		isLikelyNetworkError (error) {
-			const raw = String(error?.message || error || '').trim().toLowerCase()
-			return (
-				raw.includes('network') ||
-				raw.includes('failed to fetch') ||
-				raw.includes('load failed') ||
-				raw.includes('timeout') ||
-				raw.includes('timed out')
-			)
-		},
 		async onPromoSearchSelect (promo) {
 			const vm = this
 			if (!promo) return
