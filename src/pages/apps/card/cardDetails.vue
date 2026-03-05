@@ -82,7 +82,7 @@
             :card="activeCard"
           />
           <div 
-            v-else-if="(activeTab === 'Card Replacement' || activeTab === 'Order Physical Card') && activeCard"
+            v-else-if="activeTab === 'Order Physical Card' && activeCard"
             class="full-width"
           >
             <div v-if="!showOrderPhysicalCardForm" class="order-physical-card-intro text-center q-pa-lg">
@@ -210,6 +210,352 @@
               </q-form>
             </div>
           </div>
+
+          <div 
+            v-else-if="activeTab === 'Card Replacement' && activeCard"
+            class="full-width"
+          >
+            <!-- PENDING: Request Under Review -->
+            <div v-if="cardReplacementStatus === 'pending'" class="card-replacement-status text-center q-pa-xl">
+              <q-icon 
+                name="schedule" 
+                size="80px" 
+                color="warning"
+                class="q-mb-lg"
+              />
+              <div 
+                class="text-h5 text-weight-bold q-mb-md"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Request Under Review
+              </div>
+              <div 
+                class="text-subtitle1 q-mb-lg"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                style="max-width: 400px; margin: 0 auto;"
+              >
+                We're reviewing your card replacement request. This typically takes 1-2 business days. You'll receive a notification once your request is approved.
+              </div>
+              <div class="q-mt-md">
+                <q-btn 
+                  flat
+                  color="grey"
+                  icon="refresh"
+                  label="Simulate Progress (Testing)"
+                  @click="simulateStatusProgression"
+                  class="q-mr-sm"
+                />
+                <q-btn 
+                  label="Back to Card Details" 
+                  color="primary" 
+                  class="q-px-xl"
+                  unelevated
+                  rounded
+                  @click="activeTab = 'Transactions'"
+                />
+              </div>
+            </div>
+
+            <!-- PROCESSING: Card Being Produced -->
+            <div v-else-if="cardReplacementStatus === 'processing'" class="card-replacement-status text-center q-pa-xl">
+              <q-icon 
+                name="precision_manufacturing" 
+                size="80px" 
+                color="info"
+                class="q-mb-lg"
+              />
+              <div 
+                class="text-h5 text-weight-bold q-mb-md"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Processing Your Card
+              </div>
+              <div 
+                class="text-subtitle1 q-mb-lg"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                style="max-width: 400px; margin: 0 auto;"
+              >
+                We're now processing your card replacement request. Your new card is being produced and personalized. Expect to receive your card within 7-10 business days.
+              </div>
+              <div class="q-mt-md">
+                <q-btn 
+                  flat
+                  color="grey"
+                  icon="refresh"
+                  label="Simulate Progress (Testing)"
+                  @click="simulateStatusProgression"
+                  class="q-mr-sm"
+                />
+                <q-btn 
+                  label="Back to Card Details" 
+                  color="primary" 
+                  class="q-px-xl"
+                  unelevated
+                  rounded
+                  @click="activeTab = 'Transactions'"
+                />
+              </div>
+            </div>
+
+            <!-- SHIPPED: Card on the Way -->
+            <div v-else-if="cardReplacementStatus === 'shipped'" class="card-replacement-status text-center q-pa-xl">
+              <q-icon 
+                name="local_shipping" 
+                size="80px" 
+                color="positive"
+                class="q-mb-lg"
+              />
+              <div 
+                class="text-h5 text-weight-bold q-mb-md"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Your New Card is on the Way!
+              </div>
+              <div 
+                class="text-subtitle1 q-mb-lg"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                style="max-width: 400px; margin: 0 auto;"
+              >
+                Welcome your new card! Your replacement card has been shipped and is on its way to you. You should receive it within 2-3 business days. Please activate it upon arrival.
+              </div>
+              <div class="q-mt-md">
+                <q-btn 
+                  flat
+                  color="grey"
+                  icon="refresh"
+                  label="Reset Status (Testing)"
+                  @click="simulateStatusProgression"
+                  class="q-mr-sm"
+                />
+                <q-btn 
+                  label="Back to Card Details" 
+                  color="primary" 
+                  class="q-px-xl"
+                  unelevated
+                  rounded
+                  @click="activeTab = 'Transactions'"
+                />
+              </div>
+            </div>
+
+            <!-- Order Form (shows only when user selects "No, I need to update") -->
+            <div v-else-if="showReplacementLocationForm" class="order-physical-card-form q-mt-xl">
+              <div 
+                class="row items-center justify-between q-mb-md"
+                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+                style="border-radius: 12px; padding: 16px;"
+              >
+                <div class="text-subtitle1 text-bold text-primary">
+                  Update Shipping Details
+                </div>
+                <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="resetReplacementFlow" />
+              </div>
+
+              <q-form @submit="handleCardReplacement" class="q-col-gutter-md">
+                <div class="col-12">
+                  <q-input 
+                    outlined 
+                    dense 
+                    v-model="orderPhysicalCardData.fullName" 
+                    label="Full Name *" 
+                    :dark="$q.dark.isActive"
+                    :rules="[val => !!val || 'Full name is required']"
+                    lazy-rules
+                  />
+                </div>
+                  
+                <div class="row q-col-gutter-md">
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.city" 
+                      label="City *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'City is required']"
+                      lazy-rules
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.state" 
+                      label="State *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'State is required']"
+                      lazy-rules
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.zip" 
+                      label="Zip *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'Zip code is required']"
+                      lazy-rules
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.country" 
+                      label="Country *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'Country is required']"
+                      lazy-rules
+                    />
+                  </div>
+                </div>
+
+                <div 
+                  class="text-caption q-mt-sm"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
+                  <q-icon name="place" color="primary"/>
+                  Click or drag the marker to your location to auto-fill address fields.
+                </div>
+
+                <div 
+                  ref="replacementMapContainer" 
+                  class="q-mt-md order-form-map"
+                  style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid;"
+                  :style="$q.dark.isActive ? 'border-color: #424242;' : 'border-color: #ddd;'"
+                ></div>
+
+                <div class="row justify-center q-mt-lg q-gutter-md">
+                  <q-btn 
+                    label="Back" 
+                    color="grey"
+                    class="q-px-xl"
+                    unelevated
+                    rounded
+                    @click="resetReplacementFlow"
+                  />
+                  <q-btn 
+                    label="Replace Card" 
+                    color="primary" 
+                    class="q-px-xl"
+                    unelevated
+                    rounded
+                    type="submit"
+                  />
+                </div>
+              </q-form>
+            </div>
+
+            <div v-else-if="locationSame !== null && !showReplacementLocationForm" class="card-replacement-confirm text-center q-pa-lg q-mt-xl">
+              <div 
+                class="text-h5 text-weight-bold q-mb-md"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Ready to Replace Your Card
+              </div>
+              <div 
+                class="text-subtitle1 q-mb-lg"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              >
+                Reason: <span class="text-capitalize">{{ replacementReason }}</span>
+              </div>
+              <div 
+                class="text-caption q-mb-lg"
+                :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+              >
+                Shipping to: {{ activeCard?.shippingAddress?.city || 'Original address on file' }}
+              </div>
+              <div class="row justify-center q-mt-lg q-gutter-md">
+                <q-btn 
+                  label="Go Back" 
+                  color="grey"
+                  class="q-px-xl"
+                  unelevated
+                  rounded
+                  @click="resetReplacementFlow"
+                />
+                <q-btn 
+                  label="Confirm Replacement" 
+                  color="primary" 
+                  class="q-px-xl"
+                  unelevated
+                  rounded
+                  @click="confirmCardReplacement"
+                />
+              </div>
+            </div>
+
+            <!-- Combined Questions (default view) -->
+            <div v-else class="card-replacement-container text-center q-pa-lg">
+              <!-- Question 1: Why do you want to replace your card? -->
+              <div class="q-mb-xl">
+                <div 
+                  class="text-h5 text-weight-bold q-mb-md"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  Why do you want to replace your card?
+                </div>
+                <div class="replacement-options q-gutter-sm">
+                  <q-btn 
+                    v-for="option in replacementReasons" 
+                    :key="option.value"
+                    :label="option.label"
+                    :outline="replacementReason !== option.value"
+                    :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                    class="q-ma-sm"
+                    unelevated
+                    rounded
+                    @click="selectReplacementReason(option.value)"
+                  />
+                </div>
+              </div>
+
+              <!-- Question 2: Is your shipping location still the same? -->
+              <div class="q-mb-xl" :class="{ 'disabled-section': !replacementReason }">
+                <div 
+                  class="text-h5 text-weight-bold q-mb-md"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  Is your shipping location still the same?
+                </div>
+                <div class="location-options">
+                  <q-btn 
+                    label="Yes, proceed" 
+                    :disable="!replacementReason"
+                    :outline="locationSame !== true"
+                    :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                    class="q-ma-sm q-px-xl"
+                    unelevated
+                    rounded
+                    @click="handleLocationSame(true)"
+                  />
+                  <q-btn 
+                    label="No, I need to update" 
+                    :disable="!replacementReason"
+                    :outline="locationSame !== false"
+                    :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                    class="q-ma-sm q-px-xl"
+                    unelevated
+                    rounded
+                    @click="handleLocationSame(false)"
+                  />
+                </div>
+              </div>
+
+              <!-- Reset Button -->
+              <div v-if="replacementReason || locationSame !== null">
+                <q-btn 
+                  label="Reset" 
+                  flat
+                  color="grey"
+                  icon="refresh"
+                  @click="resetReplacementFlow"
+                />
+              </div>
+            </div>
+          </div>
+
           <div 
             v-else-if="activeTab === 'Other Settings' && activeCard"
             class="other-settings-container full-width"
@@ -561,8 +907,27 @@ export default {
       },
       orderFormMap: null,
       orderFormMarker: null,
+      replacementMap: null,
+      replacementMarker: null,
       showSweepFundsDialog: false,
-      showDeleteCardDialog: false
+      showDeleteCardDialog: false,
+      replacementReason: null,
+      locationSame: null,
+      showReplacementLocationForm: false,
+      cardReplacementStatus: 'none'
+    }
+  },
+
+  watch: {
+    activeTab (newTab) {
+      if (newTab === 'Card Replacement') {
+        // Only reset flow if no active replacement request
+        if (this.cardReplacementStatus === 'none') {
+          this.resetReplacementFlow()
+        }
+        // Load the current status from the card data
+        this.loadCardReplacementStatus()
+      }
     }
   },
 
@@ -573,10 +938,22 @@ export default {
       const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Physical Card'
       baseTabs.splice(2, 0, thirdTab)
       return baseTabs
+    },
+    replacementReasons () {
+      return [
+        { value: 'lost', label: 'Card Lost' },
+        { value: 'stolen', label: 'Card Stolen' },
+        { value: 'damaged', label: 'Card Damaged' },
+        { value: 'fraud', label: 'Suspected Fraud' },
+        { value: 'other', label: 'Other' }
+      ]
     }
   },
 
   mounted () {
+    // Load card replacement status if available
+    this.loadCardReplacementStatus()
+    
     // Check if a specific tab is requested in query params
     const requestedTab = this.$route.query.tab
     if (requestedTab) {
@@ -734,8 +1111,10 @@ export default {
           const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
           if (cardIndex !== -1) {
             allCards[cardIndex].hasOrderedPhysicalCard = true
+            allCards[cardIndex].shippingAddress = { ...this.orderPhysicalCardData }
             localStorage.setItem('mock_subcards', JSON.stringify(allCards))
             this.activeCard.hasOrderedPhysicalCard = true
+            this.activeCard.shippingAddress = { ...this.orderPhysicalCardData }
           }
         }
       }
@@ -828,6 +1207,179 @@ export default {
     closeOrderPhysicalCardForm () {
       this.showOrderPhysicalCardForm = false
       this.destroyOrderFormMap()
+    },
+
+    selectReplacementReason (reason) {
+      this.replacementReason = reason
+    },
+
+    handleLocationSame (same) {
+      this.locationSame = same
+      if (same) {
+        this.loadShippingAddress()
+      } else {
+        this.showReplacementLocationForm = true
+        this.$nextTick(() => {
+          this.initReplacementMap()
+        })
+      }
+    },
+
+    loadShippingAddress () {
+      if (this.activeCard?.shippingAddress) {
+        this.orderPhysicalCardData = {
+          fullName: this.activeCard.shippingAddress.fullName || '',
+          city: this.activeCard.shippingAddress.city || '',
+          state: this.activeCard.shippingAddress.state || '',
+          zip: this.activeCard.shippingAddress.zip || '',
+          country: this.activeCard.shippingAddress.country || ''
+        }
+      }
+    },
+
+    resetReplacementFlow () {
+      this.replacementReason = null
+      this.locationSame = null
+      this.showReplacementLocationForm = false
+      this.cardReplacementStatus = 'none'
+      this.destroyReplacementMap()
+      this.orderPhysicalCardData = {
+        fullName: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: ''
+      }
+      this.saveCardReplacementStatus()
+    },
+
+    initReplacementMap () {
+      if (!this.$refs.replacementMapContainer) return
+
+      if (this.replacementMap) {
+        this.replacementMap.remove()
+      }
+
+      this.replacementMap = L.map(this.$refs.replacementMapContainer).setView([7.123, 124.845], 13)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.replacementMap)
+
+      this.replacementMarker = L.marker([7.123, 124.845], {draggable: true}).addTo(this.replacementMap)
+
+      this.replacementMarker.on('dragend', (event) => {
+        const { lat, lng } = event.target.getLatLng()
+        this.reverseGeocodeReplacement(lat, lng)
+      })
+
+      this.replacementMap.on('click', (e) => {
+        const { lat, lng } = e.latlng
+        this.replacementMarker.setLatLng([lat, lng])
+        this.reverseGeocodeReplacement(lat, lng)
+      })
+    },
+
+    async reverseGeocodeReplacement (lat, lng) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+        )
+        const data = await response.json()
+        const addr = data.address
+
+        this.orderPhysicalCardData = {
+          ...this.orderPhysicalCardData,
+          city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
+          state: addr.state || addr.region || addr.province || '',
+          zip: addr.zip || addr.postcode || '',
+          country: addr.country || '',
+        }
+        
+        this.$q.notify({
+          message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
+          icon: 'check', 
+          color: 'positive'
+        })
+      }
+      catch (error) {
+        this.$q.notify({
+          message: 'Geocoding failed',
+          color: 'negative'
+        })
+      }
+    },
+
+    destroyReplacementMap () {
+      if (this.replacementMap) {
+        this.replacementMap.remove()
+        this.replacementMap = null
+        this.replacementMarker = null
+      }
+    },
+
+    handleCardReplacement () {
+      this.saveShippingAddress()
+      this.confirmCardReplacement()
+    },
+
+    saveShippingAddress () {
+      const savedCards = localStorage.getItem('mock_subcards')
+      if (savedCards && this.activeCard) {
+        const allCards = JSON.parse(savedCards)
+        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+        if (cardIndex !== -1) {
+          allCards[cardIndex].shippingAddress = { ...this.orderPhysicalCardData }
+          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+          this.activeCard.shippingAddress = { ...this.orderPhysicalCardData }
+        }
+      }
+    },
+
+    confirmCardReplacement () {
+      this.$q.notify({
+        message: 'Card replacement order submitted successfully!',
+        color: 'positive',
+        icon: 'check_circle',
+        position: 'top'
+      })
+      this.cardReplacementStatus = 'pending'
+      this.saveCardReplacementStatus()
+    },
+
+    saveCardReplacementStatus () {
+      if (this.activeCard) {
+        const savedCards = localStorage.getItem('mock_subcards')
+        if (savedCards) {
+          const allCards = JSON.parse(savedCards)
+          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+          if (cardIndex !== -1) {
+            allCards[cardIndex].cardReplacementStatus = this.cardReplacementStatus
+            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+            this.activeCard.cardReplacementStatus = this.cardReplacementStatus
+          }
+        }
+      }
+    },
+
+    loadCardReplacementStatus () {
+      if (this.activeCard?.cardReplacementStatus) {
+        this.cardReplacementStatus = this.activeCard.cardReplacementStatus
+      }
+    },
+
+    // For testing: simulate status progression
+    simulateStatusProgression () {
+      const statusFlow = { 'pending': 'processing', 'processing': 'shipped', 'shipped': 'none' }
+      const nextStatus = statusFlow[this.cardReplacementStatus] || 'none'
+      this.cardReplacementStatus = nextStatus
+      this.saveCardReplacementStatus()
+      this.$q.notify({
+        message: `Status updated to: ${nextStatus}`,
+        color: 'info',
+        icon: 'update'
+      })
     },
 
     toggleCardLock (locked) {
@@ -935,6 +1487,7 @@ export default {
 
   beforeUnmount () {
     this.destroyOrderFormMap()
+    this.destroyReplacementMap()
   }
 
 }

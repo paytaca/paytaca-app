@@ -640,3 +640,32 @@ animation: float 6s ease-in-out infinite;
   align-items: center;
   flex: 1;
 }
+
+.card-replacement-intro,
+.card-replacement-location,
+.card-replacement-confirm {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.card-replacement-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.replacement-options,
+.location-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.card-replacement-success,
+.card-replacement-status {
+  max-width: 500px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
