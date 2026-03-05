@@ -351,8 +351,46 @@
   
         <!-- Continuous Points Content -->
         <template v-else>
-          <q-expansion-item
-            v-for="(monthData, index) in marketplaceTransactions"
+          <!-- Summary Card -->
+          <q-card
+            v-if="marketplaceTransactions.length > 0"
+            class="achievement-card q-mb-md"
+            :class="getDarkModeClass(darkMode)"
+            flat
+          >
+            <q-card-section>
+              <div class="row items-center  q-gutter-md">
+                <q-icon name="img:marketplace.png" size="32px" color="primary" />
+                <div class="col">
+                  <div class="text-h6 text-weight-bold text-primary">
+                    {{ totalMarketplaceOrders }} {{ totalMarketplaceOrders === 1 ? 'order' : 'orders' }}
+                  </div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    {{ totalMarketplacePoints }} points earned
+                  </div>
+                  <div 
+                    v-if="marketplaceDateRange" 
+                    class="text-caption" 
+                    :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                  >
+                    {{ formatMonthDisplay(marketplaceDateRange.earliest) }} - {{ formatMonthDisplay(marketplaceDateRange.latest) }}
+                  </div>
+                </div>
+              </div>
+              <q-btn
+                outline
+                rounded
+                color="primary"
+                class="full-width q-mt-sm"
+                :label="$t('ViewFullHistory', 'View Full History')"
+                @click="openFullHistoryDialog"
+              />
+            </q-card-section>
+          </q-card>
+
+          <!-- Recent 3 Months -->
+          <!-- <q-expansion-item
+            v-for="(monthData, index) in recentThreeMonths"
             :key="index"
             class="month-expansion q-mb-sm"
             :class="getDarkModeClass(darkMode)"
@@ -401,7 +439,7 @@
                 </q-item>
               </q-list>
             </q-card>
-          </q-expansion-item>
+          </q-expansion-item> -->
   
           <!-- Empty State for Continuous -->
           <q-card
@@ -428,6 +466,70 @@
     :page="'ur'"
     @on-exit-postprocess="isOneTimeSectionExpanded = completedOneTimeCount !== totalOneTimeTasks"
   />
+
+  <!-- Full History Dialog -->
+  <q-dialog
+    v-model="isFullHistoryDialogOpen"
+    :class="getDarkModeClass(darkMode)"
+    full-width
+    full-height
+  >
+    <q-card 
+      class="full-history-dialog pt-card"
+      :class="getDarkModeClass(darkMode)"
+    >
+      <q-card-section class="row items-center q-pb-none">
+        <q-icon name="history" size="28px" color="primary" class="q-mr-sm" />
+        <div class="text-h6">{{ $t('FullHistory', 'Full History') }}</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <div class="text-subtitle2 q-mb-md">
+          {{ totalMarketplaceOrders }} {{ $t('ordersTotal', 'orders total') }} · {{ totalMarketplacePoints }} {{ $t('pointsEarned', 'points earned') }}
+        </div>
+      </q-card-section>
+
+      <q-card-section class="q-px-none q-py-none" style="flex: 1; overflow: hidden;">
+        <q-virtual-scroll
+          :items="allMarketplaceOrders"
+          type="list"
+          style="height: calc(100vh - 200px);"
+          :virtual-scroll-item-size="72"
+        >
+          <template v-slot="{ item, index }">
+            <q-item
+              :key="index"
+              clickable
+              @click="redirectToMarketplaceOrder(item.order_id)"
+              class="history-item"
+            >
+              <q-item-section>
+                <q-item-label class="row items-center">
+                  <span class="text-weight-medium">Order #{{ item.order_id }}</span>
+                  <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
+                </q-item-label>
+                <q-item-label caption>
+                  <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    {{ formatMonthDisplay(item.month) }} · {{ formatDateLocaleRelative(item.date, false) }}
+                  </span>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <points-badge
+                  :complete="true"
+                  :dark-mode-class="getDarkModeClass(darkMode)"
+                  :points="8"
+                />
+              </q-item-section>
+            </q-item>
+            <q-separator v-if="index < allMarketplaceOrders.length - 1" />
+          </template>
+        </q-virtual-scroll>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -498,7 +600,8 @@ export default {
       urContract: null,
 
       firstSevenTransactions: [],
-      marketplaceTransactions: []
+      marketplaceTransactions: [],
+      isFullHistoryDialogOpen: false
     }
   },
 
@@ -536,6 +639,34 @@ export default {
       const fromStore = this.$store.getters['global/language']
       const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
       return String(candidate).replace('_', '-')
+    },
+    totalMarketplaceOrders () {
+      return this.marketplaceTransactions.reduce((total, month) => total + month.orders.length, 0)
+    },
+    totalMarketplacePoints () {
+      return this.totalMarketplaceOrders * 8
+    },
+    marketplaceDateRange () {
+      if (this.marketplaceTransactions.length === 0) return null
+      const months = this.marketplaceTransactions.map(m => new Date(m.month))
+      const earliest = new Date(Math.min(...months))
+      const latest = new Date(Math.max(...months))
+      return { earliest, latest }
+    },
+    recentThreeMonths () {
+      return this.marketplaceTransactions.slice(0, 3)
+    },
+    allMarketplaceOrders () {
+      const orders = []
+      this.marketplaceTransactions.forEach(month => {
+        month.orders.forEach(order => {
+          orders.push({
+            ...order,
+            month: month.month
+          })
+        })
+      })
+      return orders.sort((a, b) => new Date(b.date) - new Date(a.date))
     }
   },
 
@@ -692,6 +823,9 @@ export default {
         this.animatePointsCounter()
         this.isLoading = false
       })
+    },
+    openFullHistoryDialog () {
+      this.isFullHistoryDialogOpen = true
     }
   }
 }
@@ -928,5 +1062,62 @@ export default {
 
 .collapsible-content {
   overflow: hidden;
+}
+
+// Summary Card Styles
+.summary-card {
+  border-radius: 16px;
+  background: rgba(59, 123, 246, 0.08);
+  border: 1px solid rgba(59, 123, 246, 0.15);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 123, 246, 0.15);
+  }
+
+  &.dark {
+    background: rgba(59, 123, 246, 0.12);
+    border: 1px solid rgba(59, 123, 246, 0.25);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(59, 123, 246, 0.25);
+    }
+  }
+}
+
+// Full History Dialog Styles
+.full-history-dialog {
+  width: 100%;
+  max-width: 600px;
+  height: 85dvh !important;
+  max-height: 800px !important;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+}
+
+.history-item {
+  padding: 12px 16px;
+  min-height: 72px;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba(59, 123, 246, 0.05);
+  }
+
+  .dark &:hover {
+    background: rgba(59, 123, 246, 0.1);
+  }
+}
+
+// Responsive adjustments for mobile
+@media (max-width: 600px) {
+  .full-history-dialog {
+    border-radius: 0;
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+  }
 }
 </style>
