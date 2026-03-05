@@ -172,15 +172,21 @@ export default {
 				.then(response => {					
 					this.orderTotal = response.data.count
 					if (overwrite) {
-						this.pending.push(...response.data.results)
-					} else {
 						this.pending = response.data.results
+					} else {
+						this.pending.push(...response.data.results)
 					}															
 					// console.log('pending: ', this.pending)
 
 				})
 				.catch(error => {
 					console.error(error)
+					this.$q.notify({
+						color: 'negative',
+						message: this.$t('FailedToFetchOrders'),
+						icon: 'error',
+						timeout: 3000
+					})
 				})
 		},
 		async fetchAppeals (overwrite = false) {
@@ -198,13 +204,19 @@ export default {
 				.then(response => {					
 					vm.appealTotal = response.data.count
 					if (overwrite) {
-						this.pendingAppeals.push(...response.data.results)
-					} else {
 						this.pendingAppeals = response.data.results
+					} else {
+						this.pendingAppeals.push(...response.data.results)
 					}
 				})
 				.catch(error => {
-					console.log(error)
+					console.error(error)
+					this.$q.notify({
+						color: 'negative',
+						message: this.$t('FailedToFetchAppeals'),
+						icon: 'error',
+						timeout: 3000
+					})
 				})
 		},
 		seeMoreOrders () {

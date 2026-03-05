@@ -369,6 +369,10 @@ export default defineComponent({
         .then(response => {
           chatSession.value.raw = response?.data
         })
+        .catch(error => {
+          console.error('Failed to fetch chat session:', error)
+          throw error
+        })
     }, 500)
 
     const hasMoreMessages = computed(() => {

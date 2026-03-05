@@ -29,7 +29,7 @@
 <script>
 import { backend } from 'src/marketplace/backend'
 import { ChatSession } from 'src/marketplace/objects'
-import { debounce } from 'quasar'
+import { debounce, useQuasar } from 'quasar'
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import ChatDialog from 'src/components/marketplace/ChatDialog.vue'
 
@@ -39,10 +39,20 @@ export default defineComponent({
     ChatDialog,
   },
   props: {
-    orderId: [Number, String],
+    orderId: {
+      type: [Number, String],
+      required: false,
+      validator(value) {
+        if (value === undefined || value === null) return true
+        const numValue = Number(value)
+        return !isNaN(numValue) && numValue > 0
+      }
+    },
     order: { type: Object, required: false },
   },
   setup(props) {
+    const $q = useQuasar()
+
     onMounted(() => refresh())
     watch(() => [props.orderId], () => {
       reset()
@@ -65,11 +75,21 @@ export default defineComponent({
       if (!props.orderId) {
         return Promise.resolve()
       }
-      
+
       return backend.get(`connecta/orders/${props.orderId}/chat_session/`, { forceSign: true })
         .then(response => {
           orderChatSession.value = ChatSession.parse(response?.data)
           return response
+        })
+        .catch(error => {
+          console.error('Failed to fetch order chat session:', error)
+          $q.notify({
+            color: 'negative',
+            message: 'Failed to load chat session',
+            icon: 'error',
+            timeout: 3000
+          })
+          throw error
         })
     }, 250)
 
