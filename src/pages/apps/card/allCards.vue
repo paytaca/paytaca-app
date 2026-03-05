@@ -38,7 +38,7 @@
 
         <div v-else class="cards-grid">
           <div
-            v-for="card in subCards"
+            v-for="card in sortedCards"
             :key="card.id"
             class="card-grid-item cursor-pointer"
             @click="goToCardDetails(card)"
@@ -67,6 +67,13 @@ export default {
   mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
+  },
+
+  computed: {
+    // Sort cards with oldest first (ascending by id)
+    sortedCards () {
+      return [...this.subCards].sort((a, b) => a.id - b.id)
+    }
   },
 
   mounted () {

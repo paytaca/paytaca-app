@@ -69,7 +69,7 @@
           <div
             class="front-wallet-card flex flex-center cursor-pointer"
             :class="$q.dark.isActive ? 'bg-dark' : ''"
-            @click="$router.push({name: 'app-card'})"
+            @click="showCreateCardDialog = true"
           >
             <q-card-section class="text-center slot-content">
               <div 
@@ -101,6 +101,76 @@
         </div>
       </div>
       
+      <!-- Create Card Dialog -->
+      <q-dialog v-model="showCreateCardDialog" persistent>
+        <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
+          <!-- Dialog Header -->
+          <q-card-section class="row items-center">
+            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Create New Card</div>
+            <q-space />
+            <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeDialog" />
+          </q-card-section>
+
+          <q-separator :dark="$q.dark.isActive" />
+
+          <!-- Normal Content -->
+          <q-card-section v-if="!isMinting">
+            <q-input
+              v-model="newCardName"
+              label="Card Name *"
+              :dark="$q.dark.isActive"
+              :rules="[val => !!val || 'Card name is required']"
+              @keyup.enter="createCard"
+              autofocus
+              outlined
+            >
+              <template v-slot:prepend>
+                <q-icon name="credit_card" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+              </template>
+            </q-input>
+          </q-card-section>
+
+          <!-- Minting Loading State -->
+          <q-card-section v-else class="text-center q-pa-lg">
+            <q-icon
+              name="token"
+              size="64px"
+              :color="$q.dark.isActive ? 'primary' : 'primary'"
+              class="q-mb-md"
+            />
+            <div 
+              class="text-h6 q-mb-sm"
+              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+            >
+              Minting your card
+            </div>
+            <div 
+              class="text-caption"
+              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+            >
+              Please wait while we create your new virtual card...
+            </div>
+            <q-linear-progress indeterminate color="primary" class="q-mt-md" />
+          </q-card-section>
+
+          <!-- Action Buttons (only show when not minting) -->
+          <q-card-actions v-if="!isMinting" align="right" class="q-pa-md">
+            <q-btn 
+              flat 
+              label="Cancel" 
+              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" 
+              @click="closeDialog" 
+            />
+            <q-btn 
+              label="Done" 
+              color="primary" 
+              :disable="!newCardName || !newCardName.trim()"
+              @click="createCard"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
     </q-page-container>
   </q-layout>
 </template>
@@ -121,13 +191,21 @@ export default {
       isDragging: false,
       currentCardId: null,
       startX: 0,
-      currentX: 0
+      currentX: 0,
+      showCreateCardDialog: false,
+      newCardName: '',
+      isMinting: false
     }
   },
 
   computed: {
     displayedCards () {
-      return this.subCards.slice(0,3)
+      // Show the 3 newest cards with newest at the front
+      // Sort by id ASCENDING (oldest first) so newest gets highest z-index
+      // This puts the newest card visually at the front of the stack
+      const sorted = [...this.subCards].sort((a, b) => a.id - b.id)
+      // Take last 3 (newest) if there are more than 3
+      return sorted.slice(-3)
     },
 
     hiddenCount () {
@@ -275,6 +353,62 @@ export default {
 
     showAllCards () {
       this.$router.push({ name: 'all-cards' })
+    },
+
+    closeDialog () {
+      this.showCreateCardDialog = false
+      this.newCardName = ''
+      this.isMinting = false
+    },
+
+    async createCard () {
+      if (!this.newCardName || !this.newCardName.trim()) {
+        this.$q.notify({
+          message: 'Please enter a card name',
+          color: 'negative',
+          icon: 'error',
+          position: 'top'
+        })
+        return
+      }
+
+      // Show minting state
+      this.isMinting = true
+
+      // Simulate minting delay (2 seconds)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // Create new card with 0 balance
+      const newCard = {
+        id: Date.now(),
+        raw: { alias: this.newCardName.trim() },
+        balance: '0.00', // New card has 0 BCH balance
+        status: 'Active',
+        contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
+        isLocked: false,
+        cardReplacementStatus: 'none'
+      }
+
+      // Save to localStorage
+      const savedData = localStorage.getItem('mock_subcards')
+      const currentCards = savedData ? JSON.parse(savedData) : []
+      currentCards.push(newCard)
+      localStorage.setItem('mock_subcards', JSON.stringify(currentCards))
+
+      // Update the displayed cards
+      this.subCards = currentCards
+
+      // Reset dialog state
+      this.closeDialog()
+
+      // Show success notification
+      this.$q.notify({
+        message: 'Card created successfully!',
+        color: 'positive',
+        icon: 'check_circle',
+        position: 'top',
+        timeout: 2000
+      })
     }
   }
 }
