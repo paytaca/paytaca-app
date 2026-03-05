@@ -277,15 +277,9 @@ export default {
 
     saveSpendLimit() {
       const spendLimit = parseFloat(this.spendLimitInput);
-      const cardBalance = parseFloat(this.card?.balance) || 0;
 
       if (isNaN(spendLimit) || spendLimit <= 0) {
         this.spendLimitError = 'Please enter a valid amount greater than 0';
-        return;
-      }
-
-      if (spendLimit > cardBalance) {
-        this.spendLimitError = `Spend limit cannot exceed available balance (${cardBalance} BCH)`;
         return;
       }
 
