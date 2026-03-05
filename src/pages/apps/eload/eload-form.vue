@@ -60,14 +60,29 @@
 		</div>
 
 		<div v-else>
+			<div class="q-px-lg q-py-md">
+				<div class="row items-center">
+					<CountrySelector :darkMode="darkMode" />
+				</div>
+			</div>
+
+			<div v-if="!isPhilippinesSelected" class="q-px-lg q-mt-md">
+				<q-banner rounded dense class="br-15" :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'">
+					<template v-slot:avatar>
+						<q-icon name="info" color="primary" />
+					</template>
+					<div class="md-font-size">This feature currently supports providers in the Philippines only</div>
+				</q-banner>
+			</div>
+
 			<div v-if="loading && step === 0" class="q-mx-lg q-pt-sm eload-skeleton">
 				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
 			</div>
-			<PromoSearch v-else class="q-px-lg" @select-promo="onPromoSearchSelect"/>
+			<PromoSearch v-else-if="isPhilippinesSelected" class="q-px-lg" @select-promo="onPromoSearchSelect"/>
 			
 
 			<!-- Selecting Service -->
-			<div  class="q-mt-sm" v-if="step === 0">
+			<div v-if="isPhilippinesSelected" class="q-mt-sm" v-show="step === 0">
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Purchase Type</div>
 					<ServiceCard v-for="service in services" :service="service" @click="updateFilters('service', service)"/>
@@ -90,10 +105,10 @@
 			</div>
 
 			<!-- Info Card -->
-			<promo-info-card v-if="step > 0 && filters?.service" class="q-mx-lg q-mt-lg" :filters="filters" :show-category="showCategory" :step="step" @update="changeValue"/>
+			<promo-info-card v-if="isPhilippinesSelected && step > 0 && filters?.service" class="q-mx-lg q-mt-lg" :filters="filters" :show-category="showCategory" :step="step" @update="changeValue"/>
 
 			<!-- Selecting Service Group -->
-			<div>
+			<div v-if="isPhilippinesSelected">
 				<!-- Service Group Selection -->
 				<div v-if="step === 1">
 					<div v-if="!loading">
@@ -128,7 +143,7 @@
 			</div>
 
 			<!-- Category Selection -->
-			<div v-if="step === 2">
+			<div v-if="isPhilippinesSelected && step === 2">
 				<div v-if="!loading"> 
 					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
 
@@ -191,7 +206,7 @@
 			</div>
 
 			<!-- Select Promo -->
-			<div v-if="step === 3">
+			<div v-if="isPhilippinesSelected && step === 3">
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
 
@@ -237,7 +252,7 @@
 			
 			</div>
 
-			<div v-if="step > 3" class="q-mt-md">
+			<div v-if="isPhilippinesSelected && step > 3" class="q-mt-md">
 				<q-card class="q-mx-lg q-pa-md br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
 					<div class="row justify-between">
 						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ selectedPromo.name }}</div>
@@ -372,6 +387,7 @@ import * as sendPageUtils from 'src/utils/send-page-utils'
 import Pin from 'src/components/pin/index.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import CountrySelector from 'src/components/settings/CountrySelector.vue'
 
 // Note: service = purchaseType; service-group = serviceProviders
 
@@ -445,6 +461,10 @@ export default {
 		minHeight () {
 	      return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
 	    },
+		isPhilippinesSelected () {
+			const country = this.$store.getters['global/country']
+			return country?.name === 'Philippines'
+		},
 		isMobileNumberAddress () {
 			return this.selectedPromo?.address_type === 'MN'
 		},
@@ -579,7 +599,8 @@ export default {
 		DragSlide,
 		HeaderNav,
 		Pin,
-		BiometricWarningAttempt
+		BiometricWarningAttempt,
+		CountrySelector
 	},
 	watch: {
 		'filters.service'(val) {
