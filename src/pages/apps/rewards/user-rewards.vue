@@ -343,12 +343,14 @@
   
         <!-- Loading Skeletons for Continuous -->
         <template v-if="isLoading">
-          <q-card v-for="n in 2" :key="`skeleton-continuous-${n}`" class="q-mb-md" flat>
-            <q-card-section>
-              <q-skeleton type="text" width="40%" height="24px" class="q-mb-sm" />
-              <q-skeleton type="text" width="70%" height="16px" />
-            </q-card-section>
-          </q-card>
+          <achievement-card v-for="n in 2" :key="`skeleton-continuous-${n}`">
+            <template #achievement-card-content>
+              <q-card-section>
+                <q-skeleton type="text" width="40%" height="24px" class="q-mb-sm" />
+                <q-skeleton type="text" width="70%" height="16px" />
+              </q-card-section>
+            </template>
+          </achievement-card>
         </template>
   
         <!-- Continuous Points Content -->
