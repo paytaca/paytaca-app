@@ -3,38 +3,47 @@
     <q-card class="q-dialog-plugin pt-card row justify-center text-bow" :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6">{{$t('ImportTransactionProposal')}}</div>
-        <div class="text-caption text-center text-bow-muted">
+          <div class="text-caption text-center text-bow-muted">
             <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
               <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>
               {{ $t('ImportTransactionProposalDescription') }}
             </q-banner>
           </div>
-          <q-list bordered separator class="pt-card br-15">
-            <q-item v-for="p, i in proposals" :key="i" class="q-my-lg">
+          <q-list separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
+            <q-item-label header>
+              {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
+            </q-item-label>
+            <q-separator></q-separator>
+            <q-item 
+              v-for="p, i in proposals" :key="i"
+              class="q-my-sm"
+                 >
               <q-item-section avatar>
                 <q-avatar>
-                  {{ p.id }}
+                  <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
                 </q-avatar>
               </q-item-section>
               <q-item-section>
                 <q-item-label>
-                  <q-icon name="receipt" color="primary" size="md"></q-icon>
-                </q-item-label>
-                <q-item-label>
                   <div class="ellipsis text-bold">Purpose: {{ p.purpose || 'N/A'}}</div>
                 </q-item-label>
-                <q-item-label caption lines="3">
-                  <div>ID: {{ p.id }}</div>
+                <q-item-label caption>
                   <div>Origin: {{ p.origin || 'N/A' }}</div>
+                </q-item-label>
+                <q-item-label caption class="flex items-center q-gutter-x-xs">
+                  <q-icon name="mdi-cloud-outline"></q-icon>
+                    <div>ID: {{ p.id }}</div>
+                </q-item-label>
+                <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs"">
+                  <q-icon name="mdi-cloud-outline"></q-icon>
+                  <div>Coordinator: {{ p.coordinatorInfo?.name }} </div>
                 </q-item-label>
               </q-item-section>
               <q-item-section side>
-                <q-btn label="Import" color="primary" @click="() => onDialogOK(p)" outline rounded no-caps></q-btn>
+                <q-btn icon="mdi-file-import-outline" label="Import" color="primary" @click="() => onDialogOK(p)" outline rounded no-caps></q-btn>
               </q-item-section>
             </q-item>
-            
           </q-list>
-          
       </q-card-section>
       <q-card-actions>
         <q-btn :label="$t('Close')" @click="onDialogCancel" color="red" v-close-popup></q-btn>
@@ -46,6 +55,7 @@
 import { useDialogPluginComponent } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { onMounted } from 'vue'
 
 const { t: $t } = useI18n()
 
@@ -62,6 +72,10 @@ defineEmits([
 
 const { dialogRef, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 
-
+onMounted(async () => {
+  for (const p of props.proposals) {
+    await p.fetchCoordinatorInfo()
+  }
+})
 
 </script>

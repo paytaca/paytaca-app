@@ -68,7 +68,7 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import { decryptECIESMessage } from 'src/lib/multisig/ecies'
+import { decryptECIES } from 'src/lib/multisig/encryption'
 import { binToHex, decodeHdPrivateKey, decodeHdPublicKey } from 'bitauth-libauth-v3'
 const $store = useStore()
 const $q = useQuasar()
@@ -129,7 +129,7 @@ const fetchWallets = async () => {
       if (!signer) return
 
       const privateKey = decodeHdPrivateKey(xprv).node.privateKey
-      const bsmsDescriptor = await decryptECIESMessage(privateKey, signer.walletDescriptor)
+      const bsmsDescriptor = await decryptECIES(privateKey, signer.walletDescriptor)
 
       if (!bsmsDescriptor?.includes(xpub)) return
 
