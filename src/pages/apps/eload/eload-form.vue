@@ -132,32 +132,51 @@
 				<div v-if="!loading"> 
 					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
 
-					<div class="scroll-y q-pb-md" :style="`max-height: ${minHeight - 170}px`">
+			<div
+					ref="categoryScrollContainer"
+					class="scroll-y q-pb-md"
+					:style="`max-height: ${minHeight - 170}px`"
+					@scroll="onCategoryScroll"
+				>
 						<div class="q-px-lg">
 							<div class="row q-col-gutter-sm">
 								<div
 									v-for="(category, index) in categories"
-							    	:key="index"
-							    	class="col-4 col-sm-4"
-								>
-									<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)"> 
-								    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>			          
+								    	:key="index"
+								    	class="col-4 col-sm-4"
+									>
+									<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)">
+									    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>		          
 									</q-card>
 								</div>
 							</div>
 						</div>
 
 
-						<div
-							v-if="loadingMore"
-							class="row justify-center items-center q-gutter-sm q-pt-md"
-							:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
-						>
-							<q-spinner-dots size="24px" color="primary" />
-							<div class="md-font-size text-weight-bold">Loading…</div>
-						</div>
-						<div class="text-center text-grad q-pt-md md-font-size text-bold see-more" v-else-if="!isLastPage('category')" @click="nextPage('category')">See More</div>	
-					</div>													
+					<div
+						v-if="loadingMore"
+						class="row justify-center items-center q-gutter-sm q-pt-md"
+						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+					>
+						<q-spinner-dots size="24px" color="primary" />
+						<div class="md-font-size text-weight-bold">Loading…</div>
+					</div>
+
+					<!-- Manual load more button - shows when more items available but not loading -->
+					<div
+						v-else-if="!isLastPage('category')"
+						class="text-center q-pt-md q-pb-md"
+					>
+						<q-btn
+							outline
+							rounded
+							color="primary"
+							label="Load More"
+							size="sm"
+							@click="nextPage('category')"
+						/>
+					</div>
+				</div>
 				</div>
 
 				<div class="q-px-lg q-pt-md" v-else>
@@ -410,7 +429,7 @@ export default {
 					totalPages: 0
 				},
 				category: {
-					limit: 9,
+					limit: 21,
 					page: 1,
 					totalPages: 0
 				},
@@ -1085,7 +1104,7 @@ export default {
 		},
 		resetPagination (type) {
 			this.paginationSettings[type] = {
-					limit: type === 'serviceGroup' ? 20 : 9,
+					limit: type === 'serviceGroup' ? 20 : 21,
 					page: 1,
 					totalPages: 0
 				}
@@ -1202,6 +1221,10 @@ export default {
 					await this.fetchPromos(true)
 					this.step = 3
 				}
+
+				// Auto-load next page if content doesn't fill the screen
+				await this.$nextTick()
+				this.autoLoadIfNoScroll()
 			}
 
 			vm.loading = false			
@@ -1240,17 +1263,44 @@ export default {
 
 			vm.loading = false	
 		},
-		preventPull (e) {
-	      let parent = e.target
-	      // eslint-disable-next-line no-void
-	      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
-	        parent = parent.parentNode
-	      }
-	      // eslint-disable-next-line no-void
-	      if (parent !== void 0 && parent.scrollTop > 0) {
-	        e.stopPropagation()
-	      }
-	    },
+	preventPull (e) {
+      let parent = e.target
+      // eslint-disable-next-line no-void
+      while (parent !== void 0 && !parent.classList.contains('scroll-y')) {
+        parent = parent.parentNode
+      }
+      // eslint-disable-next-line no-void
+      if (parent !== void 0 && parent.scrollTop > 0) {
+        e.stopPropagation()
+      }
+    },
+	onCategoryScroll (e) {
+		const container = e.target
+		const scrollBottom = container.scrollTop + container.clientHeight
+		const scrollThreshold = container.scrollHeight - 100
+
+		if (scrollBottom >= scrollThreshold && !this.loadingMore && !this.isLastPage('category')) {
+			this.nextPage('category')
+		}
+	},
+	async autoLoadIfNoScroll () {
+		// Wait for DOM update and a bit more for rendering
+		await this.$nextTick()
+		await new Promise(resolve => setTimeout(resolve, 100))
+
+		// Use ref to find the category scroll container
+		const container = this.$refs.categoryScrollContainer
+		if (!container) return
+
+		// Check if content is shorter than or equal to container (no scrollbar or exact fit)
+		// Use >= to handle exact fits where scrollHeight === clientHeight
+		const hasScrollbar = container.scrollHeight > container.clientHeight + 2 // +2px tolerance for sub-pixel rendering
+
+		if (!hasScrollbar && !this.loadingMore && !this.isLastPage('category') && this.categories.length > 0) {
+			await this.nextPage('category')
+			// Recursion will happen via the success callback in fetchCategory
+		}
+	}
 	}
 }
 </script>
