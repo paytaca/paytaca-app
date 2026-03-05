@@ -150,7 +150,8 @@
     <!-- Step 2: Rewards/Referral Code -->
     <div v-if="currentStep === 2 && !importSeedPhrase" class="content-section center-viewport step-2-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <RewardsStep 
-        :walletHash="newWalletHash" 
+        :walletHash="newWalletHash"
+        :darkMode="darkMode"
         @on-proceed-to-next-step="goToStep3"
       />
     </div>
@@ -441,16 +442,6 @@
       >
         <div >
           <div class="q-pa-lg" style="padding-top: 28px;">
-            <!-- <div
-              v-if="moveToReferral && !openSettings"
-            >
-              <rewards-step
-                :walletHash="this.newWalletHash"
-                @on-proceed-to-next-step="onProceedToNextStep"
-              />
-            </div> -->
-
-            <!-- <div class="row" v-else-if="!moveToReferral && openSettings"> -->
             <div class="row" v-if="openSettings">
               <div class="col">
                 <div class="row justify-center text-center">
