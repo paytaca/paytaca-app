@@ -142,7 +142,7 @@ import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutput
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
-import { encryptECIESMessage } from './ecies.js'
+import { encryptECIES } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
@@ -1153,7 +1153,7 @@ export class MultisigWallet {
     return pst 
   }
 
-  async createProposalFromWcSessionRequest(sessionRequest) {
+  async wcCreateProposalFromSessionRequest(sessionRequest) {
     const proposal = new Pst()
     const inputs = sessionRequest.params.request.params.transaction.inputs?.map((input) => {
       const mappedInput = JSON.parse(JSON.stringify(input, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver)
@@ -1217,6 +1217,10 @@ export class MultisigWallet {
       proposal.setCreator(cosignerAuthCredentials["X-Auth-Cosigner-Auth-PubKey"])
     }
     return proposal
+  }
+
+  wcGetDefaultAddress() {
+    return this.getDepositAddress(0).address
   }
 
   async fetchProposals(status='pending') {
@@ -1294,9 +1298,9 @@ export class MultisigWallet {
       }
       if (enablePrivacy) {
         const unencryptedBsmsDescriptor = this.generateBsmsDescriptor()
-        const encryptedBsmsDescriptor = await encryptECIESMessage(
+        const encryptedBsmsDescriptor = await encryptECIES(
           MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub),
-          unencryptedBsmsDescriptor
+          utf8ToBin(unencryptedBsmsDescriptor)
         )
         
         signer.derivationPath = signer.path || signer.derivationPath || `m/44'/145'/0'`
@@ -1496,7 +1500,8 @@ async generateAuthCredentials(xpub) {
     if (!mnemonic) return null
     return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
   }
-  for (const signer of this.signers) {
+  const sortedSigners = [...this.signers].sort((a, b) => (a.xpub || '').localeCompare(b.xpub || ''))
+  for (const signer of sortedSigners) {
     // use first mnemonic found
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     if (mnemonic) {
@@ -1512,7 +1517,8 @@ async generateCosignerAuthCredentials(xpub) {
     if (!mnemonic) return null
     return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
   }
-  for (const signer of this.signers) {
+  const sortedSigners = [...this.signers].sort((a, b) => (a.xpub || '').localeCompare(b.xpub || ''))
+  for (const signer of sortedSigners) {
     // use first mnemonic found
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     if (mnemonic) {
