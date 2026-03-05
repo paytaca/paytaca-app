@@ -13,14 +13,14 @@ import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
 
-export const generateCoordinationServerSignature = (privateKey, message) => {
+export function generateCoordinationServerSignature(privateKey, message) {
     const hash = sha256.hash(utf8ToBin(message))
     const schnorr = secp256k1.signMessageHashSchnorr(privateKey, hash)
     const der = secp256k1.signMessageHashDER(privateKey, hash)
     return `schnorr=${binToHex(schnorr)};der=${binToHex(der)}`
 }
   
-export const generateCoordinatorServerIdentityFromXprv = ({ name, xprv }) => {
+export function generateCoordinatorServerIdentityFromXprv({ name, xprv }) {
     const { hdPublicKey } = deriveHdPublicKey(xprv)
     const privateKey = decodeHdPrivateKey(xprv).node.privateKey
     const publicKey  = decodeHdPublicKey(hdPublicKey).node.publicKey
@@ -33,7 +33,7 @@ export const generateCoordinatorServerIdentityFromXprv = ({ name, xprv }) => {
     }
 }
   
-export const generateCoordinatorServerIdentityFromMnemonic = ({ name, mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) => {
+export function generateCoordinatorServerIdentityFromMnemonic({ name, mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
@@ -42,7 +42,7 @@ export const generateCoordinatorServerIdentityFromMnemonic = ({ name, mnemonic, 
     return generateCoordinatorServerIdentityFromXprv({ name, xprv: hdPrivateKey, network })
 }
   
-export const generateCoordinationServerCredentialsFromXprv = ({ xprv }) => {
+export function generateCoordinationServerCredentialsFromXprv ({ xprv }) {
     const { hdPublicKey } = deriveHdPublicKey(xprv)
     const privateKey = decodeHdPrivateKey(xprv).node.privateKey
     const publicKey  = decodeHdPublicKey(hdPublicKey).node.publicKey
@@ -54,7 +54,7 @@ export const generateCoordinationServerCredentialsFromXprv = ({ xprv }) => {
     }
   }
 
-export const generateCoordinationServerCredentialsFromMnemonic = ({ mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) => {
+export function generateCoordinationServerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
@@ -63,16 +63,15 @@ export const generateCoordinationServerCredentialsFromMnemonic = ({ mnemonic, ne
     return generateCoordinationServerCredentialsFromXprv({ xprv: hdPrivateKey })
 }
 
-export const generateCosignerAuthPublicKeyFromFromXpub = ({ xpub }) => {
+export function generateCosignerAuthPublicKeyFromFromXpub ({ xpub }) {
   const decodedHdPublicKey = decodeHdPublicKey(xpub)
   const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH) 
   return binToHex(publicKey)
 }
 
-export const generateCoordinationServerCosignerCredentialsFromXprv = ({ xprv }) => {
-    const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
+export function generateCoordinationServerCosignerCredentialsFromXprv ({ xprv }) {
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
-    const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
+    const privateKey = deriveCoordinationServerCosignerAuthPrivateKey({ xprv })
     const message = `multisig:cosigner-auth:${Date.now()}`
     return {
         'X-Auth-Cosigner-Auth-PubKey': generateCosignerAuthPublicKeyFromFromXpub({ xpub }),
@@ -81,12 +80,18 @@ export const generateCoordinationServerCosignerCredentialsFromXprv = ({ xprv }) 
     }
   }
 
-export const generateCoordinationServerCosignerCredentialsFromMnemonic = ({ mnemonic, network = 'mainnet', hdPath = `m/44'/145'/0'` }) => {
+export function generateCoordinationServerCosignerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/44'/145'/0'` }) {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
       hdPath 
     })
     return generateCoordinationServerCosignerCredentialsFromXprv({ xprv: hdPrivateKey })
+}
+
+export function deriveCoordinationServerCosignerAuthPrivateKey({ xprv }) {
+  const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
+  const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
+  return privateKey
 }
   
