@@ -122,10 +122,16 @@ async function createData (url) {
 }
 
 async function updateData (url, data) {
-  await REWARDS_URL
+  return await REWARDS_URL
     .patch(url, data)
-    .then(_response => {})
-    .catch(error => { console.error(error) })
+    .then(response => {
+      if (response.status === 200) return response.data
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
 }
 
 // ========== get functions ==========
@@ -172,7 +178,7 @@ export async function updateUserPromoData (data) {
 }
 
 export async function updateUserRewardsData(id, data) {
-  await updateData(`userreward/${id}/`, data)
+  return await updateData(`userreward/${id}/`, data)
 }
 
 export async function updateRfPromoData (id, data) {
