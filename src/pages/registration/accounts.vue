@@ -873,7 +873,8 @@ export default {
       }
     },
     cleanUpSeedPhrase (seedPhrase) {
-      return seedPhrase.toLowerCase().trim()
+      const finalSeedPhrase = seedPhrase ?? ''
+      return finalSeedPhrase.toLowerCase().trim()
         .replace(/\s{2,}/g, ' ') // Remove extra internal whitespaces
         .replace(/[^\x00-\x7F]/g, '') // Remove non-ascii characters
         .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '') // Remove punctuations
