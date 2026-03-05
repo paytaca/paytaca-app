@@ -58,7 +58,7 @@
         <div class="tabs-container q-mb-md">
           <div class="tabs-wrapper">
             <div 
-              v-for="tab in ['Transactions', 'Manage Merchants', 'Card Replacement', 'Other Settings']"
+              v-for="tab in tabs"
               :key="tab"
               class="tab-item"
               :class="{ 'tab-active': activeTab === tab }"
@@ -82,11 +82,133 @@
             :card="activeCard"
           />
           <div 
-            v-else-if="activeTab === 'Card Replacement' && activeCard"
-            class="text-center"
-            :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+            v-else-if="(activeTab === 'Card Replacement' || activeTab === 'Order Physical Card') && activeCard"
+            class="full-width"
           >
-            Card Replacement content coming soon...
+            <div v-if="!showOrderPhysicalCardForm" class="order-physical-card-intro text-center q-pa-lg">
+              <div 
+                class="text-h5 text-weight-bold q-mb-sm"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
+                Your new physical Paytaca card awaits.
+              </div>
+              <p 
+                class="opacity-80 q-mb-lg"
+                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              >
+                Global payments, physical style.
+              </p>
+              <q-btn 
+                :label="'Get Started'" 
+                color="primary" 
+                class="q-px-xl text-bold"
+                unelevated
+                rounded
+                @click="activateOrderPhysicalCardForm"
+              />
+            </div>
+
+            <div v-else class="order-physical-card-form">
+              <div 
+                class="row items-center justify-between q-mb-md"
+                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+                style="border-radius: 12px; padding: 16px;"
+              >
+                <div 
+                  class="text-subtitle1 text-bold text-primary"
+                >
+                  Shipping Details
+                </div>
+                <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeOrderPhysicalCardForm" />
+              </div>
+
+              <q-form @submit="handleOrderPhysicalCard" class="q-col-gutter-md">
+                <div class="col-12">
+                  <q-input 
+                    outlined 
+                    dense 
+                    v-model="orderPhysicalCardData.fullName" 
+                    label="Full Name *" 
+                    :dark="$q.dark.isActive"
+                    :rules="[val => !!val || 'Full name is required']"
+                    lazy-rules
+                  />
+                </div>
+                  
+                <div class="row q-col-gutter-md">
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.city" 
+                      label="City *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'City is required']"
+                      lazy-rules
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.state" 
+                      label="State *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'State is required']"
+                      lazy-rules
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.zip" 
+                      label="Zip *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'Zip code is required']"
+                      lazy-rules
+                    />
+                  </div>
+                  <div class="col-6">
+                    <q-input 
+                      outlined 
+                      dense 
+                      v-model="orderPhysicalCardData.country" 
+                      label="Country *" 
+                      :dark="$q.dark.isActive"
+                      :rules="[val => !!val || 'Country is required']"
+                      lazy-rules
+                    />
+                  </div>
+                </div>
+                
+                <div 
+                  class="text-caption q-mt-sm"
+                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                >
+                  <q-icon name="place" color="primary"/>
+                  Click or drag the marker to your location to auto-fill address fields.
+                </div>  
+
+                <div 
+                  ref="orderFormMapContainer" 
+                  class="q-mt-md order-form-map"
+                  style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid;"
+                  :style="$q.dark.isActive ? 'border-color: #424242;' : 'border-color: #ddd;'"
+                ></div>
+
+                <div class="row justify-center q-mt-lg">
+                  <q-btn 
+                    label="Confirm Order" 
+                    color="primary" 
+                    type="submit" 
+                    class="q-px-xl"
+                    unelevated 
+                    rounded
+                  />
+                </div>
+              </q-form>
+            </div>
           </div>
           <div 
             v-else-if="activeTab === 'Other Settings' && activeCard"
@@ -206,6 +328,7 @@ import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import TransactionHistory from './transactionHistory.vue'
 import ManageAuthNFTs from './manageAuthNFTs.vue'
+import L from 'leaflet'
 
 export default {
   mixins: [createCardLogic],
@@ -222,7 +345,27 @@ export default {
       newCardName: '',
       showCashInDialog: false,
       cashInAmount: '',
-      cashInCurrency: 'BCH'
+      cashInCurrency: 'BCH',
+      showOrderPhysicalCardForm: false,
+      orderPhysicalCardData: {
+        fullName: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: ''
+      },
+      orderFormMap: null,
+      orderFormMarker: null
+    }
+  },
+
+  computed: {
+    tabs () {
+      const hasPhysicalCard = this.activeCard?.hasOrderedPhysicalCard || this.hasOrderedPhysicalCard
+      const baseTabs = ['Transactions', 'Manage Merchants', 'Other Settings']
+      const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Physical Card'
+      baseTabs.splice(2, 0, thirdTab)
+      return baseTabs
     }
   },
 
@@ -235,6 +378,7 @@ export default {
         'transactions': 'Transactions',
         'manage-merchants': 'Manage Merchants',
         'card-replacement': 'Card Replacement',
+        'order-physical-card': 'Order Physical Card',
         'other-settings': 'Other Settings'
       }
       if (tabMap[requestedTab]) {
@@ -347,7 +491,134 @@ export default {
       
       this.showCashInDialog = false
       this.cashInAmount = ''
+    },
+
+    handleOrderPhysicalCard () {
+      if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 
+          !this.orderPhysicalCardData.state || !this.orderPhysicalCardData.zip || 
+          !this.orderPhysicalCardData.country) {
+        this.$q.notify({
+          message: 'Please fill in all required fields',
+          color: 'negative',
+          position: 'top'
+        })
+        return
+      }
+
+      this.$q.notify({
+        message: 'Physical card order submitted successfully!',
+        color: 'positive',
+        position: 'top'
+      })
+
+      this.hasOrderedPhysicalCard = true
+      
+      if (this.activeCard) {
+        const savedCards = localStorage.getItem('mock_subcards')
+        if (savedCards) {
+          const allCards = JSON.parse(savedCards)
+          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+          if (cardIndex !== -1) {
+            allCards[cardIndex].hasOrderedPhysicalCard = true
+            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+            this.activeCard.hasOrderedPhysicalCard = true
+          }
+        }
+      }
+
+      this.showOrderPhysicalCardForm = false
+      this.orderPhysicalCardData = {
+        fullName: '',
+        city: '',
+        state: '',
+        zip: '',
+        country: ''
+      }
+      this.destroyOrderFormMap()
+    },
+
+    initOrderFormMap () {
+      if (!this.$refs.orderFormMapContainer) return
+
+      if (this.orderFormMap) {
+        this.orderFormMap.remove()
+      }
+
+      this.orderFormMap = L.map(this.$refs.orderFormMapContainer).setView([7.123, 124.845], 13)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.orderFormMap)
+
+      this.orderFormMarker = L.marker([7.123, 124.845], {draggable: true}).addTo(this.orderFormMap)
+
+      this.orderFormMarker.on('dragend', this.handleOrderFormMarkerDrag)
+
+      this.orderFormMap.on('click', (e) => {
+        const { lat, lng } = e.latlng
+        this.orderFormMarker.setLatLng([lat, lng])
+        this.reverseGeocode(lat, lng)
+      })
+    },
+
+    async handleOrderFormMarkerDrag (event) {
+      const { lat, lng } = event.target.getLatLng()
+      await this.reverseGeocode(lat, lng)
+    },
+
+    async reverseGeocode (lat, lng) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+        )
+        const data = await response.json()
+        const addr = data.address
+
+        this.orderPhysicalCardData = {
+          ...this.orderPhysicalCardData,
+          city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
+          state: addr.state || addr.region || addr.province || '',
+          zip: addr.zip || addr.postcode || '',
+          country: addr.country || '',
+        }
+        
+        this.$q.notify({
+          message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
+          icon: 'check', 
+          color: 'positive'
+        })
+      }
+      catch (error) {
+        this.$q.notify({
+          message: 'Geocoding failed',
+          color: 'negative'
+        })
+      }
+    },
+
+    destroyOrderFormMap () {
+      if (this.orderFormMap) {
+        this.orderFormMap.remove()
+        this.orderFormMap = null
+        this.orderFormMarker = null
+      }
+    },
+
+    async activateOrderPhysicalCardForm () {
+      this.showOrderPhysicalCardForm = true
+      await this.$nextTick()
+      this.initOrderFormMap()
+    },
+
+    closeOrderPhysicalCardForm () {
+      this.showOrderPhysicalCardForm = false
+      this.destroyOrderFormMap()
     }
+  },
+
+  beforeUnmount () {
+    this.destroyOrderFormMap()
   }
 
 }

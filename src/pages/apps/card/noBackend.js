@@ -9,6 +9,7 @@ export const createCardLogic = {
       newCardName: '',
       subCards: [],
       contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
+      hasOrderedPhysicalCard: false
     }
   },
 

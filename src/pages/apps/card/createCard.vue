@@ -92,22 +92,7 @@
     v-model:newCardName="newCardName"
     @handleCreateCard="handleCreateCard"
   />
-  
-  <!-- VIEW CARD DIALOG -->
-   
-  <!-- CASH IN DIALOG -->
-  
-
-  <!-- Manage Auth NFT Dialog -->
-     
-
-  <!-- Transaction History Dialog -->
-     
-
-  <!-- Spend Limit Dialog -->
-     
-
-  <!-- Card Replacement Dialog -->
+ 
      
 
 </template>

@@ -24,7 +24,10 @@
               :class="isCardSelected(card) ? 'selected-card-active' : 'unselected-card'"
               @click="toggleSelection(card)"
             >
-              <div class="text-subtitle2 text-weight-bold text-black ellipsis">
+              <div 
+                class="text-subtitle2 text-weight-bold ellipsis"
+                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              >
                 {{ card.name }}
               </div>
 
@@ -34,7 +37,12 @@
                   size="8px"
                   :class="card.status === 'Locked' ? 'text-negative' : 'status-blink'"
                 />
-                <span class="text-caption q-ml-xs text-grey-7">{{ card.status }}</span>
+                <span 
+                  class="text-caption q-ml-xs"
+                  :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'"
+                >
+                  {{ card.status }}
+                </span>
               </div>
 
               <div

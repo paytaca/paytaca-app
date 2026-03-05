@@ -558,3 +558,32 @@ animation: float 6s ease-in-out infinite;
     }
   }
 }
+
+.order-physical-card-intro {
+  padding: 40px 20px;
+}
+
+.order-physical-card-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.body--light {
+  .order-physical-card-form {
+    .q-card {
+      background: #fff;
+    }
+  }
+}
+
+.body--dark {
+  .order-physical-card-form {
+    .q-card {
+      background: #1d1d1d;
+    }
+  }
+}
+
+.order-form-map {
+  z-index: 1;
+}
