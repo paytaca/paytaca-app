@@ -98,10 +98,20 @@
               >
                 Global payments, physical style.
               </p>
+              <div 
+                class="text-caption q-mb-md"
+                :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                style="max-width: 400px; margin: 0 auto;"
+              >
+                <q-icon name="local_shipping" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
+                <strong>Local shipping:</strong> 7-10 business days<br/>
+                <q-icon name="public" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
+                <strong>International shipping:</strong> May take longer depending on destination
+              </div>
               <q-btn 
                 :label="'Get Started'" 
                 color="primary" 
-                class="q-px-xl text-bold"
+                class="q-px-xl q-mt-lg text-bold"
                 unelevated
                 rounded
                 @click="activateOrderPhysicalCardForm"
