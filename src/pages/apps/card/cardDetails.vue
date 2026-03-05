@@ -62,7 +62,7 @@
               <div class="q-mt-auto">
                 <div class="text-caption text-weight-medium virtual-card-label">CARD NAME</div>
                 <div class="text-body2 text-weight-bold ellipsis" style="max-width: 100%;">
-                  {{ activeCard?.raw?.alias || 'My Virtual Card' }}
+                  {{ activeCard?.raw?.alias || 'My Card' }}
                 </div>
               </div>
             </div>
@@ -108,7 +108,7 @@
             :card="activeCard"
           />
           <div 
-            v-else-if="activeTab === 'Order Physical Card' && activeCard"
+            v-else-if="activeTab === 'Order Card' && activeCard"
             class="full-width"
           >
             <div v-if="!showOrderPhysicalCardForm" class="order-physical-card-intro text-center q-pa-lg">
@@ -116,13 +116,13 @@
                 class="text-h5 text-weight-bold q-mb-sm"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
-                Your new physical Paytaca card awaits.
+                Your new Paytaca card awaits.
               </div>
               <p 
                 class="opacity-80 q-mb-lg"
                 :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
               >
-                Global payments, physical style.
+                Global payments, Paytaca style.
               </p>
               <div 
                 class="text-caption q-mb-md"
@@ -993,7 +993,7 @@ export default {
     tabs () {
       const hasPhysicalCard = this.activeCard?.hasOrderedPhysicalCard || this.hasOrderedPhysicalCard
       const baseTabs = ['Transactions', 'Manage Merchants', 'Other Settings']
-      const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Physical Card'
+      const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Card'
       baseTabs.splice(2, 0, thirdTab)
       return baseTabs
     },
@@ -1026,7 +1026,7 @@ export default {
         'transactions': 'Transactions',
         'manage-merchants': 'Manage Merchants',
         'card-replacement': 'Card Replacement',
-        'order-physical-card': 'Order Physical Card',
+        'order-card': 'Order Card',
         'other-settings': 'Other Settings'
       }
       if (tabMap[requestedTab]) {
@@ -1187,7 +1187,7 @@ export default {
       }
 
       this.$q.notify({
-        message: 'Physical card order submitted successfully!',
+        message: 'Card order submitted successfully!',
         color: 'positive',
         position: 'top'
       })

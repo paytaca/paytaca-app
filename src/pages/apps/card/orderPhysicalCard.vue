@@ -1,4 +1,4 @@
-<!-- Order physical card form to be component -->
+<!-- Order card form to be component -->
  <template>
    
   <div class="q-pa-md flex flex-center full-width">
@@ -13,9 +13,9 @@
             
             <div class="text-white q-mb-md">
               <div class="text-h3 text-weight-bold line-height-tight">
-                Your new physical Paytaca card awaits.
+                Your new Paytaca card awaits.
               </div>
-              <p class="opacity-80 q-mt-sm">Global payments, physical style.</p>
+              <p class="opacity-80 q-mt-sm">Global payments, Paytaca style.</p>
             </div>
 
             <div class="col-12 col-md-5 flex flex-center q-pa-lg bg-white-opacity-10">

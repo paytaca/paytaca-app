@@ -30,9 +30,9 @@
                 <div class="full-width" style="max-width: 500px">
                   <div class="text-white q-mb-md">
                     <div class="text-h3 text-weight-bold line-height-tight">
-                      Your new physical Paytaca card awaits.
+                      Your new Paytaca card awaits.
                     </div>
-                    <p class="opacity-80 q-mt-sm">Global payments, physical style.</p>
+                    <p class="opacity-80 q-mt-sm">Global payments, Paytaca style.</p>
                   </div>
 
                   <div class="col-12 col-md-5 flex flex-center q-pa-lg bg-white-opacity-10">
@@ -78,7 +78,7 @@
       </div>
     </transition> 
 
-    <!-- Order physical card form-->
+    <!-- Order card form-->
      
   </q-layout>
 

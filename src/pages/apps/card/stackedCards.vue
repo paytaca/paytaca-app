@@ -144,7 +144,7 @@
               class="text-caption"
               :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
             >
-              Please wait while we create your new virtual card...
+              Please wait while we create your new card...
             </div>
             <q-linear-progress indeterminate color="primary" class="q-mt-md" />
           </q-card-section>
