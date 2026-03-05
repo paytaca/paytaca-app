@@ -143,60 +143,60 @@
 
         <!-- Loading Skeletons for Referrals -->
         <template v-if="isLoading">
-          <q-card
-            flat
-            v-for="n in 3" :key="`skeleton-referral-${n}`"
-            class="achievement-card q-mb-md"
-          >
-            <q-card-section>
-              <div class="row items-center q-gutter-md">
-                <q-skeleton type="circle" size="40px" />
-                <div class="col">
-                  <q-skeleton type="text" width="60%" height="20px" class="q-mb-xs" />
-                  <q-skeleton type="text" width="40%" height="16px" />
+          <achievement-card v-for="n in 3" :key="`skeleton-referral-${n}`">
+            <template #achievement-card-content>
+              <q-card-section>
+                <div class="row items-center q-gutter-md">
+                  <q-skeleton type="circle" size="40px" />
+                  <div class="col">
+                    <q-skeleton type="text" width="60%" height="20px" class="q-mb-xs" />
+                    <q-skeleton type="text" width="40%" height="16px" />
+                  </div>
                 </div>
-              </div>
-            </q-card-section>
-          </q-card>
+              </q-card-section>
+            </template>
+          </achievement-card>
         </template>
 
         <!-- Referral List -->
         <template v-else>
           <div v-if="referralsList.length > 0" class="q-mx-sm q-mt-sm q-gutter-y-sm">
-            <q-intersection once transition="jump-up" class="q-mb-md" v-for="(item, index) in referralsList" :key="index">
-              <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
-                <q-card-section>
-                  <div class="row items-center q-gutter-md">
-                    <achievement-icon
-                      :complete="item.has_transacted"
-                      :dark-mode-class="getDarkModeClass(darkMode)"
-                    />
-                    <div class="col">
-                      <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                        {{ formatWalletHashDisplay(item.wallet_hash) }}
+            <q-intersection once transition="jump-up" v-for="(item, index) in referralsList" :key="index">
+              <achievement-card>
+                <template #achievement-card-content>
+                  <q-card-section>
+                    <div class="row items-center q-gutter-md">
+                      <achievement-icon
+                        :complete="item.has_transacted"
+                        :dark-mode-class="getDarkModeClass(darkMode)"
+                      />
+                      <div class="col">
+                        <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                          {{ formatWalletHashDisplay(item.wallet_hash) }}
+                        </div>
+                        <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                          {{ $t(
+                              'WalletCreatedOn',
+                              { dateCreated: formatDateLocaleRelative(item.date_created, false) },
+                              `Wallet created on ${formatDateLocaleRelative(item.date_created, false)}`
+                            ) }}
+                        </div>
+                        <div v-if="item.has_transacted" class="text-caption text-green-7">
+                          {{ $t('UserHasTransacted', 'User has already transacted') }}
+                        </div>
+                        <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                          {{ $t('UserNotTransacted', 'User has not transacted yet') }}
+                        </div>
                       </div>
-                      <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                        {{ $t(
-                            'WalletCreatedOn',
-                            { dateCreated: formatDateLocaleRelative(item.date_created, false) },
-                            `Wallet created on ${formatDateLocaleRelative(item.date_created, false)}`
-                          ) }}
-                      </div>
-                      <div v-if="item.has_transacted" class="text-caption text-green-7">
-                        {{ $t('UserHasTransacted', 'User has already transacted') }}
-                      </div>
-                      <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                        {{ $t('UserNotTransacted', 'User has not transacted yet') }}
-                      </div>
+                      <points-badge
+                        :complete="item.has_transacted"
+                        :dark-mode-class="getDarkModeClass(darkMode)"
+                        :points="10"
+                      />
                     </div>
-                    <points-badge
-                      :complete="item.has_transacted"
-                      :dark-mode-class="getDarkModeClass(darkMode)"
-                      :points="10"
-                    />
-                  </div>
-                </q-card-section>
-              </q-card>
+                  </q-card-section>
+                </template>
+              </achievement-card>
             </q-intersection>
           </div>
 
@@ -238,10 +238,11 @@ import {
   updateUserPromoData,
 } from 'src/utils/engagementhub-utils/rewards'
 
-import HeaderNav from 'src/components/header-nav'
+import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/ErrorCard.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
+import AchievementCard from 'src/components/rewards/AchievementCard.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
 import ReferralQrDialog from 'src/components/rewards/dialogs/ReferralQrDialog.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
@@ -256,6 +257,7 @@ export default {
     HelpCard,
     ErrorCard,
     PointsBadge,
+    AchievementCard,
     AchievementIcon
   },
 
@@ -466,27 +468,6 @@ export default {
   display: flex;
   align-items: center;
   padding-left: 4px;
-}
-
-.achievement-card {
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  &.dark {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-  }
 }
 
 .empty-state-card {

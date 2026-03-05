@@ -116,21 +116,19 @@
           <div v-show="isOneTimeSectionExpanded" class="collapsible-content">
             <!-- Loading Skeletons for One-Time -->
             <template v-if="isLoading">
-              <q-card
-                flat
-                v-for="n in 3" :key="`skeleton-onetime-${n}`"
-                class="achievement-card q-mb-md"
-              >
-                <q-card-section>
-                  <div class="row items-center q-gutter-md">
-                    <q-skeleton type="circle" size="40px" />
-                    <div class="col">
-                      <q-skeleton type="text" width="60%" height="20px" class="q-mb-xs" />
-                      <q-skeleton type="text" width="40%" height="16px" />
+              <achievement-card v-for="n in 3" :key="`skeleton-onetime-${n}`">
+                <template #achievement-card-content>
+                  <q-card-section>
+                    <div class="row items-center q-gutter-md">
+                      <q-skeleton type="circle" size="40px" />
+                      <div class="col">
+                        <q-skeleton type="text" width="60%" height="20px" class="q-mb-xs" />
+                        <q-skeleton type="text" width="40%" height="16px" />
+                      </div>
                     </div>
-                  </div>
-                </q-card-section>
-              </q-card>
+                  </q-card-section>
+                </template>
+              </achievement-card>
             </template>
       
             <!-- One-Time Achievement Cards -->
@@ -165,71 +163,75 @@
               </q-intersection>
       
               <!-- Initial UP from Referral -->
-              <q-intersection once transition="jump-up" class="q-mb-md">
-                <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
-                  <q-card-section>
-                    <div class="row items-center q-gutter-md">
-                      <achievement-icon
-                        :complete="hasReceivedInitialPoints"
-                        :dark-mode-class="getDarkModeClass(darkMode)"
-                      />
-                      <div class="col">
-                        <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                          {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
+              <q-intersection once transition="jump-up">
+                <achievement-card>
+                  <template #achievement-card-content>
+                    <q-card-section>
+                      <div class="row items-center q-gutter-md">
+                        <achievement-icon
+                          :complete="hasReceivedInitialPoints"
+                          :dark-mode-class="getDarkModeClass(darkMode)"
+                        />
+                        <div class="col">
+                          <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                            {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
+                          </div>
+                          <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
+                            {{ $t(
+                                'EarnedOn',
+                                { date: formatDateLocaleRelative(dateJoined, false) },
+                                `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
+                              ) }}
+                          </div>
+                          <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                            {{ $t('NotYetEarned', 'Not yet earned') }}
+                          </div>
                         </div>
-                        <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
-                          {{ $t(
-                              'EarnedOn',
-                              { date: formatDateLocaleRelative(dateJoined, false) },
-                              `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
-                            ) }}
-                        </div>
-                        <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                          {{ $t('NotYetEarned', 'Not yet earned') }}
-                        </div>
+                        <points-badge
+                          :complete="hasReceivedInitialPoints"
+                          :dark-mode-class="getDarkModeClass(darkMode)"
+                          :points="5"
+                        />
                       </div>
-                      <points-badge
-                        :complete="hasReceivedInitialPoints"
-                        :dark-mode-class="getDarkModeClass(darkMode)"
-                        :points="5"
-                      />
-                    </div>
-                  </q-card-section>
-                </q-card>
+                    </q-card-section>
+                  </template>
+                </achievement-card>
               </q-intersection>
       
               <!-- Referral Complete -->
-              <q-intersection once transition="jump-up" class="q-mb-md">
-                <q-card class="achievement-card" :class="getDarkModeClass(darkMode)" flat>
-                  <q-card-section>
-                    <div class="row items-center q-gutter-md">
-                      <achievement-icon
-                        :complete="isReferralComplete"
-                        :dark-mode-class="getDarkModeClass(darkMode)"
-                      />
-                      <div class="col">
-                        <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                          {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
+              <q-intersection once transition="jump-up">
+                <achievement-card>
+                  <template #achievement-card-content>
+                    <q-card-section>
+                      <div class="row items-center q-gutter-md">
+                        <achievement-icon
+                          :complete="isReferralComplete"
+                          :dark-mode-class="getDarkModeClass(darkMode)"
+                        />
+                        <div class="col">
+                          <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                            {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
+                          </div>
+                          <div v-if="isReferralComplete" class="text-caption text-green-7">
+                            {{ $t(
+                                'EarnedOn',
+                                { date: formatDateLocaleRelative(referralCompleteDate, false) },
+                                `Earned on ${formatDateLocaleRelative(referralCompleteDate, false)}`
+                              ) }}
+                          </div>
+                          <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                            {{ $t('NotYetEarned', 'Not yet earned') }}
+                          </div>
                         </div>
-                        <div v-if="isReferralComplete" class="text-caption text-green-7">
-                          {{ $t(
-                              'EarnedOn',
-                              { date: formatDateLocaleRelative(referralCompleteDate, false) },
-                              `Earned on ${formatDateLocaleRelative(referralCompleteDate, false)}`
-                            ) }}
-                        </div>
-                        <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                          {{ $t('NotYetEarned', 'Not yet earned') }}
-                        </div>
+                        <points-badge
+                          :complete="isReferralComplete"
+                          :dark-mode-class="getDarkModeClass(darkMode)"
+                          :points="5"
+                        />
                       </div>
-                      <points-badge
-                        :complete="isReferralComplete"
-                        :dark-mode-class="getDarkModeClass(darkMode)"
-                        :points="5"
-                      />
-                    </div>
-                  </q-card-section>
-                </q-card>
+                    </q-card-section>
+                  </template>
+                </achievement-card>
               </q-intersection>
       
               <!-- First Seven Transactions -->
@@ -352,41 +354,38 @@
         <!-- Continuous Points Content -->
         <template v-else>
           <!-- Summary Card -->
-          <q-card
-            v-if="marketplaceTransactions.length > 0"
-            class="achievement-card q-mb-md"
-            :class="getDarkModeClass(darkMode)"
-            flat
-          >
-            <q-card-section>
-              <div class="row items-center  q-gutter-md">
-                <q-icon name="img:marketplace.png" size="32px" color="primary" />
-                <div class="col">
-                  <div class="text-h6 text-weight-bold text-primary">
-                    {{ totalMarketplaceOrders }} {{ totalMarketplaceOrders === 1 ? 'order' : 'orders' }}
-                  </div>
-                  <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                    {{ totalMarketplacePoints }} points earned
-                  </div>
-                  <div 
-                    v-if="marketplaceDateRange" 
-                    class="text-caption" 
-                    :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
-                  >
-                    {{ formatMonthDisplay(marketplaceDateRange.earliest) }} - {{ formatMonthDisplay(marketplaceDateRange.latest) }}
+          <achievement-card v-if="marketplaceTransactions.length > 0">
+            <template #achievement-card-content>
+              <q-card-section>
+                <div class="row items-center  q-gutter-md">
+                  <q-icon name="img:marketplace.png" size="32px" color="primary" />
+                  <div class="col">
+                    <div class="text-h6 text-weight-bold text-primary">
+                      {{ totalMarketplaceOrders }} {{ totalMarketplaceOrders === 1 ? 'order' : 'orders' }}
+                    </div>
+                    <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                      {{ totalMarketplacePoints }} points earned
+                    </div>
+                    <div 
+                      v-if="marketplaceDateRange" 
+                      class="text-caption" 
+                      :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                    >
+                      {{ formatMonthDisplay(marketplaceDateRange.earliest) }} - {{ formatMonthDisplay(marketplaceDateRange.latest) }}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <q-btn
-                outline
-                rounded
-                color="primary"
-                class="full-width q-mt-sm"
-                :label="$t('ViewFullHistory', 'View Full History')"
-                @click="openFullHistoryDialog"
-              />
-            </q-card-section>
-          </q-card>
+                <q-btn
+                  outline
+                  rounded
+                  color="primary"
+                  class="full-width q-mt-sm"
+                  :label="$t('ViewFullHistory', 'View Full History')"
+                  @click="openFullHistoryDialog"
+                />
+              </q-card-section>
+            </template>
+          </achievement-card>
 
           <!-- Recent 3 Months -->
           <!-- <q-expansion-item
@@ -548,11 +547,12 @@ import {
 
 import i18n from 'src/i18n'
 
-import HeaderNav from 'src/components/header-nav'
+import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/ErrorCard.vue'
 import StatusChip from 'src/components/rewards/StatusChip.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
+import AchievementCard from 'src/components/rewards/AchievementCard.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 
@@ -562,11 +562,12 @@ export default {
   name: 'UserRewards',
 
   components: {
-    HelpCard,
     HeaderNav,
+    HelpCard,
     ErrorCard,
     StatusChip,
     PointsBadge,
+    AchievementCard,
     AchievementIcon
   },
 
@@ -874,27 +875,6 @@ export default {
 .section-header {
   display: flex;
   align-items: center;
-}
-
-.achievement-card {
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  &.dark {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-  }
 }
 
 .achievement-expansion {
