@@ -59,7 +59,7 @@
     "big.js": "^7.0.1",
     "bip39": "^3.0.4",
     "bitauth-libauth-v3": "npm:@bitauth/libauth@^3.1.0-next.4",
-    "bitcoincash-oauth-client": "file:../bitcoincash-oauth/packages/bitcoincash-oauth-js/",
+    "bitcoincash-oauth-client": "file:../bitcoincash-oauth/packages/bitcoincash-oauth-js",
     "bitcoincashjs-lib": "^3.3.3",
     "bs58": "^5.0.0",
     "buffer": "^6.0.3",
