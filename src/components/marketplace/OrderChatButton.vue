@@ -61,6 +61,11 @@ export default defineComponent({
     })
     
     const fetchOrderChatSession = debounce(function () {
+      // Prevent API calls when there's no valid order ID
+      if (!props.orderId) {
+        return Promise.resolve()
+      }
+      
       return backend.get(`connecta/orders/${props.orderId}/chat_session/`, { forceSign: true })
         .then(response => {
           orderChatSession.value = ChatSession.parse(response?.data)

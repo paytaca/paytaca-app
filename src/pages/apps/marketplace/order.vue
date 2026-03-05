@@ -766,6 +766,12 @@ const props = defineProps({
   orderId: [String, Number],  
 })
 
+// Add validation to prevent early rejections
+if (!props.orderId) {
+  console.warn('Order ID is missing, initializing with empty order data');
+  order.value = Order.parse();
+}
+
 const pageActive = ref(false)
 onActivated(() => pageActive.value = true)
 onDeactivated(() => pageActive.value = false)
@@ -838,6 +844,15 @@ function fetchOrder() {
     .then(response => {
       order.value = Order.parse(response?.data)
       return response
+    })
+    .catch(error => {
+      // Handle 404 and other errors gracefully
+      if (error?.response?.status === 404) {
+        // Set order to a default empty object to prevent crashes
+        order.value = Order.parse()
+      }
+      // Re-throw the error to maintain the promise chain behavior
+      throw error
     })
     .finally(() => {
       fetchingOrder.value = false
@@ -1710,26 +1725,42 @@ async function updateCashbackAmounts() {
 const aggregatedCashback = computed(() => {
   if (cashbacks.value?.length === 1) return cashbacks.value[0]
 
+  // Handle case where cashbacks.value might be undefined/null
+  const safeCashbacks = cashbacks.value || []
+  
   const totalBch = round(
-    cashbacks.value.reduce((subtotal, cashback) => subtotal + cashback.amountBch, 0), 8
+    safeCashbacks.reduce((subtotal, cashback) => subtotal + (cashback?.amountBch || 0), 0), 8
   )
   const totalFiat = round(
-    cashbacks.value.reduce((subtotal, cashback) => subtotal + cashback.fiatAmount, 0), 3
+    safeCashbacks.reduce((subtotal, cashback) => subtotal + (cashback?.fiatAmount || 0), 0), 3
   )
 
-  const mostFrequent = arr => arr.reduce((a, b, i, arr) =>
-    arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
-  );
+  const mostFrequent = arr => {
+    if (!arr || arr.length === 0) return null;
+    return arr.reduce((a, b, i, arr) =>
+      arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
+    );
+  };
 
   const merchantName = mostFrequent(
-    cashbacks.value.map(cashback => cashback.merchantName).filter(Boolean)
+    safeCashbacks.map(cashback => cashback?.merchantName).filter(Boolean)
   )
   const message = mostFrequent(
-    cashbacks.value.map(cashback => cashback.message).filter(Boolean)
+    safeCashbacks.map(cashback => cashback?.message).filter(Boolean)
   )
-  const parsedMessage = parseCashbackMessage(
-    message, totalBch, totalFiat, merchantName,
-  )
+  
+  // Safely call parseCashbackMessage with proper fallbacks
+  let parsedMessage = null
+  if (message && totalBch !== undefined && totalFiat !== undefined && merchantName !== undefined) {
+    try {
+      parsedMessage = parseCashbackMessage(
+        message, totalBch, totalFiat, merchantName,
+      )
+    } catch (e) {
+      // If parsing fails, just use the original message
+      parsedMessage = message
+    }
+  }
 
   return {
     amountBch: totalBch,
@@ -1823,12 +1854,30 @@ function openImage(img, title) {
 async function refreshPage(done=() => {}) {
   try {
     await Promise.all([
-      fetchOrder(),
-      fetchDelivery(),
-      fetchPayments(),
-      fetchOrderDispute(),
-      chatButton.value?.refresh?.()
+      fetchOrder().catch(err => {
+        console.error('Error fetching order:', err);
+        // Continue with other operations even if order fetch fails
+        return null;
+      }),
+      fetchDelivery().catch(err => {
+        console.error('Error fetching delivery:', err);
+        return null;
+      }),
+      fetchPayments().catch(err => {
+        console.error('Error fetching payments:', err);
+        return null;
+      }),
+      fetchOrderDispute().catch(err => {
+        console.error('Error fetching dispute:', err);
+        return null;
+      }),
+      chatButton.value?.refresh?.().catch(err => {
+        console.error('Error refreshing chat:', err);
+        return null;
+      })
     ])
+  } catch (error) {
+    console.error('Error in refreshPage:', error);
   } finally {
     initialized.value = true
     done()

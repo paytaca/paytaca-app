@@ -363,6 +363,7 @@ export default defineComponent({
     watch(() => [props.chatRef], () => fetchChatSession())
     const chatSession = ref(ChatSession.parse())
     const fetchChatSession = debounce(function() {
+      // Prevent API calls when there's no valid chat reference
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
       return chatBackend.value.get(`chat/sessions/${props.chatRef}/`, { forceSign: true })
         .then(response => {
@@ -378,8 +379,9 @@ export default defineComponent({
     onMounted(() => fetchMembersPubkeys())
     watch(() => [props.chatRef], () => fetchMembersPubkeys())
     function fetchMembersPubkeys() {
-      if (!props.chatRef) return Promise.reject()
-      chatBackend.value.get(`chat/sessions/${props.chatRef}/pubkeys/`)
+      // Prevent API calls when there's no valid chat reference
+      if (!props.chatRef) return Promise.resolve('Missing chat ref')
+      return chatBackend.value.get(`chat/sessions/${props.chatRef}/pubkeys/`)
         .then(response => {
           if (!Array.isArray(response?.data)) return Promise.reject({ response })
           membersPubkeys.value = response?.data
@@ -665,9 +667,10 @@ export default defineComponent({
     onMounted(() => fetchChatMember())
     watch(() => [props.chatRef], () => fetchChatMember())
     const fetchChatMember = debounce(function() {
+      // Prevent API calls when there's no valid chat reference
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
-
-      chatBackend.value.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
+      
+      return chatBackend.value.get(`chat/sessions/${props.chatRef}/chat_member/`, { forceSign: true })
         .then(response => {
           chatMember.value = ChatMember.parse(response?.data)
           $emit('chat-member', chatMember.value)
@@ -710,24 +713,14 @@ export default defineComponent({
     watch(() => [props.chatRef], () => initWebsocket())
     watch(innerVal, () => websocket.value?.readyState !== WebSocket.OPEN ? initWebsocket() : null)
     function initWebsocket() {
+      // Prevent websocket initialization when there's no valid chat reference
       if (!props.chatRef) return Promise.resolve('Missing chat ref')
       const backendUrl = new URL(chatBackend.value.defaults.baseURL)
       const host = backendUrl.host
       const scheme = backendUrl.protocol === 'https:' ? 'wss' : 'ws'
-      const url = `${scheme}://${host}/ws/chat/sessions/${props.chatRef}/`
-
-      return connectWebsocket(url)
-        .then(ws => {
-          console.log('Websocket connected')
-          websocket.value?.close?.()
-          removeWebsocketEvents()
-          websocket.value = ws
-          addWebsocketEvents()
-        })
-        .catch(error => {
-          console.error('Websocket connection failed', error)
-          return Promise.reject(error)
-        })
+      const wsUrl = `${scheme}://${host}/ws/chat/sessions/${props.chatRef}/`
+      websocket.value = new WebSocket(wsUrl)
+      addWebsocketEvents()
     }
     function addWebsocketEvents() {
       websocket.value?.addEventListener?.('message', onWebsocketMessage)
