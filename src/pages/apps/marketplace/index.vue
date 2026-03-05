@@ -181,14 +181,75 @@
       
       <!-- Scroll sentinel for infinite loading -->
       <div ref="storefrontScrollSentinel" style="height: 1px; width: 100%;"></div>
+
+      <!-- Orders section - Fixed at bottom when orders exist -->
+      <div
+        v-if="orders.length"
+        ref="ordersPanel"
+        v-intersection="ordersPanelIntersectionOptions"
+        class="q-mb-md q-pt-md orders-panel"
+        :class="{ 'orders--sticky-bottom': !ordersPanelStuck, 'orders--fixed-bottom': ordersPanelStuck }"
+      >
+        <div class="col-12 row items-center q-px-sm">
+          <div class="text-h5 q-px-xs">Orders</div>
+          <q-space/>
+          <q-btn
+            v-if="orders.length < ordersPagination.count"
+            flat
+            no-caps
+            label="View all"
+            :to="{ name: 'app-marketplace-orders'}"
+          />
+        </div>
+        <div v-if="fetchingOrders" class="text-center q-px-md">
+          <q-linear-progress query reverse color="pt-primary1"/>
+        </div>
+        <div v-else class="q-mb-xs"></div>
+
+        <div class="q-py-sm orders-list">
+          <q-list separator>
+            <q-item
+              v-for="order in orders" :key="order?.id"
+              v-ripple
+              clickable
+              :to="{ name: 'app-marketplace-order', params: { orderId: order?.id } }"
+            >
+              <q-item-section top>
+                <q-item-label>
+                  Order#{{ order?.id }}
+                  <q-badge
+                    v-if="order?.formattedStatus"
+                    :color="order?.statusColor"
+                    text-color="white"
+                  >
+                    {{ order?.formattedStatus }}
+                  </q-badge>
+                </q-item-label>
+                <q-item-label caption>
+                  {{ order?.storefront?.name }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar top>
+                <q-item-label>
+                  {{ formatDateRelative(order?.createdAt) }}
+                </q-item-label>
+                <q-item-label>
+                  {{ parseFiatCurrency(order?.total, order?.currency?.symbol) }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+      </div>
     </div>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
-import { Storefront, Checkout } from 'src/marketplace/objects'
+import { Storefront, Checkout, Order } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText, getISOWithTimezone, round, roundRating } from 'src/marketplace/utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { useQuasar } from 'quasar'
@@ -209,6 +270,8 @@ const initialized = ref(false)
 function resetPage() {
   storefronts.value = []
   storefrontsPagination.value = { count: 0, limit: 0, offset: 0 }
+  orders.value = []
+  ordersPagination.value = { count: 0, limit: 0, offset: 0 }
   initialized.value = false
 }
 
@@ -507,11 +570,63 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0, reset: false }) {
 }
 
 
+const fetchingOrders = ref(false)
+const orders = ref([].map(Order.parse))
+const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
+const ordersPanel = ref(null)
+const ordersPanelStuck = ref(false)
+
+async function fetchOrders(opts = { limit: 0, offset: 0 }) {
+  const params = {
+    ref: await $store.dispatch('marketplace/getCartRef'),
+    limit: opts?.limit || 2,
+    offset: opts?.offset || undefined,
+    exclude_statuses: ['completed', 'cancelled'].join(','),
+  }
+
+  fetchingOrders.value = true
+  return backend.get(`connecta/orders/`, { params })
+    .then(response => {
+      if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      orders.value = response?.data?.results?.map(Order.parse)
+
+      orders.value.forEach(order => {
+        if (!order?.storefrontId) return
+        order.storefront = $store.getters['marketplace/storefronts']
+          .find(storefront => storefront?.id == order?.storefrontId)
+        if (!order.storefront) order.fetchStorefront()
+      })
+      ordersPagination.value.count = response?.data?.count
+      ordersPagination.value.limit = response?.data?.limit
+      ordersPagination.value.offset = response?.data?.offset
+      return response
+    })
+    .finally(() => {
+      fetchingOrders.value = false
+    })
+}
+
+const ordersPanelIntersectionOptions = {
+  /**
+   * @param {IntersectionObserverEntry} observerEntry
+   */
+  handler(observerEntry) {
+    // When intersection ratio is low (< 0.95), the panel is out of view and should be fixed
+    ordersPanelStuck.value = observerEntry.intersectionRatio < 0.95
+  },
+  cfg: {
+    threshold: new Array(100).fill(0).map((e, index) => index / 100)
+  }
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await loadAppPromise.value
     if (initialized.value && !customerCoordinatesValid.value) await manualSelectLocation()
-    await fetchStorefronts({ reset: true })
+    await Promise.all([
+      fetchStorefronts({ reset: true }),
+      fetchOrders(),
+    ])
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', null)
     initialized.value = true
@@ -540,6 +655,44 @@ table.orders-table td {
 }
 .sticky-below-header.sticky-below-header--ios {
   top: 110px;
+}
+
+.orders--sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  transition: all 0.15s ease-out;
+}
+
+.orders--fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  margin-left: 8px;
+  margin-right: 8px;
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease-out;
+
+  .orders-list {
+    max-height: 25vh;
+    overflow-y: auto;
+  }
+}
+
+#app-container.dark {
+  .orders--fixed-bottom {
+    background-color: $brand_dark;
+  }
+}
+#app-container.light {
+  .orders--fixed-bottom {
+    background-color: $brand_light;
+  }
 }
 
 /* Only animate the location/search wrapper card, not every storefront/skeleton card. */
