@@ -180,8 +180,6 @@ export default {
         this.isProcessingError = true
       }
 
-      this.isProcessingError = true
-
       this.isCodeProcessed = !this.isProcessingError
       this.isLoading = false
     },
