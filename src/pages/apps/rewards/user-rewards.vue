@@ -732,6 +732,7 @@ export default {
         if (!urData.has_viewed_page) {
           // display help dialog if has_viewed_page is false
           this.isHelpActive = true
+          this.isOneTimeSectionExpanded = false
 
           // send 5 initial points when user is a first time user
           if (urData.is_first_time_user) {
