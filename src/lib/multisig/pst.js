@@ -1294,7 +1294,7 @@ export class Pst {
     this.id = response?.id
   }
 
-  async fetchServerId() {
+  async sync() {
     if (!this.options?.coordinationServer) return
     const response = 
       await this.options?.coordinationServer?.getProposalByUnsignedTransactionHash(this.unsignedTransactionHash)
