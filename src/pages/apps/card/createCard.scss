@@ -546,3 +546,15 @@ animation: float 6s ease-in-out infinite;
 .currency-select {
   width: 120px;
 }
+
+.clickable-merchant {
+  cursor: pointer;
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  .body--dark & {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+}
