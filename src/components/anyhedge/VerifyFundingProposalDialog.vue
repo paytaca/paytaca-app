@@ -22,7 +22,7 @@
               icon="launch"
               size="xs" padding="xs"
               class="q-ml-sm"
-              :href="'https://explorer.paytaca.com/tx/' + spendingTx"
+              :href="getExplorerLink(spendingTx)"
               target="_blank"
             />
           </div>
@@ -47,6 +47,7 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useDialogPluginComponent, useQuasar, format } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import { useI18n } from 'vue-i18n'
 
 // dialog plugins requirement
