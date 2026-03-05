@@ -1,14 +1,15 @@
 <template>
 	<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
-			<template v-slot:top-right-menu>
-				<div class="q-mr-sm">
-					<q-btn flat round @click="$router.push({ name: 'eload-service-orders' })">
-						<q-icon name="receipt_long" size="30px"/>
-					</q-btn>					
-				</div>	        	
-	    	</template>
-		</HeaderNav>
-	<div class="text-bow q-py-md" :class="getDarkModeClass(darkMode)">
+		<template v-slot:top-right-menu>
+			<div class="q-mr-sm">
+				<q-btn flat round @click="$router.push({ name: 'eload-service-orders' })">
+					<q-icon name="receipt_long" size="30px"/>
+				</q-btn>					
+			</div>	        	
+	    </template>
+	</HeaderNav>
+
+	<div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
 		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center pt-card text-bow" :class="getDarkModeClass(darkMode)">
 				<q-icon name="task_alt" size="64px" class="text-positive" />
@@ -60,13 +61,16 @@
 		</div>
 
 		<div v-else>
-			<div class="q-px-lg q-py-md">
+			<div v-if="loading && step === 0" class="q-mx-lg q-pt-md eload-skeleton">
+				<q-skeleton animation="wave" type="text" height="25px" width="80px" class="br-10 q-mb-lg" />
+			</div>
+			<div v-else class="q-px-lg q-py-md">
 				<div class="row items-center">
 					<CountrySelector :darkMode="darkMode" />
 				</div>
 			</div>
 
-			<div v-if="!isPhilippinesSelected" class="q-px-lg q-mt-md">
+			<div v-if="!isPhilippinesSelected" class="q-px-sm q-mt-md">
 				<q-banner rounded dense class="br-15" :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'">
 					<template v-slot:avatar>
 						<q-icon name="info" color="primary" />
@@ -75,8 +79,8 @@
 				</q-banner>
 			</div>
 
-			<div v-if="isPhilippinesSelected && loading && step === 0" class="q-mx-lg q-pt-sm eload-skeleton">
-				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
+			<div v-if="isPhilippinesSelected && loading && step === 0" class="q-mx-lg eload-skeleton">
+				<q-skeleton animation="wave" type="rect" height="45px" class="br-10 q-mb-lg" />
 			</div>
 			<PromoSearch v-else-if="isPhilippinesSelected" class="q-px-lg" @select-promo="onPromoSearchSelect"/>
 			
@@ -98,14 +102,20 @@
 						:key="'svc-' + i"
 						animation="wave"
 						type="rect"
-						height="118px"
+						height="80px"
 						class="br-15 q-mb-md"
 					/>
 				</div>		
 			</div>
 
 			<!-- Info Card -->
-			<promo-info-card v-if="isPhilippinesSelected && step > 0 && filters?.service" class="q-mx-lg q-mt-lg" :filters="filters" :show-category="showCategory" :step="step" @update="changeValue"/>
+			<promo-info-card 
+				v-if="isPhilippinesSelected && step > 0 && filters?.service" 
+				class="q-mx-lg q-mt-lg" 
+				:filters="filters" 
+				:show-category="showCategory" 
+				:step="step" @update="changeValue"
+			/>
 
 			<!-- Selecting Service Group -->
 			<div v-if="isPhilippinesSelected">
@@ -133,10 +143,10 @@
 						<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 						<div class="row q-col-gutter-md">
-				      <div class="col-4" v-for="n in 9" :key="n">
-				        <q-skeleton type="rect" class="full-width br-15" height="50px" />
-				      </div>
-				    </div>
+				    		<div class="col-4" v-for="n in 9" :key="n">
+				        		<q-skeleton type="rect" class="full-width br-15" height="50px" />
+				      		</div>
+				    	</div>
 					</div>
 
 				</div>
@@ -147,19 +157,19 @@
 				<div v-if="!loading"> 
 					<div  class="q-px-lg q-pt-md md-font-size text-italic q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Select Category</div>
 
-			<div
-					ref="categoryScrollContainer"
-					class="scroll-y q-pb-md"
-					:style="`max-height: ${minHeight - 170}px`"
-					@scroll="onCategoryScroll"
-				>
+					<div
+						ref="categoryScrollContainer"
+						class="scroll-y q-pb-md"
+						:style="`max-height: ${minHeight - 170}px`"
+						@scroll="onCategoryScroll"
+					>
 						<div class="q-px-lg">
 							<div class="row q-col-gutter-sm">
 								<div
 									v-for="(category, index) in categories"
-								    	:key="index"
-								    	class="col-4 col-sm-4"
-									>
+								    :key="index"
+								   	class="col-4 col-sm-4"
+								>
 									<q-card  v-ripple class="br-15 text-center text-wrap q-pa-md full-height bg-grad text-white flex flex-center" @click="updateFilters('category', category)">
 									    	<div class="sm-font-size text-weight-bold service-group-text">{{ category.name }}</div>		          
 									</q-card>
@@ -168,40 +178,40 @@
 						</div>
 
 
-					<div
-						v-if="loadingMore"
-						class="row justify-center items-center q-gutter-sm q-pt-md"
-						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
-					>
-						<q-spinner-dots size="24px" color="primary" />
-						<div class="md-font-size text-weight-bold">Loading…</div>
-					</div>
+						<div
+							v-if="loadingMore"
+							class="row justify-center items-center q-gutter-sm q-pt-md"
+							:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+						>
+							<q-spinner-dots size="24px" color="primary" />
+							<div class="md-font-size text-weight-bold">Loading…</div>
+						</div>
 
-					<!-- Manual load more button - shows when more items available but not loading -->
-					<div
-						v-else-if="!isLastPage('category')"
-						class="text-center q-pt-md q-pb-md"
-					>
-						<q-btn
-							outline
-							rounded
-							color="primary"
-							label="Load More"
-							size="sm"
-							@click="nextPage('category')"
-						/>
+						<!-- Manual load more button - shows when more items available but not loading -->
+						<div
+							v-else-if="!isLastPage('category')"
+							class="text-center q-pt-md q-pb-md"
+						>
+							<q-btn
+								outline
+								rounded
+								color="primary"
+								label="Load More"
+								size="sm"
+								@click="nextPage('category')"
+							/>
+						</div>
 					</div>
-				</div>
 				</div>
 
 				<div class="q-px-lg q-pt-md" v-else>
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<div class="row q-col-gutter-md">
-				  	<div class="col-4" v-for="n in 9" :key="n">
-				    	<q-skeleton type="rect" class="full-width br-15" height="50px" />
+				  		<div class="col-4" v-for="n in 9" :key="n">
+				    		<q-skeleton type="rect" class="full-width br-15" height="50px" />
+				  		</div>
 				  	</div>
-				  </div>
 				</div>
 			</div>
 
@@ -221,8 +231,8 @@
 						>
 								<div class="md-font-size text-bold">{{ promo.name }}</div>
 								<!-- <div :class="darkMode ? 'text-grey-5' : 'text-grey-8'"> -->
-									<div>{{ promo.amount }} PHP</div>
-									<div class="sm-font-size">{{ promo.validity }}</div>
+								<div>{{ promo.amount }} PHP</div>
+								<div class="sm-font-size">{{ promo.validity }}</div>
 						</q-card>
 
 						<div
@@ -248,8 +258,7 @@
 						height="80px"
 						class="br-15 q-mb-md"
 					/>
-				</div>
-			
+				</div>			
 			</div>
 
 			<div v-if="isPhilippinesSelected && step > 3" class="q-mt-md">
@@ -258,17 +267,13 @@
 						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ selectedPromo.name }}</div>
 						<q-icon size="20px" name="sym_o_edit_square" :color="darkMode ? 'grey-5' : 'grey-8'" @click="changeValue('promo')"/>
 					</div>			
-				<!-- </div> -->
-					<!-- <div class="md-font-size text-bold"></div> -->
+									
 					<div :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.amount }} PHP</div>
 					<div class="q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.description }}</div>
 					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ selectedPromo.validity }}</div>
-
 				</q-card>
 
-				<q-card class="q-mx-lg q-pa-md br-15 q-mt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">
-					<!-- <div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ addressType(selectedPromo.address_type) }}</div> -->
-
+				<q-card class="q-mx-lg q-pa-md br-15 q-mt-md pt-card text-bow" :class="getDarkModeClass(darkMode)">					
 					<q-input 
 						dense 
 						outlined 
@@ -350,6 +355,7 @@
 							</div>
 						</div>
 					</div>
+
 					<DragSlide
 						v-else
 						:disableAbsoluteBottom="true"
@@ -361,15 +367,19 @@
 				</div>			
 			</div>
 
-			<Pin
-				v-model:pin-dialog-action="pinDialogAction"
-				@nextAction="pinDialogNextAction"
-			/>
-			<BiometricWarningAttempt
-				:warning-attempts="warningAttemptsStatus"
-				@closeBiometricWarningAttempts="verifyBiometric(pendingSwipeReset)"
-			/>
-		</div>
+			<div class="text-center q-my-lg q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+				Powered by Gbits
+			</div>
+		</div>	
+
+		<Pin
+			v-model:pin-dialog-action="pinDialogAction"
+			@nextAction="pinDialogNextAction"
+		/>
+		<BiometricWarningAttempt
+			:warning-attempts="warningAttemptsStatus"
+			@closeBiometricWarningAttempts="verifyBiometric(pendingSwipeReset)"
+		/>
 	</div>
 </template>
 <script>
