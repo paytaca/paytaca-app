@@ -16,10 +16,6 @@
         <div class="q-pa-xs" style="width: 32px"></div>
       </div>
 
-      <div>
-        <MultiWalletDropdown></MultiWalletDropdown>
-      </div>
-
       <q-page v-if="activeCard" class="q-px-md">
         <div class="column items-center q-mb-lg">
           <div class="row items-center q-mb-sm full-width q-gutter-sm">

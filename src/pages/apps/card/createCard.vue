@@ -15,10 +15,6 @@
       <div class="q-pa-xs" style="width: 32px"></div>
     </div>
      
-    <div>
-      <MultiWalletDropdown></MultiWalletDropdown>
-    </div>
-
     <transition
       appear
       enter-active-class="animated fadeIn"
