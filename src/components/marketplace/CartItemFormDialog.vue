@@ -143,8 +143,14 @@ watchEffect(() => {
   updateKey.value = updateKey.value + 1
 })
 
+const originalQuantity = ref(Number(props.cartItem?.quantity))
 const quantity = ref(Number(props.cartItem?.quantity))
-watch(() => [props.cartItem], () => quantity.value = Number(props.cartItem?.quantity))
+watch(() => [props.cartItem], () => {
+  quantity.value = Number(props.cartItem?.quantity)
+  originalQuantity.value = Number(props.cartItem?.quantity)
+})
+
+const quantityChanged = computed(() => quantity.value !== originalQuantity.value)
 
 const cartOptions = computed(() => {
   return props.cartItem?.properties?.schema || props.cartItem?.variant?.product?.cartOptions
