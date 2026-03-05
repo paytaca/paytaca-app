@@ -67,26 +67,32 @@
 					{{ Array.isArray(item.reasons) && item.reasons.length > 0 ? item.reasons[0] : '' }}
 				</div>
 			</div>
-        	<!-- <q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
+            <div
+         			v-if="marketplaceOrders"
+         			v-for="(item, index) in marketplaceOrders"
+         			:key="item.id"
+         			class="pending-card pt-card"
+         			:class="darkMode ? 'dark' : 'light'"
+         			:style="{ 'margin-left': (index === 0 && pending.length === 0 && pendingAppeals.length === 0) ? '0px' : '12px' }"
    				@click="selectTransaction(item.id, 'marketplace')"
-        	>
-        		<div class="row">
-        			<div class="col-7">
-        				<-- Label --		        		
-		        		<q-badge outline color="primary">Marketplace</q-badge>
+         	>
+         		<q-badge
+         			outline
+         			:color="darkMode ? 'blue-4' : 'blue-6'"
+         			class="q-mb-sm"
+         			style="font-size: 9px; padding: 3px 8px;"
+         		>
+         			Marketplace
+         		</q-badge>
 
-		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
-		        		<div style="font-size: 15px;">
-		        			{{ item.storefront.name }}
-		        		</div>   			
-        			</div>
-        			<div class="col-5 text-right q-py-lg">
-        				<div class="text-bold text-capitalize" :class="darkMode ? 'text-blue-grey-3' : 'text-blue-grey-6'">
-        					{{ item.status }}
-        				</div>
-        			</div>
-        		</div>         		
-        	</q-card> -->
+         		<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">Order #{{ item.id }}</div>
+         		<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+         			{{ item.storefront?.name }}
+         		</div>
+         		<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+         			{{ item.status }}
+         		</div>
+         	</div>
         </div>
 	</div>
 </template>
