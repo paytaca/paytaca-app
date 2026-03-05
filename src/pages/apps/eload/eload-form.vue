@@ -70,7 +70,7 @@
 				</div>
 			</div>
 
-			<div v-if="!isPhilippinesSelected" class="q-px-sm q-mt-md">
+			<div v-if="!isPhilippinesSelected" class="q-px-lg q-mt-md">
 				<q-banner rounded dense class="br-15" :class="darkMode ? 'bg-grey-9 text-white' : 'bg-grey-2 text-grey-9'">
 					<template v-slot:avatar>
 						<q-icon name="info" color="primary" />
@@ -160,7 +160,7 @@
 					<div
 						ref="categoryScrollContainer"
 						class="scroll-y q-pb-md"
-						:style="`max-height: ${minHeight - 170}px`"
+						:style="`max-height: ${minHeight - 275}px`"
 						@scroll="onCategoryScroll"
 					>
 						<div class="q-px-lg">
@@ -220,7 +220,7 @@
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
 
-					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 205}px`" ref="scrollTarget">
+					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 300}px`" ref="scrollTarget">
 						<q-card 
 							class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
 							v-ripple 
@@ -247,11 +247,11 @@
 					</q-list>					
 				</div>
 
-				<div v-else class="q-mx-lg q-pt-md q-pb-md">
+				<div v-else class="q-mx-lg q-pt-md">
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<q-skeleton
-						v-for="i in 4"
+						v-for="i in 3"
 						:key="'svc-' + i"
 						animation="wave"
 						type="rect"
