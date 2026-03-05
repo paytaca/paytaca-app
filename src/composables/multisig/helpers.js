@@ -1,18 +1,14 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
 import { loadWallet } from 'src/wallet'
-import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic, MultisigWallet } from 'src/lib/multisig'
-import { useRoute, useRouter } from 'vue-router'
-import Watchtower from 'src/lib/watchtower'
-import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
+import { deriveHdKeysFromMnemonic, MultisigWallet } from 'src/lib/multisig'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import { getBcmrBackend } from 'src/wallet/cashtokens'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
-  const route = useRoute()
-  const router = useRouter()
 
   const localWallets = computed(() => {
     return $store.getters['global/getVault']
@@ -38,7 +34,7 @@ export const useMultisigHelpers = () => {
     })
   })
 
-  const resolveXPrvOfXpub = computed(() => {
+  const resolveXprvOfXpub = computed(() => {
     return createXprvFromXpubResolver({
       walletVault: $store.getters['global/getVault']
     })
@@ -65,7 +61,8 @@ export const useMultisigHelpers = () => {
         store: $store,
         provider: multisigNetworkProvider.value,
         coordinationServer: multisigCoordinationServer.value,
-        resolveXprvOfXpub: resolveXPrvOfXpub.value
+        resolveXprvOfXpub: resolveXprvOfXpub.value,
+        resolveMnemonicOfXpub,
       })
     })
     return wallets
@@ -162,7 +159,7 @@ export const useMultisigHelpers = () => {
     getAssetTokenIdentity,
     multisigNetworkProvider: multisigNetworkProvider.value,
     multisigCoordinationServer: multisigCoordinationServer.value,
-    resolveXprvOfXpub: resolveXPrvOfXpub.value,
+    resolveXprvOfXpub: resolveXprvOfXpub.value,
     network: network.value
   }
 }
