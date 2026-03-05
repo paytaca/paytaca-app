@@ -439,6 +439,10 @@ export class MultisigWallet {
     return this.getWalletHash(this)
   }
 
+  getSigners() {
+    return [...this.signers].sort((a, b) => (a.xpub || '').localeCompare(b.xpub || ''))
+  }
+
   getLastIssuedDepositAddressIndex(network) {
     return this.networks?.[network]?.lastIssuedDepositAddressIndex ?? -1
   }
@@ -1366,7 +1370,7 @@ export class MultisigWallet {
    */
   async resolveXprvsOfXpubs() {
     if (this.options?.resolveXprvOfXpub) {
-      for (const signer of this.signers) {
+      for (const signer of this.getSigners()) {
         const xprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub})
         if (xprv) {
           if (!signer.xprv) {
@@ -1386,7 +1390,7 @@ export class MultisigWallet {
       id: this.id,
       name: this.name,
       m: this.m,
-      signers: this.signers,
+      signers: this.getSigners(),
       networks: this.networks
     }
   }
@@ -1500,8 +1504,7 @@ async generateAuthCredentials(xpub) {
     if (!mnemonic) return null
     return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
   }
-  const sortedSigners = [...this.signers].sort((a, b) => (a.xpub || '').localeCompare(b.xpub || ''))
-  for (const signer of sortedSigners) {
+  for (const signer of this.getSigners()) {
     // use first mnemonic found
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     if (mnemonic) {
@@ -1517,8 +1520,7 @@ async generateCosignerAuthCredentials(xpub) {
     if (!mnemonic) return null
     return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
   }
-  const sortedSigners = [...this.signers].sort((a, b) => (a.xpub || '').localeCompare(b.xpub || ''))
-  for (const signer of sortedSigners) {
+  for (const signer of this.getSigners()) {
     // use first mnemonic found
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     if (mnemonic) {
@@ -1546,7 +1548,7 @@ async sync() {
 async loadSignersServerIdentity() {
   if (!this.options?.coordinationServer) return
   let modified = false
-  for (const signer of this.signers) {
+  for (const signer of this.getSigners()) {
     const authCredentials = await this.generateAuthCredentials(signer.xpub)
     if (!authCredentials) continue
     try {
@@ -1614,8 +1616,6 @@ static cashAddressToTokenAddress(cashAddress) {
         'X-Auth-Message': rawMessage
     }
   }
-
-  
 
   /**
    * Extracts the compressed raw public key (33 bytes) from a recipient's xpub string.
@@ -1692,7 +1692,7 @@ static cashAddressToTokenAddress(cashAddress) {
       const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
       const descriptor = new BsmsDescriptor({
         m: this.m,
-        signers: this.signers.sort((a, b) => a.xpub.localeCompare(b.xpub)),
+        signers: this.getSigners(),
         firstAddress: firstAddress
       })
       return descriptor.toString()
