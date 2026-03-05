@@ -1,6 +1,5 @@
 import { bigIntToCompactUint, binToHex, hash256, secp256k1, utf8ToBin } from "bitauth-libauth-v3"
-import { encryptECIESMessage } from "./ecies.js";
-
+import { encryptECIES } from "./encryption.js";
 
 export class BsmsDescriptor {
     /**
@@ -154,7 +153,7 @@ export class BsmsKeyRecord {
      * @returns {Promise<string>} Promise that resolves to the ECIES-encrypted message in hexadecimal format.
      */
     async toEciesEncryptedString(recipientPublicKey) {
-       return await encryptECIESMessage(recipientPublicKey, this.toString())
+       return await encryptECIES(recipientPublicKey, utf8ToBin(this.toString()))
     }
 
     toString() {

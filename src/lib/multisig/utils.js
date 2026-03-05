@@ -11,7 +11,8 @@ import {
   encodeHdPrivateKey,
   deriveHdPrivateNodeFromBip39Mnemonic,
   secp256k1,
-  generateSigningSerializationBch
+  generateSigningSerializationBch,
+  decodeTransactionCommon
 } from 'bitauth-libauth-v3'
 
 export const shortenString = (str, maxLength) => {
