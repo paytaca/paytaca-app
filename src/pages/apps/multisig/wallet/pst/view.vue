@@ -9,7 +9,7 @@
     <HeaderNav :title="$t('TxProposal')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}/psts`" class="header-nav">
     </HeaderNav>
     <div class="row justify-center">
-      <div class="col-xs-12 col-sm-8 q-px-xs">
+      <div class="col-xs-12 q-px-xs">
         <template v-if="pst">
           <div class="row q-mb-sm justify-center">
               <div class="col-xs-12">
@@ -17,7 +17,7 @@
                   <q-card-section class="row items-center justify-between">
                     <div class="col-12 flex justify-between items-center">
                       <div class="flex items-center q-gutter-x-sm">
-                        <q-icon name="receipt" size="sm"></q-icon>
+                        <q-icon :name="pst.id? 'mdi-file-cloud-outline': 'mdi-file-outline'" size="sm"></q-icon>
                         <span class="text-bold text-h6">{{pst.purpose || pst?.metadata?.purpose || 'Purpose Not Specified'}}</span>
                       </div>
                       <q-icon v-if="pst.id" name="mdi-cloud-check" size="sm" flat></q-icon>
@@ -592,7 +592,7 @@ const importSignerSignature = (masterFingerprint, name) => {
 
 const loadSignerXPrvs = async () => {
   if (wallet.value) {
-    for (const signer of wallet.value.signers) {
+    for (const signer of wallet.value.getSigners()) {
       const xprv = await getSignerXPrv({ xpub: signer.xpub })
       if (xprv) {
         signersXPrv.value[signer.xpub] = xprv
@@ -611,19 +611,17 @@ const loadPst = async () => {
   
   if (storedPst) {
     pst.value = storedPst
-    await pst.value.fetchServerId()?.catch((e) => {
+    await pst.value.sync()?.catch((e) => {
       if (e?.response?.status === 404) {
         return
       }
       $q.notify({
-        message: $t('fetchServerIdWarning', {}, 'Warning: Unable to detect if this proposal exists in Paytaca\'s Coordination Server. You can still use the app you just can\'t use the coordination server as of this time.'),
+        message: $t('ProposalSyncWarning', {}, 'Warning: Unable to detect if this proposal exists in Paytaca\'s Coordination Server. You can still use the app you just can\'t use the coordination server as of this time.'),
         color: 'warning',
         textColor: 'black'
       })
     })
-
     await pst.value.fetchCoordinatorInfo()
-    console.log('PST VALUE', pst.value)
   }
 }
 
@@ -652,6 +650,7 @@ watch(() => pst.value?.status, async (newVal) => {
 }, { deep: true })
 
 onMounted(async () => {
+  
   await loadSignerXPrvs()
   await loadPst()
   await loadPstInputsTransactionData()

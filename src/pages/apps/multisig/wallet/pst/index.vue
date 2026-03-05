@@ -3,14 +3,14 @@
   <div id="app-container" class="multisig-app" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="$t('TxProposals')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav" />
     <div class="row items-center justify-center full-height">
-        <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
+        <div v-if="proposals?.length > 0" class="col-xs-12 q-px-sm">
           <div class="row justify-end q-gutter-x-sm q-mb-md">
             <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
               {{ $t('ClearAll') }}
             </q-btn>
           </div>
         </div>
-        <div v-if="psts?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
+        <div v-if="proposals?.length === 0" class="col-xs-12 text-center text-body1 q-mt-lg">
           <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
             <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>{{ $t('NoTxProposalsFound') }}
           </q-banner>
@@ -20,38 +20,60 @@
             </q-btn>
             <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('Import') }}</div>
           </div>
-          
         </div>
-        <div v-if="psts?.length > 0" class="col-xs-12 q-px-sm">
-          <q-card
-              v-for="pst, i in psts"
-              :key="i"
-              flat
-              class="q-mb-sm pst-wallet-card"
-              :class="getDarkModeClass(darkMode)"
-              clickable
-              @click="router.push({ name: 'app-multisig-wallet-pst-view', params: { wallethash: route.params.wallethash, unsignedtransactionhash: pst?.unsignedTransactionHash } })"
-            >
-              <q-card-section class="q-pa-md">
-                <div class="flex items-center q-mb-sm">
-                  <q-icon name="receipt" color="grad" size="md" class="q-mr-sm"></q-icon>
-                  <div class="text-weight-bold text-h6">
-                    <span>{{ $t('PurposeLabel') }}: {{ pst.purpose }}</span>
-                  </div>
-                </div>
-                <div class="flex items-center">
-                  <div class="text-body2">
-                    {{ $t('Origin') }}: {{ pst.origin }}
-                  </div>
-                </div>
-                <div class="flex items-center">
-                  <div class="text-body2">
-                    {{ $t('SigningProgress') }}: {{ pst.getSigningProgress()?.signingProgress }}
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-        </div>
+          <q-list separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
+              <q-item-label header>
+                {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
+              </q-item-label>
+              <q-item 
+                v-for="p, i in proposals" 
+                :key="i" 
+                :class="getDarkModeClass(darkMode)"
+                class="pt-card"
+                >
+                <q-item-section avatar>
+                  <q-avatar>
+                    <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
+                  </q-avatar>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <div class="ellipsis text-bold">Purpose: {{ p.purpose || 'N/A'}}</div>
+                  </q-item-label>
+                  <q-item-label caption>
+                    <div>Unsigned Hash: {{ shortenString(p.unsignedTransactionHash, 20) }}</div>
+                  </q-item-label>
+                  <q-item-label caption>
+                    <div>Origin: {{ p.origin || 'N/A' }}</div>
+                  </q-item-label>
+                  <q-item-label caption class="flex items-center q-gutter-x-xs">
+                    <q-icon name="mdi-cloud-outline"></q-icon>
+                    <div>ID: {{ p.id }}</div>
+                  </q-item-label>
+                  <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs">
+                    <q-icon name="mdi-cloud-outline"></q-icon>
+                    <div>Coordinator: {{ p.coordinatorInfo?.name }} </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                    <q-btn
+                      @click="router.push({ 
+                      name: 'app-multisig-wallet-pst-view', 
+                      params: { 
+                        wallethash: route.params.wallethash, 
+                        unsignedtransactionhash: p?.unsignedTransactionHash 
+                      }
+                    })"
+                    color="primary"
+                    outline
+                    rounded 
+                    no-caps
+                    icon="mdi-file-eye-outline"
+                    :label="$t('Open')"
+                    ></q-btn>
+                </q-item-section>
+              </q-item>
+            </q-list>
     </div>
   </div>
   
@@ -60,14 +82,14 @@
 
 <script setup>
 
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'components/header-nav'
-import { MultisigWallet, Pst } from 'src/lib/multisig'
+import { MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
 const $q = useQuasar()
@@ -96,33 +118,42 @@ const wallet = computed(() => {
   return walletObject
 })
 
-const pstsData = ref([])
+// const proposalsData = ref([])
 
-// Computed property is now pure - just returns the ref value
-const psts = computed(() => pstsData.value)
+// // Computed property is now pure - just returns the ref value
+// const proposals = computed(() => proposalsData.value)
 
-// Watch dependencies and compute psts, handling errors in the watcher
-watch(
-  () => [route.params.wallethash, wallet.value, $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)],
-  () => {
-    try {
-      const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
-      pstsData.value = psbts?.map(psbtBase64 => {
-        const pst = Pst.fromPsbt(psbtBase64)
-        pst.setWallet(wallet.value)
-        return pst
-      }) || []
-    } catch (error) {
-      pstsData.value = []
-      $q.dialog({
-        title: 'Error loading transaction proposals!',
-        message: error.message,
-        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-      })
-    }
-  },
-  { immediate: true }
-)
+const proposals = ref([])
+// Watch dependencies and compute proposals, handling errors in the watcher
+// watch(
+//   () => [route.params.wallethash, wallet.value, $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)],
+//   () => {
+//     try {
+//       const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+//       proposalsData.value = psbts?.map(psbtBase64 => {
+//         const pst = Pst.fromPsbt(psbtBase64)
+//         pst.setWallet(wallet.value)
+//         // pst.setCoordinationServer(wallet.value.options.coordinationServer)
+//         // (async () => {
+          
+//         //   await pst.sync()
+//         //   await pst.fetchCoordinatorInfo()
+//         // })()
+//         return pst
+//       }) || []
+
+//     } catch (error) {
+//       console.log('Errors', error)
+//       proposalsData.value = []
+//       $q.dialog({
+//         title: 'Error loading transaction proposals!',
+//         message: error.message,
+//         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+//       })
+//     }
+//   },
+//   { immediate: true }
+// )
 
 const importProposals = () => {
   router.push({ 
@@ -155,12 +186,40 @@ const clearAll = () => {
       outline: true
     }
   }).onOk(() => {
-    for (const pst of psts.value) {
+    for (const pst of proposals.value) {
+      console.log("Deleting", pst)
       pst.setStore($store)
       pst.delete({sync: false})
     }
   })
 }
+
+onMounted(async () => {
+  try {
+    const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+    for (const psbt of psbts) {
+      try {
+        const proposal = Pst.fromPsbt(psbt)
+        proposal.setWallet(wallet.value)  
+        proposal.setCoordinationServer(wallet.value.options.coordinationServer)
+        await proposal.sync()
+        await proposal.fetchCoordinatorInfo()
+        proposals.value.push(proposal)
+      } catch (error) {
+        // ignore malformed proposals
+        continue 
+      }
+    }
+    
+  } catch (error) {
+    proposals.value = []
+    $q.dialog({
+      title: 'Error loading transaction proposals!',
+      message: error.message,
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }
+})
 
 </script>
 
