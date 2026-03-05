@@ -734,11 +734,10 @@ export default {
 
           // send 5 initial UP when user is a first time user
           if (urData.is_first_time_user) {
-            console.log('award initial UP yey')
-            // await awardInitialUP({ ur_id: vm.upId })
-            //   .then(async _resp => {
-            //     vm.points = await vm.urContract.getTokenBalance()
-            //   })
+            await awardInitialUP({ up: this.upId })
+              .then(async _resp => {
+                vm.points = await vm.urContract.getTokenBalance()
+              })
           }
 
           // mark has_viewed_page to true
