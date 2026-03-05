@@ -359,8 +359,13 @@
           <achievement-card v-if="marketplaceTransactions.length > 0">
             <template #achievement-card-content>
               <q-card-section>
-                <div class="row items-center  q-gutter-md">
-                  <q-icon name="img:marketplace.png" size="32px" color="primary" />
+                <div class="row items-center q-gutter-md">
+                  <q-icon
+                    name="img:marketplace.png"
+                    size="32px"
+                    class="q-pa-sm bg-primary"
+                    style="border-radius: 50%;"
+                  />
                   <div class="col">
                     <div class="text-h6 text-weight-bold text-primary">
                       {{ totalMarketplaceOrders }} {{ totalMarketplaceOrders === 1 ? 'order' : 'orders' }}
@@ -449,7 +454,12 @@
             :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
             flat
           >
-            <q-icon name="shopping_bag" size="48px" class="q-mb-md" />
+            <q-icon
+              name="img:marketplace.png"
+              size="48px"
+              class="q-mb-md q-pa-md bg-primary"
+              style="border-radius: 50%;"
+            />
             <div class="text-subtitle1 q-mb-sm">
               {{ $t('PointsFromMarketplaceWarning1', 'You do not have any Marketplace transactions yet.') }}
             </div>
