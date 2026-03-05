@@ -212,10 +212,160 @@
           </div>
           <div 
             v-else-if="activeTab === 'Other Settings' && activeCard"
-            class="text-center"
-            :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+            class="other-settings-container full-width"
           >
-            Other Settings content coming soon...
+            <div 
+              class="settings-section q-mb-md"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
+            >
+              <div class="settings-header q-pa-md">
+                <div 
+                  class="text-subtitle1 text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  Card Settings
+                </div>
+              </div>
+
+              <q-separator :dark="$q.dark.isActive" />
+
+              <div class="settings-list">
+                <div class="settings-item">
+                  <div class="settings-item-content">
+                    <q-icon 
+                      :name="activeCard?.isLocked ? 'lock_open' : 'lock'" 
+                      :color="activeCard?.isLocked ? 'positive' : 'warning'"
+                      size="24px"
+                    />
+                    <div class="q-ml-md">
+                      <div 
+                        class="text-subtitle2"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        {{ activeCard?.isLocked ? 'Unlock Card' : 'Temporary Lock Card' }}
+                      </div>
+                      <div 
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+                      >
+                        {{ activeCard?.isLocked ? 'Card is currently locked' : 'Temporarily disable all transactions' }}
+                      </div>
+                    </div>
+                  </div>
+                  <q-toggle 
+                    :model-value="activeCard?.isLocked"
+                    @update:model-value="(val) => toggleCardLock(val)"
+                    color="warning"
+                  />
+                </div>
+
+                <q-separator :dark="$q.dark.isActive" />
+
+                <div class="settings-item">
+                  <div class="settings-item-content">
+                    <q-icon 
+                      name="notifications" 
+                      :color="activeCard?.transactionAlerts ? 'primary' : 'grey'"
+                      size="24px"
+                    />
+                    <div class="q-ml-md">
+                      <div 
+                        class="text-subtitle2"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        Transaction Alerts
+                      </div>
+                      <div 
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+                      >
+                        Get notified for every transaction
+                      </div>
+                    </div>
+                  </div>
+                  <q-toggle 
+                    v-model="activeCard.transactionAlerts"
+                    color="primary"
+                    @update:model-value="saveCardSettings"
+                  />
+                </div>
+
+                <q-separator :dark="$q.dark.isActive" />
+              </div>
+            </div>
+
+            <div 
+              class="settings-section q-mb-md"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
+            >
+              <div class="settings-header q-pa-md">
+                <div 
+                  class="text-subtitle1 text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  Funds Management
+                </div>
+              </div>
+
+              <q-separator :dark="$q.dark.isActive" />
+
+              <div class="settings-list">
+                <div class="settings-item clickable" @click="showSweepFundsDialog = true">
+                  <div class="settings-item-content">
+                    <q-icon name="swap_horiz" color="info" size="24px" />
+                    <div class="q-ml-md">
+                      <div 
+                        class="text-subtitle2"
+                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                      >
+                        Sweep Funds
+                      </div>
+                      <div 
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+                      >
+                        Transfer all funds back to wallet
+                      </div>
+                    </div>
+                  </div>
+                  <q-icon name="chevron_right" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
+                </div>
+              </div>
+            </div>
+
+            <div 
+              class="settings-section"
+              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
+            >
+              <div class="settings-header q-pa-md">
+                <div 
+                  class="text-subtitle1 text-weight-bold"
+                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                >
+                  Danger Zone
+                </div>
+              </div>
+
+              <q-separator :dark="$q.dark.isActive" />
+
+              <div class="settings-list">
+                <div class="settings-item clickable" @click="showDeleteCardDialog = true">
+                  <div class="settings-item-content">
+                    <q-icon name="delete" color="negative" size="24px" />
+                    <div class="q-ml-md">
+                      <div class="text-subtitle2 text-negative">Delete Card</div>
+                      <div 
+                        class="text-caption"
+                        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+                      >
+                        Permanently remove this card
+                      </div>
+                    </div>
+                  </div>
+                  <q-icon name="chevron_right" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="!activeCard" class="flex flex-center full-height">
@@ -319,6 +469,61 @@
           </q-card-section>
         </q-card>
       </q-dialog>
+
+      <q-dialog v-model="showSweepFundsDialog" persistent>
+        <q-card style="min-width: 320px">
+          <q-card-section>
+            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Sweep Funds</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <div 
+              class="q-mb-md"
+              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+            >
+              This will transfer all funds ({{ activeCard?.balance }} BCH) from your card back to your wallet.
+            </div>
+            <div 
+              class="text-caption"
+              :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+            >
+              Are you sure you want to sweep all funds?
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" @click="showSweepFundsDialog = false" />
+            <q-btn flat label="Sweep Funds" color="info" @click="handleSweepFunds" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <q-dialog v-model="showDeleteCardDialog" persistent>
+        <q-card style="min-width: 320px">
+          <q-card-section>
+            <div class="text-h6 text-negative">Delete Card</div>
+          </q-card-section>
+
+          <q-card-section class="q-pt-none">
+            <div 
+              class="q-mb-md"
+              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+            >
+              Are you sure you want to delete this card? This action cannot be undone.
+            </div>
+            <div 
+              class="text-caption text-negative"
+            >
+              Warning: Any remaining funds will be lost.
+            </div>
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Cancel" color="primary" @click="showDeleteCardDialog = false" />
+            <q-btn flat label="Delete Card" color="negative" @click="handleDeleteCard" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
@@ -355,7 +560,9 @@ export default {
         country: ''
       },
       orderFormMap: null,
-      orderFormMarker: null
+      orderFormMarker: null,
+      showSweepFundsDialog: false,
+      showDeleteCardDialog: false
     }
   },
 
@@ -402,6 +609,13 @@ export default {
         if (found) {
           this.activeCard = found
           this.newCardName = found.raw?.alias || ''
+          
+          if (this.activeCard.isLocked === undefined) {
+            this.activeCard.isLocked = false
+          }
+          if (this.activeCard.transactionAlerts === undefined) {
+            this.activeCard.transactionAlerts = false
+          }
         }
         else {
           console.error("Card not found in storage");
@@ -614,6 +828,108 @@ export default {
     closeOrderPhysicalCardForm () {
       this.showOrderPhysicalCardForm = false
       this.destroyOrderFormMap()
+    },
+
+    toggleCardLock (locked) {
+      if (!this.activeCard) return
+
+      const savedCards = localStorage.getItem('mock_subcards')
+      if (savedCards) {
+        const allCards = JSON.parse(savedCards)
+        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+        if (cardIndex !== -1) {
+          allCards[cardIndex].isLocked = locked
+          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+          this.activeCard.isLocked = locked
+        }
+      }
+
+      this.$q.notify({
+        message: locked ? 'Card has been locked' : 'Card has been unlocked',
+        color: locked ? 'warning' : 'positive',
+        icon: locked ? 'lock' : 'lock_open'
+      })
+    },
+
+    handleSweepFunds () {
+      if (!this.activeCard) return
+
+      const balance = parseFloat(this.activeCard.balance) || 0
+
+      if (balance <= 0) {
+        this.$q.notify({
+          message: 'No funds to sweep',
+          color: 'warning',
+          position: 'top'
+        })
+        this.showSweepFundsDialog = false
+        return
+      }
+
+      const savedCards = localStorage.getItem('mock_subcards')
+      if (savedCards) {
+        const allCards = JSON.parse(savedCards)
+        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+        if (cardIndex !== -1) {
+          allCards[cardIndex].balance = '0'
+          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+          this.activeCard.balance = '0'
+        }
+      }
+
+      this.$q.notify({
+        message: `Successfully swept ${balance} BCH to your wallet`,
+        color: 'positive',
+        icon: 'check_circle',
+        position: 'top'
+      })
+
+      this.showSweepFundsDialog = false
+    },
+
+    handleDeleteCard () {
+      if (!this.activeCard) return
+
+      const savedCards = localStorage.getItem('mock_subcards')
+      if (savedCards) {
+        const allCards = JSON.parse(savedCards)
+        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+        if (cardIndex !== -1) {
+          allCards.splice(cardIndex, 1)
+          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+        }
+      }
+
+      this.$q.notify({
+        message: 'Card has been deleted',
+        color: 'positive',
+        icon: 'delete',
+        position: 'top'
+      })
+
+      this.showDeleteCardDialog = false
+      this.$router.push({ name: 'stacked-cards' })
+    },
+
+    saveCardSettings () {
+      if (!this.activeCard) return
+
+      const savedCards = localStorage.getItem('mock_subcards')
+      if (savedCards) {
+        const allCards = JSON.parse(savedCards)
+        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
+        if (cardIndex !== -1) {
+          allCards[cardIndex].transactionAlerts = this.activeCard.transactionAlerts
+          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
+        }
+      }
+
+      this.$q.notify({
+        message: 'Settings saved',
+        color: 'positive',
+        icon: 'check',
+        position: 'top'
+      })
     }
   },
 

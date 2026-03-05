@@ -587,3 +587,56 @@ animation: float 6s ease-in-out infinite;
 .order-form-map {
   z-index: 1;
 }
+
+.other-settings-container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.settings-section {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.settings-header {
+  padding: 16px;
+}
+
+.settings-list {
+  padding: 0;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &.clickable:active {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+.body--dark {
+  .settings-item {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &:active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
+
+.settings-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
