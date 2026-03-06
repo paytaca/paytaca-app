@@ -626,12 +626,12 @@ export class MultisigWallet {
     return this._utxos
   }
 
-  async getWalletHashUtxos() {
+  async getWalletHashUtxos(tokenFilter = 'ft') {
 
     if (!this.options?.provider) throw new Error('Missing provider') 
 
     const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
-    const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken')
+    const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken', tokenFilter)
 
     const responses = await Promise.allSettled([r1, r2])
 
