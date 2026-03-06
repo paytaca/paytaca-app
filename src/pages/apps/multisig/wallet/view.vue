@@ -155,7 +155,7 @@
               <q-expansion-item v-model="balancesExpanded">
                 <template v-slot:header>
                   <q-item-section class="text-subtitle2">
-                    {{ $t('Balances') }}
+                    {{ $t('CoinsBalance') }}
                   </q-item-section>
                 </template>
                 <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash() }, query: { asset: 'bch' } }">
@@ -491,12 +491,6 @@ const openWalletActionsDialog = () => {
     grid: true,
     actions: [
       {
-        icon: 'delete_forever',
-        label: $t('DeleteWallet'),
-        value: 'delete-wallet',
-        color: 'red'
-      },
-      {
         icon: 'mdi-share',
         label: $t('ShareWallet'),
         value: 'share-wallet',
@@ -513,6 +507,18 @@ const openWalletActionsDialog = () => {
         label: $t('WalletSettings', {}, 'Wallet Settings'),
         value: 'view-wallet-settings',
         color: 'primary'
+      },
+      {
+        icon: 'collections',
+        label: $t('Nfts', {}, 'Nfts'),
+        value: 'view-nfts',
+        color: 'primary'
+      },
+      {
+        icon: 'delete_forever',
+        label: $t('DeleteWallet'),
+        value: 'delete-wallet',
+        color: 'red'
       },
 
     ],
