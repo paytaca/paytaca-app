@@ -150,10 +150,10 @@ export default {
 		},
 		paymentCardTitle () {
 		if (this.order?.status === 'success') {
-			return 'Payment Transaction'
+			return 'Payment Details'
 		} else if (this.order?.status === 'failed') {
 			if (this.order?.settlement_txid) {
-				return 'Refund Transaction'
+				return 'Refund Details'
 				} else {
 					return 'Pending Refund'
 				}
