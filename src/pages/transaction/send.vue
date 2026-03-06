@@ -444,6 +444,7 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -2103,14 +2104,12 @@ export default {
 
         // Handle points in background (non-blocking) – do not delay success feedback
         if (!vm.assetId?.startsWith?.('ct/')) {
-          Promise.all([
-            processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
-            processOnetimePoints({
-              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-              ref_id: result.txid.substring(0, 6)
-            })
-          ]).then(([cashinResp, onetimePointsResp]) => {
-            if (cashinResp || onetimePointsResp) {
+          await processOnetimePoints({
+            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            ref_id: hexToRef(result.txid.substring(0, 6)),
+            tx_id: result.txid
+          }).then(onetimePointsResp => {
+            if (onetimePointsResp) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
@@ -2122,6 +2121,25 @@ export default {
           }).catch(err => {
             console.warn('[Send] Points API failed:', err)
           })
+          // Promise.all([
+          //   processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
+          //   processOnetimePoints({
+          //     bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+          //     ref_id: result.txid.substring(0, 6)
+          //   })
+          // ]).then(([cashinResp, onetimePointsResp]) => {
+          //   if (cashinResp || onetimePointsResp) {
+          //     vm.$q.dialog({
+          //       component: PointsReceivedDialog,
+          //       componentProps: {
+          //         hasReceivedCashinPoints: cashinResp,
+          //         hasReceivedOneTimePoints: onetimePointsResp
+          //       }
+          //     })
+          //   }
+          // }).catch(err => {
+          //   console.warn('[Send] Points API failed:', err)
+          // })
         }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
