@@ -187,7 +187,7 @@
         v-if="orders.length"
         ref="ordersPanel"
         v-intersection="ordersPanelIntersectionOptions"
-        class="q-mb-md q-pt-md orders-panel"
+        class="orders-panel"
         :class="{ 'orders--sticky-bottom': !ordersPanelStuck, 'orders--fixed-bottom': ordersPanelStuck }"
       >
         <div class="col-12 row items-center q-px-sm">
@@ -663,7 +663,20 @@ table.orders-table td {
   left: 0;
   right: 0;
   z-index: 100;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
   transition: all 0.15s ease-out;
+
+  #app-container.dark & {
+    background-color: $brand_dark;
+    border-top-color: rgba(255, 255, 255, 0.15);
+  }
+  #app-container.light & {
+    background-color: $brand_light;
+    border-top-color: rgba(0, 0, 0, 0.1);
+  }
 }
 
 .orders--fixed-bottom {
@@ -672,15 +685,25 @@ table.orders-table td {
   left: 0;
   right: 0;
   z-index: 100;
-  margin-left: 8px;
-  margin-right: 8px;
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-left: 0;
+  margin-right: 0;
+  border-radius: 0;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
   transition: all 0.15s ease-out;
 
   .orders-list {
     max-height: 25vh;
     overflow-y: auto;
+  }
+
+  #app-container.dark & {
+    border-top-color: rgba(255, 255, 255, 0.15);
+  }
+  #app-container.light & {
+    border-top-color: rgba(0, 0, 0, 0.1);
   }
 }
 
