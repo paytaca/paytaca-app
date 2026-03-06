@@ -606,6 +606,7 @@ export class Pst {
       }
       
       // Not our input continue
+      console.log(`Processing Input: ${binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, inputLockingBytecode)}`, input)
       if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, inputLockingBytecode)) {
         continue
       }
@@ -1349,9 +1350,15 @@ export class Pst {
 
   async sync() {
     if (!this.options?.coordinationServer) return
-    const response = 
-      await this.options?.coordinationServer?.getProposalByUnsignedTransactionHash(this.unsignedTransactionHash)
-    this.id = response?.id
+    try {
+      const response = 
+        await this.options?.coordinationServer?.getProposalByUnsignedTransactionHash(this.unsignedTransactionHash)
+      this.id = response?.id  
+    } catch (error) {
+      if (error?.response?.status === 404) {
+        this.id = null
+      }
+    }
   }
 
   async fetchCoordinatorInfo() {
