@@ -96,7 +96,11 @@
           <span class="text-h6">{{ $t('OneTimePoints', 'One-time Points') }}</span>
           <q-space />
           <div class="row items-center q-gutter-sm">
-            <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+            <span
+              v-if="isFirstTimeUser"
+              class="text-caption"
+              :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+            >
               {{ completedOneTimeCount }}/{{ totalOneTimeTasks }}
             </span>
             <q-btn
