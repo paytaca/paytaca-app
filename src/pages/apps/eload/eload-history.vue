@@ -38,7 +38,7 @@
 							<div class="sm-font-size" :class="darkMode ? '' : 'subtext'">{{ formatDate(order.created_at, true) }}</div>
 						</div>					
 						<div class="col-4 text-right">
-							<div class="text-capitalize text-weight-bold subtext">{{ order.status }}</div>
+							<div class="text-capitalize text-weight-bold subtext">{{ getStatusLabel(order) }}</div>
 						</div>
 					</div>					
 
@@ -151,6 +151,16 @@ export default {
 		await this.fetchOrders()
 	},
 	methods: {
+		getStatusLabel(order) {
+			if (order?.status === 'failed') {
+				if (order?.settlement_txid) {
+					return 'Refunded'
+				} else {
+					return 'Pending Refund'
+				}
+			}
+			return order?.status
+		},
 		getDarkModeClass,
 		formatDate,
 	    async fetchOrders (overwrite=false) {
