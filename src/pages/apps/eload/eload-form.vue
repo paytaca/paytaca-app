@@ -66,7 +66,12 @@
 			</div>
 			<div v-else class="q-px-lg q-py-md">
 				<div class="row items-center">
-					<CountrySelector :darkMode="darkMode" />
+					<!--
+						updateStore: false to not update global store country; 
+						country: to display local selected country; 
+						@countrySelected: emits selected country to update selected country 
+					-->
+					<CountrySelector :darkMode="darkMode" :updateStore="false" :country="selectedCountry" @country-selected="onCountrySelected" />
 				</div>
 			</div>
 
@@ -433,6 +438,7 @@ export default {
 			pinDialogAction: '',
 			warningAttemptsStatus: '',
 			pendingSwipeReset: () => {},
+			selectedCountry: null,
 
 
 			filters:{				
@@ -472,7 +478,7 @@ export default {
 	      return this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100)
 	    },
 		isPhilippinesSelected () {
-			const country = this.$store.getters['global/country']
+			const country = this.selectedCountry || this.$store.getters['global/country']
 			return country?.name === 'Philippines'
 		},
 		isMobileNumberAddress () {
@@ -707,6 +713,9 @@ export default {
 	},
 	methods: {
 		getDarkModeClass,
+		onCountrySelected(country) {
+			this.selectedCountry = country
+		},
 		clearTxnPrepareAutoRetry () {
 			if (this.txnPrepareAutoRetryTimer) {
 				clearTimeout(this.txnPrepareAutoRetryTimer)
