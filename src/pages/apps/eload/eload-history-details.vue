@@ -83,7 +83,7 @@
 				</div>
 			</div>
 
-			<q-card class="q-pa-md br-15 q-mt-md" v-if="order?.status === 'success' || order?.status === 'failed'">
+			<div class="q-pa-md br-15 q-mt-md" v-if="order?.status === 'success' || order?.status === 'failed'">
 				<div class="text-center text-weight-bold lg-font-size q-mb-sm">{{ paymentCardTitle }}</div>
 				<div v-if="order?.status === 'failed' && !order?.settlement_txid">
 					<div class="text-center sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
@@ -114,7 +114,7 @@
 						</div>
 					</div>
 				</div>
-			</q-card>
+			</div>
 		</q-pull-to-refresh>
 	</div>
 </template>
@@ -149,11 +149,11 @@ export default {
 			return this.order?.settled_at || this.order?.completed_at
 		},
 		paymentCardTitle () {
-			if (this.order?.status === 'success') {
-				return 'Payment'
-			} else if (this.order?.status === 'failed') {
-				if (this.order?.settlement_txid) {
-					return 'Refunded'
+		if (this.order?.status === 'success') {
+			return 'Payment Transaction'
+		} else if (this.order?.status === 'failed') {
+			if (this.order?.settlement_txid) {
+				return 'Refund Transaction'
 				} else {
 					return 'Pending Refund'
 				}
@@ -166,9 +166,9 @@ export default {
 	},
 	methods: {	
 		getStatusLabel (order) {
-			if (order?.status === 'failed') {
-				if (order?.settlement_txid) {
-					return 'Refunded'
+		if (order?.status === 'failed') {
+			if (order?.settlement_txid) {
+				return 'Refunded'
 				} else {
 					return 'Pending Refund'
 				}
