@@ -54,7 +54,6 @@
                 </q-item-section>
               </q-item>
             </template>
-            
             <template v-for="category, i in pstOutputsTokenCategories">
               <q-item v-if="pst.getTotalTokenDebit(category) > 0">
                 <q-item-section>
@@ -72,6 +71,16 @@
                 </q-item-section>
                 <q-item-section side>
                   <q-btn icon-right="token" :label="pst.getTotalTokenChange(category)" flat dense>
+                    &nbsp;
+                  </q-btn>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="pst.getTotalNftCredit(category) > 0">
+                <q-item-section>
+                  NFT Credit [{{ shortenString(category, 12)}}] 
+                </q-item-section>
+                <q-item-section side>
+                  <q-btn color="green" icon-right="token" :label="`+ ${pst.getTotalNftCredit(category)} pc`" flat dense no-caps>
                     &nbsp;
                   </q-btn>
                 </q-item-section>
