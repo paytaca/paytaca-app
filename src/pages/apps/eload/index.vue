@@ -13,9 +13,12 @@
 		    	</template>
 			</HeaderNav>
 
-			<div class="eload-skeleton q-pa-lg full-width">			
+			<div class="eload-skeleton q-px-lg  q-pt-md full-width">
+				<!-- Country Selector -->
+				<q-skeleton animation="wave" type="text" height="25px" width="80px" class="br-10 q-mb-lg" />
+
 				<!-- Search input -->
-				<q-skeleton animation="wave" type="rect" height="52px" class="br-10 q-mb-lg" />
+				<q-skeleton animation="wave" type="rect" height="45px" class="br-10 q-mb-lg" />
 
 				<!-- "Select Purchase Type" label -->
 				<q-skeleton animation="wave" type="text" width="190px" class="q-mb-md" />
@@ -26,9 +29,13 @@
 					:key="'svc-' + i"
 					animation="wave"
 					type="rect"
-					height="118px"
+					height="80px"
 					class="br-15 q-mb-md"
 				/>
+			</div>
+
+			<div class="text-center q-pt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+				Powered by Gbits
 			</div>
 		</div>		
 
