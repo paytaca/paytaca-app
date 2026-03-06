@@ -30,6 +30,35 @@
       />
     </div>
 
+    <!-- Global Spend Limit Input (shown when Generic Auth NFT is enabled) -->
+    <div 
+      v-if="genericAuthEnabled"
+      class="q-pa-md border-outlined br-10 q-mb-md"
+      :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'"
+    >
+      <div class="text-subtitle2 text-primary text-weight-bold q-mb-sm">Global Spend Limit</div>
+      <div class="row items-center q-gutter-x-sm">
+        <div class="col">
+          <q-input
+            v-model="genericSpendLimit"
+            type="number"
+            outlined
+            dense
+            :dark="$q.dark.isActive"
+            label="Spend Limit (BCH)"
+            step="0.00000001"
+            min="0"
+          />
+        </div>
+        <q-btn 
+          color="primary" 
+          label="Save" 
+          @click="saveGlobalSpendLimit"
+          dense
+        />
+      </div>
+    </div>
+
     <q-separator class="q-mb-sm" :dark="$q.dark.isActive" />
 
     <!-- Merchants List -->
@@ -154,6 +183,7 @@ export default {
     return {
       search: '',
       genericAuthEnabled: true, // Toggled ON by default
+      genericSpendLimit: '1', // Global spend limit for generic auth NFT
       merchants: [],
       showSpendLimitDialog: false,
       selectedMerchant: null,
@@ -173,6 +203,18 @@ export default {
   },
   mounted() {
     this.generateRandomMerchants();
+    // Load global spend limit from card if available
+    if (this.card && this.card.genericSpendLimit) {
+      this.genericSpendLimit = this.card.genericSpendLimit;
+    }
+    // Load merchant spend limits from card if available
+    if (this.card && this.card.merchantSpendLimits) {
+      this.merchants.forEach(merchant => {
+        if (this.card.merchantSpendLimits[merchant.id]) {
+          merchant.spendLimit = this.card.merchantSpendLimits[merchant.id];
+        }
+      });
+    }
   },
   methods: {
     formatSpendLimit(value) {
@@ -285,6 +327,24 @@ export default {
 
       if (this.selectedMerchant) {
         this.selectedMerchant.spendLimit = spendLimit.toFixed(8);
+        
+        // Save merchant spend limits to localStorage
+        if (this.card && this.card.id) {
+          const savedCards = localStorage.getItem('mock_subcards');
+          if (savedCards) {
+            const allCards = JSON.parse(savedCards);
+            const cardIndex = allCards.findIndex(c => c.id === this.card.id);
+            if (cardIndex !== -1) {
+              // Store merchant spend limits
+              if (!allCards[cardIndex].merchantSpendLimits) {
+                allCards[cardIndex].merchantSpendLimits = {};
+              }
+              allCards[cardIndex].merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
+              localStorage.setItem('mock_subcards', JSON.stringify(allCards));
+            }
+          }
+        }
+        
         this.$q.notify({
           message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
           color: 'positive',
@@ -293,6 +353,40 @@ export default {
       }
 
       this.closeSpendLimitDialog();
+    },
+
+    saveGlobalSpendLimit() {
+      const spendLimit = parseFloat(this.genericSpendLimit);
+
+      if (isNaN(spendLimit) || spendLimit <= 0) {
+        this.$q.notify({
+          message: 'Please enter a valid amount greater than 0',
+          color: 'negative',
+          icon: 'error'
+        });
+        return;
+      }
+
+      this.genericSpendLimit = spendLimit.toFixed(8);
+      
+      // Save to localStorage
+      if (this.card && this.card.id) {
+        const savedCards = localStorage.getItem('mock_subcards');
+        if (savedCards) {
+          const allCards = JSON.parse(savedCards);
+          const cardIndex = allCards.findIndex(c => c.id === this.card.id);
+          if (cardIndex !== -1) {
+            allCards[cardIndex].genericSpendLimit = this.genericSpendLimit;
+            localStorage.setItem('mock_subcards', JSON.stringify(allCards));
+          }
+        }
+      }
+      
+      this.$q.notify({
+        message: `Global spend limit set to ${this.genericSpendLimit} BCH`,
+        color: 'positive',
+        icon: 'check_circle'
+      });
     }
   }
 }
