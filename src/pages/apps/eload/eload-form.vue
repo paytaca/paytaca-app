@@ -367,7 +367,7 @@
 				</div>			
 			</div>
 
-			<div class="text-center q-my-lg q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+			<div v-if="isPhilippinesSelected" class="text-center q-my-lg q-mb-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
 				Powered by Gbits
 			</div>
 		</div>	
