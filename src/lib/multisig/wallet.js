@@ -1386,11 +1386,15 @@ export class MultisigWallet {
   }
   
   toJSON() {
+    const signers = this.getSigners().map(s => {
+      const { xprv, ...safe } = s 
+      return safe
+    })
     return {
       id: this.id,
       name: this.name,
       m: this.m,
-      signers: this.getSigners(),
+      signers: signers,
       networks: this.networks
     }
   }
@@ -1690,9 +1694,13 @@ static cashAddressToTokenAddress(cashAddress) {
    */
   generateBsmsDescriptor() {
       const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
+      const signers = this.getSigners().map(s => {
+        const { xprv, ...safe } = s 
+        return safe
+      })
       const descriptor = new BsmsDescriptor({
         m: this.m,
-        signers: this.getSigners(),
+        signers: signers,
         firstAddress: firstAddress
       })
       return descriptor.toString()
