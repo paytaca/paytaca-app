@@ -1824,4 +1824,7 @@ defineExpose({
 .action-button {
   z-index: 10;
 }
+.transition-transform {
+  transition: transform 0.3s ease;
+}
 </style>
