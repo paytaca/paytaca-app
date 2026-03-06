@@ -702,7 +702,7 @@ export default {
       // initialize UR Promo Contract and retrieve points
       try {
         const keyPair = await ensureKeypair()
-        this.urContract = new PromoContract(keyPair.pubkey, PromosBytes.UP)
+        this.urContract = new PromoContract(keyPair.pubkey, PromosBytes.UR)
         if (this.upId === -1) await this.urContract.subscribeAddress()
         this.points = await this.urContract.getTokenBalance()
         this.animatePointsCounter()

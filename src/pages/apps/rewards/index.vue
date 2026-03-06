@@ -136,9 +136,9 @@ export default {
       error: null,
       swapContractAddress: '',
 
-      pointsType: ['up', 'rp'/*, 'lp', 'cp', 'mp'*/],
+      pointsType: ['ur', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
-        up: {
+        ur: {
           name: this.$t('UserRewards', 'User Rewards'),
           id: null,
           points: 0,
