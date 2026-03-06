@@ -76,7 +76,6 @@
                     </div>
                   </template>
                 </q-btn>
-                
                 <q-btn  flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">

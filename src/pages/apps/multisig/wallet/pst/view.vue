@@ -66,7 +66,7 @@
                   </q-btn>
                 </q-item-section>
               </q-item>
-              <q-item>
+              <q-item v-if="pst.getTotalTokenDebit(category) > 0">
                 <q-item-section>
                   Token Change [{{ shortenString(category, 12)}}] 
                 </q-item-section>
@@ -131,7 +131,7 @@
                 </div> -->
                 <q-chip style="height:fit-content" flat class="q-px-md">
                   <q-avatar>
-                    <q-icon v-if="signersXPrv[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
+                    <q-icon v-if="signer.xprv" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
                     <q-icon v-else name="person" size="sm"></q-icon>
                   </q-avatar>
                   <div class="flex flex-column">
@@ -147,7 +147,7 @@
               
               <q-item-section side>
                 <q-btn
-                  v-if="signersXPrv[signer.xpub] && !pst?.signerSigned(signer.xpub)"
+                  v-if="signer.xprv && !pst?.signerSigned(signer.xpub)"
                   :icon="signButtonIcon(signer)"
                   text-color="primary"
                   no-caps
@@ -166,7 +166,7 @@
                   <span>&nbsp;&nbsp;{{$t('Sign')}}&nbsp;&nbsp;</span>
                 </q-btn> -->
                 <q-btn
-                  v-else-if="signersXPrv[signer.xpub] && pst?.signerSigned(signer.xpub)"
+                  v-else-if="signer.xprv && pst?.signerSigned(signer.xpub)"
                   icon="mdi-share"
                   text-color="primary"
                   no-caps
@@ -278,7 +278,7 @@ import ShareSignatureOptionsDialog from 'components/multisig/ShareSignatureOptio
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
 import { STATUS } from 'src/lib/multisig/pst'
 const {
-  getSignerXPrv,
+  // getSignerXPrv,
   multisigNetworkProvider,
   multisigCoordinationServer,
   resolveXprvOfXpub,
@@ -290,7 +290,7 @@ const { registerInterval, removeInterval } = useInterval()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const signersXPrv = ref({})
+// const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const isBroadcasting = ref(false)
@@ -305,21 +305,23 @@ const signingProgress = computed(() => {
   return pst.value.getSigningProgress()
 })
 
-const wallet = computed(() => {
-  const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-  if (walletObject) {
-    return MultisigWallet.fromObject(
-      walletObject,
-      { 
-        network: multisigNetworkProvider,
-        coordinationServer: multisigCoordinationServer,
-        resolveXprvOfXpub,
-        resolveMnemonicOfXpub
-      }
-    )
-  }
-  return walletObject
-})  
+// const wallet = computed(() => {
+//   const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+//   if (walletObject) {
+//     return MultisigWallet.fromObject(
+//       walletObject,
+//       { 
+//         network: multisigNetworkProvider,
+//         coordinationServer: multisigCoordinationServer,
+//         resolveXprvOfXpub,
+//         resolveMnemonicOfXpub
+//       }
+//     )
+//   }
+//   return walletObject
+// })
+
+const wallet = ref()
 
 const pstOutputsTokenCategories = computed(() => {
     return new Set(
@@ -497,7 +499,7 @@ const initiateSignTransaction = async (signer) => {
   showActionConfirmationSlider.value = true
   signingInitiatedBy.value = {
     ...signer,
-    xprv: signersXPrv.value[signer.xpub]
+    xprv: signer.xprv
   }
 }
 
@@ -590,18 +592,37 @@ const importSignerSignature = (masterFingerprint, name) => {
   })
 }
 
-const loadSignerXPrvs = async () => {
-  if (wallet.value) {
-    for (const signer of wallet.value.getSigners()) {
-      const xprv = await getSignerXPrv({ xpub: signer.xpub })
-      if (xprv) {
-        signersXPrv.value[signer.xpub] = xprv
+// const loadSignerXPrvs = async () => {
+//   if (wallet.value) {
+//     for (const signer of wallet.value.getSigners()) {
+//       const xprv = await getSignerXPrv({ xpub: signer.xpub })
+//       if (xprv) {
+//         signersXPrv.value[signer.xpub] = xprv
+//       }
+//     }
+//   }
+// }
+
+const loadWallet = async () => {
+  const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  if (walletObject) {
+    wallet.value = MultisigWallet.fromObject(
+      walletObject,
+      { 
+        network: multisigNetworkProvider,
+        coordinationServer: multisigCoordinationServer,
+        resolveXprvOfXpub,
+        resolveMnemonicOfXpub
       }
-    }
+    )
+    await wallet.value.resolveXprvsOfXpubs()
+    console.log('WALLET', wallet.value)
+    console.log('Wallet json', wallet.value.toJSON())
   }
 }
  
 const loadProposal = async () => {
+  if (!wallet.value) return
   pst.value = 
     (new Pst())
       .setStore($store)
@@ -609,6 +630,7 @@ const loadProposal = async () => {
       .setCoordinationServer(multisigCoordinationServer)
       .loadFromStore(route.params.unsignedtransactionhash)
 
+  console.log('PROPOSAL', pst.value)
   if (pst.value) {
     
     try {
@@ -664,8 +686,7 @@ watch(() => pst.value?.status, async (newVal) => {
 }, { deep: true })
 
 onMounted(async () => {
-  
-  await loadSignerXPrvs()
+  loadWallet()
   await loadProposal()
   registerInterval(() => {
     pst.value.fetchAndMergeSignatures()
