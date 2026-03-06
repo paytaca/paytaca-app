@@ -1066,9 +1066,9 @@ export class Pst {
       const pubkey = Object.keys(output.bip32Derivation)[0] 
       const path = output.bip32Derivation[pubkey].path
       const relativePath = bip32ExtractRelativePath(path)
-      if (relativePath.startsWith('1/') ) {
+      if (relativePath.startsWith('1/') || relativePath.startsWith('0/')) {
         total += Number(output.valueSatoshis)
-       }
+      }
      }
     return total
   }
@@ -1095,6 +1095,59 @@ export class Pst {
       const relativePath = bip32ExtractRelativePath(path)
       if (relativePath.startsWith('1/') ) {
         total += BigInt(output.token.amount)
+       }
+     }
+    return total
+  }
+
+  /**
+   * Token is considered credit if the transaction doesn't spend a token
+   * of the same category i.e. it's not change. This is possible when
+   * interacting a contract where in the contract emits/credits a token to 
+   * the wallet.
+   * 
+   * @param {string} category
+   */
+  getTotalTokenCredit(category) {
+    if (this.getTotalTokenDebit(category) > 0) return 0 // It isn't change
+    let total = 0n
+    for (const output of this.outputs.filter(o => o.token && binToHex(o.token.category) === category)) {
+      if (!output.bip32Derivation) continue
+      const pubkey = Object.keys(output.bip32Derivation)[0] 
+      const path = output.bip32Derivation[pubkey].path
+      const relativePath = bip32ExtractRelativePath(path)
+      if (relativePath.startsWith('0/') ) { // credit to external address
+        total += BigInt(output.token.amount)
+       }
+     }
+    return total
+  }
+
+  getTotalNftDebit(category) {
+    const inputs = this.inputs.filter(i => i.sourceOutput?.token && binToHex(i.sourceOutput.token.category) === category)
+    let quantity = 0
+    inputs.forEach((i) => {
+      if (i.bip32Derivation) {
+        total++
+      }
+    })
+    return quantity
+  }
+
+  /**
+   * Returns the total quantity of NFTs of a particular category,
+   * credited to the wallet.
+   */
+  getTotalNftCredit(category) {
+    if (this.getTotalNftDebit(category) > 0) return 0
+    let total = 0n
+    for (const output of this.outputs.filter(o => o.token && binToHex(o.token.category) === category)) {
+      if (!output.bip32Derivation) continue
+      const pubkey = Object.keys(output.bip32Derivation)[0] 
+      const path = output.bip32Derivation[pubkey].path
+      const relativePath = bip32ExtractRelativePath(path)
+      if (relativePath.startsWith('0/') ) { // credit to external address
+        total++
        }
      }
     return total
