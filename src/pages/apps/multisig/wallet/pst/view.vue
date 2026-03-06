@@ -601,45 +601,59 @@ const loadSignerXPrvs = async () => {
   }
 }
  
-const loadPst = async () => {
-  const storedPst = 
+const loadProposal = async () => {
+  pst.value = 
     (new Pst())
       .setStore($store)
       .setWallet(wallet.value)
       .setCoordinationServer(multisigCoordinationServer)
       .loadFromStore(route.params.unsignedtransactionhash)
-  
-  if (storedPst) {
-    pst.value = storedPst
-    await pst.value.sync()?.catch((e) => {
-      if (e?.response?.status === 404) {
+
+  if (pst.value) {
+    
+    try {
+
+      await pst.value.sync()
+      if (pst.value.id) {
+        const initializationTasks = [
+          { label: 'fetching proposals\'s coordinator info', f: async () => await pst.value.fetchCoordinatorInfo() },
+          { label: 'fetching inputs reference transaction', f: async () => await pst.value.resolveInputsTransactionData() },
+          { label: 'fetching proposal\'s status', f: async () => await pst.value.fetchStatus() }
+        ]
+        const results = await Promise.allSettled([
+          initializationTasks[0].f(), 
+          initializationTasks[1].f(),
+          initializationTasks[2].f()
+        ])
+        
+        results.forEach((r, i) => {
+          r.label = initializationTasks[i].label
+        })
+
+        for (const r of results) {
+          if (r.status !== 'rejected') continue
+            $q.notify({
+              title: $t('Warning'),
+              color: 'warning',
+              textColor: 'black',
+              message: `Failed ${r.label}, ${r.reason}`,
+            })
+        }
+      }
+
+    } catch (error) {
+      console.log('ERROR', error)
+      if (error?.response?.status === 404) {
         return
       }
-      $q.notify({
-        message: $t('ProposalSyncWarning', {}, 'Warning: Unable to detect if this proposal exists in Paytaca\'s Coordination Server. You can still use the app you just can\'t use the coordination server as of this time.'),
-        color: 'warning',
-        textColor: 'black'
-      })
-    })
-    await pst.value.fetchCoordinatorInfo()
-  }
-}
 
-const loadPstInputsTransactionData = async () => {
-  try {
-    await pst.value?.resolveInputsTransactionData()  
-  } catch (error) {
-    $q.dialog({
-      title: $t('Warning'),
-      message: error?.message,
-      class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
-      ok: { 
-        label: $t('DownloadFile'),
-        color: 'primary',
-        rounded: true,
-        class: `button-default ${getDarkModeClass(darkMode.value)}`,
-      }
-    })
+      $q.notify({
+        title: $t('Warning'),
+        color: 'warning',
+        textColor: 'black',
+        message: error?.message,
+      })
+    }
   }
 }
 
@@ -652,9 +666,7 @@ watch(() => pst.value?.status, async (newVal) => {
 onMounted(async () => {
   
   await loadSignerXPrvs()
-  await loadPst()
-  await loadPstInputsTransactionData()
-  await pst.value.fetchStatus()
+  await loadProposal()
   registerInterval(() => {
     pst.value.fetchAndMergeSignatures()
     if (pst.value?.status?.status === STATUS.PENDING) {
