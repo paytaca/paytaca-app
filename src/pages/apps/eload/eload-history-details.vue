@@ -54,16 +54,20 @@
 					{{ promoSnapshot?.name }}
 				</div>
 
-				<div class="q-gutter-sm q-py-sm">				
+				<div class="q-gutter-sm q-pt-sm q-pb-xs">		
 					<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot?.service" />
 			    	<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot?.service_group" />
 				</div>
 
 				<div class=" q-py-xs">
 					<span class="md-font-size">PHP {{ promoSnapshot?.amount }}</span> &nbsp;|&nbsp; <span class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ order?.bch_amount }} BCH</span>
-				</div>			
+				</div>
+
+				<div v-if="order?.gbits_address" class="" :class="darkMode ? 'text-grey-5' : 'text-grey-8'" style="text-decoration: underline;">
+					{{ order.gbits_address }}
+				</div>
 				
-				<div class="q-py-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ promoSnapshot?.description }}</div>
+				<div class="q-py-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ promoSnapshot?.description }}</div>
 
 				<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ promoSnapshot?.validity }}</div>
 			</q-card>
