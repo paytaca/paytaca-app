@@ -45,7 +45,7 @@
 
 	<div class="q-pt-md q-mx-lg" v-else :class="darkMode ? 'text-white' : 'text-black'">
 		<div class="text-center q-mb-md">
-			<div class="text-capitalize status">{{ order?.status }}</div>
+			<div class="text-capitalize status">{{ getStatusLabel(order) }}</div>
 			<div class="order-id">ORDER ID: {{ order?.txn_id }}</div>
 		</div>
 		<q-card class="q-pa-md br-15">			
@@ -67,30 +67,50 @@
 			<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ promoSnapshot?.validity }}</div>
 		</q-card>
 
-		<div v-if="order?.bch_txid && order?.bch_txid !== 'balance-confirmed'" class="transaction-id-section section-block-ss text-center" style="margin-top: 25px;">
-          <div class="text-weight-medium sm-font-size q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;{{ $t('TransactionId')}}</div>         
+		<div v-if="order?.status === 'pending'" class="q-mt-md">
+			<div class="row justify-center">
+				<div class="column items-center">
+					<q-spinner-dots size="32px" color="primary" />
+					<div class="q-mt-sm text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-8'">
+						Processing Order
+					</div>
+				</div>
+			</div>
+		</div>
 
-          <div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="order?.bch_txid && copyToClipboard(order?.bch_txid)">
-            <span class="txid-text-ss">{{ order?.bch_txid ? `${order?.bch_txid.slice(0, 8)}...${order?.bch_txid.slice(-8)}` : '' }}</span>
-            <a class="view-explorer-link-ss" :class="darkMode ? 'text-white' : 'text-black'" :href="explorerLink" target="_blank">
-            	<q-icon name="open_in_new" size="18px" class="copy-icon-ss" @click.stop=""/>
-            </a>
-            <q-icon name="content_copy" size="18px" class="copy-icon-ss" />
-          </div>
-          <!-- <div class="view-explorer-container q-mt-sm">
-            <a class="view-explorer-link-ss text-grad" :class="getDarkModeClass(darkMode)" :href="explorerLink" target="_blank">
-              <q-icon name="open_in_new" size="16px" class="q-mr-xs" />
-              {{ $t('ViewInExplorer') }}
-            </a>
-          </div> -->
-        </div>
+		<q-card class="q-pa-md br-15 q-mt-md" v-if="order?.status === 'success' || order?.status === 'failed'">
+			<div class="text-center text-weight-bold lg-font-size q-mb-sm">{{ paymentCardTitle }}</div>
+			<div v-if="order?.status === 'failed' && !order?.settlement_txid">
+				<div class="text-center sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+					Refund in Progress — Please Wait
+				</div>
+				<div class="row justify-center">
+					<div class="column items-center">
+						<q-spinner-dots size="32px" color="primary" />
+					</div>
+				</div>
+			</div>
+			<div v-else>
+				<div class="transaction-id-section section-block-ss text-center" v-if="getTxnID">
+					<div class="text-weight-medium sm-font-size q-mb-sm" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;{{ $t('TransactionId')}}</div>
+					<div class="txid-container-ss" :class="getDarkModeClass(darkMode)" @click="getTxnID && copyToClipboard(getTxnID)">
+						<span class="txid-text-ss">{{ `${getTxnID.slice(0, 8)}...${getTxnID.slice(-8)}` }}</span>
+						<a class="view-explorer-link-ss" :class="darkMode ? 'text-white' : 'text-black'" :href="explorerLink(getTxnID)" target="_blank">
+							<q-icon name="open_in_new" size="18px" class="copy-icon-ss" @click.stop=""/>
+						</a>
+						<q-icon name="content_copy" size="18px" class="copy-icon-ss" />
+					</div>
+				</div>
 
-        <div v-if="order?.completed_at">
-        	<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'" style="margin-top: 14px;">&nbsp;Completed at</div>
-	        <div class="date-prominent q-mt-xs q-mb-lg date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
-	          {{ formatDate(order?.completed_at) }}
-	        </div>
-        </div>        
+				<div class="q-mt-md">
+					<div class="text-weight-medium sm-font-size text-center" :class="darkMode ? 'text-white' : 'text-grey'">&nbsp;Settled at</div>
+					<div class="date-prominent q-mt-xs date-block-ss" :class="getDarkModeClass(darkMode)" style="margin-top: 10px;">
+						{{ formatDate(getSettleDate) }}
+					</div>
+				</div>
+			</div>
+		</q-card>
+
 	</div>
 </template>
 <script>
@@ -113,15 +133,46 @@ export default {
 		HeaderNav
 	},
 	computed: {
-		explorerLink () {
-	      const txid = this.order?.bch_txid
-	      return getExplorerLink(txid || '')
-	    },
+		getTxnID () {
+			const bchTxid = this.order?.bch_txid
+			if (!bchTxid || bchTxid.includes('-')) {
+				return this.order?.settlement_txid
+			}
+			return bchTxid
+		},
+		getSettleDate () {
+			return this.order?.settled_at || this.order?.completed_at
+		},
+		paymentCardTitle () {
+			if (this.order?.status === 'success') {
+				return 'Payment'
+			} else if (this.order?.status === 'failed') {
+				if (this.order?.settlement_txid) {
+					return 'Refunded'
+				} else {
+					return 'Pending Refund'
+				}
+			}
+			return ''
+		}
 	},
 	async mounted () {
 		await this.fetchOrder()
 	},
 	methods: {	
+		getStatusLabel (order) {
+			if (order?.status === 'failed') {
+				if (order?.settlement_txid) {
+					return 'Refunded'
+				} else {
+					return 'Pending Refund'
+				}
+			}
+			return order?.status
+		},
+		explorerLink (txid) {
+		  return getExplorerLink(txid || '')
+		},
 		getDarkModeClass,	
 		async fetchOrder () {
 			this.loading = true
