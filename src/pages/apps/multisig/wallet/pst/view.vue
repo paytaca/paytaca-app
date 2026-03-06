@@ -639,11 +639,8 @@ const loadProposal = async () => {
       .setCoordinationServer(multisigCoordinationServer)
       .loadFromStore(route.params.unsignedtransactionhash)
 
-  console.log('PROPOSAL', pst.value)
   if (pst.value) {
-    
     try {
-
       await pst.value.sync()
       if (pst.value.id) {
         const initializationTasks = [
@@ -673,7 +670,6 @@ const loadProposal = async () => {
       }
 
     } catch (error) {
-      console.log('ERROR', error)
       if (error?.response?.status === 404) {
         return
       }
@@ -699,7 +695,7 @@ onMounted(async () => {
   await loadProposal()
   registerInterval(() => {
     pst.value.fetchAndMergeSignatures()
-    if (pst.value?.status?.status === STATUS.PENDING) {
+    if (!pst.value.status || pst.value?.status?.status === STATUS.PENDING) {
       pst.value.fetchStatus()
     }
   }, 3000) 
