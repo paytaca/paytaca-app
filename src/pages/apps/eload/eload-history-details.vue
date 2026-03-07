@@ -59,8 +59,37 @@
 			    	<q-badge class="q-px-sm" rounded outline color="primary" :label="promoSnapshot?.service_group" />
 				</div>
 
-				<div class=" q-py-xs">
-					<span class="md-font-size">PHP {{ promoSnapshot?.amount }}</span> &nbsp;|&nbsp; <span class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">{{ order?.bch_amount }} BCH</span>
+				<!-- Payment Breakdown -->
+				<div class="q-mt-sm">
+					<div class="row justify-between items-center">
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Subtotal</div>
+						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.subtotal_php || promoSnapshot?.amount + ' PHP' }}
+						</div>
+					</div>
+
+					<div v-if="promoSnapshot?.convenience_fee_php || promoSnapshot?.convenience_fee_bch" class="row justify-between items-center q-mt-xs">
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Convenience Fee</div>
+						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.convenience_fee_php || promoSnapshot?.convenience_fee_bch }} {{ promoSnapshot?.convenience_fee_php ? 'PHP' : 'BCH' }}
+						</div>
+					</div>
+
+					<q-separator class="q-my-sm" :class="darkMode ? 'bg-grey-7' : 'bg-grey-4'" />
+
+					<div class="row justify-between items-center q-mb-xs">
+						<div class="text-weight-bold" :class="darkMode ? 'text-white' : 'text-grey-9'">Total</div>
+						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.total_php || promoSnapshot?.amount + ' PHP' }}
+						</div>
+					</div>
+
+					<div v-if="promoSnapshot?.total_bch || order?.bch_amount" class="row justify-between items-center">
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">≈ BCH Equivalent</div>
+						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.total_bch || order?.bch_amount }} BCH
+						</div>
+					</div>
 				</div>
 
 				<div v-if="order?.gbits_address" class="" :class="darkMode ? 'text-grey-5' : 'text-grey-8'" style="text-decoration: underline;">
@@ -83,8 +112,39 @@
 				</div>
 			</div>
 
+			<!-- Payment Details Card -->
 			<div class="q-pa-md br-15 q-mt-md" v-if="order?.status === 'success' || order?.status === 'failed'">
 				<div class="text-center text-weight-bold lg-font-size q-mb-sm">{{ paymentCardTitle }}</div>
+
+				<!-- Payment Breakdown (if available) -->
+				<div v-if="(promoSnapshot?.convenience_fee_php || promoSnapshot?.convenience_fee_bch) && order?.status === 'success'" class="q-mb-md">
+					<div class="row justify-between items-center q-mb-xs">
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Subtotal</div>
+						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.subtotal_php || promoSnapshot?.amount + ' PHP' }}
+						</div>
+					</div>
+					<div class="row justify-between items-center q-mb-xs">
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Convenience Fee</div>
+						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.convenience_fee_php || promoSnapshot?.convenience_fee_bch }} {{ promoSnapshot?.convenience_fee_php ? 'PHP' : 'BCH' }}
+						</div>
+					</div>
+					<div class="row justify-between items-center q-mb-xs">
+						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">Total</div>
+						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.total_php || promoSnapshot?.amount + ' PHP' }}
+						</div>
+					</div>
+
+					<div v-if="promoSnapshot?.total_bch || order?.bch_amount" class="row justify-between items-center">
+						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">≈ BCH Equivalent</div>
+						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+							{{ promoSnapshot?.total_bch || order?.bch_amount }} BCH
+						</div>
+					</div>
+				</div>
+
 				<div v-if="order?.status === 'failed' && !order?.settlement_txid">
 					<div class="text-center sm-font-size q-mb-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
 						Refund in Progress — Please Wait
@@ -210,19 +270,20 @@ export default {
 	      this.$copyText(value)
 	      this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
 	    },
-	    formatDate (date) {
-	      const dateObj = new Date(date)
-	      const langs = [this.$store.getters['global/language'], 'en-US']
-	      return new Intl.DateTimeFormat(langs, {
-	        year: 'numeric',
-	        month: 'short',
-	        day: 'numeric',
-	        hour: 'numeric',
-	        minute: '2-digit',
-	        second: '2-digit',
-	        timeZoneName: 'short'
-	      }).format(dateObj)
-	    },
+    formatDate (date) {
+      const dateObj = new Date(date)
+      const langs = [this.$store.getters['global/language'], 'en-US']
+      return new Intl.DateTimeFormat(langs, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      }).format(dateObj)
+    },
+
 	}
 }
 </script>
