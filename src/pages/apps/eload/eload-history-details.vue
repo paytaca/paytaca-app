@@ -80,7 +80,7 @@
 					<div class="row justify-between items-center q-mb-xs">
 						<div class="text-weight-bold" :class="darkMode ? 'text-white' : 'text-grey-9'">Total</div>
 						<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">
-							{{ promoSnapshot?.total_php || 'PHP ' + promoSnapshot?.amount }} PHP
+							{{ promoSnapshot?.total_php || promoSnapshot?.amount + ' PHP' }}
 						</div>
 					</div>
 
@@ -136,7 +136,7 @@
 							{{ promoSnapshot?.total_php || promoSnapshot?.amount + ' PHP' }}
 						</div>
 					</div>
-					</div>
+
 					<div v-if="promoSnapshot?.total_bch || order?.bch_amount" class="row justify-between items-center">
 						<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">≈ BCH Equivalent</div>
 						<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">

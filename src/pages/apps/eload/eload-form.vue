@@ -35,7 +35,7 @@
 				</div>
 				<div class="row q-mb-xs success-row">
 					<div class="col-5 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Total</div>
-					<div class="col-7 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedTotalPhp }} PHP</div>
+					<div class="col-7 text-weight-bold text-right md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedTotalPhp }} PHP</div>
 				</div>
 				<div class="row q-mb-xs success-row">
 					<div class="col-5 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">≈ BCH Paid</div>
