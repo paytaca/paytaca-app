@@ -923,12 +923,12 @@ async function resetTabs() {
   await asyncSleep(10)
   if (!validCoordinates.value) return
 
-  const hasName = Boolean(formData.value.delivery?.firstName && formData.value.delivery?.lastName)
-  if (!formData.value.delivery?.phoneNumber || !hasName) return
- 
   if (!checkout.value.deliveryAddress?.distance) await updateDeliveryFee().catch(console.error)
   await suggestStorePickup()
   await findRider({ replaceExisting: false, displayDialog: true })
+
+  const hasName = Boolean(formData.value.delivery?.firstName && formData.value.delivery?.lastName)
+  if (!formData.value.delivery?.phoneNumber || !hasName) return
   nextTab()
 
   if (checkout.value.balanceToPay) return
