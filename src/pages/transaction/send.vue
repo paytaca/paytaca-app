@@ -2113,7 +2113,7 @@ export default {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  isReferralComplete: resp.is_referral_complete,
+                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
                 }
               })
             }

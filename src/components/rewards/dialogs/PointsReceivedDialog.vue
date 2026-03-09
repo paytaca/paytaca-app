@@ -50,7 +50,7 @@
             <p class="q-ma-none">
               {{ $t('PointsReceivedDescription1', "Congratulations! You've earned points for completing this transaction.") }}
             </p>
-            <p v-if="isReferralComplete" class="q-ma-none">
+            <p v-if="hasReceivedFirstTxBonus" class="q-ma-none">
               {{ $t('PointsReceivedDescription2', "You've also earned bonus points for completing your very first transaction.") }}
             </p>
             <p class="q-ma-none q-mt-sm">
@@ -82,7 +82,7 @@ export default {
   name: 'PointsReceivedDialog',
 
   props: {
-    isReferralComplete: { type: Boolean, default: false }
+    hasReceivedFirstTxBonus: { type: Boolean, default: false }
   },
 
   computed: {
