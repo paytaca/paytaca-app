@@ -2578,6 +2578,14 @@ export default {
       }
     },
     async preloadAudio () {
+      // Configure NativeAudio to not take audio focus, allowing other apps
+      // (e.g. Spotify) to continue playing in the background
+      try {
+        await NativeAudio.configure({ focus: false, fade: false })
+      } catch (e) {
+        // Ignore configure errors - proceed with preload anyway
+      }
+
       // Try different path formats for iOS
       let paths = ['send-success.mp3']
       if (this.$q.platform.is.ios) {
