@@ -173,14 +173,14 @@
                     <q-card-section>
                       <div class="row items-center q-gutter-md">
                         <achievement-icon
-                          :complete="isReferralComplete"
+                          :complete="hasReceivedFirstTxBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
+                            {{ $t('InitialUP', { points: '5 UP' }, 'New user first visit bonus') }}
                           </div>
-                          <div v-if="isReferralComplete" class="text-caption text-green-7">
+                          <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
                                 { date: formatDateLocaleRelative(dateJoined, false) },
@@ -192,7 +192,7 @@
                           </div>
                         </div>
                         <points-badge
-                          :complete="isReferralComplete"
+                          :complete="hasReceivedFirstTxBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                           :points="5"
                         />
@@ -209,18 +209,18 @@
                     <q-card-section>
                       <div class="row items-center q-gutter-md">
                         <achievement-icon
-                          :complete="hasReceivedInitialPoints"
+                          :complete="hasReceivedFirstVisitBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
+                            {{ $t('PointsFrom1stTx', 'First transaction completion bonus') }}
                           </div>
-                          <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
+                          <div v-if="hasReceivedFirstVisitBonus" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
-                                { date: formatDateLocaleRelative(referralCompleteDate, false) },
-                                `Earned on ${formatDateLocaleRelative(referralCompleteDate, false)}`
+                                { date: formatDateLocaleRelative(firstTxDate, false) },
+                                `Earned on ${formatDateLocaleRelative(firstTxDate, false)}`
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -228,7 +228,7 @@
                           </div>
                         </div>
                         <points-badge
-                          :complete="hasReceivedInitialPoints"
+                          :complete="hasReceivedFirstVisitBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                           :points="5"
                         />
@@ -253,7 +253,7 @@
                       />
                       <div class="col q-px-md">
                         <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                          {{ $t('PointsFromSeven', 'Points from first 7 transactions') }}
+                          {{ $t('PointsFromSeven', 'First seven transactions bonus') }}
                         </div>
                         <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                           {{ completedFirstSevenCount }}/7 transactions completed
@@ -608,11 +608,11 @@ export default {
       pointsError: '',
       dataError: '',
 
-      isReferralComplete: false,
-      referralCompleteDate: null,
+      hasReceivedFirstTxBonus: false,
+      firstTxDate: null,
       isFirstSevenComplete: false,
       isFirstTimeUser: true,
-      hasReceivedInitialPoints: false,
+      hasReceivedFirstVisitBonus: false,
       has_viewed_page: false,
       dateJoined: '',
       urContract: null,
@@ -635,8 +635,8 @@ export default {
     },
     completedOneTimeCount () {
       let count = 0
-      if (this.hasReceivedInitialPoints) count++
-      if (this.isReferralComplete) count++
+      if (this.hasReceivedFirstVisitBonus) count++
+      if (this.hasReceivedFirstTxBonus) count++
       count += this.completedFirstSevenCount
       return count
     },
@@ -754,11 +754,11 @@ export default {
           })
         }
 
-        this.isReferralComplete = urData.is_referral_complete
-        this.isFirstSevenComplete = urData.is_first_seven_complete
-        this.referralCompleteDate = urData.referral_complete_date
         this.isFirstTimeUser = urData.is_first_time_user
-        this.hasReceivedInitialPoints = urData.has_received_initial_points
+        this.isFirstSevenComplete = urData.is_first_seven_complete
+        this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
+        this.hasReceivedFirstTxBonus = urData.has_received_first_tx_bonus
+        this.firstTxDate = urData.first_tx_date
         this.dateJoined = urData.date_joined
 
         // TODO filter latest date
