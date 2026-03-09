@@ -2108,13 +2108,12 @@ export default {
             bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
             ref_id: hexToRef(result.txid.substring(0, 6)),
             tx_id: result.txid
-          }).then(onetimePointsResp => {
-            if (onetimePointsResp) {
+          }).then(resp => {
+            if (resp) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  hasReceivedCashinPoints: cashinResp,
-                  hasReceivedOneTimePoints: onetimePointsResp
+                  hasReceivedInitialPoints: resp.has_received_initial_points,
                 }
               })
             }

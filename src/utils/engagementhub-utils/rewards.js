@@ -84,16 +84,14 @@ export function convertPoints (points, pointsDivisor) {
 
 // ========== reusable functions ==========
 
-/**
- * Process points depending on given url and data.
- * @returns true if points were processed successfully;
- * false otherwise
- */
 async function processPoints (url, data) {
   return await REWARDS_URL
     .post(url, data)
-    .then(response => { return response.status === 200 })
-    .catch(_error => { return false })
+    .then(response => {
+      if (response.status === 200) return response.data
+      else return null
+    })
+    .catch(_error => { return null })
 }
 
 async function getData (url) {
