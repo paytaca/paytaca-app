@@ -31,10 +31,6 @@
             </q-menu>
           </q-icon>
           <q-chip v-if="!storefront?.active" color="grey" class="q-ma-none text-weight-medium">Inactive</q-chip>
-          <q-chip v-if="!storefront?.isOpen" color="grey" class="q-ma-none text-weight-medium">Closed</q-chip>
-          <div v-if="!storefront?.isOpen && storefront?.openingTimeText" class="col-12">
-            {{ storefront?.openingTimeText }}
-          </div>
         </template>
       </div>
       <div v-if="!storefront?.isStorepickupOnly && deliveryCalculation?.fee" class="row items-center no-wrap q-px-sm">
@@ -107,6 +103,20 @@
         />
       </div>
       <div class="q-py-sm"></div>
+      <q-banner
+        v-if="storefront?.id && !storefront?.isOpen"
+        class="q-mb-md q-mx-sm bg-grad text-white"
+      >
+        <template v-slot:avatar>
+          <q-icon name="store" color="white" />
+        </template>
+        <div v-if="storefront?.openingTimeText" class="text-subtitle1">
+          {{ storefront?.openingTimeText }}
+        </div>
+        <div v-else class="text-subtitle1">
+          Currently Closed
+        </div>
+      </q-banner>
       <div v-if="storefront?.id" class="q-px-sm q-mb-sm">
         <q-input
           outlined
