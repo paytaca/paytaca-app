@@ -173,14 +173,14 @@
                     <q-card-section>
                       <div class="row items-center q-gutter-md">
                         <achievement-icon
-                          :complete="hasReceivedInitialPoints"
+                          :complete="isReferralComplete"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                             {{ $t('InitialUP', { points: '5 UP' }, 'Initial points from referral') }}
                           </div>
-                          <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
+                          <div v-if="isReferralComplete" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
                                 { date: formatDateLocaleRelative(dateJoined, false) },
@@ -192,7 +192,7 @@
                           </div>
                         </div>
                         <points-badge
-                          :complete="hasReceivedInitialPoints"
+                          :complete="isReferralComplete"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                           :points="5"
                         />
@@ -209,14 +209,14 @@
                     <q-card-section>
                       <div class="row items-center q-gutter-md">
                         <achievement-icon
-                          :complete="isReferralComplete"
+                          :complete="hasReceivedInitialPoints"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                             {{ $t('PointsFrom1stTx', 'Bonus points after completing 1st transaction') }}
                           </div>
-                          <div v-if="isReferralComplete" class="text-caption text-green-7">
+                          <div v-if="hasReceivedInitialPoints" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
                                 { date: formatDateLocaleRelative(referralCompleteDate, false) },
@@ -228,7 +228,7 @@
                           </div>
                         </div>
                         <points-badge
-                          :complete="isReferralComplete"
+                          :complete="hasReceivedInitialPoints"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                           :points="5"
                         />
