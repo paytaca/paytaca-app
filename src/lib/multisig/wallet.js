@@ -1161,6 +1161,12 @@ export class MultisigWallet {
     const proposal = new Pst()
     const inputs = sessionRequest.params.request.params.transaction.inputs?.map((input) => {
       const mappedInput = JSON.parse(JSON.stringify(input, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver)
+      if (input?.sourceOutput?.unlockingBytecode && input?.sourceOutput?.contract?.redeemScript) {
+        mappedInput.redeemScript = input.sourceOutput.contract.redeemScript
+        mappedInput.scriptSig = input.sourceOutput.unlockingBytecode
+        return mappedInput
+      }
+
       const wcExpectedLockingBytecode = cashAddressToLockingBytecode(this.getDepositAddress(0).address)
       if (mappedInput.sourceOutput.lockingBytecode && binsAreEqual(mappedInput.sourceOutput.lockingBytecode, wcExpectedLockingBytecode.bytecode)) {
         const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: '0/0' })
