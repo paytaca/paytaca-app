@@ -855,9 +855,10 @@ export class Pst {
     return getSigningProgress(this)
   }
 
-  async fetchStatus() {
+  async fetchStatus(queryFilter) {
     this.status = await this.options?.coordinationServer?.getProposalStatus({ 
-      unsignedTransactionHash: this.unsignedTransactionHash 
+      unsignedTransactionHash: this.unsignedTransactionHash,
+      queryFilter: queryFilter
     })
     return this.status 
   }
