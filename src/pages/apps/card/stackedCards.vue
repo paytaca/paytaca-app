@@ -27,7 +27,7 @@
             v-for="(card, index) in displayedCards"
             :key="card.id"
             class="stacked-card"
-            :class="{ 'swipe-hint': index === displayedCards.length -1, 'is-dragging': currentCardId === card.id }"
+            :class="{ 'swipe-hint': index === 0, 'is-dragging': currentCardId === card.id }"
             :style="getCardStyle(index)"
             @mousedown="startDrag($event, card)"
             @touchstart="startDrag($event, card)"
@@ -196,12 +196,8 @@ export default {
 
   computed: {
     displayedCards () {
-      // Show the 3 newest cards with newest at the front
-      // Sort by id ASCENDING (oldest first) so newest gets highest z-index
-      // This puts the newest card visually at the front of the stack
-      const sorted = [...this.subCards].sort((a, b) => a.id - b.id)
-      // Take last 3 (newest) if there are more than 3
-      return sorted.slice(-3)
+      const sorted = [...this.subCards].sort((a, b) => b.id - a.id)
+      return sorted.slice(0, 3)
     },
 
     hiddenCount () {
@@ -221,31 +217,29 @@ export default {
       const translateX = this.swipeStates[cardId] || 0
       const isDraggingThisCard = this.currentCardId === cardId
       
-      // Position cards behind the "Add a new card" button
-      // Button is at bottom: 0 with height: 280px
-      // Card is 180px tall, we want ~110px hidden behind button, ~70px visible (handle + info)
-      // So card bottom should be at 280 - 110 = 170px from bottom
       const cardSpacing = 70
+      const totalCards = this.displayedCards.length
       const buttonHeight = 280
       const cardHeight = 180
       const visibleArea = 70 // handle (30px) + card info area (~40px)
       const hiddenArea = cardHeight - visibleArea // 110px hidden behind button
       
-      // Base position: 170px from bottom (card peeks out 70px above button)
+      // Base position for newest card: 170px from bottom
       const baseOffset = buttonHeight - hiddenArea
+      // As cards are added, older cards move up by 70px so their info remains visible
       const bottomOffset = baseOffset + index * cardSpacing
 
       return {
         bottom: `${bottomOffset}px`,
-        zIndex: isDraggingThisCard ? 100 : (index + 1),
+        zIndex: isDraggingThisCard ? 100 : (totalCards - index),
         position: 'absolute',
         width: '90%',
         left: '5%',
+        transform: `translateX(${translateX}px)`,
         background: this.$q.dark.isActive ? '#1d1d1d' : 'white',
         border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid #9e9e9e',
         borderRadius: '15px',
         height: '180px',
-        transform: `translateX(${translateX}px)`,
         touchAction: 'none',
         userSelect: 'none',
         pointerEvents: 'auto',
@@ -255,7 +249,7 @@ export default {
           ? 'none'
           : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
 
-        filter: `brightness(${1-index * 0.1})`
+        filter: `brightness(${1 - index * 0.1})`
       }
     },
 
