@@ -218,13 +218,25 @@ export default {
     getCardStyle (index) {
       const card = this.displayedCards[index]
       const cardId = card?.id
-      // Increased spacing to show more of each card (70px instead of 45px)
-      const offset = index * 70
       const translateX = this.swipeStates[cardId] || 0
       const isDraggingThisCard = this.currentCardId === cardId
+      
+      // Position cards behind the "Add a new card" button
+      // Button is at bottom: 0 with height: 280px
+      // Card is 180px tall, we want ~110px hidden behind button, ~70px visible (handle + info)
+      // So card bottom should be at 280 - 110 = 170px from bottom
+      const cardSpacing = 70
+      const buttonHeight = 280
+      const cardHeight = 180
+      const visibleArea = 70 // handle (30px) + card info area (~40px)
+      const hiddenArea = cardHeight - visibleArea // 110px hidden behind button
+      
+      // Base position: 170px from bottom (card peeks out 70px above button)
+      const baseOffset = buttonHeight - hiddenArea
+      const bottomOffset = baseOffset + index * cardSpacing
 
       return {
-        top: `${offset}px`,
+        bottom: `${bottomOffset}px`,
         zIndex: isDraggingThisCard ? 100 : (index + 1),
         position: 'absolute',
         width: '90%',
