@@ -304,6 +304,7 @@ const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const isBroadcasting = ref(false)
 const pst = ref()
+const isFetchingStatus = ref(false)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -646,7 +647,7 @@ const loadProposal = async () => {
         const initializationTasks = [
           { label: 'fetching proposals\'s coordinator info', f: async () => await pst.value.fetchCoordinatorInfo() },
           { label: 'fetching inputs reference transaction', f: async () => await pst.value.resolveInputsTransactionData() },
-          { label: 'fetching proposal\'s status', f: async () => await pst.value.fetchStatus() }
+          { label: 'fetching proposal\'s status', f: async () => await pst.value.fetchStatus({includeDeleted: true}) }
         ]
         const results = await Promise.allSettled([
           initializationTasks[0].f(), 
@@ -693,10 +694,15 @@ watch(() => pst.value?.status, async (newVal) => {
 onMounted(async () => {
   loadWallet()
   await loadProposal()
-  registerInterval(() => {
+  registerInterval(async () => {
     pst.value.fetchAndMergeSignatures()
-    if (!pst.value.status || pst.value?.status?.status === STATUS.PENDING) {
-      pst.value.fetchStatus()
+    if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
+      isFetchingStatus.value = true
+      try {
+        await pst.value.fetchStatus({includeDeleted: true})
+      } finally {
+        isFetchingStatus.value = false
+      }
     }
   }, 3000) 
 })
