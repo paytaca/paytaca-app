@@ -573,7 +573,7 @@ const orders = ref([].map(Order.parse))
 const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
 
 async function fetchOrders(opts = { limit: 0, offset: 0 }) {
-  // Currently fetches active orders (e.g. not completed or cancelled)
+  // Currently fetches active orders (i.e. not completed or cancelled)
   const params = {
     ref: await $store.dispatch('marketplace/getCartRef'),
     limit: opts?.limit || 1,
