@@ -6,28 +6,38 @@ import { Store } from 'src/store'
 import { markRaw } from 'vue'
 import { minTokenValue } from './card/constants'
 
+const DEFAULT_CHANGE_INDEX = 0
+const DEFAULT_ADDRESS_INDEX = 0
+
 /**
  * Lightweight wrapper around LibauthHDWallet providing only the essential cryptographic 
  * operations needed for feature implementation.
  * 
- * This class was created to avoid the complexity and overhead of existing wallet classes 
- * and provide just what's needed: simple key derivation, address generation,
- * and message signing/verification, with a cleaner API that integrates directly with the 
- * store using walletIndex and addressIndex.
+ * This class provides: 
+ * - simple key derivation, 
+ * - address generation,
+ * - message signing/verification
  */
 export class Wallet {
   /**
    * Create a Wallet.
    * @param {number} walletIndex - The index of the wallet.
    * @param {string} walletHash - The hash of the wallet.
-   * @param {number} addressIndex - The index of the address.
-   * @param {boolean} [isChipnet=false] - Whether the wallet is for Chipnet.
+   * @param {Object} [opts] - Optional parameters.
+   * @param {number} [opts.changeIndex=DEFAULT_CHANGE_INDEX] - The change index.
+   * @param {number} [opts.addressIndex=DEFAULT_ADDRESS_INDEX] - The address index.
+   * @param {boolean} [opts.isChipnet=false] - Whether the wallet is for Chipnet.
    */
-  constructor (walletIndex, walletHash, addressIndex, isChipnet = false) {
+  constructor (walletIndex, walletHash, opts = { 
+      changeIndex: DEFAULT_CHANGE_INDEX, 
+      addressIndex: DEFAULT_ADDRESS_INDEX, 
+      isChipnet: false
+    }) {
     this.walletHash = walletHash
     this.walletIndex = walletIndex
-    this.addressIndex = addressIndex
-    this.isChipnet = isChipnet
+    this.changeIndex = opts.changeIndex
+    this.addressIndex = opts.addressIndex
+    this.isChipnet = opts.isChipnet
   }
 
   /**
@@ -73,7 +83,7 @@ export class Wallet {
    * @returns {string} The address path.
    */
   addressPath (addressIndex = this.addressIndex) {
-    return `0/${addressIndex}`
+    return `${this.changeIndex}/${addressIndex}`
   }
 
   /**
@@ -189,7 +199,7 @@ export class Wallet {
   /**
    * Estimates satoshis needed for token-related operation
    * Based on actual mainnet-js transaction requirements
-   * NB: Fragile estimation; should implement dynamic fee calculation
+   * NB: Fragile estimation! should implement dynamic fee calculation
    * @returns {bigint} Estimated satoshis needed
    */
   estimateTokenOpSatsRequirement () {
@@ -214,19 +224,43 @@ export class Wallet {
   }
 }
 
-const ADDRESS_INDEX = 0
-
 /**
  * Loads the Wallet.
  * If walletIndex is not provided, uses the current wallet index from the store. 
+ * The changeIndex defaults to 0.
  * The addressIndex defaults to 0.
  * @returns {Promise<Wallet>} The loaded wallet.
  */
-export async function loadWallet (walletIndex = null, addressIndex = ADDRESS_INDEX) {
+export async function loadWallet (
+    walletIndex = null, 
+    changeIndex= DEFAULT_CHANGE_INDEX, 
+    addressIndex = DEFAULT_ADDRESS_INDEX) {
+  
   const isChipnet = Store.getters['global/isChipnet']
   const globalWallet = Store.getters['global/getWallet']('bch')
   if (walletIndex === null) walletIndex = Store.getters['global/getWalletIndex']
-  const wallet = new Wallet(walletIndex, globalWallet.walletHash, addressIndex, isChipnet)
+  const wallet = new Wallet(
+    walletIndex,
+    globalWallet.walletHash, 
+    { changeIndex, addressIndex, isChipnet }
+  )
+  await wallet.loadWallet()
+  return wallet
+}
+
+export async function loadCardMerchantWallet (merchantAddressIndex = 0) {
+  const isChipnet = Store.getters['global/isChipnet']
+  const globalWallet = Store.getters['global/getWallet']('bch')
+  const walletIndex = Store.getters['global/getWalletIndex']
+  
+  const MERCHANT_CHANGE_INDEX = 7 // Dedicated change index for merchant wallet
+
+  const wallet = new Wallet(walletIndex, globalWallet.walletHash, { 
+    changeIndex: MERCHANT_CHANGE_INDEX, 
+    addressIndex: merchantAddressIndex, 
+    isChipnet: isChipnet
+  })
+
   await wallet.loadWallet()
   return wallet
 }
