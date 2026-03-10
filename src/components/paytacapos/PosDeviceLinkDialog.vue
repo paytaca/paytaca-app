@@ -20,7 +20,9 @@
             <div class="row items-center q-mr-sm">
               <q-icon name="info" size="1.5em"/>
             </div>
-            <div>{{ $t('DeviceMustBeOnline') }}</div>
+            <div class="row">
+              Make sure the POS device is using the latest version of Paytaca POS. 
+            </div>
           </div>
         </q-banner>
         <div v-if="!encryptionPublicKey" :class="darkMode ? 'bg-grey text-white': ''">
@@ -29,7 +31,7 @@
             outlined
             class="full-width"
             label="Encryption Public Key"
-            hint="Please enter the encryption public key of the POS device"
+            hint="Please enter the encryption public key of the POS device."
             v-model="encryptionPublicKeyInput"
           >
             <template v-slot:control>
