@@ -378,6 +378,7 @@ import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
@@ -449,12 +450,7 @@ export default {
       return this.tx.txid || this.tx.tx_hash || this.tx.hash || ''
     },
     explorerLink () {
-      const txid = this.transactionId
-      let url = 'https://explorer.paytaca.com/tx/'
-      if (this.$store.getters['global/isChipnet']) {
-        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
-      }
-      return `${url}${txid || ''}`
+      return getExplorerLink(this.transactionId || '')
     },
     displayAmountText () {
       if (!this.tx) return ''
@@ -2582,6 +2578,14 @@ export default {
       }
     },
     async preloadAudio () {
+      // Configure NativeAudio to not take audio focus, allowing other apps
+      // (e.g. Spotify) to continue playing in the background
+      try {
+        await NativeAudio.configure({ focus: false, fade: false })
+      } catch (e) {
+        // Ignore configure errors - proceed with preload anyway
+      }
+
       // Try different path formats for iOS
       let paths = ['send-success.mp3']
       if (this.$q.platform.is.ios) {

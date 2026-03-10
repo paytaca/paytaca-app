@@ -205,7 +205,7 @@ import { computed, inject, ref, watch, onMounted, onUnmounted, nextTick } from "
 import { useI18n } from "vue-i18n"
 import SecurityCheckDialog from "./SecurityCheckDialog.vue";
 import { formatWithLocale, getDenomDecimals, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { convertToFiatAmount } from 'src/utils/send-page-utils'
+import { convertToFiatAmount, getExplorerLink } from 'src/utils/send-page-utils'
 
 const $copyText = inject('$copyText')
 const $q = useQuasar()
@@ -313,7 +313,7 @@ function copyToClipboard(value, message) {
 }
 
 function txLink(txid) {
-  return `https://explorer.paytaca.com/tx/${txid}`
+  return getExplorerLink(txid || '')
 }
 
 

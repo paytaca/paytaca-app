@@ -11,7 +11,7 @@
       </template>
     </HeaderNav>
 
-    <div class="q-mx-sm q-my-sm">
+    <div class="pt-card pt-location-search-card br-15 q-my-md q-mx-md q-px-sm q-py-md" :class="getDarkModeClass(darkMode)">
       <SessionLocationWidget ref="sessionLocationWidget" />
     </div>
 
@@ -179,14 +179,75 @@
       
       <!-- Scroll sentinel for infinite loading -->
       <div ref="storefrontScrollSentinel" style="height: 1px; width: 100%;"></div>
+
+      <!-- Orders section - Fixed at bottom when orders exist -->
+      <div
+        v-if="orders.length"
+        :class="['orders--sticky-bottom', $q.dark.isActive ? `bg-pt-dark` : `bg-pt-light`]"
+      >
+        <div class="col-12 row items-center q-px-sm">
+          <div class="text-h5 q-px-xs">
+            Orders
+            <template v-if="ordersPagination.count > 1">({{ ordersPagination.count }})</template>
+          </div>
+          <q-space/>
+          <q-btn
+            v-if="orders.length < ordersPagination.count"
+            flat
+            no-caps
+            label="View all"
+            :to="{ name: 'app-marketplace-orders'}"
+          />
+        </div>
+        <div v-if="fetchingOrders" class="text-center q-px-md">
+          <q-linear-progress query reverse color="pt-primary1"/>
+        </div>
+        <div v-else class="q-mb-xs"></div>
+
+        <div class="q-py-sm orders-list">
+          <q-list separator>
+            <q-item
+              v-for="order in orders" :key="order?.id"
+              v-ripple
+              clickable
+              :to="{ name: 'app-marketplace-order', params: { orderId: order?.id } }"
+            >
+              <q-item-section top>
+                <q-item-label>
+                  Order#{{ order?.id }}
+                  <q-badge
+                    v-if="order?.formattedStatus"
+                    :color="order?.statusColor"
+                    text-color="white"
+                  >
+                    {{ order?.formattedStatus }}
+                  </q-badge>
+                </q-item-label>
+                <q-item-label caption>
+                  {{ order?.storefront?.name }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section avatar top>
+                <q-item-label>
+                  {{ formatDateRelative(order?.createdAt) }}
+                </q-item-label>
+                <q-item-label>
+                  {{ parseFiatCurrency(order?.total, order?.currency?.symbol) }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+      </div>
     </div>
   </q-pull-to-refresh>
 </template>
 <script setup>
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
-import { Storefront, Checkout } from 'src/marketplace/objects'
+import { Storefront, Checkout, Order } from 'src/marketplace/objects'
 import { formatDateRelative, formatTimestampToText, getISOWithTimezone, round, roundRating } from 'src/marketplace/utils'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { useQuasar } from 'quasar'
@@ -207,6 +268,8 @@ const initialized = ref(false)
 function resetPage() {
   storefronts.value = []
   storefrontsPagination.value = { count: 0, limit: 0, offset: 0 }
+  orders.value = []
+  ordersPagination.value = { count: 0, limit: 0, offset: 0 }
   initialized.value = false
 }
 
@@ -505,11 +568,49 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0, reset: false }) {
 }
 
 
+const fetchingOrders = ref(false)
+const orders = ref([].map(Order.parse))
+const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
+
+async function fetchOrders(opts = { limit: 0, offset: 0 }) {
+  // Currently fetches active orders (i.e. not completed or cancelled)
+  const params = {
+    ref: await $store.dispatch('marketplace/getCartRef'),
+    limit: opts?.limit || 1,
+    offset: opts?.offset || undefined,
+    exclude_statuses: ['completed', 'cancelled'].join(','),
+  }
+
+  fetchingOrders.value = true
+  return backend.get(`connecta/orders/`, { params })
+    .then(response => {
+      if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
+      orders.value = response?.data?.results?.map(Order.parse)
+
+      orders.value.forEach(order => {
+        if (!order?.storefrontId) return
+        order.storefront = $store.getters['marketplace/storefronts']
+          .find(storefront => storefront?.id == order?.storefrontId)
+        if (!order.storefront) order.fetchStorefront()
+      })
+      ordersPagination.value.count = response?.data?.count
+      ordersPagination.value.limit = response?.data?.limit
+      ordersPagination.value.offset = response?.data?.offset
+      return response
+    })
+    .finally(() => {
+      fetchingOrders.value = false
+    })
+}
+
 async function refreshPage(done=() => {}) {
   try {
     await loadAppPromise.value
     if (initialized.value && !customerCoordinatesValid.value) await manualSelectLocation()
-    await fetchStorefronts({ reset: true })
+    await Promise.all([
+      fetchStorefronts({ reset: true }),
+      fetchOrders(),
+    ])
   } finally {
     $store.commit('marketplace/setActiveStorefrontId', null)
     initialized.value = true
@@ -540,4 +641,54 @@ table.orders-table td {
   top: 110px;
 }
 
+.orders--sticky-bottom {
+  position: sticky;
+  bottom: max(0.75vh, 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: all 0.15s ease-out;
+
+  #app-container.dark & {
+    border-top-color: rgba(255, 255, 255, 0.15);
+  }
+  #app-container.light & {
+    border-top-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+#app-container.dark {
+  .orders--fixed-bottom {
+    background-color: $brand_dark;
+  }
+}
+#app-container.light {
+  .orders--fixed-bottom {
+    background-color: $brand_light;
+  }
+}
+
+/* Only animate the location/search wrapper card, not every storefront/skeleton card. */
+.pt-location-search-card {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInUp 0.4s ease-out;
+}
+
+/* ==================== ANIMATIONS ==================== */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>

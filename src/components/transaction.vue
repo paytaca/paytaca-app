@@ -525,6 +525,7 @@ import JppDetailDialog from 'src/components/JppDetailDialog.vue'
 import { convertTokenAmount, convertCashAddress } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import { parseAttributesToGroups } from 'src/utils/tx-attributes'
 import { JSONPaymentProtocol } from 'src/wallet/payment-uri'
 import { extractStablehedgeTxData } from 'src/wallet/stablehedge/history-utils'
@@ -573,14 +574,7 @@ export default {
       return this.$store.getters['global/isChipnet']
     },
     explorerLink () {
-      const txid = this.transaction.txid
-      let url = 'https://explorer.paytaca.com/tx/'
-
-      if (this.isChipnet) {
-        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
-      }
-
-      return `${url}${txid}`
+      return getExplorerLink(this.transaction?.txid || '')
     },
     isSep20Tx () {
       const hash = String(this.transaction && this.transaction.hash)

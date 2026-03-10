@@ -84,16 +84,9 @@ export default function () {
       return
     }
 
-    // Block apps that are not available on chipnet (testnet)
-    const isChipnet = store.getters['global/isChipnet']
-    const chipnetBlockedRoutes = [
-      '/apps/exchange',
-      '/apps/marketplace',
-      '/apps/crypto-swap',
-      '/apps/stablehedge',
-      '/apps/gifts'
-    ]
-    if (isChipnet && chipnetBlockedRoutes.some(route => to.path.startsWith(route))) {
+    // Block routes that must not be accessible on chipnet.
+    // This prevents deep links from bypassing disabled app tiles (e.g., mainnet-only services).
+    if (store.getters['global/isChipnet'] && to.matched?.some(r => r?.meta?.disableOnChipnet)) {
       next({ name: 'apps-dashboard', replace: true })
       return
     }

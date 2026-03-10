@@ -40,7 +40,7 @@
               padding="xs"
               icon="open_in_new"
               class="button"
-              :href="`https://explorer.paytaca.com/tx/${txid}`"
+              :href="getExplorerLink(txid)"
               target="_blank"
             />
           </div>
@@ -63,6 +63,7 @@ import { computed, defineComponent } from 'vue'
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import { useI18n } from "vue-i18n"
 
 export default defineComponent({
@@ -128,6 +129,7 @@ export default defineComponent({
       darkMode,
       dialogRef, onDialogHide, onDialogOK, onDialogCancel,
       onOk,
+      getExplorerLink,
     }
   },
   methods: {

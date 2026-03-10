@@ -1,4 +1,5 @@
 import { nativeFileAPI } from "src/utils/native-file"
+import { getExplorerLinkForNetwork } from "src/utils/send-page-utils"
 import { backend, cachedBackend } from "./backend"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
 import { formatOrderStatus, lineItemPropertiesToText, parseOrderStatusColor } from './utils'
@@ -1919,8 +1920,8 @@ export class EscrowContract {
     if (!txid) return ''
     if (isNaN(index) || index < 0) return ''
 
-    if (isTestnet) return `${process.env.TESTNET_EXPLORER_URL}/tx/${txid}#output-${index}`
-    return `https://explorer.paytaca.com/tx/${txid}?o=${index}`
+    const base = getExplorerLinkForNetwork(txid, isTestnet)
+    return `${base}#output-${index}`
   }
 
   get settlementTxLink() {
@@ -1929,8 +1930,7 @@ export class EscrowContract {
 
     if (!txid) return ''
 
-    if (isTestnet) return `${process.env.TESTNET_EXPLORER_URL}/tx/${txid}`
-    return `https://explorer.paytaca.com/tx/${txid}`
+    return getExplorerLinkForNetwork(txid, isTestnet)
   }
 
   getPendingSettlementAppeals() {

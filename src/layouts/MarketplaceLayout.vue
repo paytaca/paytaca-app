@@ -73,7 +73,6 @@
             </div>
             <CartItemsList
               v-if="activeStorefrontCart?.items?.length"
-              use-quantity-input
               :disable="activeStorefrontCart?.$state?.updating || !activeStorefrontIsActive"
               :cart="activeStorefrontCart"
               :currency="getStorefrontCurrency(activeStorefrontCart?.storefrontId)"

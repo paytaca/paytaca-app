@@ -67,26 +67,32 @@
 					{{ Array.isArray(item.reasons) && item.reasons.length > 0 ? item.reasons[0] : '' }}
 				</div>
 			</div>
-        	<!-- <q-card v-for="item in marketplaceOrders" class="pending-card q-pa-md q-my-sm br-15"
+            <div
+         			v-if="marketplaceOrders"
+         			v-for="(item, index) in marketplaceOrders"
+         			:key="item.id"
+         			class="pending-card pt-card"
+         			:class="darkMode ? 'dark' : 'light'"
+         			:style="{ 'margin-left': (index === 0 && pending.length === 0 && pendingAppeals.length === 0) ? '0px' : '12px' }"
    				@click="selectTransaction(item.id, 'marketplace')"
-        	>
-        		<div class="row">
-        			<div class="col-7">
-        				<-- Label --		        		
-		        		<q-badge outline color="primary">Marketplace</q-badge>
+         	>
+         		<q-badge
+         			outline
+         			:color="darkMode ? 'blue-4' : 'blue-6'"
+         			class="q-mb-sm"
+         			style="font-size: 9px; padding: 3px 8px;"
+         		>
+         			Marketplace
+         		</q-badge>
 
-		        		<div class="q-pt-sm text-bold">Order# {{ item.id }}</div>     
-		        		<div style="font-size: 15px;">
-		        			{{ item.storefront.name }}
-		        		</div>   			
-        			</div>
-        			<div class="col-5 text-right q-py-lg">
-        				<div class="text-bold text-capitalize" :class="darkMode ? 'text-blue-grey-3' : 'text-blue-grey-6'">
-        					{{ item.status }}
-        				</div>
-        			</div>
-        		</div>         		
-        	</q-card> -->
+         		<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">Order #{{ item.id }}</div>
+         		<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+         			{{ item.storefront?.name }}
+         		</div>
+<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+          			{{ formatMarketplaceStatus(item.status) }}
+          		</div>
+         	</div>
         </div>
 	</div>
 </template>
@@ -166,15 +172,21 @@ export default {
 				.then(response => {					
 					this.orderTotal = response.data.count
 					if (overwrite) {
-						this.pending.push(...response.data.results)
-					} else {
 						this.pending = response.data.results
+					} else {
+						this.pending.push(...response.data.results)
 					}															
 					// console.log('pending: ', this.pending)
 
 				})
 				.catch(error => {
 					console.error(error)
+					this.$q.notify({
+						color: 'negative',
+						message: this.$t('FailedToFetchOrders'),
+						icon: 'error',
+						timeout: 3000
+					})
 				})
 		},
 		async fetchAppeals (overwrite = false) {
@@ -192,13 +204,19 @@ export default {
 				.then(response => {					
 					vm.appealTotal = response.data.count
 					if (overwrite) {
-						this.pendingAppeals.push(...response.data.results)
-					} else {
 						this.pendingAppeals = response.data.results
+					} else {
+						this.pendingAppeals.push(...response.data.results)
 					}
 				})
 				.catch(error => {
-					console.log(error)
+					console.error(error)
+					this.$q.notify({
+						color: 'negative',
+						message: this.$t('FailedToFetchAppeals'),
+						icon: 'error',
+						timeout: 3000
+					})
 				})
 		},
 		seeMoreOrders () {
@@ -245,9 +263,9 @@ export default {
 	    		this.$router.push({ name: 'exchange', query: { appeal_id: transactionID }})
 	    	}
 	    },
-	    async fetchMarketOrders(opts={limit: 0, offset: 0 }) {	    	
-	    	const vm = this	
-		  	const params = {
+async fetchMarketOrders(opts={limit: 0, offset: 0 }) {    	
+    	const vm = this	
+  	  	const params = {
 			    ref: await vm.$store.dispatch('marketplace/getCartRef'),
 			    limit: vm.marketplacePagination?.limit || 100,
 			    offset: vm.marketplacePagination?.offset || undefined,
@@ -255,8 +273,8 @@ export default {
 			    exclude_statuses: ['completed', 'cancelled'].join(',')
 			  }
 
-		  	vm.fetchingOrders = true
-		  	return marketBackend.get(`connecta/orders/`, { params })
+  	  	vm.fetchingOrders = true
+  	  	return marketBackend.get(`connecta/orders/`, { params })
 		    	.then(response => {		    		
 		      		if(!Array.isArray(response?.data?.results)) return Promise.reject({ response })
 		      		
@@ -267,7 +285,7 @@ export default {
 				        order.storefront = vm.$store.getters['marketplace/storefronts']
 				          .find(storefront => storefront?.id == order?.storefrontId)
 
-		        	// if (order.storefront) return
+        			// if (order.storefront) return
 
 			        // order.fetchStorefront()?.then(() => {
 			        //   $store.commit('marketplace/cacheStorefront', order.storefront?.raw)
@@ -283,9 +301,13 @@ export default {
 			    .finally(() => {
 			      vm.fetchingOrders = false
 			    })
+		},
+		formatMarketplaceStatus(status) {
+			if (!status) return ''
+			return status.replace(/_/g, ' ')
 		}
 	}
-}	
+}
 </script>
 <style lang="scss" scoped>
 .pending-container {

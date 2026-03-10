@@ -6,6 +6,7 @@ import { convertIpfsUrl } from "src/wallet/cashtokens";
 import { loadWallet } from "src/wallet";
 import { LibauthHDWallet } from "src/wallet/bch-libauth";
 import { getWalletByNetwork } from "src/wallet/chipnet";
+import { getExplorerAddressLink } from "src/utils/send-page-utils";
 
 export function useCauldronValueFormatters() {
   const { t: $t } = useI18n()
@@ -97,11 +98,7 @@ export function useCauldronValueFormatters() {
   const isChipnet = computed(() => $store.getters['global/isChipnet'])
   function getAddressExplorerLink(address) {
     if (!address) return
-    let url = 'https://explorer.paytaca.com/address/'
-    if (isChipnet.value) {
-      url = `${process.env.TESTNET_EXPLORER_URL}/address/`
-    }
-    return url + address
+    return getExplorerAddressLink(address)
   }
 
 
