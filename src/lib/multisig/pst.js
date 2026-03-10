@@ -113,7 +113,7 @@ import {
   generateSigningSerializationBch
 } from 'bitauth-libauth-v3'
 
-import { getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
+import { derivePublicKey, getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
 import { 
   bip32ExtractRelativePath, 
@@ -344,10 +344,18 @@ export const getSigningProgress = (pst) => {
     const lockingBytecode = encodeLockingBytecodeP2sh20(hash160(correspondingInput.redeemScript))
 
     // Not our input continue
-    if (!binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, lockingBytecode)) {
+    if (Object.keys(correspondingInput?.bip32Derivation || {}).length === 0 || !binsAreEqual(correspondingInput.sourceOutput.lockingBytecode, lockingBytecode)) {
       continue
     }
 
+    const walletPublicKeys = Object.keys(correspondingInput.bip32Derivation).map(publicKeyAsKey => {
+      const signer = pst.wallet.signers.find(s => s.masterFingerprint === correspondingInput.bip32Derivation[publicKeyAsKey].masterFingerprint)
+      if (!signer) return ''
+      return derivePublicKey(signer.xpub, bip32ExtractRelativePath(correspondingInput.bip32Derivation[publicKeyAsKey].path))
+    })
+
+    if (!walletPublicKeys.length === Object.keys(correspondingInput.bip32Derivation).length) continue
+    
     const redeemScriptPublicKeys = extractPublicKeysFromRedeemScript(pst.inputs[inputIndex].redeemScript)
 
     const m = extractMValue(correspondingInput.redeemScript)
