@@ -170,6 +170,29 @@
             <q-item>
               <q-item-section top>
                 <q-item-label>{{ $t('SignedBy', {}, 'Signed By') }}</q-item-label>
+                <q-item-label v-if="signedSigners.length > 0" lines="2" >
+                  <div class="flex items-center">
+                    <span v-for="signer in signedSigners" :key="signer.xpub" size="md">
+                      <q-chip clickable @click="() => showSharePartialSignatureOptionsDialog(signer.name, signer.masterFingerprint)">
+                        <q-avatar>
+                          <q-icon name="how_to_reg" size="sm"></q-icon>
+                        </q-avatar>
+                        {{ signer.name }}
+                        <q-btn 
+                          icon="mdi-share" 
+                          color="primary"
+                          class="q-ml-sm"
+                          flat
+                          round
+                          dense
+                        ></q-btn>
+                      </q-chip>
+                    </span>
+                  </div>
+                </q-item-label>
+                <q-item-label v-else caption>
+                  {{ $t('NoSignersYet', {}, 'No signers yet') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side top>
                 <q-item-label v-if="signedSigners.length > 0">
@@ -177,19 +200,6 @@
                 </q-item-label>
                 <q-item-label v-else class="text-bow-muted">
                   0/{{ wallet?.signers?.length || 0 }}
-                </q-item-label>
-                <q-item-label v-if="signedSigners.length > 0" caption lines="2" >
-                  <div class="flex justify-end items-center">
-                    <q-chip v-for="signer in signedSigners" :key="signer.xpub" dense size="md">
-                    <q-avatar>
-                      <q-icon name="how_to_reg" size="xs"></q-icon>
-                    </q-avatar>
-                    {{ signer.name }}
-                  </q-chip>
-                  </div>
-                </q-item-label>
-                <q-item-label v-else caption>
-                  {{ $t('NoSignersYet', {}, 'No signers yet') }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -200,7 +210,7 @@
       
       <div v-if="pst && (signingProgress?.signingProgress === 'fully-signed' || canSign)" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
         <q-btn
-          v-if="signingProgress?.signingProgress === 'fully-signed' && !pst?.txid"
+          v-if="signingProgress?.signingProgress === 'fully-signed' && !pst?.txid && !showActionConfirmationSlider"
           :loading="isBroadcasting"
           @click="broadcastTransaction"
           color="primary"
