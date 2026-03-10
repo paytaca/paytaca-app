@@ -463,7 +463,7 @@ export const verifyTransactionInputSignature = ({ signature, publicKey, redeemSc
 export const verifyTransactionInputsSignature = ({ transaction, inputs }) => {
   const inputSignatureVerificationResults = []
   for (const inputIndex in inputs) {
-    if (!inputs[inputIndex].redeemScript) continue 
+    if (!inputs[inputIndex].redeemScript || Object.keys(inputs[inputIndex].bip32Derivation || {}).length === 0) continue 
     const publicKeys = Object.keys(inputs[inputIndex].signatures || {})
     if (publicKeys.length === 0) continue
     publicKeys.forEach((publicKey) => {
