@@ -6,7 +6,7 @@
     @refresh="refreshPage"
   >
     <HeaderNav
-      :title="route.query.name || $t('NftCollection', {}, 'NFT Collection')"
+      :title="$t('NftCollection', {}, 'NFT Collection')"
       :backnavpath="`/apps/multisig/wallet/${route.params.wallethash}/nfts`"
       class="header-nav"
     />
@@ -16,7 +16,7 @@
           <q-spinner color="primary" size="3em"></q-spinner>
         </div>
         <div v-else-if="nfts && nfts.length > 0" class="q-pa-md">
-          <q-card flat class="q-mb-md" :class="getDarkModeClass(darkMode)">
+          <q-card flat class="q-mb-md br-15" :class="getDarkModeClass(darkMode)">
             <q-card-section>
               <div class="text-h6">{{ nfts[0]?.token_name || 'Unnamed NFT' }}</div>
               <div class="text-caption text-bow-muted">{{ nfts[0]?.token_ticker || '' }}</div>
@@ -28,13 +28,11 @@
               </div>
             </q-card-section>
           </q-card>
-          
-          <div class="text-subtitle1 q-mb-md">{{ $t('Items', {}, 'Items') }}</div>
-          
+          <!-- <div class="text-subtitle1 q-mb-md">{{ $t('Items', {}, 'Items') }}</div> -->
           <q-list separator :class="getDarkModeClass(darkMode)">
             <q-item v-for="(nft, index) in nfts" :key="`${nft.txid}-${nft.vout}`">
               <q-item-section avatar>
-                <q-avatar color="primary" text-color="white" size="40px">
+                <q-avatar text-color="primary">
                   <q-icon name="image"></q-icon>
                 </q-avatar>
               </q-item-section>
@@ -43,19 +41,33 @@
                   {{ $t('ItemN', {}, 'Item') }} #{{ index + 1 }}
                 </q-item-label>
                 <q-item-label caption class="text-bow-muted">
+                  <div>{{ shortenString(nft.txid, 20) }}:{{ nft.vout }}</div>
+                </q-item-label>
+                <q-item-label caption class="text-bow-muted">
                   {{ $t('Commitment', {}, 'Commitment') }}: {{ nft.commitment || 'none' }}
                 </q-item-label>
                 <q-item-label caption class="text-bow-muted">
                   {{ $t('Capability', {}, 'Capability') }}: {{ nft.capability || 'none' }}
                 </q-item-label>
+                <q-item-label caption class="text-bow-muted">
+                  {{ $t('InscribedSats') }}: {{ nft.value }} Sats
+                </q-item-label>
               </q-item-section>
-              <q-item-section side top>
-                <q-item-label caption class="text-bow-muted">
-                  <div>{{ shortenString(nft.txid, 8) }}:{{ nft.vout }}</div>
-                </q-item-label>
-                <q-item-label caption class="text-bow-muted">
-                  {{ nft.value }} sats
-                </q-item-label>
+              <q-item-section side>
+                <div class="flex column items-end q-gutter-y-sm">
+                  <q-btn 
+                    icon="send" 
+                    color="primary" 
+                    rounded 
+                    no-caps
+                    size="sm"
+                    :to="{ 
+                      name: 'app-multisig-wallet-transaction-send-nft', 
+                      params: { wallethash: route.params.wallethash, tokenid: route.params.tokenid },
+                      query: { txid: nft.txid, vout: nft.vout, index: index }
+                    }"
+                  >{{ $t('Send') }}</q-btn>
+                </div>
               </q-item-section>
             </q-item>
           </q-list>
@@ -117,7 +129,7 @@ const loadNfts = async () => {
   loading.value = true
   try {
     const result = await wallet.value.getWalletHashUtxos('nft')
-    const allNfts = result?.utxos || []
+    const allNfts = result || []
     nfts.value = allNfts.filter(nft => nft.tokenid === route.params.tokenid)
   } catch (error) {
     console.error('Error loading NFTs:', error)
