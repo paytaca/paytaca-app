@@ -338,6 +338,16 @@ const routes = [
             component: () => import('src/pages/apps/multisig/wallet/addresses.vue'),
             name: 'app-multisig-wallet-addresses'
           },
+          { 
+            path: 'wallet/:wallethash/nfts',
+            component: () => import('src/pages/apps/multisig/wallet/nfts/index.vue'),
+            name: 'app-multisig-wallet-nfts'
+          },
+          { 
+            path: 'wallet/:wallethash/nfts/:tokenid',
+            component: () => import('src/pages/apps/multisig/wallet/nfts/category-collection.vue'),
+            name: 'app-multisig-wallet-nft-category-collection'
+          },
           {
             path: 'wallet/:wallethash/transaction/send',
             component: () => import('src/pages/apps/multisig/wallet/transaction/send.vue'),
@@ -348,6 +358,11 @@ const routes = [
                */
               queryType: {}
             }
+          },
+          {
+            path: 'wallet/:wallethash/nfts/:tokenid/send',
+            component: () => import('src/pages/apps/multisig/wallet/transaction/send-nft.vue'),
+            name: 'app-multisig-wallet-transaction-send-nft'
           },
           {
             path: 'wallet/:wallethash/psts',
