@@ -45,8 +45,15 @@
               <div class="col-xs-12 flex justify-evenly">
                 <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
                   <template v-slot:default>
+                    <!-- <div class="row justify-center">
+                      <q-icon name="send_and_archive" class="col-12" ></q-icon>
+                      <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
+                    </div> -->
                     <div class="row justify-center">
-                      <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
+                      <q-avatar>
+                        <q-img src="app-receive.svg" height="24px" width="24px"></q-img>
+                      </q-avatar>
+                      <!-- <q-icon name="img:app-receive.svg" class="col-12" color="primary" style="width:24px;height: 24px;" round outline></q-icon> -->
                       <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>
@@ -54,7 +61,7 @@
                 <q-btn @click="send" class="tile" :disable="!balance" flat dense no-caps  v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="send" class="col-12" color="primary" style="position:relative">
+                      <q-icon name="mdi-send-outline" class="col-12" style="position:relative">
                       </q-icon>
                       <div class="col-12 tile-label">{{ $t('Send') }}</div>
                     </div>
