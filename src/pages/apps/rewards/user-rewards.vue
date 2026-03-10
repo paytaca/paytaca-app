@@ -214,7 +214,7 @@
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('PointsFrom1stTx', 'First transaction completion bonus') }}
+                            {{ $t('PointsFrom1stTx', 'First transaction bonus') }}
                           </div>
                           <div v-if="hasReceivedFirstVisitBonus" class="text-caption text-green-7">
                             {{ $t(
@@ -360,7 +360,7 @@
         <!-- Continuous Points Content -->
         <template v-else>
           <!-- Summary Card -->
-          <achievement-card v-if="marketplaceTransactions.length > 0">
+          <achievement-card v-if="totalMarketplaceTxCount > 0">
             <template #achievement-card-content>
               <q-card-section>
                 <div class="row items-center q-gutter-md">
@@ -372,17 +372,16 @@
                   />
                   <div class="col">
                     <div class="text-h6 text-weight-bold text-primary">
-                      {{ totalMarketplaceOrders }} {{ totalMarketplaceOrders === 1 ? 'order' : 'orders' }}
+                      {{ totalMarketplaceTxCount }} {{ totalMarketplaceTxCount === 1 ? 'order' : 'orders' }}
                     </div>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ totalMarketplacePoints }} points earned
+                      {{ totalMarketplacePoints }} {{ totalMarketplacePoints === 1 ? 'point' : 'points' }} earned
                     </div>
-                    <div 
-                      v-if="marketplaceDateRange" 
+                    <div
                       class="text-caption" 
                       :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                     >
-                      {{ formatMonthDisplay(marketplaceDateRange.earliest) }} - {{ formatMonthDisplay(marketplaceDateRange.latest) }}
+                      {{ formatMonthDisplay(firstMarketplaceTxDate) }} - {{ formatMonthDisplay(lastMarketplaceTxDate) }}
                     </div>
                   </div>
                 </div>
@@ -453,7 +452,7 @@
   
           <!-- Empty State for Continuous -->
           <q-card
-            v-if="marketplaceTransactions.length === 0"
+            v-if="totalMarketplaceTxCount === 0"
             class="empty-state-card q-pa-lg text-center"
             :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
             flat
@@ -502,7 +501,7 @@
 
       <q-card-section class="q-pt-none">
         <div class="text-subtitle2 q-mb-md">
-          {{ totalMarketplaceOrders }} {{ $t('ordersTotal', 'orders total') }} · {{ totalMarketplacePoints }} {{ $t('pointsEarned', 'points earned') }}
+          {{ totalMarketplaceTxCount }} {{ $t('ordersTotal', 'orders total') }} · {{ totalMarketplacePoints }} {{ $t('pointsEarned', 'points earned') }}
         </div>
       </q-card-section>
 
@@ -617,6 +616,11 @@ export default {
       dateJoined: '',
       urContract: null,
 
+      totalMarketplaceTxCount: 0,
+      totalMarketplacePoints: 0,
+      firstMarketplaceTxDate: null,
+      lastMarketplaceTxDate: null,
+
       firstSevenTransactions: [],
       marketplaceTransactions: [],
       isFullHistoryDialogOpen: false
@@ -657,22 +661,6 @@ export default {
       const fromStore = this.$store.getters['global/language']
       const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
       return String(candidate).replace('_', '-')
-    },
-    totalMarketplaceOrders () {
-      return this.marketplaceTransactions.reduce((total, month) => total + month.orders.length, 0)
-    },
-    totalMarketplacePoints () {
-      return this.totalMarketplaceOrders * 8
-    },
-    marketplaceDateRange () {
-      if (this.marketplaceTransactions.length === 0) return null
-      const months = this.marketplaceTransactions.map(m => new Date(m.month))
-      const earliest = new Date(Math.min(...months))
-      const latest = new Date(Math.max(...months))
-      return { earliest, latest }
-    },
-    recentThreeMonths () {
-      return this.marketplaceTransactions.slice(0, 3)
     },
     allMarketplaceOrders () {
       const orders = []
@@ -754,6 +742,7 @@ export default {
           })
         }
 
+        // one-time points
         this.isFirstTimeUser = urData.is_first_time_user
         this.isFirstSevenComplete = urData.is_first_seven_complete
         this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
@@ -761,17 +750,11 @@ export default {
         this.firstTxDate = urData.first_tx_date
         this.dateJoined = urData.date_joined
 
-        // TODO filter latest date
-        if (urData.ur_months.length > 0) {
-          for (const transaction of urData.ur_months) {
-            this.marketplaceTransactions.push({
-              month: transaction.timeframe,
-              orders: transaction.ur_mp_transactions.sort((a, b) => {
-                return new Date(b.date) - new Date(a.date)
-              })
-            })
-          }
-        }
+        // continuous points marketplace
+        this.totalMarketplaceTxCount = urData.total_transaction_count
+        this.totalMarketplacePoints = urData.total_marketplace_points
+        this.firstMarketplaceTxDate = urData.first_transaction_date
+        this.lastMarketplaceTxDate = urData.last_transaction_date
 
         this.firstSevenTransactions = urData.ur_seven_transactions
         for (let i = this.firstSevenTransactions.length; i < 7; i++) {
