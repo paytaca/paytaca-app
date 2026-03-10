@@ -480,6 +480,9 @@ const handleWalletActions = async (action) => {
     if (action.value === 'view-wallet-settings') {
       router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.value.getWalletHash() } })
     }
+    if (action.value === 'view-nfts') {
+      router.push({ name: 'app-multisig-wallet-nfts', params: { wallethash: wallet.value.getWalletHash() } })
+    }
 }
   
 const openWalletActionsDialog = () => {

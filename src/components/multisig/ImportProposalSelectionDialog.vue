@@ -4,12 +4,12 @@
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6">{{$t('ImportTransactionProposal')}}</div>
           <div class="text-caption text-center text-bow-muted">
-            <q-banner class="q-ma-lg rounded" :class="getDarkModeClass(darkMode)">
+            <q-banner class="q-ma-lg rounded br-15" :class="getDarkModeClass(darkMode)">
               <q-icon name="info" color="grad" size="sm" class="q-mr-sm"></q-icon>
               {{ $t('ImportTransactionProposalDescription') }}
             </q-banner>
           </div>
-          <q-list separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
+          <q-list v-if="proposals?.length > 0" separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
             <q-item-label header>
               {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
             </q-item-label>
@@ -18,7 +18,7 @@
               v-for="p, i in proposals" :key="i"
               class="q-my-sm"
                  >
-              <q-item-section avatar>
+              <q-item-section avatar top>
                 <q-avatar>
                   <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
                 </q-avatar>
@@ -31,22 +31,20 @@
                   <div>Origin: {{ p.origin || 'N/A' }}</div>
                 </q-item-label>
                 <q-item-label caption class="flex items-center q-gutter-x-xs">
-                  <q-icon name="mdi-cloud-outline"></q-icon>
-                    <div>ID: {{ p.id }}</div>
+                  <div>ID: {{ p.id }}</div><q-icon name="mdi-cloud-outline"></q-icon>
                 </q-item-label>
                 <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs"">
-                  <q-icon name="mdi-cloud-outline"></q-icon>
-                  <div>Coordinator: {{ p.coordinatorInfo?.name }} </div>
+                  <div>Coordinator: {{ p.coordinatorInfo?.name }} </div><q-icon name="mdi-cloud-outline"></q-icon>
                 </q-item-label>
               </q-item-section>
               <q-item-section side>
-                <q-btn icon="mdi-file-import-outline" label="Import" color="primary" @click="() => onDialogOK(p)" outline rounded no-caps></q-btn>
+                <q-btn icon="mdi-file-import-outline" label="Import" color="primary" @click="() => onDialogOK(p)" size="sm" outline rounded no-caps></q-btn>
               </q-item-section>
             </q-item>
           </q-list>
       </q-card-section>
       <q-card-actions>
-        <q-btn :label="$t('Close')" @click="onDialogCancel" color="red" v-close-popup></q-btn>
+        <q-btn :label="$t('Close')" @click="onDialogCancel" color="red" v-close-popup rounded></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>
