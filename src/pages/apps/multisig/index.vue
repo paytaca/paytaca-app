@@ -16,7 +16,7 @@
                 <div class="text-bold text-h6">{{ $t('PaytacaMultisigWallets', {}, 'Paytaca Multisig Wallets') }}</div>
               </div>
               <div class="flex justify-start items-center q-gutter-x-sm">
-                  <span class="text-bold">Count: {{ multisigWallets?.length || 0 }}</span>
+                  <span class="text-bold">{{$t('WalletCount')}}: {{ multisigWallets?.length || 0 }}</span>
                 </div>  
             </div>
             <q-card-section class="row items-center justify-between">
@@ -32,7 +32,7 @@
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="add" class="col-12" color="primary" size="md"></q-icon>
-                <div class="col-12 tile-label">{{ $t('Create') }}</div>
+                <div class="col-12 tile-label">{{ $t('CreateWallet') }}</div>
               </div>
             </template>
           </q-btn>
@@ -40,7 +40,7 @@
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="mdi-file-import-outline" class="col-12" color="primary" size="md"></q-icon>
-                <div class="col-12 tile-label">{{ $t('Import') }}</div>
+                <div class="col-12 tile-label">{{ $t('ImportWallet') }}</div>
               </div>
             </template>
           </q-btn>
@@ -48,7 +48,7 @@
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="mdi-delete-sweep-outline" class="col-12" color="red" size="md"></q-icon>
-                <div class="col-12 tile-label">{{ $t('DeleteAll') }}</div>
+                <div class="col-12 tile-label">{{ $t('DeleteAllWallets') }}</div>
               </div>
             </template>
           </q-btn>
@@ -58,7 +58,7 @@
       <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center q-my-lg">
           <div class="col-xs-12 q-px-md">
             <q-list class="rounded-borders" :class="getDarkModeClass(darkMode)" separator>
-              <q-item-label header>{{ $t('WalletList') }}</q-item-label>
+              <q-item-label header class="text-h6">{{ $t('MyWallets') }}</q-item-label>
               <q-separator></q-separator>
               <q-item
                 v-for="wallet, i in multisigWallets"
@@ -68,45 +68,32 @@
                 class="q-py-md"
                 @click="router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })"
               >
+                <q-item-section avatar top>
+                  <q-avatar color="primary" text-color="white" size="md">
+                    <q-icon name="wallet"></q-icon>
+                  </q-avatar>
+                </q-item-section>
                 <q-item-section>
-                  <q-item-label class="flex items-center q-gutter-x-md text-weight-bold">
-                    <q-avatar color="primary" text-color="white" size="md">
-                      <q-icon name="wallet"></q-icon>
-                    </q-avatar>
+                  <q-item-label>
                     <div class="ellipsis text-h6 text-bold">{{ wallet.name }}</div>
                   </q-item-label>
-                  <q-item-label caption class="flex items-center q-gutter-x-sm q-my-xs text-bow-muted" v-if="wallet.id">
-                    <div>ID:</div><q-icon name="mdi-cloud-check" size="xs" class="q-mr-xs"></q-icon> <div>{{ wallet.id }}</div>
-                  </q-item-label>
-                  <q-item-label caption class="text-bow-muted">
-                    Hash: {{ shortenString(wallet.walletHash, 20) }}
+                  <q-item-label caption>
+                    WalletHash: {{ shortenString(wallet.walletHash, 20) }}
                   </q-item-label>
                   <q-item-label caption>
-                    <div class="flex items-center q-my-xs q-gutter-x-xs">
-                      <div>Signers:</div>
-                      <q-icon name="group" size="xs" class="text-bow-muted"></q-icon>
-                      <q-chip
-                        v-for="(signer, signerIndex) in wallet?.signers?.slice(0, 3)"
-                        :key="`signer-${i}-${signerIndex}`"
-                        dense
-                        size="sm"
-                        class="q-ma-none"
-                      >
-                        {{ signer.name }}
-                      </q-chip>
-                      <span v-if="wallet?.signers?.length > 3" class="text-bow-muted">
+                    Signers: {{ wallet.signers.map(s => s.name).join(', ') }}
+                    <span v-if="wallet?.signers?.length > 3" class="text-bow-muted">
                         +{{ wallet.signers.length - 3 }} more
-                      </span>
-                    </div>
+                    </span>
                   </q-item-label>
-                  
-                  <q-item-label caption class="flex items-center q-gutter-x-sm q-my-xs">
-                    <div>Required Signatures: </div>
-                    <q-badge color="primary">{{ wallet.m }} of {{ wallet.signers?.length }}</q-badge>
+                  <q-item-label v-if="wallet.id" caption>
+                    <div class="flex items-center">
+                      <span>ID:</span> <span>{{ wallet.id }}</span> <q-icon name="mdi-cloud-outline"></q-icon>
+                    </div>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side top>
-                  <q-btn icon="mdi-open-in-app" rounded outline no-caps>Open</q-btn>
+                  <q-btn icon="mdi-open-in-app" rounded outline no-caps size="sm">Open</q-btn>
                 </q-item-section>
               </q-item>
             </q-list>

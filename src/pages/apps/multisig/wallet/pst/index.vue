@@ -21,59 +21,59 @@
             <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('Import') }}</div>
           </div>
         </div>
-          <q-list separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
-              <q-item-label header>
-                {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
-              </q-item-label>
-              <q-item 
-                v-for="p, i in proposals" 
-                :key="i" 
-                :class="getDarkModeClass(darkMode)"
-                class="pt-card"
-                >
-                <q-item-section avatar>
-                  <q-avatar>
-                    <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
-                  </q-avatar>
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>
-                    <div class="ellipsis text-bold">Purpose: {{ p.purpose || 'N/A'}}</div>
-                  </q-item-label>
-                  <q-item-label caption>
-                    <div>Unsigned Hash: {{ shortenString(p.unsignedTransactionHash, 20) }}</div>
-                  </q-item-label>
-                  <q-item-label caption>
-                    <div>Origin: {{ p.origin || 'N/A' }}</div>
-                  </q-item-label>
-                  <q-item-label caption class="flex items-center q-gutter-x-xs">
-                    <q-icon name="mdi-cloud-outline"></q-icon>
-                    <div>ID: {{ p.id }}</div>
-                  </q-item-label>
-                  <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs">
-                    <q-icon name="mdi-cloud-outline"></q-icon>
-                    <div>Coordinator: {{ p.coordinatorInfo?.name }} </div>
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                    <q-btn
-                      @click="router.push({ 
-                      name: 'app-multisig-wallet-pst-view', 
-                      params: { 
-                        wallethash: route.params.wallethash, 
-                        unsignedtransactionhash: p?.unsignedTransactionHash 
-                      }
-                    })"
-                    color="primary"
-                    outline
-                    rounded 
-                    no-caps
-                    icon="mdi-file-eye-outline"
-                    :label="$t('Open')"
-                    ></q-btn>
-                </q-item-section>
-              </q-item>
-            </q-list>
+        <q-list v-if="proposals?.length > 0" separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
+            <q-item-label header>
+              {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
+            </q-item-label>
+            <q-item 
+              v-for="p, i in proposals" 
+              :key="i" 
+              :class="getDarkModeClass(darkMode)"
+              class="pt-card"
+              >
+              <q-item-section avatar>
+                <q-avatar>
+                  <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>
+                  <div class="ellipsis text-bold">Purpose: {{ p.purpose || 'N/A'}}</div>
+                </q-item-label>
+                <q-item-label caption>
+                  <div>Unsigned Hash: {{ shortenString(p.unsignedTransactionHash, 20) }}</div>
+                </q-item-label>
+                <q-item-label caption>
+                  <div>Origin: {{ p.origin || 'N/A' }}</div>
+                </q-item-label>
+                <q-item-label caption class="flex items-center q-gutter-x-xs">
+                  <q-icon name="mdi-cloud-outline"></q-icon>
+                  <div>ID: {{ p.id }}</div>
+                </q-item-label>
+                <q-item-label v-if="p.coordinatorInfo" caption class="flex items-center q-gutter-x-xs">
+                  <q-icon name="mdi-cloud-outline"></q-icon>
+                  <div>Coordinator: {{ p.coordinatorInfo?.name }} </div>
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                  <q-btn
+                    @click="router.push({ 
+                    name: 'app-multisig-wallet-pst-view', 
+                    params: { 
+                      wallethash: route.params.wallethash, 
+                      unsignedtransactionhash: p?.unsignedTransactionHash 
+                    }
+                  })"
+                  color="primary"
+                  outline
+                  rounded 
+                  no-caps
+                  icon="mdi-file-eye-outline"
+                  :label="$t('Open')"
+                  ></q-btn>
+              </q-item-section>
+            </q-item>
+        </q-list>
     </div>
   </div>
   
@@ -187,7 +187,6 @@ const clearAll = () => {
     }
   }).onOk(() => {
     for (const pst of proposals.value) {
-      console.log("Deleting", pst)
       pst.setStore($store)
       pst.delete({sync: false})
     }

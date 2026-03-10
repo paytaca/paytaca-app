@@ -52,7 +52,7 @@
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
                         <div class="text-bold">{{ $t('Purpose') }}</div>
-                        <q-input v-model="purpose" type="textarea" rows="2" filled autogrow hint></q-input>
+                        <q-input v-model="purpose" type="textarea" rows="3" filled autogrow hint clearable :disable="isCreatingProposal"></q-input>
                       </q-item-label>
                     </q-item-section>
                   </q-item>
@@ -61,7 +61,6 @@
                       <q-item-label class="text-bold">
                         {{ $t('Recipients') }}
                       </q-item-label>
-
                     </q-item-section>
                     <q-item-section side>
                       <q-item-label side :class="totalAmount && totalAmount > balance  ? 'text-red' : ''">
@@ -74,13 +73,14 @@
                       <q-item-label :class="addressInputRefs[i]? 'q-gutter-y-md': ''">
                         <div class="flex justify-between items-center">
                             <span class="text-italic">{{ $t('RecipientLabel') }} {{ i + 1 }}</span>
-                            <q-btn v-if="i > 0" @click="removeRecipient(i)" icon="remove" color="red" flat dense ></q-btn>
+                            <q-btn v-if="i > 0" @click="removeRecipient(i)" icon="remove" color="red" flat dense :disable="isCreatingProposal"></q-btn>
                         </div>
                         <q-input
                           v-model="recipient.address" :label="`${$t('PasteAddressOfRecipient')} ${i + 1}`"
                           :rules="recipientRules"
                           clearable
                           filled dense
+                          :disable="isCreatingProposal"
                           :ref="el => { if (el) addressInputRefs[i] = el }">
                           <template v-slot:append>
                             <q-btn icon="upload_file" flat dense disable></q-btn>
@@ -93,24 +93,27 @@
                           :hint="assetDecimalsHint"
                           :rules="amountRules"
                           clearable
+                          :disable="isCreatingProposal"
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
-                          <!-- <template v-slot:append>
-                            <q-btn flat dense disable no-caps>{{ $t('Max') }}</q-btn>
-                          </template> -->
                         </q-input>
                       </q-item-label>
                       <q-separator class="q-my-sm"/>
                     </q-item-section>
-                    
                   </q-item>
-                  
                   <q-item>
                     <q-item-section></q-item-section>
                     <q-item-section side>
                       <div class="text-right">
-                          <q-btn @click="addRecipient()" icon="add" color="primary" :label="$t('AddRecipient')" flat dense no-caps></q-btn>
-                        </div>
+                        <q-btn 
+                          @click="addRecipient()" 
+                          icon="add" 
+                          color="primary" 
+                          :label="$t('AddRecipient')" 
+                          :disable="isCreatingProposal" 
+                          flat dense no-caps>
+                        </q-btn>
+                      </div>
                     </q-item-section>
                   </q-item>
                 </q-list>
@@ -120,18 +123,22 @@
           </q-page>
         </q-page-container>
       </q-pull-to-refresh>
-    <q-footer class="pt-card text-bow q-pa-md" :class="getDarkModeClass(darkmode)" style="filter:opacity(98%)" rev>
+      <div class="sticky-bottom-actions">
         <q-btn
+          :loading="isCreatingProposal"
           style="width: 100%; filter: opacity((100%))"
           color="primary"
           :disable="!sendable"
-          class="text-bold"
+          class="text-bold q-py-md"
           no-caps
+          rounded
+          unelevated
+          icon="mdi-note-plus-outline"
           @click="createProposal"
           >
           {{ $t('CreateProposal') }}
         </q-btn>
-    </q-footer>
+      </div>
   </q-layout>
 </template>
 
@@ -167,7 +174,7 @@ const purpose = ref('')
 const recipientRefs = ref([])
 const addressInputRefs = ref([])
 const amountInputRefs = ref([])
-
+const isCreatingProposal = ref(false)
 const {
   multisigNetworkProvider,
   multisigCoordinationServer,
@@ -332,31 +339,27 @@ const addRecipient = async () => {
 }
 
 const createProposal = async () => {
-  
-  const walletVault = $store.getters['global/getVault']
-  let creator = ''
-  for (const signer of wallet.value.signers) {
-    const signerWallet = getSignerWalletFromVault({ walletVault, xpub: signer.xpub })
-    if (signerWallet) {
-      creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
-    }
-  }
-
-  const options = {
-    store: $store,
-    provider: multisigNetworkProvider,
-    coordinationServer: multisigCoordinationServer
-  }
-
   try {
-
+    isCreatingProposal.value = true
+    const walletVault = $store.getters['global/getVault']
+    let creator = ''
+    for (const signer of wallet.value.signers) {
+      const signerWallet = getSignerWalletFromVault({ walletVault, xpub: signer.xpub })
+      if (signerWallet) {
+        creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
+      }
+    }
+    const options = {
+      store: $store,
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer
+    }
     const proposal = await wallet.value.createProposal({
       creator: creator,
       origin: 'paytaca-wallet',
       purpose: purpose.value,
       recipients: recipients.value
     }, options)
-    
     
     await proposal.save()
     
@@ -380,6 +383,8 @@ const createProposal = async () => {
         label: $t('OK')
       }
     })
+  } finally {
+    isCreatingProposal.value = false
   }
 }
 
@@ -415,12 +420,30 @@ onMounted(async () => {
       )
   assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
   await wallet.value.subscribeWalletAddressIndex(wallet.value.getLastUsedChangeAddressIndex(network) + 1, 'change')
-
+  purpose.value = `${$t('Send')} ${assetHeaderName.value}`
 })
 </script>
 
 <style scoped>
-.light {
+/* .light {
   color: #141414;
+} */
+.sticky-bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  z-index: 10;
+  background: transparent;
+}
+
+.sticky-bottom-actions .text-red {
+  color: var(--q-negative);
+}
+
+.sticky-bottom-spacer {
+  height: 100px;
 }
 </style>

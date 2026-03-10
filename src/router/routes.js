@@ -316,8 +316,6 @@ const routes = [
         children: [
           { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
           { path: 'settings', component: () => import('src/pages/apps/multisig/settings.vue'), name: 'app-multisig-settings' },
-          { path: 'wallet', component: () => import('src/pages/apps/multisig/wallet/index.vue'), name: 'app-multisig-wallets' },
-          
           { path: 'wallet/create', component: () => import('src/pages/apps/multisig/wallet/create.vue'), name: 'app-multisig-wallet-create' },
           { path: 'wallet/import', component: () => import('src/pages/apps/multisig/wallet/import.vue'), name: 'app-multisig-wallet-import' },
           { path: 'wallet/import-from-server', component: () => import('src/pages/apps/multisig/wallet/import-from-server.vue'), name: 'app-multisig-wallet-import-from-server' },
