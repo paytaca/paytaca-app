@@ -354,7 +354,7 @@ export const getSigningProgress = (pst) => {
       return derivePublicKey(signer.xpub, bip32ExtractRelativePath(correspondingInput.bip32Derivation[publicKeyAsKey].path))
     })
 
-    if (!walletPublicKeys.length === Object.keys(correspondingInput.bip32Derivation).length) continue
+    if (walletPublicKeys.length !== Object.keys(correspondingInput.bip32Derivation).length) continue
     
     const redeemScriptPublicKeys = extractPublicKeysFromRedeemScript(pst.inputs[inputIndex].redeemScript)
 
@@ -1290,7 +1290,7 @@ export class Pst {
 
 
   async delete({ sync }) {
-    
+
     if (!this.options?.store) return
   
     this.options.store.commit('multisig/deletePsbt', this.unsignedTransactionHash) 
