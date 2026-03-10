@@ -99,46 +99,41 @@
             </q-list>
           </div>
       </div>
-      <div v-else class="row justify-center items-center q-mt-lg">
-          <!-- <div class="col-10 text-center q-gutter-lg">
-            <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
-            <div>
-            <q-btn
-              no-caps
-              icon="mdi-wallet-plus-outline"
-              :to="{ name: 'app-multisig-wallet-create'}"
-              dense
-              size="lg"
-              label="Create Wallet"
-              color="primary"
-            />
-            </div>
-          <div>
-            <q-btn
-              no-caps
-              icon="mdi-wallet-plus"
-              dense
-              size="lg"
-              label="Import Wallet"
-              @click="importWallet"
-              color="primary"
-            />
-          </div>
-          </div> -->
-          <div class="col-xs-12 row justify-center q-gutter-y-xl">
-            <div class="col-xs-12 text-center">
-              <q-btn @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
-                <q-icon class="default-text-color" name="qr_code" />
-              </q-btn>
-              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
-              <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('CreateNewWalletDescription', {}, `Setup a new multisig wallet`) }}</div>
-            </div>
-            <div class="col-xs-12 text-center">
-              <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round>
-                <q-icon class="default-text-color" name="mdi-file-import-outline" />
-              </q-btn>
-              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
-              <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportWalletDescripition', {}, `Import a multisig wallet setup/config from different sources`) }}</div>
+      <div v-else class="row justify-center q-mt-lg">
+          <div class="col-xs-12 q-px-md">
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-sm-6">
+                <q-card
+                  flat
+                  class="action-card cursor-pointer"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="onCreateWalletClick"
+                >
+                  <q-card-section class="text-center q-pa-lg">
+                    <q-avatar color="primary" text-color="white" size="56px" class="q-mb-md">
+                      <q-icon name="add" size="32px"></q-icon>
+                    </q-avatar>
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ $t('CreateNewWallet') }}</div>
+                    <div class="text-body2 text-bow-muted">{{ $t('CreateNewWalletDescription', {}, 'Setup a new multisig wallet') }}</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-card
+                  flat
+                  class="action-card cursor-pointer"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="onImportWalletClick"
+                >
+                  <q-card-section class="text-center q-pa-lg">
+                    <q-avatar color="primary" text-color="white" size="56px" class="q-mb-md">
+                      <q-icon name="mdi-file-import-outline" size="32px"></q-icon>
+                    </q-avatar>
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ $t('ImportWallet') }}</div>
+                    <div class="text-body2 text-bow-muted">{{ $t('ImportWalletDescripition', {}, 'Import a multisig wallet setup/config from different sources') }}</div>
+                  </q-card-section>
+                </q-card>
+              </div>
             </div>
           </div>
       </div>
@@ -281,6 +276,26 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+.action-card {
+  border-radius: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
 .tile-placeholder {
   width: 80px;
 }
