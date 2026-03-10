@@ -11,19 +11,22 @@
     <div class="row justify-center">
       <div class="col-xs-12 q-px-xs">
         <template v-if="pst">
-          <div class="row q-mb-sm justify-center">
+          <div class="row q-mb-xs justify-center">
               <div class="col-xs-12">
                 <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px; color:white">
                   <q-card-section class="row items-center justify-between">
                     <div class="col-12 flex justify-between items-center">
                       <div class="flex items-center q-gutter-x-sm">
-                        <q-icon :name="pst.id? 'mdi-file-cloud-outline': 'mdi-file-outline'" size="sm"></q-icon>
                         <span class="text-bold text-h6">{{pst.purpose || pst?.metadata?.purpose || 'Purpose Not Specified'}}</span>
                       </div>
-                      <q-icon v-if="pst.id" name="mdi-cloud-check" size="sm" flat></q-icon>
                     </div>
                     <div v-if="pst.id" class="col-12 text-caption">{{ $t('ID') }}: {{ pst.id || '<Local Only>' }}</div>
-                    <div class="col-12 text-caption">{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</div>
+                    <div class="col-12 text-caption flex items-center">
+                      <span>{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</span>
+                      <q-btn flat dense size="sm" icon="content_copy" @click="copyToClipboard(pst.unsignedTransactionHash)" class="q-ml-xs" color="white">
+                        <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                      </q-btn>
+                    </div>
                     <div class="col-12 text-caption">{{ $t('ProposedBy') }}: {{ proposedBy }}</div>
                     <div class="col-12 text-caption">{{ $t('Coordinator') }}: {{ coordinator }}</div>
                     <div class="col-12 text-caption">{{ $t('Status') }}: {{ pst.status?.status }}</div>
@@ -31,6 +34,41 @@
                 </q-card>
               </div>
             </div>
+          <div class="col-xs-12 flex justify-between">
+            <q-btn flat dense no-caps class="tile" @click="showShareProposalOptionsDialog">
+              <template v-slot:default>
+                <div class="row justify-center">
+                  <q-icon name="mdi-share" class="col-12" color="primary" size="md"></q-icon>
+                  <div class="col-12 tile-label">{{ $t('Share') }}</div>
+                </div>
+              </template>
+            </q-btn>
+            <q-btn flat dense no-caps class="tile" @click="showImportSignatureDialog" v-if="signingProgress?.signingProgress !== 'fully-signed'">
+              <template v-slot:default>
+                <div class="row justify-center">
+                  <q-icon name="mdi-download" class="col-12" color="primary" size="md"></q-icon>
+                  <div class="col-12 tile-label">{{ $t('ImportSigs', {}, 'Import') }}</div>
+                </div>
+              </template>
+            </q-btn>
+            <q-btn flat dense no-caps class="tile" @click="showProposalDetailsDialog">
+              <template v-slot:default>
+                <div class="row justify-center">
+                  <q-icon name="info" class="col-12" color="primary" size="md"></q-icon>
+                  <div class="col-12 tile-label">{{ $t('Details') }}</div>
+                </div>
+              </template>
+            </q-btn>
+            <q-btn flat dense no-caps class="tile" @click="onDeleteProposalAction">
+              <template v-slot:default>
+                <div class="row justify-center">
+                  <q-icon name="delete_forever" class="col-12" color="red" size="md"></q-icon>
+                  <div class="col-12 tile-label">{{ $t('Delete') }}</div>
+                </div>
+              </template>
+            </q-btn>
+          </div>
+          <q-separator class="q-my-md"></q-separator>
           <q-list>
             <template v-if="pst.getTotalSatsDebit() > 0">
               <q-item >
@@ -96,32 +134,15 @@
                 </q-btn>
               </q-item-section>
             </q-item>
-            <q-expansion-item>
-              <template v-slot:header>
-                <q-item-section>
-                  {{ $t('RawTx', {}, 'Raw Tx')}}
-                </q-item-section>
-              </template>
-              <q-item-label class="q-pa-md">
-                <code style="word-break: break-all; filter: brightness(80%)">
-                  {{pst.unsignedTransactionHex}}
-                </code>
-                <q-btn icon="content_copy" @click="copyToClipboard(pst.unsignedTransactionHex)" flat dense/>
-              </q-item-label>
-            </q-expansion-item>
-            <q-expansion-item v-if="pst.metadata">
-              <template v-slot:header>
-                <q-item-section>
-                  {{ $t('Metadata')}}
-                </q-item-section>
-              </template>
-              <q-item-label class="q-pa-md">
-                <code style="word-break: break-all; filter: brightness(80%)">
-                  {{ pst.metadata }}
-                </code>
-              </q-item-label>
-            </q-expansion-item>
             <q-separator></q-separator>
+            <q-item>
+              <q-item-section>
+                <q-item-label>{{ $t('RequiredSignatures') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label>{{ wallet?.m }} of {{ wallet?.signers?.length }}</q-item-label>
+              </q-item-section>
+            </q-item>
             <q-item>
               <q-item-section>
                 <q-item-label>Signing Progress</q-item-label>
@@ -130,126 +151,80 @@
                 {{ signingProgress.signingProgress }}
               </q-item-section>
             </q-item>
-            <q-item-label header>Signers</q-item-label>
-            <q-item v-for="signer, i in wallet?.signers" :key="`signer-${i}`" top>
+            <q-item>
               <q-item-section>
-                <!-- <div class="flex flex-wrap justify-left items-center q-gutter-x-xs">
-                  <div class="flex items-center q-gutter-x-sm">
-                    <q-icon name="person" size="sm"></q-icon><span>{{ signer.name || `Signer ${i}` }}</span>
-                  </div>
-                </div> -->
-                <q-chip style="height:fit-content" flat class="q-px-md">
-                  <q-avatar>
-                    <q-icon v-if="signer.xprv" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
-                    <q-icon v-else name="person" size="sm"></q-icon>
-                  </q-avatar>
-                  <div class="flex flex-column">
-                    <div class="ellipsis" style="max-width:3.5em">
-                      {{ signer.name + 'kjfdlsafajfkdasljfkldsjkadlf'}} 
-                    </div>
-                    <div v-if="pst?.signerSigned(signer.xpub)" class="text-bow-muted">
-                      {{ $t('SigOk') }} <q-icon name="done_all" style="color:#D4AF37"></q-icon>
-                    </div>
-                  </div>
-                </q-chip>
+                <q-item-label>{{ $t('CanSignOnDevice', {}, 'Can Sign on this device?') }}</q-item-label>
+                <q-item-label v-if="signersWithXprv.length > 0" caption lines="2">
+                  {{ $t('CanSignAs', {}, 'You can sign on this device as') }} <span class="text-bold">{{ signersWithXprv.map(s => s.name).join(` ${$t('or')} `) }}</span>
+                </q-item-label>
               </q-item-section>
-              
-              <q-item-section side>
-                <q-btn
-                  v-if="signer.xprv && !pst?.signerSigned(signer.xpub)"
-                  :icon="signButtonIcon(signer)"
-                  text-color="primary"
-                  no-caps
-                  rounded
-                  @click="initiateSignTransaction(signer)"
-                  >
-                  <span>&nbsp;&nbsp;{{$t('SignTx')}}&nbsp;&nbsp;</span>
-                </q-btn>
-                <!-- <q-btn
-                  :icon="signButtonIcon(signer)"
-                  text-color="primary"
-                  no-caps
-                  rounded
-                  @click="initiateSignTransaction(signer)"
-                  >
-                  <span>&nbsp;&nbsp;{{$t('Sign')}}&nbsp;&nbsp;</span>
-                </q-btn> -->
-                <q-btn
-                  v-else-if="signer.xprv && pst?.signerSigned(signer.xpub)"
-                  icon="mdi-share"
-                  text-color="primary"
-                  no-caps
-                  rounded
-                  @click="() => showSharePartialSignatureOptionsDialog(signer.name, signer.masterFingerprint)"
-                  >
-                  <span>&nbsp;&nbsp;{{$t('ShareSigs', {} , 'Share Sigs')}}&nbsp;&nbsp;</span>
-                </q-btn>
-                <q-btn
-                  v-else
-                  :disable="pst?.signerSigned(signer.xpub) || signingProgress?.signingProgress === 'fully-signed'"
-                  :icon="signButtonIcon(signer)"
-                  no-caps
-                  rounded
-                  @click="() => importSignerSignature(signer.masterFingerprint, signer.name)"
-                  >
-                  <span>{{ $t('ImportSigs', {}, 'Import Sigs') }}</span>
-                </q-btn>
+              <q-item-section side top>
+                <q-item-label v-if="signersWithXprv.length > 0">
+                  {{ $t('Yes') }}
+                </q-item-label>
+                <q-item-label v-else class="text-bow-muted">
+                  {{ $t('No') }}
+                </q-item-label>
               </q-item-section>
             </q-item>
-            <q-separator></q-separator>
-            <q-item class="q-mt-lg">
-              <q-item-section>
-                <div class="row justify-between q-gutter-x-md">
-                  <q-btn class="tile col-xs-3" flat dense no-caps @click="showShareProposalOptionsDialog" v-close-popup>
-                    <template v-slot:default>
-                      <div class="row justify-center">
-                        <q-icon name="mdi-share" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">{{ $t('Share') }}</div>
-                      </div>
-                    </template>
-                  </q-btn>
-                  <q-btn 
-                    :loading="isBroadcasting"
-                    @click="broadcastTransaction"
-                    :disable="signingProgress.signingProgress !== 'fully-signed' || pst.txid"
-                    class="tile col-xs-3" flat dense no-caps>
-                    <template v-slot:default>
-                      <div class="row justify-center items-stretch">
-                        <q-icon name="cell_tower" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">{{ $t('Broadcast') }}</div>
-                      </div>
-                    </template>
-                    <template v-slot:loading>
-                      <div class="row justify-center items-stretch">
-                        <q-spinner-radio color="primary" size="lg"/>
-                        <div class="col-12 tile-label">{{ $t('Broadcasting') }}...</div>
-                      </div>
-                    </template>
-                  </q-btn>
-                  <q-btn class="tile col-xs-3" flat dense no-caps @click="onDeleteProposalAction" v-close-popup>
-                    <template v-slot:default>
-                      <div class="row justify-center">
-                        <q-icon name="delete_forever" class="col-12" color="red" size="lg"></q-icon>
-                        <div class="col-12 tile-label">{{ $t('Delete') }}</div>
-                      </div>
-                    </template>
-                  </q-btn>
-                  
-                  <!-- <q-btn class="tile col-xs-3" flat dense no-caps @click="openBottomsMenu" v-close-popup>
-                    <template v-slot:default>
-                      <div class="row justify-center">
-                        <q-icon name="more_horiz" class="col-12" color="primary" size="lg"></q-icon>
-                        <div class="col-12 tile-label">{{ $t('More') }}</div>
-                      </div>
-                    </template>
-                  </q-btn> -->
-                </div>
+            <q-item>
+              <q-item-section top>
+                <q-item-label>{{ $t('SignedBy', {}, 'Signed By') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side top>
+                <q-item-label v-if="signedSigners.length > 0">
+                  {{ signedSigners.length }}/{{ wallet?.signers?.length || 0 }}
+                </q-item-label>
+                <q-item-label v-else class="text-bow-muted">
+                  0/{{ wallet?.signers?.length || 0 }}
+                </q-item-label>
+                <q-item-label v-if="signedSigners.length > 0" caption lines="2" >
+                  <div class="flex justify-end items-center">
+                    <q-chip v-for="signer in signedSigners" :key="signer.xpub" dense size="md">
+                    <q-avatar>
+                      <q-icon name="how_to_reg" size="xs"></q-icon>
+                    </q-avatar>
+                    {{ signer.name }}
+                  </q-chip>
+                  </div>
+                </q-item-label>
+                <q-item-label v-else caption>
+                  {{ $t('NoSignersYet', {}, 'No signers yet') }}
+                </q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
+          <div class="sticky-bottom-spacer"></div>
         </template>
-        </div>
-        <div
+      </div>
+      
+      <div v-if="pst && (signingProgress?.signingProgress === 'fully-signed' || canSign)" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
+        <q-btn
+          v-if="signingProgress?.signingProgress === 'fully-signed' && !pst?.txid"
+          :loading="isBroadcasting"
+          @click="broadcastTransaction"
+          color="primary"
+          rounded
+          no-caps
+          unelevated
+          class="full-width q-py-md"
+        >
+          <q-icon name="cell_tower" class="q-mr-sm"></q-icon>
+          {{ $t('Broadcast') }}
+        </q-btn>
+        <q-btn
+          v-else-if="canSign && !showActionConfirmationSlider"
+          color="primary"
+          unelevated
+          rounded
+          class="full-width q-py-md"
+          @click="initiateSignTransaction(signerWhoCanSign)"
+        >
+          <q-icon name="draw" class="q-mr-sm"></q-icon>
+          {{ $t('SignTx') }}
+        </q-btn>
+      </div>
+         <div
           v-if="showActionConfirmationSlider"
           class="action-confirmation-backdrop"
           @click="cancelActionConfirmationSlider"
@@ -273,7 +248,7 @@ import { copyToClipboard, useInterval, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { binToHex, decodeTransactionCommon, hexToBin } from 'bitauth-libauth-v3'
+import { binToHex } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
@@ -285,9 +260,9 @@ import BroadcastSuccessDialog from 'src/components/multisig/BroadcastSuccessDial
 import ShareProposalOptionsDialog from 'components/multisig/ShareProposalOptionsDialog.vue'
 import ShareSignatureOptionsDialog from 'components/multisig/ShareSignatureOptionsDialog.vue'
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
+import ProposalDetailsDialog from 'components/multisig/ProposalDetailsDialog.vue'
 import { STATUS } from 'src/lib/multisig/pst'
 const {
-  // getSignerXPrv,
   multisigNetworkProvider,
   multisigCoordinationServer,
   resolveXprvOfXpub,
@@ -295,11 +270,10 @@ const {
 } = useMultisigHelpers()
 const $q = useQuasar()
 const $store = useStore()
-const { registerInterval, removeInterval } = useInterval()
+const { registerInterval } = useInterval()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-// const signersXPrv = ref({})
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const isBroadcasting = ref(false)
@@ -315,22 +289,6 @@ const signingProgress = computed(() => {
   return pst.value.getSigningProgress()
 })
 
-// const wallet = computed(() => {
-//   const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-//   if (walletObject) {
-//     return MultisigWallet.fromObject(
-//       walletObject,
-//       { 
-//         network: multisigNetworkProvider,
-//         coordinationServer: multisigCoordinationServer,
-//         resolveXprvOfXpub,
-//         resolveMnemonicOfXpub
-//       }
-//     )
-//   }
-//   return walletObject
-// })
-
 const wallet = ref()
 
 const pstOutputsTokenCategories = computed(() => {
@@ -341,13 +299,6 @@ const pstOutputsTokenCategories = computed(() => {
     )
 })
 
-const signButtonIcon = computed(() => {
-  return (signer) => {
-    if (pst.value.signerSigned(signer.xpub)) return 'done_all'
-    return 'draw'
-  }
-})
-
 const proposedBy = computed(() => {
   if (!pst.value || !wallet.value || !wallet.value.signers) return
   const creator = pst.value.getSignerWhoCreatedProposal()
@@ -356,6 +307,30 @@ const proposedBy = computed(() => {
 
 const coordinator = computed(() => {
     return pst.value?.coordinatorInfo?.name
+})
+
+const canSign = computed(() => {
+  if (!wallet.value?.signers || !pst.value) return false
+  return wallet.value.signers.some(s => s.xprv && !pst.value.signerSigned(s.xpub))
+})
+
+const signersWithXprv = computed(() => {
+  if (!wallet.value?.signers) return []
+  return wallet.value.signers.filter(s => s.xprv)
+})
+
+const signedSigners = computed(() => {
+  if (!wallet.value?.signers || !pst.value) return []
+  return wallet.value.signers.filter(s => pst.value.signerSigned(s.xpub))
+})
+
+const signersWhoCanSign = computed(() => {
+  if (!wallet.value?.signers || !pst.value) return []
+  return wallet.value.signers.filter(s => s.xprv && !pst.value.signerSigned(s.xpub))
+})
+
+const signerWhoCanSign = computed(() => {
+  return signersWhoCanSign.value[0] || null
 })
 
 const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
@@ -433,11 +408,8 @@ const showShareProposalOptionsDialog = () => {
     } else if (payload?.action === 'upload-proposal') {
       handleProposalUploadAction()
     }
-  }).onCancel(() => {
-    // Dialog was closed without action
   })
 }
-
 
 const showProposalQrDialog = () => {
   $q.dialog({
@@ -448,6 +420,17 @@ const showProposalQrDialog = () => {
     }
   }).onOk(() => {
     // openWalletActionsDialog()
+  })
+}
+
+const showProposalDetailsDialog = () => {
+  $q.dialog({
+    component: ProposalDetailsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      pst: pst.value,
+      networkProvider: multisigNetworkProvider
+    }
   })
 }
 
@@ -553,22 +536,27 @@ const broadcastTransaction = async () => {
       })
     }
     const result = await pst.value.broadcast()
-
     if (result.data?.success ||
         result.data?.error?.includes('txn-already-known') ||
         result.data?.error?.includes('txn-already-in-mempool')) {
-      await showBroadcastSuccessDialog(result.data.txid)
+      return await showBroadcastSuccessDialog(result.data.txid)
     }
+    throw new Error(result?.data?.error) 
   } catch (error) {
     $q.dialog({
       title: 'Error',
       message: error.message || 'An error occurred while broadcasting the transaction.',
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+      ok: { 
+        label: $t('Ok'),
+        color: 'primary',
+        rounded: true,
+        class: `button-default ${getDarkModeClass(darkMode.value)}`,
+      },
     })
   } finally {
     isBroadcasting.value = false
   }
-  
 }
 
 const onConfirmSliderSwiped = async (reset) => {
@@ -602,16 +590,28 @@ const importSignerSignature = (masterFingerprint, name) => {
   })
 }
 
-// const loadSignerXPrvs = async () => {
-//   if (wallet.value) {
-//     for (const signer of wallet.value.getSigners()) {
-//       const xprv = await getSignerXPrv({ xpub: signer.xpub })
-//       if (xprv) {
-//         signersXPrv.value[signer.xpub] = xprv
-//       }
-//     }
-//   }
-// }
+const showImportSignatureDialog = () => {
+  const unsignedSigners = wallet.value?.signers?.filter(s => !pst.value?.signerSigned(s.xpub)) || []
+  if (unsignedSigners.length === 0) return
+  
+  if (unsignedSigners.length === 1) {
+    importSignerSignature(unsignedSigners[0].masterFingerprint, unsignedSigners[0].name)
+    return
+  }
+  
+  $q.bottomSheet({
+    message: $t('SelectSigner'),
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)}`,
+    actions: unsignedSigners.map((s, i) => ({
+      label: s.name || `Signer ${i + 1}`,
+      id: s.masterFingerprint,
+      icon: 'person',
+      name: s.name
+    }))
+  }).onOk(action => {
+    importSignerSignature(action.id, action.name)
+  })
+}
 
 const loadWallet = async () => {
   const walletObject = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
@@ -626,8 +626,6 @@ const loadWallet = async () => {
       }
     )
     await wallet.value.resolveXprvsOfXpubs()
-    console.log('WALLET', wallet.value)
-    console.log('Wallet json', wallet.value.toJSON())
   }
 }
  
@@ -647,7 +645,7 @@ const loadProposal = async () => {
         const initializationTasks = [
           { label: 'fetching proposals\'s coordinator info', f: async () => await pst.value.fetchCoordinatorInfo() },
           { label: 'fetching inputs reference transaction', f: async () => await pst.value.resolveInputsTransactionData() },
-          { label: 'fetching proposal\'s status', f: async () => await pst.value.fetchStatus({includeDeleted: true}) }
+          { label: 'fetching proposal\'s status', f: async () => await pst.value.fetchStatus() }
         ]
         const results = await Promise.allSettled([
           initializationTasks[0].f(), 
@@ -691,15 +689,20 @@ watch(() => pst.value?.status, async (newVal) => {
   }
 }, { deep: true })
 
+const refreshPage = async (done) => {
+  await loadProposal()
+  done()
+}
+
 onMounted(async () => {
   loadWallet()
   await loadProposal()
   registerInterval(async () => {
-    pst.value.fetchAndMergeSignatures()
+    pst.value.fetchAndMergeSignatures() 
     if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
       isFetchingStatus.value = true
       try {
-        await pst.value.fetchStatus({includeDeleted: true})
+        await pst.value.fetchStatus()
       } finally {
         isFetchingStatus.value = false
       }
@@ -727,5 +730,24 @@ onMounted(async () => {
 
 .action-confirmation-slider-content {
   width: 100%;
+}
+
+.sticky-bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+  z-index: 10;
+  background: transparent;
+}
+
+.sticky-bottom-actions .text-red {
+  color: var(--q-negative);
+}
+
+.sticky-bottom-spacer {
+  height: 100px;
 }
 </style>
