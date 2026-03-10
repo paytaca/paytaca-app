@@ -767,13 +767,16 @@ export class Pst {
   finalize () {
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
     for (const inputIndex in transaction.inputs) {
-        if (this.inputs[inputIndex].scriptSig) continue
-        let correspondingInput = this.inputs.find((i) => {
-          return (
-            Number(transaction.inputs[inputIndex].outpointIndex) === Number(i.outpointIndex) &&
-            binsAreEqual(transaction.inputs[inputIndex].outpointTransactionHash, i.outpointTransactionHash) 
-          )
-        })
+        if (
+          Object.keys(this.inputs[inputIndex].bip32Derivation || {}).length === 0 && 
+          Object.keys(this.inputs[inputIndex].signatures || {}).length === 0
+        ) {
+          if (this.inputs[inputIndex].unlockingBytecode.length > 0) {
+            transaction.inputs[inputIndex].unlockingBytecode = this.inputs[inputIndex].unlockingBytecode 
+          }
+          continue
+        }
+
         const inputUnlockingData = {
           bytecode: {}
         }
@@ -804,6 +807,13 @@ export class Pst {
         const m = extractMValue(this.inputs[inputIndex].redeemScript)
         const template = createTemplate({ m, signers: publicKeys.map(p => ({ publicKey: p })) })
         const compiler = getCompiler({ template })
+
+        let correspondingInput = this.inputs.find((i) => {
+          return (
+            Number(transaction.inputs[inputIndex].outpointIndex) === Number(i.outpointIndex) &&
+            binsAreEqual(transaction.inputs[inputIndex].outpointTransactionHash, i.outpointTransactionHash) 
+          )
+        })
 
         transaction.inputs[inputIndex].unlockingBytecode = {
           compiler,
@@ -1279,10 +1289,13 @@ export class Pst {
   }
 
 
-  async delete() {
+  async delete({ sync }) {
+    
     if (!this.options?.store) return
   
     this.options.store.commit('multisig/deletePsbt', this.unsignedTransactionHash) 
+
+    if (!sync) return 
 
     if (this.id && this.coordinatorInfo && this.wallet.signers.length > 0 && this.wallet?.options?.resolveXprvOfXpub) {
 
@@ -1297,7 +1310,7 @@ export class Pst {
       if (!coordinatorXprv) return
 
       const authCosignerCredentials = await this.wallet.generateCosignerAuthCredentials(coordinator.xpub)
-      
+
       await this.options?.coordinationServer?.deleteProposal({
         id: this.id,
         walletId: this.wallet.id,
