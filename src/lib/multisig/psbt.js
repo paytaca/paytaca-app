@@ -1612,7 +1612,8 @@ export class Psbt {
         bip32Derivation: psbtInput.getBip32Derivation(),
         redeemScript: psbtInput.getRedeemScript(),
         sourceOutput: psbtInput.getSourceUtxo(),
-        unlockingBytecode: psbtInput.getFinalScriptSig() || []
+        unlockingBytecode: psbtInput.getFinalScriptSig() || [],
+        scriptSig: psbtInput.getFinalScriptSig() || []
       })
     }
 
