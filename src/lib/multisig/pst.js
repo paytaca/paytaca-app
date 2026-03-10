@@ -348,13 +348,15 @@ export const getSigningProgress = (pst) => {
       continue
     }
 
-    const walletPublicKeys = Object.keys(correspondingInput.bip32Derivation).map(publicKeyAsKey => {
-      const signer = pst.wallet.signers.find(s => s.masterFingerprint === correspondingInput.bip32Derivation[publicKeyAsKey].masterFingerprint)
-      if (!signer) return ''
-      return derivePublicKey(signer.xpub, bip32ExtractRelativePath(correspondingInput.bip32Derivation[publicKeyAsKey].path))
-    })
+    if (pst.wallet?.signers) {
+      const walletPublicKeys = Object.keys(correspondingInput.bip32Derivation).map(publicKeyAsKey => {
+        const signer = pst.wallet.signers.find(s => s.masterFingerprint === correspondingInput.bip32Derivation[publicKeyAsKey].masterFingerprint)
+        if (!signer) return ''
+        return derivePublicKey(signer.xpub, bip32ExtractRelativePath(correspondingInput.bip32Derivation[publicKeyAsKey].path))
+      })
 
-    if (walletPublicKeys.length !== Object.keys(correspondingInput.bip32Derivation).length) continue
+      if (walletPublicKeys.length !== Object.keys(correspondingInput.bip32Derivation).length) continue
+    }
     
     const redeemScriptPublicKeys = extractPublicKeysFromRedeemScript(pst.inputs[inputIndex].redeemScript)
 
