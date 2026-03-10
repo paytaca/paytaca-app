@@ -47,7 +47,10 @@
                 <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="send_and_archive" class="col-12" color="primary" round></q-icon>
+                      <q-avatar>
+                        <q-img src="app-receive.svg" height="24px" width="24px"></q-img>
+                      </q-avatar>
+                      <!-- <q-icon name="img:app-receive.svg" class="col-12" color="primary" style="width:24px;height: 24px;" round outline></q-icon> -->
                       <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>
@@ -55,7 +58,7 @@
                 <q-btn v-if="proposals && proposals.length > 0 || !proposalsFromServer?.length " flat dense no-caps :to="{ name: 'app-multisig-wallet-psts', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="mdi-text-box" class="col-12" color="primary" style="position:relative">
+                      <q-icon name="mdi-text-box-outline" class="col-12" style="position:relative" :class="getDarkModeClass(darkMode)">
                         <q-badge color="red" v-if="proposals?.length > 0" style="margin-right: 20px;" floating>
                         {{ proposals.length }}
                         </q-badge>
@@ -67,7 +70,7 @@
                 <q-btn v-else-if="proposalsFromServer?.length > 0" @click="showProposalsImportSelectionDialog" flat dense no-caps class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="mdi-cloud" class="col-12" color="primary" style="position:relative">
+                      <q-icon name="mdi-cloud-outline" class="col-12" color="primary" style="position:relative">
                         <q-badge color="red" v-if="proposalsFromServer?.length > 0" style="margin-right: 20px;" floating>
                         {{ proposalsFromServer.length }}
                         </q-badge>
@@ -79,7 +82,7 @@
                 <q-btn  flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.getWalletHash() } }" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="mdi-text-box-multiple" class="col-12" color="primary" style="position:relative">
+                      <q-icon name="mdi-text-box-multiple-outline" class="col-12"  style="position:relative">
                       </q-icon>
                       <div class="col-12 tile-label">{{ $t('Addresses') }}</div>
                     </div>
@@ -88,7 +91,7 @@
                 <q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="more_horiz" class="col-12" color="primary"></q-icon>
+                      <q-icon name="more_horiz" class="col-12" ></q-icon>
                       <div class="col-12 tile-label">{{ $t('More') }}</div>
                     </div>
                   </template>
