@@ -175,7 +175,7 @@
                     {{ balances?.['bch'] ? balances?.['bch'] / 1e8: '...' }}
                   </q-item-section>
                 </q-item>
-                <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch')" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash()}, query: { asset }}">
+                <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash()}, query: { asset }}">
                     <q-item-section>
                       <div class="flex items-center q-gutter-x-sm">
                         <q-avatar size="md">
