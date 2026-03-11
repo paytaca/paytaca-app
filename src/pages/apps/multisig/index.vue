@@ -27,7 +27,7 @@
             </q-card-section>
           </q-card>
         </div>
-        <div class="col-xs-12 flex justify-between">
+        <div v-if="multisigWallets && multisigWallets.length > 0" class="col-xs-12 flex justify-between">
           <q-btn flat dense no-caps class="tile" @click="onCreateWalletClick">
             <template v-slot:default>
               <div class="row justify-center">
@@ -44,7 +44,7 @@
               </div>
             </template>
           </q-btn>
-          <q-btn flat dense no-caps class="tile" @click="onDeleteAllWalletsClick" v-if="multisigWallets && multisigWallets.length > 0">
+          <q-btn flat dense no-caps class="tile" @click="onDeleteAllWalletsClick" >
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="mdi-delete-sweep-outline" class="col-12" color="red" size="md"></q-icon>
@@ -52,7 +52,6 @@
               </div>
             </template>
           </q-btn>
-          <div v-else class="tile-placeholder"></div>
         </div>
       </div>
       <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center q-my-lg">
@@ -130,7 +129,7 @@
                       <q-icon name="mdi-file-import-outline" size="32px"></q-icon>
                     </q-avatar>
                     <div class="text-h6 text-weight-bold q-mb-sm">{{ $t('ImportWallet') }}</div>
-                    <div class="text-body2 text-bow-muted">{{ $t('ImportWalletDescripition', {}, 'Import a multisig wallet setup/config from different sources') }}</div>
+                    <div class="text-body2 text-bow-muted">{{ $t('ImportWalletDescripition', {}, 'Import a multisig wallet setup') }}</div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -296,7 +295,4 @@ onMounted(async () => {
   }
 }
 
-.tile-placeholder {
-  width: 80px;
-}
 </style>
