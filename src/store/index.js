@@ -17,6 +17,7 @@ import ramp from './ramp'
 import stablehedge from './stablehedge'
 import multisig from './multisig'
 import subscription from './subscription'
+import wizardconnect from './wizardconnect'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -269,7 +270,8 @@ export const Store = createStore({
     ramp,
     stablehedge,
     multisig,
-    subscription
+    subscription,
+    wizardconnect
   },
 
   // enable strict mode (adds overhead!)
