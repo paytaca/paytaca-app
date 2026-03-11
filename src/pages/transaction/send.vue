@@ -20,6 +20,15 @@
       >
         {{ $t('SLPSendWarning') }}
       </q-banner>
+      <q-banner
+        v-else-if="isReadOnly"
+        inline-actions
+        class="bg-orange text-center q-mt-lg text-bow read-only-banner"
+        :class="getDarkModeClass(darkMode)"
+      >
+        <q-icon name="mdi-eye-off" class="q-mr-sm" />
+        {{ $t('ReadOnlyWalletWarning') || 'This is a read-only wallet. You cannot send transactions from this wallet.' }}
+      </q-banner>
       <template v-else>
         <SendSuccessPage
           v-if="showSendSuccessPage"
@@ -620,6 +629,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isReadOnly () {
+      return this.$store.getters['global/isReadOnly']
     },
     denomination () {
       if (this.isSLP || this.isCashToken) return 'BCH'
@@ -2634,6 +2646,11 @@ export default {
 
   created () {
     const vm = this
+
+    // Check if wallet is read-only and disable sending
+    if (vm.isReadOnly) {
+      vm.disableSending = true
+    }
 
     if (vm.assetId && vm.amount && vm.recipient) {
       vm.recipients[0].amount = vm.amount

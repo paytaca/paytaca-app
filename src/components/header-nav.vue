@@ -34,6 +34,10 @@
           </p>
         </div>
         <div class="pt-header-right col-auto row items-center justify-end">
+          <q-badge v-if="isReadOnly" color="orange" class="q-mr-sm">
+            <q-icon name="mdi-eye-off" size="12px" class="q-mr-xs" />
+            {{ $t('ReadOnly') }}
+          </q-badge>
           <slot name="top-right-menu">&nbsp;</slot>
         </div>
       </div>
@@ -122,6 +126,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    isReadOnly () {
+      return this.$store.getters['global/isReadOnly']
     },
     headerNavStyle () {
       /**

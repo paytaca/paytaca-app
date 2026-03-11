@@ -442,3 +442,40 @@ export function anyWalletHasLockEnabled (state) {
 export function isUnlocked (state) {
   return Boolean(state.isUnlocked)
 }
+
+/**
+ * Check if the current wallet is read-only
+ * @param {Object} state - Global state
+ * @returns {boolean} True if the wallet is read-only
+ */
+export function isReadOnly (state) {
+  const walletData = state.isChipnet
+    ? state.chipnet__wallets.bch
+    : state.wallets.bch
+  return Boolean(walletData?.isReadOnly)
+}
+
+/**
+ * Get the xPub key for the current wallet
+ * @param {Object} state - Global state
+ * @returns {string|null} The xPub key or null if not available
+ */
+export function getXPubKey (state) {
+  const walletData = state.isChipnet
+    ? state.chipnet__wallets.bch
+    : state.wallets.bch
+  return walletData?.xPubKey || null
+}
+
+/**
+ * Check if the current wallet can send/spend
+ * Returns false for read-only wallets
+ * @param {Object} state - Global state
+ * @returns {boolean} True if the wallet can send transactions
+ */
+export function canSend (state) {
+  const walletData = state.isChipnet
+    ? state.chipnet__wallets.bch
+    : state.wallets.bch
+  return !Boolean(walletData?.isReadOnly)
+}

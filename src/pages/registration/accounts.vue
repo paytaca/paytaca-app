@@ -302,6 +302,24 @@
                 </div>
               </div>
             </transition>
+
+            <transition appear @enter="onButtonEnter" :style="{ '--delay': '0.6s' }">
+              <div 
+                class="action-glass-card pt-card bg-grad cursor-pointer text-bow"
+                :class="getDarkModeClass(darkMode)"
+                @click="onChangeAuthenticationPhase('readonly')"
+              >
+                <div class="action-icon-wrapper">
+                  <div class="row justify-center">
+                    <q-icon name="mdi-eye-outline" class="col-12" :color="darkMode ? 'primary' : 'black'" size="29px"></q-icon>
+                  </div>
+                </div>
+                <div class="action-content">
+                  <div class="text-subtitle1 q-mb-xs">{{ $t('ImportAsReadOnly') || 'Import as Read-Only' }}</div>
+                  <div class="text-body2 q-mt-xs">{{ $t('ImportReadOnlyDescription') || 'View-only access using xPub key' }}</div>
+                </div>
+              </div>
+            </transition>
           </div>
 
           <!-- Back Button with Animation -->
@@ -422,6 +440,92 @@
                 @click="initCreateWallet()"
                 :disable="!validateSeedPhrase()"
               />
+      </template>
+
+      <template v-else-if="authenticationPhase === 'readonly'">
+        <div class="row no-wrap items-center q-mb-sm full-width" style="margin-left: -16px; margin-right: -16px; padding: 0 16px;">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="glass-button-text"
+            style="margin-top: -6px;"
+            :class="getDarkModeClass(darkMode)"
+            @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
+          />
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('ImportReadOnlyWallet') || 'Import Read-Only Wallet' }}</div>
+          <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
+        </div>
+        <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('ImportReadOnlyDescription') || 'Enter the xPub key and wallet hash to import a read-only wallet' }}</p>
+        
+        <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+          <div class="q-pa-md">
+            <q-input
+              :dark="darkMode"
+              dense
+              v-model="xPubKeyInput"
+              outlined
+              class="glass-textarea bg-white"
+              :class="getDarkModeClass(darkMode)"
+              :placeholder="$t('EnterXPubKey') || 'Enter xPub key'"
+              type="textarea"
+              rows="3"
+            />
+            <div class="row justify-between q-mt-md">
+              <q-btn
+                flat
+                no-caps
+                padding="xs sm"
+                icon="mdi-qrcode-scan"
+                class="glass-button-text"
+                :class="getDarkModeClass(darkMode)"
+                :label="$t('ScanQRCode') || 'Scan QR'"
+                @click="scanXPubQRCode"
+              />
+              <q-btn
+                flat
+                no-caps
+                padding="xs sm"
+                icon="mdi-content-paste"
+                class="glass-button-text"
+                :class="getDarkModeClass(darkMode)"
+                :label="$t('Paste') || 'Paste'"
+                @click="pasteXPubFromClipboard"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+          <div class="q-pa-md">
+            <q-input
+              :dark="darkMode"
+              dense
+              v-model="walletHashInput"
+              outlined
+              class="glass-textarea bg-white"
+              :class="getDarkModeClass(darkMode)"
+              :placeholder="$t('EnterWalletHash') || 'Enter wallet hash'"
+            />
+            <q-item-label caption class="q-mt-sm" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+              {{ $t('WalletHashRequiredDescription') || 'Required to view balance and transactions. Find this in your original wallet Settings → Wallet Info.' }}
+            </q-item-label>
+          </div>
+        </div>
+        
+        <div v-if="xPubError" class="q-px-md q-mt-sm">
+          <p class="text-negative text-center text-body2">{{ xPubError }}</p>
+        </div>
+        
+        <q-btn
+          rounded
+          :label="$t('ImportWallet') || 'Import Wallet'"
+          class="q-mt-lg full-width primary-cta bg-grad"
+          @click="importReadOnlyWallet()"
+          :disable="!xPubKeyInput || xPubKeyInput.length < 50 || !walletHashInput || walletHashInput.length !== 64"
+          :loading="readOnlyImportLoading"
+        />
       </template>
     </div>
 
@@ -587,6 +691,7 @@
 <script>
 import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
 import { getMnemonic } from '../../wallet'
+import { validateXPubKey } from '../../wallet/readonly-wallet'
 import { utils } from 'ethers'
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
@@ -701,7 +806,11 @@ export default {
       isRedirecting: false,
       step2Initialized: false,
       step2Loading: false,
-      subscriptionChecked: false
+      subscriptionChecked: false,
+      xPubKeyInput: '',
+      walletHashInput: '',
+      xPubError: '',
+      readOnlyImportLoading: false
       // moveToReferral: false,
     }
   },
@@ -2247,11 +2356,95 @@ export default {
         }).catch(console.log)
       }
     },
-    onChangeAuthenticationPhase (isShard) {
-      this.authenticationPhase = isShard ? 'shards' : 'backup-phrase'
-      // Navigate to step-2 for seed phrase entry
-      if (this.restoreStep === 1) {
-        this.$router.push('/accounts/restore/step-2')
+    onChangeAuthenticationPhase (phase) {
+      if (phase === 'readonly') {
+        this.authenticationPhase = 'readonly'
+        // Navigate to step-2 for xPub entry
+        if (this.restoreStep === 1) {
+          this.$router.push('/accounts/restore/step-2')
+        }
+      } else {
+        this.authenticationPhase = phase ? 'shards' : 'backup-phrase'
+        // Navigate to step-2 for seed phrase entry
+        if (this.restoreStep === 1) {
+          this.$router.push('/accounts/restore/step-2')
+        }
+      }
+    },
+    async pasteXPubFromClipboard () {
+      try {
+        const text = await navigator.clipboard.readText()
+        this.xPubKeyInput = text.trim()
+        this.xPubError = ''
+      } catch (error) {
+        console.error('Failed to read clipboard:', error)
+        this.xPubError = this.$t('ClipboardAccessDenied') || 'Could not access clipboard. Please paste manually.'
+      }
+    },
+    async scanXPubQRCode () {
+      // This would typically open a QR scanner
+      // For now, we'll show a message that this feature is coming
+      this.$q.notify({
+        type: 'info',
+        message: this.$t('QRScannerComingSoon') || 'QR scanner for xPub keys coming soon',
+        timeout: 3000
+      })
+    },
+    async importReadOnlyWallet () {
+      this.xPubError = ''
+      this.readOnlyImportLoading = true
+
+      try {
+        // Validate xPub key
+        if (!this.xPubKeyInput || this.xPubKeyInput.length < 50) {
+          this.xPubError = this.$t('InvalidXPubKey') || 'Invalid xPub key. Please check and try again.'
+          this.readOnlyImportLoading = false
+          return
+        }
+
+        // Validate the xPub key format
+        if (!validateXPubKey(this.xPubKeyInput)) {
+          this.xPubError = this.$t('InvalidXPubKeyFormat') || 'Invalid xPub key format. Please enter a valid xPub key.'
+          this.readOnlyImportLoading = false
+          return
+        }
+
+        // Validate wallet hash (required)
+        const walletHash = this.walletHashInput.trim()
+        if (!walletHash) {
+          this.xPubError = this.$t('WalletHashRequired') || 'Wallet hash is required.'
+          this.readOnlyImportLoading = false
+          return
+        }
+        if (walletHash.length !== 64) {
+          this.xPubError = this.$t('InvalidWalletHash') || 'Invalid wallet hash. Must be 64 characters.'
+          this.readOnlyImportLoading = false
+          return
+        }
+
+        // Create read-only wallet
+        const result = await this.$store.dispatch('global/createReadOnlyWallet', {
+          xPubKey: this.xPubKeyInput.trim(),
+          walletHash: walletHash,
+          isChipnet: false,
+          walletName: 'Read-Only Wallet'
+        })
+
+        if (result.success) {
+          // Mark as backed up since there's no seed phrase to back up
+          this.$store.commit('global/setLastBackupTimestamp', Date.now())
+          this.$store.commit('global/setBackupReminderDismissed', true)
+
+          // Navigate to dashboard
+          this.$router.push('/')
+        } else {
+          this.xPubError = this.$t('FailedToImportWallet') || 'Failed to import wallet. Please try again.'
+        }
+      } catch (error) {
+        console.error('Error importing read-only wallet:', error)
+        this.xPubError = error.message || this.$t('FailedToImportWallet') || 'Failed to import wallet. Please try again.'
+      } finally {
+        this.readOnlyImportLoading = false
       }
     },
     onProceedToNextStep () {

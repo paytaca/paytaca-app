@@ -1232,3 +1232,196 @@ export async function depositAddressIsFromWallet(context, {address, addressIndex
 
   return { ok: false, walletIndex: selectedWalletIndex }
 }
+
+import { ReadOnlyWallet, validateXPubKey } from '../../wallet/readonly-wallet'
+
+/**
+ * Create a new read-only wallet from an xPub key
+ * @param {Object} context - Vuex context
+ * @param {Object} data - Wallet data
+ * @param {string} data.xPubKey - The extended public key
+ * @param {string} data.walletHash - The wallet hash from watchtower (required)
+ * @param {boolean} data.isChipnet - Whether to use chipnet
+ * @param {string} data.walletName - Optional wallet name
+ * @returns {Promise<Object>} The created wallet data
+ */
+export async function createReadOnlyWallet(context, data) {
+  const { xPubKey, walletHash: providedWalletHash, isChipnet = false, walletName = '' } = data
+
+  // Validate xPub key
+  if (!validateXPubKey(xPubKey)) {
+    throw new Error('Invalid xPub key provided')
+  }
+
+  // Validate wallet hash (required)
+  if (!providedWalletHash || providedWalletHash.length !== 64) {
+    throw new Error('Wallet hash is required and must be 64 characters')
+  }
+
+  // Create read-only wallet instance with provided wallet hash
+  const readOnlyWallet = new ReadOnlyWallet(xPubKey, providedWalletHash, "m/44'/145'/0'", isChipnet)
+
+  // Get first address set
+  const addresses = await readOnlyWallet.getAddressSetAt(0)
+
+  // Use provided wallet hash
+  const walletHash = providedWalletHash
+
+  // Prepare wallet data for vault
+  const walletData = {
+    bch: {
+      walletHash: walletHash,
+      xPubKey: xPubKey,
+      lastAddress: addresses.receiving,
+      lastChangeAddress: addresses.change,
+      lastAddressIndex: 0,
+      connectedAddress: addresses.receiving,
+      connectedAddressIndex: '0/0',
+      connectedSites: {},
+      lastAddressAndIndex: {
+        address: addresses.receiving,
+        address_index: 0
+      },
+      connectedApps: [],
+      walletAddresses: [],
+      isReadOnly: true,
+      derivationPath: "m/44'/145'/0'"
+    },
+    slp: {
+      walletHash: '',
+      derivationPath: '',
+      xPubKey: '',
+      lastAddress: '',
+      lastChangeAddress: '',
+      lastAddressIndex: 0,
+      connectedAddress: '',
+      connectedAddressIndex: '0/0',
+      connectedSites: {}
+    }
+  }
+
+  const chipnetData = {
+    bch: {
+      walletHash: walletHash,
+      xPubKey: xPubKey,
+      lastAddress: '',
+      lastChangeAddress: '',
+      lastAddressIndex: 0,
+      connectedAddress: '',
+      connectedAddressIndex: '0/0',
+      connectedSites: {},
+      lastAddressAndIndex: {},
+      connectedApps: [],
+      walletAddresses: [],
+      isReadOnly: true,
+      derivationPath: "m/44'/145'/0'"
+    },
+    slp: {
+      walletHash: '',
+      derivationPath: '',
+      xPubKey: '',
+      lastAddress: '',
+      lastChangeAddress: '',
+      lastAddressIndex: 0,
+      connectedAddress: '',
+      connectedAddressIndex: '0/0',
+      connectedSites: {}
+    }
+  }
+
+  const vaultEntry = {
+    wallet: walletData,
+    chipnet: chipnetData,
+    name: walletName || 'Read-Only Wallet',
+    settings: {
+      isChipnet: isChipnet,
+      autoGenerateAddress: true,
+      enableStablhedge: false,
+      enableSLP: false,
+      denomination: 'BCH',
+      theme: 'glassmorphic-blue',
+      language: 'en-us',
+      country: {
+        name: 'United States',
+        code: 'US'
+      },
+      darkMode: true,
+      currency: { name: 'United States Dollar', symbol: 'USD' },
+      preferredSecurity: 'pin',
+      lockApp: false,
+      relativeTxTimestamp: true,
+      lastBackupTimestamp: Date.now() // Read-only wallets don't need backup since there's no seed
+    },
+    isReadOnly: true
+  }
+
+  // Add to vault
+  context.commit('updateVault', vaultEntry)
+
+  // Set as current wallet
+  const vault = context.getters.getVault
+  const newIndex = vault.length - 1
+  context.commit('updateWalletIndex', newIndex)
+  context.commit('updateCurrentWallet', newIndex)
+
+  // Subscribe addresses to watchtower
+  try {
+    await readOnlyWallet.getNewAddressSet(0)
+  } catch (error) {
+    console.warn('Failed to subscribe read-only wallet addresses:', error)
+  }
+
+  return {
+    success: true,
+    walletHash,
+    addresses,
+    index: newIndex
+  }
+}
+
+/**
+ * Load wallet addresses for read-only wallet
+ * Uses xPub to derive addresses without private keys
+ * @param {Object} context - Vuex context
+ */
+export async function loadReadOnlyWalletAddresses(context) {
+  const walletData = context.state.isChipnet
+    ? context.state.chipnet__wallets.bch
+    : context.state.wallets.bch
+
+  if (!walletData?.isReadOnly) {
+    return
+  }
+
+  const xPubKey = walletData.xPubKey
+  if (!xPubKey) {
+    console.warn('Cannot load addresses: xPub key not available')
+    return
+  }
+
+  const isChipnet = Boolean(context.state.isChipnet)
+  const readOnlyWallet = new ReadOnlyWallet(xPubKey, "m/44'/145'/0'", isChipnet)
+
+  // Get last address index
+  let lastIndex = walletData.lastAddressIndex || 0
+
+  // Generate addresses
+  const stopAtIndex = lastIndex + 1
+  const walletAddresses = []
+
+  for (let i = 0; i < stopAtIndex; i++) {
+    try {
+      const addresses = await readOnlyWallet.getAddressSetAt(i)
+      walletAddresses.push({
+        address_index: i,
+        address: addresses.receiving,
+        wif: null // No private key for read-only wallets
+      })
+    } catch (error) {
+      console.error(`Error deriving address at index ${i}:`, error)
+      break
+    }
+  }
+
+  context.commit('setWalletAddresses', walletAddresses)
+}

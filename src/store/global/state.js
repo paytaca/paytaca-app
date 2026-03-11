@@ -44,7 +44,8 @@ export default function () {
         connectedSites: {},
         lastAddressAndIndex: { /*{ address: string, index: number}*/ },
         connectedApps: [], /* ConnectedApp[] */
-        walletAddresses: [] /* WalletAddress[] Discovered addresses based on lastAdressAnIndex address_index */
+        walletAddresses: [], /* WalletAddress[] Discovered addresses based on lastAdressAnIndex address_index */
+        isReadOnly: false /* Flag to indicate if this is a read-only wallet */
       },
       slp: {
         walletHash: '',
@@ -71,7 +72,8 @@ export default function () {
         connectedSites: {},
         lastAddressAndIndex: {},
         connectedApps: [],
-        walletAddresses: []
+        walletAddresses: [],
+        isReadOnly: false /* Flag to indicate if this is a read-only wallet */
       },
       slp: {
         walletHash: '',

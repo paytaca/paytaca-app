@@ -5,15 +5,19 @@
         <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletInfo', {}, 'Wallet Info') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-              <q-item clickable v-ripple @click="openRenameDialog()">
+              <q-item>
                 <q-item-section>
                   <q-item-label :class="{ 'text-blue-5': darkMode }" caption>{{ $t('WalletName') }}</q-item-label>
                   <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
                     {{ currentWalletName }}
+                    <q-badge v-if="isReadOnly" color="orange" class="q-ml-sm">
+                      <q-icon name="mdi-eye-off" size="12px" class="q-mr-xs" />
+                      {{ $t('ReadOnly', {}, 'Read-Only') }}
+                    </q-badge>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section avatar>
-                  <q-icon name="edit" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'"></q-icon>
+                  <q-btn flat round icon="edit" :class="darkMode ? 'pt-setting-avatar-dark' : 'text-grey'" @click="openRenameDialog()" />
                 </q-item-section>
               </q-item>
               <q-item clickable v-ripple @click="showSensitiveInfo = !showSensitiveInfo">
@@ -108,7 +112,7 @@
             </q-list>
         </div>
 
-        <div class="col-12 q-px-lg q-mt-md">
+        <div v-if="!isReadOnly" class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('Backup') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
               <q-item clickable v-ripple @click="$router.push('/apps/wallet-backup/seed-phrase')">
@@ -411,6 +415,9 @@ export default {
         }
       }
       return wallet
+    },
+    isReadOnly () {
+      return this.$store.getters['global/isReadOnly']
     },
     lockAppEnabled () {
       return this.$store.getters['global/lockApp']

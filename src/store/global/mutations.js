@@ -692,3 +692,35 @@ export function setIsUnlocked (state, value) {
   state.isUnlocked = Boolean(value)
 }
 
+/**
+ * Set read-only status for current wallet
+ * @param {Object} state - Global state
+ * @param {boolean} isReadOnly - True to set as read-only
+ */
+export function setReadOnly (state, isReadOnly) {
+  if (state.isChipnet) {
+    state.chipnet__wallets.bch.isReadOnly = Boolean(isReadOnly)
+  } else {
+    state.wallets.bch.isReadOnly = Boolean(isReadOnly)
+  }
+}
+
+/**
+ * Initialize a read-only wallet with xPub key
+ * @param {Object} state - Global state
+ * @param {Object} data - Wallet data
+ * @param {string} data.xPubKey - The extended public key
+ * @param {string} data.walletHash - The wallet hash
+ * @param {boolean} data.isChipnet - Whether this is chipnet
+ */
+export function initReadOnlyWallet (state, data) {
+  const walletData = data?.isChipnet
+    ? state.chipnet__wallets.bch
+    : state.wallets.bch
+
+  walletData.xPubKey = data.xPubKey
+  walletData.walletHash = data.walletHash
+  walletData.isReadOnly = true
+  walletData.derivationPath = data.derivationPath || "m/44'/145'/0'"
+}
+

@@ -1,6 +1,7 @@
 import { SlpWallet } from './slp'
 import { BchWallet } from './bch'
 import { LibauthHDWallet } from './bch-libauth'
+import { ReadOnlyWallet, validateXPubKey } from './readonly-wallet'
 import aes256 from 'aes256'
 import {
  encodeHdPrivateKey,
@@ -602,3 +603,62 @@ export function signMessageWithHdPrivateKey ({ hdPrivateKey, addressIndex, messa
 }
 
 export { Address } from 'watchtower-cash-js';
+export { ReadOnlyWallet, validateXPubKey } from './readonly-wallet';
+
+/**
+ * Create a read-only BCH wallet from an xPub key
+ * @param {string} xPubKey - The extended public key
+ * @param {string} walletHash - The wallet hash from watchtower (required)
+ * @param {boolean} isChipnet - Whether to use chipnet (testnet)
+ * @returns {ReadOnlyWallet} A new read-only wallet instance
+ */
+export function createReadOnlyBchWallet(xPubKey, walletHash, isChipnet = false) {
+  const derivationPath = "m/44'/145'/0'"
+  return new ReadOnlyWallet(xPubKey, walletHash, derivationPath, isChipnet)
+}
+
+/**
+ * Check if a wallet is read-only
+ * @param {Object} wallet - The wallet object (BchWallet or ReadOnlyWallet)
+ * @returns {boolean} True if the wallet is read-only
+ */
+export function isReadOnlyWallet(wallet) {
+  return wallet?.isReadOnly === true
+}
+
+/**
+ * Load a wallet by index, supporting both regular and read-only wallets
+ * @param {string} network - Network type ('BCH')
+ * @param {number} index - Vault index
+ * @returns {Promise<Wallet|ReadOnlyWallet>} The wallet instance
+ */
+export async function loadWalletWithType(network = 'BCH', index = 0) {
+  const vault = (await import('src/store')).default.getters['global/getVault']
+  const vaultEntry = vault?.[index]
+  
+  if (!vaultEntry) {
+    throw new Error(`No vault entry found at index ${index}`)
+  }
+  
+  // Check if this is a read-only wallet
+  const isReadOnly = vaultEntry?.wallet?.bch?.isReadOnly || 
+                     vaultEntry?.isReadOnly || 
+                     vaultEntry?.wallet?.isReadOnly
+  
+  if (isReadOnly) {
+    // Get xPub and wallet hash from vault
+    const xPubKey = vaultEntry?.wallet?.bch?.xPubKey || vaultEntry?.xPubKey
+    const walletHash = vaultEntry?.wallet?.bch?.walletHash || null
+    const isChipnet = vaultEntry?.wallet?.bch?.isChipnet || false
+    
+    if (!xPubKey) {
+      throw new Error('Read-only wallet missing xPub key')
+    }
+    
+    return createReadOnlyBchWallet(xPubKey, walletHash, isChipnet)
+  }
+  
+  // Regular wallet - load mnemonic and create normal wallet
+  const mnemonic = await getMnemonic(index)
+  return new Wallet(mnemonic, network)
+}
