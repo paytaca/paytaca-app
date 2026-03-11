@@ -153,8 +153,8 @@ const loadNfts = async () => {
   if (!wallet.value) return
   loading.value = true
   try {
-    const result = await wallet.value.getWalletHashUtxos('nft')
-    nfts.value = result || []
+    const result = await wallet.value.getWalletHashUtxos()
+    nfts.value = result?.filter(u => u.token?.nft)
   } catch (error) {
     console.error('Error loading NFTs:', error)
     $q.notify({
