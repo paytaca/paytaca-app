@@ -85,10 +85,12 @@ export function recipientsToLibauthTransactionOutputs(recipients, m, n) {
       output.token.amount = BigInt(tokenAmount)
     }
 
-    if (output.token && r.capability) {
-      if (tokenAmount > 0) throw new Error('Semi fungible token not yet supported!')
-      output.token.nft.capability = r.capability
-      output.token.nft.commitment = hexToBin(r.commitment)
+    if (output.token && r.targetNftUtxo?.token?.nft) {
+      // if (tokenAmount > 0) throw new Error('Semi fungible token not yet supported!')
+      output.token.amount = r.targetNftUtxo.token.amount
+      output.token.nft = {}
+      output.token.nft.capability = r.targetNftUtxo.token.nft.capability
+      output.token.nft.commitment = hexToBin(r.targetNftUtxo.token.nft.commitment)
     }
 
     if (output.token) {
