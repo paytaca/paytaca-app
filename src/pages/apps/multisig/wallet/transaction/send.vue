@@ -349,17 +349,12 @@ const createProposal = async () => {
         creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
       }
     }
-    const options = {
-      store: $store,
-      provider: multisigNetworkProvider,
-      coordinationServer: multisigCoordinationServer
-    }
     const proposal = await wallet.value.createProposal({
       creator: creator,
       origin: 'paytaca-wallet',
       purpose: purpose.value,
       recipients: recipients.value
-    }, options)
+  })
     
     await proposal.save()
     
