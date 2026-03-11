@@ -137,7 +137,7 @@ import {
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'
-import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos, watchtowerWalletHashUtxoToCommonUtxo } from './utxo.js'
+import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos, watchtowerUtxoToCommonUtxo, watchtowerWalletHashUtxoToCommonUtxo } from './utxo.js'
 import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
@@ -626,15 +626,18 @@ export class MultisigWallet {
     return this._utxos
   }
 
-  async getWalletHashUtxos(tokenFilter = 'ft') {
+  async getWalletHashUtxos(includeNfts) {
 
     if (!this.options?.provider) throw new Error('Missing provider') 
 
     const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
-    const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken', tokenFilter)
-
-    const responses = await Promise.allSettled([r1, r2])
-
+    const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken', 'ft')
+    let requests = [r1, r2]
+    if (includeNfts) {
+      const r3 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken', 'nft')
+      requests.push(r3)
+    }
+    const responses = await Promise.allSettled(requests)
     let utxos = []
 
     for (const r of responses) {
@@ -890,14 +893,16 @@ export class MultisigWallet {
       await this.subscribeWalletAddressIndex(addressIndex, 'change')
   }
 
-  async selectUtxos(proposal) {
+  async selectUtxos(proposal, source) {
 
     if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
       throw new Error('Sending mixed assets is not yet supported!')
     }
 
-    if (!this.utxos) {
-      await this.getWalletHashUtxos()
+    let utxos = source 
+
+    if (!utxos) {
+      utxos = await this.getWalletHashUtxos()
     }
 
     let targetBch = 
@@ -914,7 +919,6 @@ export class MultisigWallet {
      * @type {{Object.<string, bigint>}} - Key is the asset which is the token category
      */
     let targetTokens = {}
-
     // Get target token amount of each asset(token category), convert decimal amount to vm number
     for (const r of proposal.recipients) {
       if (r.asset === 'bch') continue
@@ -926,10 +930,11 @@ export class MultisigWallet {
       targetTokens[r.asset] = BigInt(Big(targetTokens[r.asset]).add(tokenAmountInVmNumber))
     }
 
+    
     let satoshiUtxos = null
     if (Number(targetSatoshis) > 0) {
       // trying to send bch
-      satoshiUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis })
+      satoshiUtxos = selectUtxos(utxos?.filter(u => !u.token), { targetSatoshis })
       if (!satoshiUtxos.satoshisSatisfied) {
         throw new Error('Insufficient BCH balance!')
       }
@@ -938,7 +943,7 @@ export class MultisigWallet {
     let tokenUtxos = null
     if (Object.keys(targetTokens).length > 0) {
       // trying to send tokens
-      tokenUtxos = selectUtxos(this.utxos?.filter(u => Boolean(u.token)), { targetTokens })
+      tokenUtxos = selectUtxos(utxos?.filter(u => Boolean(u.token)), { targetTokens })
       if (!tokenUtxos.tokensSatisfied) {
         throw new Error('Insufficient token balance!')
       }
@@ -954,7 +959,6 @@ export class MultisigWallet {
       selectedUtxos = selectedUtxos.concat(tokenUtxos.selectedUtxos)
     }
 
-
     let inputs = selectedUtxos?.map((u) => {
       return {
         ...commonUtxoToLibauthInput(u, []),
@@ -964,7 +968,6 @@ export class MultisigWallet {
 
     let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
 
-    let funderUtxos = null
     const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
     const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
     const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
@@ -995,12 +998,14 @@ export class MultisigWallet {
 
     let additionalFunds = 0
 
+    let funderUtxos = null
+
     if (totalSatoshisChangeAmount < estimatedFee) {
       
       if (funderUtxos) { 
         funderUtxos = selectUtxos(funderUtxos.remainingUtxos?.filter(u => !u.token), { targetSatoshis: estimatedFee +  satoshisChangeOutputDustThreshold })
       } else {
-        funderUtxos = selectUtxos(this.utxos?.filter(u => !u.token), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
+        funderUtxos = selectUtxos(utxos?.filter(u => !u.token), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
       }
 
       if (!funderUtxos.satoshisSatisfied) {
@@ -1018,19 +1023,119 @@ export class MultisigWallet {
     return selectedUtxos
   }
 
-  async createProposal(proposal, options) {
+  async selectNftUtxos(proposal, source) {
 
     if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
       throw new Error('Sending mixed assets is not yet supported!')
     }
 
-    if (!this.utxos) {
-      await this.getWalletHashUtxos()
+    let utxos = source 
+    
+    if (!utxos) {
+      utxos = await this.getWalletHashUtxos()
+    }
+    
+    /**
+     * @type {{Object.<string, Token>}} - Key is the asset which is the token category
+     */
+    let targetNfts = {}
+    // Get target token amount of each asset(token category), convert decimal amount to vm number
+    for (const r of proposal.recipients) {
+      if (r.asset === 'bch') continue
+      if (r.targetNftUtxo) {
+        targetNfts[r.asset] = r.targetNftUtxo
+        continue
+      }
+      let tokenAmountInVmNumber = BigInt(Big(r.amount).mul(`1e${r.decimals || 0}`).toString())
+      if (!targetTokens[r.asset]) {
+        targetTokens[r.asset] = tokenAmountInVmNumber
+        continue
+      }
+      targetTokens[r.asset] = BigInt(Big(targetTokens[r.asset]).add(tokenAmountInVmNumber))
+    }
+    
+    let selectedUtxos = []
+    for (const category of Object.keys(targetNfts || {})) {
+      const nftUtxo = utxos.find(u => {
+        return (
+          u.vout === targetNfts[category].vout &&
+          u.txid === targetNfts[category].txid
+        )
+      })
+      if (!nftUtxo) continue
+
+      selectedUtxos.push(nftUtxo)
     }
 
-    let selectedUtxos = await this.selectUtxos(proposal)
+    let funderUtxos = utxos.filter(u => !u.token)
     let inputs = selectedUtxos?.map((u) => {
+      return {
+        ...commonUtxoToLibauthInput(u, []),
+        sourceOutput: commonUtxoToLibauthOutput(u, cashAddressToLockingBytecode(u.address).bytecode),
+      }
+    })
+    
+    let outputs = recipientsToLibauthTransactionOutputs(proposal.recipients, this.m, this.n)
 
+    const lastUsedChangeAddressIndex = this.getLastUsedChangeAddressIndex(this.options.provider.network)
+    const changeAddressIndex = lastUsedChangeAddressIndex === undefined ? 0 : lastUsedChangeAddressIndex + 1
+    const changeAddress = this.getChangeAddress(changeAddressIndex, this.cashAddressNetworkPrefix)
+
+    const satoshisChangeOutput = {
+      lockingBytecode: cashAddressToLockingBytecode(changeAddress.address).bytecode,
+      valueSatoshis: 0n
+    }
+
+    const satoshisChangeOutputDustThreshold = 
+      getMofNDustThreshold(
+        this.m, this.n, 
+        satoshisChangeOutput
+      )
+
+    const estimatedFee = estimateFee(structuredClone(inputs), structuredClone(outputs), createTemplate(this))
+    
+    let totalSatoshisInputsAmount = 
+      inputs
+        .reduce((target, nextInput) => target += nextInput.sourceOutput.valueSatoshis, 0n)
+
+    const totalSatoshiOutputsAmount = 
+      outputs
+        .reduce((target, nextOutput) => target += nextOutput?.valueSatoshis, 0n)
+
+    let totalSatoshisChangeAmount = totalSatoshisInputsAmount - totalSatoshiOutputsAmount
+
+    if (totalSatoshisChangeAmount < estimatedFee) {
+
+      funderUtxos = selectUtxos(funderUtxos,  { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
+      if (!funderUtxos.satoshisSatisfied) {
+        throw new Error('Insufficient BCH balance for fee!')
+      }
+      
+      selectedUtxos = 
+        selectedUtxos.concat(
+            funderUtxos.selectedUtxos
+        )
+    }
+    return selectedUtxos
+  }
+
+  
+  async createProposal(proposal, transactionType = 'send-fungible-assets') {
+
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    let utxos = []
+    let selectedUtxos = []
+    if (transactionType === 'send-non-fungible-assets') {
+      utxos = await this.getWalletHashUtxos(true)
+      selectedUtxos = await this.selectNftUtxos(proposal, utxos)
+    } else {
+      utxos = await this.getWalletHashUtxos()
+      selectedUtxos = await this.selectUtxos(proposal, utxos.filter(u => !u.token?.nft))
+    }
+    let inputs = selectedUtxos?.map((u) => {
         const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
         const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
           const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + u.addressPath
@@ -1151,10 +1256,19 @@ export class MultisigWallet {
       .addInputs(inputs)
       .addOutputs(outputs)
       .setWallet(this)
-      .setStore(options?.store)
-      .setProvider(options?.provider)
-      .setCoordinationServer(options?.coordinationServer)
-    return pst 
+      .setStore(this.options?.store)
+      .setProvider(this.options?.provider)
+      .setCoordinationServer(this.options?.coordinationServer)
+    return pst
+  }
+
+  async createNftTransferProposal() {
+    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
+      throw new Error('Sending mixed assets is not yet supported!')
+    }
+
+    await this.getWalletHashUtxos()
+
   }
 
   async wcCreateProposalFromSessionRequest(sessionRequest) {
