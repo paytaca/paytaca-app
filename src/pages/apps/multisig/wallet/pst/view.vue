@@ -234,6 +234,19 @@
           {{ $t('SignTx') }}
         </q-btn>
       </div>
+      <div v-if="pst && (signingProgress?.signingProgress === 'unsigned' || signingProgress?.signingProgress === 'partially-signed') && !canSign" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
+        <q-btn
+          color="primary"
+          rounded
+          no-caps
+          unelevated
+          class="full-width q-py-md"
+          disable
+        >
+          <q-icon name="pause" class="q-mr-sm"></q-icon>
+          {{ $t('Waiting For More Signatures') }}
+        </q-btn>
+      </div>
          <div
           v-if="showActionConfirmationSlider"
           class="action-confirmation-backdrop"
