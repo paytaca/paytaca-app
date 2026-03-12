@@ -411,10 +411,10 @@
               style="border-radius: 50%;"
             />
             <div class="text-subtitle1 q-mb-sm">
-              {{ $t('PointsFromMarketplaceWarning1', 'You do not have any Marketplace transactions yet.') }}
+              {{ $t('PointsFromMarketplaceWarning1', 'You do not have any merchant transactions yet.') }}
             </div>
             <div class="text-body2">
-              {{ $t('PointsFromMarketplaceWarning2', 'Order from the Marketplace to start earning points!') }}
+              {{ $t('PointsFromMarketplaceWarning2', 'Order from the Marketplace or pay over-the-counter at partner merchants to start earning points!') }}
             </div>
           </q-card>
         </template>
@@ -680,7 +680,11 @@ export default {
       this.$router.push({ name: 'app-marketplace-order', params: { orderId } })
     },
     redirectToTx (txId) {
-      this.$router.push(`/transaction/tx/${txId}`)
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid: txId },
+        query: { from: 'user-rewards' },
+      })
     },
     async openRedeemPointsDialog () {
       this.$q.dialog({
