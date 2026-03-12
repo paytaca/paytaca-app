@@ -644,6 +644,16 @@ export class MultisigWallet {
       utxos = utxos.concat(r?.value?.data?.utxos ?? [])
     }
 
+    const seen = new Set()
+    utxos = utxos.filter(u => {
+      const key = `${u.txid}:${u.vout}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    console.log('UTXOS', utxos)
+
     utxos = utxos?.map(u => {
         return {
           ...u,
@@ -1005,7 +1015,8 @@ export class MultisigWallet {
       if (funderUtxos) { 
         funderUtxos = selectUtxos(funderUtxos.remainingUtxos?.filter(u => !u.token), { targetSatoshis: estimatedFee +  satoshisChangeOutputDustThreshold })
       } else {
-        funderUtxos = selectUtxos(utxos?.filter(u => !u.token), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
+        const selectedTxids = new Set(selectedUtxos.map(u => `${u.txid}:${u.vout}`))
+        funderUtxos = selectUtxos(utxos?.filter(u => !u.token && !selectedTxids.has(`${u.txid}:${u.vout}`)), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
       }
 
       if (!funderUtxos.satoshisSatisfied) {
@@ -1020,6 +1031,7 @@ export class MultisigWallet {
             funderUtxos.selectedUtxos
         )
     }
+
     return selectedUtxos
   }
 
@@ -1067,7 +1079,8 @@ export class MultisigWallet {
       selectedUtxos.push(nftUtxo)
     }
 
-    let funderUtxos = utxos.filter(u => !u.token)
+    const selectedTxids = new Set(selectedUtxos.map(u => `${u.txid}:${u.vout}`))
+    let funderUtxos = utxos.filter(u => !u.token && !selectedTxids.has(`${u.txid}:${u.vout}`))
     let inputs = selectedUtxos?.map((u) => {
       return {
         ...commonUtxoToLibauthInput(u, []),
@@ -1130,11 +1143,16 @@ export class MultisigWallet {
     let selectedUtxos = []
     if (transactionType === 'send-non-fungible-assets') {
       utxos = await this.getWalletHashUtxos(true)
+
       selectedUtxos = await this.selectNftUtxos(proposal, utxos)
     } else {
       utxos = await this.getWalletHashUtxos()
       selectedUtxos = await this.selectUtxos(proposal, utxos.filter(u => !u.token?.nft))
     }
+
+    console.log('UTXOS IN CREATE PROPOSAL', utxos)
+    
+
     let inputs = selectedUtxos?.map((u) => {
         const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
         const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
