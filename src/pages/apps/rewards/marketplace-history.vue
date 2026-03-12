@@ -112,18 +112,14 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import {
-  fetchMarketplaceHistory,
-  filterTransactionsByType,
-  calculateSummaryStats
-} from 'src/utils/engagementhub-utils/marketplace-history'
+import { fetchMerchantTransactionsData } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
-import TransactionFilters from 'src/components/rewards/marketplace/TransactionFilters.vue'
 import TransactionList from 'src/components/rewards/marketplace/TransactionList.vue'
-import OrderTransactionItem from 'src/components/rewards/marketplace/OrderTransactionItem.vue'
+import TransactionFilters from 'src/components/rewards/marketplace/TransactionFilters.vue'
 import OTCTransactionItem from 'src/components/rewards/marketplace/OTCTransactionItem.vue'
+import OrderTransactionItem from 'src/components/rewards/marketplace/OrderTransactionItem.vue'
 
 export default {
   name: 'MarketplaceHistory',
@@ -131,10 +127,10 @@ export default {
   components: {
     HeaderNav,
     ErrorCard,
-    TransactionFilters,
     TransactionList,
-    OrderTransactionItem,
-    OTCTransactionItem
+    TransactionFilters,
+    OTCTransactionItem,
+    OrderTransactionItem
   },
 
   props: {
@@ -146,7 +142,7 @@ export default {
       isLoading: false,
       dataError: '',
       
-      upId: -1,
+      urId: -1,
       activeTab: 'all',
       sortDesc: true,
       
@@ -189,25 +185,33 @@ export default {
       this.isLoading = true
       this.dataError = ''
       
-      this.upId = Number(this.$route.params.id || -1)
+      this.urId = Number(this.$route.params.id || -1)
       
       try {
-        const response = await fetchMarketplaceHistory(this.upId, {
+        const data = await fetchMerchantTransactionsData({
+          ur_id: this.urId,
           limit: this.limit,
           offset: this.offset
         })
         
-        if (response) {
-          this.allTransactions = response.transactions
-          this.summaryStats = calculateSummaryStats(this.allTransactions)
+        if (data) {
+          this.allTransactions = data.overall_data
+          this.summaryStats = {
+            total_transactions: data.overall_count,
+            total_points: data.overall_points,
+            order_count: data.order_count,
+            order_points: data.order_points,
+            otc_count: data.otc_count,
+            otc_points: data.otc_points
+          }
           this.applyFilters()
           this.hasMoreData = this.allTransactions.length >= this.limit
         } else {
-          this.dataError = this.$t('FailedToLoadData', 'Unable to load your Marketplace history. Please try again.')
+          this.dataError = this.$t('FailedToLoadData', 'Unable to load your merchant history. Please try again.')
         }
       } catch (error) {
-        console.error('Error loading marketplace history:', error)
-        this.dataError = this.$t('FailedToLoadData', 'Unable to load your Marketplace history. Please try again.')
+        console.error('Error loading merchant history:', error)
+        this.dataError = this.$t('FailedToLoadData', 'Unable to load your merchant history. Please try again.')
       }
       
       this.isLoading = false
@@ -215,7 +219,7 @@ export default {
     
     applyFilters() {
       // Filter by type
-      let filtered = filterTransactionsByType(this.allTransactions, this.activeTab)
+      let filtered = this.filterTransactionsByType(this.allTransactions, this.activeTab)
       
       // Sort by date
       filtered.sort((a, b) => {
@@ -225,6 +229,12 @@ export default {
       })
       
       this.filteredTransactions = filtered
+    },
+    filterTransactionsByType(transactions, type) {
+      if (type === 'all') return transactions
+      if (type === 'orders') return transactions.filter(t => t.type === 'order')
+      if (type === 'otc') return transactions.filter(t => t.type === 'otc')
+      return transactions
     },
     
     onFilterChange() {
