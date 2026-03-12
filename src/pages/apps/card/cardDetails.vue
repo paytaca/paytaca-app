@@ -76,7 +76,7 @@
               >
                 {{ activeCard.balance }} BCH
               </div>
-              <q-btn outline dense label="Cash In" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="showCashInDialog = true" />
+                <q-btn outline dense label="Cash In" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
             </div>
           </div>
         </div>
@@ -854,7 +854,7 @@
               />
               <q-select
                 v-model="cashInCurrency"
-                :options="['Satoshis', 'PHP', 'BCH']"
+                :options="currencyOptions"
                 filled
                 :dark="$q.dark.isActive"
                 emit-value
@@ -954,7 +954,7 @@ export default {
       newCardName: '',
       showCashInDialog: false,
       cashInAmount: '',
-      cashInCurrency: 'BCH',
+      cashInCurrency: 'USD',
       showOrderPhysicalCardForm: false,
       orderPhysicalCardData: {
         fullName: '',
@@ -997,7 +997,33 @@ export default {
       baseTabs.splice(2, 0, thirdTab)
       return baseTabs
     },
-    
+
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
+    },
+
+    currencyOptions () {
+      const options = this.$store.getters['market/currencyOptions']
+      let symbols = []
+      if (Array.isArray(options) && options.length > 0) {
+        symbols = options.map(c => c.symbol)
+      }
+      // Always ensure USD, PHP, and BCH are available
+      const requiredCurrencies = ['USD', 'PHP', 'BCH']
+      requiredCurrencies.forEach(currency => {
+        if (!symbols.includes(currency)) {
+          symbols.push(currency)
+        }
+      })
+      return symbols
+    },
+
+    bchPriceInSelectedCurrency () {
+      const currencySymbol = this.selectedCurrency?.symbol || 'USD'
+      const price = this.$store.getters['market/getAssetPrice']('bch', currencySymbol)
+      return price || null
+    },
+
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
       return balance > 0
@@ -1071,6 +1097,7 @@ export default {
         }
       }   
     },
+    
     saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
         const trimmedName = this.newCardName.trim()
@@ -1106,6 +1133,7 @@ export default {
       }
       this.showEditNameDialog = false
     },
+
     formatContractAddress (addr) {
       if (!addr) return ''
       const address = typeof addr === 'object' ? addr.contractAddress : addr
@@ -1113,6 +1141,7 @@ export default {
       const len = address.length
       return address.substring(0, 12) + '...' + address.substring(len - 12, len)
     },
+
     copyContractAddress () {
       const address = this.getContractAddress(this.activeCard)
       if (address) {
@@ -1124,9 +1153,18 @@ export default {
         })
       }
     },
+
     getContractAddress (card) {
       return card?.contractAddress || this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw'
     },
+
+    openCashInDialog () {
+      // Set default currency to the currently selected currency
+      this.cashInCurrency = this.selectedCurrency?.symbol || 'USD'
+      this.cashInAmount = ''
+      this.showCashInDialog = true
+    },
+
     handleCashIn () {
       if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
         this.$q.notify({
@@ -1137,17 +1175,28 @@ export default {
         return
       }
 
-      // Convert to BCH based on selected currency
-      // Exchange rates (approximate)
-      // 1 BCH = 100,000,000 satoshis
-      // 1 BCH ≈ 250,000 PHP (depends on market)
-      const exchangeRates = {
-        BCH: 1,
-        Satoshis: 1 / 100000000, // 1 satoshi = 0.00000001 BCH
-        PHP: 1 / 250000 // 1 PHP = 0.000004 BCH
-      }
+      // Convert to BCH based on selected currency using real market data
+      let amountInBCH
       
-      const amountInBCH = parseFloat(this.cashInAmount) * exchangeRates[this.cashInCurrency]
+      if (this.cashInCurrency === 'BCH') {
+        amountInBCH = parseFloat(this.cashInAmount)
+      } else if (this.cashInCurrency === 'sats' || this.cashInCurrency === 'Satoshis') {
+        // 1 BCH = 100,000,000 satoshis
+        amountInBCH = parseFloat(this.cashInAmount) / 100000000
+      } else {
+        // Use real market price from store
+        const bchPrice = this.bchPriceInSelectedCurrency
+        if (!bchPrice) {
+          this.$q.notify({
+            message: 'Unable to fetch current BCH price. Please try again.',
+            color: 'negative',
+            position: 'top'
+          })
+          return
+        }
+        // Convert fiat to BCH: amount / price = BCH
+        amountInBCH = parseFloat(this.cashInAmount) / bchPrice
+      }
 
       // Update card balance in localStorage
       const savedCards = localStorage.getItem('mock_subcards')
