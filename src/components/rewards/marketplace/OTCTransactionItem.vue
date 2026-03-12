@@ -62,7 +62,11 @@ export default {
     redirectToTransaction() {
       // Use tx_id for deep linking to transaction details
       if (this.data.tx_id) {
-        this.$router.push(`/transaction/tx/${this.data.tx_id}`)
+        this.$router.push({
+          name: 'transaction-detail',
+          params: { txid: this.data.tx_id },
+          query: { from: 'app-rewards-marketplace-history' },
+        })
       }
     }
   }
