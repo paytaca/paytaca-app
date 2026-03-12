@@ -1,5 +1,5 @@
 <template>
-  <q-item clickable @click="redirectToTransaction" class="transaction-item">
+  <q-item class="transaction-item">
     <q-item-section avatar>
       <q-icon
         name="store"
@@ -11,7 +11,7 @@
     </q-item-section>
     
     <q-item-section>
-      <q-item-label class="row items-center">
+      <q-item-label clickable @click="redirectToTransaction" class="row items-center">
         <span class="text-weight-medium">Ref ID {{ data.ref_id }}</span>
         <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
       </q-item-label>
