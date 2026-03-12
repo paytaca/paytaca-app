@@ -6,7 +6,7 @@
 	    transition-show="fade"
 	    transition-hide="fade"
 	>
-		<q-card class="br-15 q-mt-xl q-mx-sm wallet-card" :class="getDarkModeClass(darkMode)">
+		<q-card class="br-15 q-mt-xl q-mx-md wallet-card" :class="getDarkModeClass(darkMode)">
 			<div class="row no-wrap items-center justify-center q-pl-lg q-pr-sm q-pt-md">
 		        <div class="text-bold q-space q-mt-sm pt-label" :class="getDarkModeClass(darkMode)">{{ $t('SelectCurrency') }}</div>
 		        <q-btn
@@ -98,6 +98,13 @@ export default {
 <style lang="scss" scoped>
 .wallet-card {
   height: 525px;
+  
+  // Add more margin on mobile devices
+  @media (max-width: 600px) {
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+  }
+  
   .title {
     font-size: 18px;
   }

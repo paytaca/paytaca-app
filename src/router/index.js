@@ -79,7 +79,15 @@ export default function () {
     // Block routes that must not be accessible in native iOS builds
     // NOTE: This must run AFTER lock checks so we don't bypass the lock screen.
     if (isNativeIOS() && to.matched?.some(r => r?.meta?.disableOnNativeIOS)) {
-      next({ name: 'apps-dashboard' })
+      // Use replace to avoid leaving the blocked URL in history (prevents back-button bounce).
+      next({ name: 'apps-dashboard', replace: true })
+      return
+    }
+
+    // Block routes that must not be accessible on chipnet.
+    // This prevents deep links from bypassing disabled app tiles (e.g., mainnet-only services).
+    if (store.getters['global/isChipnet'] && to.matched?.some(r => r?.meta?.disableOnChipnet)) {
+      next({ name: 'apps-dashboard', replace: true })
       return
     }
 

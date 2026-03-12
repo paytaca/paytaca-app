@@ -21,14 +21,23 @@ export function getWatchtowerWebsocketUrl (isChipnet) {
 }
 
 export function getWalletByNetwork (wallet, type) {
+  // Wallets may not be loaded yet during app initialization.
+  // Callers should handle null; this prevents avoidable runtime crashes.
+  if (!wallet) return null
   const w = wallet
   const idx = Number(store().getters['global/isChipnet'])
-  
+
+  // Validate index is 0 or 1
+  if (idx !== 0 && idx !== 1) {
+    console.error(`[getWalletByNetwork] Invalid chipnet index: ${idx}`)
+    return null
+  }
+
   if (type === 'bch')
-    return [w.BCH, w.BCH_CHIP][idx]
+    return [w.BCH, w.BCH_CHIP][idx] || null
   if (type === 'slp')
-    return [w.SLP, w.SLP_TEST][idx]
-  
+    return [w.SLP, w.SLP_TEST][idx] || null
+
   // Unknown wallet type
   throw new Error(`Unknown wallet type: ${type}`)
 }

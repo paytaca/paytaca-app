@@ -99,6 +99,7 @@ const routes = [
       { path: 'create/step-2', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-2', props: route => route.query },
       { path: 'create/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-3', props: route => route.query },
       { path: 'create/step-4', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-4', props: route => route.query },
+      { path: 'create/step-5', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-5', props: route => route.query },
       { path: 'restore/step-1', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-1', props: route => route.query },
       { path: 'restore/step-2', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-2', props: route => route.query },
       { path: 'restore/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-3', props: route => route.query },
@@ -158,6 +159,18 @@ const routes = [
       { path: 'wallet-backup', component: () => import('src/pages/apps/wallet-backup.vue'), name: 'app-wallet-backup' },
       { path: 'wallet-backup/seed-phrase', component: () => import('src/pages/apps/wallet-backup/view-seed-phrase.vue'), name: 'app-wallet-backup-seed-phrase' },
       { path: 'wallet-backup/shards', component: () => import('src/pages/apps/wallet-backup/view-shards.vue'), name: 'app-wallet-backup-shards' },
+      { 
+        path: 'eload', 
+        component: () => import('src/pages/apps/eload/index.vue'), 
+        name: 'app-eload',
+        meta: { disableOnChipnet: true },
+        children: [          
+          { path: 'form', component: () => import('src/pages/apps/eload/eload-form.vue'), name: 'eload-service-form' },
+          { path: 'orders', component: () => import('src/pages/apps/eload/eload-history.vue'), name: 'eload-service-orders' },
+          { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details' },
+        ]
+      },
+
       {
         path: 'marketplace',
         component: () => import('src/layouts/MarketplaceLayout.vue'),
@@ -402,6 +415,26 @@ const routes = [
             path: 'all-cards',
             name: 'all-cards',
             component: () => import('src/pages/apps/card/allCards.vue')
+          }
+        ]
+      },
+      {
+        path: 'address-book',
+        children: [
+          {
+            path: '',
+            name: 'app-address-book',
+            component: () => import('src/pages/apps/address-book/index.vue')
+          },
+          {
+            path: 'view-record/:id/',
+            name: 'app-address-book-view-record',
+            component: () => import('src/pages/apps/address-book/view-record.vue')
+          },
+          {
+            path: 'add-record',
+            name: 'app-address-book-add-record',
+            component: () => import('src/pages/apps/address-book/add-record.vue')
           }
         ]
       }

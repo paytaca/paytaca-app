@@ -31,6 +31,9 @@
         <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
           {{ formattedLiftBalance }} LIFT
         </q-item-label>
+        <q-item-label caption style="line-height:1;margin-top:3px;" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
+          {{ $t('AggregatedBalanceFromAllWallets', {}, 'Aggregated balance from all wallets in the app') }}
+        </q-item-label>
       </q-item-section>
     </q-item>
     

@@ -169,6 +169,7 @@
 </template>
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import { getExplorerLink } from 'src/utils/send-page-utils';
 import { ellipsisText, formatTimestampToText } from "src/wallet/anyhedge/formatters";
 import { JSONPaymentProtocol } from "src/wallet/payment-uri";
 import { useDialogPluginComponent, useQuasar } from "quasar";
@@ -215,7 +216,7 @@ function copyToClipboard(value) {
 }
 
 function txLink(txid) {
-  return `https://explorer.paytaca.com/tx/${txid}`
+  return getExplorerLink(txid || '')
 }
 
 function formatTokenAmount(tokenData) {

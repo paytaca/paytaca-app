@@ -3,10 +3,12 @@ import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown
 //import { createCard } from 'src/services/card/backend/api';
 import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
-import { loadCardUser } from 'src/services/card/user';
+import { loadCardUser, fetchCardByIdentifier, getAuthToken } from 'src/services/card/user';
 import { selectedCurrency } from 'src/store/market/getters';
 import { getMerchantList } from 'src/services/card/merchants';
 import { title } from 'process';
+import { onBeforeUnmount, onUnmounted } from 'vue';
+import { set } from 'date-fns';
 
   export const createCardLogic = {
       
@@ -78,6 +80,7 @@ import { title } from 'process';
         // Card Replacement
         cardReplacementDialog: false,
         selectedCardToReplace: null,
+        ws: null
       }
     },
     
@@ -89,6 +92,14 @@ import { title } from 'process';
       
       try {
         await this.getCards()
+        const card = this.subCards[0]
+        const merchants = await getMerchantList()
+        console.log('Merchants fetched:', merchants)
+        const merchant = merchants.results[0]
+        console.log('merchant:', merchant)
+        // const spendResult = await this.spend(card, merchant, 1000)
+        // console.log('spendResult:', spendResult)
+        await this.connectToWebsocket()
       } catch (error) {
         console.error('Error during mounted lifecycle:', error.response || error)
       }
@@ -158,8 +169,53 @@ import { title } from 'process';
       }
     },
 
+    beforeUnmount() {
+      console.log('Component is about to be unmounted. Cleaning up...')
+      if (this.ws) {
+        this.ws.close()
+      }
+    },
+
     methods: {
       loadCardUser,
+
+      // Websocket connection to listen for tag scans in real-time. 
+      // TODO: move this to Paytaca POS app, this is only here for testing purposes
+      async connectToWebsocket() {
+        const cardUser = await loadCardUser()
+        const walletHash = cardUser.raw.wallet_hash
+        const authToken = await getAuthToken()
+
+        const wsUrl = `ws://localhost:8000/ws/tag?wallet_hash=${walletHash}&token=${authToken}`
+        console.log('Connecting to WebSocket at:', wsUrl)
+        this.ws = new WebSocket(wsUrl)
+
+        this.ws.onopen = () => {
+          console.log("WebSocket connection established");
+          this.ws.send("start_listening")
+          this.ws.send("status")
+          setTimeout(() => {
+            this.ws.send("stop_listening")
+          }, 5000)
+        };
+
+        this.ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log("Received tag data:", data);
+          } catch (e) {
+            console.log("Received non-JSON message:", event.data);
+          }
+        };
+
+        this.ws.onclose = (event) => {
+          console.log("WebSocket closed:", event.reason);
+        };
+
+        this.ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+        };
+      },
       getMerchantList,
 
       /**
@@ -167,6 +223,7 @@ import { title } from 'process';
        */
       async getCards() {
         const cardUser = await this.loadCardUser()
+        console.log('Card User loaded:', cardUser)
         const cards = await cardUser.fetchCards()
         this.subCards = cards
         console.log('Fetched Cards:', cards)
@@ -275,14 +332,18 @@ import { title } from 'process';
        * Delete this later, this function belongs in the paytaca POS app.
        * This is here only for testing purposes
        */
-      async spend(amountSats = 1000) {
-        const card = await this.getCard()
-        const toAddress = card.wallet.address()
-        const selectedMerchant = await this.getMerchant()
+      async spend(card, merchant, amountSats = 1000) {
+        console.log('card:', card)
+        const proof = {
+          // uid: card.uid,
+          mac: "a3ff3b94857b1eafffff4d4fc68e7379", // dummy
+          counter: 1,
+        }
         const spendResult = await card.spend(
-          selectedMerchant.id,
-          toAddress,
+          merchant.id,
+          merchant.receiving_address,
           amountSats,
+          proof
         )
         console.log('spendResult:', spendResult)
       },

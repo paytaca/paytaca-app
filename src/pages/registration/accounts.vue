@@ -200,8 +200,34 @@
       <ThemeSelectorPreview :choosePreferedSecurity="goToStep4" />
     </div>
 
-    <!-- Step 4: Security Authentication Setup -->
-    <div v-if="(currentStep === 4 && !importSeedPhrase) || restoreStep === 5" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+    <!-- Step 4: Wallet Name (Creation only) -->
+    <div v-if="currentStep === 4 && !importSeedPhrase" class="content-section center-viewport step-4-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
+      <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('NameYourWallet') || 'Name Your Wallet' }}</h5>
+      <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('WalletNameDescription') || 'Give your wallet a custom name' }}</p>
+      <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
+        <div class="q-pa-md">
+          <q-input
+            :dark="darkMode"
+            dense
+            v-model="walletName"
+            outlined
+            class="glass-textarea bg-white"
+            :class="getDarkModeClass(darkMode)"
+            :placeholder="$t('PersonalWallet') || 'Personal Wallet'"
+          />
+        </div>
+      </div>
+      <q-btn
+        no-caps
+        rounded
+        :label="$t('Continue')"
+        class="q-mt-lg full-width primary-cta bg-grad"
+        @click="goToStep5"
+      />
+    </div>
+
+    <!-- Step 5: Security Authentication Setup -->
+    <div v-if="(currentStep === 5 && !importSeedPhrase) || restoreStep === 5" class="content-section center-viewport step-5-container" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('SecurityAuthentication') }}</h5>
       <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('ChoosePreferredSecAuth') }}</p>
       <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -304,10 +330,38 @@
     <!-- Restore Step 2: Seed Phrase Entry -->
     <div v-if="restoreStep === 2 && mnemonic.length === 0" class="content-section center-viewport step-2-container restore-step-2" :class="{'ios-safe-area': $q.platform.is.ios, 'mobile-safe-area': isMobile}">
       <template v-if="authenticationPhase === 'shards'">
+        <div class="row no-wrap items-center q-mb-sm full-width" style="margin-left: -16px; margin-right: -16px; padding: 0 16px;">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="glass-button-text"
+            style="margin-top: -6px;"
+            :class="getDarkModeClass(darkMode)"
+            @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
+          />
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('RestoreFromShards') }}</div>
+          <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
+        </div>
+        <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('RestoreShardsDescription') }}</p>
         <ShardsImport @set-seed-phrase="onValidatedQrs" @restore-wallet="initCreateWallet" />
       </template>
       <template v-else-if="authenticationPhase === 'backup-phrase'">
-        <h5 class="q-ma-none text-center text-bow step-title" :class="getDarkModeClass(darkMode)">{{ $t('RestoreExistingWallet') }}</h5>
+        <div class="row no-wrap items-center q-mb-sm full-width" style="margin-left: -16px; margin-right: -16px; padding: 0 16px;">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="glass-button-text"
+            style="margin-top: -6px;"
+            :class="getDarkModeClass(darkMode)"
+            @click="authenticationPhase = 'options', $router.push('/accounts/restore/step-1')"
+          />
+          <div class="text-subtitle1 text-center text-bow step-title col" :class="getDarkModeClass(darkMode)">{{ $t('RestoreFromSeedPhrase') }}</div>
+          <q-btn flat round dense class="invisible" style="margin-top: -6px;" />
+        </div>
         <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">{{ $t('RestoreWalletDescription') }}</p>
         
         <div class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -353,6 +407,12 @@
                 <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
             </div>
               </template>
+        </div>
+        
+        <div v-if="showSeedPhraseError" class="q-px-md q-mt-sm">
+          <p class="text-negative text-center text-body2">
+            {{ $t('InvalidSeedPhraseError') || 'Invalid seed phrase. Please check the words for spelling mistakes.' }}
+          </p>
         </div>
         
               <q-btn
@@ -535,6 +595,7 @@ import { updateCssThemeColors } from 'src/utils/theme-utils'
 import { supportedLangs as supportedLangsI18n } from '../../i18n'
 import { getAllAssets } from 'src/store/assets/getters'
 import initialAssetState from 'src/store/assets/state'
+import { encryptWalletName } from 'src/marketplace/chat/encryption'
 
 import ProgressLoader from '../../components/ProgressLoader'
 import pinDialog from '../../components/pin'
@@ -618,7 +679,8 @@ export default {
         }),
       },
       steps: -1,
-      totalSteps: 4,
+      totalSteps: 5,
+      walletName: 'Personal Wallet',
       walletCreationInProgress: false,
       walletCreationComplete: false,
       walletRestoreInProgress: false,
@@ -669,8 +731,8 @@ export default {
             console.error('[Step 2] Unhandled error in initializeStep2:', error)
           })
         })
-      } else if (val === 4 && !this.importSeedPhrase) {
-        // Step 4: Force theme update when entering step 4 to ensure theme changes from step 3 apply immediately
+      } else if (val === 5 && !this.importSeedPhrase) {
+        // Step 5: Force theme update when entering step 5 to ensure theme changes from step 3 apply immediately
         this.$nextTick(() => {
           this.$forceUpdate()
         })
@@ -785,10 +847,16 @@ export default {
       return 0
     },
     isFinalStep () {
-      return this.currentStep === 4
+      return this.currentStep === 5
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    hasAllSeedPhraseWords () {
+      return countWords(this.seedPhraseBackup) === 12
+    },
+    showSeedPhraseError () {
+      return this.hasAllSeedPhraseWords && !this.validateSeedPhrase()
     },
     // isOnboarding () {
     //   return this.isVaultEmpty
@@ -1226,6 +1294,15 @@ export default {
       vm.$store.dispatch('global/updateOnboardingStep', vm.steps).then(function () {
         return vm.promptEnablePushNotification()?.catch?.(console.error)
       }).then(async function () {
+        // Save wallet name before saving to vault (creation flow only)
+        if (!vm.importSeedPhrase) {
+          try {
+            await vm.saveWalletName()
+          } catch (error) {
+            console.warn('Failed to save wallet name:', error)
+          }
+        }
+        
         vm.saveToVault()
         
         // Sync wallet name after saving to vault (for imported wallets)
@@ -1293,6 +1370,9 @@ export default {
           // Initialize vault entry so settings can be saved during step 3
           // This must be done before navigation to ensure vault entry exists
           this.initializeVaultEntryForRestore()
+          // Mark wallet as backed up since it was imported from seed phrase or shards
+          // The user already has the seed phrase, so no backup reminder is needed
+          this.$store.commit('global/setLastBackupTimestamp', Date.now())
           // Navigate to settings step (step-3)
           await this.$router.push('/accounts/restore/step-3')
           // Hide loading animation after navigation
@@ -1749,6 +1829,9 @@ export default {
       this.$router.push('/accounts/create/step-4')
       }
     },
+    goToStep5 () {
+      this.$router.push('/accounts/create/step-5')
+    },
     setupSecurity (authType) {
       // Prevent multiple calls
       if (this.isRedirecting) return
@@ -1760,6 +1843,26 @@ export default {
         this.$store.commit('global/setPreferredSecurity', 'biometric')
         this.verifyBiometric()
       }
+    },
+    async saveWalletName () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const vault = this.$store.getters['global/getVault']
+      
+      if (walletIndex < 0 || !vault[walletIndex]) return
+      
+      const name = this.walletName?.trim() || 'Personal Wallet'
+      
+      try {
+        const encryptedName = encryptWalletName(name, walletIndex)
+        await this.$store.dispatch('global/updateWalletNameInPreferences', {
+          walletName: encryptedName,
+          walletIndex: walletIndex
+        })
+      } catch (error) {
+        console.warn('Failed to save wallet name to server, saving locally only:', error)
+      }
+      
+      this.$store.commit('global/updateWalletName', { name: name, index: walletIndex })
     },
     async initializeStep2 () {
       // Prevent duplicate calls
@@ -2601,10 +2704,11 @@ export default {
   line-height: 1.4;
 }
 
-/* Step 2, 3, and 4 containers with mobile-safe padding */
+/* Step 2, 3, 4, and 5 containers with mobile-safe padding */
 .step-2-container,
 .step-3-container,
-.step-4-container {
+.step-4-container,
+.step-5-container {
   padding-top: 24px;
   
   @media (max-width: 768px) {

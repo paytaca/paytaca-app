@@ -33,7 +33,7 @@
                 </div>
                 <q-separator v-if="totalSales?.tokenAmounts?.length && totalSales.totalMarketValue && totalSales.currency"/>
                 <div v-if="(totalSales.totalMarketValue && totalSales.currency)" class="text-subtitle2">
-                  {{ totalSales.totalMarketValue.toFixed(2) }} {{ totalSales.currency }}
+                  {{ parseFiatCurrency(totalSales.totalMarketValue, totalSales.currency) }}
                 </div>
               </div>
             </div>
@@ -77,7 +77,7 @@
                   {{ formatRecordAmount(record) }}
                 </q-item-label>
                 <q-item-label v-if="(record?.total_market_value && record?.currency)" caption>
-                  {{ Number(record.total_market_value).toFixed(2) }} {{ record.currency }}
+                  {{ parseFiatCurrency(record.total_market_value, record.currency) }}
                 </q-item-label>
               </q-item-section>
             </q-item>
@@ -95,7 +95,7 @@ import { useStore } from 'vuex';
 import { useDialogPluginComponent, useQuasar } from 'quasar'
 import Watchtower from 'watchtower-cash-js';
 import SalesReportFilterFormDialog from './SalesReportFilterFormDialog.vue';
-import { getAssetDenomination } from 'src/utils/denomination-utils'
+import { getAssetDenomination, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useI18n } from 'vue-i18n'
 

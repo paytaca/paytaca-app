@@ -2,7 +2,7 @@
   <q-btn-dropdown id="token-popup"
     :content-style="contentStyle"
     :text-color="darkMode ? 'white' : ''"
-    unelevated class="q-mr-md"
+    unelevated
     :style="{color: darkMode ? 'white' : 'black'}"
     :class="float ? 'float-right' : ''"
   >

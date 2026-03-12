@@ -215,6 +215,7 @@ import { backend } from 'src/exchange/backend'
 import { wallet } from 'src/exchange/wallet'
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getExplorerAddressLink } from 'src/utils/send-page-utils'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 import NoticeBoardDialog from '../fiat/dialogs/NoticeBoardDialog.vue'
 
@@ -286,14 +287,7 @@ export default {
       return this.contract.address
     },
     explorerLink () {
-      let url = ''
-
-      if (this.isChipnet) {
-        url = `${process.env.TESTNET_EXPLORER_URL}/address/`
-      } else {
-        url = 'https://explorer.paytaca.com/address/'
-      }
-      return `${url}${this.contractAddress}`
+      return getExplorerAddressLink(this.contractAddress || '')
     },
     actionMsg () {
       if (this.selectedAction === 'refund') {

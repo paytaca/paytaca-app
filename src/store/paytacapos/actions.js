@@ -277,7 +277,7 @@ export function deleteBranch(context, data) {
  * @param {String} data.walletHash
  * @param {String} data.posid
  * @param {String} data.encryptedData = xpubkey + @ + ppvsPrivKey
- * @param {String} data.decryptKey
+ * @param {String} data.encryptKey = ephemeral public key used for encryption (hex string)
  * @param {Number} data.nonce
  * @param {String} data.signature
  * 
@@ -286,8 +286,8 @@ export function deleteBranch(context, data) {
  */
 export function generateLinkCode(context, data) {
   if (!data?.walletHash || !Number.isSafeInteger(data?.posid) ||
-      !data?.encryptedData || !data?.decryptKey ||
-      !Number.isSafeInteger(data?.nonce) || !data?.signature
+      !data?.encryptedData || !Number.isSafeInteger(data?.nonce) || 
+      !data?.signature
   ) return Promise.reject()
 
   if (data?.opts?.checkExpiry) {
@@ -299,27 +299,29 @@ export function generateLinkCode(context, data) {
     }
   }
 
-  const _data = {
+  const link_data = {
     wallet_hash: data?.walletHash,
     posid: data?.posid,
-    encrypted_xpubkey: data?.encryptedData,
+    encrypted_data: data?.encryptedData,
     signature: data?.signature,
   }
-  return posBackend.post('paytacapos/devices/generate_link_device_code/', _data, { authorize: true })
+
+  return posBackend.post('paytacapos/devices/generate_link_device_code_v2/', link_data, { authorize: true })
     .then(response => {
       if (!response?.data?.code) return Promise.reject({ response })
 
       context.commit('saveLinkCode', {
-        walletHash: _data.wallet_hash,
-        posid: _data.posid,
+        walletHash: data.walletHash,
+        posid: data.posid,
         code: response.data.code,
         expiresAt: response.data.expires,
-        decryptKey: data?.decryptKey,
+        encryptKey: data?.encryptKey,
         nonce: data?.nonce,
       })
       return Promise.resolve(response)
     })
     .catch(error => {
+      console.error(error?.response || error)
       if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
       return Promise.reject(error)
     })

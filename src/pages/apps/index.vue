@@ -164,7 +164,7 @@ export default {
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
           iconStyle: 'width:45%; height: 45%;',
-          active: true // !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet']
         },
         {
           id: 'marketplace',
@@ -172,7 +172,7 @@ export default {
           description: this.$t('Apps.Marketplace.Description', {}, 'Buy goods from merchants around your area and get your orders delivered to you.'),
           iconName: 'img:marketplace.png',
           path: '/apps/marketplace',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'width:45%; height: 45%;',
           onLongPress: (event) => {
             event?.preventDefault?.()
@@ -182,6 +182,16 @@ export default {
           }
         },
         {
+          id: 'eload-service',
+          name: this.$t('Eload Service'),
+          description: this.$t('Apps.Eload.Description', {}, 'Buy Telco loads, Cable Subscription and Gamepins'),
+          iconName: 'card_membership',
+          path: '/apps/eload',
+          iconStyle: 'width:45%; height: 45%;',
+          // Eload backend is mainnet-only; disable entry on chipnet to avoid wrong-network orders/payments.
+          active: !this.$store.getters['global/isChipnet']
+        },
+        {
           id: 'collectibles',
           name: this.$t('Collectibles'),
           description: this.$t('Apps.Collectibles.Description', {}, 'View and manage your Non-Fungible token collectibles.'),
@@ -189,6 +199,16 @@ export default {
           path: '/apps/collectibles',
           iconStyle: 'font-size: 4.5em',
           active: true,
+          smartBCHOnly: false
+        },
+        {
+          id: 'address-book',
+          name: this.$t('AddressBook'),
+          description: this.$t('Apps.AddressBook.Description', {}, 'Create and manage contacts and addresses.'),
+          iconName: 'mdi-book-account',
+          path: '/apps/address-book/',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
           smartBCHOnly: false
         },
         {
@@ -235,7 +255,7 @@ export default {
           description: this.$t('Apps.CryptoSwap.Description', {}, 'Swap your other cryptocurrencies (BTC, ETH, SOL, and others) into BCH.'),
           iconName: 'mdi-swap-horizontal-bold',
           path: '/apps/crypto-swap',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'font-size: 4.7em',
           smartBCHOnly: false
         },
@@ -255,7 +275,7 @@ export default {
           iconName: 'img:assets/img/stablehedge/stablehedge-icon.svg',
           path: '/apps/stablehedge/wallet',
           iconStyle: 'width:55%; height: 55%;',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           beta: true,
           betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.')
         },
