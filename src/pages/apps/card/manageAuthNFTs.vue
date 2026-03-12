@@ -174,6 +174,8 @@
 </template>
 
 <script>
+import { getMerchantList } from './noBackend.js'
+
 export default {
   name: 'ManageAuthNFTs',
   props: {
@@ -202,7 +204,7 @@ export default {
     }
   },
   mounted() {
-    this.generateRandomMerchants();
+    this.loadMerchantList();
     // Load global spend limit from card if available
     if (this.card && this.card.genericSpendLimit) {
       this.genericSpendLimit = this.card.genericSpendLimit;
@@ -217,50 +219,32 @@ export default {
     }
   },
   methods: {
+    async loadMerchantList() {
+      try {
+        const response = await getMerchantList({ limit: 1000, page: 1 });
+        console.log('Merchant list API response:', response);
+        const merchantData = response.results || response;
+        console.log('Total merchants:', merchantData.length);
+        console.log('Merchant names:', merchantData.map(m => m.name));
+        
+        this.merchants = merchantData.map(merchant => ({
+          ...merchant,
+          isEnabled: false,
+          wasEnabledBeforeGeneric: false,
+          spendLimit: null
+        }));
+      } catch (error) {
+        console.error('Failed to load merchant list:', error);
+        this.$q.notify({
+          message: 'Failed to load merchants',
+          color: 'negative'
+        });
+      }
+    },
+
     formatSpendLimit(value) {
       if (!value) return '0';
       return parseFloat(value).toFixed(3);
-    },
-    generateRandomMerchants() {
-      const merchantNames = [
-        'Main Street Coffee', 'Tech Store', 'Gas Station', 'SuperMart', 'Book Haven',
-        'Pizza Palace', 'Fitness Gym', 'Pharmacy Plus', 'Bakery Delight', 'Fashion Hub',
-        'Electronics World', 'Pet Store', 'Home Hardware', 'Auto Parts', 'Jewelry Corner',
-        'Sports Arena', 'Beauty Salon', 'Taco Stand', 'Grocery Central', 'Wine & Spirits',
-        'Coffee Corner', 'Gadget World', 'Fashion Forward', 'Burger Joint', 'Auto Care'
-      ];
-      
-      const addresses = [
-        '123 Main St, Cityville', '456 Tech Ave, Innovatown', '789 Fuel Rd, Gasville',
-        '321 Market St, Shopville', '654 Read Ln, Booktown', '987 Pizza Blvd, Foodcity',
-        '147 Gym St, Fitville', '258 Health Ave, Medtown', '369 Bake Rd, Sweetsville',
-        '741 Style St, Fashioncity', '852 Circuit Ave, Techville', '963 Pet Ln, Animalcity',
-        '159 Build Rd, Tooltown', '357 Auto Ave, Carville', '486 Jewel St, Glamcity',
-        '753 Sport Ln, Athletetown', '951 Beauty Ave, Glitzcity', '357 Taco Rd, Mexville',
-        '159 Food St, Grocerytown', '486 Wine Ave, Spiritville', '111 Coffee Ln, Beanville',
-        '222 Gadget Way, Techcity', '333 Fashion Blvd, Styletown', '444 Burger Ave, Foodburg',
-        '555 Service Rd, Maintown'
-      ];
-
-      // Generate random number of merchants (up to 15)
-      const count = Math.floor(Math.random() * 11) + 5; // 5-15 merchants
-      const shuffled = this.shuffleArray([...merchantNames]);
-      
-      this.merchants = shuffled.slice(0, count).map((name, index) => ({
-        id: index + 1,
-        name: name,
-        address: addresses[Math.floor(Math.random() * addresses.length)],
-        isEnabled: false, // All merchants start disabled
-        wasEnabledBeforeGeneric: false // Track previous state for generic auth toggle
-      }));
-    },
-
-    shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
     },
 
     onGenericAuthToggle(enabled) {

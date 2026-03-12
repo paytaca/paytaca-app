@@ -1,5 +1,8 @@
 import router from 'src/router/index';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+import { getMerchantList } from 'src/services/card/merchants';
+
+export { getMerchantList };
 
 export const createCardLogic = {
       
