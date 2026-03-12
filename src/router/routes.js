@@ -318,6 +318,12 @@ const routes = [
             path: 'rfp/:id',
             name: 'rfp',
             component: () => import('src/pages/apps/rewards/rfp.vue')
+          },
+          {
+            path: 'marketplace-history/:id',
+            name: 'app-rewards-marketplace-history',
+            component: () => import('src/pages/apps/rewards/marketplace-history.vue'),
+            props: true
           }
         ]
       },

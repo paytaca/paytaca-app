@@ -391,7 +391,7 @@
                   color="primary"
                   class="full-width q-mt-sm"
                   :label="$t('ViewFullHistory', 'View Full History')"
-                  @click="openFullHistoryDialog"
+                  @click="openMarketplaceHistory"
                 />
               </q-card-section>
             </template>
@@ -480,70 +480,6 @@
     :page="'ur'"
     @on-exit-postprocess="isOneTimeSectionExpanded = completedOneTimeCount !== totalOneTimeTasks"
   />
-
-  <!-- Full History Dialog -->
-  <q-dialog
-    v-model="isFullHistoryDialogOpen"
-    :class="getDarkModeClass(darkMode)"
-    full-width
-    full-height
-  >
-    <q-card 
-      class="full-history-dialog pt-card"
-      :class="getDarkModeClass(darkMode)"
-    >
-      <q-card-section class="row items-center q-pb-none">
-        <q-icon name="history" size="28px" color="primary" class="q-mr-sm" />
-        <div class="text-h6">{{ $t('FullHistory', 'Full History') }}</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
-
-      <q-card-section class="q-pt-none">
-        <div class="text-subtitle2 q-mb-md">
-          {{ totalMarketplaceTxCount }} {{ $t('ordersTotal', 'orders total') }} · {{ totalMarketplacePoints }} {{ $t('pointsEarned', 'points earned') }}
-        </div>
-      </q-card-section>
-
-      <q-card-section class="q-px-none q-py-none" style="flex: 1; overflow: hidden;">
-        <q-virtual-scroll
-          :items="allMarketplaceOrders"
-          type="list"
-          style="height: calc(100vh - 200px);"
-          :virtual-scroll-item-size="72"
-        >
-          <template v-slot="{ item, index }">
-            <q-item
-              :key="index"
-              clickable
-              @click="redirectToMarketplaceOrder(item.order_id)"
-              class="history-item"
-            >
-              <q-item-section>
-                <q-item-label class="row items-center">
-                  <span class="text-weight-medium">Order #{{ item.order_id }}</span>
-                  <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
-                </q-item-label>
-                <q-item-label caption>
-                  <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                    {{ formatMonthDisplay(item.month) }} · {{ formatDateLocaleRelative(item.date, false) }}
-                  </span>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <points-badge
-                  :complete="true"
-                  :dark-mode-class="getDarkModeClass(darkMode)"
-                  :points="8"
-                />
-              </q-item-section>
-            </q-item>
-            <q-separator v-if="index < allMarketplaceOrders.length - 1" />
-          </template>
-        </q-virtual-scroll>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
 </template>
 
 <script>
@@ -622,8 +558,7 @@ export default {
       lastMarketplaceTxDate: null,
 
       firstSevenTransactions: [],
-      marketplaceTransactions: [],
-      isFullHistoryDialogOpen: false
+      marketplaceTransactions: []
     }
   },
 
@@ -661,18 +596,6 @@ export default {
       const fromStore = this.$store.getters['global/language']
       const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
       return String(candidate).replace('_', '-')
-    },
-    allMarketplaceOrders () {
-      const orders = []
-      this.marketplaceTransactions.forEach(month => {
-        month.orders.forEach(order => {
-          orders.push({
-            ...order,
-            month: month.month
-          })
-        })
-      })
-      return orders.sort((a, b) => new Date(b.date) - new Date(a.date))
     }
   },
 
@@ -829,8 +752,11 @@ export default {
         this.isLoading = false
       })
     },
-    openFullHistoryDialog () {
-      this.isFullHistoryDialogOpen = true
+    openMarketplaceHistory () {
+      this.$router.push({
+        name: 'app-rewards-marketplace-history',
+        params: { id: this.upId }
+      })
     }
   }
 }
@@ -1067,41 +993,6 @@ export default {
     &:hover {
       box-shadow: 0 4px 12px rgba(59, 123, 246, 0.25);
     }
-  }
-}
-
-// Full History Dialog Styles
-.full-history-dialog {
-  width: 100%;
-  max-width: 600px;
-  height: 85dvh !important;
-  max-height: 800px !important;
-  display: flex;
-  flex-direction: column;
-  border-radius: 20px;
-}
-
-.history-item {
-  padding: 12px 16px;
-  min-height: 72px;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: rgba(59, 123, 246, 0.05);
-  }
-
-  .dark &:hover {
-    background: rgba(59, 123, 246, 0.1);
-  }
-}
-
-// Responsive adjustments for mobile
-@media (max-width: 600px) {
-  .full-history-dialog {
-    border-radius: 0;
-    max-width: 100%;
-    height: 100vh;
-    max-height: 100vh;
   }
 }
 </style>
