@@ -1006,25 +1006,16 @@ export class MultisigWallet {
 
     let totalSatoshisChangeAmount = totalSatoshisInputsAmount - totalSatoshiOutputsAmount
 
-    let additionalFunds = 0
-
     let funderUtxos = null
 
     if (totalSatoshisChangeAmount < estimatedFee) {
-      
-      if (funderUtxos) { 
-        funderUtxos = selectUtxos(funderUtxos.remainingUtxos?.filter(u => !u.token), { targetSatoshis: estimatedFee +  satoshisChangeOutputDustThreshold })
-      } else {
-        const selectedTxids = new Set(selectedUtxos.map(u => `${u.txid}:${u.vout}`))
+
+      const selectedTxids = new Set(selectedUtxos.map(u => `${u.txid}:${u.vout}`))
         funderUtxos = selectUtxos(utxos?.filter(u => !u.token && !selectedTxids.has(`${u.txid}:${u.vout}`)), { targetSatoshis: estimatedFee + satoshisChangeOutputDustThreshold })
-      }
 
       if (!funderUtxos.satoshisSatisfied) {
         throw new Error('Insufficient BCH balance for fee!')
       }
-
-      additionalFunds = 
-        funderUtxos.selectedUtxos.filter(u => !u.token).reduce((sats, nextU)=> sats += nextU.satoshis, 0)
 
       selectedUtxos = 
         selectedUtxos.concat(
