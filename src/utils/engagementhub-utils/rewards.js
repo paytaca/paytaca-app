@@ -185,6 +185,21 @@ export async function updateRfPromoData (id, data) {
 
 // ========== other functions ==========
 
+export async function fetchMerchantTransactionsData (data) {
+  return await REWARDS_URL
+    .post('userreward/get_ur_merchant_transactions/', data)
+    .then(response => {
+      if (response.status === 200) return response.data
+      else if (resp.status === 404) return {}
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      if (error?.message.includes('404')) return {}
+      else return null
+    })
+}
+
 export async function processReferralCode (data) {
   await REWARDS_URL
     .post('userreward/process_referral_code/', data)
