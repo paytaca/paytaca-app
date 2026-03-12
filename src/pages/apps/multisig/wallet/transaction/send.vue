@@ -159,7 +159,7 @@ import {
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import darkmode from 'src/store/darkmode'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
-import { decodeCashAddress } from 'bitauth-libauth-v3'
+import { decodeCashAddress, stringify } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromFromXpub } from 'src/lib/multisig/coordination'
 
 const $q = useQuasar()
@@ -356,12 +356,10 @@ const createProposal = async () => {
       recipients: recipients.value
   })
     
-    await proposal.save()
-    
     if (wallet.value.isOnline()) {
       await proposal.upload()
     }
-
+    await proposal.save()
     router.push({ 
       name: 'app-multisig-wallet-pst-view', 
       params: { unsignedtransactionhash: proposal.unsignedTransactionHash }
@@ -395,7 +393,12 @@ const refreshPage = async (done) => {
         )
     }
   } catch (error) {
-    console.error('Error refreshing page:', error)
+    $q.notify({
+      title: $t('Warning'),
+      color: 'warning',
+      textColor: 'black',
+      message: error.message,
+    })
   } finally {
     if (done) done()
   }
