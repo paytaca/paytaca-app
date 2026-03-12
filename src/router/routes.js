@@ -320,9 +320,9 @@ const routes = [
             component: () => import('src/pages/apps/rewards/rfp.vue')
           },
           {
-            path: 'marketplace-history/:id',
-            name: 'app-rewards-marketplace-history',
-            component: () => import('src/pages/apps/rewards/marketplace-history.vue'),
+            path: 'merchant-history/:id',
+            name: 'app-rewards-merchant-history',
+            component: () => import('src/pages/apps/rewards/merchant-history.vue'),
             props: true
           }
         ]

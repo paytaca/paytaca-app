@@ -754,7 +754,7 @@ export default {
     },
     openMarketplaceHistory () {
       this.$router.push({
-        name: 'app-rewards-marketplace-history',
+        name: 'app-rewards-merchant-history',
         params: { id: this.urId }
       })
     }

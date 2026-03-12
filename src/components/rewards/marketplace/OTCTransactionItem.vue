@@ -65,7 +65,7 @@ export default {
         this.$router.push({
           name: 'transaction-detail',
           params: { txid: this.data.tx_id },
-          query: { from: 'app-rewards-marketplace-history' },
+          query: { from: 'app-rewards-merchant-history' },
         })
       }
     }

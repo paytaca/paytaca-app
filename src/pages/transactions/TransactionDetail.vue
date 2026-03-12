@@ -798,7 +798,7 @@ export default {
           query: { assetID: assetId }
         }
       }
-      if (fromParam === 'app-rewards-marketplace-history') {
+      if (fromParam === 'app-rewards-merchant-history') {
         return -1
       }
       if (fromParam?.includes('apps/multisig')) { 
