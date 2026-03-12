@@ -110,7 +110,8 @@ import {
   decodeTransactionBch,
   hash256,
   secp256k1,
-  generateSigningSerializationBch
+  generateSigningSerializationBch,
+  sortObjectKeys
 } from 'bitauth-libauth-v3'
 
 import { derivePublicKey, getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
@@ -129,7 +130,6 @@ export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
   PARTIALLY_SIGNED: 'partially-signed',
   FULLY_SIGNED: 'fully-signed',
-  TOO_MANY_SIGNATURES: 'too-many-signatures',
   INCONSISTENT: 'inconsistent'
 }
 
@@ -383,13 +383,10 @@ export const getSigningProgress = (pst) => {
       inputSignatures[inputIndex].signingProgress = SIGNING_PROGRESS.PARTIALLY_SIGNED
     }
 
-    if (inputSignatures[inputIndex].signatureCount === m) {
+    if (inputSignatures[inputIndex].signatureCount >= m) {
       inputSignatures[inputIndex].signingProgress = SIGNING_PROGRESS.FULLY_SIGNED
     }
 
-    if (inputSignatures[inputIndex].signatureCount > m) {
-      inputSignatures[inputIndex].signingProgress = SIGNING_PROGRESS.TOO_MANY_SIGNATURES
-    }
   } 
 
   if (Object.keys(inputSignatures).length === 0) {
@@ -782,31 +779,45 @@ export class Pst {
         const inputUnlockingData = {
           bytecode: {}
         }
+
         const publicKeys = extractPublicKeysFromRedeemScript(this.inputs[inputIndex].redeemScript)
         for (const publicKeyIndex in publicKeys ) {
           inputUnlockingData.bytecode[`key${Number(publicKeyIndex) + 1}.public_key`] = publicKeys[publicKeyIndex]
         }
 
         let publicKeyRedeemScriptSlots = []
+        
+        const m = extractMValue(this.inputs[inputIndex].redeemScript)
 
-        for (const partialSignature of Object.entries(this.inputs[inputIndex].signatures || {})) {
-          const publicKeyOfSigner = partialSignature[0]
-          const signatureValue = typeof(partialSignature[1]) === 'string' ? hexToBin(partialSignature[1]) : partialSignature[1]
+        let collectedSignatures = 0
+        
+        for (const publicKey of publicKeys) {
+          
+          if(collectedSignatures === m) break
+
+          let publicKeyHex = binToHex(publicKey)
+          
+          let signatureValue = this.inputs[inputIndex].signatures[publicKeyHex]
+          if (!signatureValue || signatureValue?.length === 0) {
+            continue
+          }
+          signatureValue = typeof(signatureValue) === 'string' ? hexToBin(signatureValue) : signatureValue
           const sigHash = signatureValue.slice(-1)[0]
           const signingSerializationType = SigningSerializationType[sigHash]
           const signingSerializationTypeAlgorithmIdentifier = SigningSerializationAlgorithmIdentifier[signingSerializationType]
 
-          let publicKeyRedeemScriptSlot = publicKeys.findIndex(p =>binsAreEqual(p, hexToBin(publicKeyOfSigner)))
+          let publicKeyRedeemScriptSlot = publicKeys.findIndex(p =>binsAreEqual(p, publicKey))
           if (publicKeyRedeemScriptSlot === -1) throw new Error('Signature key not found on redeem script')
 
           let sigVariable = 
             `key${publicKeyRedeemScriptSlot + 1}.schnorr_signature.${signingSerializationTypeAlgorithmIdentifier}`
           inputUnlockingData.bytecode[sigVariable] = signatureValue //hexToBin(partialSignature.sig)
           publicKeyRedeemScriptSlots.push(publicKeyRedeemScriptSlot + 1)
+          collectedSignatures++
         }
-        
+
         const unlockingScriptId = publicKeyRedeemScriptSlots.sort().join('_and_')
-        const m = extractMValue(this.inputs[inputIndex].redeemScript)
+        
         const template = createTemplate({ m, signers: publicKeys.map(p => ({ publicKey: p })) })
         const compiler = getCompiler({ template })
 
