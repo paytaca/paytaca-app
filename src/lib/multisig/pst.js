@@ -791,11 +791,11 @@ export class Pst {
 
         let collectedSignatures = 0
         
-        for (const publicKey of publicKeys) {
+        for (const publicKeyIndex in publicKeys) {
           
           if(collectedSignatures === m) break
 
-          let publicKeyHex = binToHex(publicKey)
+          let publicKeyHex = binToHex(publicKeys[publicKeyIndex])
           
           let signatureValue = this.inputs[inputIndex].signatures[publicKeyHex]
           if (!signatureValue || signatureValue?.length === 0) {
@@ -806,18 +806,17 @@ export class Pst {
           const signingSerializationType = SigningSerializationType[sigHash]
           const signingSerializationTypeAlgorithmIdentifier = SigningSerializationAlgorithmIdentifier[signingSerializationType]
 
-          let publicKeyRedeemScriptSlot = publicKeys.findIndex(p =>binsAreEqual(p, publicKey))
-          if (publicKeyRedeemScriptSlot === -1) throw new Error('Signature key not found on redeem script')
+          let publicKeyRedeemScriptSlot = Number(publicKeyIndex)
 
           let sigVariable = 
             `key${publicKeyRedeemScriptSlot + 1}.schnorr_signature.${signingSerializationTypeAlgorithmIdentifier}`
-          inputUnlockingData.bytecode[sigVariable] = signatureValue //hexToBin(partialSignature.sig)
+          inputUnlockingData.bytecode[sigVariable] = signatureValue
+
           publicKeyRedeemScriptSlots.push(publicKeyRedeemScriptSlot + 1)
           collectedSignatures++
         }
 
         const unlockingScriptId = publicKeyRedeemScriptSlots.sort().join('_and_')
-        
         const template = createTemplate({ m, signers: publicKeys.map(p => ({ publicKey: p })) })
         const compiler = getCompiler({ template })
 
@@ -852,6 +851,7 @@ export class Pst {
       this.vmVerificationSuccess = verificationResult
     }
 
+    console.log('FINALZIATION', finalCompilation, this.vmVerificationSuccess)
     return { finalCompilationResult: finalCompilation, vmVerificationSuccess: this.vmVerificationSuccess }
   }
 
