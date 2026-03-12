@@ -15,7 +15,7 @@
       <!-- Dialog Header -->
       <q-card-section class="row items-center q-pb-sm">
         <div class="text-h6 text-weight-bold text-center">
-          Edit Card's Name
+          Create Card
           <div class="text-caption text-center">Provide an alias for your card</div>
         </div>
         <q-space />

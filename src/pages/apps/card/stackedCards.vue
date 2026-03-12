@@ -115,10 +115,16 @@
               v-model="newCardName"
               label="Card Name *"
               :dark="$q.dark.isActive"
-              :rules="[val => !!val || 'Card name is required']"
+              :rules="[
+                val => !!val || 'Card name is required',
+                val => val.length <= 10 || 'Maximum 10 characters'
+              ]"
               @keyup.enter="createCard"
               autofocus
               outlined
+              maxlength="10"
+              counter
+              hint="Max of 10 characters allowed"
             >
               <template v-slot:prepend>
                 <q-icon name="credit_card" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
@@ -160,7 +166,7 @@
             <q-btn 
               label="Done" 
               color="primary" 
-              :disable="!newCardName || !newCardName.trim()"
+              :disable="!newCardName || !newCardName.trim() || newCardName.length > 10"
               @click="createCard"
             />
           </q-card-actions>
