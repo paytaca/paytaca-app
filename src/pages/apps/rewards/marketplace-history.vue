@@ -3,7 +3,6 @@
     <header-nav
       class="apps-header"
       :title="$t('UserRewards', 'User Rewards')"
-      back-button
     />
 
     <h5 class="q-ma-none q-px-md text-primary text-weight-bold text-center">
