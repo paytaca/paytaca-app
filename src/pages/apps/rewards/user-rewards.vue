@@ -173,18 +173,18 @@
                     <q-card-section>
                       <div class="row items-center q-gutter-md">
                         <achievement-icon
-                          :complete="hasReceivedFirstTxBonus"
+                          :complete="hasReceivedFirstVisitBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('InitialUP', { points: '5 UP' }, 'New user first visit bonus') }}
+                            New user referral bonus
                           </div>
-                          <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
+                          <div v-if="hasReceivedFirstVisitBonus" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
-                                { date: formatDateLocaleRelative(dateJoined, false) },
-                                `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
+                                { date: formatDateLocaleRelative(firstTxDate, false) },
+                                `Earned on ${formatDateLocaleRelative(firstTxDate, false)}`
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -192,7 +192,7 @@
                           </div>
                         </div>
                         <points-badge
-                          :complete="hasReceivedFirstTxBonus"
+                          :complete="hasReceivedFirstVisitBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                           :points="5"
                         />
@@ -209,18 +209,18 @@
                     <q-card-section>
                       <div class="row items-center q-gutter-md">
                         <achievement-icon
-                          :complete="hasReceivedFirstVisitBonus"
+                          :complete="hasReceivedFirstTxBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
                             {{ $t('PointsFrom1stTx', 'First transaction bonus') }}
                           </div>
-                          <div v-if="hasReceivedFirstVisitBonus" class="text-caption text-green-7">
+                          <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
-                                { date: formatDateLocaleRelative(firstTxDate, false) },
-                                `Earned on ${formatDateLocaleRelative(firstTxDate, false)}`
+                                { date: formatDateLocaleRelative(dateJoined, false) },
+                                `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -228,7 +228,7 @@
                           </div>
                         </div>
                         <points-badge
-                          :complete="hasReceivedFirstVisitBonus"
+                          :complete="hasReceivedFirstTxBonus"
                           :dark-mode-class="getDarkModeClass(darkMode)"
                           :points="5"
                         />
@@ -396,59 +396,6 @@
               </q-card-section>
             </template>
           </achievement-card>
-
-          <!-- Recent 3 Months -->
-          <!-- <q-expansion-item
-            v-for="(monthData, index) in recentThreeMonths"
-            :key="index"
-            class="month-expansion q-mb-sm"
-            :class="getDarkModeClass(darkMode)"
-            default-opened
-          >
-            <template v-slot:header>
-              <div class="row items-center q-gutter-sm full-width">
-                <q-icon name="calendar_today" size="20px" color="primary" />
-                <div class="col text-subtitle1 text-weight-medium">
-                  {{ formatMonthDisplay(monthData.month) }}
-                </div>
-                <div class="text-caption q-mr-sm" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ monthData.orders.length }} {{ monthData.orders.length === 1 ? 'order' : 'orders' }}
-                </div>
-              </div>
-            </template>
-  
-            <q-card class="month-orders-card" :class="getDarkModeClass(darkMode)" flat>
-              <q-list separator>
-                <q-item
-                  v-for="(order, orderIndex) in monthData.orders"
-                  :key="orderIndex"
-                  clickable
-                  @click="redirectToMarketplaceOrder(order.order_id)"
-                >
-                  <q-item-section>
-                    <q-item-label class="row items-center">
-                      <span class="text-weight-medium">Order #{{ order.order_id }}</span>
-                      <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
-                    </q-item-label>
-                    <q-item-label caption>
-                      {{ $t(
-                          'LastDate',
-                          { date: formatDateLocaleRelative(order.date, false) },
-                          `last ${formatDateLocaleRelative(order.date, false)}`
-                        ) }}
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <points-badge
-                      :complete="true"
-                      :dark-mode-class="getDarkModeClass(darkMode)"
-                      :points="8"
-                    />
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-card>
-          </q-expansion-item> -->
   
           <!-- Empty State for Continuous -->
           <q-card
