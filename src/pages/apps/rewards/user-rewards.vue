@@ -536,7 +536,7 @@ export default {
       isHelpActive: false,
       isOneTimeSectionExpanded: true,
       currentTab: 'onetime',
-      upId: -1,
+      urId: -1,
       points: 0,
       animatedPoints: 0,
       pointsDivisor: 0,
@@ -612,13 +612,13 @@ export default {
       this.pointsError = ''
       this.dataError = ''
 
-      this.upId = Number(this.$route.params.id || -1)
+      this.urId = Number(this.$route.params.id || -1)
 
       // initialize UR Promo Contract and retrieve points
       try {
         const keyPair = await ensureKeypair()
         this.urContract = new PromoContract(keyPair.pubkey, PromosBytes.UR)
-        if (this.upId === -1) await this.urContract.subscribeAddress()
+        if (this.urId === -1) await this.urContract.subscribeAddress()
         this.points = await this.urContract.getTokenBalance()
         this.animatePointsCounter()
       } catch (error) {
@@ -628,10 +628,10 @@ export default {
       
       // fetch and load data
       let urData = null
-      if (this.upId === -1) {
+      if (this.urId === -1) {
         // new user; create and update necessary data
         urData = await createUserRewardsData()
-        this.upId = urData.id
+        this.urId = urData.id
         Promise.allSettled([
           await updateUserPromoData({ up: urData.id }),
           await updateUserRewardsData(urData.id, {
@@ -639,7 +639,7 @@ export default {
           })
         ])
       } else {
-        urData = await getUserRewardsData(this.upId)
+        urData = await getUserRewardsData(this.urId)
       }
       
       if (urData && Object.keys(urData).length > 0) {
@@ -652,14 +652,14 @@ export default {
 
           // send 5 initial points when user is a first time user
           if (urData.is_first_time_user) {
-            await awardInitialUP({ up: this.upId })
+            await awardInitialUP({ up: this.urId })
               .then(async _resp => {
                 this.points = await this.urContract.getTokenBalance()
               })
           }
 
           // mark has_viewed_page to true
-          urData = await updateUserRewardsData(this.upId, {
+          urData = await updateUserRewardsData(this.urId, {
             has_viewed_page: true,
             contract_ct_address: this.urContract.contract.tokenAddress
           })
@@ -742,7 +742,7 @@ export default {
           points: this.points,
           pointsType: Promos.USERREWARDS,
           pointsDivisor: this.pointsDivisor,
-          promoId: this.upId,
+          promoId: this.urId,
           address: this.address
         }
       }).onDismiss(async () => {
@@ -755,7 +755,7 @@ export default {
     openMarketplaceHistory () {
       this.$router.push({
         name: 'app-rewards-marketplace-history',
-        params: { id: this.upId }
+        params: { id: this.urId }
       })
     }
   }
