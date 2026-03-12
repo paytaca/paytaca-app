@@ -342,7 +342,7 @@
         </div>
   
         <span class="row justify-center text-body1 q-mb-sm">
-          {{ $t('PointsFromMarketplace', 'Points from Marketplace transactions') }}
+          {{ $t('PointsFromMerchant', 'Points from Merchant transactions') }}
         </span>
   
         <!-- Loading Skeletons for Continuous -->

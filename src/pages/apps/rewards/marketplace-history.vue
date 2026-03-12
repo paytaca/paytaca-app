@@ -6,13 +6,9 @@
       back-button
     />
 
-    <div class="row flex-center">
-      <q-separator :dark="darkMode" class="col q-ml-md" />
-      <h5 class="q-ma-none q-px-md text-primary text-weight-bold">
-        Marketplace History
-      </h5>
-      <q-separator :dark="darkMode" class="col q-mr-md" />
-    </div>
+    <h5 class="q-ma-none q-px-md text-primary text-weight-bold text-center">
+      Merchant Transactions History
+    </h5>
 
     <div class="q-px-md q-pt-md">
       <!-- Summary Section -->
