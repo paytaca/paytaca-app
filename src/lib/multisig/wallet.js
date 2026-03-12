@@ -144,7 +144,7 @@ import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
 import { encryptECIES } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
-import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic } from './coordination.js'
+import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
@@ -1291,7 +1291,10 @@ export class MultisigWallet {
       }
 
       const wcExpectedLockingBytecode = cashAddressToLockingBytecode(this.getDepositAddress(0).address)
-      if (mappedInput.sourceOutput.lockingBytecode && binsAreEqual(mappedInput.sourceOutput.lockingBytecode, wcExpectedLockingBytecode.bytecode)) {
+      if (
+          mappedInput.sourceOutput.lockingBytecode && 
+          binsAreEqual(mappedInput.sourceOutput.lockingBytecode, wcExpectedLockingBytecode.bytecode)
+        ) {
         const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: '0/0' })
         const bip32Derivation = Object.assign({}, ...signersWithPublicKeys.map((s) => {
         const fullDerivationPath = (this.derivationPath || `m/44'/145'/0'/`) + '0/0'
@@ -1414,6 +1417,7 @@ export class MultisigWallet {
   async upload(enablePrivacy = true) {
 
     if (!this.options?.resolveMnemonicOfXpub) return
+    if (!this.options?.coordinationServer) return
 
     const wallet = structuredClone(this.toJSON())
     wallet.walletDescriptorId = this.generateBsmsDescriptorId()
@@ -1471,7 +1475,7 @@ export class MultisigWallet {
       s.coordinatorKeyRecord = await coordinatorKeyRecord.toEciesEncryptedString(hexToBin(s.publicKey))
     }
 
-    const uploadedWallet = await this.options?.coordinationServer?.uploadWallet({ 
+    const uploadedWallet = await this.options.coordinationServer.uploadWallet({ 
       wallet, authCredentialsGenerator: this 
     })
 
@@ -1510,13 +1514,28 @@ export class MultisigWallet {
     }
   }
 
+  /**
+   * Resolve signer's mnemonics from this device
+   * if available.
+   */
+  async resolveSignerMnemonics() {
+    if (this.options?.resolveMnemonicOfXpub) {
+      for (const signer of this.getSigners()) {
+        const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub})
+        if (mnemonic) {
+          signer.mnemonic = mnemonic
+        } 
+      }
+    }
+  }
+
   signerCanSign(signerXpub) {
     return this.signers.some(s => s.xpub === signerXpub && Boolean(s.xprv))
   }
   
   toJSON() {
     const signers = this.getSigners().map(s => {
-      const { xprv, ...safe } = s 
+      const { xprv, mnemonic, ...safe } = s 
       return safe
     })
     return {
@@ -1664,17 +1683,45 @@ async generateCosignerAuthCredentials(xpub) {
 }
 
 async sync() {
-  try {
-    if (!this.options?.coordinationServer) return
-    const response =
-      await this.options?.coordinationServer?.getWallet({ identifier: this.generateBsmsDescriptorId() })
-    this.id = response?.id
-    this.save()
-  } catch (error) {
-    if (error?.response?.status === 404 && this.id) {
+  if (!this.options?.coordinationServer) return
+
+  const [loadServerIdentityResponse, getWalletResponse] = 
+    await Promise.allSettled([
+      this.loadSignersServerIdentity(), 
+      this.options?.coordinationServer?.getWallet({ 
+        identifier: this.generateBsmsDescriptorId() 
+      })
+    ])
+  
+  // Sync this wallet's id if it's deleted from the server
+  if (getWalletResponse?.status === 'rejected' && getWalletResponse.reason?.status === 404) {
+    if (this.id) { 
       this.options?.store?.commit('multisig/updateWalletId', { oldId: this.id, newId: '' })
-    } 
+    }
+  } 
+
+  if (loadServerIdentityResponse?.status === 'fulfilled' && !loadServerIdentityResponse.value) {
+    await this.resolveSignerMnemonics()
+    const signerWithMnemonic = this.getSigners().find(s => s.mnemonic)
+    if (signerWithMnemonic) {
+      const serverIdentity = generateCoordinatorServerIdentityFromMnemonic({
+        name: signerWithMnemonic.xpub,
+        mnemonic: signerWithMnemonic.mnemonic,
+        network: this.options?.provider?.network
+      })
+
+      await this.options.coordinationServer.createServerIdentity({ 
+        serverIdentity, 
+        authCredentialsGenerator: this 
+      })
+    }
   }
+
+  if (getWalletResponse?.value?.id) {
+    this.id = getWalletResponse.value.id
+  }
+
+  this.save()
 }
 
 
@@ -1689,6 +1736,7 @@ async loadSignersServerIdentity() {
         publicKey: authCredentials['X-Auth-PubKey'], 
         authCredentialsGenerator: this 
       })
+      console.log('SERVER IDENTITY', serverIdentity)
       if (serverIdentity) {
         signer.serverIdentityId = serverIdentity.id
         modified = true
@@ -1824,7 +1872,7 @@ static cashAddressToTokenAddress(cashAddress) {
   generateBsmsDescriptor() {
       const firstAddress = this.getDepositAddress(0, this.cashAddressNetworkPrefix).address
       const signers = this.getSigners().map(s => {
-        const { xprv, ...safe } = s 
+        const { xprv, mnemonic, ...safe } = s 
         return safe
       })
       const descriptor = new BsmsDescriptor({
