@@ -597,9 +597,9 @@ export default {
           this.isHelpActive = true
           this.isOneTimeSectionExpanded = false
 
-          // send 5 initial points when user is a first time user
+          // send 5 initial points when user is a first time user and was referred
           if (urData.is_first_time_user) {
-            await awardInitialUP({ up: this.urId })
+            await awardInitialUP({ ur: this.urId })
               .then(async _resp => {
                 this.points = await this.urContract.getTokenBalance()
               })
