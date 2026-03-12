@@ -202,6 +202,7 @@ import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromFromXpub } from 'src/lib/multisig/coordination'
+import { watchtowerUtxoToCommonUtxo } from 'src/lib/multisig/utxo'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -254,7 +255,6 @@ const nftOptions = computed(() => {
 })
 
 const isNftPreselected = computed(() => {
-  console.log('ROUTE QUERY',  route.query)
   return route.query.txid && route.query.vout !== undefined
 })
 
@@ -370,10 +370,12 @@ const createProposal = async () => {
         creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
       }
     }
-    
+
     const nftRecipients = recipients.value.map(recipient => ({
       address: recipient.address,
-      nft: selectedNft.value.value
+      amount: selectedNft.value.value.amount, // Retain NFT token amount
+      asset: route.params.tokenid,
+      targetNftUtxo: watchtowerUtxoToCommonUtxo(selectedNft.value.value)
     }))
     
     const options = {
@@ -387,7 +389,7 @@ const createProposal = async () => {
       origin: 'paytaca-wallet',
       purpose: purpose.value,
       recipients: nftRecipients
-    }, options)
+    }, 'send-non-fungible-assets')
     
     await proposal.save()
     
