@@ -70,6 +70,7 @@
                         outlined
                         dense
                         clearable
+                        :rules="[val => !val || (val.startsWith('xpub') || val.startsWith('tpub')) || $t('InvalidXpubFormat')]"
                         >
                         <template v-slot:append>
                           <q-btn
@@ -78,7 +79,14 @@
                           </q-btn>
                         </template>
                       </q-input>
-                      <q-input v-model="signer.masterFingerprint" :label="$t('EnterMasterFingerprint')" outlined dense required></q-input>
+                      <q-input 
+                        v-model="signer.masterFingerprint" 
+                        :label="$t('EnterMasterFingerprint')" 
+                        outlined 
+                        dense 
+                        required
+                        :rules="[val => !val || val.length === 8 || $t('MasterFingerprintMustBe8Chars')]"
+                      ></q-input>
                     </div>
                     <q-stepper-navigation>
                         <q-btn :disable="!signer.xpub || !signer.name" @click="$refs.stepper.next()" color="primary" :label="$t('Continue')" />
@@ -153,8 +161,6 @@ import { shortenString, MultisigWallet, getMasterFingerprint } from 'src/lib/mul
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelectionDialog.vue'
 import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
-import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
-import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 import { loadWallet } from 'src/wallet'
 import { binToHex } from 'bitauth-libauth-v3'
 
@@ -165,8 +171,7 @@ const { t: $t } = useI18n()
 const { 
   multisigCoordinationServer, 
   multisigNetworkProvider, 
-  resolveXprvOfXpub,
-  getSignerWalletFromVault
+  resolveXprvOfXpub
 } = useMultisigHelpers()
 const { ensureCanPerformAction } = useTieredLimitGate()
 const mOptions = ref()
@@ -201,10 +206,11 @@ const openLocalWalletsSelectionDialog = ({ signer, signerIndex }) => {
     }
 
   }).onOk(async (selectedWallet) => {
-    signers.value[signerIndex].xpub = selectedWallet.wallet.bch.xPubKey
-    const localWallet = getSignerWalletFromVault({ xpub: selectedWallet.wallet.bch.xPubKey })
-    const { mnemonic } = await loadWallet('BCH', localWallet.vaultIndex)
-    signers.value[signerIndex].masterFingerprint = binToHex(getMasterFingerprint(mnemonic))
+    signers.value[signerIndex].xpub = selectedWallet.xpub
+    signers.value[signerIndex].masterFingerprint = selectedWallet.masterFingerprint
+    if (!signers.value[signerIndex].name) {
+      signers.value[signerIndex].name = selectedWallet.name
+    }
   })
 }
 
