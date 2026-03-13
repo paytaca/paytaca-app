@@ -175,9 +175,12 @@
                     <span v-for="signer in signedSigners" :key="signer.xpub" size="md">
                       <q-chip clickable @click="() => showSharePartialSignatureOptionsDialog(signer.name, signer.masterFingerprint)">
                         <q-avatar>
-                          <q-icon name="how_to_reg" size="sm"></q-icon>
+                          <q-icon name="how_to_reg" size="xs"></q-icon>
                         </q-avatar>
-                        {{ signer.name }}
+                        <span>{{ signer.name }}</span>
+                        <span v-if="signer.xprv" class="q-ml-sm text-caption text-italic text-orange">
+                          ({{ $t('You') }})
+                        </span>
                         <q-btn 
                           icon="mdi-share" 
                           color="primary"
@@ -244,7 +247,7 @@
           disable
         >
           <q-icon name="pause" class="q-mr-sm"></q-icon>
-          {{ $t('Waiting For More Signatures') }}
+          {{ $t(`WaitingFor${signingProgress?.signingProgress === 'unsigned'? '': 'More'}Signatures`) }}
         </q-btn>
       </div>
          <div
@@ -289,7 +292,8 @@ const {
   multisigNetworkProvider,
   multisigCoordinationServer,
   resolveXprvOfXpub,
-  resolveMnemonicOfXpub
+  resolveMnemonicOfXpub,
+  isChipnet
 } = useMultisigHelpers()
 const $q = useQuasar()
 const $store = useStore()
@@ -718,19 +722,39 @@ const refreshPage = async (done) => {
 }
 
 onMounted(async () => {
-  loadWallet()
+
+  await loadWallet()
   await loadProposal()
+  
   registerInterval(async () => {
-    pst.value.fetchAndMergeSignatures() 
+
+    if (pst.value?.id && signingProgress.value?.signingProgress !== 'fully-signed') {
+      pst.value.fetchAndMergeSignatures() 
+    }
+    
+    if (!isFetchingStatus.value && !pst.value?.id) {
+      await pst.value.resolveStatusByInputs(isChipnet.value ? 'chipnet': 'mainnet')
+    }
+
     if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
       isFetchingStatus.value = true
       try {
-        await pst.value.fetchStatus()
-      } finally {
+        await pst.value.resolveStatus()
+      } catch( e) {
+        $q.notify({
+          title: $t('Warning'),
+          color: 'warning',
+          textColor: 'black',
+          message: error?.message,
+        })
+      } 
+      finally {
         isFetchingStatus.value = false
       }
     }
-  }, 3000) 
+  }, 5000) 
+
+  await pst.value?.locallyResolveStatus()
 })
 
 </script>
