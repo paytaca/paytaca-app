@@ -7,7 +7,7 @@
         <q-item>
           <q-item-section>
             <q-item-label class="text-justify text-overline">
-              Use one of your wallets on this device for signing transactions as {{ signerName || `Signer ${signerIndex}` }}.
+              Use one of your wallets on this device for signing transactions as {{ signerName || `Signer ${signerIndex + 1}` }}.
             </q-item-label>
           </q-item-section>
         </q-item>
@@ -16,22 +16,19 @@
             :key="i"
             clickable
             @click="() => onSelect(localWallet)"
-            :active="localWallet.wallet.bch.xPubKey === selectedWallet?.wallet?.bch?.xPubKey"
-            :focused="localWallet.wallet.bch.xPubKey === selectedWallet?.wallet?.bch?.xPubKey"
+            :active="localWallet.xpub === selectedWallet?.xpub"
+            :focused="localWallet.xpub === selectedWallet?.xpub"
           >
           <q-item-section>
             <q-item-label>{{ localWallet.name || 'Unnamed Wallet' }}</q-item-label>
             <q-item-label caption lines="2">
-              {{ shortenString(localWallet.wallet.bch.xPubKey, 20) }}
-            </q-item-label>
-            <q-item-label caption lines="2">
-              {{ shortenString(localWallet.wallet.bch.addresses?.[0] || '', 20) }}
+              {{ shortenString(localWallet.xpub, 20) }}
             </q-item-label>
           </q-item-section>
           <q-item-section side>
             <div class="row flex q-gutter-x-sm">
               <q-icon
-                v-if="localWallet.wallet.bch.xPubKey === selectedWallet?.wallet?.bch?.xPubKey"
+                v-if="localWallet.xpub === selectedWallet?.xpub"
                 name="check"
                 color="primary"
                 size="sm"
@@ -67,7 +64,6 @@ import { useStore } from 'vuex'
 import { ref, onMounted, computed } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-// import { useStore } from 'vuex'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { shortenString } from 'src/lib/multisig'
 
@@ -77,10 +73,11 @@ defineProps({
 })
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
-const { localWallets } = useMultisigHelpers()
+const { getWalletsFromVault } = useMultisigHelpers()
 const selectedWallet = ref()
 const $store = useStore()
 
+const localWallets = ref()
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
@@ -91,8 +88,10 @@ const onSelect = (localWallet) => {
 const onOkClick = () => {
   onDialogOK(selectedWallet.value)
 }
-onMounted(() => {
-  console.log(localWallets)
+
+onMounted(async () => {
+  localWallets.value = await getWalletsFromVault()
+  console.log(localWallets.value)
 })
 </script>
 
