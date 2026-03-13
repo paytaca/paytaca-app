@@ -295,14 +295,6 @@ export default {
           path: '/apps/card',
           active: true,
           iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
-        },
-        {
-          name: this.$t('Card'),
-          iconName: 'mdi-card-bulleted',
-          path: '/apps/card',
-          active: true,
-          iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet']
         },
         {

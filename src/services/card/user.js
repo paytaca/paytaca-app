@@ -1,4 +1,3 @@
-import Watchtower from 'watchtower-cash-js';
 import AuthNftService from './auth-nft.js';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
@@ -48,7 +47,6 @@ export class CardUser {
      */
     set raw(data) {
         this._rawData = data;
-        this.id = data?.id;
         this.public_key = data?.public_key;
         this.is_authenticated = data?.is_authenticated;
     }
@@ -124,7 +122,7 @@ export class CardUser {
     async getChallenge(publicKey) {
         try {
             const payload = { public_key: publicKey };
-            const { data: { challenge } } = await backend.post('/auth/challenge/', payload);
+            const { data: { challenge } } = await backend.post('/auth/user/challenge/', payload);
             return challenge;
         } catch (error) {
             console.error('Failed to get challenge:', error);
@@ -144,7 +142,7 @@ export class CardUser {
                 public_key: publicKey,
                 signature: signature
             };
-            const verifyResponse = await backend.post('/auth/verify/', body);
+            const verifyResponse = await backend.post('/auth/user/verify/', body);
             return verifyResponse.data;
         } catch (error) {
             console.error('Failed to verify challenge:', error);
@@ -333,7 +331,7 @@ export class CardUser {
  */
 export async function fetchCardUser(wallet) {
     try {
-        const response = await backend.get(`/auth/${wallet.walletHash}`);
+        const response = await backend.get(`/auth/user/${wallet.walletHash}`);
         return CardUser.createInitialized(response.data);
     } catch (error) {
         console.error('Card User fetch failed:', error.response?.status || error.message);

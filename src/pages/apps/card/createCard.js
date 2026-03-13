@@ -89,20 +89,7 @@ import { set } from 'date-fns';
       this.$nextTick(() => {
         this.initMap()
       })
-      
-      try {
-        await this.getCards()
-        const card = this.subCards[0]
-        const merchants = await getMerchantList()
-        console.log('Merchants fetched:', merchants)
-        const merchant = merchants.results[0]
-        console.log('merchant:', merchant)
-        // const spendResult = await this.spend(card, merchant, 1000)
-        // console.log('spendResult:', spendResult)
-        await this.connectToWebsocket()
-      } catch (error) {
-        console.error('Error during mounted lifecycle:', error.response || error)
-      }
+      await this.getCards()
     },
 
     computed: {
@@ -178,44 +165,6 @@ import { set } from 'date-fns';
 
     methods: {
       loadCardUser,
-
-      // Websocket connection to listen for tag scans in real-time. 
-      // TODO: move this to Paytaca POS app, this is only here for testing purposes
-      async connectToWebsocket() {
-        const cardUser = await loadCardUser()
-        const walletHash = cardUser.raw.wallet_hash
-        const authToken = await getAuthToken()
-
-        const wsUrl = `ws://localhost:8000/ws/tag?wallet_hash=${walletHash}&token=${authToken}`
-        console.log('Connecting to WebSocket at:', wsUrl)
-        this.ws = new WebSocket(wsUrl)
-
-        this.ws.onopen = () => {
-          console.log("WebSocket connection established");
-          this.ws.send("start_listening")
-          this.ws.send("status")
-          setTimeout(() => {
-            this.ws.send("stop_listening")
-          }, 5000)
-        };
-
-        this.ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log("Received tag data:", data);
-          } catch (e) {
-            console.log("Received non-JSON message:", event.data);
-          }
-        };
-
-        this.ws.onclose = (event) => {
-          console.log("WebSocket closed:", event.reason);
-        };
-
-        this.ws.onerror = (error) => {
-          console.error("WebSocket error:", error);
-        };
-      },
       getMerchantList,
 
       /**
@@ -326,26 +275,6 @@ import { set } from 'date-fns';
         const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
         console.log('Mint Result:', mintResult)
         console.log('Issue Result:', issueResult)
-      },
-
-      /**
-       * Delete this later, this function belongs in the paytaca POS app.
-       * This is here only for testing purposes
-       */
-      async spend(card, merchant, amountSats = 1000) {
-        console.log('card:', card)
-        const proof = {
-          // uid: card.uid,
-          mac: "a3ff3b94857b1eafffff4d4fc68e7379", // dummy
-          counter: 1,
-        }
-        const spendResult = await card.spend(
-          merchant.id,
-          merchant.receiving_address,
-          amountSats,
-          proof
-        )
-        console.log('spendResult:', spendResult)
       },
 
       /**

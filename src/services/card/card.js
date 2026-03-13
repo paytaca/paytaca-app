@@ -211,57 +211,6 @@ export class Card {
     return merchant_auth_nft
   }
 
-  /**
-   * Spends {amountSats} satoshis from the card to a specified address.
-  * Note: This is intended for the merchant POS flow (e.g., PaytacaPOS) after the
-  * card owner taps their NFC card. Building the spend transaction requires both
-  * the merchant signature and a backend signature, so this likely doesn't belong
-  * in this app.
-   * @param {*} merchantId 
-   * @param {*} toAddress 
-   * @param {*} amountSats 
-   * @returns 
-   */
-  async spend(merchantId, toAddress, amountSats, proof) {
-    this._assertWallet();
-
-    console.log('to_address:', toAddress);
-    console.log('merchantId:', merchantId);
-    
-    const response = await backend.post(`/cards/${this.raw.cash_address}/preimage/`, {
-      merchant_id: merchantId,
-      to_address: toAddress,
-      amount_sats: amountSats,
-      card_proof: proof
-    });
-
-    const data = response.data;
-    console.log('Preimage response:', data);
-    if (data.success === false) {
-      throw new Error(data.error || 'Failed to get preimages for spend transaction');
-    }
-
-    const privkey = this.wallet.privkey()
-    const preimages = data.preimages;
-    const signatures = await signPreimages({
-      preimages: preimages,
-      wif: privkey
-    });
-
-    console.log('signatures:', signatures);
-
-    const spendResponse = await backend.post(`/cards/${this.raw.cash_address}/spend/`, {
-      merchant_id: merchantId,
-      tx: {
-        hex: data.txHex,
-        signatures: signatures,
-        inputs: data.inputs
-      }
-    });
-    
-    return spendResponse.data
-  }
-
   // ==================== AUTH NFT OPERATIONS ====================
 
   /**
@@ -492,6 +441,33 @@ export class Card {
   }
 
   // ==================== CONTRACT OPERATIONS ====================
+
+  /**
+   * Returns BCH balance for card address. 
+   * Fetches from server data, server queries blockchain.
+   * @returns {number}
+   */
+  getBchBalance() {
+    return this.raw?.bch_balance || 0;
+  }
+
+  /**
+   * Returns token balance for card token address
+   * @returns {number}
+   */
+  getTokenBalance() {
+    return this.raw?.ct_balance.length || 0;
+  }
+
+  /**
+   * Gets the TapToPay contract balance. 
+   * Fetches directly from blockchain, may be more up-to-date than server data.
+   * @returns {Promise<number>}
+   */
+  async getContractBalance() {
+    this._initializeContract()
+    return await this.contract.getContract().getBalance();
+  }
 
   /**
    * Gets UTXOs for card address
