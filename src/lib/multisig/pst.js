@@ -1406,7 +1406,7 @@ export class Pst {
 
     if (!this.options?.coordinationServer) return
 
-    await this.wallet?.resolveXprvsOfXpubs?.()
+    await this.wallet?.loadSignersXPrv?.()
 
     const coordinator = this.wallet.getSigners().find(s=>s.xprv)
 

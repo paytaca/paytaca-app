@@ -149,13 +149,13 @@
                 <q-item-section>
                   <q-item-label class="text-subtitle2 q-mb-md">{{ $t('Signers') }}</q-item-label>
                   <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
-                    <q-chip v-for="signer, i in wallet.signers" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat dense class="q-px-md">
+                    <q-chip v-for="signer, i in wallet.signers?.sort((sa, sb) => (sa.name || '').localeCompare((sb.name || '')))" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat dense class="q-px-md">
                       <q-avatar>
                         <q-icon v-if="Boolean(signer?.xprv)" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
                         <q-icon v-else name="person" size="sm"></q-icon>
                       </q-avatar>
                       <div class="flex flex-column">
-                        <div class="ellipsis" style="max-width:3.5em">
+                        <div class="ellipsis" style="max-width:5em">
                           {{ signer.name }}
                         </div>
                       </div>
@@ -271,7 +271,6 @@ const {
   multisigCoordinationServer, 
   multisigNetworkProvider, 
   resolveXprvOfXpub,
-  getSignerXPrv, 
   getAssetTokenIdentity,
   cashAddressNetworkPrefix,
   resolveMnemonicOfXpub
@@ -303,7 +302,6 @@ const walletBannerMessages = computed(() => {
   }
   return messages
 })
-
 
 const proposals = computed(() => {
   const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
@@ -660,7 +658,6 @@ watch(wallet, async (newWallet) => {
 onMounted(async () => {
   try {
     const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-
     if (savedWallet) {
       wallet.value = MultisigWallet.importFromObject(savedWallet, {
         store: $store,
@@ -675,7 +672,7 @@ onMounted(async () => {
 
     const responses = await Promise.allSettled([
       wallet.value?.sync(),
-      wallet.value?.resolveXprvsOfXpubs(),
+      wallet.value?.loadSignersXPrv(),
       refreshBalance(),
       queryServerForProposals()
     ])

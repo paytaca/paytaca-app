@@ -652,7 +652,7 @@ const loadWallet = async () => {
         resolveMnemonicOfXpub
       }
     )
-    await wallet.value.resolveXprvsOfXpubs()
+    await wallet.value.loadSignersXPrv()
   }
 }
  
@@ -672,7 +672,7 @@ const loadProposal = async () => {
         const initializationTasks = [
           { label: 'fetching proposals\'s coordinator info', f: async () => await pst.value.fetchCoordinatorInfo() },
           { label: 'fetching inputs reference transaction', f: async () => await pst.value.resolveInputsTransactionData() },
-          { label: 'fetching proposal\'s status', f: async () => await pst.value.fetchStatus() }
+          { label: 'fetching proposal\'s status', f: async () => await pst.value.resolveStatus() }
         ]
         const results = await Promise.allSettled([
           initializationTasks[0].f(), 

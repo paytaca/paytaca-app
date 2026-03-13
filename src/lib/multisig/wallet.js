@@ -1493,27 +1493,19 @@ export class MultisigWallet {
     }
   }
 
-  /**
-   * Resolve the xprv of signers that do not have xprv if resolveXPrvOfXpub function is provided in options
-   */
-  async resolveXprvsOfXpubs() {
+  async loadSignersXPrv() {
     if (this.options?.resolveXprvOfXpub) {
       for (const signer of this.getSigners()) {
-        const xprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub})
-        if (xprv) {
-          if (!signer.xprv) {
-            signer.xprv = xprv
-          }
-        } 
+        signer.xprv = await this.options?.resolveXprvOfXpub({ xpub: signer.xpub})
       }
     }
-  }
+  } 
 
   /**
    * Resolve signer's mnemonics from this device
    * if available.
    */
-  async resolveSignerMnemonics() {
+  async loadSignersMnemonic() {
     if (this.options?.resolveMnemonicOfXpub) {
       for (const signer of this.getSigners()) {
         const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub})
@@ -1696,7 +1688,7 @@ async sync() {
   } 
 
   if (loadServerIdentityResponse?.status === 'fulfilled' && !loadServerIdentityResponse.value) {
-    await this.resolveSignerMnemonics()
+    await this.loadSignersMnemonic()
     const signerWithMnemonic = this.getSigners().find(s => s.mnemonic)
     if (signerWithMnemonic) {
       const serverIdentity = generateCoordinatorServerIdentityFromMnemonic({
