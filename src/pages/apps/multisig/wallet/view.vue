@@ -201,16 +201,16 @@
                     <q-item-section>
                       <div class="flex items-center q-gutter-x-sm">
                         <q-avatar size="md">
-                          <q-img v-if="balancesTokenIdentities[asset]?.uris?.icon" :src="assetIconUrl(balancesTokenIdentities[asset]?.uris?.icon)"></q-img>
+                          <q-img v-if="tokenIdentities[asset]?.uris?.icon" :src="assetIconUrl(tokenIdentities[asset]?.uris?.icon)"></q-img>
                           <q-icon v-else name="token" size="md"></q-icon>
                         </q-avatar>
                         <div>
-                          <div v-if="balancesTokenIdentities[asset]?.token?.symbol">
-                            <div class="text-bold">{{balancesTokenIdentities[asset].token.symbol}} </div>
-                            <sub  style="filter: brightness(80%)">{{balancesTokenIdentities[asset].name}} [{{ shortenString(asset, 13) }}]</sub>
+                          <div v-if="tokenIdentities[asset]?.token?.symbol">
+                            <div class="text-bold">{{tokenIdentities[asset].token.symbol}} </div>
+                            <sub  style="filter: brightness(80%)">{{tokenIdentities[asset].name}} [{{ shortenString(asset, 13) }}]</sub>
                           </div>
-                          <div v-else-if="balancesTokenIdentities[asset]?.name">
-                            <div class="text-bold">{{balancesTokenIdentities[asset].name}}</div>
+                          <div v-else-if="tokenIdentities[asset]?.name">
+                            <div class="text-bold">{{tokenIdentities[asset].name}}</div>
                           </div>
                           <span v-else>
                             {{shortenString(asset, 18)}}
@@ -277,7 +277,7 @@ const {
   resolveMnemonicOfXpub
 } = useMultisigHelpers()
 const balances = ref()
-const balancesTokenIdentities = ref({})
+const tokenIdentities = ref({})
 const balancesExpanded = ref(true)
 const balancesRefreshing = ref(false)
 const balanceConvertionRates = ref()
@@ -553,16 +553,13 @@ const openWalletActionsDialog = () => {
   }).onOk(handleWalletActions)
 }
 
-const loadCashtokenIdentitiesToBalances = async() => {
-  const promises = []
-  for(const asset of Object.keys(balances.value || {})) {
-    if (asset === 'bch') continue
-    const tokenIdentityPromise = async () => {
-      balancesTokenIdentities.value[asset] = await getAssetTokenIdentity(asset)
-    }
-    promises.push(tokenIdentityPromise())
+const discoverTokenIdentities = async(balances) => {
+  let t = {}
+  for(const asset of Object.keys(balances || {})) {
+    if (!asset || asset === 'bch') continue
+    t[asset] = await getAssetTokenIdentity(asset)
   }
-  await Promise.all(promises)
+  return t
 }
 
 const refreshBalance = async () => {
@@ -572,12 +569,21 @@ const refreshBalance = async () => {
     if (balances.value) {
       balances.value = sortObjectKeys(balances.value)
     }
-    balanceConvertionRates.value = 
-      await wallet.value.convertBalanceToCurrencies(
+    const [r1, r2]  = await Promise.allSettled([
+      wallet.value.convertBalanceToCurrencies(
         'bch',
         (balances.value?.['bch'] || 0) / 1e8,
         [$store.getters['market/selectedCurrency'].symbol]
-      )
+      ),
+      discoverTokenIdentities(balances.value)
+    ])
+
+    if (r1.status === 'fulfilled') {
+      balanceConvertionRates.value = r1.value
+    }
+    if (r2.status === 'fulfilled') {
+      tokenIdentities.value = r2.value
+    }
   } catch (error) {} finally {
     balancesRefreshing.value = false
   }
@@ -587,7 +593,6 @@ const refreshPage = async (done) => {
   try {
     balancesRefreshing.value = true
     await refreshBalance()
-    await loadCashtokenIdentitiesToBalances()
   } catch (_) {
     // ignore; pull-to-refresh should always resolve
   } finally {
@@ -624,7 +629,6 @@ const onUpdateTransactionFile = (file) => {
     }
   }
   reader.onerror = (err) => {
-    console.error(err)
     pstFileModel.value = null
   }
   reader.readAsText(file)
@@ -673,7 +677,6 @@ onMounted(async () => {
       wallet.value?.sync(),
       wallet.value?.resolveXprvsOfXpubs(),
       refreshBalance(),
-      loadCashtokenIdentitiesToBalances(),
       queryServerForProposals()
     ])
 
