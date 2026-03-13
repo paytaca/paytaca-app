@@ -17,7 +17,12 @@
       </q-item-label>
       <q-item-label caption>
         <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-          {{ formatDateLocaleRelative(data.date, false) }}
+          {{ data.merchant_name }}
+        </span>
+      </q-item-label>
+      <q-item-label caption>
+        <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+          {{ formatDateLocaleRelative(data.created_at, false) }}
         </span>
       </q-item-label>
     </q-item-section>
