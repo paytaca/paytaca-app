@@ -733,7 +733,7 @@ onMounted(async () => {
     }
     
     if (!isFetchingStatus.value && !pst.value?.id) {
-      await pst.value.resolveStatusByInputs(isChipnet.value ? 'chipnet': 'mainnet')
+      await pst.value.resolveStatusByInputs(isChipnet ? 'chipnet': 'mainnet')
     }
 
     if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
@@ -754,7 +754,6 @@ onMounted(async () => {
     }
   }, 5000) 
 
-  await pst.value?.locallyResolveStatus()
 })
 
 </script>
