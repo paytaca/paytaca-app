@@ -425,6 +425,8 @@ import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter, useRoute } from 'vue-router'
+import { loadCardMerchantWallet } from 'src/services/wallet'; 
+import { backend as cardBackend } from 'src/services/card/backend';
 
 const bchjs = new BCHJS()
 
@@ -437,6 +439,7 @@ const $t = useI18n().t
 const confirm = ref(false)
 const wallet = ref(null)
 const walletType = 'bch'
+const darkMode = ref(null)
 
 function safeMerchantId () {
   const fromQuery = $route?.query?.merchantId
@@ -477,6 +480,11 @@ const walletData = computed(() => {
 
 
 onMounted(()=> registerForCardPayments())
+
+/**
+ * Registers the merchant for card payments if not already enabled. 
+ * This is required to link a card wallet to the merchant and enable NFC payments.
+ */
 async function registerForCardPayments() {
   const nfcPaymentsEnabled = $store.getters['paytacapos/nfcPaymentsEnabled']
   if (nfcPaymentsEnabled) {
@@ -484,8 +492,7 @@ async function registerForCardPayments() {
     return
   }
 
-  console.log('Registering merchant for card payments:', merchantId)
-  const wallet = await loadCardWallet()
+  const wallet = await loadCardMerchantWallet()
   const payload = {
     wallet_hash: wallet.walletHash,
     public_key: wallet.pubkey(), 
@@ -495,7 +502,7 @@ async function registerForCardPayments() {
 
   cardBackend.post('/merchants/', payload)
     .then(response => {
-      console.log(response.data)
+      console.log('Registered merchant:', response.data)
       $store.commit('paytacapos/setNfcPaymentsEnabled', true)
     })
     .catch(error => {
@@ -508,6 +515,7 @@ async function initWallet() {
   wallet.value = _wallet
   await checkWalletLinkData()
 }
+
 async function checkWalletLinkData() {
   if (!walletData.value?.xPubKey || !walletData.value?.walletHash) {
     console.log('Incomplete wallet link data. Updating xPubKey and walletHash')
