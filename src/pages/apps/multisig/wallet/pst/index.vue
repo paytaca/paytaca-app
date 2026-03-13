@@ -168,6 +168,33 @@ const importProposals = () => {
   })
 }
 
+const loadProposals = async () => {
+  try {
+    proposals.value = []
+    const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
+    for (const psbt of psbts) {
+      try {
+        const proposal = Pst.fromPsbt(psbt)
+        proposal.setWallet(wallet.value)  
+        proposal.setCoordinationServer(wallet.value.options.coordinationServer)
+        await proposal.sync()
+        await proposal.fetchCoordinatorInfo()
+        proposals.value.push(proposal)
+      } catch (error) {
+        // ignore malformed proposals
+        continue 
+      }
+    }
+  } catch (error) {
+    proposals.value = []
+    $q.dialog({
+      title: 'Error loading transaction proposals!',
+      message: error.message,
+      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+    })
+  }
+}
+
 const clearAll = () => {
   $q.dialog({
     title: $t('ClearingAllTxProposals'),
@@ -185,39 +212,17 @@ const clearAll = () => {
       rounded: true,
       outline: true
     }
-  }).onOk(() => {
+  }).onOk(async () => {
     for (const pst of proposals.value) {
       pst.setStore($store)
-      pst.delete({sync: false})
+      await pst.delete({sync: false})
     }
+    await loadProposals()
   })
 }
 
 onMounted(async () => {
-  try {
-    const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
-    for (const psbt of psbts) {
-      try {
-        const proposal = Pst.fromPsbt(psbt)
-        proposal.setWallet(wallet.value)  
-        proposal.setCoordinationServer(wallet.value.options.coordinationServer)
-        await proposal.sync()
-        await proposal.fetchCoordinatorInfo()
-        proposals.value.push(proposal)
-      } catch (error) {
-        // ignore malformed proposals
-        continue 
-      }
-    }
-    
-  } catch (error) {
-    proposals.value = []
-    $q.dialog({
-      title: 'Error loading transaction proposals!',
-      message: error.message,
-      class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-    })
-  }
+  await loadProposals()
 })
 
 </script>
