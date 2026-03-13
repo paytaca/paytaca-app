@@ -43,6 +43,7 @@
                   </q-card-section>
                 </q-card>
               </div>
+              
               <div class="col-xs-12 flex justify-between">
                 <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile" v-close-popup>
                   <template v-slot:default>
@@ -99,6 +100,17 @@
               </div>
             </div>
             <q-list>
+              <q-item v-if="walletBannerMessages?.length > 0">
+                <q-item-section caption>
+                  <q-banner :class="getDarkModeClass(darkMode)" class="br-15 text-bow text-mute text-caption">
+                    <ul>
+                      <li v-for="m, i in walletBannerMessages" :key="`m-${i}`" class="text-muted text-bow text-caption">
+                        {{ m }}
+                      </li>
+                    </ul>
+                  </q-banner>
+                </q-item-section>
+              </q-item>
               <q-separator spaced inset />
               <q-item v-if="wallet.isOnline()">
                 <q-item-section>
@@ -137,9 +149,9 @@
                 <q-item-section>
                   <q-item-label class="text-subtitle2 q-mb-md">{{ $t('Signers') }}</q-item-label>
                   <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
-                    <q-chip v-for="signer, i in wallet.signers.slice(0, 3)" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat dense class="q-px-md">
+                    <q-chip v-for="signer, i in wallet.signers" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat dense class="q-px-md">
                       <q-avatar>
-                        <q-icon v-if="hdPrivateKeys?.[signer.xpub]" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
+                        <q-icon v-if="Boolean(signer?.xprv)" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
                         <q-icon v-else name="person" size="sm"></q-icon>
                       </q-avatar>
                       <div class="flex flex-column">
@@ -148,10 +160,20 @@
                         </div>
                       </div>
                     </q-chip>
+                    <!-- <q-chip 
+                      v-if="wallet.signers?.length > 2" style="height:fit-content" text-color="primary" flat dense class="q-px-md"
+                      clickable @click="router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.walletHash } })"
+                      >
+                      <q-avatar square>
+                        <q-icon name="mdi-account-multiple-plus-outline" size="sm"></q-icon>
+                      </q-avatar>
+                      <div class="flex flex-column">
+                        <div class="ellipsis" style="max-width:4em">
+                          {{ wallet.signers?.length - 2 }} more...
+                        </div>
+                      </div>
+                    </q-chip> -->
                   </div>
-                </q-item-section>
-                <q-item-section side class="flex items-base">
-                  <q-btn icon="mdi-dots-horizontal" flat dense @click="router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.walletHash } })"></q-btn>
                 </q-item-section>
               </q-item>
               <q-separator spaced inset />
@@ -216,7 +238,6 @@
 </template>
 
 <script setup>
-
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -261,8 +282,6 @@ const balancesExpanded = ref(true)
 const balancesRefreshing = ref(false)
 const balanceConvertionRates = ref()
 const walletSyncing = ref(false)
-
-const hdPrivateKeys = ref()
 const pstFileElementRef = ref()
 const pstFileModel = ref()
 
@@ -270,19 +289,21 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const wallet = computed(() => {
-  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-  if (savedWallet) {
-    return MultisigWallet.importFromObject(savedWallet, {
-      store: $store,
-      provider: multisigNetworkProvider,
-      coordinationServer: multisigCoordinationServer,
-      resolveXprvOfXpub,
-      resolveMnemonicOfXpub
-    })
-  }
-  return null
+const wallet = ref()
+
+const signersWithXprv = computed(() => {
+  if (!wallet.value?.signers) return []
+  return wallet.value.signers.filter(s => s.xprv)
 })
+
+const walletBannerMessages = computed(() => {
+  const messages = []
+  if (signersWithXprv.value?.length === 0) {
+    messages.push($t('WatchOnlyWalletHint'))
+  }
+  return messages
+})
+
 
 const proposals = computed(() => {
   const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
@@ -384,7 +405,6 @@ const showProposalsImportSelectionDialog = () => {
       // Dialog was closed without action
     })
   }
-  
 }
 
 const downloadWalletFile = (walletToExport) => {
@@ -502,12 +522,12 @@ const openWalletActionsDialog = () => {
         value: 'share-wallet',
         color: 'primary'
       },
-      {
-        icon: 'mdi-database-search-outline',
-        label: $t('ScanUTXOs', {}, 'Scan UTXOs'),
-        value: 'scan-wallet-utxos',
-        color: 'primary'
-      },
+      // {
+      //   icon: 'mdi-database-search-outline',
+      //   label: $t('ScanUTXOs', {}, 'Scan UTXOs'),
+      //   value: 'scan-wallet-utxos',
+      //   color: 'primary'
+      // },
       {
         icon: 'mdi-file-cog',
         label: $t('WalletSettings', {}, 'Wallet Settings'),
@@ -531,20 +551,6 @@ const openWalletActionsDialog = () => {
     class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
 
   }).onOk(handleWalletActions)
-}
-
-const loadHdPrivateKeys = async (signers) => {
-  if (!hdPrivateKeys.value) {
-    hdPrivateKeys.value = {}
-  }
-  for (const signer of signers) {
-    const xprv = await getSignerXPrv({
-      xpub: signer.xpub
-    })
-    if (xprv) {
-      hdPrivateKeys.value[signer.xpub] = xprv
-    } 
-  }
 }
 
 const loadCashtokenIdentitiesToBalances = async() => {
@@ -649,11 +655,37 @@ watch(wallet, async (newWallet) => {
 
 onMounted(async () => {
   try {
-    await loadHdPrivateKeys(wallet.value?.signers)
-    await refreshBalance()
-    await loadCashtokenIdentitiesToBalances()
-    await wallet.value?.sync()
-    await queryServerForProposals()
+    const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+
+    if (savedWallet) {
+      wallet.value = MultisigWallet.importFromObject(savedWallet, {
+        store: $store,
+        provider: multisigNetworkProvider,
+        coordinationServer: multisigCoordinationServer,
+        resolveXprvOfXpub,
+        resolveMnemonicOfXpub
+      })
+    }
+    
+    if (!savedWallet) router.back()
+
+    const responses = await Promise.allSettled([
+      wallet.value?.sync(),
+      wallet.value?.resolveXprvsOfXpubs(),
+      refreshBalance(),
+      loadCashtokenIdentitiesToBalances(),
+      queryServerForProposals()
+    ])
+
+    for (const response of responses) {
+      if (response?.status === 'rejected') {
+        $q.notify({
+          type: 'warning',
+          message: `Warning: ${response?.reason}`,
+          color: 'warning'
+        })
+      }
+    }
   } catch (error) {
     $q.notify({
       type: 'warning',
