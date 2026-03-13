@@ -72,9 +72,6 @@ const {
   multisigCoordinationServer, 
   multisigNetworkProvider, 
   resolveXprvOfXpub,
-  getSignerXPrv, 
-  getAssetTokenIdentity,
-  cashAddressNetworkPrefix,
   resolveMnemonicOfXpub
 } = useMultisigHelpers()
 

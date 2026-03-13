@@ -199,11 +199,9 @@ import {
   MultisigWallet,
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import { getSignerWalletFromVault } from 'src/utils/multisig-utils'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromFromXpub } from 'src/lib/multisig/coordination'
 import { watchtowerUtxoToCommonUtxo } from 'src/lib/multisig/utxo'
-
 const $q = useQuasar()
 const $store = useStore()
 const { t: $t } = useI18n()
@@ -223,7 +221,8 @@ const {
   multisigNetworkProvider,
   multisigCoordinationServer,
   resolveXprvOfXpub,
-  resolveMnemonicOfXpub
+  resolveMnemonicOfXpub,
+  getSignerWalletFromVault
 } = useMultisigHelpers()
 
 const darkMode = computed(() => {
@@ -362,10 +361,9 @@ const loadNfts = async () => {
 const createProposal = async () => {
   try {
     isCreatingProposal.value = true
-    const walletVault = $store.getters['global/getVault']
     let creator = ''
     for (const signer of wallet.value.signers) {
-      const signerWallet = getSignerWalletFromVault({ walletVault, xpub: signer.xpub })
+      const signerWallet = await getSignerWalletFromVault({ xpub: signer.xpub })
       if (signerWallet) {
         creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
       }

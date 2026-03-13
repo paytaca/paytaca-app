@@ -75,8 +75,8 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const router = useRouter()
 const {
-  localWallets,
   resolveXprvOfXpub,
+  getWalletsFromVault,
   multisigCoordinationServer
 } = useMultisigHelpers()
 
@@ -108,20 +108,23 @@ const downloadWallet = (multisigWallet) => {
 
 const fetchWallets = async () => {
 
+  const localWallets = await getWalletsFromVault()
+
   for (const localWallet of localWallets.value) {
 
-    if (localWallet?.deleted) continue 
+    if (localWallet.deleted) continue 
     
-    if (!localWallet?.wallet?.bch?.xPubKey) continue
+    if (!localWallet.xpub) continue
 
-    const xpub = localWallet.wallet.bch.xPubKey
-    const xprv = await resolveXprvOfXpub({ xpub })
+    const xpub = localWallet.xpub
+    // const xprv = await resolveXprvOfXpub({ xpub })
+    const xprv = localWallet.xprv
     
     if (!xprv) continue
 
     const publicKey = binToHex(decodeHdPublicKey(xpub).node.publicKey)
+
     const onlineWallets = await multisigCoordinationServer.getSignerWallets({ publicKey })
-    
     onlineWallets?.forEach(async (wallet) => {
 
       const signer = wallet.signers.find((s) => s.publicKey === publicKey)
