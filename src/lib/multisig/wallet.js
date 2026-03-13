@@ -652,8 +652,6 @@ export class MultisigWallet {
       return true
     })
 
-    console.log('UTXOS', utxos)
-
     utxos = utxos?.map(u => {
         return {
           ...u,
@@ -1140,9 +1138,6 @@ export class MultisigWallet {
       utxos = await this.getWalletHashUtxos()
       selectedUtxos = await this.selectUtxos(proposal, utxos.filter(u => !u.token?.nft))
     }
-
-    console.log('UTXOS IN CREATE PROPOSAL', utxos)
-    
 
     let inputs = selectedUtxos?.map((u) => {
         const signersWithPublicKeys = derivePublicKeys({ signers: this.signers, addressDerivationPath: u.addressPath })
@@ -1736,7 +1731,6 @@ async loadSignersServerIdentity() {
         publicKey: authCredentials['X-Auth-PubKey'], 
         authCredentialsGenerator: this 
       })
-      console.log('SERVER IDENTITY', serverIdentity)
       if (serverIdentity) {
         signer.serverIdentityId = serverIdentity.id
         modified = true
