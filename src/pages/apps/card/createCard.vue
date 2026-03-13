@@ -132,15 +132,15 @@
                 <!-- Card Info -->
                  <q-card-section>
                     <div class="text-caption text-grey">
-                      Balance: <span class="text-black"> {{ Number(card.raw?.bch_balance) / 1e8 }} BCH</span>
+                      Balance: <span class="text-black"> {{ Number(card.getBchBalance()) / 1e8 }} BCH</span>
                     </div>
-                    <div class="text-black"> {{ card.raw?.ct_balance.length }} NFTs</div>
+                    <div class="text-black"> {{ card.getTokenBalance() }} NFTs</div>
 
                  </q-card-section>
 
               </q-card>
             </div>
-c
+
             <!-- Create Card Button opens dialog -->
              <div class="col-auto">
                 <q-card

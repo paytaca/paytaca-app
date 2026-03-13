@@ -47,7 +47,6 @@ export class CardUser {
      */
     set raw(data) {
         this._rawData = data;
-        this.id = data?.id;
         this.public_key = data?.public_key;
         this.is_authenticated = data?.is_authenticated;
     }

@@ -443,6 +443,33 @@ export class Card {
   // ==================== CONTRACT OPERATIONS ====================
 
   /**
+   * Returns BCH balance for card address. 
+   * Fetches from server data, server queries blockchain.
+   * @returns {number}
+   */
+  getBchBalance() {
+    return this.raw?.bch_balance || 0;
+  }
+
+  /**
+   * Returns token balance for card token address
+   * @returns {number}
+   */
+  getTokenBalance() {
+    return this.raw?.ct_balance.length || 0;
+  }
+
+  /**
+   * Gets the TapToPay contract balance. 
+   * Fetches directly from blockchain, may be more up-to-date than server data.
+   * @returns {Promise<number>}
+   */
+  async getContractBalance() {
+    this._initializeContract()
+    return await this.contract.getContract().getBalance();
+  }
+
+  /**
    * Gets UTXOs for card address
    * @returns {Promise<Array>}
    */
