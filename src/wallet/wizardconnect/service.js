@@ -13,20 +13,19 @@ import {
   hexToBin,
   binToHex,
   assertSuccess,
-  walletTemplateP2pkhNonHd,
-  walletTemplateToCompilerBCH,
-  importWalletTemplate,
   decodeTransaction,
-  encodeTransaction,
-  generateTransaction,
+  lockingBytecodeToCashAddress,
   sha256 as libauthSha256,
   ripemd160 as libauthRipemd160,
 } from 'bitauth-libauth-v3'
 import { getMnemonic } from 'src/wallet/index'
-import { parseExtendedJson } from 'src/wallet/walletconnect2/tx-sign-utils'
+import { parseExtendedJson, signBchTransaction } from 'src/wallet/bch-sign'
 
 const seedCache = new Map()
 const relayKeyCache = new Map()
+
+const ADDRESS_SCAN_LOOKAHEAD = 10
+const ADDRESS_SCAN_MIN = 30
 
 let _manager = null
 let _hdNodes = null
@@ -145,30 +144,7 @@ export async function sendSignError(connectionId, sequence, errorMessage) {
   await _manager.sendSignError(connectionId, sequence, errorMessage)
 }
 
-/**
- * Sign a transaction request from a dApp.
- * Handles multi-address signing: for each input, finds the matching HD private key.
- */
-export async function signRequest(request) {
-  const nodes = await ensureHdNodes()
-  const txHex = request.transaction.transaction
-  const template = decodeTransaction(hexToBin(txHex))
-  if (typeof template === 'string') throw new Error('Failed to decode transaction: ' + template)
-
-  // sourceOutputs may contain extended JSON strings like "<Uint8Array: 0x...>" and "<bigint: ...>"
-  // Always re-stringify then parse to ensure proper deserialization of binary/bigint values
-  const rawSourceOutputs = parseExtendedJson(JSON.stringify(request.transaction.sourceOutputs))
-
-  // Strip placeholder unlockingBytecode (dApp sends zero-byte placeholders)
-  const sourceOutputs = rawSourceOutputs.map(({ unlockingBytecode, ...rest }) => rest)
-
-  const walletTemplate = importWalletTemplate(walletTemplateP2pkhNonHd)
-  if (typeof walletTemplate === 'string') throw new Error(walletTemplate)
-  const compiler = walletTemplateToCompilerBCH(walletTemplate)
-
-  const prefix = getPrefix()
-
-  // Get last address indices from store for scanning bounds
+async function buildAddressKeyMap(nodes, prefix) {
   let store
   try {
     const storeModule = await import('src/store')
@@ -180,14 +156,14 @@ export async function signRequest(request) {
   const lastReceiveIndex = store?.getters?.['global/getLastAddressIndex']?.('bch') || 20
   const lastChangeIndex = store?.getters?.['global/getLastAddressIndex']?.('bch') || 20
 
-  // Build address→privateKey map for scanning
   const chains = [
-    { hd: nodes.hdMain, maxIndex: Math.max(lastReceiveIndex + 10, 30) },
-    { hd: nodes.hdChange, maxIndex: Math.max(lastChangeIndex + 10, 30) },
-    { hd: nodes.hdDefi, maxIndex: 30 },
+    { hd: nodes.hdMain, maxIndex: Math.max(lastReceiveIndex + ADDRESS_SCAN_LOOKAHEAD, ADDRESS_SCAN_MIN) },
+    { hd: nodes.hdChange, maxIndex: Math.max(lastChangeIndex + ADDRESS_SCAN_LOOKAHEAD, ADDRESS_SCAN_MIN) },
+    { hd: nodes.hdDefi, maxIndex: ADDRESS_SCAN_MIN },
   ]
 
   const addressKeyMap = new Map()
+  const pkhKeyMap = new Map()
   for (const chain of chains) {
     for (let i = 0; i <= chain.maxIndex; i++) {
       const child = deriveHdPrivateNodeChild(chain.hd, i)
@@ -198,47 +174,68 @@ export async function signRequest(request) {
         type: CashAddressType.p2pkh,
         payload: pubkeyHash,
       }))
-      addressKeyMap.set(address, child.privateKey)
+      const keyPair = { privateKey: child.privateKey, publicKey: pubKey }
+      addressKeyMap.set(address, keyPair)
+      pkhKeyMap.set(binToHex(pubkeyHash), keyPair)
     }
   }
+  return { addressKeyMap, pkhKeyMap }
+}
 
-  for (const [index, input] of template.inputs.entries()) {
-    const correspondingSourceOutput = sourceOutputs[index]
+/**
+ * Sign a transaction request from a dApp.
+ * Handles multi-address signing: for each input, finds the matching HD private key.
+ */
+export async function signRequest(request) {
+  const nodes = await ensureHdNodes()
+  const txHex = request.transaction.transaction
+  const transaction = decodeTransaction(hexToBin(txHex))
+  if (typeof transaction === 'string') throw new Error('Failed to decode transaction: ' + transaction)
 
-    // Skip inputs that already have unlocking bytecode
-    if (correspondingSourceOutput.unlockingBytecode?.length) continue
+  // sourceOutputs may contain extended JSON strings like "<Uint8Array: 0x...>" and "<bigint: ...>"
+  // Always re-stringify then parse to ensure proper deserialization of binary/bigint values
+  const rawSourceOutputs = parseExtendedJson(JSON.stringify(request.transaction.sourceOutputs))
 
-    const lockingBytecode = correspondingSourceOutput.lockingBytecode
-    if (!lockingBytecode) continue
-
-    // P2PKH: OP_DUP OP_HASH160 <20-byte hash> OP_EQUALVERIFY OP_CHECKSIG (25 bytes)
-    if (lockingBytecode.length !== 25) continue
-
-    const pubkeyHash = lockingBytecode.slice(3, 23)
-    const { address } = assertSuccess(encodeCashAddress({
-      prefix,
-      type: CashAddressType.p2pkh,
-      payload: pubkeyHash,
-    }))
-
-    const privateKey = addressKeyMap.get(address)
-    if (!privateKey) continue
-
-    input.unlockingBytecode = {
-      compiler,
-      data: {
-        keys: { privateKeys: { key: privateKey } },
-      },
-      valueSatoshis: correspondingSourceOutput.valueSatoshis,
-      script: 'unlock',
-      token: correspondingSourceOutput.token,
+  // Strip only zero-length placeholder unlockingBytecode; preserve CashScript template data
+  const sourceOutputs = rawSourceOutputs.map(so => {
+    if (so.unlockingBytecode && so.unlockingBytecode.length === 0) {
+      const { unlockingBytecode, ...rest } = so
+      return rest
     }
+    return so
+  })
+
+  const prefix = getPrefix()
+  const { addressKeyMap, pkhKeyMap } = await buildAddressKeyMap(nodes, prefix)
+
+  function resolveKey(lockingBytecode, inputIndex) {
+    if (!lockingBytecode) return null
+
+    const sourceOutput = sourceOutputs[inputIndex]
+
+    // Contract inputs: find key by scanning redeemScript for a matching pubkey hash
+    if (sourceOutput?.contract?.artifact?.contractName) {
+      const redeemScript = sourceOutput.contract.redeemScript
+      if (redeemScript) {
+        const scriptHex = binToHex(redeemScript)
+        for (const [pkhHex, keyPair] of pkhKeyMap) {
+          if (scriptHex.includes(pkhHex)) return keyPair
+        }
+      }
+      return null
+    }
+
+    // P2PKH: match by address
+    const result = lockingBytecodeToCashAddress({ bytecode: lockingBytecode, prefix })
+    if (typeof result === 'string') return null
+    return addressKeyMap.get(result.address) || null
   }
 
-  const generated = generateTransaction(template)
-  if (!generated.success) {
-    throw new Error('Failed to generate transaction: ' + JSON.stringify(generated.errors || generated))
-  }
-  const encoded = encodeTransaction(generated.transaction)
-  return binToHex(encoded)
+  const { signedTransaction } = signBchTransaction({
+    transaction,
+    sourceOutputs,
+    resolveKey,
+    prefix,
+  })
+  return signedTransaction
 }
