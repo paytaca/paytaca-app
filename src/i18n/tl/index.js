@@ -2464,7 +2464,7 @@ export default {
   Warn: "Babala",
   Warning: "Babala",
   WcPasteSessionURLLabel: "I-paste ang URL ng session",
-  WcScanOrPasteURL: "Sa app na gusto mong kumonekta, buksan ang wallet-connect QR Code modal.Maaari mong i-scan ang ipinapakitang QR Code o kopyahin ang URL at i-paste ito dito, upang magsimula ng bagong session sa pagkonekta ng wallet.",
+   WcScanOrPasteURL: "Sa app na gusto mong kumonekta, buksan ang WalletConnect QR Code modal.Maaari mong i-scan ang ipinapakitang QR Code o kopyahin ang URL at i-paste ito dito, upang magsimula ng bagong WalletConnect session.",
   WcSelectAddressHeader: "Piliin ang address na gusto mong ikonekta sa {peerName}.",
   Website: "Website",
   WebsiteDescription: "Bisitahin ang {website}",

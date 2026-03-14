@@ -2465,7 +2465,7 @@ export default {
   Warn: "Warn",
   Warning: "Warning",
   WcPasteSessionURLLabel: "Paste session URL",
-  WcScanOrPasteURL: "In the app you want to connect to, open the wallet-connect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new wallet connect session.",
+  WcScanOrPasteURL: "In the app you want to connect to, open the WalletConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WalletConnect session.",
   WcSelectAddressHeader: "Select the address you want to connect to {peerName}.",
   WizScanOrPasteURL: "In the app you want to connect to, open the WizardConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WizardConnect session.",
   Website: "Website",

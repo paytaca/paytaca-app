@@ -1797,7 +1797,7 @@ const phrases = {
       IwantToProvideSpecificAddress: 'I want to provide specific address',
       WcPasteSessionURLLabel: 'Paste session URL',
       SessionURL: 'Session URL',
-      WcScanOrPasteURL: 'In the app you want to connect to, open the wallet-connect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new wallet connect session.',
+       WcScanOrPasteURL: 'In the app you want to connect to, open the WalletConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WalletConnect session.',
       WizScanOrPasteURL: 'In the app you want to connect to, open the WizardConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WizardConnect session.',
       InitiateNewSession: 'Initiate new wallet connect session',
       InitiateNewWizardConnectSession: 'Initiate new wizard connect session',
