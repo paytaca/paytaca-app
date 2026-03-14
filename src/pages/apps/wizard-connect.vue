@@ -196,169 +196,156 @@
     />
 </template>
 
-<script>
+<script setup>
+import { computed, ref, watch, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { useI18n } from 'vue-i18n'
+import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import HeaderNav from 'src/components/header-nav'
+import HeaderNav from 'src/components/header-nav.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import WizardConnectSignRequestDialog from 'src/components/wizardconnect/WizardConnectSignRequestDialog.vue'
 
-export default {
-  name: 'WizardConnectPage',
-  components: {
-    HeaderNav,
-    QrScanner,
-    WizardConnectSignRequestDialog
-  },
-  props: {
-    uri: { type: String, default: '' }
-  },
-  data () {
-    return {
-      uriInput: '',
-      showScanner: false,
-      showPasteDialog: false,
-      pairing: false,
-      disconnecting: {},
-      isInitiateSessionExpanded: true
-    }
-  },
-  computed: {
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
-    },
-    theme () {
-      return this.$store.getters['global/theme']
-    },
-    connections () {
-      return this.$store.getters['wizardconnect/getConnections']
-    },
-    connectionList () {
-      return Object.values(this.connections)
-    },
-    pendingRequests () {
-      return this.$store.getters['wizardconnect/getPendingRequests']
-    },
-    currentPendingRequest () {
-      return this.pendingRequests.length > 0 ? this.pendingRequests[0] : null
-    }
-  },
-  watch: {
-    connectionList: {
-      handler (list) {
-        if (list.length > 0) {
-          this.isInitiateSessionExpanded = false
-        } else {
-          this.isInitiateSessionExpanded = true
-        }
-      },
-      immediate: true
-    }
-  },
-  methods: {
-    getDarkModeClass,
-    getThemeColor () {
-      const themeColors = {
-        'glassmorphic-blue': '#42a5f5',
-        'glassmorphic-gold': '#ffa726',
-        'glassmorphic-green': '#4caf50',
-        'glassmorphic-red': '#f54270'
-      }
-      return themeColors[this.theme] || '#42a5f5'
-    },
-    statusLabel (conn) {
-      if (conn.statusCode === 'connected' && !conn.dappName) return 'waiting for dApp'
-      return conn.statusCode
-    },
-    statusColor (conn) {
-      if (conn.statusCode === 'connected' && !conn.dappName) return 'orange'
-      if (conn.statusCode === 'connected') return 'green'
-      if (conn.statusCode === 'reconnecting') return 'orange'
-      return 'grey'
-    },
-    async onPairUri () {
-      if (!this.uriInput) return
-      this.pairing = true
-      try {
-        await this.$store.dispatch('wizardconnect/pair', { uri: this.uriInput })
-        this.uriInput = ''
-        this.showPasteDialog = false
-      } catch (err) {
-        this.$q.notify({
-          message: err.message || 'Failed to connect',
-          color: 'negative',
-          timeout: 3000
-        })
-      } finally {
-        this.pairing = false
-      }
-    },
-    async onPasteConnect () {
-      await this.onPairUri()
-    },
-    async onDisconnect (connectionId) {
-      const conn = this.connections[connectionId]
-      try {
-        await new Promise((resolve, reject) => {
-          this.$q.dialog({
-            message: `Are you sure you want to disconnect ${conn?.dappName || 'this app'}?`,
-            ok: {
-              label: this.$t('Yes'),
-              noCaps: true,
-              color: 'primary',
-              rounded: true
-            },
-            cancel: {
-              noCaps: true,
-              rounded: true,
-              outline: true,
-              color: 'negative',
-              label: this.$t('No')
-            },
-            class: `br-15 pt-card text-caption text-bow ${this.getDarkModeClass(this.darkMode)}`
-          }).onOk(() => resolve()).onCancel(() => reject())
-        })
-        this.disconnecting = { ...this.disconnecting, [connectionId]: true }
-        await this.$store.dispatch('wizardconnect/disconnect', { connectionId })
-      } catch (error) {
-        // User cancelled the dialog
-      } finally {
-        const newDisconnecting = { ...this.disconnecting }
-        delete newDisconnecting[connectionId]
-        this.disconnecting = newDisconnecting
-      }
-    },
-    async onScannerDecode (value) {
-      if (!value) return
-      if (value.toLowerCase().startsWith('wiz://')) {
-        this.showScanner = false
-        this.uriInput = value
-        await this.onPairUri()
-      } else {
-        this.$q.notify({
-          message: this.$t('InvalidQRCode', {}, 'Invalid QR code. Please scan a WizardConnect QR code.'),
-          color: 'negative',
-          timeout: 3000
-        })
-      }
-    },
-    async onApprove ({ connectionId, sequence, transactionJson }) {
-      await this.$store.dispatch('wizardconnect/approveRequestWithData', {
-        connectionId,
-        sequence,
-        transactionJson
-      })
-    },
-    async onReject ({ connectionId, sequence }) {
-      await this.$store.dispatch('wizardconnect/rejectRequest', { connectionId, sequence })
-    }
-  },
-  mounted () {
-    if (this.uri) {
-      this.uriInput = this.uri
-      this.onPairUri()
-    }
+const props = defineProps({
+  uri: { type: String, default: '' }
+})
+
+const $store = useStore()
+const $q = useQuasar()
+const { t: $t } = useI18n()
+
+const uriInput = ref('')
+const showScanner = ref(false)
+const showPasteDialog = ref(false)
+const pairing = ref(false)
+const disconnecting = ref({})
+const isInitiateSessionExpanded = ref(true)
+
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const theme = computed(() => $store.getters['global/theme'])
+const connections = computed(() => $store.getters['wizardconnect/getConnections'])
+const connectionList = computed(() => Object.values(connections.value))
+const pendingRequests = computed(() => $store.getters['wizardconnect/getPendingRequests'])
+const currentPendingRequest = computed(() => pendingRequests.value.length > 0 ? pendingRequests.value[0] : null)
+
+watch(connectionList, (list) => {
+  if (list.length > 0) {
+    isInitiateSessionExpanded.value = false
+  } else {
+    isInitiateSessionExpanded.value = true
+  }
+}, { immediate: true })
+
+function getThemeColor() {
+  const themeColors = {
+    'glassmorphic-blue': '#42a5f5',
+    'glassmorphic-gold': '#ffa726',
+    'glassmorphic-green': '#4caf50',
+    'glassmorphic-red': '#f54270'
+  }
+  return themeColors[theme.value] || '#42a5f5'
+}
+
+function statusLabel(conn) {
+  if (conn.statusCode === 'connected' && !conn.dappName) return 'waiting for dApp'
+  return conn.statusCode
+}
+
+function statusColor(conn) {
+  if (conn.statusCode === 'connected' && !conn.dappName) return 'orange'
+  if (conn.statusCode === 'connected') return 'green'
+  if (conn.statusCode === 'reconnecting') return 'orange'
+  return 'grey'
+}
+
+async function onPairUri() {
+  if (!uriInput.value) return
+  pairing.value = true
+  try {
+    await $store.dispatch('wizardconnect/pair', { uri: uriInput.value })
+    uriInput.value = ''
+    showPasteDialog.value = false
+  } catch (err) {
+    $q.notify({
+      message: err.message || 'Failed to connect',
+      color: 'negative',
+      timeout: 3000
+    })
+  } finally {
+    pairing.value = false
   }
 }
+
+async function onPasteConnect() {
+  await onPairUri()
+}
+
+async function onDisconnect(connectionId) {
+  const conn = connections.value[connectionId]
+  try {
+    await new Promise((resolve, reject) => {
+      $q.dialog({
+        message: `Are you sure you want to disconnect ${conn?.dappName || 'this app'}?`,
+        ok: {
+          label: $t('Yes'),
+          noCaps: true,
+          color: 'primary',
+          rounded: true
+        },
+        cancel: {
+          noCaps: true,
+          rounded: true,
+          outline: true,
+          color: 'negative',
+          label: $t('No')
+        },
+        class: `br-15 pt-card text-caption text-bow ${getDarkModeClass(darkMode.value)}`
+      }).onOk(() => resolve()).onCancel(() => reject())
+    })
+    disconnecting.value = { ...disconnecting.value, [connectionId]: true }
+    await $store.dispatch('wizardconnect/disconnect', { connectionId })
+  } catch (error) {
+    // User cancelled the dialog
+  } finally {
+    const newDisconnecting = { ...disconnecting.value }
+    delete newDisconnecting[connectionId]
+    disconnecting.value = newDisconnecting
+  }
+}
+
+async function onScannerDecode(value) {
+  if (!value) return
+  if (value.toLowerCase().startsWith('wiz://')) {
+    showScanner.value = false
+    uriInput.value = value
+    await onPairUri()
+  } else {
+    $q.notify({
+      message: $t('InvalidQRCode', {}, 'Invalid QR code. Please scan a WizardConnect QR code.'),
+      color: 'negative',
+      timeout: 3000
+    })
+  }
+}
+
+async function onApprove({ connectionId, sequence, transactionJson }) {
+  await $store.dispatch('wizardconnect/approveRequestWithData', {
+    connectionId,
+    sequence,
+    transactionJson
+  })
+}
+
+async function onReject({ connectionId, sequence }) {
+  await $store.dispatch('wizardconnect/rejectRequest', { connectionId, sequence })
+}
+
+onMounted(() => {
+  if (props.uri) {
+    uriInput.value = props.uri
+    onPairUri()
+  }
+})
 </script>
 
 <style scoped lang="scss">
