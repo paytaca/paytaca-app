@@ -1,11 +1,11 @@
 export function getConnections (state) {
-  return state.connections
+  return state?.connections || {}
 }
 
 export function getPendingRequests (state) {
-  return state.pendingRequests
+  return state?.pendingRequests || []
 }
 
 export function hasPendingRequests (state) {
-  return state.pendingRequests.length > 0
+  return (state?.pendingRequests || []).length > 0
 }
