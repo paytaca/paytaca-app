@@ -1,0 +1,95 @@
+diff --git a/node_modules/@capacitor-community/native-audio/android/src/main/java/com/getcapacitor/community/audio/NativeAudio.java b/node_modules/@capacitor-community/native-audio/android/src/main/java/com/getcapacitor/community/audio/NativeAudio.java
+index 2bb05c5..f48eb2c 100644
+--- a/node_modules/@capacitor-community/native-audio/android/src/main/java/com/getcapacitor/community/audio/NativeAudio.java
++++ b/node_modules/@capacitor-community/native-audio/android/src/main/java/com/getcapacitor/community/audio/NativeAudio.java
+@@ -33,13 +33,7 @@ import java.util.ArrayList;
+ import java.util.HashMap;
+ import java.util.concurrent.Callable;
+ 
+-@CapacitorPlugin(
+-    permissions = {
+-        @Permission(strings = { Manifest.permission.MODIFY_AUDIO_SETTINGS }),
+-        @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }),
+-        @Permission(strings = { Manifest.permission.READ_PHONE_STATE })
+-    }
+-)
++@CapacitorPlugin
+ public class NativeAudio extends Plugin implements AudioManager.OnAudioFocusChangeListener {
+ 
+     public static final String TAG = "NativeAudio";
+@@ -54,9 +48,6 @@ public class NativeAudio extends Plugin implements AudioManager.OnAudioFocusChan
+         super.load();
+ 
+         this.audioManager = (AudioManager) getBridge().getActivity().getSystemService(Context.AUDIO_SERVICE);
+-        if (this.audioManager != null) {
+-            this.audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+-        }
+     }
+ 
+     @Override
+@@ -116,11 +107,12 @@ public class NativeAudio extends Plugin implements AudioManager.OnAudioFocusChan
+ 
+         if (call.hasOption(OPT_FOCUS_AUDIO) && this.audioManager != null) {
+             if (call.getBoolean(OPT_FOCUS_AUDIO)) {
+-                this.audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
++                this.audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+             } else {
+                 this.audioManager.abandonAudioFocus(this);
+             }
+         }
++        call.resolve();
+     }
+ 
+     @PluginMethod
+@@ -138,6 +130,9 @@ public class NativeAudio extends Plugin implements AudioManager.OnAudioFocusChan
+ 
+     @PluginMethod
+     public void play(final PluginCall call) {
++        if (this.audioManager != null) {
++            this.audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
++        }
+         getBridge()
+             .getActivity()
+             .runOnUiThread(
+@@ -367,6 +362,9 @@ public class NativeAudio extends Plugin implements AudioManager.OnAudioFocusChan
+     }
+ 
+     public void dispatchComplete(String assetId) {
++        if (this.audioManager != null) {
++            this.audioManager.abandonAudioFocus(this);
++        }
+         JSObject ret = new JSObject();
+         ret.put("assetId", assetId);
+         notifyListeners("complete", ret);
+diff --git a/node_modules/@capacitor-community/native-audio/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/native-audio/ios/Plugin/Plugin.swift
+index caacec3..663270d 100644
+--- a/node_modules/@capacitor-community/native-audio/ios/Plugin/Plugin.swift
++++ b/node_modules/@capacitor-community/native-audio/ios/Plugin/Plugin.swift
+@@ -24,8 +24,7 @@ public class NativeAudio: CAPPlugin {
+         self.fadeMusic = false
+ 
+         do {
+-            try self.session.setCategory(AVAudioSession.Category.playback)
+-            try self.session.setActive(false)
++            try self.session.setCategory(AVAudioSession.Category.playback, options: .mixWithOthers)
+         } catch {
+             print("Failed to set session category")
+         }
+@@ -38,14 +37,15 @@ public class NativeAudio: CAPPlugin {
+         if let focus = call.getBool(Constant.FocusAudio) {
+             do {
+                 if focus {
+-                    try self.session.setCategory(AVAudioSession.Category.playback)
++                    try self.session.setCategory(AVAudioSession.Category.playback, options: [.mixWithOthers, .duckOthers])
+                 } else {
+-                    try self.session.setCategory(AVAudioSession.Category.ambient)
++                    try self.session.setCategory(AVAudioSession.Category.playback, options: .mixWithOthers)
+                 }
+             } catch {
+                 print("Failed to set setCategory audio")
+             }
+         }
++        call.resolve()
+     }
+ 
+     @objc func preload(_ call: CAPPluginCall) {
