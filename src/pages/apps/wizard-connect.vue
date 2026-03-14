@@ -1,14 +1,12 @@
 <template>
-  <div>
-    <q-pull-to-refresh
-      id="app-container"
-      class="wallet-connect-container"
-      :class="getDarkModeClass(darkMode)"
-      @refresh="refreshPage"
-    >
-      <HeaderNav title="WizardConnect" backnavpath="/apps" class="apps-header" />
+  <div
+    id="app-container"
+    class="wallet-connect-container"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <HeaderNav title="WizardConnect" backnavpath="/apps" class="apps-header" />
 
-      <div class="q-pa-md">
+    <div class="q-pa-md">
         <q-expansion-item
         v-model="isInitiateSessionExpanded"
         class="send-option-card pt-card q-mb-md br-15"
@@ -147,14 +145,14 @@
         </div>
       </div>
     </div>
-  </q-pull-to-refresh>
+  </div>
 
   <QrScanner
-      v-model="showScanner"
-      @decode="onScannerDecode"
-    />
+    v-model="showScanner"
+    @decode="onScannerDecode"
+  />
 
-    <q-dialog v-model="showPasteDialog">
+  <q-dialog v-model="showPasteDialog">
       <q-card class="pt-card text-bow br-15" :class="getDarkModeClass(darkMode)" style="width:400px;max-width:95vw;">
         <q-card-section class="row items-center q-pb-none">
           <div class="text-h6">{{ $t('PasteURL', {}, 'Paste URL') }}</div>
@@ -196,7 +194,6 @@
       @approve="onApprove"
       @reject="onReject"
     />
-  </div>
 </template>
 
 <script>
@@ -267,10 +264,6 @@ export default {
         'glassmorphic-red': '#f54270'
       }
       return themeColors[this.theme] || '#42a5f5'
-    },
-    refreshPage (done) {
-      // Connections are synced via events, no need to manually refresh
-      done()
     },
     statusLabel (conn) {
       if (conn.statusCode === 'connected' && !conn.dappName) return 'waiting for dApp'
