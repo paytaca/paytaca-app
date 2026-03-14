@@ -102,7 +102,7 @@ const phrases = {
       Input_SEP721_TokenAddress: "Input SEP721 Token address",
       InputOrderNoFromConnecta: "Input order number from Connecta",
       InputValidAddress: "Input valid address",
-      InputWalletConnectUri: "Input Wallet Connect URI",
+       InputWalletConnectUri: "Input WalletConnect URI",
       InsufficientBalance: "Insufficient balance",
       InvalidAddress: "Invalid address",
       LegacyAddressFormat: "Legacy format",
@@ -372,7 +372,7 @@ const phrases = {
       WaitingSmartBchTransaction: "Waiting for transaction in Smart BCH",
       WaitingBchTransaction: "Waiting for transaction in Bitcoin Cash",
       WalletBalance: "Wallet balance",
-      WalletConnect: "Wallet Connect",
+       WalletConnect: "WalletConnect",
       WalletHash: "Wallet Hash",
       WalletInfo: "Wallet Info",
       XpubKey: "xPub Key",
@@ -1465,7 +1465,7 @@ const phrases = {
       MerchantMapDescription: 'Find nearby merchants in our network accepting BCH',
       MarketplaceDescription: 'Shop directly within Paytaca from merchants selling products for BCH',
       SpendBCHFooter: 'More merchants are joining the BCH network every day. Check back often for new options!',
-      ResetWalletConnect: 'Reset Wallet Connect',
+       ResetWalletConnect: 'Reset WalletConnect',
       ResetWalletConnectConfirmMessage: 'This will disconnect all active WalletConnect sessions and clear pending requests. Are you sure?'
     },
     {
