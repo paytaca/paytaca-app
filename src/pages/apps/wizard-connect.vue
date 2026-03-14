@@ -80,7 +80,7 @@
 
       <div class="row">
         <div class="col-xs-12">
-          <div v-if="connectionList.length > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm">
+          <div v-if="connectionList.length > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-md">
             <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
             <q-badge color="green" class="q-ml-sm">
               {{ connectionList.length }}
@@ -95,60 +95,53 @@
               flat
             >
               <q-card-section style="padding-bottom: 0px">
-                <div class="row items-start">
-                  <div class="col">
-                    <q-item>
-                      <q-item-section side>
-                        <div class="paired-icons">
-                          <q-avatar rounded size="48px">
-                            <img src="wizardconnect-logo.png" />
-                          </q-avatar>
-                          <q-avatar v-if="conn.dappIcon" rounded size="48px" class="paired-icons__overlay">
-                            <img :src="conn.dappIcon" />
-                          </q-avatar>
-                          <q-avatar v-else rounded size="48px" color="grey-4" text-color="grey-7" class="paired-icons__overlay">
-                            <q-icon name="mdi-application" size="24px" />
-                          </q-avatar>
-                        </div>
-                      </q-item-section>
-                      <q-item-section>
-                        <q-item-label>
-                          <span class="text-bold">{{ conn.dappName || 'Connecting...' }}</span>
-                        </q-item-label>
-                        <q-item-label caption>
-                          <div class="text-light session-info-attribute-url" style="word-break: break-all">{{ conn.dappUrl }}</div>
-                          <div class="q-mt-xs">
-                            <q-badge
-                              :color="statusColor(conn)"
-                              :label="statusLabel(conn)"
-                              class="q-mr-xs"
-                            />
-                            <span v-if="conn.statusError" class="text-red text-caption">{{ conn.statusError }}</span>
-                          </div>
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </div>
-                </div>
+                <q-item>
+                  <q-item-section side>
+                    <div class="paired-icons">
+                      <q-avatar rounded size="48px">
+                        <img src="wizardconnect-logo.png" />
+                      </q-avatar>
+                      <q-avatar v-if="conn.dappIcon" rounded size="48px" class="paired-icons__overlay">
+                        <img :src="conn.dappIcon" />
+                      </q-avatar>
+                      <q-avatar v-else rounded size="48px" color="grey-4" text-color="grey-7" class="paired-icons__overlay">
+                        <q-icon name="mdi-application" size="24px" />
+                      </q-avatar>
+                    </div>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>
+                      <span class="text-bold">{{ conn.dappName || 'Connecting...' }}</span>
+                    </q-item-label>
+                    <q-item-label caption>
+                      <div class="text-light session-info-attribute-url" style="word-break: break-all">{{ conn.dappUrl }}</div>
+                      <div class="q-mt-xs">
+                        <q-badge
+                          :color="statusColor(conn)"
+                          :label="statusLabel(conn)"
+                          class="q-mr-xs"
+                        />
+                        <span v-if="conn.statusError" class="text-red text-caption">{{ conn.statusError }}</span>
+                      </div>
+                    </q-item-label>
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn
+                      flat
+                      dense
+                      icon="close"
+                      color="negative"
+                      :loading="disconnecting[conn.id]"
+                      :disable="Object.keys(disconnecting).length > 0"
+                      @click.stop="onDisconnect(conn.id)"
+                    >
+                      <template v-slot:loading>
+                        <q-spinner-facebook />
+                      </template>
+                    </q-btn>
+                  </q-item-section>
+                </q-item>
               </q-card-section>
-
-              <q-card-actions class="row justify-around q-gutter-x-md q-mt-lg" style="padding-top: 0px">
-                <q-btn
-                  :label="$t('Disconnect', {}, 'Disconnect')"
-                  color="negative"
-                  class="cursor-pointer action-button col-xs-10"
-                  no-caps
-                  :loading="disconnecting[conn.id]"
-                  :disable="Object.keys(disconnecting).length > 0"
-                  @click.stop="onDisconnect(conn.id)"
-                  rounded
-                  outline
-                >
-                  <template v-slot:loading>
-                    <q-spinner-facebook />
-                  </template>
-                </q-btn>
-              </q-card-actions>
             </q-card>
           </div>
         </div>
@@ -322,9 +315,31 @@ export default {
       await this.onPairUri()
     },
     async onDisconnect (connectionId) {
-      this.disconnecting = { ...this.disconnecting, [connectionId]: true }
+      const conn = this.connections[connectionId]
       try {
+        await new Promise((resolve, reject) => {
+          this.$q.dialog({
+            message: `Are you sure you want to disconnect ${conn?.dappName || 'this app'}?`,
+            ok: {
+              label: this.$t('Yes'),
+              noCaps: true,
+              color: 'primary',
+              rounded: true
+            },
+            cancel: {
+              noCaps: true,
+              rounded: true,
+              outline: true,
+              color: 'negative',
+              label: this.$t('No')
+            },
+            class: `br-15 pt-card text-caption text-bow ${this.getDarkModeClass(this.darkMode)}`
+          }).onOk(() => resolve()).onCancel(() => reject())
+        })
+        this.disconnecting = { ...this.disconnecting, [connectionId]: true }
         await this.$store.dispatch('wizardconnect/disconnect', { connectionId })
+      } catch (error) {
+        // User cancelled the dialog
       } finally {
         const newDisconnecting = { ...this.disconnecting }
         delete newDisconnecting[connectionId]
