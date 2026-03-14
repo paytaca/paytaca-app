@@ -10,7 +10,7 @@
 	</HeaderNav>
 
 	<div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
-		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
+		<div v-if="purchaseSuccess" ref="paymentSuccessMessage" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center pt-card text-bow" :class="getDarkModeClass(darkMode)">
 				<q-icon name="task_alt" size="64px" class="text-positive" />
 				<div class="text-weight-bold text-h6 q-mt-sm" :class="darkMode ? 'text-white' : 'text-grey-9'">Payment sent</div>
@@ -438,6 +438,7 @@ import * as sendPageUtils from 'src/utils/send-page-utils'
 import Pin from 'src/components/pin/index.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { Keyboard } from '@capacitor/keyboard'
 import CountrySelector from 'src/components/settings/CountrySelector.vue'
 
 // Note: service = purchaseType; service-group = serviceProviders
@@ -1044,6 +1045,24 @@ export default {
 
 				vm.purchaseTxid = sendResult?.txid || ''
 				vm.purchaseSuccess = true
+
+				// Hide keyboard and scroll to success message
+				vm.$nextTick(async () => {
+					// Hide keyboard using Capacitor API (mobile) or blur fallback (web)
+					try {
+						await Keyboard.hide()
+					} catch (e) {
+						// Fallback: blur any focused input
+						if (document.activeElement && document.activeElement.blur) {
+							document.activeElement.blur()
+						}
+					}
+					// Scroll to the payment success message
+					const successEl = vm.$refs.paymentSuccessMessage
+					if (successEl && successEl.scrollIntoView) {
+						successEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+					}
+				})
 			} catch (error) {
 				console.error('[Eload] Buy failed:', error)
 				const userMessage = error?.userMessage || 'Unable to complete purchase'
