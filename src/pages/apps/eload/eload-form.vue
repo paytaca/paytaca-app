@@ -1,14 +1,4 @@
 <template>
-	<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
-		<template v-slot:top-right-menu>
-			<div class="q-mr-sm">
-				<q-btn flat round @click="$router.push({ name: 'eload-service-orders' })">
-					<q-icon name="receipt_long" size="30px"/>
-				</q-btn>					
-			</div>	        	
-	    </template>
-	</HeaderNav>
-
 	<div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
 		<div v-if="purchaseSuccess" ref="paymentSuccessMessage" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center pt-card text-bow" :class="getDarkModeClass(darkMode)">
@@ -430,7 +420,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
 import ServiceCard from 'src/components/eload/ServiceCard.vue'
 import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
-import HeaderNav from 'src/components/header-nav.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import { cachedLoadWallet, Address } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -677,7 +666,6 @@ export default {
 		ServiceCard,
 		PromoInfoCard,
 		DragSlide,
-		HeaderNav,
 		Pin,
 		BiometricWarningAttempt,
 		CountrySelector

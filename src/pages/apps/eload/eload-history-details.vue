@@ -1,6 +1,4 @@
 <template>
-	<HeaderNav title="Eload Service" :backnavpath="{ name: 'eload-service-orders'}" class="header-nav"/>
-
 	<div v-if="loading" class="q-pt-md">
 		<div class="skeleton-center">
 	    	<q-skeleton type="text" width="75px" height="30px" class="q-mb-xs" style="margin: 0 auto;" />
@@ -155,7 +153,6 @@
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
-import HeaderNav from 'src/components/header-nav.vue'
 
 export default {
 	data () {
@@ -166,9 +163,6 @@ export default {
 			promoSnapshot: null,
 			loadError: ''
 		}
-	},
-	components: {
-		HeaderNav
 	},
 	computed: {
 		getTxnID () {
