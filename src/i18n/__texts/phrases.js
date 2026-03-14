@@ -1799,7 +1799,7 @@ const phrases = {
       SessionURL: 'Session URL',
        WcScanOrPasteURL: 'In the app you want to connect to, open the WalletConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WalletConnect session.',
       WizScanOrPasteURL: 'In the app you want to connect to, open the WizardConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WizardConnect session.',
-      InitiateNewSession: 'Initiate new wallet connect session',
+       InitiateNewSession: 'Initiate new WalletConnect session',
       InitiateNewWizardConnectSession: 'Initiate new wizard connect session',
       Sign: 'Sign',
       Reject: 'Reject',

@@ -1046,7 +1046,7 @@ export default {
   Indonesian: "Indonesisch",
   Info: "Infos",
   Initial: "Anfänglich",
-  InitiateNewSession: "Starten Sie eine neue Wallet-Verbindungssitzung",
+   InitiateNewSession: "Starten Sie eine neue WalletConnect-Sitzung",
   Inject: "Spritzen",
   InputAmountToFreeze: "Geben Sie den einzufrierenden Betrag ein",
   InputAmountToUnfreeze: "Geben Sie den Betrag ein, der freigegeben werden soll",

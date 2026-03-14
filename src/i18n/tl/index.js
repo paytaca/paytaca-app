@@ -1046,7 +1046,7 @@ export default {
   Indonesian: "Indonesian",
   Info: "Impormasyon",
   Initial: "Inisyal",
-  InitiateNewSession: "Magsimula ng bagong session sa pagkonekta ng wallet",
+   InitiateNewSession: "Magsimula ng bagong WalletConnect session",
   Inject: "Mag-inject",
   InputAmountToFreeze: "Halaga ng input para mag-freeze",
   InputAmountToUnfreeze: "Halaga ng input para i-unfreeze",

@@ -1044,7 +1044,7 @@ export default {
   Indonesian: "Indonesian",
   Info: "Info",
   Initial: "Initial",
-  InitiateNewSession: "Initiate new wallet connect session",
+  InitiateNewSession: "Initiate new WalletConnect session",
   InitiateNewWizardConnectSession: "Initiate new wizard connect session",
   Inject: "Inject",
   InputAmountToFreeze: "Input amount to freeze",
