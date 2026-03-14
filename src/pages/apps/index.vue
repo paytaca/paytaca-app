@@ -283,9 +283,9 @@ export default {
           id: 'walletconnect',
           name: this.$t('WalletConnect'),
           description: this.$t('Apps.WalletConnect.Description', {}, 'Connect Paytaca to dApps using WalletConnect.'),
-          iconName: 'mdi-connection',
+          iconName: 'img:walletconnect.svg',
           path: '/apps/wallet-connect',
-          iconStyle: 'font-size: 4.2em',
+          iconStyle: 'width:45%; height: 45%;',
           active: true,
           smartBCHOnly: false
         },
