@@ -408,6 +408,11 @@ export default {
               })
             }
           }
+        } else if (value.toLowerCase().startsWith('wiz://')) {
+          vm.$router.push({
+            name: 'app-wizard-connect',
+            query: { uri: value }
+          })
         } else {
           vm.$q.notify({
             message: vm.$t('UnidentifiedQRCode'),
