@@ -1,32 +1,41 @@
 import * as wizardConnectService from 'src/wallet/wizardconnect/service'
 import { Notify } from 'quasar'
 
-const STORAGE_KEY = 'paytaca:wizardConnectUris'
+function getStorageKey(walletHash) {
+  if (!walletHash) return null
+  return `paytaca:wizardConnectUris:${walletHash}`
+}
 
-function loadSavedUris () {
+function loadSavedUris(walletHash) {
+  if (!walletHash) return []
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const key = getStorageKey(walletHash)
+    const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
   }
 }
 
-function saveUris (uris) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(uris))
+function saveUris(walletHash, uris) {
+  if (!walletHash) return
+  const key = getStorageKey(walletHash)
+  localStorage.setItem(key, JSON.stringify(uris))
 }
 
-function addSavedUri (uri) {
-  const uris = loadSavedUris()
+function addSavedUri(walletHash, uri) {
+  if (!walletHash) return
+  const uris = loadSavedUris(walletHash)
   if (!uris.includes(uri)) {
     uris.push(uri)
-    saveUris(uris)
+    saveUris(walletHash, uris)
   }
 }
 
-function removeSavedUri (uri) {
-  const uris = loadSavedUris().filter(u => u !== uri)
-  saveUris(uris)
+function removeSavedUri(walletHash, uri) {
+  if (!walletHash) return
+  const uris = loadSavedUris(walletHash).filter(u => u !== uri)
+  saveUris(walletHash, uris)
 }
 
 function serializeConnections (rawConnections) {
@@ -53,7 +62,9 @@ function serializeConnection (id, conn) {
 export async function init ({ commit, dispatch, rootGetters }) {
   const walletIndex = rootGetters['global/getWalletIndex'] || 0
   const isChipnet = rootGetters['global/isChipnet'] || false
-  wizardConnectService.setWalletConfig(walletIndex, isChipnet)
+  const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
+  
+  wizardConnectService.setWalletConfig(walletIndex, isChipnet, walletHash)
 
   let manager
   try {
@@ -93,8 +104,8 @@ export async function init ({ commit, dispatch, rootGetters }) {
   // Clear stale pending requests from previous session
   commit('clearPendingRequests')
 
-  // Restore saved connections
-  const savedUris = loadSavedUris()
+  // Restore saved connections for this wallet
+  const savedUris = loadSavedUris(walletHash)
   for (const uri of savedUris) {
     try {
       manager.connect(uri)
@@ -108,18 +119,26 @@ export async function init ({ commit, dispatch, rootGetters }) {
   commit('setConnections', connections)
 }
 
-export async function pair ({ commit, state }, { uri }) {
+export function reset ({ commit }) {
+  wizardConnectService.reset()
+  commit('clearPendingRequests')
+  commit('setConnections', {})
+}
+
+export async function pair ({ commit, state, rootGetters }, { uri }) {
   if (!uri) throw new Error('URI is required')
   const normalizedUri = uri.trim()
+  const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
   const connectionId = wizardConnectService.connect(normalizedUri)
-  addSavedUri(normalizedUri)
+  addSavedUri(walletHash, normalizedUri)
   return connectionId
 }
 
-export async function disconnect ({ commit, state }, { connectionId }) {
+export async function disconnect ({ commit, state, rootGetters }, { connectionId }) {
+  const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
   const connection = state.connections[connectionId]
   if (connection?.uri) {
-    removeSavedUri(connection.uri)
+    removeSavedUri(walletHash, connection.uri)
   }
   wizardConnectService.disconnect(connectionId)
   commit('removeConnection', connectionId)
@@ -181,10 +200,11 @@ export function handleSignCancelled ({ commit, state }, { connectionId, sequence
   }
 }
 
-export function handleRemoteDisconnect ({ commit, state }, { connectionId }) {
+export function handleRemoteDisconnect ({ commit, state, rootGetters }, { connectionId }) {
+  const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
   const connection = state.connections[connectionId]
   if (connection?.uri) {
-    removeSavedUri(connection.uri)
+    removeSavedUri(walletHash, connection.uri)
   }
   commit('removeConnection', connectionId)
 

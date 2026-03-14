@@ -31,6 +31,7 @@ let _manager = null
 let _hdNodes = null
 let _walletIndex = 0
 let _isChipnet = false
+let _walletHash = null
 
 function getPrefix() {
   return _isChipnet ? 'bchtest' : 'bitcoincash'
@@ -111,9 +112,34 @@ export async function getManager() {
   return _manager
 }
 
-export function setWalletConfig(walletIndex, isChipnet) {
+export function setWalletConfig(walletIndex, isChipnet, walletHash = null) {
+  const walletChanged = _walletHash !== null && _walletHash !== walletHash && walletHash !== null
+  
   _walletIndex = walletIndex
   _isChipnet = isChipnet
+  
+  if (walletHash) {
+    _walletHash = walletHash
+  }
+  
+  // If wallet changed and manager exists, clear it so it will be reinitialized
+  if (walletChanged && _manager) {
+    _manager.disconnectAll()
+    _manager = null
+    _hdNodes = null
+  }
+}
+
+export function getWalletHash() {
+  return _walletHash
+}
+
+export function reset() {
+  if (_manager) {
+    _manager.disconnectAll()
+  }
+  _manager = null
+  _hdNodes = null
 }
 
 export function connect(uri) {
