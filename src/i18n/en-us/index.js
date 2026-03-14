@@ -1045,7 +1045,7 @@ export default {
   Info: "Info",
   Initial: "Initial",
   InitiateNewSession: "Initiate new WalletConnect session",
-  InitiateNewWizardConnectSession: "Initiate new wizard connect session",
+  InitiateNewWizardConnectSession: "Initiate new WizardConnect session",
   Inject: "Inject",
   InputAmountToFreeze: "Input amount to freeze",
   InputAmountToUnfreeze: "Input amount to unfreeze",
