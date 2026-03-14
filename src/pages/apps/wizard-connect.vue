@@ -269,6 +269,7 @@ export default {
       return themeColors[this.theme] || '#42a5f5'
     },
     refreshPage (done) {
+      // Connections are synced via events, no need to manually refresh
       done()
     },
     statusLabel (conn) {
@@ -333,12 +334,18 @@ export default {
         this.disconnecting = newDisconnecting
       }
     },
-    onScannerDecode (value) {
+    async onScannerDecode (value) {
       if (!value) return
       if (value.toLowerCase().startsWith('wiz://')) {
         this.showScanner = false
         this.uriInput = value
-        this.onPairUri()
+        await this.onPairUri()
+      } else {
+        this.$q.notify({
+          message: this.$t('InvalidQRCode', {}, 'Invalid QR code. Please scan a WizardConnect QR code.'),
+          color: 'negative',
+          timeout: 3000
+        })
       }
     },
     async onApprove ({ connectionId, sequence, transactionJson }) {
