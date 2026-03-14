@@ -7,6 +7,7 @@ import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
+import wizardconnectDefaultState from 'src/store/wizardconnect/state'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
@@ -94,6 +95,11 @@ export default boot(async (obj) => {
         if (typeof parsedState.subscription.minLiftTokens === 'undefined') {
           parsedState.subscription.minLiftTokens = limitsConfig.minLiftTokens
         }
+      }
+
+      // Ensure wizardconnect module state is initialized
+      if (!parsedState.wizardconnect || typeof parsedState.wizardconnect !== 'object') {
+        parsedState.wizardconnect = wizardconnectDefaultState()
       }
 
       store.replaceState(parsedState)

@@ -1,35 +1,7 @@
-import { binToHex, decodeAuthenticationInstructions, encodeLockingBytecodeP2pkh, hash160, hexToBin, lockingBytecodeToCashAddress, secp256k1 } from "@bitauth/libauth";
+import { binToHex, decodeAuthenticationInstructions, encodeAuthenticationInstructions } from 'bitauth-libauth-v3'
 
-export function parseExtendedJson(jsonString) {
-  const uint8ArrayRegex = /^<Uint8Array: 0x(?<hex>[0-9a-f]*)>$/u;
-  const bigIntRegex = /^<bigint: (?<bigint>[0-9]*)n>$/;
-
-  return JSON.parse(jsonString, (_key, value) => {
-    if (typeof value === "string") {
-      const bigintMatch = value.match(bigIntRegex);
-      if (bigintMatch) {
-        return BigInt(bigintMatch[1]);
-      }
-      const uint8ArrayMatch = value.match(uint8ArrayRegex);
-      if (uint8ArrayMatch) {
-        return hexToBin(uint8ArrayMatch[1]);
-      }
-    }
-    return value;
-  });
-}
-
-/**
- * @param {Uint8Array} privateKey 
- */
-export function privateKeyToCashAddress(privateKey) {
-  const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey)
-  const pkhash = hash160(pubkeyCompressed)
-  const lockingBytecode = encodeLockingBytecodeP2pkh(pkhash)
-  const cashAddr = lockingBytecodeToCashAddress(lockingBytecode)
-  return cashAddr
-}
-
+// Re-export shared utilities for backward compatibility
+export { parseExtendedJson, privateKeyToCashAddress, signBchTxError } from '../bch-sign'
 
 export function unpackSourceOutput(sourceOutput) {
   const contractName = sourceOutput?.contract?.artifact?.contractName;
@@ -70,12 +42,6 @@ export function unpackSourceOutput(sourceOutput) {
         inputs: undefined
       },
       redeemScript: undefined
-    } 
+    }
   }
-}
-
-export function signBchTxError(...args) {
-  const error = new Error(args)
-  error.name = 'SignBCHTransactionError'
-  return error
 }

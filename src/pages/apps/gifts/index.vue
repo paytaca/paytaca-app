@@ -19,7 +19,7 @@
     <q-pull-to-refresh @refresh="(done) => fetchGifts(done, { recordType: activeTab, limit: activeTab === 'unclaimed' ? unclaimedGiftsLimit : (activeTab === 'claimed' ? claimedGiftsLimit : 10), offset: 0 })">
       <div class="gifts-content">
           <!-- Tabs Section -->
-          <div class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
+          <div class="tabs-wrapper q-mt-sm q-mb-sm">
             <div 
               class="gifts-tabs" 
               :class="getDarkModeClass(darkMode)"
@@ -1295,6 +1295,7 @@ export default {
   display: flex;
   justify-content: center;
   padding: 0 8px;
+  padding-top: 10px;
   animation: fadeIn 0.5s ease-out;
 }
 

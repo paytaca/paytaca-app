@@ -290,6 +290,16 @@ export default {
           smartBCHOnly: false
         },
         {
+          id: 'wizardconnect',
+          name: 'WizardConnect',
+          description: 'Connect Paytaca to dApps using WizardConnect relay protocol.',
+          iconName: 'mdi-wizard-hat',
+          path: '/apps/wizard-connect',
+          iconStyle: 'font-size: 4.2em',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
           id: 'merchant-admin',
           name: this.$t('MerchantAdmin', {}, 'Merchant Admin'),
           description: this.$t('Apps.MerchantAdmin.Description', {}, 'Manage your merchant tools and settings.'),
