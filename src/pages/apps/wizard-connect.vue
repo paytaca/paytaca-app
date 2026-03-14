@@ -1,92 +1,165 @@
 <template>
-  <div id="wizard-connect-page" :class="getDarkModeClass(darkMode)">
-    <HeaderNav title="WizardConnect" backnavpath="/apps" class="apps-header" />
+  <div>
+    <q-pull-to-refresh
+      id="app-container"
+      class="wallet-connect-container"
+      :class="getDarkModeClass(darkMode)"
+      @refresh="refreshPage"
+    >
+      <HeaderNav title="WizardConnect" backnavpath="/apps" class="apps-header" />
 
-    <div class="q-pa-md">
-      <!-- Pair controls -->
-      <div class="q-mb-lg">
-        <div class="row q-gutter-sm">
-          <q-input
-            v-model="uriInput"
-            dense
-            outlined
-            placeholder="wiz://..."
-            class="col"
-            :class="getDarkModeClass(darkMode)"
-            @keyup.enter="onPairUri"
-          />
-          <q-btn
-            color="primary"
-            icon="qr_code_scanner"
-            dense
-            @click="showScanner = true"
-          />
-          <q-btn
-            color="primary"
-            label="Connect"
-            dense
-            no-caps
-            :loading="pairing"
-            :disable="!uriInput"
-            @click="onPairUri"
-          />
+      <div class="q-pa-md">
+        <q-expansion-item
+        v-model="isInitiateSessionExpanded"
+        class="send-option-card pt-card q-mb-md br-15"
+        :class="getDarkModeClass(darkMode)"
+        header-class="q-pa-lg"
+        expand-icon-class="text-grad"
+      >
+        <template v-slot:header>
+          <div class="send-option-header full-width row items-center justify-between">
+            <div class="send-option-title">
+              <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                {{ $t('InitiateNewWizardConnectSession', {}, 'Initiate New WizardConnect Session') }}
+              </div>
+            </div>
+            <q-icon
+              name="expand_more"
+              size="32px"
+              class="text-grad transition-transform"
+              :style="{ transform: isInitiateSessionExpanded ? 'rotate(180deg)' : 'rotate(0deg)', marginRight: '-16px' }"
+            />
+          </div>
+        </template>
+
+        <div class="q-px-lg q-pb-lg">
+          <div class="text-caption q-mb-md" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+            {{ $t('WizScanOrPasteURL', {}, 'In the app you want to connect to, open the WizardConnect QR Code modal. You can scan the displayed QR Code or copy the URL and paste it here, to initiate a new WizardConnect session.') }}
+          </div>
+          <div class="row q-gutter-sm">
+            <div class="col">
+              <q-btn
+                unelevated
+                no-caps
+                class="full-width scan-option-btn"
+                :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                @click="showScanner = true"
+                :disable="pairing"
+              >
+                <div class="column items-center q-py-sm">
+                  <q-icon name="mdi-qrcode-scan" size="32px"/>
+                  <div class="text-caption q-mt-xs">{{ $t('ScanQRCode', {}, 'Scan QR Code') }}</div>
+                </div>
+              </q-btn>
+            </div>
+            <div class="col">
+              <q-btn
+                unelevated
+                no-caps
+                class="full-width scan-option-btn"
+                :style="`border: 2px solid ${getThemeColor()}; color: ${getThemeColor()};`"
+                @click="showPasteDialog = true"
+                :disable="pairing"
+              >
+                <div class="column items-center q-py-sm">
+                  <q-icon name="content_paste_go" size="32px"/>
+                  <div class="text-caption q-mt-xs">{{ $t('PasteURL', {}, 'Paste URL') }}</div>
+                </div>
+              </q-btn>
+            </div>
+          </div>
+        </div>
+      </q-expansion-item>
+
+      <div v-if="pairing" class="row justify-center q-my-md">
+        <div>
+          <q-spinner-ios size="4em"></q-spinner-ios>
+        </div>
+        <div class="col-12 text-italic text-center">{{ $t('Connecting', {}, 'Connecting...') }}</div>
+      </div>
+
+      <div class="row">
+        <div class="col-xs-12">
+          <div v-if="connectionList.length > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm">
+            <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
+            <q-badge color="green" class="q-ml-sm">
+              {{ connectionList.length }}
+            </q-badge>
+          </div>
+          <div v-if="connectionList.length > 0" class="col-xs-12 q-gutter-y-sm">
+            <q-card
+              v-for="conn in connectionList"
+              :key="conn.id"
+              class="session session-info-flat q-pa-sm"
+              :class="getDarkModeClass(darkMode)"
+              flat
+            >
+              <q-card-section style="padding-bottom: 0px">
+                <div class="row items-start">
+                  <div class="col">
+                    <q-item>
+                      <q-item-section side>
+                        <div class="paired-icons">
+                          <q-avatar rounded size="48px">
+                            <img src="wizardconnect-logo.png" />
+                          </q-avatar>
+                          <q-avatar v-if="conn.dappIcon" rounded size="48px" class="paired-icons__overlay">
+                            <img :src="conn.dappIcon" />
+                          </q-avatar>
+                          <q-avatar v-else rounded size="48px" color="grey-4" text-color="grey-7" class="paired-icons__overlay">
+                            <q-icon name="mdi-application" size="24px" />
+                          </q-avatar>
+                        </div>
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label>
+                          <span class="text-bold">{{ conn.dappName || 'Connecting...' }}</span>
+                        </q-item-label>
+                        <q-item-label caption>
+                          <div class="text-light session-info-attribute-url" style="word-break: break-all">{{ conn.dappUrl }}</div>
+                          <div class="q-mt-xs">
+                            <q-badge
+                              :color="statusColor(conn)"
+                              :label="statusLabel(conn)"
+                              class="q-mr-xs"
+                            />
+                            <span v-if="conn.statusError" class="text-red text-caption">{{ conn.statusError }}</span>
+                          </div>
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </div>
+                </div>
+              </q-card-section>
+
+              <q-card-actions class="row justify-around q-gutter-x-md q-mt-lg" style="padding-top: 0px">
+                <q-btn
+                  :label="$t('Disconnect', {}, 'Disconnect')"
+                  color="negative"
+                  class="cursor-pointer action-button col-xs-10"
+                  no-caps
+                  :loading="disconnecting[conn.id]"
+                  :disable="Object.keys(disconnecting).length > 0"
+                  @click.stop="onDisconnect(conn.id)"
+                  rounded
+                  outline
+                >
+                  <template v-slot:loading>
+                    <q-spinner-facebook />
+                  </template>
+                </q-btn>
+              </q-card-actions>
+            </q-card>
+          </div>
         </div>
       </div>
-
-      <!-- Active connections -->
-      <div class="text-subtitle1 q-mb-sm">Connections</div>
-      <div v-if="Object.keys(connections).length === 0" class="text-grey text-center q-pa-lg">
-        No active connections. Scan a QR code or paste a wiz:// URI to connect.
-      </div>
-      <q-list v-else>
-        <q-item
-          v-for="conn in connectionList"
-          :key="conn.id"
-          class="q-mb-sm rounded-borders pt-card"
-          :class="getDarkModeClass(darkMode)"
-        >
-          <q-item-section avatar>
-            <div class="paired-icons">
-              <q-avatar size="40px">
-                <img src="wizardconnect-logo.png" />
-              </q-avatar>
-              <q-avatar v-if="conn.dappIcon" size="40px" class="paired-icons__overlay">
-                <img :src="conn.dappIcon" />
-              </q-avatar>
-              <q-avatar v-else size="40px" color="grey-4" text-color="grey-7" class="paired-icons__overlay">
-                <q-icon name="mdi-application" size="24px" />
-              </q-avatar>
-            </div>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>{{ conn.dappName || 'Connecting...' }}</q-item-label>
-            <q-item-label caption>
-              <q-badge
-                :color="statusColor(conn)"
-                :label="statusLabel(conn)"
-                class="q-mr-xs"
-              />
-              <span v-if="conn.statusError" class="text-red">{{ conn.statusError }}</span>
-            </q-item-label>
-          </q-item-section>
-          <q-item-section side>
-            <q-btn
-              flat
-              dense
-              icon="close"
-              color="negative"
-              @click="onDisconnect(conn.id)"
-            />
-          </q-item-section>
-        </q-item>
-      </q-list>
     </div>
+  </q-pull-to-refresh>
 
-    <!-- QR Scanner Dialog -->
     <q-dialog v-model="showScanner" position="bottom" seamless>
-      <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)" style="width:100%;max-width:500px;">
+      <q-card class="pt-card text-bow br-15" :class="getDarkModeClass(darkMode)" style="width:100%;max-width:500px;">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">Scan WizardConnect QR</div>
+          <div class="text-h6">{{ $t('ScanQRCode', {}, 'Scan QR Code') }}</div>
           <q-space />
           <q-btn flat round dense icon="close" v-close-popup />
         </q-card-section>
@@ -101,7 +174,39 @@
       </q-card>
     </q-dialog>
 
-    <!-- Sign Request Dialog -->
+    <q-dialog v-model="showPasteDialog">
+      <q-card class="pt-card text-bow br-15" :class="getDarkModeClass(darkMode)" style="width:400px;max-width:95vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ $t('PasteURL', {}, 'Paste URL') }}</div>
+          <q-space />
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            v-model="uriInput"
+            dense
+            outlined
+            placeholder="wiz://..."
+            :class="getDarkModeClass(darkMode)"
+            @keyup.enter="onPasteConnect"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('Cancel')" color="grey" v-close-popup no-caps />
+          <q-btn
+            unelevated
+            :label="$t('Connect')"
+            color="primary"
+            :disable="!uriInput"
+            :loading="pairing"
+            @click="onPasteConnect"
+            no-caps
+            rounded
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <WizardConnectSignRequestDialog
       v-if="currentPendingRequest"
       :key="currentPendingRequest.connectionId + ':' + currentPendingRequest.sequence"
@@ -134,12 +239,18 @@ export default {
     return {
       uriInput: '',
       showScanner: false,
-      pairing: false
+      showPasteDialog: false,
+      pairing: false,
+      disconnecting: {},
+      isInitiateSessionExpanded: true
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
     },
     connections () {
       return this.$store.getters['wizardconnect/getConnections']
@@ -154,8 +265,32 @@ export default {
       return this.pendingRequests.length > 0 ? this.pendingRequests[0] : null
     }
   },
+  watch: {
+    connectionList: {
+      handler (list) {
+        if (list.length > 0) {
+          this.isInitiateSessionExpanded = false
+        } else {
+          this.isInitiateSessionExpanded = true
+        }
+      },
+      immediate: true
+    }
+  },
   methods: {
     getDarkModeClass,
+    getThemeColor () {
+      const themeColors = {
+        'glassmorphic-blue': '#42a5f5',
+        'glassmorphic-gold': '#ffa726',
+        'glassmorphic-green': '#4caf50',
+        'glassmorphic-red': '#f54270'
+      }
+      return themeColors[this.theme] || '#42a5f5'
+    },
+    refreshPage (done) {
+      done()
+    },
     statusLabel (conn) {
       if (conn.statusCode === 'connected' && !conn.dappName) return 'waiting for dApp'
       return conn.statusCode
@@ -172,6 +307,7 @@ export default {
       try {
         await this.$store.dispatch('wizardconnect/pair', { uri: this.uriInput })
         this.uriInput = ''
+        this.showPasteDialog = false
       } catch (err) {
         this.$q.notify({
           message: err.message || 'Failed to connect',
@@ -182,8 +318,18 @@ export default {
         this.pairing = false
       }
     },
+    async onPasteConnect () {
+      await this.onPairUri()
+    },
     async onDisconnect (connectionId) {
-      await this.$store.dispatch('wizardconnect/disconnect', { connectionId })
+      this.disconnecting = { ...this.disconnecting, [connectionId]: true }
+      try {
+        await this.$store.dispatch('wizardconnect/disconnect', { connectionId })
+      } finally {
+        const newDisconnecting = { ...this.disconnecting }
+        delete newDisconnecting[connectionId]
+        this.disconnecting = newDisconnecting
+      }
     },
     onScannerDetect (content) {
       if (!content?.[0]?.rawValue) return
@@ -218,8 +364,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#wizard-connect-page {
+.wallet-connect-container {
+  background-color: #ECF3F3;
   min-height: 100vh;
+  padding-bottom: 50px;
 }
 .paired-icons {
   display: flex;
@@ -228,5 +376,71 @@ export default {
 }
 .paired-icons__overlay {
   margin-left: -20px;
+}
+
+.send-option-card {
+  background: inherit;
+}
+
+.send-option-title {
+  font-weight: 500;
+}
+
+.scan-option-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.session {
+  background: inherit;
+  position: relative;
+  border-radius: 15px;
+  font-family: monospace;
+}
+
+.session-info-flat:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgb(253,253,253, .023);
+  border: 1px solid #80808038;
+  border-radius: 15px;
+  pointer-events: none;
+}
+
+.session-info-attribute-url {
+  font-family: monospace;
+  font-size: x-small;
+}
+
+.session-info-attribute {
+  font-family: monospace;
+  color: #ff6000;
+  font-size: x-small;
+}
+
+.transition-transform {
+  transition: transform 0.3s ease;
+}
+
+.action-button {
+  min-width: 120px;
+}
+
+.q-card__section--vert {
+  padding: 5px;
+}
+</style>
+
+<style lang="scss">
+.wallet-connect-container.dark {
+  background-color: #1a1a1a;
 }
 </style>
