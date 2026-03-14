@@ -149,23 +149,10 @@
     </div>
   </q-pull-to-refresh>
 
-    <q-dialog v-model="showScanner" position="bottom" seamless>
-      <q-card class="pt-card text-bow br-15" :class="getDarkModeClass(darkMode)" style="width:100%;max-width:500px;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('ScanQRCode', {}, 'Scan QR Code') }}</div>
-          <q-space />
-          <q-btn flat round dense icon="close" v-close-popup />
-        </q-card-section>
-        <q-card-section>
-          <qrcode-stream
-            v-if="showScanner"
-            @detect="onScannerDetect"
-            @error="onScannerError"
-            style="max-height:300px;"
-          />
-        </q-card-section>
-      </q-card>
-    </q-dialog>
+  <QrScanner
+      v-model="showScanner"
+      @decode="onScannerDecode"
+    />
 
     <q-dialog v-model="showPasteDialog">
       <q-card class="pt-card text-bow br-15" :class="getDarkModeClass(darkMode)" style="width:400px;max-width:95vw;">
@@ -215,14 +202,14 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
-import { QrcodeStream } from 'vue-qrcode-reader'
+import QrScanner from 'src/components/qr-scanner.vue'
 import WizardConnectSignRequestDialog from 'src/components/wizardconnect/WizardConnectSignRequestDialog.vue'
 
 export default {
   name: 'WizardConnectPage',
   components: {
     HeaderNav,
-    QrcodeStream,
+    QrScanner,
     WizardConnectSignRequestDialog
   },
   props: {
@@ -346,17 +333,13 @@ export default {
         this.disconnecting = newDisconnecting
       }
     },
-    onScannerDetect (content) {
-      if (!content?.[0]?.rawValue) return
-      const value = content[0].rawValue
+    onScannerDecode (value) {
+      if (!value) return
       if (value.toLowerCase().startsWith('wiz://')) {
         this.showScanner = false
         this.uriInput = value
         this.onPairUri()
       }
-    },
-    onScannerError (err) {
-      console.error('WizardConnect QR scanner error:', err)
     },
     async onApprove ({ connectionId, sequence, transactionJson }) {
       await this.$store.dispatch('wizardconnect/approveRequestWithData', {
