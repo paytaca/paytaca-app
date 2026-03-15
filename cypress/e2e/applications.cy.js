@@ -28,7 +28,7 @@ describe('Applications Page', () => {
     cy.contains('.pt-app-name', 'Marketplace').parent().find('.pt-app').should('be.visible').click();
     cy.url().should('include', '/apps/marketplace');
     
-    // Test Wallet Connect with Translation Handling
+    // Test WalletConnect with Translation Handling
     testAppNavigation('apps-wallet-connect', '/#/apps/wallet-connect');
 
     // Test Gifts
