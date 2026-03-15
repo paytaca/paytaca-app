@@ -963,6 +963,17 @@ export default {
 			}
 
 			vm.buying = true
+
+			// Hide keyboard immediately when payment processing begins
+			try {
+				await Keyboard.hide()
+			} catch (e) {
+				// Fallback: blur any focused input
+				if (document.activeElement && document.activeElement.blur) {
+					document.activeElement.blur()
+				}
+			}
+
 			try {
 				// Ensure txn is prepared (creates server-side order if needed).
 				if (!vm.txnRecipientAddress) {
@@ -1034,18 +1045,8 @@ export default {
 				vm.purchaseTxid = sendResult?.txid || ''
 				vm.purchaseSuccess = true
 
-				// Hide keyboard and scroll to success message
-				vm.$nextTick(async () => {
-					// Hide keyboard using Capacitor API (mobile) or blur fallback (web)
-					try {
-						await Keyboard.hide()
-					} catch (e) {
-						// Fallback: blur any focused input
-						if (document.activeElement && document.activeElement.blur) {
-							document.activeElement.blur()
-						}
-					}
-					// Scroll to the payment success message
+				// Scroll to the payment success message
+				vm.$nextTick(() => {
 					const successEl = vm.$refs.paymentSuccessMessage
 					if (successEl && successEl.scrollIntoView) {
 						successEl.scrollIntoView({ behavior: 'smooth', block: 'start' })

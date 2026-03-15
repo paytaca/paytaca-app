@@ -1,14 +1,6 @@
 <template>
   <div id="app-container" class="eload-page" :class="getDarkModeClass(darkMode)">
-    <HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
-      <template v-slot:top-right-menu>
-        <div class="q-mr-sm">
-          <q-btn flat round disable>
-            <q-icon name="receipt_long" size="30px"/>
-          </q-btn>					
-        </div>				 
-      </template>
-    </HeaderNav>
+    <HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav" />
 
     <div v-if="!isloaded && !errorMsg" class="eload-skeleton q-px-lg q-pt-md full-width">
       <!-- Country Selector -->
