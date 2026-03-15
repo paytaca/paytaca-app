@@ -137,7 +137,7 @@ export default {
           // Preserve existing iOS sizing, but ensure we never go *below* safe area needs.
           paddingTop: `max(73px, calc(${safeTop} + 29px))`,
           height: `max(95px, calc(${safeTop} + 51px))`,
-          paddingBottom: '45px'
+          paddingBottom: '0px'
         }
       }
 
