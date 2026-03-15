@@ -620,7 +620,7 @@ export default {
   .line-design1 {
     height: 150px;
     width: 150px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
   .scan-design2 {
@@ -637,7 +637,7 @@ export default {
     width: 150px;
     right: 0px;
     top: 0px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
   .scan-design3 {
@@ -654,7 +654,7 @@ export default {
     width: 150px;
     right: 0px;
     bottom: 0px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
   .scan-design4 {
@@ -671,7 +671,7 @@ export default {
     width: 150px;
     left: 0px;
     bottom: 0px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
 
