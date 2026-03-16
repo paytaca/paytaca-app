@@ -148,6 +148,18 @@
         <q-card v-if="selectedToken" class="br-15 pt-card-2 q-mb-md" :class="getDarkModeClass(darkMode)">
           <q-card-section>
             <div class="text-h5 q-mb-md">{{ $t('DepositAmount') }}</div>
+
+            <div>
+              <div class="text-caption">{{ $t('Balance') }}:</div>
+              <div class="row justify-between">
+                <q-btn size="md" padding="none sm" outline color="pt-primary1" @click="setTokenAmountBalance">
+                  {{ formatAmount(tokenBalance, tokenDecimals) }} {{ tokenSymbol }}
+                </q-btn>
+                <q-btn size="md" padding="none sm" outline color="pt-primary1" @click="setBchAmountBalance">
+                  {{ formatAmount(satoshisBalance, 8) }} BCH
+                </q-btn>
+              </div>
+            </div>
             <div class="value-bar-container q-mt-md q-mb-md">
               <div class="row items-center no-wrap q-gutter-x-sm justify-between q-mb-sm">
                 <div class="text-body2">
@@ -316,7 +328,11 @@ export default defineComponent({
     function onTokenSelect(tokenData) {
       const prevTokenId = selectedToken.value?.token_id
       selectedToken.value = tokenData
-      if (selectedToken.value?.token_id !== prevTokenId) poolPricing.value = 0
+      if (selectedToken.value?.token_id !== prevTokenId) {
+        selectedTokenBalance.value = 0n;
+        poolPricing.value = 0
+        updateBalance();
+      }
       fetchPoolPrice().then(() => {
         if (tokenAmount.value) syncBchAmountFromTokenAmount()
         else if (bchAmount.value) syncTokenAmountFromBch()
@@ -334,6 +350,16 @@ export default defineComponent({
       if (!bchAmount.value) return 0n
       return BigInt(Math.round(bchAmount.value * 10 ** 8))
     })
+
+    function setTokenAmountBalance() {
+      tokenAmount.value = Number(formatAmount(tokenBalance.value, tokenDecimals.value));
+      syncBchAmountFromTokenAmount();
+    }
+
+    function setBchAmountBalance() {
+      bchAmount.value = Number(formatAmount(satoshisBalance.value, 8));
+      syncTokenAmountFromBch();
+    }
 
     const suppressSync = ref(false)
     function syncTokenAmountFromBch() {
@@ -384,11 +410,40 @@ export default defineComponent({
       return bchValueInFiat.value + tokenValueInFiat.value
     })
 
+    async function updateBalance() {
+      const { bchWallet } = await loadWalletForTrade();
+      const bchBalanceFetch = bchWallet.getBalance().then(response => {
+        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance })
+      })
+
+      const tokenId = selectedToken.value?.token_id
+      let tokenBalanceFetch
+      if (tokenId) {
+        const assets = $store.getters['assets/getAssets'];
+        const tokenAssetId = `ct/${tokenId}`;
+        const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+
+        // Update local variable with balance from store first
+        const tokenBalance = BigInt(tokenAsset?.balance || 0);
+        selectedTokenBalance.value = tokenBalance;
+
+        tokenBalanceFetch = bchWallet.getBalance(tokenId).then(response => {
+          $store.commit('assets/updateAssetBalance', { id: tokenAssetId, balance: response.balance })
+          if (selectedToken.value?.token_id == tokenId) {
+            selectedTokenBalance.value = BigInt(response.balance);
+          }
+        })
+      }
+      return Promise.all([bchBalanceFetch, tokenBalanceFetch])
+    }
+
+    const selectedTokenBalance = ref(0n);
     const tokenBalance = computed(() => {
       if (!selectedToken.value) return
       const assets = $store.getters['assets/getAssets'];
       const tokenAssetId = `ct/${selectedToken.value.token_id}`;
       const tokenAsset = assets?.find(asset => asset?.id === tokenAssetId);
+      if (!tokenAsset) return selectedTokenBalance.value;
       const tokenBalance = BigInt(tokenAsset?.balance || 0);
       return tokenBalance
     })
@@ -569,11 +624,15 @@ export default defineComponent({
 
       tokenAmount,
       bchAmount,
+      setTokenAmountBalance,
+      setBchAmountBalance,
       syncBchAmountFromTokenAmount,
       syncTokenAmountFromBch,
       tokenValueInFiat,
       bchValueInFiat,
       totalValueInFiat,
+      tokenBalance,
+      satoshisBalance,
       insufficientBalanceMessage,
 
       securityCheck,
