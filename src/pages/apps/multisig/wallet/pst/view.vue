@@ -60,14 +60,14 @@
                 </div>
               </template>
             </q-btn>
-            <q-btn flat dense no-caps class="tile" @click="showImportSignatureDialog" v-if="signingProgress?.signingProgress !== 'fully-signed'">
+            <!-- <q-btn flat dense no-caps class="tile" @click="showImportSignatureDialog" v-if="signingProgress?.signingProgress !== 'fully-signed'">
               <template v-slot:default>
                 <div class="row justify-center">
                   <q-icon name="mdi-download" class="col-12" color="primary" size="md"></q-icon>
                   <div class="col-12 tile-label">{{ $t('ImportSigs', {}, 'Import') }}</div>
                 </div>
               </template>
-            </q-btn>
+            </q-btn> -->
             <q-btn flat dense no-caps class="tile" @click="showProposalDetailsDialog">
               <template v-slot:default>
                 <div class="row justify-center">
@@ -189,29 +189,33 @@
                 <q-item-label>{{ $t('SignedBy', {}, 'Signed By') }}</q-item-label>
                 <q-item-label v-if="signedSigners.length > 0" lines="2" >
                   <div class="flex items-center">
-                    <span v-for="signer in signedSigners" :key="signer.xpub" size="md">
-                      <q-chip clickable @click="() => showSharePartialSignatureOptionsDialog(signer.name, signer.masterFingerprint)">
-                        <q-avatar>
-                          <q-icon name="how_to_reg" size="xs"></q-icon>
-                        </q-avatar>
-                        <span>{{ signer.name }}</span>
-                        <span v-if="signer.xprv" class="q-ml-sm text-caption text-italic text-orange">
-                          ({{ $t('You') }})
-                        </span>
-                        <q-btn 
-                          icon="mdi-share" 
-                          color="primary"
-                          class="q-ml-sm"
-                          flat
-                          round
-                          dense
-                        ></q-btn>
-                      </q-chip>
-                    </span>
+                    <div class="flex items-center">
+                      <span v-for="signer in signedSigners" :key="signer.xpub" size="md">
+                        <q-chip clickable @click="() => showSharePartialSignatureOptionsDialog(signer.name, signer.masterFingerprint)">
+                          <q-avatar>
+                            <q-icon name="how_to_reg" size="xs" color="positive"></q-icon>
+                          </q-avatar>
+                          <span>{{ signer.name }}</span>
+                          <span v-if="signer.xprv" class="q-ml-sm text-caption text-italic text-green">
+                            ({{ $t('You') }})
+                          </span>
+                          <!-- <q-btn 
+                            icon="mdi-share" 
+                            color="primary"
+                            class="q-ml-sm"
+                            flat
+                            round
+                            dense
+                          ></q-btn> -->
+                        </q-chip>
+                      </span>
+                    </div>
                   </div>
                 </q-item-label>
                 <q-item-label v-else caption>
-                  {{ $t('NoSignersYet', {}, 'No signers yet') }}
+                  <div class="flex items-center q-gutter-x-sm">
+                    <span>{{ $t('NoSignersYet', {}, 'No signers yet') }}</span>
+                  </div>
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
@@ -221,6 +225,23 @@
                 <q-item-label v-else class="text-bow-muted">
                   0/{{ wallet?.signers?.length || 0 }}
                 </q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section bottom>
+                <q-item-label>{{ $t('Signatures') }}</q-item-label>
+              </q-item-section>
+              <q-item-section side bottom>
+                <div class="flex q-items-center">
+                  <q-chip clickable @click="() => showImportSignatureDialog()" :disable="signingProgress?.signingProgress === SIGNING_PROGRESS.FULLY_SIGNED">
+                    <q-avatar size="md"><q-icon name="mdi-arrow-bottom-right" size="sm" color="primary"></q-icon></q-avatar>
+                    <span>{{ $t('Import') }}</span>
+                  </q-chip>
+                  <q-chip clickable @click="() => showShareSignedProposalDialog()" :disable="signingProgress?.signingProgress === SIGNING_PROGRESS.UNSIGNED">
+                    <q-avatar size="md"><q-icon name="mdi-share" size="sm" color="primary"></q-icon></q-avatar>
+                    <span>{{ $t('Share') }}</span>
+                  </q-chip>
+                </div>
               </q-item-section>
             </q-item>
           </q-list>
@@ -294,7 +315,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { binToHex } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigWallet, Pst, shortenString } from 'src/lib/multisig'
+import { MultisigWallet, Pst, shortenString, SIGNING_PROGRESS } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import DragSlide from 'src/components/drag-slide.vue'
 import SecurityCheckDialog from 'components/SecurityCheckDialog.vue'
@@ -304,7 +325,9 @@ import ShareProposalOptionsDialog from 'components/multisig/ShareProposalOptions
 import ShareSignatureOptionsDialog from 'components/multisig/ShareSignatureOptionsDialog.vue'
 import PstQrDialog from 'components/multisig/PstQrDialog.vue'
 import ProposalDetailsDialog from 'components/multisig/ProposalDetailsDialog.vue'
+import ShareSignedProposalOptionsDialog from 'components/multisig/ShareSignedProposalOptionsDialog.vue'
 import { STATUS } from 'src/lib/multisig/pst'
+import { formatFilename } from 'src/lib/multisig/utils'
 const {
   multisigNetworkProvider,
   multisigCoordinationServer,
@@ -525,6 +548,35 @@ const showSharePartialSignatureOptionsDialog = (signerName, signerMasterFingerpr
         }
       )
     } else if (payload?.action === 'upload-signature') {
+      pst.value.uploadSignerPsbt(signerMasterFingerprint)
+    }
+  }).onCancel(() => {
+    // Dialog was closed without action
+  })
+}
+
+const showShareSignedProposalDialog = () => {
+  $q.dialog({
+    component: ShareSignedProposalOptionsDialog,
+    componentProps: {
+      darkMode: darkMode.value,
+      pst: pst.value
+    }
+  }).onOk(async (payload) => {
+    if (payload?.action === 'display-qr') {
+      showProposalQrDialog()
+    } else if (payload?.action === 'download-signed-proposal') {
+      const defaultFilename = formatFilename(pst.value?.purpose || pst.value?.wallet?.name + 'tx-proposal' || 'New Transaction Proposal')
+      const base64Psbt = await pst.value.export()
+      handleFileDownloadDialog({
+          dialogTitle: $t('DownloadPartialSignature'), 
+          dialogMessage: $t('DownloadPartialSignatureHint'), 
+          defaultFilename,
+          fileExtension: 'psbt',
+          data: base64Psbt
+        }
+      )
+    } else if (payload?.action === 'upload-signed-proposal') {
       pst.value.uploadSignerPsbt(signerMasterFingerprint)
     }
   }).onCancel(() => {
