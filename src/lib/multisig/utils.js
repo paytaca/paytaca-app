@@ -489,3 +489,18 @@ export const verifyTransactionInputsSignature = ({ transaction, inputs }) => {
   }
   return inputSignatureVerificationResults.every(rOk => Boolean(rOk))
 }
+
+
+export const formatFilename = (text) => {
+  return text
+    .toLowerCase()
+    .trim()
+    // Replace spaces and underscores with hyphens
+    .replace(/[\s_]+/g, '-')
+    // Remove any character that isn't a letter, number, or hyphen
+    .replace(/[^a-z0-9-]/g, '')
+    // Replace multiple hyphens with a single one
+    .replace(/-+/g, '-')
+    // Remove hyphens from the start and end
+    .replace(/^-+|-+$/g, '');
+};
