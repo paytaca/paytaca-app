@@ -45,7 +45,7 @@
 		<q-pull-to-refresh @refresh="onRefresh">
 			<div class="text-center q-mb-md">
 				<div class="text-capitalize status">{{ getStatusLabel(order) }}</div>
-				<div class="order-id">ORDER ID: {{ order?.txn_id }}</div>
+				<div class="order-id">ORDER ID: {{ order?.txn_id ? order?.txn_id : '???'}}</div>
 			</div>
 			<q-card class="q-pa-md br-15">			
 				<div class="lg-font-size text-weight-bold">
