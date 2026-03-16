@@ -261,7 +261,7 @@ export const combine = (psts) => {
   const finalizedPst = psts.find(pst => pst.scriptSig)
   if (finalizedPst) return finalizedPst
   const sameUnsignedTransaction = psts.every(pst => pst.unsignedTransactionHex === psts[0].unsignedTransactionHex)
-  if (!sameUnsignedTransaction) throw new Error('Combining different transactions')
+  if (!sameUnsignedTransaction) throw new Error(`Trying to combine signatures of different transactions. Make sure you are uploading signatures for the same proposal.`)
   const sameMetadata = psts.every(pst => {
     return (
       psts[0].creator === pst.creator &&
@@ -936,12 +936,16 @@ export class Pst {
             if (spendingTxUnsignedTransactionHash === this.unsignedTransactionHash) {
               this.status = {
                 status: STATUS.BROADCASTED,
-                txid: spendingTxid
+                txid: spendingTxid,
+                outpointTransactionHash: txid,
+                outpointIndex: outputIndex
               }
             } else {
               this.status = {
                 status: STATUS.CONFLICTED,
-                txid: spendingTxid
+                txid: spendingTxid,
+                outpointTransactionHash: txid,
+                outpointIndex: outputIndex
               }
             }
             return this.status
