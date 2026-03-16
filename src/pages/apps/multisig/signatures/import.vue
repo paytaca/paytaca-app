@@ -27,9 +27,9 @@
                 <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportPartiallySignedTransactionFromFileHint', {}, 'Browse and import a Partially Signed Transaction File you get from your cosigner') }}</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disable="!signerSignatures">
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disable="signerSignatures?.length === 0 || !pst.id">
                   <q-icon class="default-text-color"  name="cloud_download" @click="importFromServer"/>
-                  <q-badge v-if="signerSignatures" floating rounded></q-badge>
+                  <q-badge v-if="signerSignatures?.length > 0" floating rounded></q-badge>
                 </q-btn>
                 <div class="q-pt-xs text-center text-capitalize text-bold">{{ $t('ImportPartialSignaturesFromServer') }}</div>
                 <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportPartialSignaturesFromServer', {}, 'Download signatures from Paytaca\'s Multisig Coordinator Server') }}</div>
@@ -182,6 +182,8 @@ onMounted(async () => {
   if (canonicalPsbt.value) {
     const pst = Pst.import(canonicalPsbt.value)
     if (pst.options?.coordinationServer) {
+      await pst.sync()
+      if (!pst.id) return
       const signatures = await pst.options.coordinationServer.getSignerSignatures({
         masterFingerprint: route.params.masterfingerprint, 
         proposalUnsignedTransactionHash: pst.unsignedTransactionHash 
@@ -189,6 +191,7 @@ onMounted(async () => {
       if (signatures) {
         signerSignatures.value = signatures
       }
+
     }
   }
   
