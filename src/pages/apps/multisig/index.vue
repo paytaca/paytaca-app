@@ -27,8 +27,8 @@
             </q-card-section>
           </q-card>
         </div>
-        <div v-if="multisigWallets && multisigWallets.length > 0" class="col-xs-12 flex justify-between">
-          <q-btn flat dense no-caps class="tile" @click="onCreateWalletClick">
+        <div v-if="multisigWallets && multisigWallets.length > 0" class="col-12 row justify-between">
+          <q-btn flat dense no-caps class="col-4 tile shrink-0" @click="onCreateWalletClick">
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="add" class="col-12" color="primary" size="md"></q-icon>
@@ -36,7 +36,7 @@
               </div>
             </template>
           </q-btn>
-          <q-btn flat dense no-caps class="tile" @click="onImportWalletClick">
+          <q-btn flat dense no-caps class="col-4 tile shrink-0" @click="onImportWalletClick">
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="mdi-file-import-outline" class="col-12" color="primary" size="md"></q-icon>
@@ -44,7 +44,7 @@
               </div>
             </template>
           </q-btn>
-          <q-btn flat dense no-caps class="tile" @click="onDeleteAllWalletsClick" >
+          <q-btn flat dense no-caps class="col-4 tile shrink-0" @click="onDeleteAllWalletsClick" >
             <template v-slot:default>
               <div class="row justify-center">
                 <q-icon name="mdi-delete-sweep-outline" class="col-12" color="red" size="md"></q-icon>
@@ -77,22 +77,18 @@
                     <div class="ellipsis text-h6 text-bold">{{ wallet.name }}</div>
                   </q-item-label>
                   <q-item-label caption>
-                    WalletHash: {{ shortenString(wallet.walletHash, 20) }}
-                  </q-item-label>
-                  <q-item-label caption>
-                    Signers: {{ wallet.signers.map(s => s.name).join(', ') }}
-                    <span v-if="wallet?.signers?.length > 3" class="text-bow-muted">
-                        +{{ wallet.signers.length - 3 }} more
-                    </span>
+                    <div class="flex no-wrap items-center q-gutter-x-sm">
+                      <q-icon name="mdi-pound-box"></q-icon><span>{{ shortenString(wallet.walletHash, 20) }}</span>
+                    </div>
                   </q-item-label>
                   <q-item-label v-if="wallet.id" caption>
-                    <div class="flex items-center">
-                      <span>ID:</span> <span>{{ wallet.id }}</span> <q-icon name="mdi-cloud-outline"></q-icon>
+                    <div class="flex items-center q-gutter-x-sm">
+                      <q-icon name="mdi-cloud-check"></q-icon><span>{{ wallet.id }}</span>
                     </div>
                   </q-item-label>
                 </q-item-section>
                 <q-item-section side top>
-                  <q-btn icon="mdi-open-in-app" rounded outline no-caps size="sm">Open</q-btn>
+                  <q-btn icon="mdi-gesture-tap" rounded outline no-caps flat>{{$t('Open')}}</q-btn>
                 </q-item-section>
               </q-item>
             </q-list>
