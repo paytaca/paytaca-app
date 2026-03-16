@@ -244,7 +244,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, useInterval } from 'quasar'
 import Big from 'big.js'
-import { binToBase64, sortObjectKeys } from 'bitauth-libauth-v3'
+import { binToBase64, hexToBin, secp256k1, sortObjectKeys } from 'bitauth-libauth-v3'
 import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -358,15 +358,46 @@ const showWalletQrDialog = () => {
   })
 }
 
+const showCoordinatorUnverifiedConfirmationDialog = async () => {
+  return await new Promise((resolve) => {
+    $q.dialog({
+      title: `<div class="flex items-center q-gutter-x-sm"><i class="q-icon text-orange mdi mdi-alert" aria-hidden="true"> </i><span>${$t('Warning')}</span></div>`,
+      message: $t('CoordinatorVerificationFailedMessage', {}, 'Unable to verify coordinator. The coordinator either did not attach a stamp to this proposal or the stamp is invalid.<br><br><span class="text-caption text-bow-muted">A Proposal Stamp is a signature created by signing the unsigned transaction hash using the coordinator\'s Auth Private Key (derived at path 999/0).</span><br><br>Do you want to proceed with importing this proposal?'),
+      ok: { 
+        label: $t('YesProceed', {}, 'Yes, Proceed'),
+        color: 'primary',
+        rounded: true,
+        class: `button-default ${getDarkModeClass(darkMode.value)}`,
+        noCaps: true
+      },
+      cancel: { 
+        label: $t('No'),
+        color: 'default',
+        outline: true,
+        rounded: true,
+        noCaps: true,
+        class: `button-default ${getDarkModeClass(darkMode.value)}`,
+      },
+      html: true,
+      class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+    }).onOk(() => {
+      resolve('yes')
+    }).onCancel(() => {
+      resolve('no')
+    })
+  })
+}
+
 const showProposalsImportSelectionDialog = () => {
   const decodedProposals = []
 
   for(const p of proposalsFromServer.value) {
-
     if (p.proposalFormat && p.proposalFormat !== 'psbt') continue 
     try {
       const decoded = Pst.import(p.combinedPsbt || p.proposal) 
       decoded.id = p.id     
+      decoded.coordinatorProposalSignature = p.coordinatorProposalSignature
+      decoded.coordinatorProposalSignatureScheme = p.coordinatorProposalSignatureScheme
       decodedProposals.push(decoded)
     } catch (error) {
       console.log(error)
@@ -382,6 +413,22 @@ const showProposalsImportSelectionDialog = () => {
         proposals: decodedProposals
       }
     }).onOk(async (selectedProposal) => {
+      let coordinatorVerified = false 
+      if (selectedProposal.coordinatorProposalSignature) {
+        if (selectedProposal.coordinatorProposalSignatureScheme === 'schnorr') {
+          coordinatorVerified = secp256k1.verifySignatureSchnorr(
+            hexToBin(selectedProposal.coordinatorProposalSignature),
+            hexToBin(selectedProposal.coordinatorInfo.authPublicKey),
+            hexToBin(selectedProposal.unsignedTransactionHash)
+          )
+        }
+      }
+      
+      if (!coordinatorVerified) {
+        const proceed = await showCoordinatorUnverifiedConfirmationDialog()
+        if (proceed === 'no') return
+      }
+
       try {
         selectedProposal.setStore($store)
         selectedProposal.save()  
@@ -398,7 +445,6 @@ const showProposalsImportSelectionDialog = () => {
           color: 'negative'
         })
       }
-      
     }).onCancel(() => {
       // Dialog was closed without action
     })
