@@ -22,14 +22,31 @@
                     </div>
                     <div v-if="pst.id" class="col-12 text-caption">{{ $t('ID') }}: {{ pst.id || '<Local Only>' }}</div>
                     <div class="col-12 text-caption flex items-center">
-                      <span>{{ $t('UnsignedHash') }}: {{ shortenString(pst.unsignedTransactionHash, 20) }}</span>
+                      <span>{{ $t('UnsignedHash') }} : {{ shortenString(pst.unsignedTransactionHash, 20) }}</span>
                       <q-btn flat dense size="sm" icon="content_copy" @click="copyToClipboard(pst.unsignedTransactionHash)" class="q-ml-xs" color="white">
                         <q-tooltip>{{ $t('Copy') }}</q-tooltip>
                       </q-btn>
                     </div>
-                    <div class="col-12 text-caption">{{ $t('ProposedBy') }}: {{ proposedBy }}</div>
-                    <div class="col-12 text-caption">{{ $t('Coordinator') }}: {{ coordinator }}</div>
-                    <div class="col-12 text-caption">{{ $t('Status') }}: {{ pst.status?.status }}</div>
+                    <div class="col-12 text-caption">{{ $t('ProposedBy') }} : {{ proposedBy }}</div>
+                    <div v-if="pst.id" class="col-12 text-caption flex items-center">
+                      <span>{{ $t('Coordinator') }}</span>
+                      <q-icon name="mdi-cloud-outline" class="q-ml-sm"></q-icon> :
+                      <span class="q-ml-sm">{{ coordinator }}</span>
+                    </div>
+                    <div class="col-12 text-caption flex items-center justify-end">
+                      <q-chip v-if="isFetchingStatus && !pst.status">
+                        <div class="flex items-end q-gutter-x-sm">
+                          <span class="text-capitalize text-italic text-caption">{{ $t('CheckingStatus') }}</span>
+                          <q-spinner-dots></q-spinner-dots>
+                        </div>
+                      </q-chip>
+                      <q-chip v-if="pst.status">
+                        <div class="flex items-end q-gutter-x-sm">
+                          <span class="text-capitalize text-italic text-caption">{{ pst.status?.status }}, {{ signingProgress.signingProgress }}</span>
+                          <q-spinner-dots v-if="isFetchingStatus"></q-spinner-dots>
+                        </div>
+                      </q-chip>
+                    </div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -721,38 +738,39 @@ const refreshPage = async (done) => {
   done()
 }
 
+const checkProposalStatus = async () => {
+if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
+    isFetchingStatus.value = true
+    try {
+      if (pst.value.id) {
+        await pst.value.resolveStatus()
+      } else {
+        await pst.value.resolveStatusByInputs(isChipnet ? 'chipnet': 'mainnet')
+      }
+    } catch (error) {
+      $q.notify({
+        title: $t('Warning'),
+        color: 'warning',
+        textColor: 'black',
+        message: `Unable to determine if the proposal has been broadcasted or not. Error: ${error?.message}`,
+      })
+    } finally {
+      isFetchingStatus.value = false
+    }
+  }
+}
+
 onMounted(async () => {
 
   await loadWallet()
   await loadProposal()
-  
+  await checkProposalStatus()
   registerInterval(async () => {
-
     if (pst.value?.id && signingProgress.value?.signingProgress !== 'fully-signed') {
       pst.value.fetchAndMergeSignatures() 
     }
-    
-    if (!isFetchingStatus.value && !pst.value?.id) {
-      await pst.value.resolveStatusByInputs(isChipnet ? 'chipnet': 'mainnet')
-    }
-
-    if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
-      isFetchingStatus.value = true
-      try {
-        await pst.value.resolveStatus()
-      } catch( e) {
-        $q.notify({
-          title: $t('Warning'),
-          color: 'warning',
-          textColor: 'black',
-          message: error?.message,
-        })
-      } 
-      finally {
-        isFetchingStatus.value = false
-      }
-    }
-  }, 5000) 
+    await checkProposalStatus()
+  }, 10000) 
 
 })
 

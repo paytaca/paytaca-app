@@ -947,6 +947,12 @@ export class Pst {
             return this.status
           }
         }
+
+        this.status = {
+          status: STATUS.PENDING
+        }
+        
+        return this.status
       } catch (error) {
         console.error(`Error checking input status for txid ${txid}:`, error.message)
       }
