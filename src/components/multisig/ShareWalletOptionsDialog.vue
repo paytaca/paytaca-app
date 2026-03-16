@@ -29,7 +29,7 @@
         </div>
       </q-card-section>
       <q-card-actions>
-        <q-btn :label="$t('Close')" @click="onDialogCancel" color="red" v-close-popup></q-btn>
+        <q-btn :label="$t('Close')" @click="onDialogCancel" color="red" v-close-popup rounded></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>

@@ -257,7 +257,7 @@ import {
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import CopyButton from 'components/CopyButton.vue'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
-import WalletShareOptionsDialog from 'components/multisig/WalletShareOptionsDialog.vue'
+import ShareWalletOptionsDialog from 'components/multisig/ShareWalletOptionsDialog.vue'
 import WalletQrDialog from 'components/multisig/WalletQrDialog.vue'
 import ImportProposalSelectionDialog from 'components/multisig/ImportProposalSelectionDialog'
 
@@ -445,7 +445,7 @@ const handleDeleteWalletAction = () => {
 
 const handlShareWalletAction = () => {
   $q.dialog({
-    component: WalletShareOptionsDialog,
+    component: ShareWalletOptionsDialog,
     componentProps: {
       darkMode: darkMode.value,
       wallet: wallet.value,
