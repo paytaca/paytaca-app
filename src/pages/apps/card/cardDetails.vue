@@ -608,7 +608,7 @@
           </div>
 
           <div 
-            v-else-if="activeTab === 'Other Settings' && activeCard"
+            v-else-if="activeTab === 'Card Security' && activeCard"
             class="other-settings-container full-width"
           >
             <div 
@@ -992,7 +992,7 @@ export default {
   computed: {
     tabs () {
       const hasPhysicalCard = this.activeCard?.hasOrderedPhysicalCard || this.hasOrderedPhysicalCard
-      const baseTabs = ['Transactions', 'Manage Merchants', 'Other Settings']
+      const baseTabs = ['Transactions', 'Manage Merchants', 'Card Security']
       const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Card'
       baseTabs.splice(2, 0, thirdTab)
       return baseTabs
@@ -1053,7 +1053,7 @@ export default {
         'manage-merchants': 'Manage Merchants',
         'card-replacement': 'Card Replacement',
         'order-card': 'Order Card',
-        'other-settings': 'Other Settings'
+        'other-settings': 'Card Security'
       }
       if (tabMap[requestedTab]) {
         this.activeTab = tabMap[requestedTab]
