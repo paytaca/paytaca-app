@@ -5,7 +5,7 @@
 	        <q-skeleton type="text" width="50%" height="20px" style="margin: 0 auto;" />
 	    </div>
 
-	    <q-skeleton	animation="wave" type="rect" height="180px" class="br-15 q-mx-lg q-mt-md"/>
+	    <q-skeleton	animation="wave" type="rect" height="300px" class="br-15 q-mx-lg q-mt-md"/>
 
 	    <div class="skeleton-center q-mt-md">
 	    	<q-skeleton	animation="wave" type="text" width="30%" height="30px" style="margin: 0 auto;"/>
