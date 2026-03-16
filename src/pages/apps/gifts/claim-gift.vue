@@ -163,14 +163,43 @@ export default {
       // to ensure we use the correct wallet in multi-wallet setup
       if (!this.wallet) return null
       
-      const lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+      let lastAddressIndex = this.$store.getters['global/getLastAddressIndex'](walletType)
+      
+      // Validate that lastAddressIndex is a non-negative integer
+      let parsedIndex = parseInt(lastAddressIndex, 10)
+      if (isNaN(parsedIndex) || parsedIndex < 0) {
+        // Reset to 0 if invalid (log only in development to reduce production noise)
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('Invalid lastAddressIndex:', lastAddressIndex, ' - resetting to 0')
+        }
+        const isChipnet = this.$store.getters['isChipnet']
+        this.$store.commit('global/updateWallet', {
+          type: walletType,
+          isChipnet: isChipnet,
+          lastAddressIndex: 0
+        })
+        // Use the reset value
+        lastAddressIndex = 0
+        parsedIndex = 0
+      }
+      
+      // Additional validation to ensure we don't pass negative indices
+      if (parsedIndex < 0) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('Negative index after validation:', parsedIndex, ' - forcing to 0')
+        }
+        parsedIndex = 0
+      }
+      
       const wallet = walletType === 'slp' ? this.wallet.SLP : this.wallet.BCH
       
       try {
-        const addressSet = await wallet.getAddressSetAt(lastAddressIndex)
+        const addressSet = await wallet.getAddressSetAt(parsedIndex)
         return addressSet.receiving
       } catch (error) {
-        console.error('Error getting recipient address:', error)
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug('Error getting recipient address:', error)
+        }
         return null
       }
     },

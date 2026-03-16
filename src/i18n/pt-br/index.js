@@ -1760,7 +1760,7 @@ export default {
   ReserveSupply: "Fornecimento de reserva",
   ReservedAmount: "Montante Reservado",
   Reset: "Redefinir",
-  ResetWalletConnect: "Redefinir o Wallet Connect",
+  ResetWalletConnect: "Redefinir o WalletConnect",
   ResetWalletConnectConfirmMessage: "Isso desconectará todas as sessões ativas do WalletConnect e limpará as solicitações pendentes.Tem certeza?",
   ResolveAddress: "Local de entrada",
   Resolved: "Resolvido",

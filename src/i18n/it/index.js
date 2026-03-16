@@ -1055,7 +1055,7 @@ export default {
   InputOrderNoFromConnecta: "Inserisci il numero dell'ordine da Connecta",
   InputValidAddress: "Immettere un indirizzo valido",
   InputWIFKey: "Inserisci la chiave WIF dell'arbitro per accedere",
-  InputWalletConnectUri: "Inserisci l'URI di Wallet Connect",
+  InputWalletConnectUri: "Inserisci l'URI di WalletConnect",
   Input_SEP721_TokenAddress: "Immettere l'indirizzo del token SEP721",
   Inputs: "Ingressi",
   InstructionAds: "Il tuo annuncio accetterà i seguenti tipi di pagamento",

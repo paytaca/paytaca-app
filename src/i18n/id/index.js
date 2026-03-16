@@ -1760,7 +1760,7 @@ export default {
   ReserveSupply: "Persediaan cadangan",
   ReservedAmount: "Jumlah yang Dipesan",
   Reset: "Setel ulang",
-  ResetWalletConnect: "Setel Ulang Wallet Connect",
+  ResetWalletConnect: "Setel Ulang WalletConnect",
   ResetWalletConnectConfirmMessage: "Ini akan memutuskan semua sesi WalletConnect yang aktif dan menghapus permintaan yang tertunda.Apa kamu yakin?",
   ResolveAddress: "Lokasi masukan",
   Resolved: "Terselesaikan",

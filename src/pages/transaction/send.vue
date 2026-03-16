@@ -1154,7 +1154,9 @@ export default {
             amount = (amountValue / priceToUse).toFixed(8)
 
             currentRecipient.amount = amount
-            currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+            // When priceId is available, use the original fiat amount from the URI
+            // to ensure the displayed fiat amount matches exactly what was requested
+            currentRecipient.fiatAmount = vm.priceIdPrice ? amountValue : this.convertToFiatAmount(amount)
             currentInputExtras.amountFormatted = formatWithLocale(
               currentRecipient.amount, this.decimalObj(false)
             )

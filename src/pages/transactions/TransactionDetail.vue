@@ -2341,17 +2341,7 @@ export default {
           })
         }
 
-        // Website text
-        const websiteText = document.createElement('div')
-        websiteText.style.cssText = `
-          font-size: 26px;
-          font-weight: 500;
-          color: #4a5568;
-          letter-spacing: 0.2px;
-        `
-        websiteText.textContent = 'www.paytaca.com'
         footer.appendChild(paytacaLogoContainer)
-        footer.appendChild(websiteText)
         contentContainer.appendChild(footer)
 
         wrapper.appendChild(contentContainer)
@@ -2581,6 +2571,17 @@ export default {
       }
     },
     async preloadAudio () {
+      console.log('[NativeAudio] preloadAudio started')
+      // Configure NativeAudio to not take audio focus, allowing other apps
+      // (e.g. Spotify) to continue playing in the background
+      try {
+        console.log('[NativeAudio] calling configure...')
+        await NativeAudio.configure({ focus: false, fade: false })
+        console.log('[NativeAudio] configure success')
+      } catch (e) {
+        console.warn('[NativeAudio] configure error:', e)
+      }
+
       // Try different path formats for iOS
       let paths = ['send-success.mp3']
       if (this.$q.platform.is.ios) {
@@ -2597,6 +2598,7 @@ export default {
       
       for (const path of paths) {
         try {
+          console.log('[NativeAudio] trying preload path:', path)
           await NativeAudio.preload({
             assetId: 'send-success',
             assetPath: path,
@@ -2606,14 +2608,16 @@ export default {
           })
           // Store the successful path for later use
           this.successfulAudioPath = path
+          console.log('[NativeAudio] preload success with path:', path)
           return // Success, exit
         } catch (error) {
-          // Try next path
+          console.warn('[NativeAudio] preload failed for path:', path, error)
         }
       }
       throw new Error('All audio preload attempts failed')
     },
     async playSound (success) {
+      console.log('[NativeAudio] playSound called, success:', success)
       if (!success) return
 
       // Only allow audio for new-transaction views.
@@ -2623,19 +2627,24 @@ export default {
       const isNewTransaction = query.new === 'true' || 
                                (typeof query.category === 'string' && query.category.includes('?new=true')) ||
                                (window.location.search && window.location.search.includes('new=true'))
+      console.log('[NativeAudio] isNewTransaction:', isNewTransaction, 'query:', query)
       if (!isNewTransaction) return
       
       try {
         // Ensure audio is preloaded before playing
         if (!this.audioPreloaded) {
+          console.log('[NativeAudio] audio not preloaded, preloading...')
           await this.preloadAudio()
           this.audioPreloaded = true
         }
         
+        console.log('[NativeAudio] calling play()')
         await NativeAudio.play({
           assetId: 'send-success'
         })
+        console.log('[NativeAudio] play() completed')
       } catch (error) {
+        console.error('[NativeAudio] play error:', error)
         // Try to preload and play again (non-blocking)
         this.preloadAudio()
           .then(() => {

@@ -21,4 +21,12 @@ export default boot(async (obj) => {
     console.error('Failed to initialize WalletConnect v2 at startup:', error)
     // Don't throw - app should still work without WalletConnect
   }
+
+  // Initialize WizardConnect at app startup
+  try {
+    await store.dispatch('wizardconnect/init')
+    console.log('WizardConnect initialized successfully')
+  } catch (error) {
+    console.error('Failed to initialize WizardConnect:', error)
+  }
 })

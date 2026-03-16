@@ -1055,7 +1055,7 @@ export default {
   InputOrderNoFromConnecta: "Shigar da lambar odar daga Connecta",
   InputValidAddress: "Shigar da ingantaccen adireshin",
   InputWIFKey: "Shigar da maɓallin WIF na arbiter don shiga",
-  InputWalletConnectUri: "Shigar da Wallet Connect URI",
+  InputWalletConnectUri: "Shigar da WalletConnect URI",
   Input_SEP721_TokenAddress: "Shigar da adireshin Token SEP721",
   Inputs: "Abubuwan shigarwa",
   InstructionAds: "Tallan ku zai karɓi nau'ikan biyan kuɗi masu zuwa",

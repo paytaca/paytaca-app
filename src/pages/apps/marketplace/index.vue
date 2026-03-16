@@ -11,18 +11,16 @@
       </template>
     </HeaderNav>
 
-    <div class="pt-card pt-location-search-card br-15 q-mt-md q-mx-md q-pa-sm" :class="getDarkModeClass(darkMode)">
-      <div class="q-mx-sm q-my-sm">
-        <SessionLocationWidget ref="sessionLocationWidget" />
-      </div>  
+    <div class="pt-card pt-location-search-card br-15 q-my-md q-mx-md q-px-sm q-py-md" :class="getDarkModeClass(darkMode)">
+      <SessionLocationWidget ref="sessionLocationWidget" />
+    </div>
 
-      <div
-        class="q-px-md q-pt-xs q-pb-md sticky-below-header"
-        :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
-      >
-        <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
-      </div>
-    </div>    
+    <div
+      class="q-px-md q-pt-xs q-pb-md sticky-below-header"
+      :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
+    >
+      <MarketplaceSearch :customer-coordinates="customerCoordinates"/>
+    </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm">
@@ -185,13 +183,13 @@
       <!-- Orders section - Fixed at bottom when orders exist -->
       <div
         v-if="orders.length"
-        ref="ordersPanel"
-        v-intersection="ordersPanelIntersectionOptions"
-        class="q-mb-md q-pt-md orders-panel"
-        :class="{ 'orders--sticky-bottom': !ordersPanelStuck, 'orders--fixed-bottom': ordersPanelStuck }"
+        :class="['orders--sticky-bottom', $q.dark.isActive ? `bg-pt-dark` : `bg-pt-light`]"
       >
         <div class="col-12 row items-center q-px-sm">
-          <div class="text-h5 q-px-xs">Orders</div>
+          <div class="text-h5 q-px-xs">
+            Orders
+            <template v-if="ordersPagination.count > 1">({{ ordersPagination.count }})</template>
+          </div>
           <q-space/>
           <q-btn
             v-if="orders.length < ordersPagination.count"
@@ -573,13 +571,12 @@ async function fetchStorefronts(opts={ limit: 0, offset: 0, reset: false }) {
 const fetchingOrders = ref(false)
 const orders = ref([].map(Order.parse))
 const ordersPagination = ref({ count: 0, limit: 0, offset: 0 })
-const ordersPanel = ref(null)
-const ordersPanelStuck = ref(false)
 
 async function fetchOrders(opts = { limit: 0, offset: 0 }) {
+  // Currently fetches active orders (i.e. not completed or cancelled)
   const params = {
     ref: await $store.dispatch('marketplace/getCartRef'),
-    limit: opts?.limit || 2,
+    limit: opts?.limit || 1,
     offset: opts?.offset || undefined,
     exclude_statuses: ['completed', 'cancelled'].join(','),
   }
@@ -604,19 +601,6 @@ async function fetchOrders(opts = { limit: 0, offset: 0 }) {
     .finally(() => {
       fetchingOrders.value = false
     })
-}
-
-const ordersPanelIntersectionOptions = {
-  /**
-   * @param {IntersectionObserverEntry} observerEntry
-   */
-  handler(observerEntry) {
-    // When intersection ratio is low (< 0.95), the panel is out of view and should be fixed
-    ordersPanelStuck.value = observerEntry.intersectionRatio < 0.95
-  },
-  cfg: {
-    threshold: new Array(100).fill(0).map((e, index) => index / 100)
-  }
 }
 
 async function refreshPage(done=() => {}) {
@@ -659,28 +643,22 @@ table.orders-table td {
 
 .orders--sticky-bottom {
   position: sticky;
-  bottom: 0;
+  bottom: max(0.75vh, 4px);
   left: 0;
   right: 0;
   z-index: 100;
-  transition: all 0.15s ease-out;
-}
-
-.orders--fixed-bottom {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  margin-left: 8px;
-  margin-right: 8px;
-  border-radius: 15px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  padding-top: 16px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
   transition: all 0.15s ease-out;
 
-  .orders-list {
-    max-height: 25vh;
-    overflow-y: auto;
+  #app-container.dark & {
+    border-top-color: rgba(255, 255, 255, 0.15);
+  }
+  #app-container.light & {
+    border-top-color: rgba(0, 0, 0, 0.1);
   }
 }
 

@@ -1,16 +1,6 @@
 <template>
-	<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
-		<template v-slot:top-right-menu>
-			<div class="q-mr-sm">
-				<q-btn flat round @click="$router.push({ name: 'eload-service-orders' })">
-					<q-icon name="receipt_long" size="30px"/>
-				</q-btn>					
-			</div>	        	
-	    </template>
-	</HeaderNav>
-
 	<div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
-		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
+		<div v-if="purchaseSuccess" ref="paymentSuccessMessage" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center pt-card text-bow" :class="getDarkModeClass(darkMode)">
 				<q-icon name="task_alt" size="64px" class="text-positive" />
 				<div class="text-weight-bold text-h6 q-mt-sm" :class="darkMode ? 'text-white' : 'text-grey-9'">Payment sent</div>
@@ -26,12 +16,20 @@
 					<div class="col-8 text-weight-bold text-right success-value" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ selectedPromo?.name || '—' }}</div>
 				</div>
 				<div class="row q-mb-xs success-row">
-					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Amount</div>
-					<div class="col-8 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedAmountToPayPhp }} PHP</div>
+					<div class="col-5 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Subtotal</div>
+					<div class="col-7 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedAmountToPayPhp }} PHP</div>
 				</div>
 				<div class="row q-mb-xs success-row">
-					<div class="col-4 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Equivalent</div>
-					<div class="col-8 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">≈ {{ formattedAmountToPayBch || '—' }} BCH</div>
+					<div class="col-5 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Convenience Fee</div>
+					<div class="col-7 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedConvenienceFeePhp }} PHP</div>
+				</div>
+				<div class="row q-mb-xs success-row">
+					<div class="col-5 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">Total</div>
+					<div class="col-7 text-weight-bold text-right md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedTotalPhp }} PHP</div>
+				</div>
+				<div class="row q-mb-xs success-row">
+					<div class="col-5 sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">≈ BCH Paid</div>
+					<div class="col-7 text-weight-bold text-right" :class="darkMode ? 'text-white' : 'text-grey-9'">{{ formattedTotalBch }} BCH</div>
 				</div>
 
 				<div v-if="purchaseTxid" class="q-mt-md">
@@ -298,11 +296,7 @@
 					:class="getDarkModeClass(darkMode)"
 				>
 					<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-8'">
-						Amount to pay
-					</div>
-
-					<div class="text-weight-bold text-h6 q-mt-xs" :class="darkMode ? 'text-white' : 'text-grey-9'">
-						{{ formattedAmountToPayPhp }} PHP
+						Payment Breakdown
 					</div>
 
 					<div v-if="phpBchRateLoading" class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
@@ -311,8 +305,40 @@
 					<div v-else-if="phpBchRateError" class="sm-font-size q-mt-xs text-negative">
 						{{ phpBchRateError }}
 					</div>
-					<div v-else class="sm-font-size q-mt-xs" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-						≈ {{ formattedAmountToPayBch || '—' }} BCH
+					<div v-else>
+						<!-- Subtotal -->
+						<div class="row justify-between items-center q-mt-sm">
+							<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Subtotal</div>
+							<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+								{{ formattedAmountToPayPhp }} PHP
+							</div>
+						</div>
+
+						<!-- Convenience Fee -->
+						<div class="row justify-between items-center q-mt-xs">
+							<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Convenience Fee</div>
+							<div class="sm-font-size text-weight-medium" :class="darkMode ? 'text-white' : 'text-grey-9'">
+								{{ formattedConvenienceFeePhp || '—' }} PHP
+							</div>
+						</div>
+
+						<q-separator class="q-my-sm" :class="darkMode ? 'bg-grey-7' : 'bg-grey-4'" />
+
+						<!-- Total in PHP -->
+						<div class="row justify-between items-center q-mb-xs">
+							<div class="text-weight-bold" :class="darkMode ? 'text-white' : 'text-grey-9'">Total</div>
+							<div class="text-weight-bold md-font-size" :class="darkMode ? 'text-white' : 'text-grey-9'">
+								{{ formattedTotalPhp || '—' }} PHP
+							</div>
+						</div>
+
+						<!-- BCH Equivalent -->
+						<div class="row justify-between items-center">
+							<div class="sm-font-size" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">≈ BCH Equivalent</div>
+							<div class="text-weight-bold text-h6" :class="darkMode ? 'text-white' : 'text-grey-9'">
+								{{ formattedTotalBch || '—' }} BCH
+							</div>
+						</div>
 					</div>
 				</q-card>
 
@@ -394,7 +420,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
 import ServiceCard from 'src/components/eload/ServiceCard.vue'
 import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
-import HeaderNav from 'src/components/header-nav.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import { cachedLoadWallet, Address } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -402,6 +427,7 @@ import * as sendPageUtils from 'src/utils/send-page-utils'
 import Pin from 'src/components/pin/index.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { Keyboard } from '@capacitor/keyboard'
 import CountrySelector from 'src/components/settings/CountrySelector.vue'
 
 // Note: service = purchaseType; service-group = serviceProviders
@@ -546,6 +572,33 @@ export default {
 			const num = typeof raw === 'number' ? raw : parseFloat(String(raw))
 			return Number.isFinite(num) ? num : null
 		},
+		convenienceFeePhp () {
+			// Read fee from promo details (provided by API)
+			const raw = this.selectedPromo?.fee
+			const num = typeof raw === 'number' ? raw : parseFloat(String(raw))
+			return Number.isFinite(num) ? num : null
+		},
+		totalPhp () {
+			if (!Number.isFinite(this.amountToPayPhp)) return null
+			return this.amountToPayPhp + (this.convenienceFeePhp || 0)
+		},
+		totalBchAmount () {
+			if (!Number.isFinite(this.totalPhp)) return null
+			if (!Number.isFinite(this.phpPerBchRate) || this.phpPerBchRate === 0) return null
+			return this.totalPhp / this.phpPerBchRate
+		},
+		formattedConvenienceFeePhp () {
+			if (!Number.isFinite(this.convenienceFeePhp)) return ''
+			return formatWithLocale(this.convenienceFeePhp, { max: 2 })
+		},
+		formattedTotalPhp () {
+			if (!Number.isFinite(this.totalPhp)) return ''
+			return formatWithLocale(this.totalPhp, { max: 2 })
+		},
+		formattedTotalBch () {
+			if (!Number.isFinite(this.totalBchAmount)) return ''
+			return formatWithLocale(this.totalBchAmount, { max: 8 })
+		},
 		phpPerBchRate () {
 			const localRate = this.phpBchRate
 			const storeRate = this.$store.getters['market/getAssetPrice']?.('bch', 'PHP')
@@ -566,9 +619,9 @@ export default {
 			return Number.isFinite(num) ? num : null
 		},
 		bchAmountString () {
-			if (!Number.isFinite(this.amountToPayBch)) return null
+			if (!Number.isFinite(this.totalBchAmount)) return null
 			// API expects decimal/string; keep a stable precision (BCH has 8 decimals)
-			const fixed = Number(this.amountToPayBch).toFixed(8)
+			const fixed = Number(this.totalBchAmount).toFixed(8)
 			// trim trailing zeros
 			return fixed.replace(/\.?0+$/, match => (match === '.' ? '' : ''))
 		},
@@ -613,7 +666,6 @@ export default {
 		ServiceCard,
 		PromoInfoCard,
 		DragSlide,
-		HeaderNav,
 		Pin,
 		BiometricWarningAttempt,
 		CountrySelector
@@ -856,7 +908,14 @@ export default {
 				if (!Number.isFinite(quoteId) || !bchAmount) throw new Error('Missing BCH quote/amount')
 
 				const address = vm.addressForPayload
-				const promoSnapshot = { ...(vm.selectedPromo || {}), address }
+				const promoSnapshot = {
+					...(vm.selectedPromo || {}),
+					address,
+					subtotal_php: vm.formattedAmountToPayPhp,
+					convenience_fee_php: vm.formattedConvenienceFeePhp,
+					total_php: vm.formattedTotalPhp,
+					total_bch: vm.formattedTotalBch
+				}
 
 				const result = await eloadServiceAPI.createOrder({
 					promo: vm.selectedPromo?.id,
@@ -904,6 +963,17 @@ export default {
 			}
 
 			vm.buying = true
+
+			// Hide keyboard immediately when payment processing begins
+			try {
+				await Keyboard.hide()
+			} catch (e) {
+				// Fallback: blur any focused input
+				if (document.activeElement && document.activeElement.blur) {
+					document.activeElement.blur()
+				}
+			}
+
 			try {
 				// Ensure txn is prepared (creates server-side order if needed).
 				if (!vm.txnRecipientAddress) {
@@ -974,6 +1044,14 @@ export default {
 
 				vm.purchaseTxid = sendResult?.txid || ''
 				vm.purchaseSuccess = true
+
+				// Scroll to the payment success message
+				vm.$nextTick(() => {
+					const successEl = vm.$refs.paymentSuccessMessage
+					if (successEl && successEl.scrollIntoView) {
+						successEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+					}
+				})
 			} catch (error) {
 				console.error('[Eload] Buy failed:', error)
 				const userMessage = error?.userMessage || 'Unable to complete purchase'
