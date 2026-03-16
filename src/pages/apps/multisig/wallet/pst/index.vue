@@ -21,15 +21,23 @@
             <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('Import') }}</div>
           </div>
         </div>
-        <q-list v-if="proposals?.length > 0" separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
+        <q-list v-if="proposals?.length > 0 || loadingProposals" separator class="col-xs-12" :class="getDarkModeClass(darkMode)">
             <q-item-label header>
               {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
             </q-item-label>
+            <q-separator></q-separator>
             <q-item 
               v-for="p, i in proposals" 
               :key="i" 
               :class="getDarkModeClass(darkMode)"
-              class="pt-card"
+              clickable
+              @click="router.push({ 
+                name: 'app-multisig-wallet-pst-view', 
+                params: { 
+                  wallethash: route.params.wallethash, 
+                  unsignedtransactionhash: p?.unsignedTransactionHash 
+                }
+              })"
               >
               <q-item-section avatar>
                 <q-avatar>
@@ -46,7 +54,7 @@
                 <q-item-label caption>
                   <div>Origin: {{ p.origin || 'N/A' }}</div>
                 </q-item-label>
-                <q-item-label caption class="flex items-center q-gutter-x-xs">
+                <q-item-label v-if="p.id" caption class="flex items-center q-gutter-x-xs">
                   <q-icon name="mdi-cloud-outline"></q-icon>
                   <div>ID: {{ p.id }}</div>
                 </q-item-label>
@@ -57,23 +65,20 @@
               </q-item-section>
               <q-item-section side>
                   <q-btn
-                    @click="router.push({ 
-                    name: 'app-multisig-wallet-pst-view', 
-                    params: { 
-                      wallethash: route.params.wallethash, 
-                      unsignedtransactionhash: p?.unsignedTransactionHash 
-                    }
-                  })"
                   color="primary"
-                  outline
+                  flat
                   rounded 
                   no-caps
-                  icon="mdi-file-eye-outline"
+                  icon="mdi-gesture-tap"
                   :label="$t('Open')"
                   ></q-btn>
               </q-item-section>
             </q-item>
+            <q-inner-loading :showing="loadingProposals">
+              <q-spinner size="50px" color="primary" />
+            </q-inner-loading>
         </q-list>
+
     </div>
   </div>
   
@@ -101,6 +106,8 @@ const {
   multisigNetworkProvider,
   multisigCoordinationServer
 } = useMultisigHelpers() 
+
+const loadingProposals = ref(false)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -169,6 +176,7 @@ const importProposals = () => {
 }
 
 const loadProposals = async () => {
+  loadingProposals.value = true
   try {
     proposals.value = []
     const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
@@ -192,6 +200,8 @@ const loadProposals = async () => {
       message: error.message,
       class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
     })
+  } finally {
+    loadingProposals.value = false
   }
 }
 
