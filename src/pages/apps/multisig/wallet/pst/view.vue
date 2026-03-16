@@ -27,7 +27,7 @@
                         <q-tooltip>{{ $t('Copy') }}</q-tooltip>
                       </q-btn>
                     </div>
-                    <div class="col-12 text-caption">{{ $t('ProposedBy') }} : {{ proposedBy }}</div>
+                    <div class="col-12 text-caption">{{ $t('ProposedBy') }} : {{ proposedBy.name || $t('Unknown') }} <span v-if="Boolean(proposedBy.xprv)" class="text-italic">({{ $t('You') }})</span></div>
                     <div v-if="pst.id" class="col-12 text-caption flex items-center">
                       <span>{{ $t('Coordinator') }}</span>
                       <q-icon name="mdi-cloud-outline" class="q-ml-sm"></q-icon> :
@@ -42,7 +42,10 @@
                       </q-chip>
                       <q-chip v-if="pst.status">
                         <div class="flex items-end q-gutter-x-sm">
-                          <span class="text-capitalize text-italic text-caption">{{ pst.status?.status }}, {{ signingProgress.signingProgress }}</span>
+                          <div class="flex-items-center">
+                            <q-icon v-if="pst.status?.status === STATUS.CONFLICTED" name="mdi-alert" color="red"></q-icon>
+                            <span class="text-capitalize text-italic text-caption">{{ pst.status?.status }}, {{ signingProgress.signingProgress }}</span>
+                          </div>
                           <q-spinner-dots v-if="isFetchingStatus"></q-spinner-dots>
                         </div>
                       </q-chip>
@@ -275,7 +278,7 @@
           {{ $t('SignTx') }}
         </q-btn>
       </div>
-      <div v-if="pst && (signingProgress?.signingProgress === 'unsigned' || signingProgress?.signingProgress === 'partially-signed') && !canSign" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
+      <div v-if="pst && pst.status?.status !== STATUS.CONFLICTED && (signingProgress?.signingProgress === 'unsigned' || signingProgress?.signingProgress === 'partially-signed') && !canSign" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
         <q-btn
           color="primary"
           rounded
@@ -288,7 +291,20 @@
           {{ $t(`WaitingFor${signingProgress?.signingProgress === 'unsigned'? '': 'More'}Signatures`) }}
         </q-btn>
       </div>
-         <div
+      <div v-else-if="pst?.status?.status === STATUS.CONFLICTED" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
+        <q-btn
+          color="red"
+          rounded
+          no-caps
+          unelevated
+          class="full-width q-py-md"
+          @click="() => onDeleteProposalAction(true)"
+        >
+          <q-icon name="mdi-alert" class="q-mr-sm"></q-icon>
+          {{ $t('DeleteConflictedProposal') }}
+        </q-btn>
+      </div>
+      <div
           v-if="showActionConfirmationSlider"
           class="action-confirmation-backdrop"
           @click="cancelActionConfirmationSlider"
@@ -369,7 +385,8 @@ const pstOutputsTokenCategories = computed(() => {
 const proposedBy = computed(() => {
   if (!pst.value || !wallet.value || !wallet.value.signers) return
   const creator = pst.value.getSignerWhoCreatedProposal()
-  return creator?.name || $t('Unknown')
+  // return creator?.name || $t('Unknown')
+  return creator
 })
 
 const coordinator = computed(() => {
@@ -501,12 +518,12 @@ const showProposalDetailsDialog = () => {
   })
 }
 
-const onDeleteProposalAction = async () => {
+const onDeleteProposalAction = async (sync = false) => {
   $q.dialog({
     message: $t('MultisigDeleteProposalConfirmationMessage', {}, 'Are you sure you want to delete this transaction proposal?'),
     ok: { 
-      label: $t('Yes'),
-      color: 'primary',
+      label: $t('YesDelete', {}, 'Yes, Delete'),
+      color: 'negative',
       rounded: true,
       class: `button-default ${getDarkModeClass(darkMode.value)}`,
     },
@@ -520,7 +537,7 @@ const onDeleteProposalAction = async () => {
     html: true,
     class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
   }).onOk(() => {
-    pst.value.delete({ sync: false })
+    pst.value.delete({ sync })
     router.push({ name: 'app-multisig' })
   })
 }
@@ -782,6 +799,36 @@ const loadProposal = async () => {
 watch(() => pst.value?.status, async (newVal) => {
   if (newVal && newVal?.txid && (newVal.status === STATUS.BROADCASTED || newVal.status === STATUS.MEMPOOL || newVal.status === STATUS.CONFIRMED)) {
     return showBroadcastSuccessDialog(newVal.txid)
+  }
+  if (newVal && newVal?.status === STATUS.CONFLICTED) {
+    const spendingTxid = newVal.txid
+    const outpointTxid = shortenString(newVal.outpointTransactionHash, 16)
+    const outpointIndex = newVal.outpointIndex
+    const explorerUrl = isChipnet ? `https://chipnet.bchexplorer.info/tx/${spendingTxid}` : `https://bchexplorer.info/tx/${spendingTxid}`
+    $q.dialog({
+      title: `<div class="flex items-center q-gutter-x-sm"><i class="q-icon text-red mdi mdi-alert" aria-hidden="true"> </i><span>${$t('Conflicted')}</span></div>`,
+      message: $t('ConflictedProposalMessage', { txid: spendingTxid, explorerUrl, outpointTxid, outpointIndex }, 'Hmm, It looks like your cosigners created and broadcasted a different proposal. An input in this transaction has already been spent.<br><br>Input: <span class="text-bold">{outpointTxid}:{outpointIndex}</span><br><br><a href="{explorerUrl}" target="_blank" class="text-primary">View spending transaction</a><br><br>Do you want to delete this transaction proposal?'),
+      ok: { 
+        label: $t('YesDelete', {}, 'Yes Delete'),
+        color: 'negative',
+        rounded: true,
+        noCaps: true,
+        class: `button-default ${getDarkModeClass(darkMode.value)}`,
+      },
+      cancel: { 
+        label: $t('No'),
+        color: 'default',
+        outline: true,
+        noCaps: true,
+        rounded: true,
+        class: `button-default ${getDarkModeClass(darkMode.value)}`,
+      },
+      html: true,
+      class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
+    }).onOk(() => {
+      pst.value.delete({ sync: false })
+      router.push({ name: 'app-multisig' })
+    })
   }
 }, { deep: true })
 
