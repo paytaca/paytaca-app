@@ -314,7 +314,7 @@ const assetPrice = computed(() => {
 
 const send = async () => {
   
-  if (!proposals || proposals.value.length === 0) {
+  if (wallet.value.isOnline() && (!proposals || proposals.value.length === 0)) {
     proposalsFromServer.value = await wallet.value?.fetchProposals()
   }
   
