@@ -609,11 +609,10 @@
 
           <div 
             v-else-if="activeTab === 'Card Security' && activeCard"
-            class="other-settings-container full-width"
+            class="full-width"
           >
             <div 
               class="settings-section q-mb-md"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
             >
               <div class="settings-header q-pa-md">
                 <div 
@@ -624,7 +623,7 @@
                 </div>
               </div>
 
-              <q-separator :dark="$q.dark.isActive" />
+              <q-separator color="primary" />
 
               <div class="settings-list">
                 <div class="settings-item">
@@ -656,7 +655,7 @@
                   />
                 </div>
 
-                <q-separator :dark="$q.dark.isActive" />
+                <q-separator color="primary" />
 
                 <div class="settings-item">
                   <div class="settings-item-content">
@@ -687,13 +686,12 @@
                   />
                 </div>
 
-                <q-separator :dark="$q.dark.isActive" />
+                <q-separator color="primary" />
               </div>
             </div>
 
             <div 
               class="settings-section q-mb-md"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
             >
               <div class="settings-header q-pa-md">
                 <div 
@@ -704,7 +702,7 @@
                 </div>
               </div>
 
-              <q-separator :dark="$q.dark.isActive" />
+              <q-separator color="primary" />
 
               <div class="settings-list">
                 <div class="settings-item clickable" @click="showSweepFundsDialog = true">
@@ -732,7 +730,6 @@
 
             <div 
               class="settings-section"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
             >
               <div class="settings-header q-pa-md">
                 <div 
@@ -743,7 +740,7 @@
                 </div>
               </div>
 
-              <q-separator :dark="$q.dark.isActive" />
+              <q-separator color="primary" />
 
               <div class="settings-list">
                 <div 
