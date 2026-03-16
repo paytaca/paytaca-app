@@ -254,7 +254,7 @@
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<q-skeleton
-						v-for="i in 3"
+						v-for="i in 2"
 						:key="'svc-' + i"
 						animation="wave"
 						type="rect"
