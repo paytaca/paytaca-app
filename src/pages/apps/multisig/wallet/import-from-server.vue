@@ -75,7 +75,6 @@ const $q = useQuasar()
 const { t: $t } = useI18n()
 const router = useRouter()
 const {
-  resolveXprvOfXpub,
   getWalletsFromVault,
   multisigCoordinationServer
 } = useMultisigHelpers()
@@ -110,7 +109,7 @@ const fetchWallets = async () => {
 
   const localWallets = await getWalletsFromVault()
 
-  for (const localWallet of localWallets.value) {
+  for (const localWallet of localWallets) {
 
     if (localWallet.deleted) continue 
     
