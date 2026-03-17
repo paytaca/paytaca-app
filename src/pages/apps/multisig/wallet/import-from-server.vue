@@ -27,7 +27,12 @@
             <q-item-label>No Data</q-item-label>
             </q-item-section>
             </q-item>	
-            <q-item v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)" clickable v-ripple class="q-my-md">
+            <q-item 
+              v-for="wallet in multisigWalletsFromServer?.filter(w => !w.enabled)" 
+              clickable v-ripple 
+              class="q-my-md"
+              @click="downloadWallet(wallet)"
+              >
               <q-item-section>
                 <q-item-label class="text-bold text-h6 q-mb-sm" >
                   <q-icon name="wallet" size="md" color="primary"></q-icon>
@@ -47,7 +52,7 @@
                 </div>
               </q-item-section>
               <q-item-section side top> 
-                  <q-btn color="primary" icon="mdi-cloud-download-outline" @click="downloadWallet(wallet)" dense round size="md"></q-btn>
+                  <q-btn color="primary" icon="mdi-cloud-download-outline" flat></q-btn>
               </q-item-section>               
             </q-item>
             <q-separator></q-separator>
@@ -68,8 +73,8 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import { decryptECIES } from 'src/lib/multisig/encryption'
-import { binToHex, decodeHdPrivateKey, decodeHdPublicKey } from 'bitauth-libauth-v3'
+import { decryptAES256GCM, decryptECIES, splitAES256GCMIvAndEncrypted } from 'src/lib/multisig/encryption'
+import { binToHex, decodeHdPrivateKey, decodeHdPublicKey, hexToBin } from 'bitauth-libauth-v3'
 const $store = useStore()
 const $q = useQuasar()
 const { t: $t } = useI18n()
@@ -115,34 +120,48 @@ const fetchWallets = async () => {
     
     if (!localWallet.xpub) continue
 
-    const xpub = localWallet.xpub
-    // const xprv = await resolveXprvOfXpub({ xpub })
-    const xprv = localWallet.xprv
+    if (!localWallet.xprv) continue
+
+    const multisigWalletsRetrievedFromServer = 
+      await multisigCoordinationServer.getSignerWalletsByMasterFingerprint({ 
+        masterFingerprint: localWallet.masterFingerprint 
+      })
     
-    if (!xprv) continue
+    multisigWalletsRetrievedFromServer?.forEach(async (wallet) => {
 
-    const publicKey = binToHex(decodeHdPublicKey(xpub).node.publicKey)
-
-    const onlineWallets = await multisigCoordinationServer.getSignerWallets({ publicKey })
-    onlineWallets?.forEach(async (wallet) => {
-
-      const signer = wallet.signers.find((s) => s.publicKey === publicKey)
+      const signer = wallet.signers.find((s) => s.masterFingerprint === localWallet.masterFingerprint)
 
       if (!signer) return
 
-      const privateKey = decodeHdPrivateKey(xprv).node.privateKey
-      const bsmsDescriptor = await decryptECIES(privateKey, signer.walletDescriptor)
+      const signerWalletDescriptorWrappedDek = signer.walletDescriptorWrappedDek
 
-      if (!bsmsDescriptor?.includes(xpub)) return
+      const walletDescriptorDek = await decryptECIES(
+        decodeHdPrivateKey(localWallet.xprv).node.privateKey,
+        signerWalletDescriptorWrappedDek,
+        'hex'
+      )
 
-      const parsedBsmsDescriptor = MultisigWallet.parseBsmsDescriptor(bsmsDescriptor)
+      const { encryptedBytes, iv } = splitAES256GCMIvAndEncrypted(
+        wallet.walletDescriptor
+      )
+      
+      const decryptedWalletDescriptor = await decryptAES256GCM(
+        encryptedBytes,
+        hexToBin(walletDescriptorDek),
+        iv
+      )
+      
+      if (!decryptedWalletDescriptor?.includes(localWallet.xpub)) return 
+
+      const parsedBsmsDescriptor = MultisigWallet.parseBsmsDescriptor(decryptedWalletDescriptor)
       const signers = parsedBsmsDescriptor.signers.map(s => {
-        const name = wallet.signers.find((ws) => ws.publicKey === binToHex(decodeHdPublicKey(s.xpub).node.publicKey))?.name
+        const name = wallet.signers.find((ws) => ws.masterFingerprint === s.masterFingerprint)?.name
         return {
           ...s,
           name
         }
       })
+
       const onlineMultisigWallet = new MultisigWallet({
         id: wallet.id,
         name: wallet.name,
