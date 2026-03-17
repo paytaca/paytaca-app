@@ -92,13 +92,7 @@
           @load-more="loadMore"
         >
           <template #item="{ item }">
-            <order-transaction-item
-              v-if="item.type === 'order'"
-              :data="item"
-              :dark-mode="darkMode"
-            />
-            <o-t-c-transaction-item
-              v-else-if="item.type === 'otc'"
+            <transaction-item
               :data="item"
               :dark-mode="darkMode"
             />
@@ -117,8 +111,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import TransactionList from 'src/components/rewards/marketplace/TransactionList.vue'
 import TransactionFilters from 'src/components/rewards/marketplace/TransactionFilters.vue'
-import OTCTransactionItem from 'src/components/rewards/marketplace/OTCTransactionItem.vue'
-import OrderTransactionItem from 'src/components/rewards/marketplace/OrderTransactionItem.vue'
+import TransactionItem from 'src/components/rewards/marketplace/TransactionItem.vue'
 
 export default {
   name: 'MarketplaceHistory',
@@ -128,8 +121,7 @@ export default {
     ErrorCard,
     TransactionList,
     TransactionFilters,
-    OTCTransactionItem,
-    OrderTransactionItem
+    TransactionItem
   },
 
   props: {
