@@ -82,7 +82,7 @@
                     rounded
                     color="primary"
                     class="q-mr-sm"
-                    @click="securityCheckWithdrawPool(pool)"
+                    @click="confirmWithdrawPool(pool)"
                   />
                   <!-- To add later to view pool history -->
                   <q-btn
@@ -271,6 +271,25 @@ export default defineComponent({
       })
     })
 
+    function confirmWithdrawPool(pool) {
+      $q.dialog({
+        title: $t('ConfirmWithdrawPool'),
+        message: $t('ConfirmWithdrawPoolMessage'),
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
+        ok: {
+          label: $t('Withdraw'),
+          color: 'negative',
+          flat: true
+        },
+        cancel: {
+          label: $t('Cancel'),
+          color: 'primary',
+          flat: true
+        },
+        persistent: true
+      }).onOk(() => securityCheckWithdrawPool(pool))
+    }
+
     function securityCheckWithdrawPool(pool) {
       $q.dialog({ component: SecurityCheckDialog }).onOk(() => withdrawPool(pool))
     }
@@ -398,6 +417,7 @@ export default defineComponent({
       formatAmount,
       formatTokenAmount,
       getExplorerLink,
+      confirmWithdrawPool,
       securityCheckWithdrawPool,
       refreshPage,
       getAddressExplorerLink,
