@@ -1,5 +1,5 @@
 import { bigIntToCompactUint, binToHex, hash256, secp256k1, utf8ToBin } from "bitauth-libauth-v3"
-import { encryptECIES } from "./encryption.js";
+import { encryptAES256GCM, encryptECIES } from "./encryption.js";
 
 export class BsmsDescriptor {
     /**
@@ -34,6 +34,10 @@ export class BsmsDescriptor {
         this.branchRange = branchRange;
         this.pathRestrictions = pathRestrictions;
         this.firstAddress = firstAddress;
+    }
+
+    async encrypt(secretKeyHex) {
+        return await encryptAES256GCM(utf8ToBin(this.toString()), secretKeyHex)
     }
 
     /**
