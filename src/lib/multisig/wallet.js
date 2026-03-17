@@ -142,7 +142,7 @@ import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutput
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
-import { encryptECIES } from './encryption.js'
+import { decryptAES256GCM, decryptECIES, encryptAES256GCM, encryptECIES, generateAES256GCMKey } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
@@ -1405,7 +1405,7 @@ export class MultisigWallet {
     this.name = otherWallet.walletName || otherWallet.name
     this.version = otherWallet.version
   }
-  
+
   /**
    * @param {object} saveOptions
    */
@@ -1415,9 +1415,19 @@ export class MultisigWallet {
     if (!this.options?.coordinationServer) return
 
     const wallet = structuredClone(this.toJSON())
+
     wallet.walletDescriptorId = this.generateBsmsDescriptorId()
     wallet.walletHash = this.getWalletHash()
 
+    const symmetricKey = await generateAES256GCMKey(true)
+
+    const encryptedWalletDescriptor = 
+      await this.generateBsmsDescriptor().encrypt(
+        binToHex(new Uint8Array(symmetricKey))
+      )
+
+    wallet.walletDescriptor = encryptedWalletDescriptor.combinedIvAndEncryptedData
+    
     let coordinator = null
     for (const signer of wallet.signers) {
       // Elect first found signer with private key on this device as coordinator
@@ -1429,15 +1439,16 @@ export class MultisigWallet {
         }
       }
       if (enablePrivacy) {
-        const unencryptedBsmsDescriptor = this.generateBsmsDescriptor()
-        const encryptedBsmsDescriptor = await encryptECIES(
-          MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub),
-          utf8ToBin(unencryptedBsmsDescriptor)
-        )
         
         signer.derivationPath = signer.path || signer.derivationPath || `m/44'/145'/0'`
         signer.publicKey = binToHex(MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub))
-        signer.walletDescriptor = encryptedBsmsDescriptor 
+
+        const walletDescriptorWrappedDek = await encryptECIES(
+          MultisigWallet.extractRawPublicKeyFromXpub(signer.xpub),
+          new Uint8Array(symmetricKey)
+        )
+        signer.walletDescriptorWrappedDek = walletDescriptorWrappedDek
+
         signer.authPublicKey = binToHex(derivePublicKey(signer.xpub, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH))
         if (coordinator && signer.xpub === coordinator.xpub) {
           signer.coordinator = true
@@ -1464,6 +1475,11 @@ export class MultisigWallet {
       key: coordinator.publicKey 
     })
     coordinatorKeyRecord.sign(decodedHdPrivateKey.node.privateKey)
+
+    const encryptedCoordinatorKeyRecord = 
+      coordinatorKeyRecord.encrypt(binToHex(new Uint8Array(symmetricKey)))
+
+    wallet.coordinatorKeyRecord = encryptedCoordinatorKeyRecord // Add this in watchtower
 
     for (const s of wallet.signers) {
       delete s.mnemonic 
@@ -1670,22 +1686,16 @@ async generateCosignerAuthCredentials(xpub) {
 }
 
 async sync() {
+  
   if (!this.options?.coordinationServer) return
 
   const [loadServerIdentityResponse, getWalletResponse] = 
     await Promise.allSettled([
       this.loadSignersServerIdentity(), 
       this.options?.coordinationServer?.getWallet({ 
-        identifier: this.generateBsmsDescriptorId() 
+        identifier: this.generateBsmsDescriptorId()
       })
     ])
-  
-  // Sync this wallet's id if it's deleted from the server
-  if (getWalletResponse?.status === 'rejected' && getWalletResponse.reason?.status === 404) {
-    if (this.id) { 
-      this.options?.store?.commit('multisig/updateWalletId', { oldId: this.id, newId: '' })
-    }
-  } 
 
   if (loadServerIdentityResponse?.status === 'fulfilled' && !loadServerIdentityResponse.value) {
     await this.loadSignersMnemonic()
@@ -1704,11 +1714,17 @@ async sync() {
     }
   }
 
-  if (getWalletResponse?.value?.id) {
-    this.id = getWalletResponse.value.id
+  if (getWalletResponse?.status === 'rejected' && getWalletResponse.reason?.response?.status === 404) {
+    this.id = ''
+  }
+
+  if (getWalletResponse?.status === 'fullfilled') {
+    this.id = getWalletResponse.value?.id
   }
 
   this.save()
+
+  return this 
 }
 
 
@@ -1834,10 +1850,10 @@ static cashAddressToTokenAddress(cashAddress) {
         throw new Error(`Failed to decode xprv: ${decodeResult}`);
     }
     // Note: privateKey might be undefined if you pass in an xpub string accidentally
-    if (!decodeResult.privateKey) {
+    if (!decodeResult.node.privateKey) {
         throw new Error("Could not extract private key from provided string.");
     }
-    return decodeResult.privateKey;
+    return decodeResult.node.privateKey;
   }
 
 
@@ -1866,11 +1882,11 @@ static cashAddressToTokenAddress(cashAddress) {
         signers: signers,
         firstAddress: firstAddress
       })
-      return descriptor.toString()
+      return descriptor
   }
 
   generateBsmsDescriptorId() {
-    return binToHex(sha256.hash(utf8ToBin(this.generateBsmsDescriptor())))
+    return binToHex(sha256.hash(utf8ToBin(this.generateBsmsDescriptor().toString())))
   }
 
   /**
