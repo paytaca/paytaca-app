@@ -142,6 +142,8 @@ const phrases = {
       TokenNotListedInCauldron: "The token with category ID {categoryId} has not been listed in Cauldron DEX.",
       LiftTokenComingSoonTitle: "LIFT token coming soon",
       LiftTokenNotListedInCauldronMessage: "LIFT token listing on Cauldron DEX is coming soon. Stay tuned for the official launch.",
+      ConfirmWithdrawPool: "Withdraw from Pool",
+      ConfirmWithdrawPoolMessage: "Are you sure you want to withdraw from this pool? All funds will be transferred back to your wallet.",
       NoTransactionsToDisplay: "No transactions to display",
       OpenSourceCode: "Open source code",
       OrderNo: "Order number",
