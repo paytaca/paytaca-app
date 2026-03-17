@@ -118,9 +118,7 @@ const fetchWallets = async () => {
 
     if (localWallet.deleted) continue 
     
-    if (!localWallet.xpub) continue
-
-    if (!localWallet.xprv) continue
+    if (!localWallet.xpub || !localWallet.xprv) continue
 
     const multisigWalletsRetrievedFromServer = 
       await multisigCoordinationServer.getSignerWalletsByMasterFingerprint({ 
