@@ -1,5 +1,74 @@
 <template>
   <q-layout>
+    <QrScanner v-model="showQrScanner" @decode="onXPubQrDecoded" />
+    <q-dialog v-model="showFinishDialog" full-width full-height>
+      <q-card class="pt-card text-bow br-15 text-body1" :class="getDarkModeClass(darkMode)" style="display: flex; flex-direction: column;">
+        <q-card-section class="q-pa-md" style="flex: 1; overflow-y: auto;">
+          <q-card id="bch-card" class="q-mb-md" style="border-radius: 15px; color:white">
+            <div class="flex justify-between items-center q-ma-md">
+              <div class="flex items-center q-gutter-x-sm">
+                <q-icon name="wallet" size="sm" />
+                <span class="text-bold text-h5">{{ name }}</span>
+              </div>
+            </div>
+            <q-card-section class="row items-center justify-between">
+              <div class="flex justify-start items-center q-gutter-x-sm">
+                <q-icon name="img:bitcoin-cash-circle.svg" size="md" />
+                <span class="text-subtitle1">{{ $t('MultisigWallet') }}</span>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <q-list class="text-bow text-left" :class="getDarkModeClass(darkMode)">
+            <q-item>
+              <q-item-section>
+                <q-item-label class="text-subtitle2">{{ $t('RequiredSignatures') }}</q-item-label>
+                <q-item-label caption>{{ m }} of {{ n }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-separator spaced inset />
+            <q-item>
+              <q-item-section>
+                <q-item-label class="text-subtitle2 q-mb-md">{{ $t('Signers') }}</q-item-label>
+                <div class="flex flex-wrap items-center q-gutter-xs">
+                  <q-chip
+                    v-for="signer, ii in signers"
+                    :key="`finish-signer-${ii}`"
+                    style="height:fit-content"
+                    flat
+                    dense
+                    class="q-px-md"
+                  >
+                    <q-avatar>
+                      <q-icon v-if="canSignOnDevice(signer.xpub)" name="mdi-account-key" size="sm" style="color:#D4AF37" />
+                      <q-icon v-else name="person" size="sm" />
+                    </q-avatar>
+                    <div class="flex flex-column">
+                      <div class="ellipsis" style="max-width:8em">
+                        {{ signer.name || `${$t('Signer')} ${ii + 1}` }}
+                      </div>
+                    </div>
+                  </q-chip>
+                </div>
+              </q-item-section>
+            </q-item>
+            <q-separator spaced inset />
+            <q-item v-if="signersWithXprv.length > 0">
+              <q-item-section>
+                <q-item-label caption lines="2">
+                  {{ $t('CanSignAs', {}, 'You can sign on this device as') }} <span class="text-bold">{{ signersWithXprv.map(s => s.name).join(` ${$t('or')} `) }}</span>
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-md" style="flex-shrink: 0; position: sticky; bottom: 0; background: inherit;">
+          <q-btn flat @click="onFinishDialogCancel" color="primary" :label="$t('Cancel')" class="q-mr-sm" />
+          <q-btn @click="onCreateClicked" color="primary" :label="$t('Save')" rounded />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     <q-page-container>
       <q-page>
         <div class="static-container">
@@ -19,7 +88,7 @@
                     active-color="warning"
                     inactive-color="grey"
                     done-color="green"
-                    class="pt-card text-bow"
+                    class="text-bow"
                     :class="getDarkModeClass(darkMode)"
                     style="background-color: inherit !important"
                     vertical
@@ -32,20 +101,20 @@
                       :error="!name"
                     >
                       <div class="q-gutter-y-md">
-                        <q-input v-model="name" :label="$t('EnterWalletName')" outlined dense></q-input>
+                        <q-input v-model="name" :label="$t('EnterWalletName')" clearable filled></q-input>
                         <q-select
                           :popup-content-class="darkMode ? '': 'text-black'"
                           v-model="m" :options="mOptionsComputed" :label="$t('Required number of signers')"
-                          outlined dense
+                          filled
                         />
                         <q-select
                           :popup-content-class="darkMode ? '': 'text-black'"
                           v-model="n" :options="nOptionsComputed" :label="$t('Total number of signers')"
-                          outlined dense
+                          filled
                         />
                       </div>
                       <q-stepper-navigation>
-                        <q-btn :disable="!name" @click="$refs.stepper.next()" color="primary" :label="$t('Continue')" />
+                        <q-btn :disable="!name" @click="$refs.stepper.next()" color="primary" :label="$t('Continue')" rounded/>
                       </q-stepper-navigation>
                     </q-step>
                     <q-step
@@ -61,80 +130,48 @@
                       <q-input
                         :label="`${$t('SignerNamePlaceholder', {index: 1 + i }, `Signer ${1 + i}'s name`)}`"
                         v-model="signer.name"
-                        outlined dense
-                        >
-                      </q-input>
+                        filled
+                        hide-bottom-space
+                        :rules="[val => !val || isNameUnique(val, i) || $t('SignerNameMustBeUnique', {}, 'Signer name must be unique')]"
+                      />
                       <q-input
                         :label="$t('PasteSignerXpub')"
                         v-model="signer.xpub"
-                        outlined
-                        dense
+                        filled
                         clearable
-                        :rules="[val => !val || (val.startsWith('xpub') || val.startsWith('tpub')) || $t('InvalidXpubFormat')]"
-                        >
+                        hide-bottom-space
+                        :rules="[
+                          val => !val || (val.startsWith('xpub') || val.startsWith('tpub')) || $t('InvalidXpubFormat'),
+                          val => !val || isXpubUnique(val, i) || $t('XpubMustBeUnique', {}, 'xpub must be unique')
+                        ]"
+                      >
                         <template v-slot:append>
-                          <q-btn
-                            @click="() => openLocalWalletsSelectionDialog({ signer, signerIndex: i })"
-                            dense flat no-caps icon="mdi-form-select">
-                          </q-btn>
+                          <div class="flex q-gutter-xm-sm">
+                            <q-btn
+                              @click="() => openLocalWalletsSelectionDialog({ signer, signerIndex: i })"
+                              icon="mdi-form-select"
+                              round
+                            />
+                            <q-btn
+                              @click="() => scanXPub(i)"
+                              round icon="mdi-qrcode-scan"
+                            />  
+                          </div>
                         </template>
                       </q-input>
                       <q-input 
                         v-model="signer.masterFingerprint" 
                         :label="$t('EnterMasterFingerprint')" 
-                        outlined 
-                        dense 
-                        required
-                        :rules="[val => !val || val.length === 8 || $t('MasterFingerprintMustBe8Chars')]"
-                      ></q-input>
+                        filled 
+                        :rules="[
+                          val => !val || val.length === 8 || $t('MasterFingerprintMustBe8Chars'),
+                          val => !val || isMasterFingerprintUnique(val, i) || $t('MasterFingerprintMustBeUnique', {}, 'Master fingerprint must be unique')
+                        ]"
+                      />
                     </div>
                     <q-stepper-navigation>
-                        <q-btn :disable="!signer.xpub || !signer.name" @click="$refs.stepper.next()" color="primary" :label="$t('Continue')" />
+                        <q-btn :disable="!signer.xpub || !signer.name || !signer.masterFingerprint || !isXpubUnique(signer.xpub, i) || !isNameUnique(signer.name, i) || !isMasterFingerprintUnique(signer.masterFingerprint, i)" @click="onLastSignerContinue(i)" color="primary" :label="$t('Continue')" rounded/>
                         <q-btn flat @click="$refs.stepper.previous()" color="primary" :label="$t('Back')" class="q-ml-sm" />
-                      </q-stepper-navigation>
-                    </q-step>
-                    <q-step
-                      :name="n + 2"
-                      :title="$t('Finish')"
-                      done-icon="done_all"
-                    >
-                      <q-list separator class="text-left">
-                        <q-item-label header>{{ $t('WalletSpecs') }}</q-item-label>
-                        <q-item>
-                          <q-item-section>
-                            {{ $t('WalletName') }}
-                          </q-item-section>
-                          <q-item-section side>
-                            {{ name }}
-                          </q-item-section>
-                        </q-item>
-                        <q-item>
-                          <q-item-section>
-                            {{ $t('RequiredSignatures') }}
-                          </q-item-section>
-                          <q-item-section side>
-                            {{ m }} of {{ n }}
-                          </q-item-section>
-                        </q-item>
-                        <q-item-label header>{{ $t('Signers') }}</q-item-label>
-                        <q-item
-                          v-for="signer, ii in signers"
-                          :key="`read-${ii}`"
-                          >
-                          <q-item-section>
-                            <q-item-label>{{ signer.name }}</q-item-label>
-                            <q-item-label caption lines="2">
-                              {{ shortenString(signer.xpub || '', 25) }}
-                            </q-item-label>
-                          </q-item-section>
-                          <q-item-section side top>
-                            <q-item-label caption class="text-italic">{{ $t('Signer') }} {{ ii + 1 }}</q-item-label>
-                          </q-item-section>
-                        </q-item>
-                      </q-list>
-                      <q-stepper-navigation>
-                        <q-btn @click="()=> onCreateClicked()" color="primary" :label="$t('Save')" />
-                        <q-btn flat color="primary" @click="$refs.stepper.previous()" :label="$t('Back')" class="q-ml-sm" />
                       </q-stepper-navigation>
                     </q-step>
                   </q-stepper>
@@ -163,6 +200,7 @@ import LocalWalletsSelectionDialog from 'components/multisig/LocalWalletsSelecti
 import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
 import { loadWallet } from 'src/wallet'
 import { binToHex } from 'bitauth-libauth-v3'
+import QrScanner from 'src/components/qr-scanner.vue'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -171,7 +209,8 @@ const { t: $t } = useI18n()
 const { 
   multisigCoordinationServer, 
   multisigNetworkProvider, 
-  resolveXprvOfXpub
+  resolveXprvOfXpub,
+  getWalletsFromVault
 } = useMultisigHelpers()
 const { ensureCanPerformAction } = useTieredLimitGate()
 const mOptions = ref()
@@ -183,6 +222,10 @@ const name = ref('')
 const m = ref(0)
 const n = ref(0)
 const signers = ref([])
+const showQrScanner = ref(false)
+const currentSignerIndex = ref(null)
+const localWallets = ref([])
+const showFinishDialog = ref(false)
 
 const mOptionsComputed = computed(() => {
   return mOptions.value
@@ -195,6 +238,29 @@ const nOptionsComputed = computed(() => {
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
+
+const canSignOnDevice = computed(() => {
+  return (xpub) => {
+    return localWallets.value.some(w => w.xpub === xpub)
+  }
+})
+
+const signersWithXprv = computed(() => {
+  if (!signers.value) return []
+  return signers.value.filter(s => canSignOnDevice.value(s.xpub))
+})
+
+const isNameUnique = (name, currentIndex) => {
+  return !signers.value.some((s, i) => i !== currentIndex && s.name === name)
+}
+
+const isXpubUnique = (xpub, currentIndex) => {
+  return !signers.value.some((s, i) => i !== currentIndex && s.xpub === xpub)
+}
+
+const isMasterFingerprintUnique = (fingerprint, currentIndex) => {
+  return !signers.value.some((s, i) => i !== currentIndex && s.masterFingerprint === fingerprint)
+}
 
 
 const openLocalWalletsSelectionDialog = ({ signer, signerIndex }) => {
@@ -235,6 +301,63 @@ const initializeSigners = (n) => {
       })
     }
   }
+}
+
+const scanXPub = (signerIndex) => {
+  currentSignerIndex.value = signerIndex
+  showQrScanner.value = true
+}
+
+const onXPubQrDecoded = (content) => {
+  showQrScanner.value = false
+  
+  const decoded = Array.isArray(content) ? content?.[0]?.rawValue : content
+  const xpub = typeof decoded === 'string' ? decoded.trim() : ''
+  
+  if (!xpub) {
+    $q.notify({
+      type: 'negative',
+      message: $t('NoQrDetected'),
+      timeout: 2000,
+      position: 'top'
+    })
+    return
+  }
+  
+  if (!xpub.startsWith('xpub') && !xpub.startsWith('tpub')) {
+    $q.notify({
+      type: 'negative',
+      message: $t('InvalidXpubFormat'),
+      timeout: 2000,
+      position: 'top'
+    })
+    return
+  }
+  
+  if (currentSignerIndex.value !== null) {
+    signers.value[currentSignerIndex.value].xpub = xpub
+    $q.notify({
+      type: 'positive',
+      message: $t('XpubScanned'),
+      timeout: 1500,
+      position: 'top'
+    })
+  }
+  
+  currentSignerIndex.value = null
+}
+
+const onLastSignerContinue = (signerIndex) => {
+  if (signerIndex === n.value - 1) {
+    showFinishDialog.value = true
+  } else {
+    step.value = step.value + 1
+  }
+}
+
+const onFinishDialogCancel = () => {
+  showFinishDialog.value = false
+  step.value = n.value + 1
 }
 
 const onResetClicked = () => {
@@ -294,8 +417,9 @@ onBeforeMount(() => {
   nOptions.value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 })
 
-onMounted(() => {
+onMounted(async () => {
   onResetClicked()
+  localWallets.value = await getWalletsFromVault()
 })
 
 </script>
