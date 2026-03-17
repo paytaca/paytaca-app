@@ -24,9 +24,9 @@ export function updateWallet (state, { oldMultisigWallet, newMultisigWallet }) {
   state.wallets?.splice(index, 1, newMultisigWallet)
 }
 
-export function updateWalletId(state, { oldId, newId }) {
+export function updateWalletId(state, { walletHash, newId }) {
   const wallet = state.wallets.find(wallet => {
-      return wallet.id === oldId
+      return getWalletHash(wallet) === walletHash
   })
   if (!wallet) return
   wallet.id = newId
