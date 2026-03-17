@@ -1476,16 +1476,12 @@ export class MultisigWallet {
     })
     coordinatorKeyRecord.sign(decodedHdPrivateKey.node.privateKey)
 
-    const encryptedCoordinatorKeyRecord = 
-      coordinatorKeyRecord.encrypt(binToHex(new Uint8Array(symmetricKey)))
-
-    wallet.coordinatorKeyRecord = encryptedCoordinatorKeyRecord // Add this in watchtower
-
     for (const s of wallet.signers) {
       delete s.mnemonic 
-      s.coordinatorKeyRecord = await coordinatorKeyRecord.toEciesEncryptedString(hexToBin(s.publicKey))
+      s.coordinatorKeyRecord = 
+        await coordinatorKeyRecord.toEciesEncryptedString(hexToBin(s.publicKey))
     }
-
+    
     const uploadedWallet = await this.options.coordinationServer.uploadWallet({ 
       wallet, authCredentialsGenerator: this 
     })
