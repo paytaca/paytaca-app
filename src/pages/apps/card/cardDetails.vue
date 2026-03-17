@@ -249,7 +249,8 @@
 
           <div 
             v-else-if="activeTab === 'Card Replacement' && activeCard"
-            class="full-width"
+            class="content-box flex flex-center"
+            :class="$q.dark.isActive ? 'content-box-dark' : 'content-box-light'"
           >
             <!-- PENDING: Request Under Review -->
             <div v-if="cardReplacementStatus === 'pending'" class="card-replacement-status text-center q-pa-xl">
@@ -275,7 +276,7 @@
               <div class="q-mt-md">
                 <q-btn 
                   flat
-                  color="grey"
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   icon="refresh"
                   label="Simulate Progress (Testing)"
                   @click="simulateStatusProgression"
@@ -316,7 +317,7 @@
               <div class="q-mt-md">
                 <q-btn 
                   flat
-                  color="grey"
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   icon="refresh"
                   label="Simulate Progress (Testing)"
                   @click="simulateStatusProgression"
@@ -357,9 +358,9 @@
               <div class="q-mt-md">
                 <q-btn 
                   flat
-                  color="grey"
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   icon="refresh"
-                  label="Reset Status (Testing)"
+                  label="Simulate Progress (Testing)"
                   @click="simulateStatusProgression"
                   class="q-mr-sm"
                 />
@@ -465,7 +466,7 @@
                 <div class="row justify-center q-mt-lg q-gutter-md">
                   <q-btn 
                     label="Back" 
-                    color="grey"
+                    :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                     class="q-px-xl"
                     unelevated
                     rounded
@@ -509,7 +510,8 @@
               <div class="row justify-center q-mt-lg q-gutter-md">
                 <q-btn 
                   label="Go Back" 
-                  color="grey"
+                  flat
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   class="q-px-xl"
                   unelevated
                   rounded
@@ -546,7 +548,8 @@
                     :key="option.value"
                     :label="option.label"
                     :outline="replacementReason !== option.value"
-                    :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                    :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
+                    text-color="primary"
                     class="q-ma-sm"
                     unelevated
                     rounded
@@ -572,7 +575,8 @@
                     label="Yes, proceed" 
                     :disable="!replacementReason || hasCardBalance"
                     :outline="locationSame !== true"
-                    :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                    :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
+                    text-color="primary"
                     class="q-ma-sm q-px-xl"
                     unelevated
                     rounded
@@ -582,7 +586,8 @@
                     label="No, I need to update" 
                     :disable="!replacementReason || hasCardBalance"
                     :outline="locationSame !== false"
-                    :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
+                    :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
+                    text-color="primary"
                     class="q-ma-sm q-px-xl"
                     unelevated
                     rounded
@@ -599,7 +604,7 @@
                 <q-btn 
                   label="Reset" 
                   flat
-                  color="grey"
+                  :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   icon="refresh"
                   @click="resetReplacementFlow"
                 />
