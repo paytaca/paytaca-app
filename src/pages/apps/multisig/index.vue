@@ -68,7 +68,7 @@
                 @click="router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })"
               >
                 <q-item-section avatar top>
-                  <q-avatar color="primary" text-color="white" size="md">
+                  <q-avatar color="primary" text-color="white" size="5rem" square class="br-15">
                     <q-icon name="wallet"></q-icon>
                   </q-avatar>
                 </q-item-section>
@@ -87,8 +87,8 @@
                     </div>
                   </q-item-label>
                 </q-item-section>
-                <q-item-section side top>
-                  <q-btn icon="mdi-gesture-tap" rounded outline no-caps flat>{{$t('Open')}}</q-btn>
+                <q-item-section side>
+                  <q-icon name="chevron_right" color="primary"></q-icon>
                 </q-item-section>
               </q-item>
             </q-list>

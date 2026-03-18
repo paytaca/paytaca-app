@@ -40,7 +40,7 @@
               })"
               >
               <q-item-section avatar>
-                <q-avatar>
+                <q-avatar color="primary" text-color="white" size="5rem" square class="br-15">
                   <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
                 </q-avatar>
               </q-item-section>
@@ -64,14 +64,7 @@
                 </q-item-label>
               </q-item-section>
               <q-item-section side>
-                  <q-btn
-                  color="primary"
-                  flat
-                  rounded 
-                  no-caps
-                  icon="mdi-gesture-tap"
-                  :label="$t('Open')"
-                  ></q-btn>
+                  <q-icon name="chevron_right" color="primary"></q-icon>
               </q-item-section>
             </q-item>
             <q-inner-loading :showing="loadingProposals">
@@ -87,7 +80,7 @@
 
 <script setup>
 
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
