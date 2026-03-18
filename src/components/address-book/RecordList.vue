@@ -27,7 +27,7 @@
           <q-item
             clickable
             v-ripple
-            @click="$router.push(`view-record/${rec.id}/`)"
+            @click="onRecordClick(rec)"
           >
             <q-item-section>
               <q-item-label id="name-label">{{ rec.name }}</q-item-label>
@@ -35,6 +35,9 @@
                 {{ rec.address_count }}
                 {{ rec.address_count === 1 ? $t('Address') : $t('Addresses') }}
               </q-item-label>
+            </q-item-section>
+            <q-item-section v-if="isSelectionMode" side>
+              <q-icon name="mdi-chevron-right" color="primary" />
             </q-item-section>
           </q-item>
         </q-card>
@@ -50,8 +53,11 @@ export default {
   name: 'RecordList',
 
   props: {
-    list: { type: Array, default: new Array() }
+    list: { type: Array, default: new Array() },
+    isSelectionMode: { type: Boolean, default: false }
   },
+
+  emits: ['select-record'],
 
   computed: {
     darkMode() {
@@ -60,7 +66,14 @@ export default {
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    onRecordClick(rec) {
+      if (this.isSelectionMode) {
+        this.$emit('select-record', rec)
+      } else {
+        this.$router.push(`view-record/${rec.id}/`)
+      }
+    }
   }
 }
 </script>
