@@ -183,6 +183,22 @@ export default {
 
       this.isLoading = false
     }
+  },
+
+  async mounted () {
+    this.isLoading = true
+
+    const headerHeight = document.getElementById('header-nav').clientHeight
+    const actionButtons = document.getElementById('action-buttons')
+    actionButtons.style.top = `${headerHeight}px`
+
+    // Check for pre-filled address from query parameter
+    const prefilledAddress = this.$route.query.address
+    if (prefilledAddress) {
+      this.addresses.push({ address: prefilledAddress })
+    }
+
+    this.isLoading = false
   }
 }
 </script>

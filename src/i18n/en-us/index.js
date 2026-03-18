@@ -52,6 +52,7 @@ export default {
   AddPool: "Add Pool",
   AddRecipient: "Add Recipient",
   AddToFavorites: "Add to favorites",
+  AddToAddressBook: "Add to Address Book",
   Add_SEP721_Token: "Add SEP721 Token",
   Add_Type1_Token: "Add SLP Type 1 Token",
   AddedToFavorites: "Added to favorites",

@@ -29,6 +29,8 @@
           :fiat-amount="formattedFiatAmountSent"
           :is-cash-token="isCashToken"
           :back-path="backPath"
+          :recipient-address="recipients[0]?.recipientAddress"
+          :recipient-count="recipients.length"
         />
         <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
