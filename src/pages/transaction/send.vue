@@ -266,7 +266,7 @@
                 <q-btn
                   unelevated
                   no-caps
-                  class="full-width bg-grad gift-link-btn q-mt-md text-white"
+                  class="full-width bg-grad q-mt-md text-white"
                   size="lg"
                   @click="navigateToCreateGift"
                 >
