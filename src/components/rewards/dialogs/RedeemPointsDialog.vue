@@ -282,26 +282,28 @@
     </q-card>
 
     <!-- Success Celebration Overlay -->
-    <div v-if="showCelebration" class="celebration-overlay" @click="closeCelebration">
-      <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
-      <div class="celebration-content text-center">
-        <q-icon name="celebration" size="64px" color="warning" class="celebration-icon" />
-        <div class="text-h4 text-weight-bold text-white q-mt-md">
-          {{ $t('RedemptionSuccessful', 'Redemption Successful!') }}
+    <teleport to="body">
+      <div v-if="showCelebration" class="celebration-overlay" @click="closeCelebration">
+        <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
+        <div class="celebration-content text-center">
+          <q-icon name="celebration" size="64px" color="warning" class="celebration-icon" />
+          <div class="text-h4 text-weight-bold text-white q-mt-md">
+            {{ $t('RedemptionSuccessful', 'Redemption Successful!') }}
+          </div>
+          <div class="text-subtitle1 text-white q-mt-sm">
+            {{ pointsToRedeem }} {{ $t('Redeemed', 'points redeemed') }}
+          </div>
+          <q-btn
+            rounded
+            color="white"
+            text-color="primary"
+            class="q-mt-lg"
+            :label="$t('Awesome', 'Awesome!')"
+            @click="closeCelebration"
+          />
         </div>
-        <div class="text-subtitle1 text-white q-mt-sm">
-          {{ pointsToRedeem }} {{ $t('Redeemed', 'points redeemed') }}
-        </div>
-        <q-btn
-          rounded
-          color="white"
-          text-color="primary"
-          class="q-mt-lg"
-          :label="$t('Awesome', 'Awesome!')"
-          @click="closeCelebration"
-        />
       </div>
-    </div>
+    </teleport>
 
     <!-- Custom Keyboard -->
     <custom-keyboard
@@ -474,7 +476,7 @@ export default {
       try {
         const keyPair = await ensureKeypair()
         this.contract = new PromoContract(keyPair.pubkey, this.promoBytes)
-        this.contractPoints = await this.contract.getTokenBalance() + 15000
+        this.contractPoints = await this.contract.getTokenBalance()
       } catch (error) {
         console.error('Error initializing redeem dialog:', error)
         this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
@@ -831,11 +833,13 @@ export default {
 // Celebration Overlay
 .celebration-overlay {
   position: fixed;
+  width: 100vw;
+  height: 100vh;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.75);
   z-index: 10000;
   display: flex;
   align-items: center;
