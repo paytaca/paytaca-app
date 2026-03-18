@@ -47,6 +47,7 @@
 <script>
 import { formatOrderStatus, formatDate } from 'src/exchange'
 import { openURL } from 'quasar'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import { backend } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 
@@ -156,12 +157,7 @@ export default {
       })
     },
     explorerLink (txid) {
-      let url = 'https://explorer.paytaca.com/tx/'
-
-      if (this.isChipnet) {
-        url = `${process.env.TESTNET_EXPLORER_URL}/tx/`
-      }
-      return `${url}${txid}`
+      return getExplorerLink(txid || '')
     }
   }
 }

@@ -21,11 +21,22 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
+    },
+    // Added changes that allows country selector to be used on other pages/components other than settings page.   
+    // updateStore: Dictates if it will update store global country on coountry select 
+    updateStore: {
+      type: Boolean,
+      default: true
+    },        
+    // country: displays as current country if not null
+    country: {
+      type: Object,
+      default: null
     }
   },
   computed: {
     currentCountry () {
-      return this.$store.getters['global/country'].name
+      return this.country?.name || this.$store.getters['global/country'].name
     },
     currencyOptions () {
       return this.$store.getters['market/currencyOptions']
@@ -39,6 +50,10 @@ export default {
         component: CountryListDialog
       })
       .onOk(selectedCountry => {
+        this.$emit('country-selected', selectedCountry)
+        
+        if (!this.updateStore) return
+        
         let language = Object.keys(supportedLangs).filter(langCode => langCode === selectedCountry.language)
         if (language.length === 0) {
           language = ['en-us']

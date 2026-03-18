@@ -6,6 +6,8 @@ import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import { getBcmrBackend } from 'src/wallet/cashtokens'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { binToHex } from '@bitauth/libauth'
+import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
+import { getExplorerBaseUrl } from 'src/utils/send-page-utils'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
@@ -62,11 +64,7 @@ export const useMultisigHelpers = () => {
   })
 
   const txExplorerUrl = computed(() => {
-    // TODO: get options from watchtower
-    if (isChipnet.value) {
-      return 'https://chipnet.chaingraph.cash/tx'
-    }
-    return 'https://explorer.paytaca.com/tx'
+    return `${getExplorerBaseUrl()}/tx`
   })
 
   const cashAddressNetworkPrefix = computed(() => {

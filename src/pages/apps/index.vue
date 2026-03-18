@@ -182,6 +182,16 @@ export default {
           }
         },
         {
+          id: 'eload-service',
+          name: this.$t('Eload Service'),
+          description: this.$t('Apps.Eload.Description', {}, 'Buy Telco loads, Cable Subscription and Gamepins'),
+          iconName: 'card_membership',
+          path: '/apps/eload',
+          iconStyle: 'width:45%; height: 45%;',
+          // Eload backend is mainnet-only; disable entry on chipnet to avoid wrong-network orders/payments.
+          active: !this.$store.getters['global/isChipnet']
+        },
+        {
           id: 'collectibles',
           name: this.$t('Collectibles'),
           description: this.$t('Apps.Collectibles.Description', {}, 'View and manage your Non-Fungible token collectibles.'),
@@ -273,8 +283,18 @@ export default {
           id: 'walletconnect',
           name: this.$t('WalletConnect'),
           description: this.$t('Apps.WalletConnect.Description', {}, 'Connect Paytaca to dApps using WalletConnect.'),
-          iconName: 'mdi-connection',
+          iconName: 'img:walletconnect.svg',
           path: '/apps/wallet-connect',
+          iconStyle: 'width:45%; height: 45%;',
+          active: true,
+          smartBCHOnly: false
+        },
+        {
+          id: 'wizardconnect',
+          name: 'WizardConnect',
+          description: 'Connect Paytaca to dApps using WizardConnect relay protocol.',
+          iconName: 'mdi-wizard-hat',
+          path: '/apps/wizard-connect',
           iconStyle: 'font-size: 4.2em',
           active: true,
           smartBCHOnly: false

@@ -20,6 +20,11 @@ body.theme-glassmorphic-gold {
   $theme_primary2: $text_gold_9;
   $bg_card_light: $color_4;
 
+  /* ----- CSS CUSTOM PROPERTIES ----- */
+  --scanner-primary: #{$color_6};
+  --scanner-border: #{$color_6};
+  --scanner-bg: #{$bg_gradient};
+
   /* ----- GLOBAL ----- */
   body {
     @include shared.body-prop;

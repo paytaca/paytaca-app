@@ -22,6 +22,11 @@ body.theme-payhero {
   $bg_container_light: #475d82;
   $bg_card_dark: #1c2833;
 
+  /* ----- CSS CUSTOM PROPERTIES ----- */
+  --scanner-primary: #{$brand_yellow};
+  --scanner-border: #{$brand_yellow};
+  --scanner-bg: linear-gradient(180deg, #{$background-blue} 0%, #000 100%);
+
   /* ----- GLOBAL ----- */
   body {
     @include shared.body-prop;

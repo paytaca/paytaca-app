@@ -17,6 +17,7 @@ import ramp from './ramp'
 import stablehedge from './stablehedge'
 import multisig from './multisig'
 import subscription from './subscription'
+import wizardconnect from './wizardconnect'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -200,6 +201,10 @@ function reducer(state) {
             delete serializedGlobal.isUnlocked
           }
           serialized[moduleName] = serializedGlobal
+        } else if (moduleName === 'wizardconnect') {
+          // Skip wizardconnect - connections are persisted separately via localStorage
+          // in actions.js (paytaca:wizardConnectUris), and runtime state doesn't need persistence
+          continue
         } else {
           // For other modules, serialize normally
           serialized[moduleName] = serializeState(state[moduleName])
@@ -239,7 +244,17 @@ export const Store = createStore({
       getState: (key) => {
         try {
           const value = window.localStorage.getItem(key)
-          return value ? JSON.parse(value) : null
+          if (!value) return null
+          const parsed = JSON.parse(value)
+          // Filter out undefined module states to prevent overwriting defaults
+          if (parsed && typeof parsed === 'object') {
+            for (const moduleName in parsed) {
+              if (parsed[moduleName] === undefined || parsed[moduleName] === null) {
+                delete parsed[moduleName]
+              }
+            }
+          }
+          return parsed
         } catch (err) {
           console.error('Error getting persisted state:', err)
           return null
@@ -269,7 +284,8 @@ export const Store = createStore({
     ramp,
     stablehedge,
     multisig,
-    subscription
+    subscription,
+    wizardconnect
   },
 
   // enable strict mode (adds overhead!)

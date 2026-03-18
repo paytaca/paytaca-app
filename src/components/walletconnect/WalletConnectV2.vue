@@ -2,20 +2,34 @@
   <div>
     <div class="row items-center q-gutter-y-xs">
       <div class="col-xs-12">
-        <div class="send-option-card pt-card q-mb-md q-pa-lg br-15" :class="getDarkModeClass(darkMode)">
-            <div class="send-option-header">
-              <q-icon name="mdi-qrcode-scan" size="28px" class="text-grad"/>
+        <q-expansion-item
+          v-model="isInitiateSessionExpanded"
+          class="send-option-card pt-card q-mb-md br-15"
+          :class="getDarkModeClass(darkMode)"
+          header-class="q-pa-lg"
+          expand-icon-class="text-grad"
+        >
+          <template v-slot:header>
+            <div class="send-option-header full-width row items-center justify-between">
               <div class="send-option-title">
                 <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
                   {{ $t('InitiateNewSession') }}
                 </div>
-                <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
-                  {{ $t('WcScanOrPasteURL') }}
-                </div>
               </div>
+              <q-icon
+                name="expand_more"
+                size="32px"
+                class="text-grad transition-transform"
+                :style="{ transform: isInitiateSessionExpanded ? 'rotate(180deg)' : 'rotate(0deg)', marginRight: '-16px' }"
+              />
             </div>
+          </template>
 
-            <div class="row q-gutter-sm q-mt-md">
+          <div class="q-px-lg q-pb-lg">
+            <div class="text-caption q-mb-md" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+              {{ $t('WcScanOrPasteURL') }}
+            </div>
+            <div class="row q-gutter-sm">
               <div class="col">
                 <q-btn
                   unelevated
@@ -45,7 +59,8 @@
                 </q-btn>
               </div>
             </div>
-        </div>
+          </div>
+        </q-expansion-item>
       </div>
     </div>
     <div class="row">
@@ -56,7 +71,7 @@
             </div>
             <div class="col-12 text-italic text-center">{{ loading }}</div>
           </div>
-        <div v-if="sessionRequests" class="row q-mt-md">
+        <div v-if="sessionRequests" ref="sessionRequestsContainer" class="row q-mt-md">
           <div class="col-xs-12">
             <SessionInfo
               v-for="sessionRequest in sessionRequests"
@@ -99,7 +114,7 @@
             </SessionInfo>
           </div>
         </div>
-        <div v-if="sessionProposals" class="row q-mt-md">
+        <div v-if="sessionProposals" ref="sessionProposalsContainer" class="row q-mt-md">
           <div v-for="sessionProposal in sessionProposals" class="col-xs-12" :key="sessionProposal.id">
             <SessionInfo
               :session="sessionProposal"  session-type="proposal">
@@ -273,6 +288,9 @@ const invalidChainSessionProposals = ref([])
 const sessionRequests = ref([])
 /** @type {import("vue").Ref<import("@reown/walletkit").IWalletKit>} */
 const web3Wallet = ref()
+const isInitiateSessionExpanded = ref(true)
+const sessionRequestsContainer = ref(null)
+const sessionProposalsContainer = ref(null)
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const settings = computed(() => $store.getters['walletconnect/settings'])
 const isChipnet = computed(() => $store.getters['global/isChipnet'])
@@ -292,6 +310,41 @@ const filteredActiveSessions = computed(() => {
 // Convert filtered activeSessions object to array for efficient v-for iteration
 const activeSessionsArray = computed(() => Object.values(filteredActiveSessions.value || {}))
 const activeSessionsCount = computed(() => Object.keys(filteredActiveSessions.value || {}).length)
+
+// Watch activeSessionsCount and collapse the initiate session section when there are active sessions
+// Expand when the last active session is disconnected (count goes from >0 to 0)
+watch(activeSessionsCount, (newCount, oldCount) => {
+  if (newCount === 0 && oldCount > 0) {
+    isInitiateSessionExpanded.value = true
+  } else if (newCount > 0) {
+    isInitiateSessionExpanded.value = false
+  }
+}, { immediate: true })
+
+// Watch sessionProposals and collapse when there are pending connection requests
+watch(() => sessionProposals.value?.length, (newLength) => {
+  if (newLength > 0) {
+    isInitiateSessionExpanded.value = false
+  }
+}, { immediate: true })
+
+// Scroll to session requests when they appear
+watch(() => sessionRequests.value?.length, (newLength, oldLength) => {
+  if (newLength > 0 && newLength !== oldLength) {
+    setTimeout(() => {
+      sessionRequestsContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+}, { immediate: true })
+
+// Scroll to session proposals when they appear
+watch(() => sessionProposals.value?.length, (newLength, oldLength) => {
+  if (newLength > 0 && newLength !== oldLength) {
+    setTimeout(() => {
+      sessionProposalsContainer.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+}, { immediate: true })
 
 const delay = async (seconds) => {
   await new Promise((resolve, reject) => {
@@ -873,6 +926,7 @@ async function saveConnectedApp (session) {
 
 const connectNewSession = async (uri = '', prompt = true) => {
   if (prompt) {
+    isInitiateSessionExpanded.value = false
     $q.dialog({
       component: NewSessionDialog,
       componentProps: {
@@ -967,13 +1021,14 @@ const disconnectSession = async (activeSession) => {
 
 const openManualAddressEntryDialog = async (sessionProposal) => {
   try {
+    isInitiateSessionExpanded.value = false
     const result = await new Promise((resolve, reject) => {
       $q.dialog({
         component: ManualAddressEntryDialog,
         componentProps: {
           darkMode: darkMode.value,
           validateAddress: async (address, addressIndex) => {
-            return await $store.dispatch('global/depositAddressIsFromWallet', { 
+            return await $store.dispatch('global/depositAddressIsFromWallet', {
               address, addressIndex
             })
           }
@@ -1002,6 +1057,7 @@ const openManualAddressEntryDialog = async (sessionProposal) => {
 
 const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) => {
   try {
+    isInitiateSessionExpanded.value = false
     await ensureWalletAddressesLoaded()
     const lastUsedWalletAddress =
       $store.getters['global/lastUsedAddressAtAppUrl'](sessionProposal?.proposer?.metadata?.url)
@@ -1385,6 +1441,7 @@ const respondToSessionRequest = async (sessionRequest) => {
 }
 
 const openSessionRequestDialog = (sessionRequest) => {
+  isInitiateSessionExpanded.value = false
   $q.dialog({
     component: SessionRequestDialog,
     componentProps: {
@@ -1774,5 +1831,8 @@ defineExpose({
 }
 .action-button {
   z-index: 10;
+}
+.transition-transform {
+  transition: transform 0.3s ease;
 }
 </style>

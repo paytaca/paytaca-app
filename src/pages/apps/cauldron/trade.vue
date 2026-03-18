@@ -261,11 +261,11 @@
                     {{ formattedOutputAmount }} {{ formattedOutputSymbol }}
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.03%)</div>
+                    <div>{{ $t('TradeFee') }} (0.3%)</div>
                     <div>{{ tradeFee }} BCH</div>
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
                     <div>{{ platformFeeBch }} BCH</div>
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">

@@ -35,8 +35,17 @@
               class="add-btn"
               :style="`background-color: ${getThemeColor()}; color: #fff;`"
               @click="onCreateAd()"
-            />
+            >
+              <q-tooltip v-if="disableCreateBtn" anchor="top middle" self="bottom middle">
+                {{ $t('AllCurrenciesHaveAds', {}, 'All available currencies already have ads') }}
+              </q-tooltip>
+            </q-btn>
           </div>
+        </div>
+        <div v-if="disableCreateBtn" class="q-mt-xs text-center">
+          <span class="text-caption text-grey">
+            {{ $t('OneAdPerCurrencyLimit', {}, 'You can only have 1 ad per currency per trade type') }}
+          </span>
         </div>
       </q-pull-to-refresh>
       <div class="q-mt-md q-mx-md">

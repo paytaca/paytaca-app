@@ -44,6 +44,7 @@
 </template>
 <script>
 import { openURL } from 'quasar'
+import { getExplorerLink, getExplorerAddressLink } from 'src/utils/send-page-utils'
 
 export default {
   data() {
@@ -89,27 +90,12 @@ export default {
   methods: {
     openURL,
     explorerLink (linkType='txid') { // linktype: ['txid', 'address']
-      let url = ''
-
-      if (this.isChipnet) {
-        url = `${process.env.TESTNET_EXPLORER_URL}`
-      } else {
-        url = 'https://explorer.paytaca.com'
-      }
-
       if (linkType === 'txid') {
-        const txid = this.order?.transactions.outputs[0].txid
-        url = `${url}/tx/`
-        return `${url}${txid}`
-      } else {
-        const address = this.order?.payout_address.replace('bitcoincash:', '')
-        url = `${url}/address/`
-        return `${url}${address}`
+        const txid = this.order?.transactions?.outputs?.[0]?.txid
+        return getExplorerLink(txid || '')
       }
-
-      // if (this.transaction.asset.id.split('/')[0] === 'ct') {
-      //   url = 'https://explorer.paytaca.com/tx/'
-      // }
+      const address = this.order?.payout_address?.replace('bitcoincash:', '') || ''
+      return getExplorerAddressLink(address)
     },
     arrangeAddressText (address) {
       return address.slice(0, 15) + '.....' + address.slice(50)
