@@ -349,7 +349,7 @@
           <q-slide-transition v-else>
             <div class="quick-actions-expanded q-mt-lg q-mb-lg">
               <div class="quick-actions-header">
-                <span class="text-grey text-weight-medium text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+                <span class="quick-actions-title">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
                 <q-btn flat dense round icon="expand_less" size="sm" @click="showQuickActions = false" />
               </div>
               <div class="quick-actions-grid">
@@ -3368,10 +3368,11 @@ export default {
 
 .quick-actions-toggle {
   border-radius: 20px;
-  padding: 4px 12px;
-  opacity: 0.7;
+  padding: 6px 16px;
+  opacity: 0.8;
   transition: all 0.2s ease;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: 0.3px;
 
   &:hover {
@@ -3406,6 +3407,12 @@ export default {
   justify-content: space-between;
   margin-bottom: 10px;
   padding: 0 4px;
+}
+
+.quick-actions-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--q-grey-7);
 }
 
 .quick-actions-grid {
