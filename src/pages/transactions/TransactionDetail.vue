@@ -1518,6 +1518,8 @@ export default {
     cancelEditMemo () {
       this.memoInput = this.transactionMemo
       this.editingMemo = false
+      // Collapse Quick Actions after canceling memo edit
+      this.showQuickActions = false
     },
     async saveMemo () {
       try {
@@ -1535,6 +1537,8 @@ export default {
           this.memoInput = trimmedMemo
           this.hasMemo = true
           this.editingMemo = false
+          // Collapse Quick Actions after successful memo creation
+          this.showQuickActions = false
           
           this.$q.notify({
             message: this.$t('MemoSaved', {}, 'Memo saved'),
@@ -1595,6 +1599,8 @@ export default {
             this.transactionMemo = ''
             this.memoInput = ''
             this.editingMemo = false
+            // Collapse Quick Actions after successful memo deletion
+            this.showQuickActions = false
             
             this.$q.notify({
               message: this.$t('MemoDeleted', {}, 'Memo deleted'),
