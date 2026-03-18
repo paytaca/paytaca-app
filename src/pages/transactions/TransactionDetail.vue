@@ -1714,11 +1714,11 @@ export default {
       if (this.loadingTxDetails || this.txDetails) return
       if (this.$route.query.recipient) return // Already have recipient from query
 
+      const txid = this.transactionId
+      if (!txid) return
+
       this.loadingTxDetails = true
       try {
-        const txid = this.transactionId
-        if (!txid) return
-
         // Fetch transaction details from watchtower
         const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
         const url = `${baseUrl}/transactions/${txid}/`
