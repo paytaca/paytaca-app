@@ -1,6 +1,5 @@
 import axios from 'axios'
-import { binToHex, CashAddressNetworkPrefix, decodeCashAddress, decodeHdPrivateKey, decodeHdPublicKey, secp256k1, utf8ToBin } from "bitauth-libauth-v3";
-import { MultisigWallet } from './wallet.js';
+import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
 import { ElectrumNetworkProvider } from 'cashscript';
 
 /**
@@ -117,8 +116,16 @@ export class WatchtowerNetworkProvider {
         return response?.data || []
     }
 
-    async getWalletHashUtxos(walletHash, utxoType = 'bch') {
-        return await axios.get(`${this.hostname}/api/utxo/wallet/${walletHash}?is_cashtoken=${utxoType === 'cashtoken' ? 'true': 'false'}`) 
+    async getWalletHashUtxos(walletHash, utxoType = 'bch', tokenFilter = 'ft') {
+        let url = `${this.hostname}/api/utxo/wallet/${walletHash}?is_cashtoken=${utxoType === 'cashtoken' ? 'true': 'false'}`
+        if (utxoType === 'cashtoken' && tokenFilter === 'ft') {
+            url += `&is_cashtoken_nft=false`
+        }
+        if (utxoType === 'cashtoken' && tokenFilter === 'nft') {
+            url += `&is_cashtoken_nft=true`
+        }
+        return await axios.get(url) 
+
     }
 
     async getWalletUtxos(address) {
@@ -311,7 +318,7 @@ export class WatchtowerCoordinationServer {
 
     async createServerIdentity({ serverIdentity, authCredentialsGenerator }) {
         const authCredentials = await authCredentialsGenerator.generateAuthCredentials()
-        console.log('authCredentials', authCredentials)
+        
         if (!authCredentials) return null
         const response = await axios.post(
             `${this.hostname}/api/multisig/coordinator/server-identities/`,
@@ -327,7 +334,6 @@ export class WatchtowerCoordinationServer {
             `${this.hostname}/api/multisig/coordinator/server-identities/${publicKey}/`,
             { headers: { ...authCredentials } }
         )
-        console.log('response', response)
         return response.data
     }
 
@@ -335,13 +341,29 @@ export class WatchtowerCoordinationServer {
         const response = await axios.get(
             `${this.hostname}/api/multisig/wallets/${identifier}/`
         )
-        console.log('response', response)
         return response.data
     }
 
     async getSignerWallets({ publicKey }) {        
         const response = await axios.get(
             `${this.hostname}/api/multisig/signers/${publicKey}/wallets/`
+        )
+        return response.data
+    }
+
+
+    async getSignerWalletsByMasterFingerprint({ masterFingerprint }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/signers/${masterFingerprint}/wallets/`
+        )
+        return response.data
+    }
+
+    async uploadWalletWcSession({ walletIdentifier, payload, authCosignerAuthCredentials }) {
+        const response = await axios.post(
+            `${this.hostname}/api/multisig/wallets/${walletIdentifier}/walletconnect/sessions/`,
+            payload,
+            { headers: { ...authCosignerAuthCredentials } }
         )
         return response.data
     }
@@ -355,10 +377,7 @@ export class WatchtowerCoordinationServer {
      * @param {Proposal} params.proposal - The proposal to upload.
      * @param {*} params.authCredentialsGenerator
      */
-    async uploadProposal({ payload, authCredentialsGenerator }) {
-        const authCredentials = await authCredentialsGenerator.generateAuthCredentials()
-        const authCosignerAuthCredentials = await authCredentialsGenerator.generateCosignerAuthCredentials()
-        console.log('AUTHcosigner', authCosignerAuthCredentials)
+    async uploadProposal({ payload, authCosignerAuthCredentials, authCredentials }) {
         const response = await axios.post(
             `${this.hostname}/api/multisig/proposals/`,
             payload, 
@@ -389,10 +408,13 @@ export class WatchtowerCoordinationServer {
         return response.data
     }
 
-    async getProposalStatus({ unsignedTransactionHash }) {
-        const response = await axios.get(
-            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/status/`
-        )
+    async getProposalStatus({ unsignedTransactionHash, queryFilter }) {
+        let url = `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/status/`
+
+        if (queryFilter?.includeDeleted) {
+            url += '?include_deleted=true'
+        }
+        const response = await axios.get(url)
         return response?.data
     }
 
@@ -432,6 +454,13 @@ export class WatchtowerCoordinationServer {
         return response.data
     }
 
+    async getPsbts({ proposalUnsignedTransactionHash }) {
+        const response = await axios.get(
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/psbts/`
+        )
+        return response.data
+    }
+
     /**
      * Submits a partial signature for a multisig proposal.
      *
@@ -443,8 +472,9 @@ export class WatchtowerCoordinationServer {
      * @returns {Promise<Object>} Response data from the signature submission.
      */
     async submitPsbt({ content, standard = 'psbt', encoding = 'base64', proposalUnsignedTransactionHash, walletId, authCredentialsGenerator }) {
-        
+
         const authCosignerAuthCredentials = await authCredentialsGenerator.generateCosignerAuthCredentials()
+        
         const response = await axios.post(
             `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/psbts/?wallet_id=${walletId}`,
             { content, standard, encoding },
