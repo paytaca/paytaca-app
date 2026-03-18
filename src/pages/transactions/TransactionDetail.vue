@@ -845,7 +845,8 @@ export default {
       if (!this.tx || this.tx.record_type !== 'outgoing') return null
       
       // Use txDetails if available (from API fetch)
-      const outputs = this.txDetails?.outputs || this.tx?.outputs
+      // The API returns {valid: true, details: {outputs: [...]}}
+      const outputs = this.txDetails?.details?.outputs || this.txDetails?.outputs || this.tx?.outputs
       console.log('[TransactionDetail] extractedRecipientAddress - outputs:', outputs)
       
       if (outputs && Array.isArray(outputs)) {
@@ -1713,10 +1714,12 @@ export default {
         
         if (data) {
           this.txDetails = data
+          // The API returns {valid: true, details: {outputs: [...], inputs: [...]}}
+          const details = data.details || data
           // Merge outputs into tx object for computed property
-          if (data.outputs && !this.tx.outputs) {
-            this.tx = { ...this.tx, outputs: data.outputs }
-            console.log('[TransactionDetail] Merged outputs into tx:', data.outputs)
+          if (details.outputs && !this.tx.outputs) {
+            this.tx = { ...this.tx, outputs: details.outputs }
+            console.log('[TransactionDetail] Merged outputs into tx:', details.outputs)
           }
         }
       } catch (error) {
