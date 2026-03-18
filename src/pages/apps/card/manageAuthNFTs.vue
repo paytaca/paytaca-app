@@ -174,7 +174,7 @@
 </template>
 
 <script>
-import { getMerchantList } from './noBackend.js'
+import { getMerchantList, CardStorage } from './noBackend.js'
 
 export default {
   name: 'ManageAuthNFTs',
@@ -314,18 +314,14 @@ export default {
         
         // Save merchant spend limits to localStorage
         if (this.card && this.card.id) {
-          const savedCards = localStorage.getItem('mock_subcards');
-          if (savedCards) {
-            const allCards = JSON.parse(savedCards);
-            const cardIndex = allCards.findIndex(c => c.id === this.card.id);
-            if (cardIndex !== -1) {
-              // Store merchant spend limits
-              if (!allCards[cardIndex].merchantSpendLimits) {
-                allCards[cardIndex].merchantSpendLimits = {};
-              }
-              allCards[cardIndex].merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
-              localStorage.setItem('mock_subcards', JSON.stringify(allCards));
+          const card = CardStorage.getCardById(this.card.id);
+          if (card) {
+            // Store merchant spend limits
+            if (!card.merchantSpendLimits) {
+              card.merchantSpendLimits = {};
             }
+            card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
+            CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
           }
         }
         
@@ -355,15 +351,7 @@ export default {
       
       // Save to localStorage
       if (this.card && this.card.id) {
-        const savedCards = localStorage.getItem('mock_subcards');
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards);
-          const cardIndex = allCards.findIndex(c => c.id === this.card.id);
-          if (cardIndex !== -1) {
-            allCards[cardIndex].genericSpendLimit = this.genericSpendLimit;
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards));
-          }
-        }
+        CardStorage.setCardProperty(this.card.id, 'genericSpendLimit', this.genericSpendLimit);
       }
       
       this.$q.notify({
