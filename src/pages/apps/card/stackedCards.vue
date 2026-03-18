@@ -386,14 +386,11 @@ export default {
         cardReplacementStatus: 'none'
       }
 
-      // Save to localStorage
-      const savedData = localStorage.getItem('mock_subcards')
-      const currentCards = savedData ? JSON.parse(savedData) : []
-      currentCards.push(newCard)
-      localStorage.setItem('mock_subcards', JSON.stringify(currentCards))
+      // Save to localStorage using CardStorage
+      const createdCard = this.CardStorage.createCard(newCard);
 
       // Update the displayed cards
-      this.subCards = currentCards
+      this.subCards = this.CardStorage.getCards();
 
       // Reset dialog state
       this.closeDialog()
