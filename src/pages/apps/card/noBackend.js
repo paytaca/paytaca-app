@@ -192,7 +192,7 @@ export const createCardLogic = {
     
     async handleCreateCard(){
       if(!this.newCardName){
-        this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
+        this.notifyError('Please enter a Card name')
         return
       }  
       // create mock card object
@@ -223,6 +223,51 @@ export const createCardLogic = {
           id: card.id,
           tab: tab
         }
+      })
+    },
+
+    // Notification helper methods
+    notifySuccess(message, opts = {}) {
+      this.$q.notify({
+        message,
+        color: 'positive',
+        icon: opts.icon || 'check',
+        position: opts.position || 'top',
+        timeout: opts.timeout || 2000,
+        ...opts
+      })
+    },
+
+    notifyError(message, opts = {}) {
+      this.$q.notify({
+        message,
+        color: 'negative',
+        icon: opts.icon || 'error',
+        position: opts.position || 'top',
+        timeout: opts.timeout || 3000,
+        ...opts
+      })
+    },
+
+    notifyWarning(message, opts = {}) {
+      this.$q.notify({
+        message,
+        color: 'warning',
+        icon: opts.icon || 'warning',
+        position: opts.position || 'top',
+        timeout: opts.timeout || 3000,
+        ...opts
+      })
+    },
+
+    notifyInfo(message, opts = {}) {
+      this.$q.notify({
+        message,
+        color: 'info',
+        icon: opts.icon || 'info',
+        position: opts.position || 'top',
+        timeout: opts.timeout || 2000,
+        ...opts
       })
     },
 
