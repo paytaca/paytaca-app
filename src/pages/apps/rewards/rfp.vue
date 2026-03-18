@@ -315,7 +315,7 @@ export default {
 
       this.rpId = Number(this.$route.params.id || -1)
 
-      // initialize UR Promo Contract and retrieve points
+      // initialize RP Promo Contract and retrieve points
       try {
         const keyPair = await ensureKeypair()
         this.rpContract = new PromoContract(keyPair.pubkey, PromosBytes.RP)
@@ -403,8 +403,8 @@ export default {
       this.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
-          points: this.points,
           promoId: this.rpId,
+          promoBytes: PromosBytes.RP,
           redeemedPoints: this.redeemedPoints
         }
       }).onDismiss(async () => {

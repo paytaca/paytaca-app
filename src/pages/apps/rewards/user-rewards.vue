@@ -690,8 +690,8 @@ export default {
       this.$q.dialog({
         component: RedeemPointsDialog,
         componentProps: {
-          points: this.points,
           promoId: this.urId,
+          promoBytes: PromosBytes.UR
         }
       }).onDismiss(async () => {
         this.isLoading = true
