@@ -209,80 +209,6 @@
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
-        <!-- Quick Actions Section -->
-        <div class="quick-actions-collapsed q-mt-md q-mb-md" v-if="!showQuickActions">
-          <q-btn
-            flat
-            no-caps
-            dense
-            class="quick-actions-toggle"
-            :class="getDarkModeClass(darkMode)"
-            @click="showQuickActions = true"
-          >
-            <q-icon name="expand_more" size="18px" class="q-mr-xs" />
-            <span class="text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
-          </q-btn>
-        </div>
-
-        <q-slide-transition v-else>
-          <div class="quick-actions-expanded q-mt-lg q-mb-lg">
-            <div class="quick-actions-header">
-              <span class="text-grey text-weight-medium text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
-              <q-btn flat dense round icon="expand_less" size="sm" @click="showQuickActions = false" />
-            </div>
-            <div class="quick-actions-grid">
-              <!-- Save Receipt Action -->
-              <q-btn
-                flat
-                no-caps
-                class="quick-action-btn"
-                :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
-                :loading="savingReceipt"
-                :disable="savingReceipt"
-                @click="saveReceiptImage"
-              >
-                <template v-slot:loading>
-                  <q-spinner-dots color="primary" size="20px" />
-                </template>
-                <div class="quick-action-content" v-if="!savingReceipt">
-                  <q-icon name="receipt_long" size="22px" class="quick-action-icon" />
-                  <div class="quick-action-label">{{ $t('SaveReceipt', {}, 'Save') }}</div>
-                </div>
-              </q-btn>
-
-              <!-- Add/Edit Memo Action -->
-              <q-btn
-                flat
-                no-caps
-                class="quick-action-btn"
-                :class="[`theme-${theme}`, getDarkModeClass(darkMode), hasMemo ? 'has-memo' : '']"
-                :disable="networkError || usingWebsocketData || editingMemo"
-                @click="openMemo()"
-              >
-                <div class="quick-action-content">
-                  <q-icon :name="hasMemo ? 'edit_note' : 'add_comment'" size="22px" class="quick-action-icon" />
-                  <div class="quick-action-label">{{ hasMemo ? $t('EditMemo', {}, 'Edit Memo') : $t('AddMemo', {}, 'Add Memo') }}</div>
-                </div>
-              </q-btn>
-
-              <!-- Add to Address Book Action (only for outgoing transactions) -->
-              <q-btn
-                v-if="canAddToAddressBook"
-                flat
-                no-caps
-                class="quick-action-btn"
-                :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
-                @click="onAddToAddressBook"
-              >
-                <div class="quick-action-content">
-                  <q-icon name="person_add" size="22px" class="quick-action-icon" />
-                  <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
-                </div>
-              </q-btn>
-            </div>
-          </div>
-        </q-slide-transition>
-
         <!-- Transaction Metadata Section -->
         <template v-if="metadataBadges?.length || attributeDetails?.length">
           <q-separator spaced class="q-mt-lg"/>
@@ -389,7 +315,7 @@
           </div>
         </q-slide-transition>
 
-        <!-- Memo Edit Section -->
+        <!-- Memo Edit Section (shown above Quick Actions) -->
         <q-slide-transition>
           <div v-if="editingMemo" class="memo-edit-section q-mt-lg q-mb-md">
             <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
@@ -403,6 +329,82 @@
             </div>
           </div>
         </q-slide-transition>
+
+        <!-- Quick Actions Section (hidden when editing memo) -->
+        <template v-if="!editingMemo">
+          <div class="quick-actions-collapsed q-mt-md q-mb-md" v-if="!showQuickActions">
+            <q-btn
+              flat
+              no-caps
+              dense
+              class="quick-actions-toggle"
+              :class="getDarkModeClass(darkMode)"
+              @click="showQuickActions = true"
+            >
+              <q-icon name="expand_more" size="18px" class="q-mr-xs" />
+              <span class="text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+            </q-btn>
+          </div>
+
+          <q-slide-transition v-else>
+            <div class="quick-actions-expanded q-mt-lg q-mb-lg">
+              <div class="quick-actions-header">
+                <span class="text-grey text-weight-medium text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+                <q-btn flat dense round icon="expand_less" size="sm" @click="showQuickActions = false" />
+              </div>
+              <div class="quick-actions-grid">
+                <!-- Save Receipt Action -->
+                <q-btn
+                  flat
+                  no-caps
+                  class="quick-action-btn"
+                  :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
+                  :loading="savingReceipt"
+                  :disable="savingReceipt"
+                  @click="saveReceiptImage"
+                >
+                  <template v-slot:loading>
+                    <q-spinner-dots color="primary" size="20px" />
+                  </template>
+                  <div class="quick-action-content" v-if="!savingReceipt">
+                    <q-icon name="receipt_long" size="22px" class="quick-action-icon" />
+                    <div class="quick-action-label">{{ $t('SaveReceipt', {}, 'Save') }}</div>
+                  </div>
+                </q-btn>
+
+                <!-- Add/Edit Memo Action -->
+                <q-btn
+                  flat
+                  no-caps
+                  class="quick-action-btn"
+                  :class="[`theme-${theme}`, getDarkModeClass(darkMode), hasMemo ? 'has-memo' : '']"
+                  :disable="networkError || usingWebsocketData || editingMemo"
+                  @click="openMemo()"
+                >
+                  <div class="quick-action-content">
+                    <q-icon :name="hasMemo ? 'edit_note' : 'add_comment'" size="22px" class="quick-action-icon" />
+                    <div class="quick-action-label">{{ hasMemo ? $t('EditMemo', {}, 'Edit Memo') : $t('AddMemo', {}, 'Add Memo') }}</div>
+                  </div>
+                </q-btn>
+
+                <!-- Add to Address Book Action (only for outgoing transactions) -->
+                <q-btn
+                  v-if="canAddToAddressBook"
+                  flat
+                  no-caps
+                  class="quick-action-btn"
+                  :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+                  @click="onAddToAddressBook"
+                >
+                  <div class="quick-action-content">
+                    <q-icon name="person_add" size="22px" class="quick-action-icon" />
+                    <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+            </div>
+          </q-slide-transition>
+        </template>
         </div>
       </div>
     </div>
