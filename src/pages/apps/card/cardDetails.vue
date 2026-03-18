@@ -1057,30 +1057,24 @@ export default {
 
     loadSpecificCard () {
       const cardId = this.$route.query.id
-      // get all cards from localStorage
-      const savedCards = localStorage.getItem('mock_subcards')
-
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        // find the specifc card
-        const found = allCards.find(c => String(c.id) === String(cardId))
+      // get card from storage
+      const found = this.CardStorage.getCardById(cardId)
+      
+      if (found) {
+        this.activeCard = found
+        this.newCardName = found.raw?.alias || ''
         
-        if (found) {
-          this.activeCard = found
-          this.newCardName = found.raw?.alias || ''
-          
-          if (this.activeCard.isLocked === undefined) {
-            this.activeCard.isLocked = false
-          }
-          if (this.activeCard.transactionAlerts === undefined) {
-            this.activeCard.transactionAlerts = false
-          }
+        if (this.activeCard.isLocked === undefined) {
+          this.activeCard.isLocked = false
         }
-        else {
-          console.error("Card not found in storage");
-          this.$router.push({ name: 'stacked-cards' });
+        if (this.activeCard.transactionAlerts === undefined) {
+          this.activeCard.transactionAlerts = false
         }
-      }   
+      }
+      else {
+        console.error("Card not found in storage");
+        this.$router.push({ name: 'stacked-cards' });
+      }
     },
     
     saveCardName () {
@@ -1097,14 +1091,9 @@ export default {
         this.newCardName = trimmedName
         
         // Save to localStorage
-        const savedCards = localStorage.getItem('mock_subcards')
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards)
-          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-          if (cardIndex !== -1) {
-            allCards[cardIndex] = this.activeCard
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          }
+        const updatedCard = this.CardStorage.updateCard(this.activeCard.id, this.activeCard)
+        if (updatedCard) {
+          this.activeCard = updatedCard
         }
         
         // Show success notification
@@ -1178,17 +1167,10 @@ export default {
       }
 
       // Update card balance in localStorage
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards && this.activeCard) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          const currentBalance = parseFloat(allCards[cardIndex].balance) || 0
-          allCards[cardIndex].balance = (currentBalance + amountInBCH).toFixed(8)
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          
-          // Update activeCard for display
-          this.activeCard.balance = allCards[cardIndex].balance
+      if (this.activeCard) {
+        const updatedCard = this.CardStorage.incrementCardProperty(this.activeCard.id, 'balance', amountInBCH)
+        if (updatedCard) {
+          this.activeCard.balance = updatedCard.balance
         }
       }
 
@@ -1223,17 +1205,14 @@ export default {
       this.hasOrderedPhysicalCard = true
       
       if (this.activeCard) {
-        const savedCards = localStorage.getItem('mock_subcards')
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards)
-          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-          if (cardIndex !== -1) {
-            allCards[cardIndex].hasOrderedPhysicalCard = true
-            allCards[cardIndex].shippingAddress = { ...this.orderPhysicalCardData }
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-            this.activeCard.hasOrderedPhysicalCard = true
-            this.activeCard.shippingAddress = { ...this.orderPhysicalCardData }
-          }
+        const updates = {
+          hasOrderedPhysicalCard: true,
+          shippingAddress: { ...this.orderPhysicalCardData }
+        }
+        const updatedCard = this.CardStorage.updateCard(this.activeCard.id, updates)
+        if (updatedCard) {
+          this.activeCard.hasOrderedPhysicalCard = updatedCard.hasOrderedPhysicalCard
+          this.activeCard.shippingAddress = updatedCard.shippingAddress
         }
       }
 
@@ -1443,14 +1422,10 @@ export default {
     },
 
     saveShippingAddress () {
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards && this.activeCard) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].shippingAddress = { ...this.orderPhysicalCardData }
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          this.activeCard.shippingAddress = { ...this.orderPhysicalCardData }
+      if (this.activeCard) {
+        const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'shippingAddress', { ...this.orderPhysicalCardData })
+        if (updatedCard) {
+          this.activeCard.shippingAddress = updatedCard.shippingAddress
         }
       }
     },
@@ -1468,15 +1443,9 @@ export default {
 
     saveCardReplacementStatus () {
       if (this.activeCard) {
-        const savedCards = localStorage.getItem('mock_subcards')
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards)
-          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-          if (cardIndex !== -1) {
-            allCards[cardIndex].cardReplacementStatus = this.cardReplacementStatus
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-            this.activeCard.cardReplacementStatus = this.cardReplacementStatus
-          }
+        const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'cardReplacementStatus', this.cardReplacementStatus)
+        if (updatedCard) {
+          this.activeCard.cardReplacementStatus = updatedCard.cardReplacementStatus
         }
       }
     },
@@ -1503,15 +1472,9 @@ export default {
     toggleCardLock (locked) {
       if (!this.activeCard) return
 
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].isLocked = locked
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          this.activeCard.isLocked = locked
-        }
+      const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', locked)
+      if (updatedCard) {
+        this.activeCard.isLocked = updatedCard.isLocked
       }
 
       this.$q.notify({
@@ -1536,15 +1499,9 @@ export default {
         return
       }
 
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].balance = '0'
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          this.activeCard.balance = '0'
-        }
+      const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'balance', '0')
+      if (updatedCard) {
+        this.activeCard.balance = updatedCard.balance
       }
 
       this.$q.notify({
@@ -1560,22 +1517,16 @@ export default {
     handleDeleteCard () {
       if (!this.activeCard) return
 
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards.splice(cardIndex, 1)
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-        }
+      const deleted = this.CardStorage.deleteCard(this.activeCard.id)
+      
+      if (deleted) {
+        this.$q.notify({
+          message: 'Card has been deleted',
+          color: 'positive',
+          icon: 'delete',
+          position: 'top'
+        })
       }
-
-      this.$q.notify({
-        message: 'Card has been deleted',
-        color: 'positive',
-        icon: 'delete',
-        position: 'top'
-      })
 
       this.showDeleteCardDialog = false
       this.$router.push({ name: 'stacked-cards' })
@@ -1584,16 +1535,8 @@ export default {
     saveCardSettings () {
       if (!this.activeCard) return
 
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].transactionAlerts = this.activeCard.transactionAlerts
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-        }
-      }
-
+      const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'transactionAlerts', this.activeCard.transactionAlerts)
+      
       this.$q.notify({
         message: 'Settings saved',
         color: 'positive',
