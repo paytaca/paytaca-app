@@ -39,6 +39,15 @@ export const createCardLogic = {
   },
 
   methods: {
+    formatContractAddress(address) {
+      if (!address) return ''
+      const addr = typeof address === 'object' ? address.contractAddress : address
+      if (!addr) return ''
+      const str = String(addr)
+      if (str.length <= 9) return str
+      return str.slice(0, 16) + '...' + str.slice(-5)
+    },
+
     checkExistingCards () {
       const savedCards = localStorage.getItem('mock_subcards')
       const cards = savedCards ? JSON.parse(savedCards) : []

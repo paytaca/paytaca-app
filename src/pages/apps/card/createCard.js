@@ -499,12 +499,6 @@ import { set } from 'date-fns';
           this.$q.loading.hide()
         }
       },
-
-      formatContractAddress(card) {
-        const contractAddressLength = this.contractAddress.length
-        const formatted = this.contractAddress.substring(0, 4) + "..." + this.contractAddress.substring(contractAddressLength - 5, contractAddressLength)
-        return formatted
-      },
       
       async handleCreateCard(){
         if(!this.newCardName){

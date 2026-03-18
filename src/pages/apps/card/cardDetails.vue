@@ -1065,12 +1065,6 @@ export default {
   },
 
   methods: {
-    formatContractAddress (address) {
-      if (!address) return null
-      const str = String(address)
-      if (str.length <= 20) return str
-      return str.slice(0, 12) + '...' + str.slice(-8)
-    },
 
     loadSpecificCard () {
       const cardId = this.$route.query.id
@@ -1136,13 +1130,7 @@ export default {
       this.showEditNameDialog = false
     },
 
-    formatContractAddress (addr) {
-      if (!addr) return ''
-      const address = typeof addr === 'object' ? addr.contractAddress : addr
-      if (!address) return ''
-      const len = address.length
-      return address.substring(0, 12) + '...' + address.substring(len - 12, len)
-    },
+
 
     copyContractAddress () {
       const address = this.getContractAddress(this.activeCard)
