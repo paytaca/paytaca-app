@@ -1,20 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf">
     <q-page-container>
-      <div class="row items-center q-pa-md">
-        <q-btn 
-          flat
-          round
-          dense
-          icon="arrow_back"
-          color="primary"
-          @click="$router.back()"
-        />
-        <div class="col">
-          <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
-        </div>
-        <div class="q-pa-xs" style="width: 32px"></div>
-      </div>
+      <CardPageHeader />
 
       <div class="q-px-md q-mt-md">
         <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">My Cards</div>
@@ -180,11 +167,13 @@
 <script>
 import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+import CardPageHeader from './CardPageHeader.vue';
 
 export default {
   mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
+    CardPageHeader,
   },
 
   data () {

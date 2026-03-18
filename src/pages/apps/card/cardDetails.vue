@@ -1,20 +1,7 @@
 <template>
   <q-layout view="LHh Lpr lFf">
     <q-page-container>
-      <div class="row items-center q-pa-md">
-        <q-btn 
-          flat
-          round
-          dense
-          icon="arrow_back"
-          color="primary"
-          @click="$router.back()"
-        />
-        <div class="col">
-          <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
-        </div>
-        <div class="q-pa-xs" style="width: 32px"></div>
-      </div>
+      <CardPageHeader />
 
       <q-page v-if="activeCard" class="q-px-md">
         <div class="column items-center q-mb-lg">
@@ -940,12 +927,14 @@ import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown
 import TransactionHistory from './transactionHistory.vue'
 import ManageAuthNFTs from './manageAuthNFTs.vue'
 import L from 'leaflet'
+import CardPageHeader from './CardPageHeader.vue'
 
 export default {
   mixins: [createCardLogic],
   components: {
     TransactionHistory,
-    ManageAuthNFTs
+    ManageAuthNFTs,
+    CardPageHeader
   },
 
   data () {

@@ -1,19 +1,6 @@
 <template>
   <q-layout>
-    <div class="row items-center q-pa-md">
-      <q-btn 
-        flat
-        round
-        dense
-        icon="arrow_back"
-        color="primary"
-        @click="$router.back()"
-      />
-      <div class="col">
-        <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
-      </div>
-      <div class="q-pa-xs" style="width: 32px"></div>
-    </div>
+    <CardPageHeader />
      
     <transition
       appear
@@ -96,6 +83,7 @@
 <script>
 
 import createCardDialog from './createCardDialog.vue';
+import CardPageHeader from './CardPageHeader.vue';
 
 // import { createCardLogic } from './createCard.js'; --restore this after testing
 import {createCardLogic} from './noBackend.js'
@@ -105,6 +93,7 @@ import {createCardLogic} from './noBackend.js'
     mixins: [createCardLogic],
     components: {
       createCardDialog,
+      CardPageHeader,
     },
 
     mounted () {
