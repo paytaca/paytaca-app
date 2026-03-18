@@ -209,25 +209,59 @@
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
-        <!-- Save Receipt Button -->
-        <div class="q-mt-md q-mb-lg text-center">
-          <q-btn
-            flat
-            outline
-            no-caps
-            :label="$t('SaveReceipt', {}, 'Save Receipt')"
-            icon="receipt"
-            color="grey-7"
-            class="save-receipt-btn glassmorphic-receipt-btn"
-            :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
-            :loading="savingReceipt"
-            :disable="savingReceipt"
-            @click="saveReceiptImage"
-          >
-            <template v-slot:loading>
-              <q-spinner-dots color="white" size="24px" />
-            </template>
-          </q-btn>
+        <!-- Quick Actions Section -->
+        <div class="quick-actions-section q-mt-lg q-mb-lg">
+          <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('QuickActions', {}, 'Quick Actions') }}</div>
+          <div class="quick-actions-grid">
+            <!-- Save Receipt Action -->
+            <q-btn
+              flat
+              no-caps
+              class="quick-action-btn"
+              :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
+              :loading="savingReceipt"
+              :disable="savingReceipt"
+              @click="saveReceiptImage"
+            >
+              <template v-slot:loading>
+                <q-spinner-dots color="primary" size="20px" />
+              </template>
+              <div class="quick-action-content" v-if="!savingReceipt">
+                <q-icon name="receipt_long" size="24px" class="quick-action-icon" />
+                <div class="quick-action-label">{{ $t('SaveReceipt', {}, 'Save') }}</div>
+              </div>
+            </q-btn>
+
+            <!-- Add/Edit Memo Action -->
+            <q-btn
+              flat
+              no-caps
+              class="quick-action-btn"
+              :class="[`theme-${theme}`, getDarkModeClass(darkMode), hasMemo ? 'has-memo' : '']"
+              :disable="networkError || usingWebsocketData || editingMemo"
+              @click="openMemo()"
+            >
+              <div class="quick-action-content">
+                <q-icon :name="hasMemo ? 'edit_note' : 'add_comment'" size="24px" class="quick-action-icon" />
+                <div class="quick-action-label">{{ hasMemo ? $t('EditMemo', {}, 'Edit Memo') : $t('AddMemo', {}, 'Add Memo') }}</div>
+              </div>
+            </q-btn>
+
+            <!-- Add to Address Book Action (only for outgoing transactions) -->
+            <q-btn
+              v-if="canAddToAddressBook"
+              flat
+              no-caps
+              class="quick-action-btn"
+              :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+              @click="onAddToAddressBook"
+            >
+              <div class="quick-action-content">
+                <q-icon name="person_add" size="24px" class="quick-action-icon" />
+                <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
+              </div>
+            </q-btn>
+          </div>
         </div>
 
         <!-- Transaction Metadata Section -->
@@ -321,62 +355,35 @@
           </q-slide-transition>
         </template>
 
-        <!-- Memo Section (mirrors SendSuccessBlock styling, centered) -->
-        <div class="memo-section section-block-ss q-mt-lg q-mb-md">
-          <div v-if="hasMemo || editingMemo" class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
-          <div class="row justify-center">
-            <div class="col-12 col-md-8 q-px-md">
-              <q-slide-transition>
-                <div v-if="!editingMemo">
-                  <div v-if="hasMemo" class="memo-display-container">
-                    <div class="memo-content-container" :class="getDarkModeClass(darkMode)">
-                      <div class="memo-text">{{ transactionMemo }}</div>
-                      <div class="memo-actions">
-                        <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
-                        <q-separator vertical :dark="darkMode"/>
-                        <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else>
-                    <q-item-section class="q-pt-sm text-center">
-                      <q-btn outline no-caps :label="$t('AddMemo', {}, 'Add memo')" icon="add" color="grey-7" class="br-15" padding="xs md" :disable="networkError || usingWebsocketData" @click="openMemo()"/>
-                    </q-item-section>
-                  </div>
-                </div>
-                <q-item v-else style="overflow-wrap: anywhere;">
-                  <q-item-section>
-                    <q-item-label>
-                      <div class="row items-start justify-center">
-                        <div class="col q-pr-sm">
-                          <input ref="memoInputRef" v-model="memoInput" type="text" class="memo-input" :class="darkMode ? 'memo-input-dark' : 'memo-input-light'" :placeholder="`${$t('EnterMemo', {}, 'Enter memo')}...`" style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;" @keyup.enter="saveMemo()" @keyup.esc="cancelEditMemo()"/>
-                        </div>
-                        <div class="row items-center no-wrap">
-                          <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memoInput || memoInput === transactionMemo" @click="saveMemo()"/>
-                          <q-separator vertical :dark="darkMode"/>
-                          <q-btn flat icon="close" size="sm" padding="xs sm" @click="cancelEditMemo()"/>
-                        </div>
-                      </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-slide-transition>
+        <!-- Memo Display Section (when memo exists and not editing) -->
+        <q-slide-transition>
+          <div v-if="hasMemo && !editingMemo" class="memo-display-section q-mt-lg q-mb-md">
+            <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
+            <div class="memo-display-container" :class="getDarkModeClass(darkMode)">
+              <div class="memo-text">{{ transactionMemo }}</div>
+              <div class="memo-actions">
+                <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
+                <q-separator vertical :dark="darkMode"/>
+                <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
+              </div>
             </div>
           </div>
-        </div>
+        </q-slide-transition>
 
-        <!-- Add to Address Book Button (for outgoing transactions only) -->
-        <div v-if="canAddToAddressBook" class="q-mt-lg text-center">
-          <q-btn
-            :label="$t('AddToAddressBook', {}, 'Add to Address Book')"
-            unelevated
-            no-caps
-            color="secondary"
-            icon="mdi-book-plus"
-            class="q-px-lg"
-            @click="onAddToAddressBook"
-          />
-        </div>
+        <!-- Memo Edit Section -->
+        <q-slide-transition>
+          <div v-if="editingMemo" class="memo-edit-section q-mt-lg q-mb-md">
+            <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
+            <div class="memo-edit-container" :class="getDarkModeClass(darkMode)">
+              <input ref="memoInputRef" v-model="memoInput" type="text" class="memo-input" :class="darkMode ? 'memo-input-dark' : 'memo-input-light'" :placeholder="`${$t('EnterMemo', {}, 'Enter memo')}...`" @keyup.enter="saveMemo()" @keyup.esc="cancelEditMemo()"/>
+              <div class="memo-edit-actions">
+                <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memoInput || memoInput === transactionMemo" @click="saveMemo()"/>
+                <q-separator vertical :dark="darkMode"/>
+                <q-btn flat icon="close" size="sm" padding="xs sm" @click="cancelEditMemo()"/>
+              </div>
+            </div>
+          </div>
+        </q-slide-transition>
         </div>
       </div>
     </div>
@@ -3324,6 +3331,186 @@ export default {
   &.is-saving {
     cursor: wait;
   }
+}
+
+/* Quick Actions Section */
+.quick-actions-section {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 600px;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  justify-content: center;
+}
+
+@media (max-width: 360px) {
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 361px) and (max-width: 600px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.quick-action-btn {
+  min-height: 72px;
+  padding: 12px 8px;
+  border-radius: 16px;
+  background: rgba(128, 128, 128, 0.05);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--q-primary), 0.08);
+    border-color: rgba(var(--q-primary), 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.quick-action-btn.has-memo {
+  .quick-action-icon {
+    color: var(--q-primary);
+  }
+}
+
+.quick-action-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.quick-action-icon {
+  font-size: 24px;
+  color: var(--q-primary);
+  opacity: 0.9;
+  transition: transform 0.2s ease;
+}
+
+.quick-action-btn:hover:not(:disabled) .quick-action-icon {
+  transform: scale(1.1);
+}
+
+.quick-action-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  color: inherit;
+}
+
+/* Memo Display Section */
+.memo-display-section {
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.memo-display-container {
+  background: rgba(128, 128, 128, 0.08);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.memo-text {
+  flex: 1;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.memo-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Memo Edit Section */
+.memo-edit-section {
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.memo-edit-container {
+  background: rgba(128, 128, 128, 0.08);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.memo-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+
+  &::placeholder {
+    color: rgba(128, 128, 128, 0.6);
+  }
+}
+
+.memo-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 </style>
