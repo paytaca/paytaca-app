@@ -1,24 +1,13 @@
 
-import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-//import { createCard } from 'src/services/card/backend/api';
-import HeaderNav from 'components/header-nav'
 import Card from 'src/services/card/card.js';
 import { loadCardUser, fetchCardByIdentifier, getAuthToken } from 'src/services/card/user';
-import { selectedCurrency } from 'src/store/market/getters';
 import { getMerchantList } from 'src/services/card/merchants';
-import { title } from 'process';
-import { onBeforeUnmount, onUnmounted } from 'vue';
-import { set } from 'date-fns';
 
   export const createCardLogic = {
       
     setup () {
       const merchantList = getMerchantList()
       return {merchantList}
-    },
-
-    components: {
-      MultiWalletDropdown,
     },
 
     data () {
