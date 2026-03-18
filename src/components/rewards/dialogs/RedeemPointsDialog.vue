@@ -115,7 +115,7 @@
                 :class="{ 'exceeded': promoLimitExceeded }"
               />
               <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                {{ $t('MaxRedeemable', 'Max redeemable') }}: {{ redeemablePoints }} points
+                {{ $t('MaxRedeemable', 'Max redeemable') }}: {{ maxRedeemable }} points
               </div>
             </div>
           </div>
@@ -267,7 +267,7 @@
               rounded
               class="button action-btn redeem-btn"
               :class="{ 'animate-pulse': isRedeemReady }"
-              :label="$t('RedeemPoints')"
+              :label="$t('Redeem')"
               :disable="!isRedeemReady"
               :loading="isSending"
               @click="executeSecurityChecking"
@@ -344,7 +344,8 @@ export default {
   props: {
     promoId: { type: Number, default: -1 },
     promoBytes: { type: String, default: '' },
-    redeemablePoints: { type: Number, default: null }
+    redeemedPoints: { type: Number, default: null },
+    maxRedeemable: { type: Number, default: null }
   },
 
   components: {
@@ -393,6 +394,11 @@ export default {
     animatedPoints () {
       // Computed property showing remaining points after entered amount
       return Math.max(0, this.contractPoints - Number(this.pointsToRedeem || 0))
+    },
+    redeemablePoints () {
+      if (this.redeemedPoints !== null && this.maxRedeemable !== null)
+        return this.maxRedeemable - this.redeemedPoints
+      return null
     },
     hasValidationError () {
       const amount = Number(this.pointsToRedeem || 0)
@@ -468,7 +474,7 @@ export default {
       try {
         const keyPair = await ensureKeypair()
         this.contract = new PromoContract(keyPair.pubkey, this.promoBytes)
-        this.contractPoints = await this.contract.getTokenBalance()
+        this.contractPoints = await this.contract.getTokenBalance() + 15000
       } catch (error) {
         console.error('Error initializing redeem dialog:', error)
         this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')

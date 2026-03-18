@@ -405,7 +405,8 @@ export default {
         componentProps: {
           promoId: this.rpId,
           promoBytes: PromosBytes.RP,
-          redeemablePoints: this.getRemainingRedeemable
+          redeemedPoints: this.redeemedPoints,
+          maxRedeemable: this.rpMax
         }
       }).onDismiss(async () => {
         this.isLoading = true
