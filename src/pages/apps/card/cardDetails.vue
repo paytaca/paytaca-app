@@ -1097,13 +1097,7 @@ export default {
         }
         
         // Show success notification
-        this.$q.notify({
-          message: 'Card name updated successfully',
-          color: 'positive',
-          icon: 'check',
-          position: 'top',
-          timeout: 2000
-        })
+        this.notifySuccess('Card name updated successfully')
       }
       this.showEditNameDialog = false
     },
@@ -1114,11 +1108,7 @@ export default {
       const address = this.getContractAddress(this.activeCard)
       if (address) {
         navigator.clipboard.writeText(address)
-        this.$q.notify({
-          message: 'Contract address copied!',
-          color: 'positive',
-          position: 'top'
-        })
+        this.notifySuccess('Contract address copied!')
       }
     },
 
@@ -1135,11 +1125,7 @@ export default {
 
     handleCashIn () {
       if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
-        this.$q.notify({
-          message: 'Please enter a valid amount greater than 0',
-          color: 'negative',
-          position: 'top'
-        })
+        this.notifyError('Please enter a valid amount greater than 0')
         return
       }
 
@@ -1155,11 +1141,7 @@ export default {
         // Use real market price from store
         const bchPrice = this.bchPriceInSelectedCurrency
         if (!bchPrice) {
-          this.$q.notify({
-            message: 'Unable to fetch current BCH price. Please try again.',
-            color: 'negative',
-            position: 'top'
-          })
+          this.notifyError('Unable to fetch current BCH price. Please try again.')
           return
         }
         // Convert fiat to BCH: amount / price = BCH
@@ -1188,19 +1170,11 @@ export default {
       if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 
           !this.orderPhysicalCardData.state || !this.orderPhysicalCardData.zip || 
           !this.orderPhysicalCardData.country) {
-        this.$q.notify({
-          message: 'Please fill in all required fields',
-          color: 'negative',
-          position: 'top'
-        })
+        this.notifyError('Please fill in all required fields')
         return
       }
 
-      this.$q.notify({
-        message: 'Card order submitted successfully!',
-        color: 'positive',
-        position: 'top'
-      })
+      this.notifySuccess('Card order submitted successfully!')
 
       this.hasOrderedPhysicalCard = true
       
@@ -1280,10 +1254,7 @@ export default {
         })
       }
       catch (error) {
-        this.$q.notify({
-          message: 'Geocoding failed',
-          color: 'negative'
-        })
+        this.notifyError('Geocoding failed')
       }
     },
 
@@ -1401,10 +1372,7 @@ export default {
         })
       }
       catch (error) {
-        this.$q.notify({
-          message: 'Geocoding failed',
-          color: 'negative'
-        })
+        this.notifyError('Geocoding failed')
       }
     },
 
@@ -1431,12 +1399,7 @@ export default {
     },
 
     confirmCardReplacement () {
-      this.$q.notify({
-        message: 'Card replacement order submitted successfully!',
-        color: 'positive',
-        icon: 'check_circle',
-        position: 'top'
-      })
+      this.notifySuccess('Card replacement order submitted successfully!', { icon: 'check_circle' })
       this.cardReplacementStatus = 'pending'
       this.saveCardReplacementStatus()
     },

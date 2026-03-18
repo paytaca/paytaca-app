@@ -235,10 +235,7 @@ export default {
         }));
       } catch (error) {
         console.error('Failed to load merchant list:', error);
-        this.$q.notify({
-          message: 'Failed to load merchants',
-          color: 'negative'
-        });
+        this.notifyError('Failed to load merchants');
       }
     },
 
@@ -255,11 +252,7 @@ export default {
           m.wasEnabledBeforeGeneric = m.isEnabled; // preserve previous state
           m.isEnabled = true; // Show as enabled when generic auth is on
         });
-        this.$q.notify({
-          message: 'Generic Auth NFT enabled - all merchants are authorized',
-          color: 'positive',
-          icon: 'check_circle'
-        });
+        this.notifySuccess('Generic Auth NFT enabled - all merchants are authorized', { icon: 'check_circle' });
       } else {
         // When Generic Auth is disabled, restore previous merchant states
         this.merchants.forEach(m => {

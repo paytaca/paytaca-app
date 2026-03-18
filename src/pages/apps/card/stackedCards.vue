@@ -360,12 +360,7 @@ export default {
 
     async createCard () {
       if (!this.newCardName || !this.newCardName.trim()) {
-        this.$q.notify({
-          message: 'Please enter a card name',
-          color: 'negative',
-          icon: 'error',
-          position: 'top'
-        })
+        this.notifyError('Please enter a card name')
         return
       }
 

@@ -444,10 +444,7 @@ import { getMerchantList } from 'src/services/card/merchants';
 
       async handleCardReplacement () {
         if(!this.selectedCardToReplace){
-          this.$q.notify({
-            message: 'Please select a card to replace first',
-            color: 'warning'
-          })
+          this.notifyWarning('Please select a card to replace first')
           this.cardReplacementDialog = true
           return
         }
@@ -480,10 +477,7 @@ import { getMerchantList } from 'src/services/card/merchants';
           this.showForm = true
         } catch(error){
           console.error('Replacement failed: ', error)
-          this.$q.notify({
-            message: 'Could not process replacement. Please try again.',
-            color: 'negative'
-          })
+          this.notifyError('Could not process replacement. Please try again.')
         } finally {
           this.$q.loading.hide()
         }
@@ -491,7 +485,7 @@ import { getMerchantList } from 'src/services/card/merchants';
       
       async handleCreateCard(){
         if(!this.newCardName){
-          this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
+          this.notifyError('Please enter a Card name')
           return
         }
 
@@ -530,10 +524,7 @@ import { getMerchantList } from 'src/services/card/merchants';
           this.getCards() // refresh cards to get real data from blockchain
         } catch (error) {
           console.error('Final Workflow Error: ', error)
-          this.$q.notify({
-            message: 'Failed to create card. Please check your balance.',
-            color: 'negative'
-          })
+          this.notifyError('Failed to create card. Please check your balance.')
         } finally {
           this.$q.loading.hide()
         }
@@ -567,17 +558,9 @@ import { getMerchantList } from 'src/services/card/merchants';
 
       copyToClipboard(text){
         navigator.clipboard.writeText(text).then(() => {
-          this.$q.notify({
-            message: 'Copied to clipboard',
-            color: 'positive',
-            position: 'top'
-          })
+          this.notifySuccess('Copied to clipboard')
         }).catch(() => {
-          this.$q.notify({
-            message: 'Failed to copy',
-            color: 'negative',
-            position: 'top'
-          })
+          this.notifyError('Failed to copy')
         })
       },
 
@@ -834,10 +817,7 @@ import { getMerchantList } from 'src/services/card/merchants';
           })
         }
         catch (error) {
-          this.$q.notify({
-            message: 'Geocoding failed',
-            color: 'negative'
-          })
+          this.notifyError('Geocoding failed')
         }
       },
 
