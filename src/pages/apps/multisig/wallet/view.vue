@@ -40,6 +40,14 @@
                       </q-btn>
                     </div>
                     <div class="col-xs-12 q-mt-md text-subtitle2">{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                    <div class="col-12 text-caption flex items-center justify-end">
+                      <q-chip v-if="signersWithXprv.value?.length === 0">
+                        <div class="flex items-center items-end q-gutter-x-sm">
+                          <span class="text-capitalize text-italic text-caption">{{$t('WatchOnly') }}</span>
+                          <q-icon name="mdi-pen-off"></q-icon>
+                        </div>
+                      </q-chip>
+                    </div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -100,17 +108,6 @@
               </div>
             </div>
             <q-list>
-              <q-item v-if="walletBannerMessages?.length > 0">
-                <q-item-section caption>
-                  <q-banner :class="getDarkModeClass(darkMode)" class="br-15 text-bow text-mute text-caption">
-                    <ul>
-                      <li v-for="m, i in walletBannerMessages" :key="`m-${i}`" class="text-muted text-bow text-caption">
-                        {{ m }}
-                      </li>
-                    </ul>
-                  </q-banner>
-                </q-item-section>
-              </q-item>
               <q-separator spaced inset />
               <q-item v-if="wallet.isOnline()">
                 <q-item-section>
@@ -295,13 +292,6 @@ const signersWithXprv = computed(() => {
   return wallet.value.signers.filter(s => s.xprv)
 })
 
-const walletBannerMessages = computed(() => {
-  const messages = []
-  if (signersWithXprv.value?.length === 0) {
-    messages.push($t('WatchOnlyWalletHint'))
-  }
-  return messages
-})
 
 const proposals = computed(() => {
   const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
