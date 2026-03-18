@@ -177,7 +177,7 @@
               <q-expansion-item v-model="balancesExpanded">
                 <template v-slot:header>
                   <q-item-section class="text-subtitle2">
-                    {{ $t('CoinsBalance') }}
+                    {{ $t('Balances') }}
                   </q-item-section>
                 </template>
                 <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash() }, query: { asset: 'bch' } }">

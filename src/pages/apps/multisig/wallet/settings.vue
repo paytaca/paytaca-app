@@ -1,8 +1,7 @@
 <template>
     <div id="app-container" class="sticky-header-container" :class="getDarkModeClass(darkMode)">
         <header-nav :title="$t('WalletSettings', {}, 'Wallet Settings')" :backnavpath="`${ route.query.backnavpath || `/apps/multisig/wallet/${route.params.wallethash}`}`" class="header-nav header-nav apps-header" />
-        <div class="row text-bow" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
-          
+        <div v-if="wallet" class="row text-bow" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
           <div class="col-12 q-px-lg q-mt-md">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('AboutWallet', {}, 'About Wallet') }}</p>
               <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
@@ -33,7 +32,7 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
-                <q-item v-if="wallet.isOnline()">
+                <q-item v-if="wallet?.isOnline()">
                   <q-item-section>
                     <q-item-label caption >{{ $t('WalletId', {}, 'Wallet Id').toUpperCase() }}</q-item-label>
                     <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
@@ -109,34 +108,34 @@
                 </q-item>
               </q-list>
           </div>
-          
           <div v-if="wcActiveSessions" class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
-            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletConnectSessions') }}</p>
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('WalletConnect') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
-              <q-item v-for="session in wcActiveSessions" :key="session.topic">
-                  <q-item-section avatar>
-                    <q-avatar v-if="session.peer.metadata.icons?.length > 0">
-                        <img :src="session.peer.metadata.icons[0]" alt="">
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label caption class="ellipsis">ID: {{ session.topic }}</q-item-label>
-                    <q-item-label class="pt-label q-gutter-y-sm" :class="getDarkModeClass(darkMode)">
-                      <div class="ellipsis">{{ session.peer.metadata.name }}</div>
-                      <div v-if="session.peer.metadata.url">
-                        {{ session.peer.metadata.url }}
-                      </div>
-                    </q-item-label>
-                  </q-item-section>
-                  <q-item-section side>
-                    <q-btn 
-                      @click="() => wcDisconnectSession(session)" 
-                      icon="mdi-connection" color="red" 
-                      rounded flat no-caps
-                      :loading="wcProcessingSession[session.topic]"
-                      >
-                    </q-btn>
-                  </q-item-section>
+              <q-expansion-item :model-value="true" :label="$t('ActiveSessions')">
+                <q-item v-for="session in wcActiveSessions" :key="session.topic">
+                    <q-item-section avatar>
+                      <q-avatar v-if="session.peer.metadata.icons?.length > 0">
+                          <img :src="session.peer.metadata.icons[0]" alt="">
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label caption class="ellipsis">ID: {{ session.topic }}</q-item-label>
+                      <q-item-label class="pt-label q-gutter-y-sm" :class="getDarkModeClass(darkMode)">
+                        <div class="ellipsis">{{ session.peer.metadata.name }}</div>
+                        <div v-if="session.peer.metadata.url">
+                          {{ session.peer.metadata.url }}
+                        </div>
+                      </q-item-label>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-btn 
+                        @click="() => wcDisconnectSession(session)" 
+                        icon="mdi-connection" color="red" 
+                        rounded flat no-caps
+                        :loading="wcProcessingSession[session.topic]"
+                        >
+                      </q-btn>
+                    </q-item-section>
                 </q-item>
                 <q-item v-if="wcActiveSessions?.length === 0">
                   <q-item-section>
@@ -145,20 +144,51 @@
                     </q-item-label>
                   </q-item-section>
                 </q-item>
+              </q-expansion-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption>{{ $t('DefaultAccount', {}, 'Default Account (Address 0)') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)" >
+                    <div style="overflow-wrap: break-word">{{ wallet.wcGetDefaultAddress() }} </div>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ $t('ReserveWcAccountUtxos', {}, 'Reserve WalletConnect Account UTXOs?') }}
+                  </q-item-label>
+                  <q-item-label caption class="pt-sm">
+                    {{ $t('ReserveWcAccountUtxosDesc', {}, `If "Yes", balances of the Default Account are reserved for WalletConnect transactions only`) }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="flex items-center">
+                    {{ $t('No') }}
+                    <q-toggle
+                      :model-value="wallet?.settings?.reserveWcAccountUtxos ?? true"
+                      @update:model-value="toggleReserveWcAccountUtxos"
+                      :color="toggleColor"
+                      keep-color
+                    />
+                    {{ $t('Yes') }}
+                  </div>
+                </q-item-section>
+              </q-item>
             </q-list>
           </div>
-
           <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
             <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">{{ $t('CosignerCoordination') }}</p>
             <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+              
               <q-item>
-                  <q-item-section>
-                    <q-item-label caption>{{ $t('WalletSetupSharing', {}, 'Wallet Setup Sharing') }}</q-item-label>
-                    <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
-                      {{ wallet.isOnline() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
+                <q-item-section>
+                  <q-item-label caption>{{ $t('WalletSetupSharing', {}, 'Wallet Setup Sharing') }}</q-item-label>
+                  <q-item-label class="pt-label" :class="getDarkModeClass(darkMode)">
+                    {{ wallet.isOnline() ? 'Online or Offline (out-of-band)': 'Offline (out-of-band) only' }} 
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
               <q-item>
                 <q-item-section>
                   <q-item-label caption>{{ $t('TransactionSigning', {}, 'Transaction Signing') }}</q-item-label>
@@ -223,22 +253,30 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
+const toggleColor = computed(() => {
+  const theme = $store.getters['global/theme']
+  if (theme === 'glassmorphic-red') return 'pink-6'
+  if (theme === 'glassmorphic-green') return 'green-6'
+  if (theme === 'glassmorphic-gold') return 'amber-7'
+  return 'blue-6'
+})
+
 const wcActiveSessions = ref([])
 const wcProcessingSession = ref({})
-
-const wallet = computed(() => {
-  const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-  if (storedWallet) {
-    return MultisigWallet.importFromObject(storedWallet, {
-      store: $store,
-      provider: multisigNetworkProvider,
-      coordinationServer: multisigCoordinationServer,
-      resolveXprvOfXpub,
-      resolveMnemonicOfXpub
-    })
-  }
-  return null
-})
+const wallet = ref()
+// const wallet = computed(() => {
+//   const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+//   if (storedWallet) {
+//     return MultisigWallet.importFromObject(storedWallet, {
+//       store: $store,
+//       provider: multisigNetworkProvider,
+//       coordinationServer: multisigCoordinationServer,
+//       resolveXprvOfXpub,
+//       resolveMnemonicOfXpub
+//     })
+//   }
+//   return null
+// })
 
 
 const loadHdPrivateKeys = async (signers) => {
@@ -368,17 +406,33 @@ const wcDisconnectSession = async (activeSession) => {
     await wcLoadActiveSessions()
   } catch (error) {
     console.log(error)
-    // console.log('🚀 ~ disconnectSession ~ error:', error)
   } finally {
     delete wcProcessingSession.value[activeSession.topic]
   }
 }
 
+const toggleReserveWcAccountUtxos = (value) => {
+  wallet.value.settings.reserveWcAccountUtxos = value 
+  wallet.value.save()
+  console.log('WALLET VALUE', wallet.value)
+}
+
 onMounted(async () => {
-  await loadHdPrivateKeys(wallet.value?.signers)
-  await wallet.value.loadSignersServerIdentity()
-  await wcLoadActiveSessions()
-  
+
+  const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  if (storedWallet) {
+    wallet.value = MultisigWallet.importFromObject(storedWallet, {
+      store: $store,
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer,
+      resolveXprvOfXpub,
+      resolveMnemonicOfXpub
+    })
+
+    await loadHdPrivateKeys(wallet.value?.signers)
+    await wallet.value.loadSignersServerIdentity()
+    await wcLoadActiveSessions()
+  }
 })
 
 </script>

@@ -45,7 +45,7 @@
               @click="openNftDetail(tokenid, nfts)"
             >
               <q-item-section avatar>
-                <q-avatar rounded size="60px">
+                <q-avatar rounded size="5rem">
                   <q-img
                     :src="getNftImage(nfts[0])"
                     class="full-width full-height"
@@ -78,7 +78,7 @@
                 <q-badge color="primary" :label="`${nfts.length} ${nfts.length === 1 ? 'item' : 'items'}`" />
               </q-item-section>
               <q-item-section side>
-                <q-icon name="chevron_right" color="grey-6"></q-icon>
+                <q-icon name="chevron_right" color="primary"></q-icon>
               </q-item-section>
             </q-item>
           </q-list>
