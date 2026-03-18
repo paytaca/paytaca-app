@@ -109,7 +109,7 @@
               class="button redeem-btn full-width q-mb-md"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
-              :disable="points === 0 || redeemedPoints === 0"
+              :disable="points !== 0 || redeemedPoints !== 0"
               @click="openRedeemPointsDialog"
             />
 
@@ -405,7 +405,7 @@ export default {
         componentProps: {
           promoId: this.rpId,
           promoBytes: PromosBytes.RP,
-          redeemedPoints: this.redeemedPoints
+          redeemablePoints: this.getRemainingRedeemable
         }
       }).onDismiss(async () => {
         this.isLoading = true

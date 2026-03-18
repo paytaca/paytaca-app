@@ -69,7 +69,7 @@
               class="button redeem-btn full-width"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
-              :disable="points !== 0"
+              :disable="points === 0"
               @click="openRedeemPointsDialog"
             />
           </template>
