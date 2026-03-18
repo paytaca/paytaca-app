@@ -818,6 +818,18 @@ export default {
         }
       }
       return '/'
+    },
+    canAddToAddressBook () {
+      // Only show for outgoing transactions with a single recipient address
+      if (!this.tx) return false
+      if (this.tx.record_type !== 'outgoing') return false
+      const recipient = this.$route.query.recipient
+      if (!recipient) return false
+      // Don't show if already in address book - check via simple validation
+      return true
+    },
+    recipientAddress () {
+      return this.$route.query.recipient || null
     }
   },
   async mounted () {
@@ -965,18 +977,6 @@ export default {
           }
         })
       }
-    },
-    canAddToAddressBook () {
-      // Only show for outgoing transactions with a single recipient address
-      if (!this.tx) return false
-      if (this.tx.record_type !== 'outgoing') return false
-      const recipient = this.$route.query.recipient
-      if (!recipient) return false
-      // Don't show if already in address book - check via simple validation
-      return true
-    },
-    recipientAddress () {
-      return this.$route.query.recipient || null
     }
   },
   methods: {
