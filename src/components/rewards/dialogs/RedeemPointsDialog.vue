@@ -342,11 +342,8 @@ export default {
 
   props: {
     points: { type: Number, default: 0 },
-    pointsType: { type: String, default: '' },
-    pointsDivisor: { type: Number, default: 0 },
     promoId: { type: Number, default: -1 },
-    address: { type: String, default: '' },
-    redeemablePoints: { type: Number, default: 1000 }
+    redeemablePoints: { type: Number, default: null }
   },
 
   components: {

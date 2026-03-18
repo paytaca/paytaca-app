@@ -69,7 +69,7 @@
               class="button redeem-btn full-width"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
-              :disable="points === 0"
+              :disable="points !== 0"
               @click="openRedeemPointsDialog"
             />
           </template>
@@ -691,10 +691,7 @@ export default {
         component: RedeemPointsDialog,
         componentProps: {
           points: this.points,
-          pointsType: Promos.USERREWARDS,
-          pointsDivisor: this.pointsDivisor,
           promoId: this.urId,
-          address: this.address
         }
       }).onDismiss(async () => {
         this.isLoading = true

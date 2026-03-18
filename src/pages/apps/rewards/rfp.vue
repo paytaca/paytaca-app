@@ -404,10 +404,7 @@ export default {
         component: RedeemPointsDialog,
         componentProps: {
           points: this.points,
-          pointsType: Promos.RFPROMO,
-          pointsDivisor: this.pointsDivisor,
           promoId: this.rpId,
-          address: this.address,
           redeemedPoints: this.redeemedPoints
         }
       }).onDismiss(async () => {
