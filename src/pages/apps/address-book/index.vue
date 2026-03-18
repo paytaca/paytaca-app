@@ -82,6 +82,7 @@
             <record-list 
               :list="filteredFavoriteRecords" 
               :is-selection-mode="isSelectionMode"
+              :loading-record-id="loadingRecordId"
               @select-record="onRecordSelected"
             />
           </div>
@@ -91,6 +92,7 @@
             <record-list 
               :list="filteredRecords" 
               :is-selection-mode="isSelectionMode"
+              :loading-record-id="loadingRecordId"
               @select-record="onRecordSelected"
             />
           </div>
@@ -157,7 +159,8 @@ export default {
       searchQuery: '',
       isSelectionMode: false,
       backPath: null,
-      backQuery: null
+      backQuery: null,
+      loadingRecordId: null // Track which record is being loaded
     }
   },
 
@@ -255,6 +258,9 @@ export default {
     
     async onRecordSelected(record) {
       if (!this.isSelectionMode) return
+      if (this.loadingRecordId) return // Prevent double-clicks while loading
+      
+      this.loadingRecordId = record.id
       
       try {
         const recordData = await getRecord(record.id)
@@ -302,6 +308,8 @@ export default {
           timeout: 2000,
           position: 'top'
         })
+      } finally {
+        this.loadingRecordId = null
       }
     },
     

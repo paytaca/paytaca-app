@@ -852,12 +852,10 @@ export default {
     },
     canAddToAddressBook () {
       // Only show for outgoing transactions
-      console.log('[TransactionDetail] canAddToAddressBook check - tx:', this.tx?.record_type)
       if (!this.tx) return false
       if (this.tx.record_type !== 'outgoing') return false
       // Check if we have recipient from query param or can extract from transaction
       const recipient = this.recipientAddress
-      console.log('[TransactionDetail] recipient:', recipient)
       if (!recipient) return false
       return true
     },
@@ -876,28 +874,23 @@ export default {
       // Use txDetails if available (from API fetch)
       // The API returns {valid: true, details: {outputs: [...]}}
       const outputs = this.txDetails?.details?.outputs || this.txDetails?.outputs || this.tx?.outputs
-      console.log('[TransactionDetail] extractedRecipientAddress - outputs:', outputs)
       
       if (outputs && Array.isArray(outputs)) {
         // Find outputs that are not change and have an address
         const nonChangeOutputs = outputs.filter(output => 
           !output.is_change && output.address
         )
-        console.log('[TransactionDetail] nonChangeOutputs:', nonChangeOutputs)
         
         // If there's exactly one non-change output, use it
         if (nonChangeOutputs.length === 1) {
-          console.log('[TransactionDetail] Using single non-change output:', nonChangeOutputs[0].address)
           return nonChangeOutputs[0].address
         }
         // If multiple, try to find the one with largest amount
         if (nonChangeOutputs.length > 1) {
           const sorted = nonChangeOutputs.sort((a, b) => (b.value || 0) - (a.value || 0))
-          console.log('[TransactionDetail] Using largest non-change output:', sorted[0].address)
           return sorted[0].address
         }
       }
-      console.log('[TransactionDetail] No valid recipient address found in outputs')
       return null
     }
   },
@@ -1717,35 +1710,20 @@ export default {
     },
     async fetchTransactionDetails () {
       // Fetch raw transaction data to get outputs
-      if (!this.tx || this.tx.record_type !== 'outgoing') {
-        console.log('[TransactionDetail] Not fetching tx details - not outgoing tx')
-        return
-      }
-      if (this.loadingTxDetails || this.txDetails) {
-        console.log('[TransactionDetail] Not fetching tx details - already loading or has data')
-        return
-      }
-      if (this.$route.query.recipient) {
-        console.log('[TransactionDetail] Not fetching tx details - already have recipient from query')
-        return // Already have recipient from query
-      }
+      if (!this.tx || this.tx.record_type !== 'outgoing') return
+      if (this.loadingTxDetails || this.txDetails) return
+      if (this.$route.query.recipient) return // Already have recipient from query
 
       this.loadingTxDetails = true
       try {
         const txid = this.transactionId
-        if (!txid) {
-          console.log('[TransactionDetail] No txid available')
-          return
-        }
+        if (!txid) return
 
         // Fetch transaction details from watchtower
         const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
         const url = `${baseUrl}/transactions/${txid}/`
-        console.log('[TransactionDetail] Fetching transaction details from:', url)
         
         const { data } = await axios.get(url)
-        
-        console.log('[TransactionDetail] Transaction details response:', data)
         
         if (data) {
           this.txDetails = data
@@ -1754,7 +1732,6 @@ export default {
           // Merge outputs into tx object for computed property
           if (details.outputs && !this.tx.outputs) {
             this.tx = { ...this.tx, outputs: details.outputs }
-            console.log('[TransactionDetail] Merged outputs into tx:', details.outputs)
           }
         }
       } catch (error) {
@@ -2078,11 +2055,7 @@ export default {
     },
     onAddToAddressBook () {
       const recipient = this.recipientAddress
-      console.log('[TransactionDetail] onAddToAddressBook - recipient:', recipient)
-      if (!recipient) {
-        console.log('[TransactionDetail] No recipient address available')
-        return
-      }
+      if (!recipient) return
       this.$router.push({
         name: 'app-address-book-add-record',
         query: { address: recipient }
