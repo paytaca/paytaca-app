@@ -63,16 +63,6 @@
             @click="onDone"
           />
           <q-btn
-            v-if="showAddToAddressBook && recipientAddress"
-            :label="$t('AddToAddressBook', {}, 'Add to Address Book')"
-            unelevated
-            no-caps
-            color="secondary"
-            class="full-width q-mb-md"
-            icon="mdi-book-plus"
-            @click="onAddToAddressBook"
-          />
-          <q-btn
             :label="$t('ViewTransactions')"
             outline
             no-caps
@@ -126,14 +116,6 @@ export default {
     backPath: {
       type: String,
       default: null
-    },
-    recipientAddress: {
-      type: String,
-      default: null
-    },
-    recipientCount: {
-      type: Number,
-      default: 1
     }
   },
   computed: {
@@ -161,10 +143,6 @@ export default {
       }
       if (num <= 0) return ''
       return `${str} ${this.assetSymbol}`
-    },
-    showAddToAddressBook () {
-      // Only show if there's a single recipient and we're in send mode
-      return this.mode === 'send' && this.recipientCount === 1
     }
   },
   methods: {
@@ -178,15 +156,6 @@ export default {
     },
     onViewTransactions () {
       this.$router.push({ name: 'transaction-list' })
-    },
-    onAddToAddressBook () {
-      if (!this.recipientAddress) return
-      this.$router.push({
-        name: 'app-address-book-add-record',
-        query: {
-          address: this.recipientAddress
-        }
-      })
     }
   }
 }

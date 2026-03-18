@@ -29,8 +29,6 @@
           :fiat-amount="formattedFiatAmountSent"
           :is-cash-token="isCashToken"
           :back-path="backPath"
-          :recipient-address="recipients[0]?.recipientAddress"
-          :recipient-count="recipients.length"
         />
         <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
           <JppPaymentPanel
@@ -1051,6 +1049,10 @@ export default {
         from: 'send-page',
         assetID: this.assetId || 'bch',
         new: 'true'
+      }
+      // Add recipient address for "Add to Address Book" feature
+      if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
+        query.recipient = this.recipients[0].recipientAddress
       }
       const assetId = this.assetId || ''
       if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
