@@ -28,49 +28,55 @@
               </div>
             </q-card-section>
           </q-card>
-          <!-- <div class="text-subtitle1 q-mb-md">{{ $t('Items', {}, 'Items') }}</div> -->
-          <q-list separator :class="getDarkModeClass(darkMode)">
-            <q-item v-for="(nft, index) in nfts" :key="`${nft.txid}-${nft.vout}`">
-              <q-item-section avatar>
-                <q-avatar text-color="primary">
-                  <q-icon name="image"></q-icon>
-                </q-avatar>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label class="text-weight-medium">
-                  {{ $t('ItemN', {}, 'Item') }} #{{ index + 1 }}
-                </q-item-label>
-                <q-item-label caption class="text-bow-muted">
-                  <div>{{ shortenString(nft.txid, 20) }}:{{ nft.vout }}</div>
-                </q-item-label>
-                <q-item-label caption class="text-bow-muted">
-                  {{ $t('Commitment', {}, 'Commitment') }}: {{ nft.commitment || 'none' }}
-                </q-item-label>
-                <q-item-label caption class="text-bow-muted">
-                  {{ $t('Capability', {}, 'Capability') }}: {{ nft.capability || 'none' }}
-                </q-item-label>
-                <q-item-label caption class="text-bow-muted">
-                  {{ $t('InscribedSats') }}: {{ nft.value }} Sats
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side>
-                <div class="flex column items-end q-gutter-y-sm">
+          <div class="row q-col-gutter-sm">
+            <div
+              v-for="(nft, index) in nfts"
+              :key="`${nft.txid}-${nft.vout}`"
+              class="col-6 col-sm-4 col-md-3"
+            >
+              <q-card
+                flat
+                class="nft-item-card cursor-pointer"
+                :class="getDarkModeClass(darkMode)"
+              >
+                <q-card-section class="q-pa-sm">
+                  <div class="flex flex-center q-mb-sm">
+                    <q-avatar rounded size="80px" text-color="primary" class="bg-grey-3">
+                      <q-icon name="image" size="48px"></q-icon>
+                    </q-avatar>
+                  </div>
+                  <div class="text-subtitle2 text-weight-bold text-center">
+                    {{ $t('ItemN', {}, 'Item') }} #{{ index + 1 }}
+                  </div>
+                  <div class="text-caption text-bow-muted text-center ellipsis">
+                    {{ shortenString(nft.txid, 16) }}:{{ nft.vout }}
+                  </div>
+                  <div class="text-caption text-bow-muted text-center">
+                    {{ $t('Commitment', {}, 'Commitment') }}: {{ nft.commitment || 'none' }}
+                  </div>
+                  <div class="text-caption text-bow-muted text-center">
+                    {{ $t('Capability', {}, 'Capability') }}: {{ nft.capability || 'none' }}
+                  </div>
+                  <div class="text-caption text-bow-muted text-center">
+                    {{ $t('InscribedSats') }}: {{ nft.value }} Sats
+                  </div>
+                </q-card-section>
+                <q-card-actions align="center" class="q-pa-sm q-pt-none">
                   <q-btn 
                     icon="send" 
                     color="primary" 
                     rounded 
                     no-caps
-                    size="sm"
                     :to="{ 
                       name: 'app-multisig-wallet-transaction-send-nft', 
                       params: { wallethash: route.params.wallethash, tokenid: route.params.tokenid },
                       query: { txid: nft.txid, vout: nft.vout, index: index }
                     }"
                   >{{ $t('Send') }}</q-btn>
-                </div>
-              </q-item-section>
-            </q-item>
-          </q-list>
+                </q-card-actions>
+              </q-card>
+            </div>
+          </div>
         </div>
         <div v-else class="row justify-center q-py-lg">
           <div class="text-center">
@@ -153,4 +159,26 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.nft-item-card {
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
 </style>

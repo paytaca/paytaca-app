@@ -35,46 +35,53 @@
               </q-card>
             </div>
           </div>
-          <div v-if="groupedNfts && Object.keys(groupedNfts).length > 0" class="row q-col-gutter-sm q-px-md q-pb-md">
-          <div
-            v-for="(nfts, tokenid) in groupedNfts"
-            :key="tokenid"
-            class="col-6 col-sm-4 col-md-3"
-          >
-            <q-card
-              flat
-              class="nft-card cursor-pointer"
-              :class="getDarkModeClass(darkMode)"
+          <div v-if="groupedNfts && Object.keys(groupedNfts).length > 0" class="q-px-md q-pb-md">
+          <q-list separator :class="getDarkModeClass(darkMode)">
+            <q-item
+              v-for="(nfts, tokenid) in groupedNfts"
+              :key="tokenid"
+              clickable
+              v-ripple
               @click="openNftDetail(tokenid, nfts)"
             >
-              <q-img
-                :src="getNftImage(nfts[0])"
-                class="nft-image"
-              >
-                <template v-slot:error>
-                  <div class="absolute-full flex flex-center bg-grey-3">
-                    <q-icon name="image" size="48px" color="grey-5"></q-icon>
-                  </div>
-                </template>
-                <template v-slot:default>
-                  <div class="absolute-full flex flex-center bg-grey-3">
-                    <q-icon name="collections" size="48px" color="primary"></q-icon>
-                  </div>
-                </template>
-              </q-img>
-              <q-card-section class="q-pa-sm nft-card-section">
-                <div class="text-subtitle2 text-weight-bold ellipsis-2-lines">
+              <q-item-section avatar>
+                <q-avatar rounded size="60px">
+                  <q-img
+                    :src="getNftImage(nfts[0])"
+                    class="full-width full-height"
+                  >
+                    <template v-slot:error>
+                      <div class="absolute-full flex flex-center bg-grey-3">
+                        <q-icon name="image" size="32px" color="grey-5"></q-icon>
+                      </div>
+                    </template>
+                    <template v-slot:default>
+                      <div class="absolute-full flex flex-center bg-grey-3">
+                        <q-icon name="collections" size="32px" color="primary"></q-icon>
+                      </div>
+                    </template>
+                  </q-img>
+                </q-avatar>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-medium">
                   {{ nfts[0]?.token_name || 'Unnamed NFT' }}
-                </div>
-                <div class="text-caption text-bow-muted ellipsis">
+                </q-item-label>
+                <q-item-label caption class="text-bow-muted">
                   {{ nfts[0]?.token_ticker || '' }}
-                </div>
-                <div class="nft-badge-container">
-                  <q-badge color="primary" :label="`${nfts.length} ${nfts.length === 1 ? 'item' : 'items'}`" />
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
+                </q-item-label>
+                <q-item-label caption class="text-bow-muted">
+                  {{ $t('TokenId', {}, 'Token ID') }}: {{ shortenString(tokenid, 20) }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-badge color="primary" :label="`${nfts.length} ${nfts.length === 1 ? 'item' : 'items'}`" />
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="chevron_right" color="grey-6"></q-icon>
+              </q-item-section>
+            </q-item>
+          </q-list>
         </div>
         <div v-else class="row justify-center q-py-lg">
           <div class="text-center">
@@ -98,7 +105,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { MultisigWallet } from 'src/lib/multisig'
+import { MultisigWallet, shortenString } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
 const $store = useStore()
@@ -195,48 +202,4 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.nft-card {
-  border-radius: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  
-  &.light {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  
-  &.dark {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-}
-
-.nft-image {
-  height: 120px;
-}
-
-.nft-card-section {
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-}
-
-.nft-badge-container {
-  margin-top: auto;
-  padding-top: 8px;
-}
-
-.ellipsis-2-lines {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
 </style>
