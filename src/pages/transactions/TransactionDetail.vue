@@ -447,6 +447,8 @@ export default {
       nftName: null, // NFT name from BCMR type_metadata
       fetchingNftMetadata: false, // Track if NFT metadata is being fetched
       savingReceipt: false,
+      txDetails: null, // Raw transaction details with outputs
+      loadingTxDetails: false,
     }
   },
   computed: {
@@ -820,16 +822,44 @@ export default {
       return '/'
     },
     canAddToAddressBook () {
-      // Only show for outgoing transactions with a single recipient address
+      // Only show for outgoing transactions
       if (!this.tx) return false
       if (this.tx.record_type !== 'outgoing') return false
-      const recipient = this.$route.query.recipient
+      // Check if we have recipient from query param or can extract from transaction
+      const recipient = this.recipientAddress
       if (!recipient) return false
-      // Don't show if already in address book - check via simple validation
       return true
     },
     recipientAddress () {
-      return this.$route.query.recipient || null
+      // First check query param (from send page)
+      if (this.$route.query.recipient) {
+        return this.$route.query.recipient
+      }
+      // Otherwise use extracted address from transaction data
+      return this.extractedRecipientAddress
+    },
+    extractedRecipientAddress () {
+      // Extract recipient from transaction outputs data if available
+      if (!this.tx || this.tx.record_type !== 'outgoing') return null
+      
+      // Use txDetails if available (from API fetch)
+      const outputs = this.txDetails?.outputs || this.tx?.outputs
+      if (outputs && Array.isArray(outputs)) {
+        // Find outputs that are not change and have an address
+        const nonChangeOutputs = outputs.filter(output => 
+          !output.is_change && output.address
+        )
+        // If there's exactly one non-change output, use it
+        if (nonChangeOutputs.length === 1) {
+          return nonChangeOutputs[0].address
+        }
+        // If multiple, try to find the one with largest amount
+        if (nonChangeOutputs.length > 1) {
+          const sorted = nonChangeOutputs.sort((a, b) => (b.value || 0) - (a.value || 0))
+          return sorted[0].address
+        }
+      }
+      return null
     }
   },
   async mounted () {
@@ -974,6 +1004,10 @@ export default {
           // Fetch metadata if it's an NFT
           if (this.isNft) {
             this.fetchNftMetadata()
+          }
+          // Fetch transaction details to get outputs for address book feature
+          if (newTx.record_type === 'outgoing' && !this.$route.query.recipient) {
+            this.fetchTransactionDetails()
           }
         })
       }
@@ -1603,72 +1637,60 @@ export default {
     },
     async fetchNftMetadata () {
       // Only fetch if it's an NFT and we have token ID
-      if (!this.isNft || !this.nftTokenId) {
-        this.nftImageUrl = null
-        this.nftName = null
-        return
-      }
-
+      if (!this.isNft) return
       // Don't fetch if already fetching or if we already have the image
       if (this.fetchingNftMetadata || this.nftImageUrl) return
 
       this.fetchingNftMetadata = true
-      this.nftImageError = false
-
       try {
         const tokenId = this.nftTokenId
-        const commitment = this.nftCommitment
-
-        // Build URL: tokens/{tokenId}/ or tokens/{tokenId}/{commitment}/
-        let url = `tokens/${tokenId}/`
-        if (commitment) {
-          url += `${commitment}/`
+        if (!tokenId) {
+          this.fetchingNftMetadata = false
+          return
         }
 
-        const response = await getBcmrBackend().get(url)
+        // Fetch NFT metadata from BCMR
+        const response = await axios.get(`https://bcmr.paytaca.com/api/tokens/${tokenId}/`)
         const metadata = response?.data
 
-        if (metadata) {
-          // Extract name from type_metadata
-          if (metadata.type_metadata?.name) {
-            this.nftName = metadata.type_metadata.name
-          } else if (metadata.name) {
-            // Fallback to top-level name if type_metadata.name doesn't exist
-            this.nftName = metadata.name
-          } else {
-            this.nftName = null
-          }
-
-          // Extract image URL from type_metadata
-          // Priority: type_metadata.uris.image > type_metadata.uris.icon
-          let imageUrl = null
-          if (metadata.type_metadata?.uris?.image) {
-            imageUrl = metadata.type_metadata.uris.image
-          } else if (metadata.type_metadata?.uris?.icon) {
-            imageUrl = metadata.type_metadata.uris.icon
-          }
-
-          if (imageUrl) {
-            // Convert IPFS URL if needed
-            this.nftImageUrl = convertIpfsUrl(imageUrl)
-            // Add Pinata gateway token if it's a Pinata IPFS URL
-            if (this.nftImageUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-              this.nftImageUrl += '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-            }
-          } else {
-            // No image found in type_metadata
-            this.nftImageUrl = null
-          }
-        } else {
-          this.nftImageUrl = null
-          this.nftName = null
+        if (metadata?.token?.uris?.icon) {
+          this.nftImageUrl = metadata.token.uris.icon
+        }
+        if (metadata?.token?.name) {
+          this.nftName = metadata.token.name
         }
       } catch (error) {
         console.error('[TransactionDetail] Error fetching NFT metadata:', error)
-        this.nftImageUrl = null
-        this.nftName = null
       } finally {
         this.fetchingNftMetadata = false
+      }
+    },
+    async fetchTransactionDetails () {
+      // Fetch raw transaction data to get outputs
+      if (!this.tx || this.tx.record_type !== 'outgoing') return
+      if (this.loadingTxDetails || this.txDetails) return
+      if (this.$route.query.recipient) return // Already have recipient from query
+
+      this.loadingTxDetails = true
+      try {
+        const txid = this.transactionId
+        if (!txid) return
+
+        // Fetch transaction details from watchtower
+        const baseUrl = getWatchtowerApiUrl()
+        const { data } = await axios.get(`${baseUrl}/transactions/${txid}/`)
+        
+        if (data) {
+          this.txDetails = data
+          // Merge outputs into tx object for computed property
+          if (data.outputs && !this.tx.outputs) {
+            this.tx = { ...this.tx, outputs: data.outputs }
+          }
+        }
+      } catch (error) {
+        console.error('[TransactionDetail] Error fetching transaction details:', error)
+      } finally {
+        this.loadingTxDetails = false
       }
     },
     viewInCollectibles () {
