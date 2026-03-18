@@ -2049,8 +2049,12 @@ export default {
       }
     },
     onAddToAddressBook () {
-      const recipient = this.$route.query.recipient
-      if (!recipient) return
+      const recipient = this.recipientAddress
+      console.log('[TransactionDetail] onAddToAddressBook - recipient:', recipient)
+      if (!recipient) {
+        console.log('[TransactionDetail] No recipient address available')
+        return
+      }
       this.$router.push({
         name: 'app-address-book-add-record',
         query: { address: recipient }
