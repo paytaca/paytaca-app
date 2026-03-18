@@ -142,7 +142,7 @@ import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutput
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
-import { decryptAES256GCM, decryptECIES, encryptAES256GCM, encryptECIES, generateAES256GCMKey } from './encryption.js'
+import { encryptECIES, generateAES256GCMKey } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
@@ -400,12 +400,14 @@ export class MultisigWallet {
       mainnet: {},
       chipnet: {}
     }
+    this.settings = config.settings || {}
 
     if (config?.enabled) {
       this.enabled = config.enabled
     }
     
     this.options = options || {}
+      
   }
 
   setStore(store) {
@@ -715,8 +717,7 @@ export class MultisigWallet {
   /**
    * @param {'bch'|string} [asset='bch'] - If not present assumed as 'bch', asset is a token category
    * @param {number} [decimals=0] - The asset decimals, defaults to 0 if asset is present and is not 'bch'
-   
-  */
+   */
   async getWalletBalance(asset, decimals) {
     const utxos = (await this.getWalletHashUtxos())
     if (!asset || asset === 'bch') {
@@ -787,6 +788,7 @@ export class MultisigWallet {
   async getWalletBalances() {
     const assetsBalances = {}
     const utxos = await this.getWalletHashUtxos() 
+    
     utxos.forEach((u) => {
       if (!u.token) {
         if (!assetsBalances['bch']) {
@@ -1120,7 +1122,6 @@ export class MultisigWallet {
     }
     return selectedUtxos
   }
-
   
   async createProposal(proposal, transactionType = 'send-fungible-assets') {
 
@@ -1132,10 +1133,12 @@ export class MultisigWallet {
     let selectedUtxos = []
     if (transactionType === 'send-non-fungible-assets') {
       utxos = await this.getWalletHashUtxos(true)
+      
 
       selectedUtxos = await this.selectNftUtxos(proposal, utxos)
     } else {
       utxos = await this.getWalletHashUtxos()
+      
       selectedUtxos = await this.selectUtxos(proposal, utxos.filter(u => !u.token?.nft))
     }
 
@@ -1275,7 +1278,7 @@ export class MultisigWallet {
 
   }
 
-  async wcCreateProposalFromSessionRequest(sessionRequest) {
+  async wcCreateProposal(sessionRequest) {
     const proposal = new Pst()
     const inputs = sessionRequest.params.request.params.transaction.inputs?.map((input) => {
       const mappedInput = JSON.parse(JSON.stringify(input, Pst.exportSafeJSONReplacer), Pst.importSafeJSONReviver)
@@ -1348,6 +1351,56 @@ export class MultisigWallet {
       proposal.setCreator(cosignerAuthCredentials["X-Auth-Cosigner-Auth-PubKey"])
     }
     return proposal
+  }
+
+  async wcSaveSession(session) {
+    const sanitizedSession = {
+        wallet: this.id,
+        topic: session.topic,
+        accounts: session.namespaces?.bch?.accounts,
+        peerName: session.peer?.metadata?.name || '',
+        peerUrl: session.peer?.metadata?.url || '',
+        originName: session.self?.metadata?.name || '',
+        originUrl: session.self?.metadata?.url || '',
+        expiry: session.expiry,
+    }
+
+    if (!this.wcSessions) {
+      this.wcSessions = []
+    }
+    
+    try {
+      const authCosignerAuthCredentials = await this.generateCosignerAuthCredentials()
+      const responseData = await this.options?.coordinationServer?.uploadWalletWcSession({
+        walletIdentifier: this.id,
+        payload: sanitizedSession,
+        authCosignerAuthCredentials
+      })
+      if (responseData.id) {
+        // To save space, only save topic if already saved online
+        this.wcSessions.push({ topic: session.topic })
+      }
+
+    } catch (error) {
+      if (!this.wcSessions.find(s => s.topic === session.topic)) {
+        this.wcSessions.push(sanitizedSession)      
+      } 
+    } finally {
+      this.save()
+    }
+  }
+
+  async wcForgetSession(topic) {
+    const i = this.wcSessions.findIndex(s => topic)
+    if (i !== -1) {
+      this.wcSessions.splice(i, 1)
+    }
+    this.updateWallet()
+  }
+
+  async wcForgetAllSessions() {
+    this.wcSessions = null
+    this.save()
   }
 
   wcGetDefaultAddress() {
@@ -1537,13 +1590,21 @@ export class MultisigWallet {
       const { xprv, mnemonic, ...safe } = s 
       return safe
     })
-    return {
+
+    const payload = {
       id: this.id,
       name: this.name,
       m: this.m,
       signers: signers,
-      networks: this.networks
+      networks: this.networks,
+      settings: this.settings 
     }
+
+    if (this.wcSessions && this.wcSessions.length > 0) {
+      payload.wcSessions = this.wcSessions
+    }
+
+    return payload 
   }
 
   toString() {
@@ -1656,8 +1717,12 @@ async generateAuthCredentials(xpub) {
     return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
   }
   for (const signer of this.getSigners()) {
-    // use first mnemonic found
-    const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+    let mnemonic = ''
+    if (signer.mnemonic) {
+      mnemonic = signer.mnemonic
+    } else {
+      mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+    }
     if (mnemonic) {
       return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
     }
@@ -1672,8 +1737,12 @@ async generateCosignerAuthCredentials(xpub) {
     return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
   }
   for (const signer of this.getSigners()) {
-    // use first mnemonic found
-    const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+    let mnemonic = ''
+    if (signer.mnemonic) {
+      mnemonic = signer.mnemonic
+    } else {
+      mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
+    }
     if (mnemonic) {
       return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
     }

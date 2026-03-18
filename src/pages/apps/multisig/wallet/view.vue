@@ -51,7 +51,6 @@
                   </q-card-section>
                 </q-card>
               </div>
-              
               <div class="col-xs-12 flex justify-between">
                 <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile" v-close-popup>
                   <template v-slot:default>
@@ -157,19 +156,6 @@
                         </div>
                       </div>
                     </q-chip>
-                    <!-- <q-chip 
-                      v-if="wallet.signers?.length > 2" style="height:fit-content" text-color="primary" flat dense class="q-px-md"
-                      clickable @click="router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.walletHash } })"
-                      >
-                      <q-avatar square>
-                        <q-icon name="mdi-account-multiple-plus-outline" size="sm"></q-icon>
-                      </q-avatar>
-                      <div class="flex flex-column">
-                        <div class="ellipsis" style="max-width:4em">
-                          {{ wallet.signers?.length - 2 }} more...
-                        </div>
-                      </div>
-                    </q-chip> -->
                   </div>
                 </q-item-section>
               </q-item>
