@@ -1,4 +1,9 @@
 <template>
+  <QrScanner
+    v-model="showQrScanner"
+    @decode="onScannerDecode"
+  />
+  <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
   <q-dialog
     persistent
     seamless
@@ -28,7 +33,12 @@
           <record-name-input-card v-model="recordName" />
         </div>
         <div v-else class="addresses-wrapper q-pa-sm">
-          <addresses-form-card v-model="addresses" />
+          <addresses-form-card
+            ref="addressesForm"
+            v-model="addresses"
+            @scan-qr="showQrScanner = true"
+            @upload-qr="onQRUploaderClick"
+          />
         </div>
       </div>
 
@@ -74,6 +84,8 @@ import {
   deleteAddress
 } from 'src/utils/address-book-utils';
 
+import QrScanner from 'src/components/qr-scanner.vue'
+import QRUploader from 'src/components/QRUploader'
 import AddressesFormCard from './AddressesFormCard.vue';
 import RecordNameInputCard from './RecordNameInputCard.vue';
 
@@ -81,6 +93,8 @@ export default {
   name: 'EditRecordDialog',
 
   components: {
+    QrScanner,
+    QRUploader,
     RecordNameInputCard,
     AddressesFormCard
   },
@@ -113,7 +127,8 @@ export default {
       recordName: '',
       addresses: [],
       originalAddresses: [],
-      isLoading: false
+      isLoading: false,
+      showQrScanner: false
     }
   },
 
@@ -133,6 +148,25 @@ export default {
 
   methods: {
     getDarkModeClass,
+
+    onScannerDecode (content) {
+      this.showQrScanner = false
+      this.$refs.addressesForm?.onAddressQrDecoded(content)
+    },
+
+    onQRUploaderClick () {
+      try {
+        this.$refs['qr-upload'].$refs['q-file'].pickFiles()
+      } catch (e) {
+        console.error('QR upload picker error:', e)
+        this.$q?.notify?.({
+          type: 'negative',
+          message: this.$t('FilePickerError'),
+          timeout: 2500,
+          position: 'top'
+        })
+      }
+    },
 
     cloneAddresses (addresses) {
       const source = Array.isArray(addresses) ? addresses : []

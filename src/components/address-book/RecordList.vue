@@ -21,13 +21,15 @@
           flat
           bordered
           class="q-mb-sm q-mx-md record-card"
+          :class="{ 'record-loading': loadingRecordId === rec.id }"
           v-for="rec in record.data"
           :key="rec.id"
         >
           <q-item
             clickable
             v-ripple
-            @click="$router.push(`view-record/${rec.id}/`)"
+            :disable="loadingRecordId !== null"
+            @click="onRecordClick(rec)"
           >
             <q-item-section>
               <q-item-label id="name-label">{{ rec.name }}</q-item-label>
@@ -35,6 +37,18 @@
                 {{ rec.address_count }}
                 {{ rec.address_count === 1 ? $t('Address') : $t('Addresses') }}
               </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-spinner
+                v-if="loadingRecordId === rec.id"
+                color="primary"
+                size="20px"
+              />
+              <q-icon
+                v-else-if="isSelectionMode"
+                name="mdi-chevron-right"
+                color="primary"
+              />
             </q-item-section>
           </q-item>
         </q-card>
@@ -50,8 +64,12 @@ export default {
   name: 'RecordList',
 
   props: {
-    list: { type: Array, default: new Array() }
+    list: { type: Array, default: new Array() },
+    isSelectionMode: { type: Boolean, default: false },
+    loadingRecordId: { type: Number, default: null }
   },
+
+  emits: ['select-record'],
 
   computed: {
     darkMode() {
@@ -60,7 +78,14 @@ export default {
   },
 
   methods: {
-    getDarkModeClass
+    getDarkModeClass,
+    onRecordClick(rec) {
+      if (this.isSelectionMode) {
+        this.$emit('select-record', rec)
+      } else {
+        this.$router.push(`view-record/${rec.id}/`)
+      }
+    }
   }
 }
 </script>
@@ -70,5 +95,9 @@ export default {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.record-loading {
+  opacity: 0.7;
 }
 </style>
