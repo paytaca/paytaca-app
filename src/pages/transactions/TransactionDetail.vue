@@ -210,59 +210,78 @@
         </div>
 
         <!-- Quick Actions Section -->
-        <div class="quick-actions-section q-mt-lg q-mb-lg">
-          <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('QuickActions', {}, 'Quick Actions') }}</div>
-          <div class="quick-actions-grid">
-            <!-- Save Receipt Action -->
-            <q-btn
-              flat
-              no-caps
-              class="quick-action-btn"
-              :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
-              :loading="savingReceipt"
-              :disable="savingReceipt"
-              @click="saveReceiptImage"
-            >
-              <template v-slot:loading>
-                <q-spinner-dots color="primary" size="20px" />
-              </template>
-              <div class="quick-action-content" v-if="!savingReceipt">
-                <q-icon name="receipt_long" size="24px" class="quick-action-icon" />
-                <div class="quick-action-label">{{ $t('SaveReceipt', {}, 'Save') }}</div>
-              </div>
-            </q-btn>
-
-            <!-- Add/Edit Memo Action -->
-            <q-btn
-              flat
-              no-caps
-              class="quick-action-btn"
-              :class="[`theme-${theme}`, getDarkModeClass(darkMode), hasMemo ? 'has-memo' : '']"
-              :disable="networkError || usingWebsocketData || editingMemo"
-              @click="openMemo()"
-            >
-              <div class="quick-action-content">
-                <q-icon :name="hasMemo ? 'edit_note' : 'add_comment'" size="24px" class="quick-action-icon" />
-                <div class="quick-action-label">{{ hasMemo ? $t('EditMemo', {}, 'Edit Memo') : $t('AddMemo', {}, 'Add Memo') }}</div>
-              </div>
-            </q-btn>
-
-            <!-- Add to Address Book Action (only for outgoing transactions) -->
-            <q-btn
-              v-if="canAddToAddressBook"
-              flat
-              no-caps
-              class="quick-action-btn"
-              :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
-              @click="onAddToAddressBook"
-            >
-              <div class="quick-action-content">
-                <q-icon name="person_add" size="24px" class="quick-action-icon" />
-                <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
-              </div>
-            </q-btn>
-          </div>
+        <div class="quick-actions-collapsed q-mt-md q-mb-md" v-if="!showQuickActions">
+          <q-btn
+            flat
+            no-caps
+            dense
+            class="quick-actions-toggle"
+            :class="getDarkModeClass(darkMode)"
+            @click="showQuickActions = true"
+          >
+            <q-icon name="expand_more" size="18px" class="q-mr-xs" />
+            <span class="text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+          </q-btn>
         </div>
+
+        <q-slide-transition v-else>
+          <div class="quick-actions-expanded q-mt-lg q-mb-lg">
+            <div class="quick-actions-header">
+              <span class="text-grey text-weight-medium text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+              <q-btn flat dense round icon="expand_less" size="sm" @click="showQuickActions = false" />
+            </div>
+            <div class="quick-actions-grid">
+              <!-- Save Receipt Action -->
+              <q-btn
+                flat
+                no-caps
+                class="quick-action-btn"
+                :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
+                :loading="savingReceipt"
+                :disable="savingReceipt"
+                @click="saveReceiptImage"
+              >
+                <template v-slot:loading>
+                  <q-spinner-dots color="primary" size="20px" />
+                </template>
+                <div class="quick-action-content" v-if="!savingReceipt">
+                  <q-icon name="receipt_long" size="22px" class="quick-action-icon" />
+                  <div class="quick-action-label">{{ $t('SaveReceipt', {}, 'Save') }}</div>
+                </div>
+              </q-btn>
+
+              <!-- Add/Edit Memo Action -->
+              <q-btn
+                flat
+                no-caps
+                class="quick-action-btn"
+                :class="[`theme-${theme}`, getDarkModeClass(darkMode), hasMemo ? 'has-memo' : '']"
+                :disable="networkError || usingWebsocketData || editingMemo"
+                @click="openMemo()"
+              >
+                <div class="quick-action-content">
+                  <q-icon :name="hasMemo ? 'edit_note' : 'add_comment'" size="22px" class="quick-action-icon" />
+                  <div class="quick-action-label">{{ hasMemo ? $t('EditMemo', {}, 'Edit Memo') : $t('AddMemo', {}, 'Add Memo') }}</div>
+                </div>
+              </q-btn>
+
+              <!-- Add to Address Book Action (only for outgoing transactions) -->
+              <q-btn
+                v-if="canAddToAddressBook"
+                flat
+                no-caps
+                class="quick-action-btn"
+                :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+                @click="onAddToAddressBook"
+              >
+                <div class="quick-action-content">
+                  <q-icon name="person_add" size="22px" class="quick-action-icon" />
+                  <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
+                </div>
+              </q-btn>
+            </div>
+          </div>
+        </q-slide-transition>
 
         <!-- Transaction Metadata Section -->
         <template v-if="metadataBadges?.length || attributeDetails?.length">
@@ -456,6 +475,7 @@ export default {
       savingReceipt: false,
       txDetails: null, // Raw transaction details with outputs
       loadingTxDetails: false,
+      showQuickActions: false, // Collapsed by default
     }
   },
   computed: {
@@ -3338,66 +3358,98 @@ export default {
 }
 
 /* Quick Actions Section */
-.quick-actions-section {
+
+/* Collapsed State */
+.quick-actions-collapsed {
+  text-align: center;
+}
+
+.quick-actions-toggle {
+  border-radius: 20px;
+  padding: 4px 12px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.1);
+  }
+
+  &.dark:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Expanded State */
+.quick-actions-expanded {
+  background: rgba(128, 128, 128, 0.03);
+  border: 1px solid rgba(128, 128, 128, 0.1);
+  border-radius: 16px;
+  padding: 12px;
   margin-left: auto;
   margin-right: auto;
-  max-width: 600px;
+  max-width: 500px;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.quick-actions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 4px;
 }
 
 .quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  justify-content: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
 @media (max-width: 360px) {
   .quick-actions-grid {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 361px) and (max-width: 600px) {
-  .quick-actions-grid {
-    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 }
 
 .quick-action-btn {
-  min-height: 72px;
-  padding: 12px 8px;
-  border-radius: 16px;
-  background: rgba(128, 128, 128, 0.05);
-  border: 1px solid rgba(128, 128, 128, 0.15);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 56px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
   position: relative;
-  overflow: hidden;
 
   &:hover:not(:disabled) {
-    background: rgba(var(--q-primary), 0.08);
-    border-color: rgba(var(--q-primary), 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: rgba(var(--q-primary), 0.06);
+    border-color: rgba(var(--q-primary), 0.2);
   }
 
   &:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    background: rgba(var(--q-primary), 0.1);
   }
 
   &.dark {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-
     &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    &:active:not(:disabled) {
       background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
   }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
   }
 }
@@ -3413,27 +3465,29 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
 }
 
 .quick-action-icon {
-  font-size: 24px;
+  font-size: 20px;
   color: var(--q-primary);
-  opacity: 0.9;
-  transition: transform 0.2s ease;
+  opacity: 0.8;
+  transition: transform 0.15s ease;
 }
 
 .quick-action-btn:hover:not(:disabled) .quick-action-icon {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  opacity: 1;
 }
 
 .quick-action-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.2;
   text-align: center;
   color: inherit;
+  opacity: 0.85;
 }
 
 /* Memo Display Section */
