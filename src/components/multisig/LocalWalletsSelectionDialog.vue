@@ -40,19 +40,21 @@
         </q-list>
 
       </q-card-section>
-      <q-card-actions align="right">
+      <q-card-actions align="right" class="q-pa-lg q-gutter-x-md">
         <q-btn
           :label="$t('Cancel')"
           no-caps
           @click="onDialogCancel"
           color="primary"
           flat
+          rounded
         />
         <q-btn
           :label="$t('Ok')"
           no-caps
           @click="onOkClick"
           color="primary"
+          rounded
           :disable="!selectedWallet"
         />
       </q-card-actions>

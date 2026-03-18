@@ -9,14 +9,14 @@
               {{ $t('ImportTransactionProposalDescription') }}
             </q-banner>
           </div>
-          <q-list v-if="proposals?.length > 0" separator bordered class="pt-card col-xs-12" :class="getDarkModeClass(darkMode)">
+          <q-list v-if="proposals?.length > 0"  class="col-xs-12" :class="getDarkModeClass(darkMode)">
             <q-item-label header>
               {{$t("TransactionProposals")}} <q-icon name="mdi-file-document-multiple-outline"></q-icon>
             </q-item-label>
-            <q-separator></q-separator>
+            <!-- <q-separator></q-separator> -->
             <q-item 
               v-for="p, i in proposals" :key="i"
-              class="q-my-sm"
+              class="q-my-sm pt-card br-15"
                  >
               <q-item-section avatar top>
                 <q-avatar>
