@@ -17,7 +17,7 @@
     </div>
 
     <div class="row items-center q-mb-sm">
-      <div class="text-subtitle2" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">History</div>
+      <div class="text-subtitle2" :class="textColor">History</div>
       <q-space />
       <q-btn
         flat dense size="sm"
@@ -51,7 +51,7 @@
             <q-item-section>
               <div 
                 class="text-weight-bold"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 {{ t.name }}
               </div>

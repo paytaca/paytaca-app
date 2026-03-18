@@ -62,7 +62,7 @@
     <q-separator class="q-mb-sm" :dark="$q.dark.isActive" />
 
     <!-- Merchants List -->
-    <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Merchants</div>
+    <div class="text-subtitle2 q-mb-sm" :class="textColor">Merchants</div>
     
     <div class="scroll" style="height: 350px;">
       <div v-if="filteredMerchants.length > 0">
@@ -85,8 +85,8 @@
               <div 
                 class="text-weight-bold"
                 :class="genericAuthEnabled 
-                  ? ($q.dark.isActive ? 'text-white' : 'text-grey-4') 
-                  : ($q.dark.isActive ? 'text-white' : 'text-dark')"
+                  ? textColorGrey
+                  : textColor"
               >
                 {{ merchant.name }}
                 <span v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" class="text-caption text-secondary q-ml-xs">
@@ -132,7 +132,7 @@
     <q-dialog v-model="showSpendLimitDialog" persistent>
       <q-card style="min-width: 320px">
         <q-card-section>
-          <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+          <div class="text-h6" :class="textColor">
             Set Spend Limit
           </div>
         </q-card-section>
@@ -140,7 +140,7 @@
         <q-card-section class="q-pt-none">
           <div 
             class="q-mb-sm"
-            :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+            :class="textColor"
           >
             Merchant: <span class="text-weight-bold">{{ selectedMerchant?.name }}</span>
           </div>

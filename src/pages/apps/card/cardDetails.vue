@@ -8,7 +8,7 @@
           <div class="row items-center q-mb-sm full-width q-gutter-sm">
             <div 
               class="text-subtitle1 q-mr-sm"
-              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              :class="textColor"
             >
               {{activeCard?.raw?.alias}}
             </div>
@@ -59,7 +59,7 @@
             <div class="row items-center">
               <div 
                 class="q-mr-sm"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 {{ activeCard.balance }} BCH
               </div>
@@ -101,19 +101,19 @@
             <div v-if="!showOrderPhysicalCardForm" class="order-physical-card-intro text-center q-pa-lg">
               <div 
                 class="text-h5 text-weight-bold q-mb-sm"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 Your new Paytaca card awaits.
               </div>
               <p 
                 class="opacity-80 q-mb-lg"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                :class="textColorGrey"
               >
                 Global payments, Paytaca style.
               </p>
               <div 
                 class="text-caption q-mb-md"
-                :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
+                :class="textColorGreyLight"
                 style="max-width: 400px; margin: 0 auto;"
               >
                 <q-icon name="local_shipping" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
@@ -134,7 +134,7 @@
             <div v-else class="order-physical-card-form">
               <div 
                 class="row items-center justify-between q-mb-md"
-                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+                :class="bgColor"
                 style="border-radius: 12px; padding: 16px;"
               >
                 <div 
@@ -207,7 +207,7 @@
                 
                 <div 
                   class="text-caption q-mt-sm"
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                  :class="textColorGrey"
                 >
                   <q-icon name="place" color="primary"/>
                   Click or drag the marker to your location to auto-fill address fields.
@@ -249,13 +249,13 @@
               />
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 Request Under Review
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                :class="textColorGrey"
                 style="max-width: 400px; margin: 0 auto;"
               >
                 We're reviewing your card replacement request. This typically takes 1-2 business days. You'll receive a notification once your request is approved.
@@ -290,13 +290,13 @@
               />
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 Processing Your Card
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                :class="textColorGrey"
                 style="max-width: 400px; margin: 0 auto;"
               >
                 We're now processing your card replacement request. Your new card is being produced and personalized. Expect to receive your card within 7-10 business days.
@@ -331,13 +331,13 @@
               />
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 Your New Card is on the Way!
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                :class="textColorGrey"
                 style="max-width: 400px; margin: 0 auto;"
               >
                 Welcome your new card! Your replacement card has been shipped and is on its way to you. You should receive it within 2-3 business days. Please activate it upon arrival.
@@ -366,7 +366,7 @@
             <div v-else-if="showReplacementLocationForm" class="order-physical-card-form q-mt-xl">
               <div 
                 class="row items-center justify-between q-mb-md"
-                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
+                :class="bgColor"
                 style="border-radius: 12px; padding: 16px;"
               >
                 <div class="text-subtitle1 text-bold text-primary">
@@ -437,7 +437,7 @@
 
                 <div 
                   class="text-caption q-mt-sm"
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                  :class="textColorGrey"
                 >
                   <q-icon name="place" color="primary"/>
                   Click or drag the marker to your location to auto-fill address fields.
@@ -478,13 +478,13 @@
             <div v-else-if="locationSame !== null && !showReplacementLocationForm" class="card-replacement-confirm text-center q-pa-lg q-mt-xl">
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 Ready to Replace Your Card
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+                :class="textColorGrey"
               >
                 Reason: <span class="text-capitalize">{{ replacementReason }}</span>
               </div>
@@ -525,7 +525,7 @@
               <div class="q-mb-xl">
                 <div 
                   class="text-h5 text-weight-bold q-mb-md"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  :class="textColor"
                 >
                   Why do you want to replace your card?
                 </div>
@@ -553,7 +553,7 @@
               <div class="q-mb-xl" :class="{ 'disabled-section': !replacementReason }">
                 <div 
                   class="text-h5 text-weight-bold q-mb-md"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  :class="textColor"
                 >
                   Is your shipping location still the same?
                 </div>
@@ -609,7 +609,7 @@
               <div class="settings-header q-pa-md">
                 <div 
                   class="text-subtitle1 text-weight-bold"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  :class="textColor"
                 >
                   Card Settings
                 </div>
@@ -628,7 +628,7 @@
                     <div class="q-ml-md">
                       <div 
                         class="text-subtitle2"
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :class="textColor"
                       >
                         {{ activeCard?.isLocked ? 'Unlock Card' : 'Temporary Lock Card' }}
                       </div>
@@ -659,7 +659,7 @@
                     <div class="q-ml-md">
                       <div 
                         class="text-subtitle2"
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :class="textColor"
                       >
                         Transaction Alerts
                       </div>
@@ -688,7 +688,7 @@
               <div class="settings-header q-pa-md">
                 <div 
                   class="text-subtitle1 text-weight-bold"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  :class="textColor"
                 >
                   Funds Management
                 </div>
@@ -703,7 +703,7 @@
                     <div class="q-ml-md">
                       <div 
                         class="text-subtitle2"
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                        :class="textColor"
                       >
                         Sweep Funds
                       </div>
@@ -726,7 +726,7 @@
               <div class="settings-header q-pa-md">
                 <div 
                   class="text-subtitle1 text-weight-bold"
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                  :class="textColor"
                 >
                   Danger Zone
                 </div>
@@ -774,7 +774,7 @@
       <q-dialog v-model="showEditNameDialog">
         <q-card style="min-width: 300px">
           <q-card-section>
-            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Edit Card Name</div>
+            <div class="text-h6" :class="textColor">Edit Card Name</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
@@ -799,7 +799,7 @@
       <q-dialog v-model="showCashInDialog">
         <q-card class="cash-in-dialog">
           <q-card-section class="row justify-between items-center q-pb-none">
-            <div class="text-h6 q-mb-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Cash In</div>
+            <div class="text-h6 q-mb-md" :class="textColor">Cash In</div>
             <q-btn flat round dense icon="close" @click="showCashInDialog = false" />
           </q-card-section>
 
@@ -866,13 +866,13 @@
       <q-dialog v-model="showSweepFundsDialog" persistent>
         <q-card style="min-width: 320px">
           <q-card-section>
-            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Sweep Funds</div>
+            <div class="text-h6" :class="textColor">Sweep Funds</div>
           </q-card-section>
 
           <q-card-section class="q-pt-none">
             <div 
               class="q-mb-md"
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              :class="textColorGrey"
             >
               This will transfer all funds ({{ activeCard?.balance }} BCH) from your card back to your wallet.
             </div>
@@ -900,7 +900,7 @@
           <q-card-section class="q-pt-none">
             <div 
               class="q-mb-md"
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              :class="textColorGrey"
             >
               Are you sure you want to delete this card? This action cannot be undone.
             </div>

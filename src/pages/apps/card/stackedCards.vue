@@ -35,14 +35,14 @@
               <div 
                 class="text-weight-bold text-subtitle2 ellipsis" 
                 style="max-width: 120px; font-size: 13px;"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 {{ card.raw?.alias }}
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
                 style="font-size: 13px;"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 {{ card.balance }} BCH
               </div>
@@ -57,7 +57,7 @@
             <q-card-section class="text-center slot-content">
               <div 
                 class="text-h6 q-mb-sm"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+                :class="textColor"
               >
                 Add a new card
               </div>
@@ -89,7 +89,7 @@
         <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
           <!-- Dialog Header -->
           <q-card-section class="row items-center">
-            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Create New Card</div>
+            <div class="text-h6" :class="textColor">Create New Card</div>
             <q-space />
             <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeDialog" />
           </q-card-section>
@@ -129,13 +129,13 @@
             />
             <div 
               class="text-h6 q-mb-sm"
-              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+              :class="textColor"
             >
               Minting your card
             </div>
             <div 
               class="text-caption"
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+              :class="textColorGrey"
             >
               Please wait while we create your new card...
             </div>
