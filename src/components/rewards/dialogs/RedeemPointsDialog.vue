@@ -80,7 +80,7 @@
             </div>
             <div class="row flex-center">
               <span 
-                class="text-h3 text-bold text-primary animated-points"
+                class="text-h4 text-bold text-primary animated-points"
                 :class="{ 'animate': isPointsAnimating }"
               >
                 {{ displayPoints }}
@@ -322,17 +322,18 @@
 </template>
 
 <script>
+import { ensureKeypair } from 'src/utils/memo-service'
+import { raiseNotifyError } from 'src/utils/notify-utils'
+import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
-import { parseKey } from 'src/utils/custom-keyboard-utils'
-import { raiseNotifyError } from 'src/utils/notify-utils'
 
-import CustomKeyboard from 'src/components/CustomKeyboard.vue'
-import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import PinDialog from 'src/components/pin/index.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
+import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 import confetti from 'canvas-confetti'
@@ -341,17 +342,17 @@ export default {
   name: 'RedeemPointsDialog',
 
   props: {
-    points: { type: Number, default: 0 },
     promoId: { type: Number, default: -1 },
+    promoBytes: { type: String, default: '' },
     redeemablePoints: { type: Number, default: null }
   },
 
   components: {
-    CustomKeyboard,
-    BiometricWarningAttempt,
     PinDialog,
+    CustomKeyboard,
     ProgressLoader,
-    ErrorCard
+    ErrorCard,
+    BiometricWarningAttempt,
   },
 
   data () {
@@ -451,37 +452,27 @@ export default {
       this.isLoading = true
       this.loadingError = null
       
-      try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        // Fetch contract points (simulated)
-        await this.fetchContractPoints()
-        
-        // Store original total for display
-        this.originalPoints = this.contractPoints
-        
-        // Get token address
-        this.tokenAddress = await getWalletTokenAddress()
-        
-        // Set initial display points (no animation on first load)
-        this.displayPoints = this.contractPoints
-        
-        this.isLoading = false
-      } catch (error) {
-        console.error('Error initializing redeem dialog:', error)
-        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
-        this.isLoading = false
-      }
+      await this.fetchContractPoints()
+      
+      // Store original total for display
+      this.originalPoints = this.contractPoints
+      // Get token address
+      this.tokenAddress = await getWalletTokenAddress()
+      // Set initial display points (no animation on first load)
+      this.displayPoints = this.contractPoints
+
+      this.isLoading = false
     },
     
     async fetchContractPoints () {
-      // Simulated contract points fetch
-      // In real implementation, this would fetch from PromoContract
-      this.contractPoints = this.points || 1000
-      
-      // Simulate occasional failure for testing error state
-      // if (Math.random() < 0.1) throw new Error('Network error')
+      try {
+        const keyPair = await ensureKeypair()
+        this.contract = new PromoContract(keyPair.pubkey, this.promoBytes)
+        this.contractPoints = await this.contract.getTokenBalance()
+      } catch (error) {
+        console.error('Error initializing redeem dialog:', error)
+        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
+      }
     },
     
     // Animation Methods
