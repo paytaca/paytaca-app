@@ -4,6 +4,111 @@ import { getMerchantList } from 'src/services/card/merchants';
 
 export { getMerchantList };
 
+// CardStorage utility for localStorage CRUD operations
+const STORAGE_KEY = 'mock_subcards';
+
+export const CardStorage = {
+  /**
+   * Get all cards from localStorage
+   * @returns {Array} Array of card objects
+   */
+  getCards() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  },
+
+  /**
+   * Save all cards to localStorage
+   * @param {Array} cards - Array of card objects
+   */
+  saveCards(cards) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  },
+
+  /**
+   * Get a single card by ID
+   * @param {string|number} cardId - Card ID
+   * @returns {Object|null} Card object or null
+   */
+  getCardById(cardId) {
+    const cards = this.getCards();
+    return cards.find(c => String(c.id) === String(cardId)) || null;
+  },
+
+  /**
+   * Create a new card
+   * @param {Object} card - Card object to create
+   * @returns {Object} Created card
+   */
+  createCard(card) {
+    const cards = this.getCards();
+    cards.push(card);
+    this.saveCards(cards);
+    return card;
+  },
+
+  /**
+   * Update a card by ID
+   * @param {string|number} cardId - Card ID
+   * @param {Object|Function} updates - Object with updates or update function
+   * @returns {Object|null} Updated card or null if not found
+   */
+  updateCard(cardId, updates) {
+    const cards = this.getCards();
+    const index = cards.findIndex(c => String(c.id) === String(cardId));
+    if (index === -1) return null;
+    
+    if (typeof updates === 'function') {
+      updates(cards[index]);
+    } else {
+      Object.assign(cards[index], updates);
+    }
+    
+    this.saveCards(cards);
+    return cards[index];
+  },
+
+  /**
+   * Delete a card by ID
+   * @param {string|number} cardId - Card ID
+   * @returns {boolean} True if deleted, false if not found
+   */
+  deleteCard(cardId) {
+    const cards = this.getCards();
+    const index = cards.findIndex(c => String(c.id) === String(cardId));
+    if (index === -1) return false;
+    
+    cards.splice(index, 1);
+    this.saveCards(cards);
+    return true;
+  },
+
+  /**
+   * Update a specific property of a card
+   * @param {string|number} cardId - Card ID
+   * @param {string} property - Property name
+   * @param {*} value - Property value
+   * @returns {Object|null} Updated card or null if not found
+   */
+  setCardProperty(cardId, property, value) {
+    return this.updateCard(cardId, { [property]: value });
+  },
+
+  /**
+   * Increment a numeric card property
+   * @param {string|number} cardId - Card ID
+   * @param {string} property - Property name
+   * @param {number} amount - Amount to add
+   * @returns {Object|null} Updated card or null if not found
+   */
+  incrementCardProperty(cardId, property, amount) {
+    return this.updateCard(cardId, card => {
+      const current = parseFloat(card[property]) || 0;
+      card[property] = (current + amount).toFixed(8);
+    });
+  }
+};
+
 export const createCardLogic = {
       
   data () {
@@ -12,7 +117,8 @@ export const createCardLogic = {
       newCardName: '',
       subCards: [],
       contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
-      hasOrderedPhysicalCard: false
+      hasOrderedPhysicalCard: false,
+      CardStorage, // Expose CardStorage utilities to components
     }
   },
 
@@ -49,8 +155,7 @@ export const createCardLogic = {
     },
 
     checkExistingCards () {
-      const savedCards = localStorage.getItem('mock_subcards')
-      const cards = savedCards ? JSON.parse(savedCards) : []
+      const cards = CardStorage.getCards();
 
       // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
       if (cards.length > 0 && this.$route.name === 'app-card'){
@@ -65,8 +170,7 @@ export const createCardLogic = {
 
     // UI test only, pulls from browser memory
     fetchCards () {
-      const savedCards = localStorage.getItem('mock_subcards')
-      this.subCards = savedCards ? JSON.parse(savedCards) : []
+      this.subCards = CardStorage.getCards();
     },
     
     async handleCreateCard(){
@@ -83,11 +187,8 @@ export const createCardLogic = {
         contractAddress: this.contractAddress
       }
 
-      // save to localStorage
-      const savedData = localStorage.getItem('mock_subcards')
-      const currentCards = savedData ? JSON.parse(savedData) : []
-      currentCards.push(newCard)
-      localStorage.setItem('mock_subcards', JSON.stringify(currentCards))
+      // save to localStorage using CardStorage
+      CardStorage.createCard(newCard);
 
       // reset UI state
       this.createCardDialog = false
