@@ -73,10 +73,10 @@
                 <!-- Primary Info Row -->
                 <div class="row items-center justify-between">
                   <q-item-label class="text-weight-bold text-body1">
-                    -{{ formatNumber(redemption.points) }} pts
+                    -{{ formatNumber(redemption.redeemed_points) }} pts
                   </q-item-label>
                   <q-item-label caption :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                    {{ formatDateLocaleRelative(redemption.redemption_date, false) }}
+                    {{ formatDateLocaleRelative(redemption.redeemed_date, false) }}
                   </q-item-label>
                 </div>
 
@@ -96,19 +96,19 @@
 
                 <q-item-label caption class="q-mt-xs">
                   <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                    Lift: {{ formatNumber(redemption.lift_amount) }} LIFT
+                    Lift: {{ formatNumber(redemption.lift_received) }} LIFT
                   </span>
                 </q-item-label>
 
                 <!-- RP Promo Monthly Max -->
-                <q-item-label v-if="promo === 'rp' && redemption.monthly_max" caption class="q-mt-xs">
+                <q-item-label v-if="promo === 'rp' && redemption.month_max" caption class="q-mt-xs">
                   <q-badge
                     color="info"
                     :text-color="darkMode ? 'black' : 'white'"
                     class="monthly-badge"
                   >
                     <q-icon name="info" size="12px" class="q-mr-xs" />
-                    Max {{ formatNumber(redemption.monthly_max) }} pts/mo
+                    Max {{ formatNumber(redemption.month_max) }} pts/mo
                   </q-badge>
                 </q-item-label>
               </q-item-section>
@@ -143,9 +143,10 @@
 </template>
 
 <script>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { formatDateLocaleRelative } from 'src/utils/time';
 import { getExplorerLink } from 'src/utils/send-page-utils';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
+import { Promos, getPromoRedeemHistory } from 'src/utils/engagementhub-utils/rewards';
 
 export default {
   name: 'RedeemHistoryDialog',
@@ -160,7 +161,7 @@ export default {
       isLoading: false,
       isLoadingMore: false,
       hasMoreData: true,
-      limit: 20,
+      limit: 10,
       redemptions: []
     }
   },
@@ -201,52 +202,13 @@ export default {
       this.isLoading = true
       
       try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        // Dummy data for testing
-        const dummyData = [
-          {
-            points: 500,
-            redemption_date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-            tx_id: '0x7a8f9b2c3d4e5f6789012345678901234567890abcd',
-            lift_amount: 50,
-            monthly_max: this.promo === 'rp' ? 1000 : null
-          },
-          {
-            points: 250,
-            redemption_date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-            tx_id: '0x1234567890abcdef1234567890abcdef1234567890',
-            lift_amount: 25,
-            monthly_max: this.promo === 'rp' ? 1000 : null
-          },
-          {
-            points: 1000,
-            redemption_date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-            tx_id: '0xfedcba0987654321fedcba0987654321fedcba098',
-            lift_amount: 100,
-            monthly_max: this.promo === 'rp' ? 1000 : null
-          },
-          {
-            points: 750,
-            redemption_date: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-            tx_id: '0xabcdef1234567890abcdef1234567890abcdef12',
-            lift_amount: 75,
-            monthly_max: this.promo === 'rp' ? 1000 : null
-          },
-          {
-            points: 300,
-            redemption_date: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
-            tx_id: '0x5678901234567890abcdef1234567890abcdef12',
-            lift_amount: 30,
-            monthly_max: this.promo === 'rp' ? 1000 : null
-          },
-        ]
-        
-        this.redemptions = dummyData
-        
-        // Simulate that there's more data available (next key would be true)
-        this.hasMoreData = true
+        const data = { limit: this.limit, offset: this.offset }
+        if (this.promo === Promos.USERREWARDS) data.ur_id = this.promoId
+        else if (this.promo === Promos.RFPROMO) data.rp_id = this.promoId
+
+        const resp = await getPromoRedeemHistory(this.promo, data)
+        this.redemptions = resp.redeem_history
+        this.hasMoreData = resp.has_more_data
       } catch (error) {
         console.error('Failed to fetch redemption history:', error)
       } finally {
@@ -260,28 +222,13 @@ export default {
       this.isLoadingMore = true
       
       try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 600))
-        
-        // Generate more dummy data
-        const moreDummyData = []
-        for (let i = 0; i < 5; i++) {
-          moreDummyData.push({
-            points: Math.floor(Math.random() * 1000) + 100,
-            redemption_date: new Date(Date.now() - (5 + i + 1) * 86400000).toISOString(),
-            tx_id: `0x${Math.random().toString(16).substr(2, 40)}`,
-            lift_amount: Math.floor(Math.random() * 100) + 10,
-            monthly_max: this.promo === 'rp' ? 1000 : null
-          })
-        }
-        
-        // Append to existing data
-        this.redemptions.push(...moreDummyData)
-        
-        // After 2 loads, simulate no more data
-        if (this.redemptions.length >= 15) {
-          this.hasMoreData = false
-        }
+        const data = { limit: this.limit, offset: this.offset }
+        if (this.promo === Promos.USERREWARDS) data.ur_id = this.promoId
+        else if (this.promo === Promos.RFPROMO) data.rp_id = this.promoId
+
+        const resp = await getPromoRedeemHistory(this.promo, data)
+        this.redemptions += resp.redeem_history
+        this.hasMoreData = resp.has_more_data
       } catch (error) {
         console.error('Failed to load more redemptions:', error)
       } finally {

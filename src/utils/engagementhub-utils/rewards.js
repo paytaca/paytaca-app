@@ -200,6 +200,26 @@ export async function fetchMerchantTransactionsData (data) {
     })
 }
 
+export async function getPromoRedeemHistory (promo, data) {
+  const promoUrl = {
+    'ur': 'userreward/get_ur_redeem_history/',
+    'rp': 'rfpromo/get_rp_redeem_history/'
+  }
+
+  return await REWARDS_URL
+    .post(promoUrl[promo], data)
+    .then(response => {
+      if (response.status === 200) return response.data
+      else if (resp.status === 404) return {}
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      if (error?.message.includes('404')) return {}
+      else return null
+    })
+}
+
 export async function processReferralCode (data) {
   await REWARDS_URL
     .post('userreward/process_referral_code/', data)
