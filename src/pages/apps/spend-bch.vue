@@ -8,7 +8,7 @@
     <div class="content-container q-pa-lg">
       <!-- Hero Section -->
       <div class="hero-section text-center q-mb-xl">
-        <q-icon name="storefront" size="4em" color="primary" class="q-mb-md" />
+        <q-icon name="storefront" size="4em" class="q-mb-md text-grad" />
         <h4 class="text-h4 text-weight-bold q-mb-sm" :class="getDarkModeClass(darkMode)">
           {{ $t('WhereToSpendBCH', {}, 'Where to Spend BCH') }}
         </h4>
@@ -29,7 +29,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="map" size="3em" color="primary" />
+                <q-icon name="map" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -55,7 +55,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="storefront" size="3em" color="primary" />
+                <q-icon name="storefront" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -82,7 +82,7 @@
           :class="getDarkModeClass(darkMode)"
         >
           <template v-slot:avatar>
-            <q-icon name="info" color="primary" />
+            <q-icon name="info" class="text-grad" />
           </template>
           <div class="text-body2">
             {{ $t('SpendBCHFooter', {}, 'More merchants are joining the BCH network every day. Check back often for new options!') }}
@@ -169,13 +169,11 @@ export default {
     align-items: center;
     justify-content: center;
     
-    // Apply primary color to all icons for consistency
+    // Icons use text-grad class to adapt to theme
     .q-icon {
-      color: #3B7BF6 !important;
-      
       // For image icons inside q-icon
       img {
-        filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%) !important;
+        filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%);
       }
     }
   }
