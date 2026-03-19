@@ -259,6 +259,7 @@ import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
 import AchievementCard from 'src/components/rewards/cards/AchievementCard.vue'
 import ReferralQrDialog from 'src/components/rewards/dialogs/ReferralQrDialog.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
+import RedeemHistoryDialog from 'src/components/rewards/dialogs/RedeemHistoryDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -428,8 +429,13 @@ export default {
       })
     },
     openRedeemHistoryDialog () {
-      // TODO: Implement redeem history dialog
-      console.log('Open redeem history dialog for RF promo:', this.rpId)
+      this.$q.dialog({
+        component: RedeemHistoryDialog,
+        componentProps: {
+          promo: Promos.RFPROMO,
+          promoId: this.rpId
+        }
+      })
     }
   }
 }

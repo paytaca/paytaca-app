@@ -467,6 +467,7 @@ import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
 import AchievementCard from 'src/components/rewards/cards/AchievementCard.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
+import RedeemHistoryDialog from 'src/components/rewards/dialogs/RedeemHistoryDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -720,8 +721,13 @@ export default {
       })
     },
     openRedeemHistoryDialog () {
-      // TODO: Implement redeem history dialog
-      console.log('Open redeem history dialog for UR promo:', this.urId)
+      this.$q.dialog({
+        component: RedeemHistoryDialog,
+        componentProps: {
+          promo: Promos.USERREWARDS,
+          promoId: this.urId
+        }
+      })
     }
   }
 }
