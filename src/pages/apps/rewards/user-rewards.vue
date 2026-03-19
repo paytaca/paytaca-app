@@ -72,6 +72,17 @@
               :disable="points === 0"
               @click="openRedeemPointsDialog"
             />
+
+            <q-btn
+              rounded
+              outline
+              size="md"
+              class="button button-text-primary full-width q-mt-md"
+              :style="{ maxWidth: '200px' }"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('ViewRedeemHistory', 'View Redeem History')"
+              @click="openRedeemHistoryDialog"
+            />
           </template>
         </q-card-section>
       </q-card>
@@ -705,6 +716,10 @@ export default {
         name: 'app-rewards-merchant-history',
         params: { id: this.urId }
       })
+    },
+    openRedeemHistoryDialog () {
+      // TODO: Implement redeem history dialog
+      console.log('Open redeem history dialog for UR promo:', this.urId)
     }
   }
 }

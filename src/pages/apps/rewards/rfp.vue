@@ -121,6 +121,17 @@
               :label="$t('ShowReferralQR', 'Show Referral QR')"
               @click="openReferralQrDialog"
             />
+
+            <q-btn
+              rounded
+              outline
+              size="md"
+              class="button button-text-primary full-width q-mt-md"
+              :style="{ maxWidth: '200px' }"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('ViewRedeemHistory', 'View Redeem History')"
+              @click="openRedeemHistoryDialog"
+            />
           </template>
         </q-card-section>
       </q-card>
@@ -350,7 +361,7 @@ export default {
         this.rpMax = await getRpMaxRedeemable()
         this.redeemedPoints = rpData.redeemed_points
         this.referralCode = rpData.referral_code
-        this.referralsList = rpData.rfp_referrals.sort((a, b) => {
+        this.referralsList = rpData.rp_referrals.sort((a, b) => {
           return new Date(b.date_created) - new Date(a.date_created)
         })
       } else {
@@ -413,6 +424,10 @@ export default {
         this.points = await this.rpContract.getTokenBalance()
         this.isLoading = false
       })
+    },
+    openRedeemHistoryDialog () {
+      // TODO: Implement redeem history dialog
+      console.log('Open redeem history dialog for RF promo:', this.rpId)
     }
   }
 }
