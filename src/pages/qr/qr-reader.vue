@@ -73,11 +73,6 @@
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
-    <div class="row justify-center q-mt-xl cancel-container">
-      <div class="col-xs-12 text-center">
-        <q-btn size="md" label="Cancel" @click="$router.back()" class="glassmorphic-cancel-btn" v-close-popup></q-btn>
-      </div>
-    </div>
     <footer-menu v-if="!hideFooter" />
   </div>
 </template>
@@ -625,7 +620,7 @@ export default {
   .line-design1 {
     height: 150px;
     width: 150px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
   .scan-design2 {
@@ -642,7 +637,7 @@ export default {
     width: 150px;
     right: 0px;
     top: 0px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
   .scan-design3 {
@@ -659,7 +654,7 @@ export default {
     width: 150px;
     right: 0px;
     bottom: 0px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
   .scan-design4 {
@@ -676,41 +671,10 @@ export default {
     width: 150px;
     left: 0px;
     bottom: 0px;
-    border: 3px solid #3b7bf6;
+    border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
   }
-  .glassmorphic-cancel-btn {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    background: linear-gradient(
-      to right bottom,
-      rgba(244, 67, 54, 0.75),
-      rgba(229, 57, 53, 0.75),
-      rgba(211, 47, 47, 0.75)
-    ) !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    color: white !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-weight: 600;
-    box-shadow: 0 4px 12px 0 rgba(244, 67, 54, 0.2);
-    
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px 0 rgba(244, 67, 54, 0.3);
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
-  }
-  .cancel-container {
-    margin-top: 48px;
-  }
-  @media (max-height: 760px) {
-    .cancel-container {
-      margin-top: 24px;
-    }
-  }
+
 </style>
 
 <style lang='scss'>

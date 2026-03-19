@@ -885,8 +885,18 @@ export default {
       try {
         const response = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: vm.transactionType }, authorize: true })
         vm.fiatCurrencies = response.data
+        
+        // Check if there are no available currencies for this trade type
+        if (vm.fiatCurrencies.length === 0 && vm.adsState === 'create') {
+          vm.$q.notify({
+            type: 'info',
+            message: vm.$t('NoAvailableCurrencies', {}, 'You already have ads for all available currencies. Delete an existing ad to create a new one.'),
+            timeout: 5000
+          })
+        }
+        
         const selectedCurrencyUnused = vm.adsState === 'create' && !vm.fiatCurrencies.map(e => e.symbol)?.includes(vm.selectedCurrency.symbol)
-        if (!vm.selectedCurrency || selectedCurrencyUnused) {
+        if ((!vm.selectedCurrency || selectedCurrencyUnused) && vm.fiatCurrencies.length > 0) {
           vm.selectedCurrency = vm.fiatCurrencies[0]
           vm.adData.fiatCurrency = vm.selectedCurrency
         }

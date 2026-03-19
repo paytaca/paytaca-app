@@ -232,6 +232,32 @@
                 </q-select>
               </div>
 
+              <!-- Select from Address Book Option -->
+              <div class="send-option-card pt-card q-mb-md" :class="getDarkModeClass(darkMode)">
+                <div class="send-option-header">
+                  <q-icon name="mdi-book-open-variant" size="28px" class="text-grad"/>
+                  <div class="send-option-title">
+                    <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                      {{ $t('SelectFromAddressBook', {}, 'Select from Address Book') }}
+                    </div>
+                    <div class="text-caption" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+                      {{ $t('SelectContactFromAddressBook', {}, 'Choose a contact from your address book') }}
+                    </div>
+                  </div>
+                </div>
+
+                <q-btn
+                  unelevated
+                  no-caps
+                  class="full-width bg-grad q-mt-md text-white"
+                  size="lg"
+                  @click="navigateToAddressBook"
+                >
+                  <q-icon name="mdi-book-open-variant" size="20px" class="q-mr-xs"/>
+                  {{ $t('OpenAddressBook', {}, 'Open Address Book') }}
+                </q-btn>
+              </div>
+
               <!-- Gift Link Option (only for BCH) -->
               <div v-if="asset.id === 'bch'" class="send-option-card pt-card gift-option-card" :class="getDarkModeClass(darkMode)">
                 <div class="send-option-header">
@@ -249,7 +275,7 @@
                 <q-btn
                   unelevated
                   no-caps
-                  class="full-width bg-grad gift-link-btn q-mt-md text-white"
+                  class="full-width bg-grad q-mt-md text-white"
                   size="lg"
                   @click="navigateToCreateGift"
                 >
@@ -999,6 +1025,18 @@ export default {
     navigateToCreateGift() {
       this.$router.push({ name: 'create-gift' })
     },
+    navigateToAddressBook() {
+      this.$router.push({
+        name: 'app-address-book',
+        query: {
+          fromSendPage: 'true',
+          assetId: this.assetId,
+          network: this.network,
+          backPath: this.$route.path,
+          backQuery: JSON.stringify(this.$route.query)
+        }
+      })
+    },
     /**
      * Build query and state for navigating to transaction-detail after a send.
      * Pass state so TransactionDetail can show the tx immediately without waiting for watchtower.
@@ -1023,6 +1061,10 @@ export default {
         from: 'send-page',
         assetID: this.assetId || 'bch',
         new: 'true'
+      }
+      // Add recipient address for "Add to Address Book" feature
+      if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
+        query.recipient = this.recipients[0].recipientAddress
       }
       const assetId = this.assetId || ''
       if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
@@ -1165,7 +1207,9 @@ export default {
             amount = (amountValue / priceToUse).toFixed(8)
 
             currentRecipient.amount = amount
-            currentRecipient.fiatAmount = this.convertToFiatAmount(amount)
+            // When priceId is available, use the original fiat amount from the URI
+            // to ensure the displayed fiat amount matches exactly what was requested
+            currentRecipient.fiatAmount = vm.priceIdPrice ? amountValue : this.convertToFiatAmount(amount)
             currentInputExtras.amountFormatted = formatWithLocale(
               currentRecipient.amount, this.decimalObj(false)
             )

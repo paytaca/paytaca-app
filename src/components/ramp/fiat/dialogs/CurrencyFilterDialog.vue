@@ -12,6 +12,12 @@
         />
       </div>
       <q-card-section>
+        <q-banner class="bg-info text-white q-mb-sm rounded-borders" dense>
+          <template v-slot:avatar>
+            <q-icon name="info" color="white" />
+          </template>
+          {{ $t('CurrenciesWithAdsHidden', {}, 'Currencies you already have ads for are hidden') }}
+        </q-banner>
         <q-input
           dense
           outlined
