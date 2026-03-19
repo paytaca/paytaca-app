@@ -162,6 +162,11 @@ export const createCardLogic = {
   },
 
   methods: {
+    capitalizeFirst (str) {
+      if (!str) return ''
+      return str.charAt(0).toUpperCase() + str.slice(1)
+    },
+
     formatContractAddress(address) {
       if (!address) return ''
       const addr = typeof address === 'object' ? address.contractAddress : address
@@ -195,10 +200,11 @@ export const createCardLogic = {
         this.notifyError('Please enter a Card name')
         return
       }  
+      const capitalizedName = this.capitalizeFirst(this.newCardName)
       // create mock card object
       const newCard = {
         id: Date.now(),
-        raw: {alias: this.newCardName},
+        raw: {alias: capitalizedName},
         balance: (Math.random() * 10).toFixed(2), // random balance
         status: 'Active',
         contractAddress: this.contractAddress
@@ -216,6 +222,16 @@ export const createCardLogic = {
       this.newCardName = ''
     },
 
+    openCreateCardDialog(){
+      this.newCardName = ''
+      this.createCardDialog = true
+    },
+
+    // UI test only, pulls from browser memory
+    fetchCards () {
+      this.subCards = CardStorage.getCards();
+    },
+    
     navigateToCardDetails(card, tab = 'transactions') {
       this.$router.push({
         name: 'card-details',
