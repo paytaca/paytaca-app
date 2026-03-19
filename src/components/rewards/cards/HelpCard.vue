@@ -271,8 +271,7 @@ export default {
             titleKey: 'RewardsHelpUR21',
             titleDefault: 'User Reward Points',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here. To redeem them, tap the Redeem Points button.' },
-              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
+              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -283,45 +282,27 @@ export default {
               this.highlightIndex = 0
             },
             onNext: () => {
-              this.isHighlighting = false
-            }
-          },
-          {
-            id: '3',
-            isCentered: true,
-            icon: 'local_activity',
-            titleKey: 'RewardsHelpUR31',
-            titleDefault: 'Earning UR Points',
-            content: [
-              { key: 'RewardsHelpUR32', default: 'There are two ways to earn points, which are awarded only after successfully completing the specified actions.' },
-            ],
-            hasBack: true,
-            primaryBtn: 'Next',
-            nextStep: '4',
-            backStep: '2',
-            onEnter: () => { this.isHighlighting = false },
-            onNext: () => {
               this.isHighlighting = true
               this.highlightIndex = 1
             }
           },
           {
-            id: '4',
+            id: '3',
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 1,
-            icon: 'repeat_one',
-            titleKey: 'RewardsHelpUR41',
-            titleDefault: 'One-time Points',
+            icon: 'local_activity',
+            titleKey: 'RewardsHelpRFP21',
+            titleDefault: 'Redeem UR Points',
             content: [
-              { key: 'RewardsHelpUR42', default: 'One-time points can be earned only once and are awarded after completing specified tasks.' },
-              { key: 'RewardsHelpUR43', default: 'Please note that these points are only available for new Paytaca users. Existing users cannot earn them.' },
+              { key: 'RewardsHelpRedeemPoints1', default: 'To redeem your points, tap the Redeem Points button.' },
+              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
-            nextStep: '5',
-            backStep: '3',
-            onEnter: () => {
+            nextStep: '4',
+            backStep: '2',
+            onEnter: () => { 
               if (this.hasBoundingRects) this.isHighlighting = true
               this.highlightIndex = 1
             },
@@ -331,10 +312,77 @@ export default {
             }
           },
           {
-            id: '5',
+            id: '4',
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 2,
+            icon: 'history',
+            titleKey: 'RewardsHelpRFP21',
+            titleDefault: 'View Redeem History',
+            content: [
+              { key: 'RewardsHelpRedeemPoints1', default: 'Tap the View Redeem History button to check your past redemptions.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '5',
+            backStep: '3',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 2
+            },
+            onNext: () => {
+              this.isHighlighting = false
+            }
+          },
+          {
+            id: '5',
+            isCentered: true,
+            icon: 'local_activity',
+            titleKey: 'RewardsHelpUR31',
+            titleDefault: 'Earning UR Points',
+            content: [
+              { key: 'RewardsHelpUR32', default: 'There are two ways to earn points, which are awarded only after successfully completing the specified actions.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '6',
+            backStep: '4',
+            onEnter: () => { this.isHighlighting = false },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 3
+            }
+          },
+          {
+            id: '6',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 3,
+            icon: 'repeat_one',
+            titleKey: 'RewardsHelpUR41',
+            titleDefault: 'One-time Points',
+            content: [
+              { key: 'RewardsHelpUR42', default: 'One-time points can be earned only once and are awarded after completing specified tasks.' },
+              { key: 'RewardsHelpUR43', default: 'Please note that these points are only available for new Paytaca users. Existing users cannot earn them.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '7',
+            backStep: '5',
+            onEnter: () => {
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 3
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 4
+            }
+          },
+          {
+            id: '7',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 4,
             icon: 'loop',
             titleKey: 'RewardsHelpUR51',
             titleDefault: 'Continuous Points',
@@ -343,18 +391,18 @@ export default {
             ],
             hasBack: true,
             primaryBtn: 'Next',
-            backStep: '4',
-            nextStep: '6',
+            backStep: '6',
+            nextStep: '8',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
             onNext: () => {
               this.isHighlighting = true
             }
           },
           {
-            id: '6',
+            id: '8',
             isCentered: false,
             needsBoundingRects: true,
-            highlightIndex: 2,
+            highlightIndex: 4,
             icon: 'loop',
             titleKey: 'RewardsHelpUR51',
             titleDefault: 'Continuous Points',
@@ -363,7 +411,7 @@ export default {
             ],
             hasBack: true,
             primaryBtn: 'Done',
-            backStep: '5',
+            backStep: '7',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
             onNext: () => this.close()
           },

@@ -21,7 +21,7 @@
     >
       <!-- Hero Section: Total Points -->
       <q-card
-        class="q-mb-lg hero-card card-help-highlight"
+        class="q-mb-lg hero-card"
         :class="getDarkModeClass(darkMode)"
         flat
       >
@@ -44,29 +44,31 @@
 
           <!-- Loaded State -->
           <template v-else>
-            <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-              {{ $t('YouCurrentlyHave', 'You currently have') }}
-            </div>
-            
-            <div 
-              class="row flex-center q-mb-sm points-display"
-              :class="{ 'animate-points': points > 0 }"
-            >
-              <span class="text-h3 text-bold text-primary">
-                {{ animatedPoints }}
-              </span>
-              <span
-                class="text-h5 text-weight-bold q-ml-xs"
-                :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+            <div class="card-help-highlight">
+              <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('YouCurrentlyHave', 'You currently have') }}
+              </div>
+              
+              <div 
+                class="row flex-center q-mb-sm points-display"
+                :class="{ 'animate-points': points > 0 }"
               >
-                points
-              </span>
+                <span class="text-h3 text-bold text-primary">
+                  {{ animatedPoints }}
+                </span>
+                <span
+                  class="text-h5 text-weight-bold q-ml-xs"
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                >
+                  points
+                </span>
+              </div>
             </div>
 
             <q-btn
               rounded
               size="lg"
-              class="button redeem-btn full-width"
+              class="button redeem-btn full-width card-help-highlight"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
               :disable="points === 0"
@@ -77,7 +79,7 @@
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width q-mt-md"
+              class="button button-text-primary full-width q-mt-md card-help-highlight"
               :style="{ maxWidth: '200px' }"
               :class="getDarkModeClass(darkMode)"
               :label="$t('ViewRedeemHistory', 'View Redeem History')"
