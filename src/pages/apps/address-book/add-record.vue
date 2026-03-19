@@ -1,4 +1,10 @@
 <template>
+  <div class="static-container">
+  <QrScanner
+    v-model="showQrScanner"
+    @decode="onScannerDecode"
+  />
+  <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
   <div
     id="app-container"
     class="sticky-header-container text-bow"
@@ -49,8 +55,14 @@
       <record-name-input-card v-model="recordName" />
 
       <!-- Addresses Section Card -->
-      <addresses-form-card v-model="addresses" />
+      <addresses-form-card
+        ref="addressesForm"
+        v-model="addresses"
+        @scan-qr="showQrScanner = true"
+        @upload-qr="onQRUploaderClick"
+      />
     </div>
+  </div>
   </div>
 </template>
 
@@ -64,6 +76,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { raiseNotifyError, raiseNotifySuccess } from 'src/utils/notify-utils';
 
 import HeaderNav from 'src/components/header-nav.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
+import QRUploader from 'src/components/QRUploader'
 import RecordNameInputCard from 'src/components/address-book/RecordNameInputCard.vue';
 import AddressesFormCard from 'src/components/address-book/AddressesFormCard.vue';
 
@@ -72,6 +86,8 @@ export default {
 
   components: {
     HeaderNav,
+    QrScanner,
+    QRUploader,
     RecordNameInputCard,
     AddressesFormCard
   },
@@ -98,6 +114,25 @@ export default {
 
   methods: {
     getDarkModeClass,
+
+    onScannerDecode (content) {
+      this.showQrScanner = false
+      this.$refs.addressesForm?.onAddressQrDecoded(content)
+    },
+
+    onQRUploaderClick () {
+      try {
+        this.$refs['qr-upload'].$refs['q-file'].pickFiles()
+      } catch (e) {
+        console.error('QR upload picker error:', e)
+        this.$q?.notify?.({
+          type: 'negative',
+          message: this.$t('FilePickerError'),
+          timeout: 2500,
+          position: 'top'
+        })
+      }
+    },
 
     async saveRecord () {
       this.isLoading = true
@@ -148,6 +183,22 @@ export default {
 
       this.isLoading = false
     }
+  },
+
+  async mounted () {
+    this.isLoading = true
+
+    const headerHeight = document.getElementById('header-nav').clientHeight
+    const actionButtons = document.getElementById('action-buttons')
+    actionButtons.style.top = `${headerHeight}px`
+
+    // Check for pre-filled address from query parameter
+    const prefilledAddress = this.$route.query.address
+    if (prefilledAddress) {
+      this.addresses.push({ address: prefilledAddress })
+    }
+
+    this.isLoading = false
   }
 }
 </script>

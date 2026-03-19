@@ -209,27 +209,6 @@
           {{ formatDate(tx.tx_timestamp || tx.date_created) }}
         </div>
 
-        <!-- Save Receipt Button -->
-        <div class="q-mt-md q-mb-lg text-center">
-          <q-btn
-            flat
-            outline
-            no-caps
-            :label="$t('SaveReceipt', {}, 'Save Receipt')"
-            icon="receipt"
-            color="grey-7"
-            class="save-receipt-btn glassmorphic-receipt-btn"
-            :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
-            :loading="savingReceipt"
-            :disable="savingReceipt"
-            @click="saveReceiptImage"
-          >
-            <template v-slot:loading>
-              <q-spinner-dots color="white" size="24px" />
-            </template>
-          </q-btn>
-        </div>
-
         <!-- Transaction Metadata Section -->
         <template v-if="metadataBadges?.length || attributeDetails?.length">
           <q-separator spaced class="q-mt-lg"/>
@@ -321,49 +300,111 @@
           </q-slide-transition>
         </template>
 
-        <!-- Memo Section (mirrors SendSuccessBlock styling, centered) -->
-        <div class="memo-section section-block-ss q-mt-lg q-mb-md">
-          <div v-if="hasMemo || editingMemo" class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
-          <div class="row justify-center">
-            <div class="col-12 col-md-8 q-px-md">
-              <q-slide-transition>
-                <div v-if="!editingMemo">
-                  <div v-if="hasMemo" class="memo-display-container">
-                    <div class="memo-content-container" :class="getDarkModeClass(darkMode)">
-                      <div class="memo-text">{{ transactionMemo }}</div>
-                      <div class="memo-actions">
-                        <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
-                        <q-separator vertical :dark="darkMode"/>
-                        <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-else>
-                    <q-item-section class="q-pt-sm text-center">
-                      <q-btn outline no-caps :label="$t('AddMemo', {}, 'Add memo')" icon="add" color="grey-7" class="br-15" padding="xs md" :disable="networkError || usingWebsocketData" @click="openMemo()"/>
-                    </q-item-section>
-                  </div>
-                </div>
-                <q-item v-else style="overflow-wrap: anywhere;">
-                  <q-item-section>
-                    <q-item-label>
-                      <div class="row items-start justify-center">
-                        <div class="col q-pr-sm">
-                          <input ref="memoInputRef" v-model="memoInput" type="text" class="memo-input" :class="darkMode ? 'memo-input-dark' : 'memo-input-light'" :placeholder="`${$t('EnterMemo', {}, 'Enter memo')}...`" style="width: 100%; border: none; outline: none; font-size: 14px; padding: 8px 12px; font-family: inherit; border-radius: 4px;" @keyup.enter="saveMemo()" @keyup.esc="cancelEditMemo()"/>
-                        </div>
-                        <div class="row items-center no-wrap">
-                          <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memoInput || memoInput === transactionMemo" @click="saveMemo()"/>
-                          <q-separator vertical :dark="darkMode"/>
-                          <q-btn flat icon="close" size="sm" padding="xs sm" @click="cancelEditMemo()"/>
-                        </div>
-                      </div>
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-slide-transition>
+        <!-- Memo Display Section (when memo exists and not editing) -->
+        <q-slide-transition>
+          <div v-if="hasMemo && !editingMemo" class="memo-display-section q-mt-lg q-mb-md">
+            <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
+            <div class="memo-display-container" :class="getDarkModeClass(darkMode)">
+              <div class="memo-text">{{ transactionMemo }}</div>
+              <div class="memo-actions">
+                <q-btn flat icon="edit" size="sm" padding="xs sm" @click="openMemo()"/>
+                <q-separator vertical :dark="darkMode"/>
+                <q-btn flat icon="delete" size="sm" padding="xs sm" color="red-7" @click="confirmDelete()"/>
+              </div>
             </div>
           </div>
-        </div>
+        </q-slide-transition>
+
+        <!-- Memo Edit Section (shown above Quick Actions) -->
+        <q-slide-transition>
+          <div v-if="editingMemo" class="memo-edit-section q-mt-lg q-mb-md">
+            <div class="text-grey text-weight-medium text-caption q-mb-sm text-center">{{ $t('Memo') }}</div>
+            <div class="memo-edit-container" :class="getDarkModeClass(darkMode)">
+              <input ref="memoInputRef" v-model="memoInput" type="text" class="memo-input" :class="darkMode ? 'memo-input-dark' : 'memo-input-light'" :placeholder="`${$t('EnterMemo', {}, 'Enter memo')}...`" @keyup.enter="saveMemo()" @keyup.esc="cancelEditMemo()"/>
+              <div class="memo-edit-actions">
+                <q-btn flat icon="check" size="sm" padding="xs sm" color="primary" :disable="!memoInput || memoInput === transactionMemo" @click="saveMemo()"/>
+                <q-separator vertical :dark="darkMode"/>
+                <q-btn flat icon="close" size="sm" padding="xs sm" @click="cancelEditMemo()"/>
+              </div>
+            </div>
+          </div>
+        </q-slide-transition>
+
+        <!-- Quick Actions Section (hidden when editing memo) -->
+        <template v-if="!editingMemo">
+          <div class="quick-actions-collapsed q-mt-md q-mb-md" v-if="!showQuickActions">
+            <q-btn
+              flat
+              no-caps
+              dense
+              class="quick-actions-toggle"
+              :class="getDarkModeClass(darkMode)"
+              @click="showQuickActions = true"
+            >
+              <q-icon name="expand_more" size="18px" class="q-mr-xs" />
+              <span class="text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+            </q-btn>
+          </div>
+
+          <q-slide-transition v-else>
+            <div class="quick-actions-expanded q-mt-lg q-mb-lg">
+              <div class="quick-actions-header">
+                <span class="text-grey text-weight-medium text-caption">{{ $t('QuickActions', {}, 'Quick Actions') }}</span>
+                <q-btn flat dense round icon="expand_less" size="sm" @click="showQuickActions = false" />
+              </div>
+              <div class="quick-actions-grid">
+                <!-- Save Receipt Action -->
+                <q-btn
+                  flat
+                  no-caps
+                  class="quick-action-btn"
+                  :class="[`theme-${theme}`, getDarkModeClass(darkMode), savingReceipt ? 'is-saving' : '']"
+                  :loading="savingReceipt"
+                  :disable="savingReceipt"
+                  @click="saveReceiptImage"
+                >
+                  <template v-slot:loading>
+                    <q-spinner-dots color="primary" size="20px" />
+                  </template>
+                  <div class="quick-action-content" v-if="!savingReceipt">
+                    <q-icon name="receipt_long" size="22px" class="quick-action-icon" />
+                    <div class="quick-action-label">{{ $t('SaveReceipt', {}, 'Save') }}</div>
+                  </div>
+                </q-btn>
+
+                <!-- Add/Edit Memo Action -->
+                <q-btn
+                  flat
+                  no-caps
+                  class="quick-action-btn"
+                  :class="[`theme-${theme}`, getDarkModeClass(darkMode), hasMemo ? 'has-memo' : '']"
+                  :disable="networkError || usingWebsocketData || editingMemo"
+                  @click="openMemo()"
+                >
+                  <div class="quick-action-content">
+                    <q-icon :name="hasMemo ? 'edit_note' : 'add_comment'" size="22px" class="quick-action-icon" />
+                    <div class="quick-action-label">{{ hasMemo ? $t('EditMemo', {}, 'Edit Memo') : $t('AddMemo', {}, 'Add Memo') }}</div>
+                  </div>
+                </q-btn>
+
+                <!-- Add to Address Book Action (only for outgoing transactions) -->
+                <q-btn
+                  v-if="canAddToAddressBook"
+                  flat
+                  no-caps
+                  class="quick-action-btn"
+                  :class="[`theme-${theme}`, getDarkModeClass(darkMode)]"
+                  @click="onAddToAddressBook"
+                >
+                  <div class="quick-action-content">
+                    <q-icon name="person_add" size="22px" class="quick-action-icon" />
+                    <div class="quick-action-label">{{ $t('AddToAddressBook', {}, 'Add Contact') }}</div>
+                  </div>
+                </q-btn>
+              </div>
+            </div>
+          </q-slide-transition>
+        </template>
         </div>
       </div>
     </div>
@@ -434,6 +475,9 @@ export default {
       nftName: null, // NFT name from BCMR type_metadata
       fetchingNftMetadata: false, // Track if NFT metadata is being fetched
       savingReceipt: false,
+      txDetails: null, // Raw transaction details with outputs
+      loadingTxDetails: false,
+      showQuickActions: false, // Collapsed by default
     }
   },
   computed: {
@@ -808,6 +852,49 @@ export default {
         }
       }
       return '/'
+    },
+    canAddToAddressBook () {
+      // Only show for outgoing transactions
+      if (!this.tx) return false
+      if (this.tx.record_type !== 'outgoing') return false
+      // Check if we have recipient from query param or can extract from transaction
+      const recipient = this.recipientAddress
+      if (!recipient) return false
+      return true
+    },
+    recipientAddress () {
+      // First check query param (from send page)
+      if (this.$route.query.recipient) {
+        return this.$route.query.recipient
+      }
+      // Otherwise use extracted address from transaction data
+      return this.extractedRecipientAddress
+    },
+    extractedRecipientAddress () {
+      // Extract recipient from transaction outputs data if available
+      if (!this.tx || this.tx.record_type !== 'outgoing') return null
+      
+      // Use txDetails if available (from API fetch)
+      // The API returns {valid: true, details: {outputs: [...]}}
+      const outputs = this.txDetails?.details?.outputs || this.txDetails?.outputs || this.tx?.outputs
+      
+      if (outputs && Array.isArray(outputs)) {
+        // Find outputs that are not change and have an address
+        const nonChangeOutputs = outputs.filter(output => 
+          !output.is_change && output.address
+        )
+        
+        // If there's exactly one non-change output, use it
+        if (nonChangeOutputs.length === 1) {
+          return nonChangeOutputs[0].address
+        }
+        // If multiple, try to find the one with largest amount
+        if (nonChangeOutputs.length > 1) {
+          const sorted = nonChangeOutputs.sort((a, b) => (b.value || 0) - (a.value || 0))
+          return sorted[0].address
+        }
+      }
+      return null
     }
   },
   async mounted () {
@@ -895,6 +982,11 @@ export default {
     
     // Note: Confetti is launched inside fetchAndShow after transaction loads successfully
     // Don't launch it here to avoid launching before transaction data is available
+    
+    // Also fetch transaction details for address book feature if tx is already loaded
+    if (this.tx && this.tx.record_type === 'outgoing' && !this.$route.query.recipient) {
+      this.fetchTransactionDetails()
+    }
   },
   beforeUnmount () {
     // Reset background colors
@@ -952,6 +1044,10 @@ export default {
           // Fetch metadata if it's an NFT
           if (this.isNft) {
             this.fetchNftMetadata()
+          }
+          // Fetch transaction details to get outputs for address book feature
+          if (newTx.record_type === 'outgoing' && !this.$route.query.recipient) {
+            this.fetchTransactionDetails()
           }
         })
       }
@@ -1418,6 +1514,8 @@ export default {
     cancelEditMemo () {
       this.memoInput = this.transactionMemo
       this.editingMemo = false
+      // Collapse Quick Actions after canceling memo edit
+      this.showQuickActions = false
     },
     async saveMemo () {
       try {
@@ -1435,6 +1533,8 @@ export default {
           this.memoInput = trimmedMemo
           this.hasMemo = true
           this.editingMemo = false
+          // Collapse Quick Actions after successful memo creation
+          this.showQuickActions = false
           
           this.$q.notify({
             message: this.$t('MemoSaved', {}, 'Memo saved'),
@@ -1495,6 +1595,8 @@ export default {
             this.transactionMemo = ''
             this.memoInput = ''
             this.editingMemo = false
+            // Collapse Quick Actions after successful memo deletion
+            this.showQuickActions = false
             
             this.$q.notify({
               message: this.$t('MemoDeleted', {}, 'Memo deleted'),
@@ -1581,72 +1683,64 @@ export default {
     },
     async fetchNftMetadata () {
       // Only fetch if it's an NFT and we have token ID
-      if (!this.isNft || !this.nftTokenId) {
-        this.nftImageUrl = null
-        this.nftName = null
-        return
-      }
-
+      if (!this.isNft) return
       // Don't fetch if already fetching or if we already have the image
       if (this.fetchingNftMetadata || this.nftImageUrl) return
 
       this.fetchingNftMetadata = true
-      this.nftImageError = false
-
       try {
         const tokenId = this.nftTokenId
-        const commitment = this.nftCommitment
-
-        // Build URL: tokens/{tokenId}/ or tokens/{tokenId}/{commitment}/
-        let url = `tokens/${tokenId}/`
-        if (commitment) {
-          url += `${commitment}/`
+        if (!tokenId) {
+          this.fetchingNftMetadata = false
+          return
         }
 
-        const response = await getBcmrBackend().get(url)
+        // Fetch NFT metadata from BCMR
+        const response = await axios.get(`https://bcmr.paytaca.com/api/tokens/${tokenId}/`)
         const metadata = response?.data
 
-        if (metadata) {
-          // Extract name from type_metadata
-          if (metadata.type_metadata?.name) {
-            this.nftName = metadata.type_metadata.name
-          } else if (metadata.name) {
-            // Fallback to top-level name if type_metadata.name doesn't exist
-            this.nftName = metadata.name
-          } else {
-            this.nftName = null
-          }
-
-          // Extract image URL from type_metadata
-          // Priority: type_metadata.uris.image > type_metadata.uris.icon
-          let imageUrl = null
-          if (metadata.type_metadata?.uris?.image) {
-            imageUrl = metadata.type_metadata.uris.image
-          } else if (metadata.type_metadata?.uris?.icon) {
-            imageUrl = metadata.type_metadata.uris.icon
-          }
-
-          if (imageUrl) {
-            // Convert IPFS URL if needed
-            this.nftImageUrl = convertIpfsUrl(imageUrl)
-            // Add Pinata gateway token if it's a Pinata IPFS URL
-            if (this.nftImageUrl.startsWith('https://ipfs.paytaca.com/ipfs')) {
-              this.nftImageUrl += '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
-            }
-          } else {
-            // No image found in type_metadata
-            this.nftImageUrl = null
-          }
-        } else {
-          this.nftImageUrl = null
-          this.nftName = null
+        if (metadata?.token?.uris?.icon) {
+          this.nftImageUrl = metadata.token.uris.icon
+        }
+        if (metadata?.token?.name) {
+          this.nftName = metadata.token.name
         }
       } catch (error) {
         console.error('[TransactionDetail] Error fetching NFT metadata:', error)
-        this.nftImageUrl = null
-        this.nftName = null
       } finally {
         this.fetchingNftMetadata = false
+      }
+    },
+    async fetchTransactionDetails () {
+      // Fetch raw transaction data to get outputs
+      if (!this.tx || this.tx.record_type !== 'outgoing') return
+      if (this.loadingTxDetails || this.txDetails) return
+      if (this.$route.query.recipient) return // Already have recipient from query
+
+      const txid = this.transactionId
+      if (!txid) return
+
+      this.loadingTxDetails = true
+      try {
+        // Fetch transaction details from watchtower
+        const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
+        const url = `${baseUrl}/transactions/${txid}/`
+        
+        const { data } = await axios.get(url)
+        
+        if (data) {
+          this.txDetails = data
+          // The API returns {valid: true, details: {outputs: [...], inputs: [...]}}
+          const details = data.details || data
+          // Merge outputs into tx object for computed property
+          if (details.outputs && !this.tx.outputs) {
+            this.tx = { ...this.tx, outputs: details.outputs }
+          }
+        }
+      } catch (error) {
+        console.error('[TransactionDetail] Error fetching transaction details:', error)
+      } finally {
+        this.loadingTxDetails = false
       }
     },
     viewInCollectibles () {
@@ -1961,6 +2055,14 @@ export default {
         // If not from transactions page, navigate to home page
         this.$router.push('/')
       }
+    },
+    onAddToAddressBook () {
+      const recipient = this.recipientAddress
+      if (!recipient) return
+      this.$router.push({
+        name: 'app-address-book-add-record',
+        query: { address: recipient }
+      })
     },
     formatDate (date) {
       const dateObj = new Date(date)
@@ -3237,6 +3339,221 @@ export default {
   &.is-saving {
     cursor: wait;
   }
+}
+
+/* Quick Actions Section */
+
+/* Collapsed State */
+.quick-actions-collapsed {
+  text-align: center;
+}
+
+.quick-actions-toggle {
+  border-radius: 20px;
+  padding: 6px 16px;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.1);
+  }
+
+  &.dark:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Expanded State */
+.quick-actions-expanded {
+  background: rgba(128, 128, 128, 0.03);
+  border: 1px solid rgba(128, 128, 128, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 500px;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.quick-actions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 360px) {
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+.quick-action-btn {
+  min-height: 56px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--q-primary), 0.06);
+    border-color: rgba(var(--q-primary), 0.2);
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(var(--q-primary), 0.1);
+  }
+
+  &.dark {
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    &:active:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.quick-action-btn.has-memo {
+  .quick-action-icon {
+    color: var(--q-primary);
+  }
+}
+
+.quick-action-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.quick-action-icon {
+  font-size: 20px;
+  color: var(--q-primary);
+  opacity: 0.8;
+  transition: transform 0.15s ease;
+}
+
+.quick-action-btn:hover:not(:disabled) .quick-action-icon {
+  transform: scale(1.05);
+  opacity: 1;
+}
+
+.quick-action-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* Memo Display Section */
+.memo-display-section {
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.memo-display-container {
+  background: rgba(128, 128, 128, 0.08);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.memo-text {
+  flex: 1;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.memo-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Memo Edit Section */
+.memo-edit-section {
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.memo-edit-container {
+  background: rgba(128, 128, 128, 0.08);
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &.dark {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.memo-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+
+  &::placeholder {
+    color: rgba(128, 128, 128, 0.6);
+  }
+}
+
+.memo-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 </style>
