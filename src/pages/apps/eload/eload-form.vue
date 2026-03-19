@@ -163,7 +163,7 @@
 					<div
 						ref="categoryScrollContainer"
 						class="scroll-y q-pb-md"
-						:style="`max-height: ${minHeight - 275}px`"
+						:style="`max-height: ${minHeight - 325}px`"
 						@scroll="onCategoryScroll"
 					>
 						<div class="q-px-lg">
@@ -223,7 +223,7 @@
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
 
-					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 300}px`" ref="scrollTarget">
+					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 360}px`" ref="scrollTarget">
 						<q-card 
 							class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
 							v-ripple 
@@ -254,7 +254,7 @@
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<q-skeleton
-						v-for="i in 3"
+						v-for="i in 2"
 						:key="'svc-' + i"
 						animation="wave"
 						type="rect"
@@ -739,7 +739,7 @@ export default {
 				// Get Promos
 			}
 		}
-	},	
+	},
 	async mounted () {
 		const vm = this
 
@@ -755,7 +755,7 @@ export default {
 
 		if (result.success) {			
 			vm.services = result.data
-		}	
+		}
 
 		// Fetch Services
 		vm.loading = false
