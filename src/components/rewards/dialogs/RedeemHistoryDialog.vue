@@ -104,7 +104,7 @@
                 <q-item-label v-if="promo === 'rp' && redemption.monthly_max" caption class="q-mt-xs">
                   <q-badge
                     color="info"
-                    text-color="black"
+                    :text-color="darkMode ? 'black' : 'white'"
                     class="monthly-badge"
                   >
                     <q-icon name="info" size="12px" class="q-mr-xs" />
