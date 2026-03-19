@@ -396,8 +396,7 @@ export default {
             titleKey: 'RewardsHelpRFP21',
             titleDefault: 'Refer-a-friend Promo Points',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here. To redeem them, tap the Redeem Points button.' },
-              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
+              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -441,11 +440,12 @@ export default {
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 2,
-            icon: 'qr_code_scanner',
-            titleKey: 'RewardsHelpRFP41',
-            titleDefault: 'Referral Code',
+            icon: 'local_activity',
+            titleKey: 'RewardsHelpRFP21',
+            titleDefault: 'Redeem RF Points',
             content: [
-              { key: 'RewardsHelpRFP42', default: 'Tap the button to show your referral code QR, and have your referrals scan it to earn points.' },
+              { key: 'RewardsHelpRedeemPoints1', default: 'To redeem your points, tap the Redeem Points button.' },
+              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -455,10 +455,58 @@ export default {
               if (this.hasBoundingRects) this.isHighlighting = true
               this.highlightIndex = 2
             },
-            onNext: () => { this.isHighlighting = false }
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 3
+            }
           },
           {
             id: '5',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 3,
+            icon: 'history',
+            titleKey: 'RewardsHelpRFP21',
+            titleDefault: 'View Redeem History',
+            content: [
+              { key: 'RewardsHelpRedeemPoints1', default: 'Tap the View Redeem History button to check your past redemptions.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '6',
+            backStep: '4',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 3
+            },
+            onNext: () => {
+              this.isHighlighting = true
+              this.highlightIndex = 4
+            }
+          },
+          {
+            id: '6',
+            isCentered: false,
+            needsBoundingRects: true,
+            highlightIndex: 4,
+            icon: 'qr_code_scanner',
+            titleKey: 'RewardsHelpRFP41',
+            titleDefault: 'Referral Code',
+            content: [
+              { key: 'RewardsHelpRFP42', default: 'Tap the button to show your referral code QR, and have your referrals scan it to earn points.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '7',
+            backStep: '5',
+            onEnter: () => { 
+              if (this.hasBoundingRects) this.isHighlighting = true
+              this.highlightIndex = 4
+            },
+            onNext: () => { this.isHighlighting = false }
+          },
+          {
+            id: '7',
             isCentered: true,
             icon: 'local_activity',
             titleKey: 'RewardsHelpRFP51',
@@ -468,19 +516,19 @@ export default {
             ],
             hasBack: true,
             primaryBtn: 'Next',
-            nextStep: '6',
-            backStep: '4',
+            nextStep: '8',
+            backStep: '6',
             onEnter: () => { this.isHighlighting = false },
             onNext: () => {
               this.isHighlighting = false
-              this.highlightIndex = 3
+              this.highlightIndex = 5
             }
           },
           {
-            id: '6',
+            id: '8',
             isCentered: false,
             needsBoundingRects: true,
-            highlightIndex: 3,
+            highlightIndex: 5,
             icon: 'group',
             titleKey: 'RewardsHelpRFP61',
             titleDefault: 'Referral Status',
@@ -489,10 +537,10 @@ export default {
             ],
             hasBack: true,
             primaryBtn: 'Done',
-            backStep: '5',
+            backStep: '7',
             onEnter: () => { 
               if (this.hasBoundingRects) this.isHighlighting = true
-              this.highlightIndex = 3
+              this.highlightIndex = 5
             },
             onNext: () => this.close()
           },

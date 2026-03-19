@@ -22,7 +22,7 @@
     >
       <!-- Hero Section: Total Points with Redeemable Limit -->
       <q-card
-        class="q-mb-lg hero-card card-help-highlight"
+        class="q-mb-lg hero-card"
         :class="getDarkModeClass(darkMode)"
         flat
       >
@@ -46,23 +46,25 @@
 
           <!-- Loaded State -->
           <template v-else>
-            <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-              {{ $t('YouCurrentlyHave', 'You currently have') }}
-            </div>
-
-            <div
-              class="row flex-center q-mb-sm points-display"
-              :class="{ 'animate-points': animatedPoints > 0 }"
-            >
-              <span class="text-h3 text-bold text-primary">
-                {{ animatedPoints }}
-              </span>
-              <span
-                class="text-h5 text-weight-bold q-ml-xs"
-                :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+            <div class="card-help-highlight">
+              <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('YouCurrentlyHave', 'You currently have') }}
+              </div>
+  
+              <div
+                class="row flex-center q-mb-sm points-display"
+                :class="{ 'animate-points': animatedPoints > 0 }"
               >
-                points
-              </span>
+                <span class="text-h3 text-bold text-primary">
+                  {{ animatedPoints }}
+                </span>
+                <span
+                  class="text-h5 text-weight-bold q-ml-xs"
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                >
+                  points
+                </span>
+              </div>
             </div>
 
             <!-- Redeemable Points Badge and Progress -->
@@ -106,7 +108,7 @@
             <q-btn
               rounded
               size="lg"
-              class="button redeem-btn full-width q-mb-md"
+              class="button redeem-btn full-width q-mb-md card-help-highlight"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
               :disable="points === 0 || redeemedPoints === 0"
@@ -117,20 +119,20 @@
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width referral-btn card-help-highlight"
-              :label="$t('ShowReferralQR', 'Show Referral QR')"
-              @click="openReferralQrDialog"
+              class="button button-text-primary full-width q-mb-md card-help-highlight"
+              :style="{ maxWidth: '200px' }"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('ViewRedeemHistory', 'View Redeem History')"
+              @click="openRedeemHistoryDialog"
             />
 
             <q-btn
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width q-mt-md"
-              :style="{ maxWidth: '200px' }"
-              :class="getDarkModeClass(darkMode)"
-              :label="$t('ViewRedeemHistory', 'View Redeem History')"
-              @click="openRedeemHistoryDialog"
+              class="button button-text-primary full-width referral-btn card-help-highlight"
+              :label="$t('ShowReferralQR', 'Show Referral QR')"
+              @click="openReferralQrDialog"
             />
           </template>
         </q-card-section>
