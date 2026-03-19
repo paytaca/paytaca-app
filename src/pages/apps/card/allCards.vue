@@ -32,7 +32,7 @@
           >
             <div class="card-grid-info">
               <div class="card-name text-weight-bold ellipsis">
-                {{ card.raw?.alias }}
+                {{ capitalizeFirst(card.raw?.alias) }}
               </div>
               <div class="card-balance text-weight-bold">
                 {{ card.balance }} BCH
@@ -70,6 +70,11 @@ export default {
   },
 
   methods: {
+    capitalizeFirst (str) {
+      if (!str) return ''
+      return str.charAt(0).toUpperCase() + str.slice(1)
+    },
+
     goToCardDetails (card) {
       if (card && card.id) {
         this.$router.push({ name: 'card-details', query: {id: card.id} })

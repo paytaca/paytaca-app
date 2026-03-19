@@ -37,7 +37,7 @@
                 style="max-width: 120px; font-size: 13px;"
                 :class="textColor"
               >
-                {{ card.raw?.alias }}
+                {{ capitalizeFirst(card.raw?.alias) }}
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
@@ -206,6 +206,11 @@ export default {
   },
 
   methods: {
+    capitalizeFirst (str) {
+      if (!str) return ''
+      return str.charAt(0).toUpperCase() + str.slice(1)
+    },
+
     getCardStyle (index) {
       const card = this.displayedCards[index]
       const cardId = card?.id

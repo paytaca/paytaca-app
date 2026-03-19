@@ -10,7 +10,7 @@
               class="text-subtitle1 q-mr-sm"
               :class="textColor"
             >
-              {{activeCard?.raw?.alias}}
+              {{ capitalizeFirst(activeCard?.raw?.alias) }}
             </div>
             <q-badge 
               rounded 
@@ -30,8 +30,11 @@
             <div class="virtual-card-content full-width full-height q-pa-sm">
               <!-- Card Header with Logo -->
               <div class="row items-center justify-between">
-                <div class="virtual-card-chip">
-                  <q-icon name="memory" size="20px" color="amber-3" />
+                <div class="virtual-card-chip row items-center no-wrap" style="gap: 6px; padding: 0 8px;">
+                  <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+                  <div class="text-caption text-weight-bold ellipsis" style="max-width: 100px; color: inherit; font-family: 'Courier New', monospace; letter-spacing: 0.5px;">
+                    {{ capitalizeFirst(activeCard?.raw?.alias) || 'My Card' }}
+                  </div>
                 </div>
                 <q-img
                   src="~assets/paytaca_logo.png"
@@ -45,13 +48,8 @@
                 {{ formatContractAddress(activeCard?.contractAddress) || 'bitcoincash:qz6zv...efvjw' }}
               </div>
               
-              <!-- Bottom Section: Card Name -->
-              <div class="q-mt-auto">
-                <div class="text-caption text-weight-medium virtual-card-label">CARD NAME</div>
-                <div class="text-body2 text-weight-bold ellipsis" style="max-width: 100%;">
-                  {{ activeCard?.raw?.alias || 'My Card' }}
-                </div>
-              </div>
+              <!-- Bottom Section: Reserved for future use -->
+              <div class="q-mt-auto"></div>
             </div>
           </div>
 
@@ -1055,6 +1053,11 @@ export default {
 
   methods: {
 
+    capitalizeFirst (str) {
+      if (!str) return ''
+      return str.charAt(0).toUpperCase() + str.slice(1)
+    },
+
     loadSpecificCard () {
       const cardId = this.$route.query.id
       // get card from storage
@@ -1087,8 +1090,8 @@ export default {
         }
         
         // Update the alias
-        this.activeCard.raw.alias = trimmedName
-        this.newCardName = trimmedName
+        this.activeCard.raw.alias = this.capitalizeFirst(trimmedName)
+        this.newCardName = this.capitalizeFirst(trimmedName)
         
         // Save to localStorage
         const updatedCard = this.CardStorage.updateCard(this.activeCard.id, this.activeCard)
