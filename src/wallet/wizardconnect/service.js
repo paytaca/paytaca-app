@@ -188,10 +188,17 @@ export async function signRequest(request) {
 
   const prefix = getPrefix()
 
+  if (!request.inputPaths || !Array.isArray(request.inputPaths)) {
+    throw new Error('Sign request missing inputPaths')
+  }
+
   // Derive keys directly from inputPaths — no address scanning needed
   const inputKeyMap = new Map()
   for (const [inputIndex, pathName, addressIndex] of request.inputPaths) {
     const childIndex = PATH_NAME_TO_CHILD[pathName]
+    if (childIndex === undefined) {
+      throw new Error(`Unknown path name: ${pathName}`)
+    }
     const hdChain = getHdChainForIndex(nodes, childIndex)
     const child = deriveHdPrivateNodeChild(hdChain, addressIndex)
     const pubKey = assertSuccess(secp256k1.derivePublicKeyCompressed(child.privateKey))
