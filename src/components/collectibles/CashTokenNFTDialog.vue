@@ -335,7 +335,7 @@ const getExtensionsData = computed(() => {
   return extensions
 })
 
-const transactionUrl = computed(() => `https://3xpl.com/bitcoin-cash/transaction/${props.nft?.currentTxid}/`)
+const transactionUrl = computed(() => `https://bchexplorer.info/tx/${props.nft?.currentTxid}`)
 
 watch(() => [props.nft?.imageUrl], () => forceFallbackImage.value = false)
 const forceFallbackImage = ref(false)
