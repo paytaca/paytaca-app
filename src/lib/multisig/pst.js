@@ -1052,13 +1052,13 @@ export class Pst {
     }
 
     if (!signer) return 
-    const authCosignerCredentials = await this.wallet.generateCosignerAuthCredentials(signer.xpub)
-    if (!authCosignerCredentials) return
+    const authCosignerAuthCredentials = await this.wallet.generateCosignerAuthCredentials(signer.xpub)
+    if (!authCosignerAuthCredentials) return
     const response = await this.options.coordinationServer.submitPsbt({
       content: psbt,
       proposalUnsignedTransactionHash: this.unsignedTransactionHash,
       walletId: this.wallet.id,
-      authCosignerCredentials
+      authCosignerAuthCredentials
     })
     return response?.status
   }
