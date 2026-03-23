@@ -161,6 +161,7 @@ export function parseDeviceId (deviceId) {
   } else if (platform === 'android') {
     return BigNumber.from('0x' + deviceId).toString()
   }
+  else return deviceId
 }
 
 export async function getPushNotifConfigs (deviceId) {
