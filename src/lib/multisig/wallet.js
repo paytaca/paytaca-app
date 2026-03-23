@@ -137,7 +137,7 @@ import {
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'
-import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos, watchtowerUtxoToCommonUtxo, watchtowerWalletHashUtxoToCommonUtxo } from './utxo.js'
+import { commonUtxoToLibauthInput, commonUtxoToLibauthOutput, selectUtxos, watchtowerWalletHashUtxoToCommonUtxo } from './utxo.js'
 import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutputs } from './transaction-builder.js'
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
@@ -1133,11 +1133,16 @@ export class MultisigWallet {
     let selectedUtxos = []
     if (transactionType === 'send-non-fungible-assets') {
       utxos = await this.getWalletHashUtxos(true)
-      
+      if (proposal.reserveWcAccountUtxos) {
+        utxos = utxos.filter(u => u.addressPath !== '0/0' && u.address_path !== '0/0')
+      }
 
       selectedUtxos = await this.selectNftUtxos(proposal, utxos)
     } else {
       utxos = await this.getWalletHashUtxos()
+      if (proposal.reserveWcAccountUtxos) {
+        utxos = utxos.filter(u => u.addressPath !== '0/0' && u.address_path !== '0/0')
+      }
       
       selectedUtxos = await this.selectUtxos(proposal, utxos.filter(u => !u.token?.nft))
     }
