@@ -217,7 +217,8 @@ export const createCardLogic = {
         
         // Save card data to localStorage for UI reference
         const cardData = {
-          id: card.raw?.id || Date.now(),
+          id: card.raw?.id,
+          uid: card.raw?.uid,
           raw: card.raw,
           balance: '0.00',
           status: 'Active',
