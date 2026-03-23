@@ -1,19 +1,20 @@
 <template>
-  <QrScanner
-    v-model="showQrScanner"
-    @decode="onScannerDecode"
-  />
-  <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
   <q-dialog
     persistent
     seamless
-    ref="editRecordDialogRef"
+    ref="dialogRef"
     class="no-click-outside"
+    @hide="onDialogHide"
   >
     <q-card
       class="full-width text-bow edit-record-card"
       :class="getDarkModeClass(darkMode, 'pt-card-2')"
     >
+      <QrScanner
+        v-model="showQrScanner"
+        @decode="onScannerDecode"
+      />
+      <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
       <q-card-section class="row justify-between items-center">
         <span class="text-h6 text-weight-bold col-10">{{ title }}</span>
         <q-btn
@@ -72,6 +73,7 @@
 </template>
 
 <script>
+import { useDialogPluginComponent } from 'quasar'
 import { Address } from 'watchtower-cash-js'
 import { encryptMemo } from 'src/utils/transaction-memos';
 import { ensureKeypair } from 'src/utils/memo-service';
@@ -97,6 +99,20 @@ export default {
     QRUploader,
     RecordNameInputCard,
     AddressesFormCard
+  },
+
+  emits: [
+    ...useDialogPluginComponent.emits
+  ],
+
+  setup () {
+    const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    return {
+      dialogRef,
+      onDialogHide,
+      onDialogOK,
+      onDialogCancel
+    }
   },
 
   props: {
@@ -322,8 +338,7 @@ export default {
         if (this.isEditName) await this.updateRecordName()
         else await this.updateRecordAddresses()
 
-        this.$refs.editRecordDialogRef.$emit('ok')
-        this.$refs.editRecordDialogRef.hide()
+        this.onDialogOK()
       } catch (error) {
         console.error('An error occured while updating record: ', error)
         const fallback = this.isEditName
