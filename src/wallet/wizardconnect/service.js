@@ -6,17 +6,11 @@ import {
   deriveHdPath,
   deriveHdPublicNode,
   encodeHdPublicKey,
-  encodeCashAddress,
-  CashAddressType,
   secp256k1,
   hmacSha256,
   hexToBin,
-  binToHex,
   assertSuccess,
   decodeTransaction,
-  lockingBytecodeToCashAddress,
-  sha256 as libauthSha256,
-  ripemd160 as libauthRipemd160,
 } from 'bitauth-libauth-v3'
 import { getMnemonic } from 'src/wallet/index'
 import { parseExtendedJson, signBchTransaction } from 'src/wallet/bch-sign'
@@ -24,8 +18,7 @@ import { parseExtendedJson, signBchTransaction } from 'src/wallet/bch-sign'
 const seedCache = new Map()
 const relayKeyCache = new Map()
 
-const ADDRESS_SCAN_LOOKAHEAD = 10
-const ADDRESS_SCAN_MIN = 30
+const PATH_NAME_TO_CHILD = { receive: 0, change: 1, defi: 7 }
 
 let _manager = null
 let _hdNodes = null
@@ -170,47 +163,9 @@ export async function sendSignError(connectionId, sequence, errorMessage) {
   await _manager.sendSignError(connectionId, sequence, errorMessage)
 }
 
-async function buildAddressKeyMap(nodes, prefix) {
-  let store
-  try {
-    const storeModule = await import('src/store')
-    store = storeModule.Store
-  } catch {
-    // Fallback
-  }
-
-  const lastReceiveIndex = store?.getters?.['global/getLastAddressIndex']?.('bch') || 20
-  const lastChangeIndex = store?.getters?.['global/getLastAddressIndex']?.('bch') || 20
-
-  const chains = [
-    { hd: nodes.hdMain, maxIndex: Math.max(lastReceiveIndex + ADDRESS_SCAN_LOOKAHEAD, ADDRESS_SCAN_MIN) },
-    { hd: nodes.hdChange, maxIndex: Math.max(lastChangeIndex + ADDRESS_SCAN_LOOKAHEAD, ADDRESS_SCAN_MIN) },
-    { hd: nodes.hdDefi, maxIndex: ADDRESS_SCAN_MIN },
-  ]
-
-  const addressKeyMap = new Map()
-  const pkhKeyMap = new Map()
-  for (const chain of chains) {
-    for (let i = 0; i <= chain.maxIndex; i++) {
-      const child = deriveHdPrivateNodeChild(chain.hd, i)
-      const pubKey = assertSuccess(secp256k1.derivePublicKeyCompressed(child.privateKey))
-      const pubkeyHash = libauthRipemd160.hash(libauthSha256.hash(pubKey))
-      const { address } = assertSuccess(encodeCashAddress({
-        prefix,
-        type: CashAddressType.p2pkh,
-        payload: pubkeyHash,
-      }))
-      const keyPair = { privateKey: child.privateKey, publicKey: pubKey }
-      addressKeyMap.set(address, keyPair)
-      pkhKeyMap.set(binToHex(pubkeyHash), keyPair)
-    }
-  }
-  return { addressKeyMap, pkhKeyMap }
-}
-
 /**
  * Sign a transaction request from a dApp.
- * Handles multi-address signing: for each input, finds the matching HD private key.
+ * Uses inputPaths from the request to derive exactly the keys needed for each input.
  */
 export async function signRequest(request) {
   const nodes = await ensureHdNodes()
@@ -232,29 +187,26 @@ export async function signRequest(request) {
   })
 
   const prefix = getPrefix()
-  const { addressKeyMap, pkhKeyMap } = await buildAddressKeyMap(nodes, prefix)
 
-  function resolveKey(lockingBytecode, inputIndex) {
-    if (!lockingBytecode) return null
+  if (!request.inputPaths || !Array.isArray(request.inputPaths)) {
+    throw new Error('Sign request missing inputPaths')
+  }
 
-    const sourceOutput = sourceOutputs[inputIndex]
-
-    // Contract inputs: find key by scanning redeemScript for a matching pubkey hash
-    if (sourceOutput?.contract?.artifact?.contractName) {
-      const redeemScript = sourceOutput.contract.redeemScript
-      if (redeemScript) {
-        const scriptHex = binToHex(redeemScript)
-        for (const [pkhHex, keyPair] of pkhKeyMap) {
-          if (scriptHex.includes(pkhHex)) return keyPair
-        }
-      }
-      return null
+  // Derive keys directly from inputPaths — no address scanning needed
+  const inputKeyMap = new Map()
+  for (const [inputIndex, pathName, addressIndex] of request.inputPaths) {
+    const childIndex = PATH_NAME_TO_CHILD[pathName]
+    if (childIndex === undefined) {
+      throw new Error(`Unknown path name: ${pathName}`)
     }
+    const hdChain = getHdChainForIndex(nodes, childIndex)
+    const child = deriveHdPrivateNodeChild(hdChain, addressIndex)
+    const pubKey = assertSuccess(secp256k1.derivePublicKeyCompressed(child.privateKey))
+    inputKeyMap.set(inputIndex, { privateKey: child.privateKey, publicKey: pubKey })
+  }
 
-    // P2PKH: match by address
-    const result = lockingBytecodeToCashAddress({ bytecode: lockingBytecode, prefix })
-    if (typeof result === 'string') return null
-    return addressKeyMap.get(result.address) || null
+  function resolveKey(_lockingBytecode, inputIndex) {
+    return inputKeyMap.get(inputIndex) || null
   }
 
   const { signedTransaction } = signBchTransaction({

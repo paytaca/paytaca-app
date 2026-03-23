@@ -9,7 +9,7 @@
       <!-- Hero Section -->
       <div class="hero-section text-center q-mb-xl">
         <div class="receive-bch-icon-wrapper q-mb-md">
-          <q-icon name="volunteer_activism" size="4em" color="primary" />
+          <q-icon name="volunteer_activism" size="4em" class="text-grad" />
           <img src="bitcoin-cash-circle.svg" class="bch-overlay-icon" alt="BCH" />
         </div>
         <h4 class="text-h4 text-weight-bold q-mb-sm" :class="getDarkModeClass(darkMode)">
@@ -32,7 +32,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="payments" size="3em" color="primary" />
+                <q-icon name="payments" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -59,7 +59,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="swap_horiz" size="3em" color="primary" />
+                <q-icon name="swap_horiz" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -85,7 +85,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="store" size="3em" color="primary" />
+                <q-icon name="store" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -111,7 +111,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="explore" size="3em" color="primary" />
+                <q-icon name="explore" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -137,7 +137,7 @@
           <q-card-section class="row items-center q-pa-lg">
             <div class="col-auto q-mr-lg">
               <div class="icon-container">
-                <q-icon name="work" size="3em" color="primary" />
+                <q-icon name="work" size="3em" class="text-grad" />
               </div>
             </div>
             <div class="col">
@@ -260,13 +260,11 @@ export default {
       align-items: center;
       justify-content: center;
       
-      // Apply primary color to all icons for consistency
+      // Icons use text-grad class to adapt to theme
       .q-icon {
-        color: #3B7BF6 !important;
-        
         // For image icons inside q-icon
         img {
-          filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%) !important;
+          filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1264%) hue-rotate(203deg) brightness(99%) contrast(93%);
         }
       }
     }

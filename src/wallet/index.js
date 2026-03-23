@@ -189,14 +189,17 @@ export async function deleteAllWalletData(walletHash, mnemonic = null, index = n
     }
   }
 
-  // Delete PIN code (all possible keys for this wallet)
-  // Post-migration, all wallets should use wallet-specific keys, but we delete
-  // all possible keys to ensure no traces remain
+  // Delete PIN code (wallet-specific keys only)
+  // SECURITY: We only delete wallet-specific PIN keys, NOT the legacy 'pin' key.
+  // The legacy 'pin' key may be shared by other wallets that haven't migrated yet.
+  // Deleting it would cause those wallets to lose their PIN unexpectedly.
+  // TODO: Implement migration to convert all legacy 'pin' keys to wallet-specific keys.
+  // After migration is complete for all users, the legacy 'pin' key can be safely removed.
   if (mnemonic) {
     const pinKeys = [
       `pin-${sha256(mnemonic)}`,  // New wallet-specific format
-      `pin ${mnemonic}`,           // Fallback wallet-specific format
-      'pin'                        // Old global format (may be shared, but user requested complete cleanup)
+      `pin ${mnemonic}`            // Fallback wallet-specific format
+      // PRESERVED: 'pin' - legacy global key, see migration TODO above
     ]
 
     for (const pinKey of pinKeys) {

@@ -74,21 +74,22 @@ export default {
        * - iOS: keep the existing visual spacing, but also respect safe-area insets.
        * - Android: add safe-area inset on top of the normal padding so the back button
        *   stays clickable on devices where the status bar overlays the webview.
+       * Match home page - safe area padding + 9px spacing.
        */
       const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
 
       if (this.$q.platform.is.ios) {
         return {
-          // Preserve existing iOS sizing, but ensure we never go *below* safe area needs.
-          paddingTop: `max(73px, calc(${safeTop} + 29px))`,
-          height: `max(103px, calc(${safeTop} + 59px))`,
-          paddingBottom: '8px'
+          // Match home page - safe area + 9px spacing
+          paddingTop: `calc(${safeTop} + 9px)`,
+          height: `calc(${safeTop} + 53px)`,
+          paddingBottom: '0px'
         }
       }
 
       return {
-        paddingTop: `calc(18px + ${safeTop})`,
-        height: `calc(70px + ${safeTop})`,
+        paddingTop: `calc(${safeTop} + 9px)`,
+        height: `calc(53px + ${safeTop})`,
         paddingBottom: '0px'
       }
     },
@@ -116,8 +117,8 @@ export default {
     if (!this.$q.platform.is.ios) {
       const safeTop = 'max(env(safe-area-inset-top, 0px), var(--q-safe-area-top, 0px), var(--safe-area-inset-top, 0px), var(--pt-android-statusbar, 0px))'
       headerNavEl.style.height = headerTitleHeight > 32
-        ? `calc(100px + ${safeTop})`
-        : `calc(70px + ${safeTop})`
+        ? `calc(83px + ${safeTop})`
+        : `calc(53px + ${safeTop})`
 
       if (headerTitleHeight > 32) {
         // move all elements 30px down due to the change in height
