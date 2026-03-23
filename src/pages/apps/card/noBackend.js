@@ -1,6 +1,7 @@
 import router from 'src/router/index';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import { getMerchantList } from 'src/services/card/merchants';
+import { Card } from 'src/services/card/card';
 
 export { getMerchantList };
 
@@ -199,27 +200,45 @@ export const createCardLogic = {
       if(!this.newCardName){
         this.notifyError('Please enter a Card name')
         return
-      }  
-      const capitalizedName = this.capitalizeFirst(this.newCardName)
-      // create mock card object
-      const newCard = {
-        id: Date.now(),
-        raw: {alias: capitalizedName},
-        balance: (Math.random() * 10).toFixed(2), // random balance
-        status: 'Active',
-        contractAddress: this.contractAddress
       }
 
-      // save to localStorage using CardStorage
-      CardStorage.createCard(newCard);
+      this.$q.loading.show({
+        message: 'Creating card on blockchain...'
+      })
 
-      // reset UI state
-      this.createCardDialog = false
-      
-      // redirect
-      this.$router.push({name: 'stacked-cards'})
-
-      this.newCardName = ''
+      try {
+        const capitalizedName = this.capitalizeFirst(this.newCardName)
+        
+        // Initialize Card with wallet and services
+        const card = await Card.createInitialized({})
+        
+        // Create the card on blockchain
+        await card.create(capitalizedName)
+        
+        // Save card data to localStorage for UI reference
+        const cardData = {
+          id: card.raw?.id || Date.now(),
+          raw: card.raw,
+          balance: '0.00',
+          status: 'Active',
+          contractAddress: card.raw?.contract_id || this.contractAddress
+        }
+        
+        CardStorage.createCard(cardData);
+        
+        this.notifySuccess('Card created successfully on blockchain!')
+        
+        // reset UI state and redirect
+        this.createCardDialog = false
+        this.newCardName = ''
+        this.$router.push({name: 'stacked-cards'})
+        
+      } catch (error) {
+        console.error('Card creation failed:', error)
+        this.notifyError(error.message || 'Failed to create card on blockchain')
+      } finally {
+        this.$q.loading.hide()
+      }
     },
 
     openCreateCardDialog(){
