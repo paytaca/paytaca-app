@@ -594,7 +594,7 @@ const showShareSignedProposalDialog = () => {
         }
       )
     } else if (payload?.action === 'upload-signed-proposal') {
-      pst.value.uploadSignerPsbt(signerMasterFingerprint)
+      pst.value.uploadSignerPsbt()
     }
   }).onCancel(() => {
     // Dialog was closed without action
@@ -869,7 +869,7 @@ onMounted(async () => {
       pst.value.fetchAndMergeSignatures() 
     }
     await checkProposalStatus()
-  }, 10000) 
+  }, 6000) 
 
 })
 
