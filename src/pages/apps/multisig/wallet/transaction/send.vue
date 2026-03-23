@@ -116,7 +116,7 @@
                           v-model="recipient.address" :label="`${$t('PasteAddressOfRecipient')} ${i + 1}`"
                           :rules="recipientRules"
                           clearable
-                          filled dense
+                          filled 
                           :disable="isCreatingProposal"
                           :ref="el => { if (el) addressInputRefs[i] = el }"
                           hide-bottom-space
@@ -128,7 +128,7 @@
                         </q-input>
                         <q-input
                           v-model="recipient.amount" :label="$t('Amount')"
-                          filled dense
+                          filled 
                           :hint="assetDecimalsHint"
                           :rules="amountRules"
                           clearable
