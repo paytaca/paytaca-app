@@ -70,7 +70,7 @@
           v-if="isProcessingError"
           class="text-red-5 text-center q-mt-md text-body2"
         >
-          {{ $t('ReferredStepError', 'An error occurred while processing the referral code. Please try again.') }}
+          {{ errorMessage }}
         </div>
       </div>
     </div>
@@ -122,8 +122,10 @@
 </template>
 
 <script>
-import { processReferralCode } from 'src/utils/engagementhub-utils/rewards'
+import { parseDeviceId } from 'src/utils/engagementhub-utils/engagementhub-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { processReferralCode } from 'src/utils/engagementhub-utils/rewards'
+import { Capacitor } from '@capacitor/core'
 
 import QrScanner from 'src/components/qr-scanner'
 import QRUploader from 'src/components/QRUploader'
@@ -151,7 +153,8 @@ export default {
       isLoading: false,
       isCodeProcessed: false,
       isProcessingError: false,
-      manualReferralCode: ''
+      manualReferralCode: '',
+      errorMessage: ''
     }
   },
 
@@ -169,15 +172,27 @@ export default {
     async processReferralCode (content) {
       this.isLoading = true
       this.isProcessingError = false
+      this.errorMessage = ''
       let referralCode = null
 
-      if (typeof content === 'object') referralCode = content[0].rawValue
-      else if (typeof content === 'string') referralCode = content
+      try {
+        if (typeof content === 'object') referralCode = content[0].rawValue
+        else if (typeof content === 'string') referralCode = content
+      } catch {
+        referralCode = null
+      }
 
       if (referralCode) {
-        this.isProcessingError = await this.submitReferralCode(referralCode)
+        const resp = await this.submitReferralCode(referralCode)
+        if (Object.keys(resp).length === 0) {
+          this.isProcessingError = false
+        } else {
+          this.isProcessingError = true
+          this.processErrorMessage(resp)
+        }
       } else {
         this.isProcessingError = true
+        this.errorMessage = 'An error occurred while processing the referral code. Please try again.'
       }
 
       this.isCodeProcessed = !this.isProcessingError
@@ -189,8 +204,15 @@ export default {
       
       this.isLoading = true
       this.isProcessingError = false
+      this.errorMessage = ''
       
-      this.isProcessingError = await this.submitReferralCode(this.manualReferralCode.trim())
+      const resp = await this.submitReferralCode(this.manualReferralCode.trim())
+      if (Object.keys(resp).length === 0) {
+        this.isProcessingError = false
+      } else {
+        this.isProcessingError = true
+        this.processErrorMessage(resp)
+      }
       
       this.isCodeProcessed = !this.isProcessingError
       this.isLoading = false
@@ -198,14 +220,34 @@ export default {
 
     async submitReferralCode (code) {
       const parts = code.split('-')
-      if (parts.length !== 3) return true // Invalid format
+      if (parts.length !== 3) {
+        // Invalid format
+        return { code: 'invalid_code', message: 'Invalid code detected' }
+      }
 
       return await processReferralCode({
+        device_id: parseDeviceId(this.$pushNotifications.deviceId),
+        platform: Capacitor.getPlatform(),
         wallet_hash: this.walletHash,
         model: parts[0],
         code: parts[1],
         id: parts[2]
       })
+    },
+
+    processErrorMessage (resp) {
+      if (resp?.code === 'non_mobile_referral') {
+        this.errorMessage = "It looks like you're trying to scan on a desktop. Please use your mobile device to scan the referral code."
+      } else if (resp?.code === 'duplicate_device') {
+        this.errorMessage = "This referral code was already scanned on this device. Try using a different device to redeem it again."
+      } else if (resp?.code === 'duplicate_referral') {
+        this.errorMessage = "It looks like this account has already been referred by someone. Please check your status with your referrer, or create a new account to redeem again."
+      } else if (resp?.code === 'invalid_code') {
+        console.error(resp?.message)
+        this.errorMessage = "Sorry, that referral code appears to be invalid. Please check and try again."
+      } else {
+        this.errorMessage = 'An error occurred while processing the referral code. Please try again.'
+      }
     }
   }
 }
