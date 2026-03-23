@@ -6,7 +6,7 @@
       dense
       icon="arrow_back"
       color="primary"
-      @click="$router.back()"
+      @click="goBack"
     />
     <div class="col">
       <h5 class="text-primary text-weight-bold text-center q-ma-none">{{ title }}</h5>
@@ -22,6 +22,20 @@ export default {
     title: {
       type: String,
       default: 'Card Management'
+    }
+  },
+  methods: {
+    goBack() {
+      const currentRoute = this.$route?.name
+      
+      // If on stacked cards page, go to apps dashboard
+      if (currentRoute === 'stacked-cards' || this.$route?.path?.includes('/my-cards')) {
+        this.$router.push({ name: 'apps-dashboard' })
+      }
+      // For all other card pages, go back to the previous page (browser-like back)
+      else {
+        this.$router.back()
+      }
     }
   }
 }
