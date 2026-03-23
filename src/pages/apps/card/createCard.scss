@@ -423,14 +423,14 @@ animation: float 6s ease-in-out infinite;
 
 .see-all-btn {
   border-radius: 12px;
-  background: rgba(0, 122, 255, 0.1);
-  color: #007AFF;
+  background: color-mix(in srgb, var(--q-primary) 10%, transparent);
+  color: var(--q-primary);
   padding: 12px 20px;
   transition: all 0.2s ease;
-  border: 1px solid rgba(0, 122, 255, 0.3);
+  border: 1px solid color-mix(in srgb, var(--q-primary) 30%, transparent);
 
   &:hover {
-    background: rgba(0, 122, 255, 0.2);
+    background: color-mix(in srgb, var(--q-primary) 20%, transparent);
     transform: translateY(-2px);
   }
 }
@@ -460,8 +460,8 @@ animation: float 6s ease-in-out infinite;
     border: 2px solid #9e9e9e;
     
     &:hover {
-      border: 1px solid white;
-      background: rgba(0, 122, 255, 0.05);
+      border: 1px solid var(--q-primary);
+      background: color-mix(in srgb, var(--q-primary) 5%, transparent);
     }
   }
   
@@ -481,8 +481,8 @@ animation: float 6s ease-in-out infinite;
     border: 2px solid #424242;
     
     &:hover {
-      border: 1px solid white;
-      background: rgba(0, 122, 255, 0.1);
+      border: 1px solid var(--q-primary);
+      background: color-mix(in srgb, var(--q-primary) 10%, transparent);
     }
   }
   
@@ -546,7 +546,7 @@ animation: float 6s ease-in-out infinite;
   background: transparent;
   
   &:hover {
-    background: rgba(0, 122, 255, 0.1);
+    background: color-mix(in srgb, var(--q-primary) 10%, transparent);
   }
 }
 
@@ -555,13 +555,13 @@ animation: float 6s ease-in-out infinite;
     color: #757575;
     
     &.tab-active {
-      background: rgba(0, 122, 255, 0.15);
-      color: #007AFF;
+      background: color-mix(in srgb, var(--q-primary) 15%, transparent);
+      color: var(--q-primary);
     }
     
     &:not(.tab-active):hover {
-      background: rgba(0, 122, 255, 0.1);
-      color: #007AFF;
+      background: color-mix(in srgb, var(--q-primary) 10%, transparent);
+      color: var(--q-primary);
     }
   }
 }
@@ -571,13 +571,13 @@ animation: float 6s ease-in-out infinite;
     color: #9e9e9e;
     
     &.tab-active {
-      background: rgba(0, 122, 255, 0.2);
-      color: #64b5f6;
+      background: color-mix(in srgb, var(--q-primary) 20%, transparent);
+      color: var(--q-primary);
     }
     
     &:not(.tab-active):hover {
-      background: rgba(0, 122, 255, 0.15);
-      color: #64b5f6;
+      background: color-mix(in srgb, var(--q-primary) 15%, transparent);
+      color: var(--q-primary);
     }
   }
 }
