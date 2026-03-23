@@ -19,22 +19,56 @@
                   <div class="col-xs-12 flex items-center justify-center text-bold text-h6">
                     {{ $t('Send') }} {{ assetHeaderName }}
                   </div>
-                  <div class="col-xs-12 text-center q-mt-sm">
-                    <div class="text-grey-6">{{ $t('AvailableBalance') }}</div>
-                    <div class="flex items-center justify-center q-gutter-x-sm">
-                      <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="sm">
-                        <img :src="assetHeaderIcon">
-                      </q-avatar>
-                      <q-icon v-else
-                        :name="assetHeaderIcon"
-                        size="sm"
-                        :color="assetHeaderIcon === 'token'? 'grey': '' "
-                      />
-                      <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
-                    </div>
-                    <div class="text-grey-6">{{ assetPrice? `=${assetPrice}` : '' }}</div>
-                  </div>
                 </div>
+                <q-card id="bch-card" class="q-ma-md br-15" style="color:white">
+                  <q-card-section>
+                    <div class="row q-gutter-y-md">
+                      <div class="col-xs-12 text-center">
+                        <div :class="getDarkModeClass(darkMode)">{{ $t('AvailableBalance') }}</div>
+                        <div class="flex items-center justify-center q-gutter-x-sm">
+                          <q-avatar v-if="assetHeaderIcon?.startsWith('http')" size="sm">
+                            <img :src="assetHeaderIcon">
+                          </q-avatar>
+                          <q-icon v-else
+                            :name="assetHeaderIcon"
+                            size="sm"
+                            :color="assetHeaderIcon === 'token'? 'grey': '' "
+                          />
+                          <!-- <span style="font-size: 2em">{{ balance !== undefined ? balance - (walletWcReserveFunds ?? 0) : "..." }}</span> -->
+                          <span style="font-size: 2em">{{ availableBalance }}</span>
+                        </div>
+                        <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                      </div>
+                      <div v-if="walletWcSessionHistory?.length > 0 && walletWcAccountUtxos?.length > 0" class="col-xs-12">
+                        <div class="text-center">
+                          <span class="text-bold">{{ $t('WalletConnectReservedFunds') }}:</span> {{ walletWcReserveFunds ?? 0 }} {{ assetHeaderName }}
+                          <q-btn flat dense size="sm" color="primary" icon="help_outline" @click="showWcHeldFundsDialog = true" />
+                        </div>
+                        <div class="text-center text-italic">
+                          <q-checkbox 
+                            v-model="reserveWcAccountUtxos" 
+                            :label="$t('WcExcludeReservedFundsLabel', {}, 'Exclude Wallet Connect reserved funds on this tx.')" 
+                            dense
+                            class="q-mt-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
+                <q-dialog v-model="showWcHeldFundsDialog">
+                  <q-card class="pt-card text-bow br-15" :class="getDarkModeClass(darkMode)">
+                    <q-card-section>
+                      <div class="text-h6">{{ $t('WalletConnectReservedFunds') }}</div>
+                    </q-card-section>
+                    <q-card-section class="q-pt-none text-justify">
+                      <p>{{ $t('WcHeldFundsExplanation', {}, 'Paytaca remembers your previous WalletConnect app sessions and automatically designates the funds in your primary account (address 0) as "Wallet Connect Reserved Funds". This ensures the peer app can reliably re-use the specific funds (UTXOs) it identified when you first connected.') }}</p>
+                    </q-card-section>
+                    <q-card-actions align="right">
+                      <q-btn flat :label="$t('Close')" color="primary" v-close-popup />
+                    </q-card-actions>
+                  </q-card>
+                </q-dialog>
                 <q-list>
                   <q-item>
                     <q-item-section>
@@ -52,7 +86,10 @@
                     <q-item-section>
                       <q-item-label class="q-gutter-y-md">
                         <div class="text-bold">{{ $t('Purpose') }}</div>
-                        <q-input v-model="purpose" type="textarea" rows="3" filled autogrow hint clearable :disable="isCreatingProposal"></q-input>
+                        <q-input 
+                          v-model="purpose" 
+                          type="textarea" 
+                          rows="3" filled autogrow hint clearable :disable="isCreatingProposal" hide-bottom-space></q-input>
                       </q-item-label>
                     </q-item-section>
                   </q-item>
@@ -81,7 +118,9 @@
                           clearable
                           filled dense
                           :disable="isCreatingProposal"
-                          :ref="el => { if (el) addressInputRefs[i] = el }">
+                          :ref="el => { if (el) addressInputRefs[i] = el }"
+                          hide-bottom-space
+                        >
                           <template v-slot:append>
                             <q-btn icon="upload_file" flat dense disable></q-btn>
                             <q-btn icon="qr_code_scanner" flat dense disable></q-btn>
@@ -146,7 +185,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref, nextTick, onBeforeMount } from 'vue'
+import { computed, onMounted, ref, nextTick, onBeforeMount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -157,8 +196,7 @@ import {
   MultisigWallet,
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-import darkmode from 'src/store/darkmode'
-import { decodeCashAddress, stringify } from 'bitauth-libauth-v3'
+import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromFromXpub } from 'src/lib/multisig/coordination'
 
 const $q = useQuasar()
@@ -166,14 +204,6 @@ const $store = useStore()
 const { t: $t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const balance = ref()
-const balanceConvertionRates = ref()
-const recipients = ref([])
-const purpose = ref('')
-const recipientRefs = ref([])
-const addressInputRefs = ref([])
-const amountInputRefs = ref([])
-const isCreatingProposal = ref(false)
 const {
   multisigNetworkProvider,
   multisigCoordinationServer,
@@ -184,25 +214,42 @@ const {
   getSignerWalletFromVault
 } = useMultisigHelpers()
 
+const balance = ref()
+const balanceConvertionRates = ref()
+const recipients = ref([])
+const purpose = ref('')
+const recipientRefs = ref([])
+const addressInputRefs = ref([])
+const amountInputRefs = ref([])
+const isCreatingProposal = ref(false)
+const walletWcSessionHistory = ref([])
+const walletWcAccountUtxos = computed(() => {
+  return wallet.value?.utxos?.filter(u => u.addressPath === '0/0' || u.address_path === '0/0') || []
+})
+const walletWcReserveFunds = computed(() => {
+  if (walletWcSessionHistory.value?.length > 0 && reserveWcAccountUtxos.value !== false) {
+    const defaultAddressUtxos = walletWcAccountUtxos.value
+    const asset = route.query.asset
+    if (!asset || asset === 'bch') {
+      return defaultAddressUtxos.filter(u => !u.token).reduce((b, u) => b + (u.satoshis || 0), 0) / 1e8
+    }
+    return defaultAddressUtxos.filter(u => u.token && u.token?.category === asset).reduce((b, u) => b + (u.token?.amount || 0), 0)
+  }
+  return undefined
+})
+
+const availableBalance = computed(() => {
+  return (balance.value ?? 0) - (walletWcReserveFunds.value ?? 0)
+})
+
+const showWcHeldFundsDialog = ref(false)
+const reserveWcAccountUtxos = ref(true)
+
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
-
 const assetTokenIdentity = ref()
-
-const wallet = computed(() => {
-  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-  if (savedWallet) {
-    return MultisigWallet.importFromObject(savedWallet, {
-      store: $store,
-      provider: multisigNetworkProvider,
-      coordinationServer: multisigCoordinationServer,
-      resolveXprvOfXpub,
-      resolveMnemonicOfXpub
-    })
-  }
-  return null
-})
+const wallet = ref()
 
 const assetHeaderName = computed(() => {
   if (route.query.asset === 'bch') return 'BCH'
@@ -251,7 +298,7 @@ const recipientRules = computed(() => {
 const amountRules = computed(() => {
   let rules = [
     v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || $t('InvalidValue'),
-    v => Number(v) < balance.value || $t('ValueExceedsBalance')
+    v => Number(v) < availableBalance.value || $t('ValueExceedsBalance')
   ]
   if (route.query.asset !== 'bch') {
     if (assetTokenIdentity.value?.token?.decimals === undefined || assetTokenIdentity.value?.token?.decimals === 0) {
@@ -352,7 +399,8 @@ const createProposal = async () => {
       creator: creator,
       origin: 'paytaca-wallet',
       purpose: purpose.value,
-      recipients: recipients.value
+      recipients: recipients.value,
+      reserveWcAccountUtxos: reserveWcAccountUtxos.value
   })
     
     if (wallet.value.isOnline()) {
@@ -403,12 +451,44 @@ const refreshPage = async (done) => {
   }
 }
 
+const initWallet = () => {
+  const savedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
+  if (savedWallet) {
+    wallet.value = MultisigWallet.importFromObject(savedWallet, {
+      store: $store,
+      provider: multisigNetworkProvider,
+      coordinationServer: multisigCoordinationServer,
+      resolveXprvOfXpub,
+      resolveMnemonicOfXpub
+    })
+  }
+}
+
+watch(() => wallet.value?.id, async (walletId) => {
+  if (walletId) {
+    walletWcSessionHistory.value = await wallet.value?.options?.coordinationServer?.getWalletWcSessions({
+      walletIdentifier: wallet.value?.id
+    })
+    reserveWcAccountUtxos.value = wallet.value?.settings?.reserveWcAccountUtxos !== false
+  }
+}, { immediate: true })
+
+watch(reserveWcAccountUtxos, () => {
+  amountInputRefs.value.forEach(ref => ref?.validate?.())
+  if (reserveWcAccountUtxos.value !== false) {
+    
+  }
+}, { immediate: true })
+
+
 onBeforeMount(async () => {
+  initWallet()
   addRecipient()
 })
 
 onMounted(async () => {
   balance.value = await wallet.value.getWalletBalance(route.query.asset)
+  
   balanceConvertionRates.value = 
       await wallet.value.convertBalanceToCurrencies(
         route.query.asset,
