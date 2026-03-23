@@ -221,12 +221,12 @@ export async function getPromoRedeemHistory (promo, data) {
 }
 
 export async function processReferralCode (data) {
-  await REWARDS_URL
+  return await REWARDS_URL
     .post('userreward/process_referral_code/', data)
-    .then(response => { return response.status !== 200 })
+    .then(_response => { return {} })
     .catch(error => {
       console.error(error)
-      return true
+      return error.response.data
     })
 }
 
