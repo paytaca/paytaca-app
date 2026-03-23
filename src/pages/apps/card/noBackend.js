@@ -215,12 +215,31 @@ export const createCardLogic = {
         // Create the card on blockchain
         await card.create(capitalizedName)
         
+        // Get actual balances from blockchain
+        const bchUtxos = await card.getBchUtxos()
+        const tokenUtxos = await card.getTokenUtxos()
+        
+        // Calculate BCH balance (sum of satoshis)
+        const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
+        const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8) // Convert sats to BCH
+        
+        // Calculate token balance (if there are tokens)
+        let tokenBalance = '0'
+        if (tokenUtxos && tokenUtxos.length > 0) {
+          const tokenSats = tokenUtxos.reduce((sum, utxo) => {
+            const amount = utxo.token?.amount ? BigInt(utxo.token.amount) : 0n
+            return sum + amount
+          }, 0n)
+          tokenBalance = tokenSats.toString()
+        }
+        
         // Save card data to localStorage for UI reference
         const cardData = {
           id: card.raw?.id,
           uid: card.raw?.uid,
           raw: card.raw,
-          balance: '0.00',
+          balance: bchBalance,
+          tokenBalance: tokenBalance,
           status: 'Active',
           contractAddress: card.raw?.contract_id || this.contractAddress
         }
