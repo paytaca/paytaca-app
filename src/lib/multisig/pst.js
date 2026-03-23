@@ -1041,12 +1041,24 @@ export class Pst {
 
   async uploadSignerPsbt(masterFingerprint) {
     if (!this.options.coordinationServer) return 
-    const psbt = this.getSignerPsbt(masterFingerprint)
+    const psbt = (await this.toPsbt()).toString()
+    let signer = null
+    if (masterFingerprint) {
+      signer = this.wallet?.signers.find(s => s.masterFingerprint === masterFingerprint)
+    }
+
+    if (!signer) {
+      signer = this.wallet?.signers.find(s => Boolean(s.xprv))
+    }
+
+    if (!signer) return 
+    const authCosignerCredentials = await this.wallet.generateCosignerAuthCredentials(signer.xpub)
+    if (!authCosignerCredentials) return
     const response = await this.options.coordinationServer.submitPsbt({
       content: psbt,
       proposalUnsignedTransactionHash: this.unsignedTransactionHash,
       walletId: this.wallet.id,
-      authCredentialsGenerator: this.wallet
+      authCosignerCredentials
     })
     return response?.status
   }
@@ -1464,7 +1476,7 @@ export class Pst {
       if (error?.response?.status === 404) {
         this.id = null
       }
-    }
+    } 
   }
 
   async fetchCoordinatorInfo() {
