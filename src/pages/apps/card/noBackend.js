@@ -184,7 +184,7 @@ export const createCardLogic = {
       // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
       if (cards.length > 0 && this.$route.name === 'app-card'){
         this.$router.push({ name: 'stacked-cards'})
-      }
+      } 
     },
 
     openCreateCardDialog(){

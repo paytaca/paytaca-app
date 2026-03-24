@@ -3,11 +3,102 @@ import Card from 'src/services/card/card.js';
 import { loadCardUser, fetchCardByIdentifier, getAuthToken } from 'src/services/card/user';
 import { getMerchantList } from 'src/services/card/merchants';
 
-  export const createCardLogic = {
+// CardStorage utility for localStorage CRUD operations - used for UI state persistence
+const STORAGE_KEY = 'card_ui_state';
+
+export const CardStorage = {
+  /**
+   * Get all cards from localStorage
+   * @returns {Array} Array of card objects
+   */
+  getCards() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  },
+
+  /**
+   * Save all cards to localStorage
+   * @param {Array} cards - Array of card objects
+   */
+  saveCards(cards) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+  },
+
+  /**
+   * Get a single card by ID
+   * @param {string|number} cardId - Card ID
+   * @returns {Object|null} Card object or null
+   */
+  getCardById(cardId) {
+    const cards = this.getCards();
+    return cards.find(c => String(c.id) === String(cardId)) || null;
+  },
+
+  /**
+   * Create a new card
+   * @param {Object} card - Card object to create
+   * @returns {Object} Created card
+   */
+  createCard(card) {
+    const cards = this.getCards();
+    cards.push(card);
+    this.saveCards(cards);
+    return card;
+  },
+
+  /**
+   * Update a card by ID
+   * @param {string|number} cardId - Card ID
+   * @param {Object|Function} updates - Object with updates or update function
+   * @returns {Object|null} Updated card or null if not found
+   */
+  updateCard(cardId, updates) {
+    const cards = this.getCards();
+    const index = cards.findIndex(c => String(c.id) === String(cardId));
+    if (index === -1) return null;
+    
+    if (typeof updates === 'function') {
+      updates(cards[index]);
+    } else {
+      Object.assign(cards[index], updates);
+    }
+    
+    this.saveCards(cards);
+    return cards[index];
+  },
+
+  /**
+   * Delete a card by ID
+   * @param {string|number} cardId - Card ID
+   * @returns {boolean} True if deleted, false if not found
+   */
+  deleteCard(cardId) {
+    const cards = this.getCards();
+    const index = cards.findIndex(c => String(c.id) === String(cardId));
+    if (index === -1) return false;
+    
+    cards.splice(index, 1);
+    this.saveCards(cards);
+    return true;
+  },
+
+  /**
+   * Update a specific property of a card
+   * @param {string|number} cardId - Card ID
+   * @param {string} property - Property name
+   * @param {*} value - Property value
+   * @returns {Object|null} Updated card or null if not found
+   */
+  setCardProperty(cardId, property, value) {
+    return this.updateCard(cardId, { [property]: value });
+  },
+};
+
+export const createCardLogic = {
       
     setup () {
-      const merchantList = getMerchantList()
-      return {merchantList}
+      // Return reactive references that will be populated asynchronously
+      return {}
     },
 
     data () {
@@ -15,61 +106,23 @@ import { getMerchantList } from 'src/services/card/merchants';
         createCardDialog: false,
         subCards: [],
         contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
+        CardStorage, // Expose CardStorage utilities to components
+        hasOrderedPhysicalCard: false,
+        // Merchant data - will be populated from real API
+        merchantList: [],
+        merchantsLoading: false,
         // For inputs
         newCardName: '',
-        // View card dialog
-        viewCardDialog: false,
-        selectedCard: null,
-        // Menu state
-        cardMenu: {
-          visible: false,
-          anchorOrigin: 'top right',
-          selfOrigin: 'top right',
-          card: null
-        },
         // Cash In
         showCashInDialog: false, 
-        tempAmount: 0,
-        activeCard: null,
-        cashInamount: null,
         selectedCurrency: 'PHP',
-        // Transaction History
-        showTransactionHistoryDialog: false,
-        transactionSearch: '',
-        // dummy transaction data:
-        transactions: Array.from({length: 10}, (_, i) => ({
-          id: i + 1, 
-          name: `Merchant: ${i + 1}`, // merchant name
-          amount: i % 2 === 0 ? 150.00 : -45.50,
-          date: '2026-2-16'
-        })),
-        sortKey: 'amount', // default sort key
-        sortOrder: 'desc', // default sort order
         // Spend Limit
-        showSpendLimitDialog: false,
-        tempSpendLimitAmount: 0,
-        isSweep: false,
-        // Order form
-        showForm: false,
-        map: null,
-        marker: null,
-        formData: {
-          fullName: '',
-          city: '',
-          state: '',
-          zip: '',
-          country: ''
-        },
+        showSpendLimitDialog: false,    
         // Merchants - in managing auth nft
         showManageAuthNFTdialog: false,
         merchantSearch: '',
         selectedMerchants: '',
         genericAuthEnabled: false,
-        allMerchants: [],
-        // Card Replacement
-        cardReplacementDialog: false,
-        selectedCardToReplace: null,
-        ws: null
       }
     },
     
@@ -128,16 +181,18 @@ import { getMerchantList } from 'src/services/card/merchants';
       },
 
       allMerchants () {
-        return this.merchantList.merchants
+        // Return the merchant list fetched from API
+        return this.merchantList || []
       },
 
       filteredMerchants () {
         const search = this.merchantSearch.toLowerCase().trim()
-        if (!search) return []
+        if (!search) return this.allMerchants
 
         return this.allMerchants.filter(merchant => {
-          merchant.name.toLowerCase().includes(search) ||
-          merchant.address.toLowerCase.includes(search)
+          const nameMatch = merchant.name && merchant.name.toLowerCase().includes(search)
+          const addressMatch = merchant.address && merchant.address.toLowerCase().includes(search)
+          return nameMatch || addressMatch
         })
       },
 
@@ -155,6 +210,23 @@ import { getMerchantList } from 'src/services/card/merchants';
       walletBalance() {
         const asset = this.$store.getters['assets/getAssets'][0]
         return asset?.spendable || 0
+      },
+
+      // Dark mode computed properties for UI classes
+      textColor () {
+        return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
+      },
+      
+      textColorGrey () {
+        return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
+      },
+      
+      textColorGreyLight () {
+        return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'
+      },
+      
+      bgColor () {
+        return this.$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'
       }
     },
 
@@ -219,14 +291,20 @@ import { getMerchantList } from 'src/services/card/merchants';
         return cards
       },
 
-      // Merchant methods
+      // Merchant methods - fetch real merchant data from API
       async refreshMerchants() {
+        this.merchantsLoading = true
         try {
-          const data = await this.getMerchantList({ limit: 100, page: 1})
-          this.allMerchants = data.results || data
+          const data = await getMerchantList({ limit: 100, page: 1})
+          this.merchantList = data.results || data || []
+          console.log('Merchants loaded:', this.merchantList)
         }
         catch (error) {
           console.error("Error fetching merchants: ", error)
+          this.merchantList = []
+        }
+        finally {
+          this.merchantsLoading = false
         }
       },
 
@@ -420,69 +498,6 @@ import { getMerchantList } from 'src/services/card/merchants';
         this.createCardDialog = true
       },
 
-      cardReplacement(){
-        this.cardReplacementDialog = true
-      },
-
-      toggleSelection (card) {
-        // if clicking the same card, deselect it
-        // otherwise, select the new card
-        if (this.selectedCardToReplace && this.selectedCardToReplace.id === card.id){
-          this.selectedCardToReplace = null
-        }
-        else {
-          this.selectedCardToReplace = card
-        }
-        this.$q.notify({
-          message: `Selected card: ${this.selectedCardToReplace ? this.selectedCardToReplace.name : 'None'}`
-        })
-      },
-
-      isCardSelected (card) {
-        return this.selectedCardToReplace && this.selectedCardToReplace.name === card.name
-      },
-
-      async handleCardReplacement () {
-        if(!this.selectedCardToReplace){
-          this.notifyWarning('Please select a card to replace first')
-          this.cardReplacementDialog = true
-          return
-        }
-
-        const cardToReplace = this.selectedCardToReplace
-
-        this.$q.loading.show({
-          message: `Deactivating ${cardToReplace.name}...`
-        })
-
-        try{
-          // card.deactivateCard(id)
-          // await card.replaceMerchantCard(cardToReplace.id)
-
-          await new Promise(resolve => setTimeout(resolve, 1500))
-          this.subCards = this.subCards.filter(c => c.id !== cardToReplace.id)
-
-          // Success
-          this.$q.notify({
-            message: `${cardToReplace.name} has been successfully deactivated.`,
-            color: 'positive',
-            icon: 'check_circle'
-          })
-
-          // Open the 'order physical card' form automatically
-          // reset selection
-          this.selectedCardToReplace = null
-          this.cardReplacementDialog = false
-
-          this.showForm = true
-        } catch(error){
-          console.error('Replacement failed: ', error)
-          this.notifyError('Could not process replacement. Please try again.')
-        } finally {
-          this.$q.loading.hide()
-        }
-      },
-      
       async handleCreateCard(){
         if(!this.newCardName){
           this.notifyError('Please enter a Card name')
@@ -529,194 +544,7 @@ import { getMerchantList } from 'src/services/card/merchants';
           this.$q.loading.hide()
         }
       },
-
-      editCardName(card){
-        this.$q.dialog({
-          title: 'Edit Alias',
-          message: 'Maximum of 10 characters allowed',
-          prompt: {
-            model: card.name,
-            type: 'text',
-            attrs: {
-              maxLength: 10, 
-            },
-            isValid: val => val.length <= 10 && val.length > 0
-          },
-          cancel: true,
-          persistent: true
-        }).onOk(data => {
-          if (data.length <= 10){
-            card.name = data
-          }
-        })
-      },
-
-      viewCard(card){
-        this.selectedCard = card
-        this.viewCardDialog = true
-      },
-
-      copyToClipboard(text){
-        navigator.clipboard.writeText(text).then(() => {
-          this.notifySuccess('Copied to clipboard')
-        }).catch(() => {
-          this.notifyError('Failed to copy')
-        })
-      },
-
-      handleCashIn(card) {   
-        this.viewCardDialog = false
-        this.activeCard = card
-        this.tempAmount = 0
-        this.showCashInDialog = true
-      },
-
-      confirmCashIn() {
-        const amount = parseFloat(this.tempAmount)
-
-        if (!amount || amount <= 0) {
-          this.$q.notify({
-            message: 'Please enter a valid amount',
-            color: 'negative',
-            icon: 'warning'
-          })
-          return
-        }
-
-        this.cashInAmount = amount
-        this.showCashInDialog = false
-        
-        console.log(`Cashing in ${this.cashInAmount} ${this.selectedCurrency} for card:`, this.activeCard)
-        
-        // Call actual Cash in function
-      },
-
-      openCardMenu(evt, card){
-        this.cardMenu.card = card
-        this.cardMenu.visible = true
-        
-        this.$nextTick(() => {
-          this.cardMenu.anchorOrigin = 'top right'
-          this.cardMenu.selfOrigin = 'top right'
-        })
-        
-      },
-
-      manageAuthNFTs(card) {
-        this.selectedCard = card
-        this.merchantSearch = ''
-        this.genericAuthEnabled = card.hasGenericAuth || false;
-
-        this.showManageAuthNFTdialog = true;
-        this.cardMenu.visible = false;
-        this.$q.notify({
-          message: `Managing Auth NFTs for ${card.name}`,
-          color: 'primary',
-          icon: 'settings'
-        })
-      },
-
-      viewTransactionHistory(card) {
-        if (!card || card instanceof Event) {
-          this.selectedCard = null
-        }
-        else {
-          this.selectedCard = card.id
-        }
-        
-        this.showTransactionHistoryDialog = true
-        this.transactionSearch = ''
-      },
-
-      editSpendLimit(card){
-        this.selectedCard = card
-        this.tempSpendLimitAmount = card.spendLimitAmount || 0
-        this.showSpendLimitDialog = true
-      },
-
-      async updateSpendLimit(){
-        const amount = parseFloat(this.tempSpendLimitAmount)
-
-        if(isNaN(amount) || amount <= 0){
-          this.$q.notify({
-            message: 'Please enter a valid spend limit amount',
-            color: 'negative',
-            icon: 'warning'
-          })
-          return
-        }
-
-        // Check against balance
-        if(amount > this.selectedCard.balance){
-          this.$q.notify({
-            message: 'Spend limit cannot exceed card balance',
-            color: 'negative',
-            icon: 'warning'
-          })
-          return
-        }
-
-        // if valid, update the card
-        this.selectedCard.spendLimitAmount = amount
-        console.log(`Set spend limit of ${amount} for card: `, this.selectedCard)
-        this.showSpendLimitDialog = false
-        this.$q.notify({
-          message: 'Spend limit updated successfully',
-          color: 'positive'
-        })
-      },
-
-      toggleLock(card) {
-        const isLocked = card.status === 'Locked'
-
-        this.$q.dialog({
-          title: isLocked ? 'Unlock Card' : 'Lock Card',
-          message: isLocked
-            ? `Are you sure you want unlock "${card.name}"? This will enable all transactions.`
-            : `Are you sure you want to lock "${card.name}"? This will disable all transactions.`,
-          cancel: true,
-          persistent: true,
-          ok: {
-            label: isLocked ? 'Unlock now' : 'Proceed',
-            color: isLocked? 'positive' : 'negative',
-            unelevated: true
-          },
-          cancel: {
-            label: 'Cancel',
-            flat: true,
-            color: 'grey'
-          }
-        }).onOk(() => {
-          if(isLocked){
-            card.status = 'Active'
-            this.notifyStatus(card.name, 'unlocked', 'positive', 'lock_open')
-          }
-          else{
-            this.$q.dialog({
-              message: `Do you want to sweep funds? This will send all ${card.name}'s funds to your wallet.'`,
-              cancel: true, 
-              persistent: true,
-              ok: {
-                label: 'Sweep',
-                color: 'positive',
-              },
-              cancel: {
-                label: 'Cancel',
-                flat: true,
-                color: 'grey',
-              }         
-            }).onOk(() => {
-                this.isSweep = true;
-                card.balance = 0;
-            })
-            card.status = 'Locked'
-            this.notifyStatus(card.name, 'locked', 'negative', 'lock')
-          }
-        }).onCancel(() => {
-          console.log('User cancelled the lock action.')
-        })
-      },
-
+      
       notifyStatus(name, action, color, icon){
         this.$q.notify({
           message: `Card "${name}" has been ${action}`,
@@ -725,125 +553,85 @@ import { getMerchantList } from 'src/services/card/merchants';
         })
       },
 
-      async onSubmit(){
-        this.$q.loading.show({message: 'Processing your order...'})
+      // Helper methods from noBackend.js - added for UI component compatibility
+      capitalizeFirst (str) {
+        if (!str) return ''
+        return str.charAt(0).toUpperCase() + str.slice(1)
+      },
 
-        try {
-          await new Promise(resolve => setTimeout(resolve, 2000))
+      formatContractAddress(address) {
+        if (!address) return ''
+        const addr = typeof address === 'object' ? address.contractAddress : address
+        if (!addr) return ''
+        const str = String(addr)
+        if (str.length <= 9) return str
+        return str.slice(0, 16) + '...' + str.slice(-5)
+      },
 
-          this.$q.notify({
-            color: 'positive',
-            message: 'Physical card order placed!',
-            icon: 'check'
-          })
+      checkExistingCards () {
+        // In production, this checks backend. For now, uses localStorage as cache
+        const cards = CardStorage.getCards();
 
-          this.resetForm()
-        }
-        catch (error){
-          this.$q.notify({
-            color: 'negative',
-            message: 'Something went wrong'
-          })
-        } 
-        finally {
-          this.$q.loading.hide()
+        // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
+        if (cards.length > 0 && this.$route.name === 'app-card'){
+          this.$router.push({ name: 'stacked-cards'})
         }
       },
 
-      resetForm(){
-        this.formData = {
-          fullName: '',
-          city: '',
-          state: '',
-          zip: '',
-          country: ''
-        }
-
-        this.$nextTick(() => {
-          if (this.$refs.orderForm){
-            this.$refs.orderForm.resetValidation()
+      navigateToCardDetails(card, tab = 'transactions') {
+        this.$router.push({
+          name: 'card-details',
+          query: { 
+            id: card.id,
+            tab: tab
           }
         })
       },
 
-      initMap () {
-        // check if container exists
-        if (!this.$refs.mapContainer) return
-
-        // initialize map
-        this.map = L.map(this.$refs.mapContainer).setView([7.123, 124.845], 13)
-
-        // OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(this.map)
-
-        // draggable marker
-        this.marker = L.marker([7.123, 124.845], {draggable: true}).addTo(this.map)
-
-        // listener - when user stops dragging, fetch address
-        this.marker.on('dragend', this.handleMarkerDrag)
+      // Notification helper methods - centralized for consistent UX
+      notifySuccess(message, opts = {}) {
+        this.$q.notify({
+          message,
+          color: 'positive',
+          icon: opts.icon || 'check',
+          position: opts.position || 'top',
+          timeout: opts.timeout || 1500,
+          ...opts
+        })
       },
 
-      async handleMarkerDrag (event) {
-        const { lat, lng } = event.target.getLatLng()
-
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-          )
-          const data = await response.json()
-          const addr = data.address
-
-          this.$q.notify({
-            message: `Full address data: ${addr}`,
-            color: 'warning'
-          })
-
-          // response mapping to formData
-          this.formData = {
-            ...this.formData,
-            city: addr.city || addr.town || addr.village || addr.municipality || addr.county || '',
-            state: addr.state || addr.region || addr.province || '',
-            zip: addr.zip || addr.postcode || '',
-            country: addr.country || '',
-          }
-          
-          this.$q.notify({
-            message: `Location set to ${this.formData.city}`,
-            icon: 'check', 
-            color: 'positive'
-          })
-        }
-        catch (error) {
-          this.notifyError('Geocoding failed')
-        }
+      notifyError(message, opts = {}) {
+        this.$q.notify({
+          message,
+          color: 'negative',
+          icon: opts.icon || 'error',
+          position: opts.position || 'top',
+          timeout: opts.timeout || 2000,
+          ...opts
+        })
       },
 
-      async activateForm () {
-        this.showForm = true
-        await this.$nextTick()
-
-        if (!this.map) {
-          this.initMap()
-        }
-        else {
-          setTimeout(() => {
-            this.map.invalidateSize()
-          }, 300)
-        }
+      notifyWarning(message, opts = {}) {
+        this.$q.notify({
+          message,
+          color: 'warning',
+          icon: opts.icon || 'warning',
+          position: opts.position || 'top',
+          timeout: opts.timeout || 2000,
+          ...opts
+        })
       },
 
-      toggleSort (key) {
-        if (this.sortKey === key) {
-          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc'
-        }
-        else {
-          this.sortKey = key
-          this.sortOrder = 'desc'
-        }
-      }
+      notifyInfo(message, opts = {}) {
+        this.$q.notify({
+          message,
+          color: 'info',
+          icon: opts.icon || 'info',
+          position: opts.position || 'top',
+          timeout: opts.timeout || 1500,
+          ...opts
+        })
+      },
 
     }
   }
