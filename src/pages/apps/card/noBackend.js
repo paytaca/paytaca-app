@@ -5,6 +5,7 @@ import { Card } from 'src/services/card/card';
 
 export { getMerchantList };
 
+// For card data structure documentation, see CARD_DATA_REFERENCE.md
 // CardStorage utility for localStorage CRUD operations
 const STORAGE_KEY = 'mock_subcards';
 
@@ -203,11 +204,15 @@ export const createCardLogic = {
       }
 
       this.$q.loading.show({
-        message: 'Creating card on blockchain...'
+        message: 'Creating card...'
       })
 
       try {
         const capitalizedName = this.capitalizeFirst(this.newCardName)
+        
+        /*
+        // BACKEND IMPLEMENTATION - Commented out until backend is ready
+        // This creates a real card on the blockchain via backend API
         
         // Initialize Card with wallet and services
         const card = await Card.createInitialized({})
@@ -233,20 +238,48 @@ export const createCardLogic = {
           tokenBalance = tokenSats.toString()
         }
         
-        // Save card data to localStorage for UI reference
+        // Real card data from backend
         const cardData = {
           id: card.raw?.id,
           uid: card.raw?.uid,
-          raw: card.raw,
+          name: card.raw?.alias || capitalizedName,
           balance: bchBalance,
           tokenBalance: tokenBalance,
-          status: 'Active',
-          contractAddress: card.raw?.contract_id || this.contractAddress
+          isLocked: false,
+          transactionAlerts: true,
+          merchantSpendLimits: {},
+          genericSpendLimit: '1',
+          hasOrderedPhysicalCard: false,
+          shippingAddress: null,
+          cardReplacementStatus: 'none'
+        }
+        */
+        
+        // MOCK IMPLEMENTATION - For UI testing without backend
+        // Generate a unique ID locally
+        const mockId = Date.now()
+        const mockUid = 'mock-' + Math.random().toString(36).substring(2, 15)
+        
+        const cardData = {
+          id: mockId,
+          uid: mockUid,
+          name: capitalizedName,
+          balance: '0.00000000',  // Start with zero balance
+          isLocked: false,
+          transactionAlerts: true,
+          merchantSpendLimits: {},
+          genericSpendLimit: '1',
+          hasOrderedPhysicalCard: false,
+          shippingAddress: null,
+          cardReplacementStatus: 'none'
         }
         
         CardStorage.createCard(cardData);
         
-        this.notifySuccess('Card created successfully on blockchain!')
+        // Update local cards list
+        this.fetchCards()
+        
+        this.notifySuccess('Card created successfully!')
         
         // reset UI state and redirect
         this.createCardDialog = false
@@ -255,7 +288,7 @@ export const createCardLogic = {
         
       } catch (error) {
         console.error('Card creation failed:', error)
-        this.notifyError(error.message || 'Failed to create card on blockchain')
+        this.notifyError(error.message || 'Failed to create card')
       } finally {
         this.$q.loading.hide()
       }
