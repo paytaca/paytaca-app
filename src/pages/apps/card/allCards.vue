@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
       <CardPageHeader />
 
@@ -7,8 +7,8 @@
         <MultiWalletDropdown></MultiWalletDropdown>
       </div>
 
-      <div class="q-pa-md">
-        <div class="text-subtitle1 text-weight-bold q-mb-md" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">
+      <div class="q-pa-md" style="min-height: 100vh;">
+        <div class="text-subtitle1 text-weight-bold q-mb-md" :class="textColor">
           My Cards ({{ subCards.length }})
         </div>
 

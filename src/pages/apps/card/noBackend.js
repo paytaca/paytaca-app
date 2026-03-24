@@ -145,7 +145,7 @@ export const createCardLogic = {
 
     // Dark mode computed properties for classes
     textColor () {
-      return this.$q.dark.isActive ? 'text-white' : 'text-dark'
+      return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
     },
     
     textColorGrey () {
@@ -288,7 +288,7 @@ export const createCardLogic = {
         color: 'positive',
         icon: opts.icon || 'check',
         position: opts.position || 'top',
-        timeout: opts.timeout || 2000,
+        timeout: opts.timeout || 1500,
         ...opts
       })
     },
@@ -299,7 +299,7 @@ export const createCardLogic = {
         color: 'negative',
         icon: opts.icon || 'error',
         position: opts.position || 'top',
-        timeout: opts.timeout || 3000,
+        timeout: opts.timeout || 2000,
         ...opts
       })
     },
@@ -310,7 +310,7 @@ export const createCardLogic = {
         color: 'warning',
         icon: opts.icon || 'warning',
         position: opts.position || 'top',
-        timeout: opts.timeout || 3000,
+        timeout: opts.timeout || 2000,
         ...opts
       })
     },
@@ -321,7 +321,7 @@ export const createCardLogic = {
         color: 'info',
         icon: opts.icon || 'info',
         position: opts.position || 'top',
-        timeout: opts.timeout || 2000,
+        timeout: opts.timeout || 1500,
         ...opts
       })
     },

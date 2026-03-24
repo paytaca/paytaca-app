@@ -180,8 +180,6 @@ animation: float 6s ease-in-out infinite;
 	width: 90%;
 	left: 5%;
 	height: 180px;
-	background: white;
-	border: 2px solid black;
 	border-radius: 15px;
 	overflow: hidden;
 
@@ -194,14 +192,27 @@ animation: float 6s ease-in-out infinite;
 		cursor: grabbing;
 		border-color: #007AFF;
 	}
+}
 
+.body--light {
+	.stacked-card {
+		background: white;
+		border: 2px solid #9e9e9e;
+	}
+}
+
+.body--dark {
+	.stacked-card {
+		background: #1d1d1d;
+		border: 2px solid #424242;
+	}
 }
 
 // Grabbable handle at the top of each card
 .card-handle {
 	width: 100%;
 	height: 30px;
-	background: rgba(25, 118, 210, 0.25);
+	background: color-mix(in srgb, var(--q-primary) 25%, transparent);
 	backdrop-filter: blur(8px);
 	-webkit-backdrop-filter: blur(8px);
 	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
@@ -214,7 +225,7 @@ animation: float 6s ease-in-out infinite;
 	
 	&:active {
 		cursor: grabbing;
-		background: rgba(25, 118, 210, 0.4);
+		background: color-mix(in srgb, var(--q-primary) 40%, transparent);
 	}
 }
 
@@ -223,7 +234,14 @@ animation: float 6s ease-in-out infinite;
 	height: 4px;
 	background: rgba(255, 255, 255, 0.9);
 	border-radius: 3px;
-	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+	box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.body--light {
+	.handle-indicator {
+		background: rgba(255, 255, 255, 1);
+		box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
 }
 
 .card-info {
@@ -417,6 +435,46 @@ animation: float 6s ease-in-out infinite;
 	}
 }
 
+.merchant-item:not(.disabled-merchant) {
+	.merchant-name-disabled {
+		color: #9e9e9e;
+	}
+}
+
+.body--light {
+	.merchant-list {
+		.q-toggle:not(.q-toggle--checked) {
+			.q-toggle__track {
+				background: #616161 !important;
+				border-color: #424242 !important;
+				opacity: 1;
+			}
+			.q-toggle__thumb {
+				background: #f5f5f5 !important;
+				border-color: #616161 !important;
+			}
+		}
+	}
+
+	.generic-auth-toggle {
+		.q-toggle:not(.q-toggle--checked) {
+			color: #616161 !important;
+			.q-toggle__inner {
+				color: #616161 !important;
+				.q-toggle__track {
+					background: #616161 !important;
+					border-color: #424242 !important;
+					opacity: 1 !important;
+				}
+			}
+			.q-toggle__thumb {
+				background: #ffffff !important;
+				border-color: #616161 !important;
+			}
+		}
+	}
+}
+
 .q-btn--outline {
 	border: 1.5px solid currentColor;
 }
@@ -460,8 +518,8 @@ animation: float 6s ease-in-out infinite;
     border: 2px solid #9e9e9e;
     
     &:hover {
-      border: 1px solid var(--q-primary);
-      background: color-mix(in srgb, var(--q-primary) 5%, transparent);
+      border: 2px solid var(--q-primary);
+      background: rgba(25, 118, 210, 0.05);
     }
   }
   
@@ -470,7 +528,7 @@ animation: float 6s ease-in-out infinite;
   }
   
   .card-balance {
-    color: #757575;
+    color: #616161;
     font-style: italic;
   }
 }

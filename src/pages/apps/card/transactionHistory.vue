@@ -21,7 +21,7 @@
       <q-space />
       <q-btn
         flat dense size="sm"
-        :color="sortKey === 'date' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
+        :color="sortKey === 'date' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey-8')"
         label="Date"
         @click="toggleSort('date')"
       >
@@ -29,7 +29,7 @@
       </q-btn>
       <q-btn
         flat dense size="sm"
-        :color="sortKey === 'amount' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
+        :color="sortKey === 'amount' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey-8')"
         label="Amount"
         @click="toggleSort('amount')"
       >
@@ -55,7 +55,7 @@
               >
                 {{ t.name }}
               </div>
-              <div class="text-caption text-weight-bold text-grey">{{ t.date }}</div>
+               <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ t.date }}</div>
             </q-item-section>
             <q-item-section side>
               <div class="text-weight-bold" :class="t.amount > 0 ? 'text-positive' : 'text-negative'">
@@ -104,6 +104,9 @@ export default {
         return (new Date(a.date) - new Date(b.date)) * mod;
       });
       return list;
+    },
+    textColor() {
+      return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
     }
   },
   methods: {

@@ -1,10 +1,10 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
       <CardPageHeader />
 
       <div class="q-px-md q-mt-md">
-        <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">My Cards</div>
+        <div class="text-subtitle1 text-weight-bold" :class="textColor">My Cards</div>
         <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
       </div>
 
@@ -401,7 +401,7 @@ export default {
         color: 'positive',
         icon: 'check_circle',
         position: 'top',
-        timeout: 2000
+        timeout: 1500
       })
     }
   }

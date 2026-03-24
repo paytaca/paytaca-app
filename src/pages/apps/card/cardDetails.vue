@@ -1,6 +1,6 @@
 <template>
   <q-layout view="LHh Lpr lFf">
-    <q-page-container>
+    <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
       <CardPageHeader />
 
       <q-page v-if="activeCard" class="q-px-md">
@@ -20,7 +20,7 @@
             >
               <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
             </q-badge>
-            <q-btn flat dense icon="edit" size="sm" @click="showEditNameDialog = true"/>
+            <q-btn flat dense icon="edit" size="sm" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="showEditNameDialog = true"/>
           </div>
 
           <div 
@@ -61,7 +61,7 @@
               >
                 {{ activeCard.balance }} BCH
               </div>
-                <q-btn outline dense label="Cash In" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
+                <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
             </div>
           </div>
         </div>
@@ -795,10 +795,10 @@
       </q-dialog>
 
       <q-dialog v-model="showCashInDialog">
-        <q-card class="cash-in-dialog">
+        <q-card class="cash-in-dialog" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
           <q-card-section class="row justify-between items-center q-pb-none">
             <div class="text-h6 q-mb-md" :class="textColor">Cash In</div>
-            <q-btn flat round dense icon="close" @click="showCashInDialog = false" />
+            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="showCashInDialog = false" />
           </q-card-section>
 
           <q-card-section class="text-center q-pt-sm">
@@ -847,6 +847,7 @@
                 emit-value
                 map-options
                 class="currency-select"
+                popup-content-class="text-dark"
               />
             </div>
 
@@ -1162,7 +1163,8 @@ export default {
       this.$q.notify({
         message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(8)} BCH) to your card!`,
         color: 'positive',
-        position: 'top'
+        position: 'top',
+        timeout: 2000
       })
       
       this.showCashInDialog = false
@@ -1253,7 +1255,8 @@ export default {
         this.$q.notify({
           message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
           icon: 'check', 
-          color: 'positive'
+          color: 'positive',
+          timeout: 1500
         })
       }
       catch (error) {
@@ -1371,7 +1374,8 @@ export default {
         this.$q.notify({
           message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
           icon: 'check', 
-          color: 'positive'
+          color: 'positive',
+          timeout: 1500
         })
       }
       catch (error) {
@@ -1431,7 +1435,8 @@ export default {
       this.$q.notify({
         message: `Status updated to: ${nextStatus}`,
         color: 'info',
-        icon: 'update'
+        icon: 'update',
+        timeout: 1500
       })
     },
 
@@ -1446,7 +1451,8 @@ export default {
       this.$q.notify({
         message: locked ? 'Card has been locked' : 'Card has been unlocked',
         color: locked ? 'warning' : 'positive',
-        icon: locked ? 'lock' : 'lock_open'
+        icon: locked ? 'lock' : 'lock_open',
+        timeout: 1500
       })
     },
 
@@ -1459,7 +1465,8 @@ export default {
         this.$q.notify({
           message: 'No funds to sweep',
           color: 'warning',
-          position: 'top'
+          position: 'top',
+          timeout: 1500
         })
         this.showSweepFundsDialog = false
         return
@@ -1490,7 +1497,8 @@ export default {
           message: 'Card has been deleted',
           color: 'positive',
           icon: 'delete',
-          position: 'top'
+          position: 'top',
+          timeout: 2000
         })
       }
 

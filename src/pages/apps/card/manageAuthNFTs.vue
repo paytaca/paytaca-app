@@ -19,7 +19,7 @@
 
     <!-- Generic Auth NFT Toggle -->
     <div 
-      class="row items-center justify-between q-pa-md border-outlined br-10 q-mb-md"
+      class="row items-center justify-between q-pa-md border-outlined br-10 q-mb-md generic-auth-toggle"
       :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'"
     >
       <div class="text-subtitle2 text-primary text-weight-bold">Generic Auth NFT</div>
@@ -64,7 +64,7 @@
     <!-- Merchants List -->
     <div class="text-subtitle2 q-mb-sm" :class="textColor">Merchants</div>
     
-    <div class="scroll" style="height: 350px;">
+    <div class="scroll merchant-list" style="height: 350px;">
       <div v-if="filteredMerchants.length > 0">
         <q-list separator :dark="$q.dark.isActive">
           <q-item 
@@ -84,9 +84,7 @@
               </q-tooltip>
               <div 
                 class="text-weight-bold"
-                :class="genericAuthEnabled 
-                  ? textColorGrey
-                  : textColor"
+                :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')"
               >
                 {{ merchant.name }}
                 <span v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" class="text-caption text-secondary q-ml-xs">
@@ -95,9 +93,7 @@
               </div>
               <div 
                 class="text-caption text-weight-bold"
-                :class="genericAuthEnabled 
-                  ? ($q.dark.isActive ? 'text-grey-4' : 'text-grey-5') 
-                  : ($q.dark.isActive ? 'text-grey-4' : 'text-grey')"
+                :class="merchant.isEnabled ? ($q.dark.isActive ? 'text-grey-4' : 'text-grey-7') : ($q.dark.isActive ? 'text-grey-7' : 'text-grey-5')"
               >
                 {{ merchant.address }}
               </div>
@@ -108,7 +104,7 @@
                 :disable="genericAuthEnabled"
                 :color="genericAuthEnabled 
                   ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
-                  : 'secondary'"
+                  : 'primary'"
                 @update:model-value="(val) => onMerchantToggle(merchant, val)"
               />
             </q-item-section>
@@ -174,10 +170,11 @@
 </template>
 
 <script>
-import { getMerchantList, CardStorage } from './noBackend.js'
+import { getMerchantList, CardStorage, createCardLogic } from './noBackend.js'
 
 export default {
   name: 'ManageAuthNFTs',
+  mixins: [createCardLogic],
   props: {
     card: { type: Object, required: true }
   },
@@ -201,6 +198,12 @@ export default {
         list = list.filter(m => m.name.toLowerCase().includes(s));
       }
       return list;
+    },
+    textColor() {
+      return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
+    },
+    textColorGrey() {
+      return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
     }
   },
   mounted() {
@@ -261,7 +264,8 @@ export default {
         this.$q.notify({
           message: 'Generic Auth NFT disabled - select specific merchants to authorize',
           color: 'info',
-          icon: 'info'
+          icon: 'info',
+          timeout: 1500
         });
       }
     },
@@ -321,7 +325,8 @@ export default {
         this.$q.notify({
           message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
           color: 'positive',
-          icon: 'check_circle'
+          icon: 'check_circle',
+          timeout: 1500
         });
       }
 
@@ -335,7 +340,8 @@ export default {
         this.$q.notify({
           message: 'Please enter a valid amount greater than 0',
           color: 'negative',
-          icon: 'error'
+          icon: 'error',
+          timeout: 2000
         });
         return;
       }
@@ -350,7 +356,8 @@ export default {
       this.$q.notify({
         message: `Global spend limit set to ${this.genericSpendLimit} BCH`,
         color: 'positive',
-        icon: 'check_circle'
+        icon: 'check_circle',
+        timeout: 1500
       });
     }
   }
