@@ -37,14 +37,14 @@
                 style="max-width: 120px; font-size: 13px;"
                 :class="textColor"
               >
-                {{ capitalizeFirst(card.raw?.alias) }}
+                {{ capitalizeFirst(card.name) }}
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
                 style="font-size: 13px;"
                 :class="textColor"
               >
-                {{ card.balance }} BCH
+                {{ card.balance || '0.00' }} BCH
               </div>
             </div>
           </div>
@@ -186,6 +186,9 @@ export default {
       showCreateCardDialog: false,
       newCardName: '',
       isMinting: false
+      // Backend data fetching disabled
+      // loadingCards: true,
+      // backendDataMap: {} // Map of cardId -> backend data
     }
   },
 
@@ -203,9 +206,54 @@ export default {
   mounted () {
     // when the page loads, fetch the cards in localStorage
     this.fetchCards()
+    
+    // If no cards exist, redirect to card homepage
+    if (this.subCards.length === 0) {
+      this.$router.push({ name: 'app-card' })
+    }
+    
+    // Fetch backend data for all cards - DISABLED
+    // this.fetchCardsBackendData()
   },
 
   methods: {
+    /*
+    async fetchCardsBackendData () {
+      if (this.subCards.length === 0) {
+        this.loadingCards = false
+        return
+      }
+      
+      this.loadingCards = true
+      
+      try {
+        // Fetch backend data for each card
+        const promises = this.subCards.map(async (card) => {
+          try {
+            const cardInstance = await Card.createInitialized({ raw: { id: card.id } })
+            const bchUtxos = await cardInstance.getBchUtxos()
+            const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
+            const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8)
+            
+            this.backendDataMap[card.id] = {
+              balance: bchBalance,
+              contractAddress: cardInstance.raw?.contract_id
+            }
+          } catch (error) {
+            console.error(`Failed to fetch data for card ${card.id}:`, error)
+            this.backendDataMap[card.id] = null
+          }
+        })
+        
+        await Promise.all(promises)
+      } catch (error) {
+        console.error('Failed to fetch cards backend data:', error)
+      } finally {
+        this.loadingCards = false
+      }
+    },
+    */
+
     capitalizeFirst (str) {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)

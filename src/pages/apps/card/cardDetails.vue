@@ -6,11 +6,13 @@
       <q-page v-if="activeCard" class="q-px-md">
         <div class="column items-center q-mb-lg">
           <div class="row items-center q-mb-sm full-width q-gutter-sm">
+            <!-- Card name - uses localStorage (add skeleton when enabling backend)
+                 Backend option: <q-skeleton v-if="loading" type="text" width="120px" /> -->
             <div 
               class="text-subtitle1 q-mr-sm"
               :class="textColor"
             >
-              {{ capitalizeFirst(activeCard?.raw?.alias) }}
+              {{ getCardName(activeCard) }}
             </div>
             <q-badge 
               rounded 
@@ -32,8 +34,10 @@
               <div class="row items-center justify-between">
                 <div class="virtual-card-chip row items-center no-wrap" style="gap: 6px; padding: 0 8px;">
                   <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+                  <!-- Card name in chip - uses localStorage
+                       Backend option: <q-skeleton v-if="loading" type="text" width="80px" height="16px" /> -->
                   <div class="text-caption text-weight-bold ellipsis" style="max-width: 100px; color: inherit; font-family: 'Courier New', monospace; letter-spacing: 0.5px;">
-                    {{ capitalizeFirst(activeCard?.raw?.alias) || 'My Card' }}
+                    {{ getCardName(activeCard) || 'My Card' }}
                   </div>
                 </div>
                 <q-img
@@ -55,13 +59,17 @@
 
           <div class="row justify-center full-width q-mt-md">
             <div class="row items-center">
+              <!-- Backend data fetching disabled - showing localStorage data only -->
+              <!-- <div v-if="loading" class="q-mr-sm">
+                <q-skeleton type="text" width="120px" height="24px" />
+              </div> -->
               <div 
                 class="q-mr-sm"
                 :class="textColor"
               >
-                {{ activeCard.balance }} BCH
+                {{ activeCard?.balance || '0.00' }} BCH
               </div>
-                <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
+              <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
             </div>
           </div>
         </div>
@@ -963,6 +971,10 @@ export default {
       locationSame: null,
       showReplacementLocationForm: false,
       cardReplacementStatus: 'none'
+      // Backend data fetching disabled
+      // loading: true,
+      // backendData: null,
+      // dataError: null
     }
   },
 
@@ -1031,6 +1043,13 @@ export default {
   },
 
   mounted () {
+    // Check if any cards exist - if not, redirect to card homepage
+    const cards = this.CardStorage.getCards()
+    if (cards.length === 0) {
+      this.$router.push({ name: 'app-card' })
+      return
+    }
+    
     // Load card replacement status if available
     this.loadCardReplacementStatus()
     
@@ -1059,6 +1078,22 @@ export default {
       return str.charAt(0).toUpperCase() + str.slice(1)
     },
 
+    /**
+     * Get card name from localStorage
+     * Currently uses localStorage only. To add backend support:
+     * 1. Add skeleton loader: <q-skeleton v-if="loading" type="text" width="100px" />
+     * 2. Use backend: const name = card.name || this.backendData?.raw?.alias
+     * @param {Object} card - Card object from localStorage
+     * @returns {string} Card name
+     */
+    getCardName (card) {
+      if (!card) return 'Card'
+      // Current: localStorage only
+      // Backend option: card.name || this.backendData?.raw?.alias
+      const name = card.name
+      return this.capitalizeFirst(name) || 'Card'
+    },
+
     loadSpecificCard () {
       const cardId = this.$route.query.id
       // get card from storage
@@ -1066,7 +1101,7 @@ export default {
       
       if (found) {
         this.activeCard = found
-        this.newCardName = found.raw?.alias || ''
+        this.newCardName = found.name || ''
         
         if (this.activeCard.isLocked === undefined) {
           this.activeCard.isLocked = false
@@ -1074,24 +1109,58 @@ export default {
         if (this.activeCard.transactionAlerts === undefined) {
           this.activeCard.transactionAlerts = false
         }
+        
+        // Fetch backend data - DISABLED
+        // this.fetchBackendData()
       }
       else {
         console.error("Card not found in storage");
         this.$router.push({ name: 'stacked-cards' });
       }
     },
-    
+
+    /*
+    async fetchBackendData () {
+      if (!this.activeCard?.id) return
+      
+      this.loading = true
+      this.dataError = null
+      
+      try {
+        const { Card } = await import('src/services/card/card')
+        const card = await Card.createInitialized({ raw: { id: this.activeCard.id } })
+        
+        // Fetch balances
+        const bchUtxos = await card.getBchUtxos()
+        const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
+        const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8)
+        
+        // Fetch addresses from raw data
+        this.backendData = {
+          balance: bchBalance,
+          contractAddress: card.raw?.contract_id,
+          tokenAddress: card.raw?.token_address,
+          cashAddress: card.raw?.cash_address,
+          category: card.raw?.category,
+          utxos: bchUtxos,
+          raw: card.raw
+        }
+      } catch (error) {
+        console.error('Failed to fetch card data from backend:', error)
+        this.dataError = error.message
+        // Keep backendData as null to show skeleton/empty state
+      } finally {
+        this.loading = false
+      }
+    },
+    */
+
     saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
         const trimmedName = this.newCardName.trim()
         
-        // Ensure raw object exists
-        if (!this.activeCard.raw) {
-          this.activeCard.raw = {}
-        }
-        
-        // Update the alias
-        this.activeCard.raw.alias = this.capitalizeFirst(trimmedName)
+        // Update the name directly
+        this.activeCard.name = this.capitalizeFirst(trimmedName)
         this.newCardName = this.capitalizeFirst(trimmedName)
         
         // Save to localStorage
