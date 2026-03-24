@@ -154,8 +154,23 @@
           <span class="text-h6">{{ $t('ReferralStatus', 'Referral Status') }}</span>
         </div>
 
-        <!-- Loading Skeletons for Referrals -->
+        <!-- Loading Skeletons for Referral Stats -->
         <template v-if="isLoading">
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="40px" height="32px" class="q-mx-auto" />
+              <q-skeleton type="text" width="50px" height="16px" class="q-mx-auto" />
+            </div>
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="40px" height="32px" class="q-mx-auto" />
+              <q-skeleton type="text" width="60px" height="16px" class="q-mx-auto" />
+            </div>
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="40px" height="32px" class="q-mx-auto" />
+              <q-skeleton type="text" width="50px" height="16px" class="q-mx-auto" />
+            </div>
+          </div>
+
           <achievement-card v-for="n in 3" :key="`skeleton-referral-${n}`">
             <template #achievement-card-content>
               <q-card-section>
@@ -173,6 +188,28 @@
 
         <!-- Referral List -->
         <template v-else>
+          <!-- Referral Stats -->
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-4 text-center">
+              <div class="text-h6 text-weight-bold text-primary">{{ totalReferralsCount }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('Total', 'Total') }}
+              </div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-h6 text-weight-bold text-positive">{{ completedReferralsCount }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('Completed', 'Completed') }}
+              </div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-h6 text-weight-bold text-warning">{{ pendingReferralsCount }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('Pending', 'Pending') }}
+              </div>
+            </div>
+          </div>
+          
           <div v-if="referralsList.length > 0" class="q-mx-sm q-mt-sm q-gutter-y-sm">
             <q-intersection once transition="jump-up" v-for="(item, index) in referralsList" :key="index">
               <achievement-card>
@@ -313,6 +350,15 @@ export default {
     },
     pointsConvertion () {
       return convertPoints(this.points, this.pointsDivisor)
+    },
+    totalReferralsCount () {
+      return this.referralsList.length
+    },
+    completedReferralsCount () {
+      return this.referralsList.filter(r => r.has_transacted).length
+    },
+    pendingReferralsCount () {
+      return this.referralsList.filter(r => !r.has_transacted).length
     }
   },
 
