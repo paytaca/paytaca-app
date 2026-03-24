@@ -836,3 +836,124 @@ animation: float 6s ease-in-out infinite;
   filter: grayscale(1);
 }
 
+
+// ====== createCard.vue styles ======
+.create-card-action {
+  border-radius: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px dashed;
+  background: transparent;
+  
+  &:hover {
+    transform: translateY(-4px);
+  }
+}
+
+.create-card-icon {
+  // Static, no hover effect
+}
+
+.tap-icon-container {
+  transition: transform 0.3s ease;
+}
+
+.tap-icon {
+  transition: transform 0.3s ease;
+}
+
+.create-card-action:hover .tap-icon-container {
+  transform: scale(1.1);
+}
+
+.create-card-action:hover .tap-icon {
+  transform: scale(1.2);
+  color: var(--q-primary);
+}
+
+.view-cards-btn {
+  transition: all 0.2s ease;
+  border-radius: 20px;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.feature-item {
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.body--light {
+  .create-card-action {
+    border-color: var(--q-primary);
+    background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 100%);
+    box-shadow: 0 4px 20px rgba(25, 118, 210, 0.1);
+    
+    &:hover {
+      background: linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.8) 100%);
+      box-shadow: 0 8px 30px rgba(25, 118, 210, 0.2);
+    }
+  }
+  
+  .view-cards-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  .feature-light {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    
+    &:hover {
+      background: #f8f9fa;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .feature-icon-wrapper {
+      background: rgba(25, 118, 210, 0.1);
+    }
+  }
+}
+
+.body--dark {
+  .create-card-action {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(145deg, rgba(50,50,50,0.9) 0%, rgba(30,30,30,0.6) 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    
+    &:hover {
+      background: linear-gradient(145deg, rgba(60,60,60,1) 0%, rgba(40,40,40,0.8) 100%);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+  }
+  
+  .view-cards-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .feature-dark {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .feature-icon-wrapper {
+      background: rgba(25, 118, 210, 0.2);
+    }
+  }
+}
