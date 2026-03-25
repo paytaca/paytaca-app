@@ -196,8 +196,8 @@
                           <div v-if="hasReceivedFirstVisitBonus" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
-                                { date: formatDateLocaleRelative(firstTxDate, false) },
-                                `Earned on ${formatDateLocaleRelative(firstTxDate, false)}`
+                                { date: formatDateLocaleRelative(dateJoined, false) },
+                                `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -232,8 +232,8 @@
                           <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
                             {{ $t(
                                 'EarnedOn',
-                                { date: formatDateLocaleRelative(dateJoined, false) },
-                                `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
+                                { date: formatDateLocaleRelative(firstTxDate, false) },
+                                `Earned on ${formatDateLocaleRelative(firstTxDate, false)}`
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -623,6 +623,7 @@ export default {
               await awardInitialUP({ ur: this.urId })
                 .then(async _resp => {
                   this.points = await this.urContract.getTokenBalance()
+                  urData = await getUserRewardsData(this.urId)
                 })
             }, 1000);
           }
