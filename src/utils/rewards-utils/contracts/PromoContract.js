@@ -6,7 +6,6 @@ import axios from "axios"
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
-const liftTokenDecimals = 2
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -56,7 +55,7 @@ export default class PromoContract {
     if (tokenUtxos.length === 0) return 0
     return tokenUtxos
       .reduce((total, el) => {
-        return total + (Number(el.token?.amount) / (10 ** liftTokenDecimals))
+        return total + (Number(el.token?.amount))
       }, 0)
   }
 }
