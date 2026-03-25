@@ -635,12 +635,6 @@ export default {
           const redeemedAmount = Number(this.pointsToRedeem)
           this.contractPoints = this.contractPoints - redeemedAmount
           this.animateDisplayPoints(this.displayPoints, this.contractPoints, 500)
-          
-          this.$q.notify({
-            type: 'positive',
-            timeout: 3000,
-            message: this.$t('PointsRedeemedSuccess', 'Points redeemed successfully!')
-          })
         } else {
           throw new Error('Redemption failed')
         }
