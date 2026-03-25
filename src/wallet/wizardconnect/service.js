@@ -1,4 +1,4 @@
-import { WalletConnectionManager } from '@wizardconnect/wallet'
+// import { WalletConnectionManager } from '@wizardconnect/wallet'
 import { mnemonicToSeedSync } from 'bip39'
 import {
   deriveHdPrivateNodeFromSeed,
@@ -97,8 +97,17 @@ function createAdapter(nodes) {
   }
 }
 
+/** @type {typeof import('@wizardconnect/wallet').WalletConnectionManager} */
+let WalletConnectionManager;
 export async function getManager() {
   if (_manager) return _manager
+
+  // Lazy load WalletConnectionManager since it's not supported in ios 16.3 and older
+  // This will allow the most of the app to be usable for ios 16.3 and older
+  if (!WalletConnectionManager) {
+    const _wizardConnectModule = await import('@wizardconnect/wallet')
+    WalletConnectionManager = _wizardConnectModule.WalletConnectionManager
+  }
   const nodes = await ensureHdNodes()
   const adapter = createAdapter(nodes)
   _manager = new WalletConnectionManager(adapter)

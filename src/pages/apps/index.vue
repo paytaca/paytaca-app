@@ -125,6 +125,7 @@
 </template>
 
 <script>
+import { Platform } from 'quasar';
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
@@ -565,6 +566,29 @@ export default {
     },
     openApp (app) {
       if (!app.active) return
+      
+      if (app.id === 'wizardconnect') {
+        const loadingGroupName = 'wizardconnect-init';
+        this.$q.loading.show({ group: loadingGroupName, message: 'Initializing wizard connect' })
+        // Initialize WizardConnect at app startup
+        store.dispatch('wizardconnect/init')
+          .then(() => {
+            this.$router.push(app.path)
+          })
+          .catch(() => {
+            const iosAdditionalMsg = Platform.is.ios ? '. Consider updating iOS version' : ''
+            this.$q.notify({
+              type: 'negative',
+              message: 'Wizard Connect failed to load' + iosAdditionalMsg,
+              caption: String(error),
+            })
+            console.error('Failed to initialize WizardConnect:', error)
+          })
+          .finally(() => {
+            this.$q.loading.hide(loadingGroupName);
+          })
+        return
+      }
       
       // If app is beta, show dialog first
       if (app.beta) {
