@@ -774,8 +774,12 @@ export default {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 123, 246, 0.4); }
-  50% { box-shadow: 0 0 20px 4px rgba(59, 123, 246, 0.3); }
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6), 0 0 0 0 rgba(139, 92, 246, 0.4); 
+  }
+  50% { 
+    box-shadow: 0 0 25px 3px rgba(139, 92, 246, 0.5), 0 0 40px 6px rgba(139, 92, 246, 0.3); 
+  }
 }
 
 .section-header {
