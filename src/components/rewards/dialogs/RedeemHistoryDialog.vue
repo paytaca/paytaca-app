@@ -11,7 +11,10 @@
     >
       <!-- Sticky Header -->
       <div class="row justify-between items-center q-pa-md" :class="getDarkModeClass(darkMode)">
-        <span class="text-h6 text-weight-bold">Redemption History</span>
+        <div class="row items-center q-gutter-sm">
+          <q-icon name="history" size="28px" color="primary" />
+          <span class="text-h6 text-weight-bold">Redemption History</span>
+        </div>
         <q-btn
           flat
           round

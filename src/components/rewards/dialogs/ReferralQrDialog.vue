@@ -1,8 +1,11 @@
 <template>
   <q-dialog persistent ref="dialogRef" seamless class="no-click-outside">
-    <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center q-mb-sm">
-        <span class="text-h6">{{ $t(`${referralType}ReferralQR`) }}</span>
+    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="row justify-between items-center q-mb-sm q-px-md q-pt-md">
+        <div class="row items-center q-gutter-sm">
+          <q-icon name="qr_code" size="28px" color="primary" />
+          <span class="text-h6">{{ $t(`${referralType}ReferralQR`) }}</span>
+        </div>
         <q-btn
           flat
           round
@@ -13,50 +16,54 @@
         />
       </div>
 
-      <div class="text-subtitle1 q-mb-sm">
-        {{ $t('ReferralQRDescription', 'Have new users scan this QR code or use the referral code during wallet creation.') }}
-      </div>
+      <q-separator />
 
-      <div class="row justify-center q-mb-md">
-        <qr-code
-          name="rfp-qr"
-          border-width="3px"
-          border-color="var(--q-primary)"
-          :qr-id="0"
-          :text="referralCodeFull"
-          :size="200"
-        />
-      </div>
-
-      <!-- Referral Code Display -->
-      <div 
-        class="referral-code-container q-mb-md"
-        :class="{ 
-          'copy-success': copySuccess, 
-          'copy-failed': copyFailed,
-          [getDarkModeClass(darkMode)]: true 
-        }"
-      >
-        <div class="text-subtitle1 text-bow q-mb-xs" :class="getDarkModeClass(darkMode)">
-          {{ $t('ReferralCode', 'Referral Code') }}
+      <div class="q-px-md q-py-sm">
+        <div class="text-subtitle1 q-mb-sm">
+          {{ $t('ReferralQRDescription', 'Have new users scan this QR code or use the referral code during wallet creation.') }}
         </div>
-        <div class="row justify-center items-center q-gutter-sm">
-          <code class="referral-code-text" :class="getDarkModeClass(darkMode)">
-            {{ referralCodeFull }}
-          </code>
-          <q-btn
-            flat
-            dense
-            round
-            size="sm"
-            :icon="copyButtonIcon"
-            :color="copyButtonColor"
-            class="copy-btn"
-            :class="{ 'copy-success-icon': copySuccess, 'copy-failed-icon': copyFailed }"
-            @click="copyReferralCode"
-          >
-            <q-tooltip>{{ copyTooltip }}</q-tooltip>
-          </q-btn>
+  
+        <div class="row justify-center q-mb-md">
+          <qr-code
+            name="rfp-qr"
+            border-width="3px"
+            border-color="var(--q-primary)"
+            :qr-id="0"
+            :text="referralCodeFull"
+            :size="200"
+          />
+        </div>
+  
+        <!-- Referral Code Display -->
+        <div 
+          class="referral-code-container q-mb-md"
+          :class="{ 
+            'copy-success': copySuccess, 
+            'copy-failed': copyFailed,
+            [getDarkModeClass(darkMode)]: true 
+          }"
+        >
+          <div class="text-subtitle1 text-bow q-mb-xs" :class="getDarkModeClass(darkMode)">
+            {{ $t('ReferralCode', 'Referral Code') }}
+          </div>
+          <div class="row justify-center items-center q-gutter-sm">
+            <code class="referral-code-text" :class="getDarkModeClass(darkMode)">
+              {{ referralCodeFull }}
+            </code>
+            <q-btn
+              flat
+              dense
+              round
+              size="sm"
+              :icon="copyButtonIcon"
+              :color="copyButtonColor"
+              class="copy-btn"
+              :class="{ 'copy-success-icon': copySuccess, 'copy-failed-icon': copyFailed }"
+              @click="copyReferralCode"
+            >
+              <q-tooltip>{{ copyTooltip }}</q-tooltip>
+            </q-btn>
+          </div>
         </div>
       </div>
     </q-card>
