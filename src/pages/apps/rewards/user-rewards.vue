@@ -607,10 +607,6 @@ export default {
         this.has_viewed_page = urData.has_viewed_page
 
         if (!urData.has_viewed_page) {
-          // display help dialog if has_viewed_page is false
-          this.isHelpActive = true
-          this.isOneTimeSectionExpanded = false
-
           // mark has_viewed_page to true
           urData = await updateUserRewardsData(this.urId, {
             has_viewed_page: true,
@@ -623,6 +619,10 @@ export default {
             urData = await getUserRewardsData(this.urId)
             this.points = await this.urContract.getTokenBalance()
           }
+
+          // display help dialog if has_viewed_page is false
+          this.isOneTimeSectionExpanded = false
+          this.isHelpActive = true
         }
 
         this.propagateData(urData)
