@@ -312,6 +312,7 @@ export default {
         // Save merchant spend limits to localStorage
         if (this.card && this.card.id) {
           const card = CardStorage.getCardById(this.card.id);
+          // TODO: Switch to backend - use await this.getCards() and find card by id
           if (card) {
             // Store merchant spend limits
             if (!card.merchantSpendLimits) {

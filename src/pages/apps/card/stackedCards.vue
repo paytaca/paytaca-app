@@ -45,6 +45,8 @@
                 :class="textColor"
               >
                 {{ card.balance || '0.00' }} BCH
+                <!-- NEW: Use Card class getBchBalance() method -->
+                <!-- {{ card?.getBchBalance ? card.getBchBalance() : (card?.balance || '0.00') }} BCH -->
               </div>
             </div>
           </div>
@@ -206,6 +208,7 @@ export default {
   mounted () {
     // when the page loads, fetch the cards in localStorage
     this.fetchCards()
+    // TODO: Switch to backend - use await this.getCards() instead
     
     // If no cards exist, redirect to card homepage
     if (this.subCards.length === 0) {
@@ -214,6 +217,43 @@ export default {
     
     // Fetch backend data for all cards - DISABLED
     // this.fetchCardsBackendData()
+    
+    /* NEW: Fetch real balances from backend using Card class
+     * Uncomment to enable real balance fetching:
+     * 
+     * async fetchCardBalances () {
+     *   if (this.subCards.length === 0) return
+     *   
+     *   try {
+     *     const { Card } = await import('src/services/card/card')
+     *     
+     *     for (const card of this.subCards) {
+     *       try {
+     *         const cardInstance = await Card.createInitialized(card)
+     *         
+     *         // Get BCH balance from server
+     *         const bchBalance = cardInstance.getBchBalance()
+     *         card.balance = bchBalance.toString()
+     *         
+     *         // Get Token balance
+     *         const tokenBalance = cardInstance.getTokenBalance()
+     *         console.log(`Card ${card.id} Token balance:`, tokenBalance)
+     *         
+     *         // Optionally get real-time balance from blockchain
+     *         // const contractBalance = await cardInstance.getContractBalance()
+     *         // console.log(`Card ${card.id} Contract balance:`, contractBalance)
+     *       } catch (error) {
+     *         console.error(`Error fetching balance for card ${card.id}:`, error)
+     *       }
+     *     }
+     *   } catch (error) {
+     *     console.error('Error fetching card balances:', error)
+     *   }
+     * }
+     * 
+     * // Call the method
+     * this.fetchCardBalances()
+     */
   },
 
   methods: {
@@ -258,6 +298,25 @@ export default {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
     },
+
+    /* NEW: Helper method to get card BCH balance using Card class
+     * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
+     * Falls back to card.balance from localStorage if method not available
+     * 
+     * Usage: {{ getCardBchBalance(card) }} in template
+     * 
+     * getCardBchBalance (card) {
+     *   if (!card) return '0.00'
+     *   try {
+     *     // Use getBchBalance() from Card class
+     *     const balance = card.getBchBalance?.() ?? card.balance
+     *     return typeof balance === 'number' ? balance.toFixed(2) : (balance || '0.00')
+     *   } catch (error) {
+     *     console.error('Error getting card balance:', error)
+     *     return card?.balance || '0.00'
+     *   }
+     * },
+     */
 
     getCardStyle (index) {
       const card = this.displayedCards[index]

@@ -141,6 +141,7 @@ export default {
   mounted () {
     // Check if cards exists as soon as the component loads
     this.checkExistingCards()
+    // TODO: Switch to backend - use await this.getCards() instead
   }
 }
 </script>

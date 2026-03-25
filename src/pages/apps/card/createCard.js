@@ -288,6 +288,27 @@ export const createCardLogic = {
         const cards = await cardUser.fetchCards()
         this.subCards = cards
         console.log('Fetched Cards:', cards)
+        
+        /* Use Card class methods to get balances
+         * // Get BCH balance from server data (card.raw.bch_balance)
+         * cards.forEach(card => {
+         *   const bchBalance = card.getBchBalance()
+         *   console.log(`Card ${card.id} BCH Balance:`, bchBalance)
+         * })
+         * 
+         * // Get Token balance count (card.raw.ct_balance.length)
+         * cards.forEach(card => {
+         *   const tokenBalance = card.getTokenBalance()
+         *   console.log(`Card ${card.id} Token Balance:`, tokenBalance)
+         * })
+         * 
+         * // Get real-time balance from blockchain (async)
+         * for (const card of cards) {
+         *   const contractBalance = await card.getContractBalance()
+         *   console.log(`Card ${card.id} Contract Balance:`, contractBalance)
+         * }
+         */
+        
         return cards
       },
 
@@ -531,6 +552,26 @@ export const createCardLogic = {
 
           await card.create(this.newCardName)
           this.createCardDialog = false; // close dialog
+          
+          /* Use Card class methods to get balance after creation
+          
+           * // Get BCH balance from server data (card.raw.bch_balance)
+           * const bchBalance = card.getBchBalance()
+           * console.log('New card BCH balance:', bchBalance)
+           * 
+           * // Get Token balance count (card.raw.ct_balance.length)
+           * const tokenBalance = card.getTokenBalance()
+           * console.log('New card token balance:', tokenBalance)
+           * 
+           * // Get real-time balance from blockchain (async)
+           * const contractBalance = await card.getContractBalance()
+           * console.log('New card contract balance:', contractBalance)
+           
+           * this.$q.notify({
+           *   message: `Card created! Balance: ${bchBalance} BCH`,
+           *   color: 'positive',
+           * })
+           */
 
           this.$q.notify({
             message: 'Card created successfully!',

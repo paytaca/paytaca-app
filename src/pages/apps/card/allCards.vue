@@ -76,6 +76,7 @@ export default {
 
   mounted () {
     this.fetchCards()
+    // TODO: Switch to backend - use await this.getCards() instead
     
     // If no cards exist, redirect to card homepage
     if (this.subCards.length === 0) {

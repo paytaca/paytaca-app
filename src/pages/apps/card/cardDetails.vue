@@ -68,6 +68,8 @@
                 :class="textColor"
               >
                 {{ activeCard?.balance || '0.00' }} BCH
+                <!-- NEW: Use Card class getBchBalance() method -->
+                <!-- {{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH -->
               </div>
               <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
             </div>
@@ -882,6 +884,8 @@
               :class="textColorGrey"
             >
               This will transfer all funds ({{ activeCard?.balance }} BCH) from your card back to your wallet.
+              <!-- NEW: Use Card class method -->
+              <!-- This will transfer all funds ({{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH) from your card back to your wallet. -->
             </div>
             <div 
               class="text-caption"
@@ -1028,6 +1032,7 @@ export default {
 
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
+      // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
       return balance > 0
     },
     
@@ -1045,6 +1050,7 @@ export default {
   mounted () {
     // Check if any cards exist - if not, redirect to card homepage
     const cards = this.CardStorage.getCards()
+    // TODO: Switch to backend - use await this.getCards() instead
     if (cards.length === 0) {
       this.$router.push({ name: 'app-card' })
       return
@@ -1094,6 +1100,38 @@ export default {
       return this.capitalizeFirst(name) || 'Card'
     },
 
+    /* Helper method to get card BCH balance using Card class
+     * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
+     * Falls back to card.balance from localStorage if method not available
+     * 
+     * Usage: {{ getCardBchBalance() }} in template
+     * 
+     * getCardBchBalance () {
+     *   if (!this.activeCard) return '0.00'
+     *   try {
+     *     // Use getBchBalance() from Card class
+     *     const balance = this.activeCard.getBchBalance?.() ?? this.activeCard.balance
+     *     return typeof balance === 'number' ? balance.toFixed(2) : (balance || '0.00')
+     *   } catch (error) {
+     *     console.error('Error getting card balance:', error)
+     *     return this.activeCard?.balance || '0.00'
+     *   }
+     * },
+     * 
+     * // Async version for real-time blockchain balance
+     * async getCardContractBalance () {
+     *   if (!this.activeCard) return '0.00'
+     *   try {
+     *     // Fetches directly from blockchain using getContractBalance()
+     *     const balance = await this.activeCard.getContractBalance()
+     *     return typeof balance === 'number' ? balance.toFixed(8) : (balance || '0.00')
+     *   } catch (error) {
+     *     console.error('Error getting contract balance:', error)
+     *     return this.activeCard?.balance || '0.00'
+     *   }
+     * },
+     */
+
     loadSpecificCard () {
       const cardId = this.$route.query.id
       // get card from storage
@@ -1110,8 +1148,7 @@ export default {
           this.activeCard.transactionAlerts = false
         }
         
-        // Fetch backend data - DISABLED
-        // this.fetchBackendData()
+        
       }
       else {
         console.error("Card not found in storage");
@@ -1529,6 +1566,7 @@ export default {
       if (!this.activeCard) return
 
       const balance = parseFloat(this.activeCard.balance) || 0
+      // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
 
       if (balance <= 0) {
         this.$q.notify({
