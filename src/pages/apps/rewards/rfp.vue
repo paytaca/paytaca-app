@@ -111,7 +111,7 @@
               class="button redeem-btn full-width q-mb-md card-help-highlight"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
-              :disable="points === 0 || redeemedPoints === 0"
+              :disable="points === 0 || redeemedPoints > 0"
               @click="openRedeemPointsDialog"
             />
 
