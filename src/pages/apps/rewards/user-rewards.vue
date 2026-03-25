@@ -620,10 +620,8 @@ export default {
           // send 5 initial points when user is a first time user and was referred
           if (urData.is_first_time_user) {
             await awardInitialUP({ ur: this.urId })
-              .then(async _resp => {
-                this.points = await this.urContract.getTokenBalance()
-                urData = await getUserRewardsData(this.urId)
-              })
+            urData = await getUserRewardsData(this.urId)
+            this.points = await this.urContract.getTokenBalance()
           }
         }
 
