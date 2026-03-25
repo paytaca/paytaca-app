@@ -10,10 +10,10 @@
     <q-card 
       class="q-pa-md pt-card text-bow br-15" 
       :class="getDarkModeClass(darkMode)"
-      style="max-width: 450px; width: 90vw;"
+      style="max-width: 450px; width: 90vw; max-height: 85vh; display: flex; flex-direction: column;"
     >
       <!-- Header -->
-      <div class="row justify-between items-center q-mb-md">
+      <div class="row justify-between items-center q-mb-sm dialog-header">
         <div class="row items-center q-gutter-sm">
           <q-icon name="card_giftcard" size="28px" color="primary" />
           <span class="text-h6 text-weight-bold">{{ $t('RedeemPoints', 'Redeem Points') }}</span>
@@ -28,257 +28,263 @@
         />
       </div>
 
-      <!-- Loading State - Skeleton -->
-      <div v-if="isLoading" class="skeleton-container q-py-md">
-        <div class="text-center q-mb-lg">
-          <q-skeleton type="text" width="120px" height="40px" class="q-mx-auto q-mb-sm" />
-          <q-skeleton type="text" width="80px" height="20px" class="q-mx-auto" />
+      <q-separator class="q-mb-md" />
+
+      <div class="dialog-content scrollable-content">
+        <!-- Loading State - Skeleton -->
+        <div v-if="isLoading" class="skeleton-container q-py-md">
+          <div class="text-center q-mb-lg">
+            <q-skeleton type="text" width="120px" height="40px" class="q-mx-auto q-mb-sm" />
+            <q-skeleton type="text" width="80px" height="20px" class="q-mx-auto" />
+          </div>
+          
+          <q-card class="q-mb-md" flat bordered>
+            <q-card-section>
+              <q-skeleton type="text" width="100px" class="q-mb-sm" />
+              <q-skeleton type="rect" height="60px" class="q-mb-md" />
+              <q-skeleton type="text" width="150px" class="q-mb-xs" />
+              <q-skeleton type="text" width="80%" />
+            </q-card-section>
+          </q-card>
+
+          <q-card flat bordered>
+            <q-card-section>
+              <q-skeleton type="text" width="80px" class="q-mb-md" />
+              <q-skeleton type="rect" height="56px" class="q-mb-md" />
+              <div class="row justify-between q-mb-sm">
+                <q-skeleton type="text" width="60px" />
+                <q-skeleton type="text" width="40px" />
+              </div>
+              <q-skeleton type="rect" height="48px" />
+            </q-card-section>
+          </q-card>
         </div>
-        
-        <q-card class="q-mb-md" flat bordered>
-          <q-card-section>
-            <q-skeleton type="text" width="100px" class="q-mb-sm" />
-            <q-skeleton type="rect" height="60px" class="q-mb-md" />
-            <q-skeleton type="text" width="150px" class="q-mb-xs" />
-            <q-skeleton type="text" width="80%" />
-          </q-card-section>
-        </q-card>
 
-        <q-card flat bordered>
-          <q-card-section>
-            <q-skeleton type="text" width="80px" class="q-mb-md" />
-            <q-skeleton type="rect" height="56px" class="q-mb-md" />
-            <div class="row justify-between q-mb-sm">
-              <q-skeleton type="text" width="60px" />
-              <q-skeleton type="text" width="40px" />
-            </div>
-            <q-skeleton type="rect" height="48px" />
-          </q-card-section>
-        </q-card>
-      </div>
+        <!-- Error State -->
+        <div v-else-if="loadingError" class="text-center q-ma-sm">
+          <error-card
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            :error-text="loadingError"
+            @on-retry="fetchContractPoints"
+          />
+        </div>
 
-      <!-- Error State -->
-      <div v-else-if="loadingError" class="text-center q-ma-sm">
-        <error-card
-          :is-points-card="true"
-          :is-rewards-home-page="false"
-          :error-text="loadingError"
-          @on-retry="fetchContractPoints"
-        />
-      </div>
-
-      <!-- Main Content -->
-      <template v-else>
-        <!-- Points Hero Section -->
-        <div class="points-hero-section text-center q-mb-lg">
-          <div 
-            class="points-display-container q-pa-md rounded-borders"
-            :class="darkMode ? 'bg-dark-3' : 'bg-grey-2'"
-          >
-            <div class="text-caption text-uppercase q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-              {{ $t('RemainingPoints', 'Remaining Points') }}
-            </div>
-            <div class="row flex-center">
-              <span 
-                class="text-h4 text-bold text-primary animated-points"
-                :class="{ 'animate': isPointsAnimating }"
-              >
-                {{ displayPoints }}
-              </span>
-              <span 
-                class="text-subtitle1 text-weight-bold q-ml-sm"
-                :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
-              >
-                points
-              </span>
-            </div>
-            
-            <!-- Promo Limit Progress Bar -->
-            <div v-if="redeemablePoints" class="promo-limit-section q-mt-md">
-              <div class="row justify-between items-center q-mb-xs">
-                <span class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                  {{ $t('PromoLimit', 'Promo Limit') }}
+        <!-- Main Content -->
+        <template v-else>
+          <!-- Points Hero Section -->
+          <div class="points-hero-section text-center q-mb-lg">
+            <div 
+              class="points-display-container q-pa-md rounded-borders"
+              :class="darkMode ? 'bg-dark-3' : 'bg-grey-2'"
+            >
+              <div class="text-caption text-uppercase q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('RemainingPoints', 'Remaining Points') }}
+              </div>
+              <div class="row flex-center">
+                <span 
+                  class="text-h4 text-bold text-primary animated-points"
+                  :class="{ 'animate': isPointsAnimating }"
+                >
+                  {{ displayPoints }}
                 </span>
                 <span 
-                  class="text-caption text-weight-medium"
-                  :class="promoLimitExceeded ? 'text-negative' : 'text-positive'"
+                  class="text-subtitle1 text-weight-bold q-ml-sm"
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                 >
-                  {{ Math.max(0, redeemablePoints - Number(pointsToRedeem || 0)) }} points remaining
+                  points
                 </span>
               </div>
-              <q-linear-progress
-                :value="promoProgressValue"
-                :color="promoProgressColor"
-                size="8px"
-                rounded
-                class="promo-progress-bar"
-                :class="{ 'exceeded': promoLimitExceeded }"
-              />
-              <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                {{ $t('MaxRedeemable', 'Max redeemable') }}: {{ maxRedeemable }} points
+              
+              <!-- Promo Limit Progress Bar -->
+              <div v-if="redeemablePoints" class="promo-limit-section q-mt-md">
+                <div class="row justify-between items-center q-mb-xs">
+                  <span class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
+                    {{ $t('PromoLimit', 'Promo Limit') }}
+                  </span>
+                  <span 
+                    class="text-caption text-weight-medium"
+                    :class="promoLimitExceeded ? 'text-negative' : 'text-positive'"
+                  >
+                    {{ Math.max(0, redeemablePoints - Number(pointsToRedeem || 0)) }} points remaining
+                  </span>
+                </div>
+                <q-linear-progress
+                  :value="promoProgressValue"
+                  :color="promoProgressColor"
+                  size="8px"
+                  rounded
+                  class="promo-progress-bar"
+                  :class="{ 'exceeded': promoLimitExceeded }"
+                />
+                <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
+                  {{ $t('MaxRedeemable', 'Max redeemable') }}: {{ maxRedeemable }} points
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Token Address Card -->
-        <q-card 
-          class="token-address-card q-mb-md" 
-          flat 
-          bordered
-          :class="getDarkModeClass(darkMode)"
-        >
-          <q-card-section class="q-px-md q-py-sm">
-            <div class="row items-center q-gutter-sm">
-              <q-icon name="account_balance_wallet" size="20px" color="primary" />
-              <span class="text-caption text-weight-medium">
-                {{ $t('DestinationAddress', 'Destination Address') }}
-              </span>
-            </div>
-            <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
-              <div class="row items-center no-wrap">
-                <q-icon name="vpn_key" size="16px" class="q-mr-sm" color="primary" />
-                <span class="text-body2 text-grey-8 ellipsis">{{ tokenAddress }}</span>
+          <!-- Token Address Card -->
+          <q-card 
+            class="token-address-card q-mb-md" 
+            flat 
+            bordered
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-card-section class="q-px-md q-py-sm">
+              <div class="row items-center q-gutter-sm">
+                <q-icon name="account_balance_wallet" size="20px" color="primary" />
+                <span class="text-caption text-weight-medium">
+                  {{ $t('DestinationAddress', 'Destination Address') }}
+                </span>
+              </div>
+              <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
+                <div class="row items-center no-wrap">
+                  <q-icon name="vpn_key" size="16px" class="q-mr-sm" color="primary" />
+                  <span class="text-body2 text-grey-8 ellipsis">{{ tokenAddress }}</span>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    icon="content_copy"
+                    class="q-ml-auto"
+                    @click="copyTokenAddress"
+                  >
+                    <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+
+          <!-- Amount Input Section -->
+          <q-card flat bordered class="amount-input-card" :class="getDarkModeClass(darkMode)">
+            <q-card-section class="q-px-md q-py-sm">
+              <div class="text-subtitle2 text-weight-medium q-mb-sm">
+                <q-icon name="toll" size="16px" class="q-mr-sm" color="primary" />
+                {{ $t('AmountToRedeem', 'Amount to Redeem') }}
+              </div>
+              
+              <q-input
+                ref="points-input"
+                type="text"
+                inputmode="none"
+                @focus="customKeyboardState = 'show'"
+                filled
+                v-model="pointsToRedeem"
+                :dark="darkMode"
+                class="amount-input"
+                input-class="text-h6 text-center"
+              >
+                <template v-slot:append>
+                  <div class="text-weight-bold text-primary" style="font-size: 14px;">
+                    points
+                  </div>
+                </template>
+              </q-input>
+
+              <!-- Quick Amount Buttons -->
+              <div class="row q-gutter-sm q-mt-sm">
                 <q-btn
-                  flat
+                  v-for="percent in quickAmounts"
+                  :key="percent"
+                  :outline="activeQuickAmount !== percent"
+                  :color="activeQuickAmount === percent ? 'primary' : ''"
                   dense
-                  round
+                  no-caps
                   size="sm"
-                  icon="content_copy"
-                  class="q-ml-auto"
-                  @click="copyTokenAddress"
-                >
-                  <q-tooltip>{{ $t('Copy') }}</q-tooltip>
-                </q-btn>
+                  class="quick-amount-btn col"
+                  :class="getDarkModeClass(darkMode)"
+                  :label="percent === 100 ? 'MAX' : `${percent}%`"
+                  @click="setQuickAmount(percent)"
+                  :disable="isCalculatingQuickAmount"
+                />
               </div>
-            </div>
-          </q-card-section>
-        </q-card>
+            </q-card-section>
+          </q-card>
 
-        <!-- Amount Input Section -->
-        <q-card flat bordered class="amount-input-card" :class="getDarkModeClass(darkMode)">
-          <q-card-section class="q-px-md q-py-sm">
-            <div class="text-subtitle2 text-weight-medium q-mb-sm">
-              <q-icon name="toll" size="16px" class="q-mr-sm" color="primary" />
-              {{ $t('AmountToRedeem', 'Amount to Redeem') }}
-            </div>
-            
-            <q-input
-              ref="points-input"
-              type="text"
-              inputmode="none"
-              @focus="customKeyboardState = 'show'"
-              filled
-              v-model="pointsToRedeem"
-              :dark="darkMode"
-              class="amount-input"
-              input-class="text-h6 text-center"
-            >
-              <template v-slot:append>
-                <div class="text-weight-bold text-primary" style="font-size: 14px;">
-                  points
-                </div>
-              </template>
-            </q-input>
-
-            <!-- Quick Amount Buttons -->
-            <div class="row q-gutter-sm q-mt-sm">
-              <q-btn
-                v-for="percent in quickAmounts"
-                :key="percent"
-                :outline="activeQuickAmount !== percent"
-                :color="activeQuickAmount === percent ? 'primary' : ''"
-                dense
-                no-caps
-                size="sm"
-                class="quick-amount-btn col"
-                :class="getDarkModeClass(darkMode)"
-                :label="percent === 100 ? 'MAX' : `${percent}%`"
-                @click="setQuickAmount(percent)"
-                :disable="isCalculatingQuickAmount"
-              />
-            </div>
-          </q-card-section>
-        </q-card>
-
-        <!-- Redeem Progress Preview -->
-        <q-slide-transition :duration="300">
-          <div v-if="Number(pointsToRedeem) > 0 && !hasValidationError" class="redeem-preview q-mt-md">
-            <q-card 
-              flat 
-              bordered 
-              class="preview-card"
-              :class="[getDarkModeClass(darkMode), { 'pulse-animation': isRedeemReady }]"
-            >
-              <q-card-section class="q-pa-sm">
-                <div class="row items-center q-gutter-md">
-                  <div class="preview-icon-container">
-                    <q-icon name="arrow_forward" size="24px" color="white" />
-                  </div>
-                  <div class="col">
-                    <div class="text-caption text-uppercase" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                      {{ $t('YouWillReceive') }}
+          <!-- Redeem Progress Preview -->
+          <q-slide-transition :duration="300">
+            <div v-if="Number(pointsToRedeem) > 0 && !hasValidationError" class="redeem-preview q-mt-md">
+              <q-card 
+                flat 
+                bordered 
+                class="preview-card"
+                :class="[getDarkModeClass(darkMode), { 'pulse-animation': isRedeemReady }]"
+              >
+                <q-card-section class="q-pa-sm">
+                  <div class="row items-center q-gutter-md">
+                    <div class="preview-icon-container">
+                      <q-icon name="arrow_forward" size="24px" color="white" />
                     </div>
-                    <div class="text-h6 text-weight-bold text-positive">
-                      {{ pointsToRedeem }} LIFT
-                    </div>
-                    <div class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
-                      {{ $t('ToYourTokenAddress', 'to your token address') }}
+                    <div class="col">
+                      <div class="text-caption text-uppercase" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                        {{ $t('YouWillReceive') }}
+                      </div>
+                      <div class="text-h6 text-weight-bold text-positive">
+                        {{ pointsToRedeem }} LIFT
+                      </div>
+                      <div class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
+                        {{ $t('ToYourTokenAddress', 'to your token address') }}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </q-slide-transition>
-
-        <!-- Validation Error Alert -->
-        <q-slide-transition :duration="300">
-          <div v-if="hasValidationError" class="q-mt-md">
-            <q-banner class="bg-negative text-white rounded-borders" dense>
-              <template v-slot:avatar>
-                <q-icon name="error" />
-              </template>
-              {{ validationErrorMessage }}
-            </q-banner>
-          </div>
-        </q-slide-transition>
-
-        <!-- Action Buttons -->
-        <div class="row full-width justify-evenly q-mt-lg">
-          <template v-if="isSending">
-            <div class="text-center full-width">
-              <progress-loader :isTight="true" class="q-mb-md" />
-              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-                {{ $t('ProcessingRedemption', 'Processing redemption...') }}
-              </div>
+                </q-card-section>
+              </q-card>
             </div>
-          </template>
-          <template v-else>
-            <q-btn
-              rounded
-              outline
-              class="button button-text-primary action-btn"
-              :class="getDarkModeClass(darkMode)"
-              :label="$t('Cancel')"
-              v-close-popup
-            />
-            <q-btn
-              rounded
-              class="button action-btn redeem-btn"
-              :class="{ 'animate-pulse': isRedeemReady }"
-              :label="$t('Redeem')"
-              :disable="!isRedeemReady"
-              :loading="isSending"
-              @click="executeSecurityChecking"
-            >
-              <template v-slot:loading>
-                <q-spinner-dots color="white" />
-              </template>
-            </q-btn>
-          </template>
-        </div>
-      </template>
+          </q-slide-transition>
+
+          <!-- Validation Error Alert -->
+          <q-slide-transition :duration="300">
+            <div v-if="hasValidationError" class="q-mt-md">
+              <q-banner class="bg-negative text-white rounded-borders" dense>
+                <template v-slot:avatar>
+                  <q-icon name="error" />
+                </template>
+                {{ validationErrorMessage }}
+              </q-banner>
+            </div>
+          </q-slide-transition>
+        </template>
+      </div>
+
+      <q-separator class="q-mt-md" />
+
+      <!-- Action Buttons -->
+      <div class="row full-width justify-evenly q-mt-md dialog-footer">
+        <template v-if="isSending">
+          <div class="text-center full-width">
+            <progress-loader :isTight="true" class="q-mb-md" />
+            <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+              {{ $t('ProcessingRedemption', 'Processing redemption...') }}
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <q-btn
+            rounded
+            outline
+            class="button button-text-primary action-btn"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('Cancel')"
+            v-close-popup
+          />
+          <q-btn
+            rounded
+            class="button action-btn redeem-btn"
+            :class="{ 'animate-pulse': isRedeemReady }"
+            :label="$t('Redeem')"
+            :disable="!isRedeemReady"
+            :loading="isSending"
+            @click="executeSecurityChecking"
+          >
+            <template v-slot:loading>
+              <q-spinner-dots color="white" />
+            </template>
+          </q-btn>
+        </template>
+      </div>
     </q-card>
 
     <!-- Success Celebration Overlay -->
@@ -899,6 +905,64 @@ export default {
 .dark {
   .token-address-box {
     background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+// Sticky header and scrollable content styles
+.dialog-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: inherit;
+  padding-bottom: 8px;
+}
+
+.scrollable-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
+  margin-right: -4px;
+  
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Sticky footer styles
+.dialog-footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: inherit;
+  padding-top: 8px;
+}
+
+// Dark mode scrollbar
+.dark .scrollable-content {
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 }
 </style>
