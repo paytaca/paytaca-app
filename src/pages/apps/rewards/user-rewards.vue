@@ -619,44 +619,45 @@ export default {
 
           // send 5 initial points when user is a first time user and was referred
           if (urData.is_first_time_user) {
-            setTimeout(async () => {
-              await awardInitialUP({ ur: this.urId })
-                .then(async _resp => {
-                  this.points = await this.urContract.getTokenBalance()
-                  urData = await getUserRewardsData(this.urId)
-                })
-            }, 1000);
+            await awardInitialUP({ ur: this.urId })
+              .then(async _resp => {
+                this.points = await this.urContract.getTokenBalance()
+                urData = await getUserRewardsData(this.urId)
+              })
           }
         }
 
-        // one-time points
-        this.isFirstTimeUser = urData.is_first_time_user
-        this.isFirstSevenComplete = urData.is_first_seven_complete
-        this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
-        this.hasReceivedFirstTxBonus = urData.has_received_first_tx_bonus
-        this.firstTxDate = urData.first_tx_date
-        this.dateJoined = urData.date_joined
-
-        // continuous points marketplace
-        this.totalMarketplaceTxCount = urData.total_transaction_count
-        this.totalMarketplacePoints = urData.total_marketplace_points
-        this.firstMarketplaceTxDate = urData.first_transaction_date
-        this.lastMarketplaceTxDate = urData.last_transaction_date
-
-        this.firstSevenTransactions = urData.ur_seven_transactions
-        for (let i = this.firstSevenTransactions.length; i < 7; i++) {
-          this.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
-        }
-
-        // collapse one-time points if done collecting everything
-        if (this.completedOneTimeCount === this.totalOneTimeTasks) {
-          this.isOneTimeSectionExpanded = false
-        }
+        this.propagateData(urData)
       } else {
         this.dataError = this.$t('FailedToLoadData', 'Unable to load at the moment. Please try again later.')
       }
 
       this.isLoading = false
+    },
+    propagateData (urData) {
+      // one-time points
+      this.isFirstTimeUser = urData.is_first_time_user
+      this.isFirstSevenComplete = urData.is_first_seven_complete
+      this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
+      this.hasReceivedFirstTxBonus = urData.has_received_first_tx_bonus
+      this.firstTxDate = urData.first_tx_date
+      this.dateJoined = urData.date_joined
+
+      // continuous points marketplace
+      this.totalMarketplaceTxCount = urData.total_transaction_count
+      this.totalMarketplacePoints = urData.total_marketplace_points
+      this.firstMarketplaceTxDate = urData.first_transaction_date
+      this.lastMarketplaceTxDate = urData.last_transaction_date
+
+      this.firstSevenTransactions = urData.ur_seven_transactions
+      for (let i = this.firstSevenTransactions.length; i < 7; i++) {
+        this.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
+      }
+
+      // collapse one-time points if done collecting everything
+      if (this.completedOneTimeCount === this.totalOneTimeTasks) {
+        this.isOneTimeSectionExpanded = false
+      }
     },
 
     animatePointsCounter () {
