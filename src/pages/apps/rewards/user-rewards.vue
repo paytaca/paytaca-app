@@ -617,7 +617,10 @@ export default {
           if (urData.is_first_time_user) {
             await awardInitialUP({ ur: this.urId })
             urData = await getUserRewardsData(this.urId)
+            // sleep to allow utxos to update
+            await new Promise(resolve => setTimeout(resolve, 1000))
             this.points = await this.urContract.getTokenBalance()
+            this.animatePointsCounter()
           }
 
           // display help dialog if has_viewed_page is false
