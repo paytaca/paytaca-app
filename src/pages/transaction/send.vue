@@ -2144,25 +2144,26 @@ export default {
             query,
             state
           })
+          
+          // Handle points in background (non-blocking) – do not delay success feedback
+          await processOnetimePoints({
+            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            ref_id: hexToRef(result.txid.substring(0, 6)),
+            tx_id: result.txid
+          }).then(resp => {
+            if (resp) {
+              vm.$q.dialog({
+                component: PointsReceivedDialog,
+                componentProps: {
+                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
+                }
+              })
+            }
+          }).catch(err => {
+            console.warn('[Send] Points API failed:', err)
+          })
         }
 
-        // Handle points in background (non-blocking) – do not delay success feedback
-        await processOnetimePoints({
-          bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-          ref_id: hexToRef(result.txid.substring(0, 6)),
-          tx_id: result.txid
-        }).then(resp => {
-          if (resp) {
-            vm.$q.dialog({
-              component: PointsReceivedDialog,
-              componentProps: {
-                hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
-              }
-            })
-          }
-        }).catch(err => {
-          console.warn('[Send] Points API failed:', err)
-        })
         // if (!vm.assetId?.startsWith?.('ct/')) {
           // Promise.all([
           //   processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
