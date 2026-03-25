@@ -106,6 +106,7 @@ export const createCardLogic = {
         createCardDialog: false,
         subCards: [],
         contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
+        // TODO: Replace with card_instance.raw.cash_address from Card class when backend is enabled
         CardStorage, // Expose CardStorage utilities to components
         hasOrderedPhysicalCard: false,
         // Merchant data - will be populated from real API

@@ -489,6 +489,7 @@ export default {
         balance: '0.00', // New card has 0 BCH balance
         status: 'Active',
         contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
+        // TODO: Replace with card_instance.raw.cash_address or card_instance.raw.token_address from Card class
         isLocked: false,
         cardReplacementStatus: 'none'
       }

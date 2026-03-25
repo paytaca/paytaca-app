@@ -40,6 +40,7 @@
           :text="String(selectedCard.contractAddress)"
           :size="150"
         />
+        <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class for QR code -->
       </q-card-section>
 
       <!-- Contract Address with Copy Icon -->
@@ -50,8 +51,9 @@
             round
             dense
             icon="content_copy"
-            @click="copyToClipboard(selectedCard.contractAddress)"
-          />
+          @click="copyToClipboard(selectedCard.contractAddress)"
+        />
+        <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
       </q-card-section>
 
       <!-- Spend Limit -->
