@@ -427,7 +427,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
 import WatchtowerExtended from 'src/lib/watchtower'
-import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType,
+  generateAddressSetWithoutSubscription
+} from 'src/utils/address-generation-utils'
 import { toTokenAddress } from 'src/utils/crypto'
 import axios from 'axios'
 import {
@@ -449,10 +453,7 @@ import {
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
-import {
-  processCashinPoints,
-  processOnetimePoints
-} from 'src/utils/engagementhub-utils/rewards'
+import { processMerchantOtcPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 
@@ -2146,16 +2147,29 @@ export default {
           })
           
           // Handle points in background (non-blocking) – do not delay success feedback
-          await processOnetimePoints({
-            bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            ref_id: hexToRef(result.txid.substring(0, 6)),
-            tx_id: result.txid
-          }).then(resp => {
-            if (resp) {
+          Promise.allSettled([
+            processOnetimePoints({
+              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
+              ref_id: hexToRef(result.txid.substring(0, 6)),
+              tx_id: result.txid
+            }),
+            processMerchantOtcPoints({
+              ref_id: hexToRef(result.txid.substring(0, 6)),
+              tx_id: result.txid,
+              customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+              merchant_address: this.recipients[0].recipientAddress
+            })
+          ]).then(([oneTimeResp, otcResp]) => {
+            const oneTimeVal = oneTimeResp.value
+            const otcVal = otcResp.value
+            if (oneTimeVal !== null || otcVal !== null) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
+                  isFirstSevenTx: !!oneTimeVal,
+                  hasReceivedFirstTxBonus: oneTimeVal?.has_received_first_tx_bonus ?? false,
+                  isMerchantOtcTx: !!otcVal,
+                  merchantName: otcVal?.merchant_name ?? ''
                 }
               })
             }
@@ -2163,28 +2177,6 @@ export default {
             console.warn('[Send] Points API failed:', err)
           })
         }
-
-        // if (!vm.assetId?.startsWith?.('ct/')) {
-          // Promise.all([
-          //   processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
-          //   processOnetimePoints({
-          //     bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-          //     ref_id: result.txid.substring(0, 6)
-          //   })
-          // ]).then(([cashinResp, onetimePointsResp]) => {
-          //   if (cashinResp || onetimePointsResp) {
-          //     vm.$q.dialog({
-          //       component: PointsReceivedDialog,
-          //       componentProps: {
-          //         hasReceivedCashinPoints: cashinResp,
-          //         hasReceivedOneTimePoints: onetimePointsResp
-          //       }
-          //     })
-          //   }
-          // }).catch(err => {
-          //   console.warn('[Send] Points API failed:', err)
-          // })
-        // }
       } else sendPageUtils.submitPromiseErrorResponseHandler(result, walletType)
     },
 
