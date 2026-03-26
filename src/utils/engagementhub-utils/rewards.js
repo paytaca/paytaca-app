@@ -112,6 +112,21 @@ async function updateData (url, data) {
     })
 }
 
+async function postFetchData (url, data) {
+  return await REWARDS_URL
+    .post(url, data)
+    .then(response => {
+      if (response.status === 200) return response.data
+      else if (resp.status === 404) return {}
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      if (error?.message.includes('404')) return {}
+      else return null
+    })
+}
+
 // ========== get functions ==========
 
 export async function getUserPromoData () {
@@ -166,18 +181,7 @@ export async function updateRfPromoData (id, data) {
 // ========== other functions ==========
 
 export async function fetchMerchantTransactionsData (data) {
-  return await REWARDS_URL
-    .post('userreward/get_ur_merchant_transactions/', data)
-    .then(response => {
-      if (response.status === 200) return response.data
-      else if (resp.status === 404) return {}
-      else return null
-    })
-    .catch(error => {
-      console.error(error)
-      if (error?.message.includes('404')) return {}
-      else return null
-    })
+  return await postFetchData('userreward/get_ur_merchant_transactions/', data)
 }
 
 export async function getPromoRedeemHistory (promo, data) {
@@ -186,18 +190,7 @@ export async function getPromoRedeemHistory (promo, data) {
     'rp': 'rfpromo/get_rp_redeem_history/'
   }
 
-  return await REWARDS_URL
-    .post(promoUrl[promo], data)
-    .then(response => {
-      if (response.status === 200) return response.data
-      else if (resp.status === 404) return {}
-      else return null
-    })
-    .catch(error => {
-      console.error(error)
-      if (error?.message.includes('404')) return {}
-      else return null
-    })
+  return await postFetchData(promoUrl[promo], data)
 }
 
 export async function processReferralCode (data) {
