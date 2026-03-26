@@ -576,7 +576,7 @@ export default {
         // Initialize WizardConnect at app startup
         this.$store.dispatch('wizardconnect/init')
           .then((manager) => {
-            if (!manager || true) {
+            if (!webSocketManager) {
               const errorMessage = this.$t('NoWizardConnectServiceFound', {}, 'No wizard connect service found');
               throw new Error(errorMessage);
             }
@@ -584,7 +584,7 @@ export default {
           })
           .catch((error) => {
             const errorMessages = [this.$t('WizardConnectFailedToLoad', {}, 'Wizard Connect failed to load')]
-            if (Platform.is.ios || true) {
+            if (Platform.is.ios) {
               errorMessages.push(this.$t('ConsiderUpdatingIOSVersion', {}, 'Consider updating iOS version'))
             }
 
