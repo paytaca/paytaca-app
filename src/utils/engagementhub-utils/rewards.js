@@ -203,17 +203,21 @@ export async function processReferralCode (data) {
     })
 }
 
-export async function processOnetimePoints (data) {
-  return await processPoints('userreward/process_onetime_points/', data)
-}
-
-export async function processPointsRedemption (data) {
-  return await processPoints('userpromo/process_points_redemption/', data)
-}
-
 export async function awardInitialUP (data) {
   return await REWARDS_URL
     .post('userreward/award_initial_points/', data)
     .then(_response => { })
     .catch(error => { console.error(error) })
+}
+
+export async function processOnetimePoints (data) {
+  return await processPoints('userreward/process_onetime_points/', data)
+}
+
+export async function processMerchantOtcPoints (data) {
+  return await processPoints('userreward/process_merchant_otc_points/', data)
+}
+
+export async function processPointsRedemption (data) {
+  return await processPoints('userpromo/process_points_redemption/', data)
 }
