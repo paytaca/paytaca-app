@@ -569,18 +569,28 @@ export default {
       
       if (app.id === 'wizardconnect') {
         const loadingGroupName = 'wizardconnect-init';
-        this.$q.loading.show({ group: loadingGroupName, message: 'Initializing wizard connect' })
+        this.$q.loading.show({
+          group: loadingGroupName,
+          message: this.$t('InitializingWizardConnect', {}, 'Initializing wizard connect')
+        })
         // Initialize WizardConnect at app startup
         this.$store.dispatch('wizardconnect/init')
           .then((manager) => {
-            if (!manager) throw new Error('No wizard connect service found');
+            if (!manager || true) {
+              const errorMessage = this.$t('NoWizardConnectServiceFound', {}, 'No wizard connect service found');
+              throw new Error(errorMessage);
+            }
             this.$router.push(app.path)
           })
           .catch((error) => {
-            const iosAdditionalMsg = Platform.is.ios ? '. Consider updating iOS version' : ''
+            const errorMessages = [this.$t('WizardConnectFailedToLoad', {}, 'Wizard Connect failed to load')]
+            if (Platform.is.ios || true) {
+              errorMessages.push(this.$t('ConsiderUpdatingIOSVersion', {}, 'Consider updating iOS version'))
+            }
+
             this.$q.notify({
               type: 'negative',
-              message: 'Wizard Connect failed to load' + iosAdditionalMsg,
+              message: errorMessages.join('. '),
               caption: String(error?.message ?? error),
             })
             console.error('Failed to initialize WizardConnect:', error)
