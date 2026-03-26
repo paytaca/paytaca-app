@@ -280,7 +280,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   Promos,
   PromosBytes,
-  convertPoints,
   getRfPromoData,
   createRfPromoData,
   updateRfPromoData,
@@ -347,9 +346,6 @@ export default {
     },
     getRemainingRedeemable () {
       return this.rpMax - this.redeemedPoints
-    },
-    pointsConvertion () {
-      return convertPoints(this.points, this.pointsDivisor)
     },
     totalReferralsCount () {
       return this.referralsList.length

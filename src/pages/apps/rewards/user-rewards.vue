@@ -449,7 +449,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   Promos,
   PromosBytes,
-  convertPoints,
   awardInitialUP,
   getUserRewardsData,
   updateUserPromoData,
@@ -529,9 +528,6 @@ export default {
     },
     theme () {
       return this.$store.getters['global/theme']
-    },
-    pointsConvertion () {
-      return convertPoints(this.points, this.pointsDivisor)
     },
     completedOneTimeCount () {
       let count = 0

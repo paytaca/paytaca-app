@@ -1,10 +1,6 @@
-import { deriveHdPrivateNodeFromSeed, deriveHdPath, secp256k1 } from '@bitauth/libauth'
 import axios from 'axios'
 
 import { Store } from 'src/store'
-import { convertToBCH, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getMnemonic } from 'src/wallet'
-import { getWallet } from 'src/utils/send-page-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 
@@ -12,7 +8,6 @@ import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 //   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
-
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY || '8473d94f604de351cdee3030f6c354d36b257861ad8e95bbc0a06fbab2a2f9cf'
 
 export const Promos = {
@@ -61,21 +56,6 @@ export async function getWalletTokenAddress () {
     throw new Error('Failed to generate BCH address')
   }
   return convertCashAddress(bchAddress, false, true)
-}
-
-export function convertPoints (points, pointsDivisor) {
-  const fiat = points / pointsDivisor
-  // use PHP for conversion basis
-  const phpFiat = Store.getters['market/getAssetPrice']('bch', 'PHP')
-  const bch = convertToBCH(denomination(), fiat / phpFiat)
-
-  const convertedFiat = Store.getters['market/getAssetPrice']('bch', fiatCurrency())
-  const bchNum = Number(bch) === 0 || Number.isNaN(Number(bch)) ? '0' : bch.toFixed(8)
-  const fiatAmount = Number(bchNum) * Number(convertedFiat)
-  const finalFiat = parseFiatCurrency(fiatAmount, fiatCurrency())
-  const finalBch = `${bchNum} ${denomination()}`
-
-  return `${finalFiat} or ${finalBch}`
 }
 
 // ================================
@@ -230,51 +210,12 @@ export async function processReferralCode (data) {
     })
 }
 
-export async function getPromoPointsDivisorData () {
-  return await REWARDS_URL
-    .get('promopointsdivisor/')
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      // return initial values set during first marketing planning
-      return {
-        ur_divisor: 4,
-        rfp_divisor: 4
-      }
-    })
-}
-
-export async function processCashinPoints (data) {
-  return await processPoints('userreward/process_cashin_points/', data)
-}
-
 export async function processOnetimePoints (data) {
   return await processPoints('userreward/process_onetime_points/', data)
 }
 
-export async function processContinuousPoints (data) {
-  return await processPoints('userreward/process_continuous_points/', data)
-}
-
 export async function processPointsRedemption (data) {
   return await processPoints('userpromo/process_points_redemption/', data)
-}
-
-export async function getContractInitialBalance (data) {
-  return await REWARDS_URL
-    .post('userpromo/send_contract_initial_balance/', data)
-    .then(response => { return response.status === 200 })
-    .catch(_error => { return false })
-}
-
-export async function sendAuthkeyNftToWallet (tokenAddress) {
-  return await REWARDS_URL
-    .post('userpromo/send_authkeynft/', {
-      token_address: tokenAddress,
-      user_wallet_hash: getWalletHash()
-    })
-    .then(_response => { })
-    .catch(error => { console.error(error) } )
 }
 
 export async function awardInitialUP (data) {
