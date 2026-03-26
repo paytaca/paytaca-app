@@ -48,7 +48,7 @@
     <!-- Sort Control -->
     <div class="row items-center justify-between q-mt-sm">
       <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-        {{ $t('Showing') }} {{ displayCount }} {{ $t('transactions') }}
+        {{ $t('Showing') }} {{ displayCount }} {{ $t(displayCount === 1 ? 'transaction' : 'transactions') }}
       </div>
       
       <q-btn
