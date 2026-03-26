@@ -99,6 +99,9 @@ function createAdapter(nodes) {
 
 /** @type {typeof import('@wizardconnect/wallet').WalletConnectionManager} */
 let WalletConnectionManager;
+/**
+ * @returns {Promise<import('@wizardconnect/wallet').WalletConnectionManager>}
+ */
 export async function getManager() {
   if (_manager) return _manager
 
@@ -140,6 +143,7 @@ export function reset() {
   if (_manager) {
     _manager.disconnectAll()
   }
+  _walletHash = null;
   _manager = null
   _hdNodes = null
 }
