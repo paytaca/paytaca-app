@@ -571,16 +571,17 @@ export default {
         const loadingGroupName = 'wizardconnect-init';
         this.$q.loading.show({ group: loadingGroupName, message: 'Initializing wizard connect' })
         // Initialize WizardConnect at app startup
-        store.dispatch('wizardconnect/init')
-          .then(() => {
+        this.$store.dispatch('wizardconnect/init')
+          .then((manager) => {
+            if (!manager) throw new Error('No wizard connect service found');
             this.$router.push(app.path)
           })
-          .catch(() => {
+          .catch((error) => {
             const iosAdditionalMsg = Platform.is.ios ? '. Consider updating iOS version' : ''
             this.$q.notify({
               type: 'negative',
               message: 'Wizard Connect failed to load' + iosAdditionalMsg,
-              caption: String(error),
+              caption: String(error?.message ?? error),
             })
             console.error('Failed to initialize WizardConnect:', error)
           })

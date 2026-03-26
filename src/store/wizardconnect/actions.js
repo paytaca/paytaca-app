@@ -117,6 +117,7 @@ export async function init ({ commit, dispatch, rootGetters }) {
   // Sync initial connection state
   const connections = serializeConnections(manager.getConnections())
   commit('setConnections', connections)
+  return manager;
 }
 
 export function reset ({ commit }) {
