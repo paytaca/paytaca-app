@@ -328,6 +328,9 @@ import { copyToClipboard, useInterval, useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Platform } from 'quasar';
 import { binToHex } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -417,7 +420,7 @@ const signerWhoCanSign = computed(() => {
   return signersWhoCanSign.value[0] || null
 })
 
-const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
+const openFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
   $q.dialog({
     title: dialogTitle,
     message: dialogMessage,
@@ -429,7 +432,7 @@ const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, 
       color: 'primary'
     },
     ok: { 
-      label: $t('DownloadFile'),
+      label: $t('DownloadOrShareFile'),
       color: 'primary',
       rounded: true,
       class: `button-default ${getDarkModeClass(darkMode.value)}`,
@@ -441,14 +444,22 @@ const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, 
       rounded: true,
       class: `button-default ${getDarkModeClass(darkMode.value)} `,
     },
-    
   }).onOk(async (filename) => {
+    const fullFilename = `${filename}.${fileExtension}`;
 
-    if (!filename) return
-    const blob = new Blob(
-      [data], 
-      { type: 'text/plain' }
-    )
+    if (Platform.is.nativeMobile) {
+      const result = await Filesystem.writeFile({
+        path: fullFilename,
+        data: data, 
+        directory: Directory.Cache,
+        encoding: 'utf8' 
+      });
+
+      return await Share.share({
+        title: $t('DownloadOrShareFile'),
+        url: result.uri,
+      });
+    } 
 
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -457,6 +468,11 @@ const handleFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, 
     document.body.appendChild(a)
     a.click()
 
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a)
+    }, 100)
+    
   }).onCancel(() => {})
 }
 
@@ -477,11 +493,11 @@ const showShareProposalOptionsDialog = () => {
     }
   }).onOk(async (payload) => {
     if (payload?.action === 'display-qr') {
-      showProposalQrDialog()
+      openProposalQrDialog()
     } else if (payload?.action === 'download-proposal') {
       const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-')
       const base64Psbt = await pst.value.export()
-      handleFileDownloadDialog({
+      openFileDownloadDialog({
           dialogTitle: $t('DownloadTransactionProposalFile'), 
           dialogMessage: $t('DownloadTransactionProposalFileHint'), 
           defaultFilename,
@@ -495,7 +511,7 @@ const showShareProposalOptionsDialog = () => {
   })
 }
 
-const showProposalQrDialog = () => {
+const openProposalQrDialog = () => {
   $q.dialog({
     component: PstQrDialog,
     componentProps: {
@@ -552,11 +568,11 @@ const showSharePartialSignatureOptionsDialog = (signerName, signerMasterFingerpr
     }
   }).onOk(async (payload) => {
     if (payload?.action === 'display-qr') {
-      showProposalQrDialog()
+      openProposalQrDialog()
     } else if (payload?.action === 'download-signature') {
       const defaultFilename = (pst.value?.purpose || '').toLowerCase().replace(/\s+/g, '-') + `-${(signerName || 'signer')?.toLowerCase()}-partial-sig`
       const base64Psbt = await pst.value.export()
-      handleFileDownloadDialog({
+      openFileDownloadDialog({
           dialogTitle: $t('DownloadPartialSignature'), 
           dialogMessage: $t('DownloadPartialSignatureHint'), 
           defaultFilename,
@@ -581,11 +597,11 @@ const showShareSignedProposalDialog = () => {
     }
   }).onOk(async (payload) => {
     if (payload?.action === 'display-qr') {
-      showProposalQrDialog()
+      openProposalQrDialog()
     } else if (payload?.action === 'download-signed-proposal') {
       const defaultFilename = formatFilename(pst.value?.purpose || pst.value?.wallet?.name + 'tx-proposal' || 'New Transaction Proposal')
       const base64Psbt = await pst.value.export()
-      handleFileDownloadDialog({
+      openFileDownloadDialog({
           dialogTitle: $t('DownloadPartialSignature'), 
           dialogMessage: $t('DownloadPartialSignatureHint'), 
           defaultFilename,
