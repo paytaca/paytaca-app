@@ -42,7 +42,6 @@ export default class PromoContract {
   }
 
   async redeemPoints (userWif, userTokenAddress, pointsToRedeem) {
-    console.log(userWif, userTokenAddress, pointsToRedeem)
     // get utxos
     const contractUtxos = await this.contract.getUtxos()
 
@@ -84,8 +83,6 @@ export default class PromoContract {
       amount: bchBalance - fee
     })
 
-    console.log(outputs)
-
     // build tx
     const txDetails = await new TransactionBuilder({ provider: this.provider })
       .addInputs(
@@ -94,7 +91,7 @@ export default class PromoContract {
       )
       .addOutputs(outputs)
       .send()
-    console.log(txDetails)
+      
     return txDetails.txid
   }
 
