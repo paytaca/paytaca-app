@@ -330,12 +330,16 @@
 </template>
 
 <script>
+import { loadWallet } from 'src/wallet'
 import { ensureKeypair } from 'src/utils/memo-service'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getWalletTokenAddress } from 'src/utils/engagementhub-utils/rewards'
+import {
+  getWalletTokenAddress,
+  recordPointsRedemption
+} from 'src/utils/engagementhub-utils/rewards'
 
 import PinDialog from 'src/components/pin/index.vue'
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
@@ -351,6 +355,7 @@ export default {
 
   props: {
     promoId: { type: Number, default: -1 },
+    promoType: { type: String, default: '' },
     promoBytes: { type: String, default: '' },
     redeemedPoints: { type: Number, default: null },
     maxRedeemable: { type: Number, default: null }
@@ -622,13 +627,26 @@ export default {
       this.customKeyboardState = 'dismiss'
 
       try {
-        // Simulate redemption process
-        await new Promise(resolve => setTimeout(resolve, 1500))
+        // Get wallet index from store
+        const walletIndex = this.$store.getters['global/getWalletIndex']
         
-        // Simulate success (95% success rate for testing)
-        const isSuccess = Math.random() > 0.05
+        // Load wallet and get WIF directly
+        const wallet = await loadWallet('BCH', walletIndex)
+        const wif = await wallet.BCH.getPrivateKey('0/0')
         
-        if (isSuccess) {
+        const redeemTxid = await this.contract.redeemPoints(
+          wif, this.tokenAddress, BigInt(this.pointsToRedeem)
+        )
+        const recordResp = await recordPointsRedemption({
+            promo_type: this.promoType,
+            promo_id: this.promoId,
+            redeemed_points: this.pointsToRedeem,
+            lift_received: this.pointsToRedeem, // TODO replace with conversion calculation
+            tx_id: redeemTxid,
+            month_max: this.maxRedeemable
+        })
+
+        if (recordResp?.error === '') {
           this.showSuccessCelebration()
           
           // Update contract points and animate to new remaining balance
@@ -636,11 +654,11 @@ export default {
           this.contractPoints = this.contractPoints - redeemedAmount
           this.animateDisplayPoints(this.displayPoints, this.contractPoints, 500)
         } else {
-          throw new Error('Redemption failed')
+          throw new Error (recordResp?.error)
         }
       } catch (error) {
         console.error('Redemption error:', error)
-        raiseNotifyError(this.$t('PointsRedeemedError', 'Failed to redeem points'))
+        raiseNotifyError('Failed to redeem points. Please try again later.')
       } finally {
         this.isSending = false
       }
