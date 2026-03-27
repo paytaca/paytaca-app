@@ -438,7 +438,10 @@ export class MultisigWallet {
   }
 
   get walletHash() {
-    return this.getWalletHash(this)
+    if (!this._walletHash) {
+      this._walletHash = this.getWalletHash(this)
+    }
+    return this._walletHash
   }
 
   getSigners() {
