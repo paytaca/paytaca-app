@@ -48,14 +48,14 @@ export default class PromoContract {
     // compute bch and token balances
     const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
     const tokenBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
-    let fee = 1000n
+    const fee = tokenBalance - pointsToRedeem > 0n ? 2000n : 1000n
 
     // build input
     const inputs = contractUtxos
 
     // build output
     const outputs = [
-      // user address
+      // user address in outputs[0]
       {
         to: userTokenAddress,
         amount: 1000n,
@@ -63,10 +63,15 @@ export default class PromoContract {
           amount: pointsToRedeem,
           category: PROMO_TOKEN_CATEGORY
         }
+      },
+      // BCH change output in outputs[1]
+      {
+        to: this.contract.tokenAddress,
+        amount: bchBalance - fee
       }
     ]
     if (tokenBalance - pointsToRedeem > 0n) {
-      // tokens change output
+      // tokens change output in outputs[2]
       outputs.push({
         to: this.contract.tokenAddress,
         amount: 1000n,
@@ -75,13 +80,7 @@ export default class PromoContract {
           category: PROMO_TOKEN_CATEGORY
         }
       })
-      fee += 1000n
     }
-    // add BCH change output last
-    outputs.push({
-      to: this.contract.tokenAddress,
-      amount: bchBalance - fee
-    })
 
     // build tx
     const txDetails = await new TransactionBuilder({ provider: this.provider })
@@ -91,7 +90,7 @@ export default class PromoContract {
       )
       .addOutputs(outputs)
       .send()
-      
+
     return txDetails.txid
   }
 
