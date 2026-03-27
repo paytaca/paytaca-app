@@ -330,7 +330,6 @@
 </template>
 
 <script>
-import { loadWallet } from 'src/wallet'
 import { ensureKeypair } from 'src/utils/memo-service'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
@@ -627,12 +626,8 @@ export default {
       this.customKeyboardState = 'dismiss'
 
       try {
-        // Get wallet index from store
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        
-        // Load wallet and get WIF directly
-        const wallet = await loadWallet('BCH', walletIndex)
-        const wif = await wallet.BCH.getPrivateKey('0/0')
+        const keyPair = await ensureKeypair()
+        const wif = Buffer.from(keyPair.privkey, 'hex')
         
         const redeemTxid = await this.contract.redeemPoints(
           wif, this.tokenAddress, BigInt(this.pointsToRedeem)
