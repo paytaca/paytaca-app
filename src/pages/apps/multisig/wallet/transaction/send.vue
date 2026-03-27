@@ -1,5 +1,6 @@
 <template>
-   <q-layout view="lHh Lpr lFf">
+    <QrScanner v-model="showQrScanner" @decode="onQrDecoded" />
+    <q-layout view="lHh Lpr lFf">
       <q-pull-to-refresh
         id="app-container"
         class="multisig-app"
@@ -35,7 +36,7 @@
                             :color="assetHeaderIcon === 'token'? 'grey': '' "
                           />
                           <!-- <span style="font-size: 2em">{{ balance !== undefined ? balance - (walletWcReserveFunds ?? 0) : "..." }}</span> -->
-                          <span style="font-size: 2em">{{ availableBalance }}</span>
+                          <span style="font-size: 2em">{{ availableBalance?.toFixed(8)}}</span>
                         </div>
                         <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
                       </div>
@@ -121,10 +122,9 @@
                           :ref="el => { if (el) addressInputRefs[i] = el }"
                           hide-bottom-space
                         >
-                          <template v-slot:append>
-                            <q-btn icon="upload_file" flat dense disable></q-btn>
-                            <q-btn icon="qr_code_scanner" flat dense disable></q-btn>
-                          </template>
+                        <template v-slot:append>
+                             <q-btn icon="qr_code_scanner" flat dense @click="openQrScanner(i)" :disable="isCreatingProposal"></q-btn>
+                           </template>
                         </q-input>
                         <q-input
                           v-model="recipient.amount" :label="$t('Amount')"
@@ -190,6 +190,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
@@ -244,6 +245,8 @@ const availableBalance = computed(() => {
 
 const showWcHeldFundsDialog = ref(false)
 const reserveWcAccountUtxos = ref(true)
+const showQrScanner = ref(false)
+const currentRecipientIndex = ref(null)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -383,6 +386,24 @@ const addRecipient = async () => {
     await nextTick() 
     addressInputRefs.value[newIndex].focus()
   }
+}
+
+const openQrScanner = (recipientIndex) => {
+  currentRecipientIndex.value = recipientIndex
+  showQrScanner.value = true
+}
+
+const onQrDecoded = (content) => {
+  showQrScanner.value = false
+  
+  const decoded = Array.isArray(content) ? content?.[0]?.rawValue : content
+  const address = typeof decoded === 'string' ? decoded.trim() : ''
+  
+  if (!address || currentRecipientIndex.value === null) {
+    return
+  }
+  
+  recipients.value[currentRecipientIndex.value].address = address
 }
 
 const createProposal = async () => {
