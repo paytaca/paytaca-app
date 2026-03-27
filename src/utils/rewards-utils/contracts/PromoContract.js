@@ -1,4 +1,10 @@
-import { ElectrumNetworkProvider, Network, Contract } from "cashscript"
+import {
+  Network,
+  Contract,
+  SignatureTemplate,
+  TransactionBuilder,
+  ElectrumNetworkProvider,
+} from "cashscript"
 import { PROMO_TOKEN_CATEGORY } from "src/utils/engagementhub-utils/rewards"
 
 import axios from "axios"
@@ -19,6 +25,7 @@ export default class PromoContract {
    */
   constructor (userPubKey, promo) {
     this.promo = promo
+    this.provider = null
 
     this.initializeContract(userPubKey)
   }
@@ -29,9 +36,66 @@ export default class PromoContract {
    * @param {String} userPubKey the public key derived from the user's wallet mnemonic
    */
   initializeContract (userPubKey) {
-    const provider = new ElectrumNetworkProvider(Network.MAINNET)
+    this.provider = new ElectrumNetworkProvider(Network.MAINNET)
     const contractParams = [ADMIN_PUBKEY, userPubKey, PROMO_TOKEN_CATEGORY, this.promo]
-    this.contract = new Contract(PromoContractArtifact, contractParams, { provider })
+    this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
+  }
+
+  async redeemPoints (userWif, userTokenAddress, pointsToRedeem) {
+    console.log(userWif, userTokenAddress, pointsToRedeem)
+    // get utxos
+    const contractUtxos = await this.contract.getUtxos()
+
+    // compute bch and token balances
+    const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
+    const tokenBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
+    let fee = 1000n
+
+    // build input
+    const inputs = contractUtxos
+
+    // build output
+    const outputs = [
+      // user address
+      {
+        to: userTokenAddress,
+        amount: 1000n,
+        token: {
+          amount: pointsToRedeem,
+          category: PROMO_TOKEN_CATEGORY
+        }
+      }
+    ]
+    if (tokenBalance - pointsToRedeem > 0n) {
+      // tokens change output
+      outputs.push({
+        to: this.contract.tokenAddress,
+        amount: 1000n,
+        token: {
+          amount: tokenBalance - pointsToRedeem,
+          category: PROMO_TOKEN_CATEGORY
+        }
+      })
+      fee += 1000n
+    }
+    // add BCH change output last
+    outputs.push({
+      to: this.contract.tokenAddress,
+      amount: bchBalance - fee
+    })
+
+    console.log(outputs)
+
+    // build tx
+    const txDetails = await new TransactionBuilder({ provider: this.provider })
+      .addInputs(
+        inputs,
+        this.contract.unlock.withdraw(new SignatureTemplate(userWif), this.promo)
+      )
+      .addOutputs(outputs)
+      .send()
+    console.log(txDetails)
+    return txDetails.txid
   }
 
   /**

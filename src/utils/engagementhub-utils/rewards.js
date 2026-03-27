@@ -26,19 +26,6 @@ export const PromosBytes = {
 }
 
 // ================================
-// local functions
-// ================================
-
-function denomination () {
-  return Store.getters['global/denomination']
-}
-
-function fiatCurrency () {
-  const currency = Store.getters['market/selectedCurrency']
-  return currency?.symbol
-}
-
-// ================================
 // util functions
 // ================================
 
