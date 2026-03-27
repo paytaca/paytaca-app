@@ -460,6 +460,7 @@ export default {
         component: RedeemPointsDialog,
         componentProps: {
           promoId: this.rpId,
+          promoType: Promos.RFPROMO,
           promoBytes: PromosBytes.RP,
           redeemedPoints: this.redeemedPoints,
           maxRedeemable: this.rpMax

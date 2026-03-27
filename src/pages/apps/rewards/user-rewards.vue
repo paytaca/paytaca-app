@@ -706,6 +706,7 @@ export default {
         component: RedeemPointsDialog,
         componentProps: {
           promoId: this.urId,
+          promoType: Promos.USERREWARDS,
           promoBytes: PromosBytes.UR
         }
       }).onDismiss(async () => {
