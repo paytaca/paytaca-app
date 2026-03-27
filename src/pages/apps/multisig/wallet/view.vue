@@ -225,6 +225,9 @@ import { useI18n } from 'vue-i18n'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, useInterval } from 'quasar'
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Platform } from 'quasar';
 import Big from 'big.js'
 import { binToBase64, hexToBin, secp256k1, sortObjectKeys } from 'bitauth-libauth-v3'
 import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
@@ -426,17 +429,51 @@ const showProposalsImportSelectionDialog = () => {
   }
 }
 
-const downloadWalletFile = (walletToExport) => {
-  const cborEncoded = cborEncode(walletToExport.export())
-  const blob = new Blob([binToBase64(cborEncoded)], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = generateFilename(walletToExport)
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+const downloadWalletFile = async (walletToExport) => {
+
+  try {
+    const cborEncoded = cborEncode(walletToExport.export())
+    const data = binToBase64(cborEncoded)
+    const fullFilename = generateFilename(walletToExport)
+      
+    if (Platform.is.nativeMobile) {
+      const status = await Filesystem.checkPermissions();
+      if (status.publicStorage !== 'granted') {
+        await Filesystem.requestPermissions();
+      }
+      const result = await Filesystem.writeFile({
+        path: fullFilename,
+        data: data, 
+        directory: Directory.Cache,
+        encoding: 'utf8' 
+      });
+
+      return await Share.share({
+        title: $t('DownloadOrShareFile'),
+        url: result.uri,
+      });
+    } 
+
+    const blob = new Blob([data], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fullFilename
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a)
+      }, 100)
+    
+  } catch (error) {
+    $q.notify({
+      type: 'error',
+      message: `Error: ${error.message}`,
+      color: 'negative'
+    })
+  }
+  
 }
 
 const handleDeleteWalletAction = () => {
