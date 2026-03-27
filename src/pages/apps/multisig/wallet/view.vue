@@ -444,7 +444,8 @@ const downloadWalletFile = async (walletToExport) => {
       const result = await Filesystem.writeFile({
         path: fullFilename,
         data: data, 
-        directory: Directory.Cache,
+        directory: Directory.Documents, 
+        recursive: true,
         encoding: 'utf8' 
       });
 
@@ -467,6 +468,7 @@ const downloadWalletFile = async (walletToExport) => {
       }, 100)
     
   } catch (error) {
+    if (error?.message.includes('Share canceled')) return
     $q.notify({
       type: 'error',
       message: `Error: ${error.message}`,

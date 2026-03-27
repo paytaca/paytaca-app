@@ -1,5 +1,6 @@
 <template>
-   <q-layout view="lHh Lpr lFf">
+    <QrScanner v-model="showQrScanner" @decode="onQrDecoded" />
+    <q-layout view="lHh Lpr lFf">
       <q-pull-to-refresh
         id="app-container"
         class="multisig-app"
@@ -136,9 +137,8 @@
                           :disable="isCreatingProposal"
                           :ref="el => { if (el) addressInputRefs[i] = el }">
                           <template v-slot:append>
-                            <q-btn icon="upload_file" flat dense disable></q-btn>
-                            <q-btn icon="qr_code_scanner" flat dense disable></q-btn>
-                          </template>
+                             <q-btn icon="qr_code_scanner" flat dense @click="openQrScanner(i)" :disable="isCreatingProposal"></q-btn>
+                           </template>
                         </q-input>
                       </q-item-label>
                       <q-separator class="q-my-sm"/>
@@ -193,6 +193,7 @@ import { computed, onMounted, ref, nextTick, onBeforeMount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import HeaderNav from 'components/header-nav'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   shortenString,
@@ -216,6 +217,8 @@ const loadingNfts = ref(false)
 const availableNfts = ref([])
 const selectedNft = ref(null)
 const nftInfo = ref(null)
+const showQrScanner = ref(false)
+const currentRecipientIndex = ref(null)
 
 const {
   multisigNetworkProvider,
@@ -318,6 +321,24 @@ const addRecipient = async () => {
     await nextTick() 
     addressInputRefs.value[newIndex].focus()
   }
+}
+
+const openQrScanner = (recipientIndex) => {
+  currentRecipientIndex.value = recipientIndex
+  showQrScanner.value = true
+}
+
+const onQrDecoded = (content) => {
+  showQrScanner.value = false
+  
+  const decoded = Array.isArray(content) ? content?.[0]?.rawValue : content
+  const address = typeof decoded === 'string' ? decoded.trim() : ''
+  
+  if (!address || currentRecipientIndex.value === null) {
+    return
+  }
+  
+  recipients.value[currentRecipientIndex.value].address = address
 }
 
 const loadNfts = async () => {
