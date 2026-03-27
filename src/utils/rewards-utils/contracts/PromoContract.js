@@ -61,7 +61,7 @@ export default class PromoContract {
         amount: 1000n,
         token: {
           amount: pointsToRedeem,
-          category: PROMO_TOKEN_CATEGORY
+          category: this.changeEndianness(PROMO_TOKEN_CATEGORY)
         }
       },
       // BCH change output in outputs[1]
@@ -77,7 +77,7 @@ export default class PromoContract {
         amount: 1000n,
         token: {
           amount: tokenBalance - pointsToRedeem,
-          category: PROMO_TOKEN_CATEGORY
+          category: this.changeEndianness(PROMO_TOKEN_CATEGORY)
         }
       })
     }
@@ -117,5 +117,22 @@ export default class PromoContract {
       .reduce((total, el) => {
         return total + (Number(el.token?.amount))
       }, 0)
+  }
+
+  /**
+   * Swaps the endian-ness (byte order) of the string,
+   * since the contract uses the reversed order.
+   * From https://stackoverflow.com/a/47668549.
+   * @param {string} string the string to be reversed
+   * @returns the swapped string
+   */
+  changeEndianness(string) {
+    const result = [];
+    let len = string.length - 2;
+    while (len >= 0) {
+      result.push(string.substring(len, len + 2));
+      len -= 2;
+    }
+    return result.join("");
   }
 }
