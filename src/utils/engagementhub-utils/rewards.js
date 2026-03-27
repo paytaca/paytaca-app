@@ -205,6 +205,12 @@ export async function processMerchantOtcPoints (data) {
   return await processPoints('userreward/process_merchant_otc_points/', data)
 }
 
-export async function processPointsRedemption (data) {
-  return await processPoints('userpromo/process_points_redemption/', data)
+export async function recordPointsRedemption (data) {
+  return await REWARDS_URL
+    .post('userpromo/record_points_redemption/', data)
+    .then(response => {
+      if (response.status === 200) return { error: '' }
+      else return response.data
+    })
+    .catch(error => { return error.response.data })
 }
