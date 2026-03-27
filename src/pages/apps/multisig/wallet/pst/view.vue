@@ -445,33 +445,42 @@ const openFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fi
       class: `button-default ${getDarkModeClass(darkMode.value)} `,
     },
   }).onOk(async (filename) => {
-    const fullFilename = `${filename}.${fileExtension}`;
+    try {
+      const fullFilename = `${filename}.${fileExtension}`;
+      if (Platform.is.nativeMobile) {
+        const result = await Filesystem.writeFile({
+          path: fullFilename,
+          data: data, 
+          directory: Directory.Cache,
+          encoding: 'utf8' 
+        });
 
-    if (Platform.is.nativeMobile) {
-      const result = await Filesystem.writeFile({
-        path: fullFilename,
-        data: data, 
-        directory: Directory.Cache,
-        encoding: 'utf8' 
-      });
+        return await Share.share({
+          title: $t('DownloadOrShareFile'),
+          url: result.uri,
+        });
+      } 
 
-      return await Share.share({
-        title: $t('DownloadOrShareFile'),
-        url: result.uri,
-      });
-    } 
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${filename}.${fileExtension}`
+      document.body.appendChild(a)
+      a.click()
 
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${filename}.${fileExtension}`
-    document.body.appendChild(a)
-    a.click()
-
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a)
-    }, 100)
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a)
+      }, 100)
+      
+    } catch (error) {
+      if (error?.message.includes('Share canceled')) return
+      $q.notify({
+        type: 'error',
+        message: `Error: ${error.message}`,
+        color: 'negative'
+      })
+    }
     
   }).onCancel(() => {})
 }
