@@ -62,6 +62,7 @@ import { Pst, MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 
 import ImportProposalSelectionDialog from 'components/multisig/ImportProposalSelectionDialog'
+import { binToBase64 } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -152,8 +153,26 @@ const importPsbtFromServer = async () => {
 const onUpdatePstFile = (file) => {
   if (file) {
     const reader = new FileReader()
+
     reader.onload = () => {
-      const importedPst = Pst.import(reader.result)
+
+      const bin = new Uint8Array(reader.result)
+      const header = String.fromCharCode(...bin.slice(0, 10));
+
+      let finalBase64;
+
+      if (header.startsWith('psbt')) {
+        finalBase64 = btoa(String.fromCharCode(...bin));
+      } 
+      else if (header.startsWith('cHNidP8')) {
+        finalBase64 = new TextDecoder().decode(bin);
+      }
+      else {
+        $q.notify({ message: 'Unknown file format', color: 'negative' });
+        return;
+      }
+
+      const importedPst = Pst.import(finalBase64)
       
       canonicalPsbt.value = 
         $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
@@ -189,23 +208,15 @@ const onUpdatePstFile = (file) => {
         color: 'negative'
       })
     }
-    reader.readAsText(file)
+    reader.readAsArrayBuffer(file)
   }
 }
 
 onMounted(async () => {
-  // if (route.params.unsignedTransactionHash && route.params.unsignedTransactionHash !== 'unknown') { 
-  //   canonicalPsbt.value = 
-  //     $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
-  // }
-  // if (!canonicalPsbt.value) {
-
-  // }
-
   if (wallet.value) {
     proposalsFromServer.value = await wallet.value.fetchProposals('pending')
 
-  }
+  }``
 })
 
 </script>
