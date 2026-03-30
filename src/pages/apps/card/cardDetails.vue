@@ -639,6 +639,7 @@
                         class="text-subtitle2"
                         :class="textColor"
                       >
+                        <!-- SKELETON LOADER for lock status: <q-skeleton v-if="loadingLockStatus" type="text" width="120px" /> -->
                         {{ activeCard?.isLocked ? 'Unlock Card' : 'Temporary Lock Card' }}
                       </div>
                       <div 
@@ -653,7 +654,9 @@
                     :model-value="activeCard?.isLocked"
                     @update:model-value="(val) => toggleCardLock(val)"
                     color="warning"
+                    :disable="loadingLockStatus" 
                   />
+                  <!-- BACKEND: Disable toggle during API call -->
                 </div>
 
                 <q-separator color="primary" />
@@ -980,7 +983,8 @@ export default {
       // Backend data fetching disabled
       // loading: true,
       // backendData: null,
-      // dataError: null
+      // dataError: null,
+      // loadingLockStatus: false, // BACKEND: Loading state for lock/unlock API call
     }
   },
 
@@ -1563,6 +1567,110 @@ export default {
         timeout: 1500
       })
     },
+
+    /*
+     * BACKEND INTEGRATION for Card Lock/Unlock Toggle
+     * 
+     * Replace the toggleCardLock method above with this backend-enabled version:
+     * 
+     * async toggleCardLock (locked) {
+     *   if (!this.activeCard) return
+     *   
+     *   // Show loading state during API call
+     *   this.loadingLockStatus = true
+     *   
+     *   try {
+     *     // BACKEND API CALL: Update card lock status
+     *     const response = await fetch(`/api/cards/${this.activeCard.id}/lock`, {
+     *       method: 'POST',
+     *       headers: {
+     *         'Content-Type': 'application/json',
+     *         'Authorization': `Bearer ${this.getAuthToken()}` // Add auth method
+     *       },
+     *       body: JSON.stringify({
+     *         isLocked: locked,
+     *         reason: locked ? 'User initiated lock' : 'User initiated unlock'
+     *       })
+     *     })
+     *     
+     *     if (!response.ok) {
+     *       throw new Error(`Failed to ${locked ? 'lock' : 'unlock'} card`)
+     *     }
+     *     
+     *     const data = await response.json()
+     *     
+     *     // Update localStorage only after successful backend update
+     *     const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', locked)
+     *     if (updatedCard) {
+     *       this.activeCard.isLocked = updatedCard.isLocked
+     *     }
+     *     
+     *     // Show success notification
+     *     this.$q.notify({
+     *       message: data.message || (locked ? 'Card has been locked' : 'Card has been unlocked'),
+     *       color: locked ? 'warning' : 'positive',
+     *       icon: locked ? 'lock' : 'lock_open',
+     *       timeout: 1500
+     *     })
+     *   } catch (error) {
+     *     console.error('Failed to toggle card lock:', error)
+     *     
+     *     // Revert the toggle on error
+     *     this.$q.notify({
+     *       message: `Failed to ${locked ? 'lock' : 'unlock'} card. Please try again.`,
+     *       color: 'negative',
+     *       icon: 'error',
+     *       timeout: 3000
+     *     })
+     *   } finally {
+     *     this.loadingLockStatus = false
+     *   }
+     * },
+     * 
+     * // Optional: Add a method to fetch current lock status from backend
+     * // This is useful when loading the card details page to ensure sync
+     * async fetchCardLockStatus () {
+     *   if (!this.activeCard?.id) return
+     *   
+     *   try {
+     *     const response = await fetch(`/api/cards/${this.activeCard.id}/status`, {
+     *       method: 'GET',
+     *       headers: {
+     *         'Authorization': `Bearer ${this.getAuthToken()}`
+     *       }
+     *     })
+     *     
+     *     if (response.ok) {
+     *       const data = await response.json()
+     *       
+     *       // Update local state and localStorage with backend status
+     *       if (data.isLocked !== undefined && data.isLocked !== this.activeCard.isLocked) {
+     *         const updatedCard = this.CardStorage.setCardProperty(
+     *           this.activeCard.id, 
+     *           'isLocked', 
+     *           data.isLocked
+     *         )
+     *         if (updatedCard) {
+     *           this.activeCard.isLocked = updatedCard.isLocked
+     *         }
+     *         
+     *         // Notify user if status changed from backend
+     *         this.$q.notify({
+     *           message: `Card status updated from server: ${data.isLocked ? 'Locked' : 'Unlocked'}`,
+     *           color: 'info',
+     *           icon: 'sync',
+     *           timeout: 2000
+     *         })
+     *       }
+     *     }
+     *   } catch (error) {
+     *     console.error('Failed to fetch card lock status:', error)
+     *   }
+     * }
+     * 
+     * // Call fetchCardLockStatus() in mounted() or when card is loaded:
+     * // await this.fetchCardLockStatus()
+     */
 
     handleSweepFunds () {
       if (!this.activeCard) return
