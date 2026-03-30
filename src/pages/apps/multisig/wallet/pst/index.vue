@@ -5,8 +5,8 @@
     <div class="row items-center justify-center full-height">
         <div v-if="proposals?.length > 0" class="col-xs-12 q-px-sm">
           <div class="row justify-end q-gutter-x-sm q-mb-md">
-            <q-btn color="red" icon="clear_all" @click="clearAll" rounded outline>
-              {{ $t('ClearAll') }}
+            <q-btn color="red" icon="mdi-delete-sweep-outline" @click="deleteAll" rounded outline>
+              {{ $t('DeleteAll') }}
             </q-btn>
           </div>
         </div>
@@ -161,7 +161,7 @@ const loadProposals = async () => {
   }
 }
 
-const clearAll = () => {
+const deleteAll = () => {
   $q.dialog({
     title: $t('ClearingAllTxProposals'),
     message: $t('ClearingAllTxProposalsConfirmationMessage'),

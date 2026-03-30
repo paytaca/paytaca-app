@@ -27,7 +27,7 @@
                     <div class="flex justify-start items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
                       <span class="text-h5 text-bold">
-                        <q-skeleton v-if="balances?.['bch'] == undefined && balancesRefreshing" type="text" width="5em" height="2.7em"></q-skeleton>
+                        <q-skeleton v-if="balances?.['bch'] == undefined || balancesRefreshing" type="text" width="5em" height="2.7em"></q-skeleton>
                         <span v-else>{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : 0 }}</span>
                       </span>
                       <q-btn 
@@ -89,12 +89,21 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.walletHash } }" size="14px" class="tile col" v-close-popup>
+                <!-- <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.walletHash } }" size="14px" class="tile col" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box-multiple-outline" class="col-12" size="20px" style="position:relative">
                       </q-icon>
                       <div class="col-12 tile-label" style="font-size: 13px;">{{ $t('Addresses') }}</div>
+                    </div>
+                  </template>
+                </q-btn> -->
+                <q-btn flat dense no-caps @click="handlShareWalletAction()" size="14px" class="tile col" v-close-popup>
+                  <template v-slot:default>
+                    <div class="row justify-center">
+                      <q-icon name="mdi-share" class="col-12" size="20px" style="position:relative">
+                      </q-icon>
+                      <div class="col-12 tile-label" style="font-size: 13px;">{{ $t('Share') }}</div>
                     </div>
                   </template>
                 </q-btn>
@@ -311,7 +320,7 @@
 <script setup>
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, useInterval } from 'quasar'
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -652,21 +661,15 @@ const openWalletActionsDialog = () => {
     grid: true,
     actions: [
       {
-        icon: 'mdi-share',
-        label: $t('ShareWallet'),
-        value: 'share-wallet',
+        icon: 'collections',
+        label: $t('Nfts', {}, 'Nfts'),
+        value: 'view-nfts',
         color: 'primary'
       },
       {
         icon: 'mdi-file-cog',
         label: $t('WalletSettings', {}, 'Wallet Settings'),
         value: 'view-wallet-settings',
-        color: 'primary'
-      },
-      {
-        icon: 'collections',
-        label: $t('Nfts', {}, 'Nfts'),
-        value: 'view-nfts',
         color: 'primary'
       },
       {

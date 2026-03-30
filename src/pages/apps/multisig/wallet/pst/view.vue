@@ -330,7 +330,6 @@ import PstQrDialog from 'components/multisig/PstQrDialog.vue'
 import ProposalDetailsDialog from 'components/multisig/ProposalDetailsDialog.vue'
 import ShareSignedProposalOptionsDialog from 'components/multisig/ShareSignedProposalOptionsDialog.vue'
 import { STATUS } from 'src/lib/multisig/pst'
-import { formatFilename } from 'src/lib/multisig/utils'
 const {
   multisigNetworkProvider,
   multisigCoordinationServer,
@@ -647,7 +646,9 @@ const showBroadcastSuccessDialog = async (txid) => {
     }
   }).onOk(() => {
     pst.value.delete({ sync: false })
-    router.push({ name: 'app-multisig-wallet-view', params: { wallethash: route.params.wallethash } })
+    router.push({ 
+      name: 'app-multisig-wallet-view', params: { wallethash: route.params.wallethash } 
+    })
   })
 }
 
