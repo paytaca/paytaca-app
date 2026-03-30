@@ -99,7 +99,7 @@
 
                 <q-item-label caption class="q-mt-xs">
                   <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                    Lift: {{ formatNumber(redemption.lift_received) }} LIFT
+                    LIFT Received: {{ formatNumber(redemption.lift_received) }} LIFT
                   </span>
                 </q-item-label>
 

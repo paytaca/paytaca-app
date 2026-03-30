@@ -632,6 +632,7 @@ export default {
         const redeemTxid = await this.contract.redeemPoints(
           wif, this.tokenAddress, BigInt(this.pointsToRedeem)
         )
+
         const recordResp = await recordPointsRedemption({
             promo_type: this.promoType,
             promo_id: this.promoId,
