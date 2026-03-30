@@ -1,15 +1,19 @@
 import {
+  Output,
   Network,
   Contract,
   SignatureTemplate,
   TransactionBuilder,
   ElectrumNetworkProvider,
 } from "cashscript"
+
+import { getOutputSize } from "cashscript/dist/utils";
+import { calculateInputSize } from 'src/utils/cashscript-utils';
 import { PROMO_TOKEN_CATEGORY } from "src/utils/engagementhub-utils/rewards"
 
 import axios from "axios"
-
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
+
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
 
@@ -47,8 +51,9 @@ export default class PromoContract {
 
     // compute bch and token balances
     const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
-    const tokenBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
-    const fee = tokenBalance - pointsToRedeem > 0n ? 2000n : 1000n
+    const tokenBalance = contractUtxos
+      .filter(utxo => utxo.token)
+      .reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
 
     // build input
     const inputs = contractUtxos
@@ -61,32 +66,41 @@ export default class PromoContract {
         amount: 1000n,
         token: {
           amount: pointsToRedeem,
-          category: this.changeEndianness(PROMO_TOKEN_CATEGORY)
+          category: PROMO_TOKEN_CATEGORY
         }
-      },
-      // BCH change output in outputs[1]
-      {
-        to: this.contract.tokenAddress,
-        amount: bchBalance - fee
       }
     ]
+
     if (tokenBalance - pointsToRedeem > 0n) {
-      // tokens change output in outputs[2]
+      // token change output in outputs[1]
+      // (will be outputs[2] later on after inserting bch change output)
       outputs.push({
         to: this.contract.tokenAddress,
         amount: 1000n,
         token: {
           amount: tokenBalance - pointsToRedeem,
-          category: this.changeEndianness(PROMO_TOKEN_CATEGORY)
+          category: PROMO_TOKEN_CATEGORY
         }
       })
     }
+
+    // compute fee
+    const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
+    // +1 in outputs length for bch change output
+    const fee = this.computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.25)
+
+    // insert bch change outputs to outputs[1]
+    // (token change output is now in outputs[2] if existing)
+    outputs.splice(1, 0, {
+      to: userTokenAddress,
+      amount: bchBalance - fee - 1000n
+    })
 
     // build tx
     const txDetails = await new TransactionBuilder({ provider: this.provider })
       .addInputs(
         inputs,
-        this.contract.unlock.withdraw(new SignatureTemplate(userWif), this.promo)
+        this.contract.unlock.easyWithdraw(new SignatureTemplate(userWif), this.promo)
       )
       .addOutputs(outputs)
       .send()
@@ -134,5 +148,25 @@ export default class PromoContract {
       len -= 2;
     }
     return result.join("");
+  }
+
+  /**
+   * Compute the network fee of a contract transaction.
+   * @param {Transaction} tx the transaction used to compute the input size
+   * @param {Output[]} outputs the outputs of the transaction
+   * @param {number} inputLen the length of the input
+   * @param {number} outputLen the length of the output
+   * @param {number} feeRate the fee rate to be used for the computation (default 1 sats/byte)
+   * @returns the computed contract network fee
+   */
+  computeContractFee(tx, outputs, inputLen, outputLen, feeRate=1) {
+    const inputSize = calculateInputSize(tx)
+
+    let outputSize = 0
+    for (const output of outputs) {
+      outputSize += getOutputSize(output)
+    }
+
+    return BigInt(Math.floor(((inputSize * inputLen) + (outputSize * outputLen) + 10) * feeRate))
   }
 }
