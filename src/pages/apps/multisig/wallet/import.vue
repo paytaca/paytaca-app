@@ -13,7 +13,7 @@
           </div>
           <div class="flex column text-center q-gutter-y-xl">
               <div>
-                <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
+                <q-btn @click="$router.push({ name: 'qr-reader', query: { hideFooter: true, hideGenerateQR: true, hideUploadQR: true, backnavpath: route.fullPath } })" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
                   <q-icon class="default-text-color"  name="qr_code" />
                 </q-btn>
                 <div class="q-pt-xs text-h6 text-center text-capitalize">{{ $t('ScanWalletQRCode') }}</div>
@@ -34,17 +34,17 @@
                 <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('WalletFromServerDescription', {}, 'Download wallet from Paytaca\'s Multisig Coordinator Server') }}</div>
               </div>
               <div>
-                <q-btn :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
+                <q-btn :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup rounded></q-btn>
               </div>
           </div>
+          <q-file
+          ref="walletFileElementRef"
+          v-model="walletFileModel"
+          :multiple="false"
+          style="visibility: hidden"
+          @update:model-value="onUpdateWalletFileModelValue">
+        </q-file>
        </div>
-       <q-file
-        ref="walletFileElementRef"
-        v-model="walletFileModel"
-        :multiple="false"
-        style="visibility: hidden"
-        @update:model-value="onUpdateWalletFileModelValue">
-      </q-file>
     </div>
   </template>
 
