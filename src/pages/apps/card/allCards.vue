@@ -8,6 +8,7 @@
       </div>
 
       <div class="q-pa-md" style="min-height: 100vh;">
+        <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loading" type="text" width="150px" /> -->
         <div class="text-subtitle1 text-weight-bold q-mb-md" :class="textColor">
           My Cards ({{ subCards.length }})
         </div>
@@ -24,6 +25,14 @@
         </div>
 
         <div v-else class="cards-grid">
+          <!--
+            SKELETON LOADER for cards grid when loading backend data:
+            <div v-if="loading" class="cards-grid">
+              <div v-for="n in 6" :key="n" class="card-grid-item">
+                <q-skeleton type="rect" height="80px" class="full-width" />
+              </div>
+            </div>
+          -->
           <div
             v-for="card in sortedCards"
             :key="card.id"
@@ -32,9 +41,11 @@
           >
             <div class="card-grid-info">
               <div class="card-name text-weight-bold ellipsis">
+                <!-- SKELETON LOADER for card name: <q-skeleton v-if="loading" type="text" width="120px" /> -->
                 {{ capitalizeFirst(card.name) }}
               </div>
               <div class="card-balance text-weight-bold">
+                <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loading" type="text" width="80px" /> -->
                 {{ card.balance || '0.00' }} BCH
               </div>
             </div>
