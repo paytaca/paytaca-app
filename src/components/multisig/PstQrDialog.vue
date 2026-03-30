@@ -28,6 +28,9 @@
               <span class="text-caption text-bold text-white text-center">{{ progressLabel }}</span>
             </div>
           </q-linear-progress>
+          <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic">
+            {{ $t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`) }}
+          </div>
         </div>
         <!-- <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
           <div>
@@ -69,10 +72,7 @@ const animationTimer = ref();
 const encoder = ref(null);
 const progress = ref(0)
 const progressLabel = computed(() => {
-  if (Math.floor(progress.value * 100) !== 100) {
-    return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown.'  
-  }
-  return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown. The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...'
+  return (Math.floor(progress.value * 100)) + '% of QR Code Fragments Shown.'  
 })
 
 async function prepareBase64Chunks() {
