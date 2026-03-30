@@ -159,25 +159,26 @@ const onUpdatePstFile = (file) => {
       const bin = new Uint8Array(reader.result)
       const header = String.fromCharCode(...bin.slice(0, 10));
 
-      let finalBase64;
+      let base64Psbt;
 
       if (header.startsWith('psbt')) {
-        finalBase64 = btoa(String.fromCharCode(...bin));
+        base64Psbt = btoa(String.fromCharCode(...bin));
       } 
       else if (header.startsWith('cHNidP8')) {
-        finalBase64 = new TextDecoder().decode(bin);
+        base64Psbt = new TextDecoder().decode(bin);
       }
       else {
         $q.notify({ message: 'Unknown file format', color: 'negative' });
         return;
       }
 
-      const importedPst = Pst.import(finalBase64)
-      
-      canonicalPsbt.value = 
-        $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
-      
       try {
+
+        const importedPst = Pst.import(base64Psbt)
+      
+        canonicalPsbt.value = 
+          $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
+        
         if (canonicalPsbt.value) {
           const canonicalPst = Pst.import(canonicalPsbt.value)
           canonicalPst.combine([importedPst])
@@ -215,8 +216,7 @@ const onUpdatePstFile = (file) => {
 onMounted(async () => {
   if (wallet.value) {
     proposalsFromServer.value = await wallet.value.fetchProposals('pending')
-
-  }``
+  }
 })
 
 </script>

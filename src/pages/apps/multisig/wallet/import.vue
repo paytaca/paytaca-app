@@ -83,6 +83,7 @@ const onUpdateWalletFileModelValue = (file) => {
     const reader = new FileReader()
     reader.onload = () => {
       const decoded = cborDecode(base64ToBin(reader.result))
+      console.log('DECODED', decoded)
       walletInstance.value = MultisigWallet.import(decoded)
       walletInstance.value.setStore($store)
       walletInstance.value.save()

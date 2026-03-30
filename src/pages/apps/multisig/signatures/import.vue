@@ -27,7 +27,7 @@
                 <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportPartiallySignedTransactionFromFileHint', {}, 'Browse and import a Partially Signed Transaction File you get from your cosigner') }}</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disable="signerSignatures?.length === 0 || !pst.id">
+                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disable="!pst || !pst.id || signerSignatures?.length === 0">
                   <q-icon class="default-text-color"  name="cloud_download" @click="importFromServer"/>
                   <q-badge v-if="signerSignatures?.length > 0" floating rounded></q-badge>
                 </q-btn>
@@ -125,21 +125,35 @@ const importFromServer = async () => {
   }).onCancel(() => {})
 }
 
-// TODO: Update this, this is from psbt combine feature
-//       Make the merge of signature more granular per signer as expected from this page 
-//       Check for specified signer signatures
-//       Display dialog if no signature found
-//       Display if signatures found but not from intended signer
 const onUpdatePstFile = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      const importedPst = Pst.import(reader.result)
-      
-      canonicalPsbt.value = 
-        $store.getters['multisig/getPsbtByUnsignedTransactionHash'](route.params.unsignedtransactionhash)
+
+      const bin = new Uint8Array(reader.result)
+      const header = String.fromCharCode(...bin.slice(0, 10));
+
+      let base64Psbt;
+
+      if (header.startsWith('psbt')) {
+        base64Psbt = btoa(String.fromCharCode(...bin));
+      } 
+      else if (header.startsWith('cHNidP8')) {
+        base64Psbt = new TextDecoder().decode(bin);
+      }
+      else {
+        $q.notify({ message: 'Unknown file format', color: 'negative' });
+        return;
+      }
       
       try {
+        const importedPst = Pst.import(base64Psbt)
+      
+        canonicalPsbt.value = 
+          $store.getters['multisig/getPsbtByUnsignedTransactionHash'](
+            route.params.unsignedtransactionhash
+          )
+      
         if (canonicalPsbt.value) {
           const canonicalPst = Pst.import(canonicalPsbt.value)
           canonicalPst.combine([importedPst])
@@ -170,7 +184,7 @@ const onUpdatePstFile = (file) => {
         color: 'negative'
       })
     }
-    reader.readAsText(file)
+    reader.readAsArrayBuffer(file)
   }
 }
 
@@ -181,6 +195,7 @@ onMounted(async () => {
   }
   if (canonicalPsbt.value) {
     const pst = Pst.import(canonicalPsbt.value)
+    console.log('PST', pst)
     if (pst.options?.coordinationServer) {
       await pst.sync()
       if (!pst.id) return

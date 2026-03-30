@@ -33,9 +33,13 @@
               class="q-my-md"
               @click="downloadWallet(wallet)"
               >
+              <q-item-section avatar top>
+                <q-avatar color="primary" text-color="white" size="5rem" square class="br-15">
+                  <q-icon name="wallet"></q-icon>
+                </q-avatar>
+              </q-item-section>
               <q-item-section>
                 <q-item-label class="text-bold text-h6 q-mb-sm" >
-                  <q-icon name="wallet" size="md" color="primary"></q-icon>
                   {{ wallet.name }}
                 </q-item-label>
                 <div class="q-ml-md">
@@ -132,7 +136,7 @@ const fetchWallets = async () => {
       if (!signer) return
 
       const signerWalletDescriptorWrappedDek = signer.walletDescriptorWrappedDek
-
+      
       const walletDescriptorDek = await decryptECIES(
         decodeHdPrivateKey(localWallet.xprv).node.privateKey,
         signerWalletDescriptorWrappedDek,

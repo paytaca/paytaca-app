@@ -1,12 +1,11 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
-import { getMnemonic, loadWallet } from 'src/wallet'
+import { getMnemonic } from 'src/wallet'
 import { deriveHdKeysFromMnemonic, getMasterFingerprint, MultisigWallet } from 'src/lib/multisig'
 import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import { getBcmrBackend } from 'src/wallet/cashtokens'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
 import { binToHex } from '@bitauth/libauth'
-import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
 import { getExplorerBaseUrl } from 'src/utils/send-page-utils'
 
 export const useMultisigHelpers = () => {
