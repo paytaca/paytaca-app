@@ -460,7 +460,7 @@ const openFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fi
           url: result.uri,
         });
       } 
-
+      const blob = new Blob([data])
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
