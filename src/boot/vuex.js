@@ -140,7 +140,7 @@ export default boot(async (obj) => {
     loadCachedWalletNames(store)
     
     // Clean up null and deleted vault entries on startup
-    store.dispatch('global/cleanupNullAndDeletedWallets')
+    await store.dispatch('global/cleanupNullAndDeletedWallets')
     
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run after wallets are recovered
