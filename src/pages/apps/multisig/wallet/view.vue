@@ -26,7 +26,10 @@
                   <q-card-section class="row items-center justify-between">
                     <div class="flex justify-start items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                      <span class="text-h5 text-bold">{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : 0 }}</span>
+                      <span class="text-h5 text-bold">
+                        <q-skeleton v-if="balances?.['bch'] == undefined && balancesRefreshing" type="text" width="5em" height="2.7em"></q-skeleton>
+                        <span v-else>{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : 0 }}</span>
+                      </span>
                       <q-btn 
                         @click="refreshBalance"
                         :icon="!balancesRefreshing? 'refresh': ''"
@@ -62,7 +65,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn v-if="proposals && proposals.length > 0 || !proposalsFromServer?.length" flat dense no-caps :to="{ name: 'app-multisig-wallet-psts', params: { wallethash: wallet.getWalletHash() } }" class="tile col" size="14px" v-close-popup>
+                <q-btn v-if="proposals && proposals.length > 0 || !proposalsFromServer?.length" flat dense no-caps :to="{ name: 'app-multisig-wallet-psts', params: { wallethash: wallet.walletHash } }" class="tile col" size="14px" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box-outline" class="col-12" size="20px" style="position:relative" :class="getDarkModeClass(darkMode)">
@@ -86,7 +89,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.getWalletHash() } }" size="14px" class="tile col" v-close-popup>
+                <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.walletHash } }" size="14px" class="tile col" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-text-box-multiple-outline" class="col-12" size="20px" style="position:relative">
@@ -131,6 +134,7 @@
                  </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-separator spaced inset />
               <q-item>
                 <q-item-section>
                   <q-item-label class="text-subtitle2">{{ $t('RequiredSignatures') }}</q-item-label>
@@ -139,8 +143,26 @@
                   <q-item-label caption>{{ wallet.m }} of {{ wallet.signers.length }}</q-item-label>
                 </q-item-section>
               </q-item>
-              <q-separator spaced inset />
-              <q-item >
+              <q-expansion-item v-if="wallet.signers?.length > 3" :label="$t('Signers')">
+                <q-item>
+                  <q-item-section>
+                    <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
+                      <q-chip v-for="signer, i in wallet.signers?.sort((sa, sb) => (sa.name || '').localeCompare((sb.name || '')))" :key="`app-multisig-view-signer-${i}`" style="height:fit-content" flat dense class="q-px-md">
+                        <q-avatar>
+                          <q-icon v-if="Boolean(signer?.xprv)" name="mdi-account-key" size="sm" style="color:#D4AF37"></q-icon>
+                          <q-icon v-else name="person" size="sm"></q-icon>
+                        </q-avatar>
+                        <div class="flex flex-column">
+                          <div class="ellipsis" style="max-width:5em">
+                            {{ signer.name }}
+                          </div>
+                        </div>
+                      </q-chip>
+                    </div>
+                  </q-item-section>
+                </q-item>
+              </q-expansion-item>
+              <q-item v-else>
                 <q-item-section>
                   <q-item-label class="text-subtitle2 q-mb-md">{{ $t('Signers') }}</q-item-label>
                   <div class="flex flex-wrap items-center q-gutter-xs ellipsis">
@@ -165,7 +187,7 @@
                     {{ $t('Balances') }}
                   </q-item-section>
                 </template>
-                <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash() }, query: { asset: 'bch' } }">
+                <q-item clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.walletHash }, query: { asset: 'bch' } }">
                   <q-item-section>
                     <div class="flex items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
@@ -179,7 +201,7 @@
                     {{ balances?.['bch'] ? balances?.['bch'] / 1e8: '...' }}
                   </q-item-section>
                 </q-item>
-                <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.getWalletHash()}, query: { asset }}">
+                <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.walletHash}, query: { asset }}">
                     <q-item-section>
                       <div class="flex items-center q-gutter-x-sm">
                         <q-avatar size="md">
@@ -206,6 +228,73 @@
                 </q-item>
               </q-expansion-item>
             </q-list>
+        </template>
+        <template v-else>
+          <div class="row q-mb-lg justify-center">
+            <div class="col-xs-12">
+              <q-card class="q-ma-md" style="border-radius: 15px;">
+                <div class="flex justify-between items-center q-ma-md">
+                  <div class="flex items-center q-gutter-x-sm">
+                    <q-skeleton type="QAvatar" size="sm" />
+                    <q-skeleton type="text" width="150px" height="24px" />
+                  </div>
+                  <q-skeleton type="QAvatar" size="sm" />
+                </div>
+                <q-card-section class="row items-center justify-between">
+                  <div class="flex justify-start items-center q-gutter-x-sm">
+                    <q-skeleton type="QAvatar" size="md" />
+                    <q-skeleton type="text" width="100px" height="28px" />
+                    <q-skeleton type="QAvatar" size="md" />
+                  </div>
+                  <div class="col-xs-12 q-mt-md">
+                    <q-skeleton type="text" width="80px" height="16px" />
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+            <div class="col-xs-12 flex justify-between no-wrap q-gutter-x-xs">
+              <q-skeleton type="rect" class="tile col" height="60px" style="border-radius: 8px;" />
+              <q-skeleton type="rect" class="tile col" height="60px" style="border-radius: 8px;" />
+              <q-skeleton type="rect" class="tile col" height="60px" style="border-radius: 8px;" />
+              <q-skeleton type="rect" class="tile col" height="60px" style="border-radius: 8px;" />
+            </div>
+          </div>
+          <q-list>
+            <q-separator spaced inset />
+            <q-item>
+              <q-item-section>
+                <q-skeleton type="text" width="100px" height="14px" />
+              </q-item-section>
+              <q-item-section side>
+                <q-skeleton type="text" width="150px" height="14px" />
+              </q-item-section>
+            </q-item>
+            <q-item>
+              <q-item-section>
+                <q-skeleton type="text" width="120px" height="14px" />
+              </q-item-section>
+              <q-item-section side>
+                <q-skeleton type="text" width="60px" height="14px" />
+              </q-item-section>
+            </q-item>
+            <q-separator spaced inset />
+            <q-item>
+              <q-item-section>
+                <q-skeleton type="text" width="80px" height="14px" class="q-mb-md" />
+                <div class="flex q-gutter-xs">
+                  <q-skeleton type="QChip" width="80px" />
+                  <q-skeleton type="QChip" width="80px" />
+                  <q-skeleton type="QChip" width="80px" />
+                </div>
+              </q-item-section>
+            </q-item>
+            <q-separator spaced inset />
+            <q-item>
+              <q-item-section>
+                <q-skeleton type="text" width="70px" height="14px" />
+              </q-item-section>
+            </q-item>
+          </q-list>
         </template>
       </div>
     </div>
@@ -444,8 +533,7 @@ const downloadWalletFile = async (walletToExport) => {
       const result = await Filesystem.writeFile({
         path: fullFilename,
         data: data, 
-        directory: Directory.Documents, 
-        recursive: true,
+        directory: Directory.Cache, 
         encoding: 'utf8' 
       });
 
@@ -537,14 +625,6 @@ const handlShareWalletAction = () => {
   })
 }
 
-const handleScanWalletUtxosAction = () => {
-  try {
-    
-  } catch (error) {
-    
-  }
-}
-
 const handleWalletActions = async (action) => {
     if (action.value === 'delete-wallet') {
       handleDeleteWalletAction()
@@ -552,14 +632,11 @@ const handleWalletActions = async (action) => {
     if (action.value === 'share-wallet') {
       handlShareWalletAction()
     }
-    if (action.value === 'scan-wallet-utxos') {
-      await handleScanWalletUtxosAction()
-    }
     if (action.value === 'view-wallet-settings') {
-      router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.value.getWalletHash() } })
+      router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.value.walletHash } })
     }
     if (action.value === 'view-nfts') {
-      router.push({ name: 'app-multisig-wallet-nfts', params: { wallethash: wallet.value.getWalletHash() } })
+      router.push({ name: 'app-multisig-wallet-nfts', params: { wallethash: wallet.value.walletHash } })
     }
 }
   
@@ -580,12 +657,6 @@ const openWalletActionsDialog = () => {
         value: 'share-wallet',
         color: 'primary'
       },
-      // {
-      //   icon: 'mdi-database-search-outline',
-      //   label: $t('ScanUTXOs', {}, 'Scan UTXOs'),
-      //   value: 'scan-wallet-utxos',
-      //   color: 'primary'
-      // },
       {
         icon: 'mdi-file-cog',
         label: $t('WalletSettings', {}, 'Wallet Settings'),
@@ -709,11 +780,24 @@ const queryServerForProposals = async () => {
   }
 }
 
-watch(wallet, async (newWallet) => {
-  if (!newWallet) {
-    router.push({ name: 'app-multisig' })
+const init = async () => {
+  const responses = await Promise.allSettled([
+    wallet.value?.sync(),
+    wallet.value?.loadSignersXPrv(),
+    refreshBalance(),
+    queryServerForProposals()
+  ])
+
+  for (const response of responses) {
+    if (response?.status === 'rejected') {
+      $q.notify({
+        type: 'warning',
+        message: `Warning: ${response?.reason}`,
+        color: 'warning'
+      })
+    }
   }
-})
+}
 
 onMounted(async () => {
   try {
@@ -730,22 +814,11 @@ onMounted(async () => {
     
     if (!savedWallet) router.back()
 
-    const responses = await Promise.allSettled([
-      wallet.value?.sync(),
-      wallet.value?.loadSignersXPrv(),
-      refreshBalance(),
-      queryServerForProposals()
-    ])
-
-    for (const response of responses) {
-      if (response?.status === 'rejected') {
-        $q.notify({
-          type: 'warning',
-          message: `Warning: ${response?.reason}`,
-          color: 'warning'
-        })
-      }
-    }
+    setTimeout(() => {
+      init()
+    }, 500)
+    
+    
   } catch (error) {
     $q.notify({
       type: 'warning',
