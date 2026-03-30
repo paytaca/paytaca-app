@@ -40,9 +40,7 @@
               })"
               >
               <q-item-section avatar>
-                <q-avatar color="primary" text-color="white" size="5rem" square class="br-15">
-                  <q-icon name="mdi-file-cloud-outline" color="primary" size="md"></q-icon>
-                </q-avatar>
+                <q-icon name="mdi-file-document-outline" color="primary" size="4rem"></q-icon>
               </q-item-section>
               <q-item-section>
                 <q-item-label>

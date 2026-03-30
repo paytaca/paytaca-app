@@ -16,9 +16,10 @@
                 <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px; color:white">
                   <q-card-section class="row items-center justify-between">
                     <div class="col-12 flex justify-between items-center">
-                      <div class="flex items-center q-gutter-x-sm">
-                        <span class="text-bold text-h6">{{pst.purpose || pst?.metadata?.purpose || 'Purpose Not Specified'}}</span>
+                      <div class="text-bold text-h6 ellipsis">
+                        {{pst.purpose || pst?.metadata?.purpose || 'Purpose Not Specified'}}
                       </div>
+                      
                     </div>
                     <div v-if="pst.id" class="col-12 text-caption">{{ $t('ID') }}: {{ pst.id || '<Local Only>' }}</div>
                     <div class="col-12 text-caption flex items-center">
@@ -27,10 +28,9 @@
                         <q-tooltip>{{ $t('Copy') }}</q-tooltip>
                       </q-btn>
                     </div>
-                    <div class="col-12 text-caption">{{ $t('ProposedBy') }} : {{ proposedBy.name || $t('Unknown') }} <span v-if="Boolean(proposedBy.xprv)" class="text-italic">({{ $t('You') }})</span></div>
+                    <div v-if="proposedBy" class="col-12 text-caption">{{ $t('ProposedBy') }} : {{ proposedBy.name }} <span v-if="Boolean(proposedBy.xprv)" class="text-italic">({{ $t('You') }})</span></div>
                     <div v-if="pst.id" class="col-12 text-caption flex items-center">
-                      <span>{{ $t('Coordinator') }}</span>
-                      <q-icon name="mdi-cloud-outline" class="q-ml-sm"></q-icon> :
+                      <span>{{ $t('Coordinator') }} :</span>
                       <span class="q-ml-sm">{{ coordinator }}</span>
                     </div>
                     <div class="col-12 text-caption flex items-center justify-end">
@@ -63,14 +63,6 @@
                 </div>
               </template>
             </q-btn>
-            <!-- <q-btn flat dense no-caps class="tile" @click="showImportSignatureDialog" v-if="signingProgress?.signingProgress !== 'fully-signed'">
-              <template v-slot:default>
-                <div class="row justify-center">
-                  <q-icon name="mdi-download" class="col-12" color="primary" size="md"></q-icon>
-                  <div class="col-12 tile-label">{{ $t('ImportSigs', {}, 'Import') }}</div>
-                </div>
-              </template>
-            </q-btn> -->
             <q-btn flat dense no-caps class="tile" @click="showProposalDetailsDialog">
               <template v-slot:default>
                 <div class="row justify-center">
@@ -202,14 +194,6 @@
                           <span v-if="signer.xprv" class="q-ml-sm text-caption text-italic text-green">
                             ({{ $t('You') }})
                           </span>
-                          <!-- <q-btn 
-                            icon="mdi-share" 
-                            color="primary"
-                            class="q-ml-sm"
-                            flat
-                            round
-                            dense
-                          ></q-btn> -->
                         </q-chip>
                       </span>
                     </div>
@@ -388,7 +372,6 @@ const pstOutputsTokenCategories = computed(() => {
 const proposedBy = computed(() => {
   if (!pst.value || !wallet.value || !wallet.value.signers) return
   const creator = pst.value.getSignerWhoCreatedProposal()
-  // return creator?.name || $t('Unknown')
   return creator
 })
 
@@ -736,26 +719,38 @@ const importSignerSignature = (masterFingerprint, name) => {
 }
 
 const showImportSignatureDialog = () => {
-  const unsignedSigners = wallet.value?.signers?.filter(s => !pst.value?.signerSigned(s.xpub)) || []
-  if (unsignedSigners.length === 0) return
-  
-  if (unsignedSigners.length === 1) {
-    importSignerSignature(unsignedSigners[0].masterFingerprint, unsignedSigners[0].name)
-    return
-  }
-  
-  $q.bottomSheet({
-    message: $t('SelectSigner'),
-    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)}`,
-    actions: unsignedSigners.map((s, i) => ({
-      label: s.name || `Signer ${i + 1}`,
-      id: s.masterFingerprint,
-      icon: 'person',
-      name: s.name
-    }))
-  }).onOk(action => {
-    importSignerSignature(action.id, action.name)
+  router.push({ 
+    name: 'app-multisig-wallet-pst-signatures-import',
+    params: {
+      wallethash: route.params.wallethash,
+      unsignedtransactionhash: route.params.unsignedtransactionhash,
+      // masterfingerprint: masterFingerprint
+    },
+    // query: {
+    //   signerName: name
+    // }
   })
+
+  // const unsignedSigners = wallet.value?.signers?.filter(s => !pst.value?.signerSigned(s.xpub)) || []
+  // if (unsignedSigners.length === 0) return
+  
+  // if (unsignedSigners.length === 1) {
+  //   importSignerSignature(unsignedSigners[0].masterFingerprint, unsignedSigners[0].name)
+  //   return
+  // }
+  
+  // $q.bottomSheet({
+  //   message: $t('SelectSigner'),
+  //   class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)}`,
+  //   actions: unsignedSigners.map((s, i) => ({
+  //     label: s.name || `Signer ${i + 1}`,
+  //     id: s.masterFingerprint,
+  //     icon: 'person',
+  //     name: s.name
+  //   }))
+  // }).onOk(action => {
+  //   importSignerSignature(action.id, action.name)
+  // })
 }
 
 const loadWallet = async () => {
