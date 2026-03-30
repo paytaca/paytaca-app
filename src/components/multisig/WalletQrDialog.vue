@@ -28,18 +28,14 @@
               <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
             </div>
           </q-linear-progress>
-        </div>
-        <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
-          <div>
-            <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
-              <q-icon class="default-text-color"  size="24px" name="file_download" @click="handleDownloadWallet"/>
-            </q-btn>
-            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ $t('DownloadWalletFile') }}</div>
+          <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic">
+            {{ $t('ScanProblemTip', {}, `Having trouble? Try adjusting the camera angle or try aiming it slightly above the bottom-left square marker.`) }}
           </div>
         </div>
+        
       </q-card-section>
       <q-card-actions>
-        <q-btn :label="$t('Close')" @click="onDialogOK" color="red" v-close-popup />
+        <q-btn :label="$t('Close')" @click="onDialogOK" color="red" v-close-popup rounded />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -94,7 +90,7 @@ function prepareBase64Chunks() {
     const ur = new UR(buffer, "crypto-mofnwallet");
     
     // Create encoder with 200-byte fragments for reliable scanning
-    const chunkSize = 300;
+    const chunkSize = 100;
     encoder.value = new UREncoder(ur, chunkSize);
     
     // Get total sequence length from encoder (UREncoder cycles infinitely, so we need to track manually)
