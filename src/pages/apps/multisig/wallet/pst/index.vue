@@ -116,42 +116,7 @@ const wallet = computed(() => {
   return walletObject
 })
 
-// const proposalsData = ref([])
-
-// // Computed property is now pure - just returns the ref value
-// const proposals = computed(() => proposalsData.value)
-
 const proposals = ref([])
-// Watch dependencies and compute proposals, handling errors in the watcher
-// watch(
-//   () => [route.params.wallethash, wallet.value, $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)],
-//   () => {
-//     try {
-//       const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
-//       proposalsData.value = psbts?.map(psbtBase64 => {
-//         const pst = Pst.fromPsbt(psbtBase64)
-//         pst.setWallet(wallet.value)
-//         // pst.setCoordinationServer(wallet.value.options.coordinationServer)
-//         // (async () => {
-          
-//         //   await pst.sync()
-//         //   await pst.fetchCoordinatorInfo()
-//         // })()
-//         return pst
-//       }) || []
-
-//     } catch (error) {
-//       console.log('Errors', error)
-//       proposalsData.value = []
-//       $q.dialog({
-//         title: 'Error loading transaction proposals!',
-//         message: error.message,
-//         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-//       })
-//     }
-//   },
-//   { immediate: true }
-// )
 
 const importProposals = () => {
   router.push({ 
@@ -200,7 +165,6 @@ const clearAll = () => {
   $q.dialog({
     title: $t('ClearingAllTxProposals'),
     message: $t('ClearingAllTxProposalsConfirmationMessage'),
-    // 'Are you sure you want to clear all transaction proposals? This action cannot be undone.',
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`,
     ok: {
       label: 'Yes',

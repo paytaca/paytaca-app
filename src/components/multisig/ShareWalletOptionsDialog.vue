@@ -16,7 +16,7 @@
             <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
               <q-icon class="default-text-color"  size="24px" name="file_download" @click="handleDownloadWallet"/>
             </q-btn>
-            <div class="q-pt-xs text-center text-capitalize text-bold" style="font-size: 13px;">{{ $t('DownloadWalletFile') }}</div>
+            <div class="q-pt-xs text-center text-capitalize text-bold" style="font-size: 13px;">{{ $t('DownloadOrShareFile') }}</div>
             <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('DownloadWalletFileDescription', {}, 'Download the wallet file to your device and share it with your cosigners') }}</div>
           </div>
           <div>

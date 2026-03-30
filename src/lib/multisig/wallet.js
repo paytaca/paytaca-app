@@ -1626,6 +1626,8 @@ export class MultisigWallet {
   export() {
     const j = structuredClone(this.toJSON())
 
+    delete j.id
+    
     if (Object.keys(j.networks || {}).length === 0) {
       delete j.networks
     }
