@@ -27,14 +27,6 @@
                 <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportPartiallySignedTransactionFromFileHint', {}, 'Browse and import a Partially Signed Transaction File you get from your cosigner') }}</div>
               </div>
               <div>
-                <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round :disable="!pst || !pst.id || signerSignatures?.length === 0">
-                  <q-icon class="default-text-color"  name="cloud_download" @click="importFromServer"/>
-                  <q-badge v-if="signerSignatures?.length > 0" floating rounded></q-badge>
-                </q-btn>
-                <div class="q-pt-xs text-center text-capitalize text-bold">{{ $t('ImportPartialSignaturesFromServer') }}</div>
-                <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ImportPartialSignaturesFromServer', {}, 'Download signatures from Paytaca\'s Multisig Coordinator Server') }}</div>
-              </div>
-              <div>
                 <q-btn :label="$t('Cancel')" @click="router.back()" color="red" v-close-popup></q-btn>
               </div>
           </div>
@@ -77,52 +69,6 @@ const darkMode = computed(() => {
 
 const importPsbt = () => {
   pstFileElementRef.value.pickFiles()
-}
-
-const importFromServer = async () => {
-  if (!canonicalPsbt.value) return 
-  if (!signerSignatures.value) return 
-
-  $q.dialog({
-    title: $t('SignerSignatureFoundOnServerTitle'),
-    message: $t('SignerSignatureFoundOnServerMessage'),
-    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)} text-body1 q-pt-lg q-pa-sm`,
-    ok: { 
-      label: $t('ConfirmImport'),
-      color: 'primary',
-      rounded: true,
-      class: `button-default ${getDarkModeClass(darkMode.value)}`,
-    },
-    cancel: { 
-      label: $t('Cancel'),
-      color: 'default',
-      outline: true,
-      rounded: true,
-      class: `button-default ${getDarkModeClass(darkMode.value)} `,
-    },
-    
-  }).onOk(async () => {
-    const pst = Pst.import(canonicalPsbt.value)
-    if (pst.options?.coordinationServer) {
-      const signatures = await pst.options.coordinationServer.getSignerSignatures({
-        masterFingerprint: route.params.masterfingerprint, 
-        proposalUnsignedTransactionHash: pst.unsignedTransactionHash 
-      })
-      if (signatures) {
-        try {
-          pst.mergeSignerSignatures(signatures)
-          pst.setStore($store)
-          pst.save()
-          router.back()
-        } catch (error) {
-          $q.dialog({
-            message: error?.toString(),
-            color: 'negative'
-          })
-        }
-      }
-    }
-  }).onCancel(() => {})
 }
 
 const onUpdatePstFile = (file) => {
@@ -195,7 +141,6 @@ onMounted(async () => {
   }
   if (canonicalPsbt.value) {
     const pst = Pst.import(canonicalPsbt.value)
-    console.log('PST', pst)
     if (pst.options?.coordinationServer) {
       await pst.sync()
       if (!pst.id) return
