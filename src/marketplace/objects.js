@@ -806,7 +806,7 @@ export class Cart {
     })
   }
 
-  save() {
+  async save() {
     const data = {
       storefront_id: this.storefrontId,
       require_cutlery: this.id ? this.requireCutlery : undefined,
@@ -832,7 +832,7 @@ export class Cart {
           properties: properties,
           addons: addons,
         }
-      }).filter(item => !isNaN(item?.quantity) && item.quantity >= 0 && item?.quantity !== '')
+      }).filter(item => !Number.isNaN(item?.quantity) && item.quantity > 0 && item?.quantity !== '')
     }
 
     if (this?.customer?.ref) {
