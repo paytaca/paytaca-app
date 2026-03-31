@@ -921,7 +921,7 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: inherit;
+  background: transparent;
   padding-bottom: 8px;
 }
 
@@ -958,7 +958,7 @@ export default {
   position: sticky;
   bottom: 0;
   z-index: 10;
-  background: inherit;
+  background: transparent;
   padding-top: 8px;
 }
 
