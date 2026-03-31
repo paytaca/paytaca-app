@@ -377,6 +377,7 @@ export class CauldronPoolTracker extends EventEmitter {
     } else if (data.type === 'update') {
       this.updatePools(data.utxos);
     }
+    this.removeLargePools();
     this.emit('pool-updated');
   }
 
@@ -396,6 +397,21 @@ export class CauldronPoolTracker extends EventEmitter {
         this.microPools.push(updatedMicroPool);
       }
     })
+  }
+
+  removeLargePools() {
+    /** This is an attempt to fix error:
+     *    InvalidProgramState:
+     *      Unable to verify transaction: error in evaluating input index 0: Program attempted an
+     *      arithmetic operation which exceeds the range of VM Numbers. Maximum VM number byte length: 8;
+     *      encoded number length: 11
+     * */
+    const MAX = (1n << 63n) - 1n;      //  2^63 - 1
+    const filterdPools = this.microPools.filter(pool => {
+      const K = pool.output.amount * pool.output.token.amount;
+      return K < MAX && false;
+    })
+    this.microPools = filterdPools
   }
 
   /**
