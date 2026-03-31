@@ -12,34 +12,27 @@
       :class="getDarkModeClass(darkMode)"
     >
       <q-card-section class="col-12 justify-center">
-        <div class="text-grad text-center text-h6">
-          {{ $t("QrCode") }}
+        <div class="text-grad text-center text-bold">
+          {{ $t("ProposalQrCode") }}
         </div>
 
         <div class="text-subtitle-2 text-center text-bow-muted">
           Scan the Animated QR from your device
         </div>
         <div class="flex flex-center q-mt-md">
-          <img v-if="currentQr" :src="currentQr" style="width: 420px; height: 420px" class="br-15"/>
+          <img v-if="currentQr" :src="currentQr" style="width: 330px; height: 330px" class="br-15"/>
         </div>
         <div class="q-pa-md">
-          <q-linear-progress rounded size="4em" :value="progress" color="secondary" class="q-mt-sm" >
+          <q-linear-progress rounded size="1.5em" :value="progress" color="secondary" class="q-mt-sm" >
             <div class="absolute-full flex flex-center items-center justify-center">
               <span class="text-caption text-bold text-white text-center">{{ progressLabel }}</span>
             </div>
           </q-linear-progress>
-          <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic">
-            {{ $t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`) }}
+          <div class="text-subtitle-2 text-center text-bow-muted q-mt-md text-italic q-gutter-y-xs">
+            <div>{{ $t('ScanPsbtTip', {}, `The sequence auto-recycles; keep scanning until all fragments are picked up by your scanner...`) }}</div>
+            <div class="q-mt-sm">{{ $t('ScanProblemTip', {}, `Having trouble? Try adjusting the camera angle or try aiming it slightly above the bottom-left square marker.`) }}</div>
           </div>
         </div>
-        <!-- <div class="flex column text-center q-gutter-y-xl" style="margin-top: 20px;">
-          <div>
-            <q-btn color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round size="14px">
-              <q-icon class="default-text-color"  size="24px" name="file_download" @click="handleDownloadPst"/>
-            </q-btn>
-            <div class="q-pt-xs text-center text-capitalize" style="font-size: 13px;">{{ $t('DownloadTxFile') }}</div>
-          </div>
-        </div> -->
       </q-card-section>
       <q-card-actions>
         <q-btn :label="$t('Close')" @click="onDialogOK" color="red" rounded v-close-popup />
@@ -49,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 import { useDialogPluginComponent } from "quasar";
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
@@ -66,8 +59,7 @@ const props = defineProps({
 
 const { dialogRef, onDialogOK } = useDialogPluginComponent();
 
-// === Animated QR State ===
-const currentQr = ref(""); // data URL for current QR frame
+const currentQr = ref("");
 const animationTimer = ref();
 const encoder = ref(null);
 const progress = ref(0)
@@ -85,7 +77,6 @@ async function prepareBase64Chunks() {
     const buffer = Buffer.from(base64ToBin(base64Psbt), 'base64');
     const ur = new UR(buffer, "crypto-psbt");
     
-    // Create fragments
     const chunkSize = 50; 
     encoder.value = new UREncoder(ur, chunkSize);
     return encoder.value?.fragments?.length;
@@ -112,7 +103,6 @@ function updateQrFrame() {
   try {
     // Note: nextPart() never returns undefined - it cycles forever by design
     const part = encoder.value.nextPart();
-    // Generate QR code from UR string
     const qrImage = qrToString(part);
     if (qrImage) {
       currentQr.value = qrImage;
@@ -139,10 +129,8 @@ function qrToString(text) {
     const QRCode = require("qrcode-svg");
     const qrcode = new QRCode({
       content: text,
-      width: 400,
-      height: 400,
-      ecl: "Q",    // Error Correction Level
-      padding: 12, 
+      ecl: "Q",   
+      padding: 8, 
       join: true,
       swap: true
     });
