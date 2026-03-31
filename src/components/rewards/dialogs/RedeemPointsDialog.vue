@@ -701,7 +701,7 @@ export default {
     
     closeCelebration () {
       this.showCelebration = false
-      this.$refs.dialogRef.hide()
+      this.$emit('hide')
     },
     
     // Dialog Lifecycle

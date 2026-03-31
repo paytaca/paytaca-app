@@ -468,6 +468,7 @@ export default {
       }).onDismiss(async () => {
         this.isLoading = true
         this.points = await this.rpContract.getTokenBalance()
+        this.animatePointsCounter()
         this.isLoading = false
       })
     },
