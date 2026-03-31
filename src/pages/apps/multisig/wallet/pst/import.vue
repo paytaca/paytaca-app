@@ -60,9 +60,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRoute, useRouter } from 'vue-router'
 import { Pst, MultisigWallet } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
-
 import ImportProposalSelectionDialog from 'components/multisig/ImportProposalSelectionDialog'
-import { binToBase64 } from 'bitauth-libauth-v3'
 
 const $store = useStore()
 const $q = useQuasar()

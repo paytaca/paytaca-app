@@ -57,7 +57,7 @@
                 <q-item-label header>Signers</q-item-label>
                 <q-item v-for="signer in wallet.signers" :key="signer.xpub" >
                     <q-item-section>
-                        <q-list bordered class="settings-list br-15" :class="getDarkModeClass(darkMode)">
+                        <q-list class="settings-list" :class="getDarkModeClass(darkMode)">
                             <q-item>
                                 <q-item-section>
                                 <q-item-label class="pt-setting-menu" :class="getDarkModeClass(darkMode)">
@@ -414,7 +414,6 @@ const wcDisconnectSession = async (activeSession) => {
 const toggleReserveWcAccountUtxos = (value) => {
   wallet.value.settings.reserveWcAccountUtxos = value 
   wallet.value.save()
-  console.log('WALLET VALUE', wallet.value)
 }
 
 onMounted(async () => {

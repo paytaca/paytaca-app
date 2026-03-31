@@ -14,22 +14,22 @@
       <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
             <div class="row q-mb-lg justify-center">
-              <div class="col-xs-12">
-                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px; color:white">
-                  <div class="flex justify-between items-center q-ma-md">
+              <div class="col-xs-12 q-px-sm">
+                <q-card id="bch-card" style="border-radius: 15px; color:white">
+                  <div class="flex justify-between items-center q-mt-md q-mx-md">
                     <div class="flex items-center q-gutter-x-sm">
                       <q-icon name="wallet" size="sm"></q-icon>
-                      <span class="text-bold text-h5">{{wallet.name}}</span>
+                      <span class="text-bold text-h6">{{wallet.name}}</span>
                     </div>
                     <q-icon v-if="wallet.isOnline()" name="mdi-cloud-check" size="sm" flat></q-icon>
                   </div>
                   <q-card-section class="row items-center justify-between">
                     <div class="flex justify-start items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
-                      <span class="text-h5 text-bold">
+                      <div class="text-h6 text-bold">
                         <q-skeleton v-if="balances?.['bch'] == undefined || balancesRefreshing" type="text" width="5em" height="2.7em"></q-skeleton>
                         <span v-else>{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : 0 }}</span>
-                      </span>
+                      </div>
                       <q-btn 
                         @click="refreshBalance"
                         :icon="!balancesRefreshing? 'refresh': ''"
@@ -44,7 +44,7 @@
                     </div>
                     <div class="col-xs-12 q-mt-md text-subtitle2">{{ assetPrice? `=${assetPrice}` : '' }}</div>
                     <div class="col-12 text-caption flex items-center justify-end">
-                      <q-chip v-if="signersWithXprv.value?.length === 0">
+                      <q-chip v-if="!signersWithXprv || signersWithXprv?.length === 0">
                         <div class="flex items-center items-end q-gutter-x-sm">
                           <span class="text-capitalize text-italic text-caption">{{$t('WatchOnly') }}</span>
                           <q-icon name="mdi-pen-off"></q-icon>
@@ -54,7 +54,7 @@
                   </q-card-section>
                 </q-card>
               </div>
-              <div class="col-xs-12 flex justify-between no-wrap q-gutter-x-xs">
+              <div class="col-xs-12 flex justify-between no-wrap q-gutter-x-xs q-mt-md">
                 <q-btn flat dense no-caps @click="showWalletDepositDialog" class="tile col" size="14px" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
@@ -121,7 +121,7 @@
               <q-separator spaced inset />
               <q-item v-if="wallet.isOnline()">
                 <q-item-section>
-                  <q-item-label><q-icon name="mdi-identifier" size="sm" ></q-icon><q-icon name="mdi-cloud-check" size="sm" ></q-icon></q-item-label>
+                  <q-item-label><q-icon name="mdi-identifier" size="sm" ></q-icon><q-icon name="mdi-cloud-check" size="xs" ></q-icon></q-item-label>
                 </q-item-section>
                 <q-item-section side>
                  <q-item-label >
