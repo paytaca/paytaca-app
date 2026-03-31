@@ -27,8 +27,14 @@
                     <div class="flex justify-start items-center q-gutter-x-sm">
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
                       <div class="text-h6 text-bold">
-                        <q-skeleton v-if="balances?.['bch'] == undefined || balancesRefreshing" type="text" width="5em" height="2.7em"></q-skeleton>
-                        <span v-else>{{ balances?.['bch'] || balances?.['bch'] == 0 ? balances?.['bch'] / 1e8 : 0 }}</span>
+                        <q-skeleton 
+                          v-if="balances?.['bch'] === undefined || balancesRefreshing"
+                          type="text" 
+                          width="5em" 
+                          height="2.7em"
+                        >
+                        </q-skeleton>
+                        <span v-else>{{ (balances?.['bch'] ?? 0) / 1e8 }}</span>
                       </div>
                       <q-btn 
                         @click="refreshBalance"
@@ -43,14 +49,6 @@
                       </q-btn>
                     </div>
                     <div class="col-xs-12 q-mt-md text-subtitle2">{{ assetPrice? `=${assetPrice}` : '' }}</div>
-                    <div class="col-12 text-caption flex items-center justify-end">
-                      <q-chip v-if="!signersWithXprv || signersWithXprv?.length === 0">
-                        <div class="flex items-center items-end q-gutter-x-sm">
-                          <span class="text-capitalize text-italic text-caption">{{$t('WatchOnly') }}</span>
-                          <q-icon name="mdi-pen-off"></q-icon>
-                        </div>
-                      </q-chip>
-                    </div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -77,7 +75,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn v-else-if="proposalsFromServer?.length > 0" @click="showProposalsImportSelectionDialog" flat dense no-caps size="14px" class="tile col" v-close-popup>
+                <q-btn v-else-if="proposalsFromServer?.length > 0" @click="() => showProposalsImportSelectionDialog()" flat dense no-caps size="14px" class="tile col" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-cloud-outline" class="col-12" size="20px" color="primary" style="position:relative">
@@ -89,16 +87,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <!-- <q-btn flat dense no-caps :to="{ name: 'app-multisig-wallet-addresses', params: { wallethash: wallet.walletHash } }" size="14px" class="tile col" v-close-popup>
-                  <template v-slot:default>
-                    <div class="row justify-center">
-                      <q-icon name="mdi-text-box-multiple-outline" class="col-12" size="20px" style="position:relative">
-                      </q-icon>
-                      <div class="col-12 tile-label" style="font-size: 13px;">{{ $t('Addresses') }}</div>
-                    </div>
-                  </template>
-                </q-btn> -->
-                <q-btn flat dense no-caps @click="handlShareWalletAction()" size="14px" class="tile col" v-close-popup>
+                <q-btn flat dense no-caps @click="() => handleShareWalletAction()" size="14px" class="tile col" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="mdi-share" class="col-12" size="20px" style="position:relative">
@@ -107,7 +96,7 @@
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps @click="openWalletActionsDialog" class="tile col" size="14px" v-close-popup>
+                <q-btn flat dense no-caps @click="() => openWalletActionsDialog()" class="tile col" size="14px">
                   <template v-slot:default>
                     <div class="row justify-center">
                       <q-icon name="more_horiz" class="col-12" size="20px"></q-icon>
@@ -210,31 +199,49 @@
                     {{ balances?.['bch'] ? balances?.['bch'] / 1e8: '...' }}
                   </q-item-section>
                 </q-item>
-                <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.walletHash}, query: { asset }}">
+                <template v-if="balancesRefreshing">
+                  <q-item v-for="i in 3" :key="i">
                     <q-item-section>
                       <div class="flex items-center q-gutter-x-sm">
-                        <q-avatar size="md">
-                          <q-img v-if="tokenIdentities[asset]?.uris?.icon" :src="assetIconUrl(tokenIdentities[asset]?.uris?.icon)"></q-img>
-                          <q-icon v-else name="token" size="md"></q-icon>
-                        </q-avatar>
+                        <q-skeleton type="QAvatar" size="md" />
                         <div>
-                          <div v-if="tokenIdentities[asset]?.token?.symbol">
-                            <div class="text-bold">{{tokenIdentities[asset].token.symbol}} </div>
-                            <sub  style="filter: brightness(80%)">{{tokenIdentities[asset].name}} [{{ shortenString(asset, 13) }}]</sub>
-                          </div>
-                          <div v-else-if="tokenIdentities[asset]?.name">
-                            <div class="text-bold">{{tokenIdentities[asset].name}}</div>
-                          </div>
-                          <span v-else>
-                            {{shortenString(asset, 18)}}
-                          </span>
+                          <q-skeleton type="text" width="80px" class="q-mb-xs" />
+                          <q-skeleton type="text" width="120px" />
                         </div>
                       </div>
-                  </q-item-section>
-                  <q-item-section side>
-                    {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
-                  </q-item-section>
-                </q-item>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-skeleton type="text" width="60px" />
+                    </q-item-section>
+                  </q-item>
+                </template>
+                <template v-else>
+                  <q-item v-for="asset in Object.keys(balances || {}).filter(a => a !== 'bch' && Number(balances[a] || 0) > 0)" clickable :to="{name: 'app-multisig-wallet-asset', params: { wallethash: wallet.walletHash}, query: { asset }}">
+                      <q-item-section>
+                        <div class="flex items-center q-gutter-x-sm">
+                          <q-avatar size="md">
+                            <q-img v-if="tokenIdentities[asset]?.uris?.icon" :src="assetIconUrl(tokenIdentities[asset]?.uris?.icon)"></q-img>
+                            <q-icon v-else name="token" size="md"></q-icon>
+                          </q-avatar>
+                          <div>
+                            <div v-if="tokenIdentities[asset]?.token?.symbol">
+                              <div class="text-bold">{{tokenIdentities[asset].token.symbol}} </div>
+                              <sub  style="filter: brightness(80%)">{{tokenIdentities[asset].name}} [{{ shortenString(asset, 13) }}]</sub>
+                            </div>
+                            <div v-else-if="tokenIdentities[asset]?.name">
+                              <div class="text-bold">{{tokenIdentities[asset].name}}</div>
+                            </div>
+                            <span v-else>
+                              {{shortenString(asset, 18)}}
+                            </span>
+                          </div>
+                        </div>
+                    </q-item-section>
+                    <q-item-section side>
+                      {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
+                    </q-item-section>
+                  </q-item>
+                </template>
               </q-expansion-item>
             </q-list>
         </template>
@@ -372,12 +379,6 @@ const darkMode = computed(() => {
 })
 
 const wallet = ref()
-
-const signersWithXprv = computed(() => {
-  if (!wallet.value?.signers) return []
-  return wallet.value.signers.filter(s => s.xprv)
-})
-
 
 const proposals = computed(() => {
   const psbts = $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
@@ -634,31 +635,11 @@ const handlShareWalletAction = () => {
   })
 }
 
-const handleWalletActions = async (action) => {
-    if (action.value === 'delete-wallet') {
-      handleDeleteWalletAction()
-    }
-    if (action.value === 'share-wallet') {
-      handlShareWalletAction()
-    }
-    if (action.value === 'view-wallet-settings') {
-      router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: wallet.value.walletHash } })
-    }
-    if (action.value === 'view-nfts') {
-      router.push({ name: 'app-multisig-wallet-nfts', params: { wallethash: wallet.value.walletHash } })
-    }
-}
-  
 const openWalletActionsDialog = () => {
-  const disableActions = []
-  if (proposals.value?.length > 0) {
-    disableActions.push('send-bch')
-    disableActions.push('import-tx')
-  }
-
   $q.bottomSheet({
-    title: $t('WalletOptions'),
+    title: $t('MoreOptions'),
     grid: true,
+    persistent: false,
     actions: [
       {
         icon: 'collections',
@@ -682,16 +663,32 @@ const openWalletActionsDialog = () => {
     ],
     class: `${getDarkModeClass(darkMode.value)} custom-bottom-sheet pt-card text-bow justify-between`
 
-  }).onOk(handleWalletActions)
+  }).onOk((action) => {
+    if (action.value === 'delete-wallet') {
+      handleDeleteWalletAction()
+    }
+    if (action.value === 'share-wallet') {
+      handlShareWalletAction()
+    }
+    if (action.value === 'view-wallet-settings') {
+      router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: route.params.wallethash } })
+    }
+    if (action.value === 'view-nfts') {
+      router.push({ name: 'app-multisig-wallet-nfts', params: { wallethash: route.params.wallethash} })
+    }
+  })
 }
 
-const discoverTokenIdentities = async(balances) => {
-  let t = {}
-  for(const asset of Object.keys(balances || {})) {
-    if (!asset || asset === 'bch') continue
-    t[asset] = await getAssetTokenIdentity(asset)
-  }
-  return t
+const discoverTokenIdentities = async (balances) => {
+  const assets = Object.keys(balances || {}).filter(asset => asset && asset !== 'bch')
+  
+  const results = await Promise.all(
+    assets.map(async (asset) => ({
+      asset,
+      identity: await getAssetTokenIdentity(asset)
+    }))
+  )
+  return Object.fromEntries(results.map(r => [r.asset, r.identity]))
 }
 
 const refreshBalance = async () => {
@@ -784,6 +781,7 @@ const queryServerForProposals = async () => {
 }
 
 const init = async () => {
+  
   const responses = await Promise.allSettled([
     wallet.value?.sync(),
     wallet.value?.loadSignersXPrv(),
@@ -814,8 +812,6 @@ onMounted(async () => {
         resolveMnemonicOfXpub
       })
     }
-    
-    if (!savedWallet) router.back()
 
     setTimeout(() => {
       init()
@@ -828,7 +824,7 @@ onMounted(async () => {
       message: `Warning: ${error.message}`,
       color: 'warning'
     })
-  }
+  } 
 })
 
 </script>

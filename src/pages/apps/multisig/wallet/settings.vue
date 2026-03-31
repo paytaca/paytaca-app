@@ -217,6 +217,99 @@
             </q-list>
           </div>
         </div>
+        <template v-else >
+          <div class="row text-bow" :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '-25px'}">
+            <div class="col-12 q-px-lg q-mt-md">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
+              <q-skeleton type="text" width="120px" />
+            </p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption><q-skeleton type="text" width="80px" /></q-item-label>
+                  <q-item-label class="pt-label"><q-skeleton type="text" width="140px" /></q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption><q-skeleton type="text" width="80px" /></q-item-label>
+                  <q-item-label class="pt-label"><q-skeleton type="text" width="100px" /></q-item-label>
+                </q-item-section>
+                <q-item-section avatar>
+                  <q-skeleton type="circle" size="24px" />
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption><q-skeleton type="text" width="120px" /></q-item-label>
+                  <q-item-label class="pt-label"><q-skeleton type="text" width="60px" /></q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption><q-skeleton type="text" width="80px" /></q-item-label>
+                  <q-item-label class="pt-label"><q-skeleton type="text" width="200px" /></q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-skeleton type="circle" size="32px" />
+                </q-item-section>
+              </q-item>
+              <q-item-label header><q-skeleton type="text" width="60px" /></q-item-label>
+              <q-item v-for="i in 2" :key="i">
+                <q-item-section>
+                  <q-list class="settings-list" :class="getDarkModeClass(darkMode)">
+                    <q-item>
+                      <q-item-section>
+                        <q-item-label class="pt-setting-menu"><q-skeleton type="text" width="100px" /></q-item-label>
+                      </q-item-section>
+                      <q-item-section avatar>
+                        <q-skeleton type="circle" size="24px" />
+                      </q-item-section>
+                    </q-item>
+                    <q-item-label caption>
+                      <div class="flex nowrap justify-between q-ma-sm">
+                        <div class="text-bold"><q-skeleton type="text" width="140px" /></div>
+                        <div><q-skeleton type="text" width="80px" /></div>
+                      </div>
+                    </q-item-label>
+                    <q-item-label caption>
+                      <div class="flex nowrap justify-between q-ma-sm">
+                        <div class="text-bold"><q-skeleton type="text" width="40px" /></div>
+                        <div><q-skeleton type="text" width="120px" /></div>
+                      </div>
+                    </q-item-label>
+                    <q-item-label caption>
+                      <div class="flex nowrap justify-between q-ma-sm">
+                        <div class="text-bold"><q-skeleton type="text" width="100px" /></div>
+                        <div><q-skeleton type="text" width="80px" /></div>
+                      </div>
+                    </q-item-label>
+                  </q-list>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+          <div class="col-12 q-px-lg q-mt-md" style="padding-bottom: 30px;">
+            <p class="q-px-sm q-my-sm section-title text-subtitle1" :class="getDarkModeClass(darkMode)">
+              <q-skeleton type="text" width="100px" />
+            </p>
+            <q-list class="pt-card settings-list" :class="getDarkModeClass(darkMode)">
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption><q-skeleton type="text" width="120px" /></q-item-label>
+                  <q-item-label class="pt-label"><q-skeleton type="text" width="180px" /></q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption><q-skeleton type="text" width="100px" /></q-item-label>
+                  <q-item-label class="pt-label"><q-skeleton type="text" width="180px" /></q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+          </div>
+        </template>
     </div>
   </template>
   
@@ -264,20 +357,6 @@ const toggleColor = computed(() => {
 const wcActiveSessions = ref([])
 const wcProcessingSession = ref({})
 const wallet = ref()
-// const wallet = computed(() => {
-//   const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
-//   if (storedWallet) {
-//     return MultisigWallet.importFromObject(storedWallet, {
-//       store: $store,
-//       provider: multisigNetworkProvider,
-//       coordinationServer: multisigCoordinationServer,
-//       resolveXprvOfXpub,
-//       resolveMnemonicOfXpub
-//     })
-//   }
-//   return null
-// })
-
 
 const loadHdPrivateKeys = async (signers) => {
   if (!hdPrivateKeys.value) {
@@ -416,7 +495,7 @@ const toggleReserveWcAccountUtxos = (value) => {
   wallet.value.save()
 }
 
-onMounted(async () => {
+const init = async () => {
 
   const storedWallet = $store.getters['multisig/getWalletByHash'](route.params.wallethash)
   if (storedWallet) {
@@ -428,10 +507,20 @@ onMounted(async () => {
       resolveMnemonicOfXpub
     })
 
-    await loadHdPrivateKeys(wallet.value?.signers)
-    await wallet.value.loadSignersServerIdentity()
-    await wcLoadActiveSessions()
+    await Promise.allSettled([
+      loadHdPrivateKeys(wallet.value?.signers),
+      wallet.value.loadSignersServerIdentity(),
+      wcLoadActiveSessions()
+    ])  
+    
   }
+  
+}
+
+onMounted(async () => {
+  setTimeout(() => {
+    init()
+  }, 200)
 })
 
 </script>
