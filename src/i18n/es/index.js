@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "El saldo de BCH de su billetera se utilizará para las tarifas de transacción.",
   UsedFundingProposal: "La propuesta de financiación ya está utilizada.",
   UserRejected: "Usuario rechazado",
+  UsingOptimizedLiquidity: "Usando liquidez optimizada",
+  UsingOptimizedLiquidityTooltip: "Algunos fondos de liquidez no están disponibles temporalmente debido a limitaciones técnicas.Su operación utilizará únicamente grupos compatibles.",
   UtxoScan: "Escaneo UTXO",
   UtxoScanDescription: "Busque resultados de transacciones no gastados para solucionar problemas de saldo",
   ValidFundingProposal: "Propuesta de financiación válida",

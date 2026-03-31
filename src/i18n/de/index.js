@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "Das BCH-Guthaben aus Ihrem Wallet wird für Transaktionsgebühren verwendet.",
   UsedFundingProposal: "Fördervorschlag wird bereits genutzt",
   UserRejected: "Benutzer abgelehnt",
+  UsingOptimizedLiquidity: "Nutzung optimierter Liquidität",
+  UsingOptimizedLiquidityTooltip: "Einige Liquiditätspools sind aufgrund technischer Einschränkungen vorübergehend nicht verfügbar.Ihr Handel verwendet nur kompatible Pools.",
   UtxoScan: "UTXO-Scan",
   UtxoScanDescription: "Suchen Sie nach nicht ausgegebenen Transaktionsausgaben, um Kontostandprobleme zu beheben",
   ValidFundingProposal: "Fördervorschlag gültig",

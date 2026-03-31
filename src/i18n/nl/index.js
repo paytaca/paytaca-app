@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "Het BCH-saldo uit uw portemonnee wordt gebruikt voor transactiekosten.",
   UsedFundingProposal: "Financieringsvoorstel is al gebruikt",
   UserRejected: "Gebruiker afgewezen",
+  UsingOptimizedLiquidity: "Gebruik van geoptimaliseerde liquiditeit",
+  UsingOptimizedLiquidityTooltip: "Sommige liquiditeitspools zijn tijdelijk niet beschikbaar vanwege technische beperkingen.Uw transactie maakt alleen gebruik van compatibele pools.",
   UtxoScan: "UTXO-scan",
   UtxoScanDescription: "Scan op ongebruikte transactieresultaten om saldoproblemen op te lossen",
   ValidFundingProposal: "Financieringsvoorstel geldig",

@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "지갑의 BCH 잔액은 거래 수수료로 사용됩니다.",
   UsedFundingProposal: "자금 제안이 이미 사용되었습니다.",
   UserRejected: "사용자가 거부됨",
+  UsingOptimizedLiquidity: "최적화된 유동성 사용",
+  UsingOptimizedLiquidityTooltip: "기술적 한계로 인해 일부 유동성 풀을 일시적으로 사용할 수 없습니다.귀하의 거래는 호환 가능한 풀만 사용합니다.",
   UtxoScan: "UTXO 스캔",
   UtxoScanDescription: "미사용 거래 출력을 스캔하여 잔액 문제 해결",
   ValidFundingProposal: "자금 제안이 유효함",

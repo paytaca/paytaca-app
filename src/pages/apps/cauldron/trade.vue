@@ -137,6 +137,18 @@
                 <template v-else>
                   1 BCH ≈ {{ formattedPrice }} {{ tokenSymbol }}
                 </template>
+                <template v-if="useFilteredPools" class="q-mt-xs">
+                  <q-icon 
+                    name="info" 
+                    size="1.5em"
+                    color="primary"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                  <q-menu class="filtered-pools-tooltip pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                    <div class="q-mb-xs"><strong>{{ $t('UsingOptimizedLiquidity') }}</strong></div>
+                    {{ $t('UsingOptimizedLiquidityTooltip') }}
+                  </q-menu>
+                </template>
               </div>
               <div v-else class="q-mb-md text-center text-caption text-grey">
                 {{ $t('UpdatingLiquidity') }}
@@ -582,7 +594,8 @@ export default defineComponent({
           try {
             testTradeResult({ tradeResult: result, verify: true }) 
           } catch(error) {
-            if (String(error).indexOf('Program attempted an arithmetic operation which exceeds the range of VM Numbers') >= 0) {
+            // Catch error as string since error doesnt have a specific code
+            if (error.message.indexOf('Program attempted an arithmetic operation which exceeds the range of VM Numbers') >= 0) {
               useFilteredPools.value = true;
               updateTradeResult();
               return;
@@ -1166,6 +1179,7 @@ export default defineComponent({
 
       poolTracker,
       updatingPool,
+      useFilteredPools,
       isRecomputingTrade,
       isLiquidityAvailable,
       tokenData,
@@ -1374,5 +1388,16 @@ export default defineComponent({
   &:active {
     transform: translateY(0);
   }
+}
+
+.filtered-pools-indicator {
+  // color: #ff9800;
+  cursor: help;
+}
+
+.filtered-pools-tooltip {
+  max-width: min(250px, 80vw);
+  // font-size: 12px;
+  // line-height: 1.4;
 }
 </style>

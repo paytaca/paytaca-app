@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "ウォレットのBCH残高は取引手数料に使用されます。",
   UsedFundingProposal: "資金提案はすでに使用されています",
   UserRejected: "ユーザーが拒否されました",
+  UsingOptimizedLiquidity: "最適化された流動性の使用",
+  UsingOptimizedLiquidityTooltip: "一部の流動性プールは、技術的な制限により一時的に利用できなくなります。取引では互換性のあるプールのみが使用されます。",
   UtxoScan: "UTXOスキャン",
   UtxoScanDescription: "未使用のトランザクション出力をスキャンして残高の問題を修正します",
   ValidFundingProposal: "資金提案は有効です",

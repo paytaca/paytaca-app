@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "您錢包中的 BCH 餘額將用於支付交易費用。",
   UsedFundingProposal: "資助提案已使用",
   UserRejected: "用戶被拒絕",
+  UsingOptimizedLiquidity: "使用優化的流動性",
+  UsingOptimizedLiquidityTooltip: "由於技術限制，部分流動性池暫時無法使用。您的交易將僅使用相容的池。",
   UtxoScan: "UTXO掃描",
   UtxoScanDescription: "掃描未使用的交易輸出以解決餘額問題",
   ValidFundingProposal: "資助提案有效",
