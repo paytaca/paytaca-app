@@ -41,10 +41,10 @@
               </div>
             </template>
           </q-btn>
-          <q-btn flat dense no-caps @click="onDeleteAllWalletsClick" class="tile col" size="14px" v-close-popup>
+          <q-btn flat dense no-caps @click="onDeleteAllWalletsClick"  class="tile col" size="14px" v-close-popup>
             <template v-slot:default>
               <div class="row justify-center">
-                <q-icon name="mdi-delete-sweep-outline" class="col-12" size="20px"></q-icon>
+                <q-icon name="mdi-delete-sweep-outline" class="col-12" size="20px" color="red"></q-icon>
                 <div class="col-12 tile-label text-caption" style="font-size: 13px;">{{ $t('DeleteAll', {}, 'Delete All') }}</div>
               </div>
             </template>
