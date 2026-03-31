@@ -124,40 +124,6 @@
             </div>
           </div>
 
-          <!-- Token Address Card -->
-          <q-card 
-            class="token-address-card q-mb-md" 
-            flat 
-            bordered
-            :class="getDarkModeClass(darkMode)"
-          >
-            <q-card-section class="q-px-md q-py-sm">
-              <div class="row items-center q-gutter-sm">
-                <q-icon name="account_balance_wallet" size="20px" color="primary" />
-                <span class="text-caption text-weight-medium">
-                  {{ $t('DestinationAddress', 'Destination Address') }}
-                </span>
-              </div>
-              <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
-                <div class="row items-center no-wrap">
-                  <q-icon name="vpn_key" size="16px" class="q-mr-sm" color="primary" />
-                  <span class="text-body2 text-grey-8 ellipsis">{{ tokenAddress }}</span>
-                  <q-btn
-                    flat
-                    dense
-                    round
-                    size="sm"
-                    icon="content_copy"
-                    class="q-ml-auto"
-                    @click="copyTokenAddress"
-                  >
-                    <q-tooltip>{{ $t('Copy') }}</q-tooltip>
-                  </q-btn>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-
           <!-- Amount Input Section -->
           <q-card flat bordered class="amount-input-card" :class="getDarkModeClass(darkMode)">
             <q-card-section class="q-px-md q-py-sm">
@@ -246,6 +212,40 @@
               </q-banner>
             </div>
           </q-slide-transition>
+
+          <!-- Token Address Card -->
+          <q-card 
+            class="token-address-card q-mt-md" 
+            flat 
+            bordered
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-card-section class="q-px-md q-py-sm">
+              <div class="row items-center q-gutter-sm">
+                <q-icon name="account_balance_wallet" size="20px" color="primary" />
+                <span class="text-caption text-weight-medium">
+                  {{ $t('DestinationAddress', 'Destination Address') }}
+                </span>
+              </div>
+              <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
+                <div class="row items-center no-wrap">
+                  <q-icon name="vpn_key" size="16px" class="q-mr-sm" color="primary" />
+                  <span class="text-body2 text-grey-8 ellipsis">{{ tokenAddress }}</span>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    icon="content_copy"
+                    class="q-ml-auto"
+                    @click="copyTokenAddress"
+                  >
+                    <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
         </template>
       </div>
 
