@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "Ang balanse ng BCH mula sa iyong wallet ay gagamitin para sa mga bayarin sa transaksyon.",
   UsedFundingProposal: "Ginagamit na ang panukalang pondo",
   UserRejected: "Tinanggihan ang user",
+  UsingOptimizedLiquidity: "Paggamit ng na-optimize na pagkatubig",
+  UsingOptimizedLiquidityTooltip: "Pansamantalang hindi available ang ilang liquidity pool dahil sa mga teknikal na limitasyon.Ang iyong pangangalakal ay gagamit lamang ng mga katugmang pool.",
   UtxoScan: "UTXO Scan",
   UtxoScanDescription: "Mag-scan para sa mga hindi nagastos na output ng transaksyon upang ayusin ang mga isyu sa balanse",
   ValidFundingProposal: "Wasto ang panukala sa pagpopondo",

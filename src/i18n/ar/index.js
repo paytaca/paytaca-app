@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "سيتم استخدام رصيد غرفة تبادل معلومات السلامة الأحيائية (BCH) من محفظتك لرسوم المعاملات.",
   UsedFundingProposal: "مقترح التمويل مستخدم بالفعل",
   UserRejected: "تم رفض المستخدم",
+  UsingOptimizedLiquidity: "استخدام السيولة الأمثل",
+  UsingOptimizedLiquidityTooltip: "بعض مجمعات السيولة غير متاحة مؤقتًا بسبب القيود الفنية.ستستخدم تجارتك مجموعات متوافقة فقط.",
   UtxoScan: "مسح UTXO",
   UtxoScanDescription: "البحث عن مخرجات المعاملات غير المنفقة لإصلاح مشكلات الرصيد",
   ValidFundingProposal: "اقتراح التمويل صالح",

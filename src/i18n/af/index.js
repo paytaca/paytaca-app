@@ -2369,6 +2369,8 @@ export default {
   UseWalletBalance: "BCH-saldo uit jou beursie sal vir transaksiefooie gebruik word.",
   UsedFundingProposal: "Befondsingsvoorstel word reeds gebruik",
   UserRejected: "Gebruiker verwerp",
+  UsingOptimizedLiquidity: "Gebruik geoptimaliseerde likiditeit",
+  UsingOptimizedLiquidityTooltip: "Sommige likiditeitpoele is tydelik onbeskikbaar weens tegniese beperkings.Jou handel sal slegs versoenbare poele gebruik.",
   UtxoScan: "UTXO-skandering",
   UtxoScanDescription: "Soek vir onbestede transaksie-uitsette om balanskwessies op te los",
   ValidFundingProposal: "Befondsingsvoorstel geldig",

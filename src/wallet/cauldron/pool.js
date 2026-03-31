@@ -399,6 +399,24 @@ export class CauldronPoolTracker extends EventEmitter {
   }
 
   /**
+   * Returns pools with K less than 2^63 - 1 (Max VM integer value)
+   *   K = pool_sats * pool_tokens
+   */
+  getFilteredPools() {
+    /** Using this filtered pools is an option to prevent this error:
+     *    InvalidProgramState:
+     *      Unable to verify transaction: error in evaluating input index 0: Program attempted an
+     *      arithmetic operation which exceeds the range of VM Numbers. Maximum VM number byte length: 8;
+     *      encoded number length: 11
+     * */
+    const MAX = (1n << 63n) - 1n;      //  2^63 - 1
+    return this.microPools.filter(pool => {
+      const K = pool.output.amount * pool.output.token.amount;
+      return K < MAX;
+    })
+  }
+
+  /**
    * @param {Object} opts
    * @param {Boolean} opts.isBuyingToken
    * @param {Number} opts.tokenDecimals 

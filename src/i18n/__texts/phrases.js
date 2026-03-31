@@ -260,6 +260,8 @@ const phrases = {
       InsufficientBCHBalance: 'Insufficient BCH Balance',
       InsufficientTokenBalance: 'Insufficient {token} Balance',
       TradeSuccessful: 'Trade Successful',
+      UsingOptimizedLiquidity: 'Using optimized liquidity',
+      UsingOptimizedLiquidityTooltip: 'Some liquidity pools are temporarily unavailable due to technical limitations. Your trade will use compatible pools only.',
       UpdatingLiquidity: 'Updating liquidity',
       NewSwap: 'New Swap',
       YouNeed: 'You need',
