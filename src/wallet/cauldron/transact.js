@@ -5,6 +5,7 @@ import { buildPoolV0UnlockingBytecode } from '@cashlab/cauldron';
 import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
 import { calcTradeSummary, calcTradeWithTargetDemandFromAPair, calcTradeWithTargetSupplyFromAPair } from "@cashlab/cauldron/util.js";
 
+const DUMMY_TOKEN_ID = Array.from({ length: 64 }).fill('0').join('');
 
 /**
  * @param {Object} opts 
@@ -203,6 +204,7 @@ export function createInputAndOutput(opts) {
   satoshisToSupply += totalPoolTxFee
   if (opts?.platformFee) {
     satoshisToSupply += opts.platformFee.amount;
+    satoshisToSupply += BigInt(getOutputSize(opts.platformFee));
   }
 
   /** @type {import("@cashlab/common").SpendableCoin[]} */
@@ -220,6 +222,18 @@ export function createInputAndOutput(opts) {
       satoshisToSupply += P2PKH_INPUT_SIZE
       satoshisToSupply -= spendableCoin.output.amount
     }
+
+    // Having excess tokens supplied will add a change token output, so include in amount to supply
+    if (remainingTokens < 0n) {
+      const changeTokenOutput = {
+        to: lockingBytecode,
+        amount: 1000n,
+        token: {category: DUMMY_TOKEN_ID, amount: remainingTokens * -1n },
+      }
+      satoshisToSupply += changeTokenOutput.amount
+      satoshisToSupply += BigInt(getOutputSize(changeTokenOutput));
+    }
+
   } else {
     payouts.push({
       type: PayoutAmountRuleType.FIXED,
