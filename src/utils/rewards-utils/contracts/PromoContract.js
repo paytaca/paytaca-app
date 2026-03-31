@@ -92,7 +92,7 @@ export default class PromoContract {
     // insert bch change outputs to outputs[1]
     // (token change output is now in outputs[2] if existing)
     outputs.splice(1, 0, {
-      to: userTokenAddress,
+      to: this.contract.tokenAddress,
       amount: bchBalance - fee - 1000n
     })
 
