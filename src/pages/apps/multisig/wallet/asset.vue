@@ -12,9 +12,9 @@
     <div class="row justify-center">
       <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
-            <div class="row q-gutter-y-lg">
+            <div class="row q-gutter-y-sm">
               <div class="col-xs-12">
-                <q-card id="bch-card" class="q-ma-md br-15" style="color:white">
+                <q-card id="bch-card" class="q-ma-sm br-15" style="color:white">
                   <q-card-section>
                     <div class="row q-gutter-y-md">
                       <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
@@ -31,7 +31,7 @@
                         <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>                
                       </div>
                       <div class="col-xs-12 text-center">
-                        <div :class="getDarkModeClass(darkMode)">{{ $t('Balance') }}</div>
+                        <div class="text-white">{{ $t('Balance') }}</div>
                         <div class="items-center justify-center q-gutter-x-sm">
                           <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
                           <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
@@ -45,15 +45,10 @@
               <div class="col-xs-12 flex justify-evenly">
                 <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
                   <template v-slot:default>
-                    <!-- <div class="row justify-center">
-                      <q-icon name="send_and_archive" class="col-12" ></q-icon>
-                      <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
-                    </div> -->
                     <div class="row justify-center">
                       <q-avatar>
                         <q-img src="app-receive.svg" height="24px" width="24px"></q-img>
                       </q-avatar>
-                      <!-- <q-icon name="img:app-receive.svg" class="col-12" color="primary" style="width:24px;height: 24px;" round outline></q-icon> -->
                       <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>
@@ -61,8 +56,9 @@
                 <q-btn @click="send" class="tile" :disable="!balance" flat dense no-caps  v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="mdi-send-outline" class="col-12" style="position:relative">
-                      </q-icon>
+                      <q-avatar>
+                        <q-img src="app-send.svg" height="24px" width="24px"></q-img>
+                      </q-avatar>
                       <div class="col-12 tile-label">{{ $t('Send') }}</div>
                     </div>
                   </template>
@@ -71,32 +67,6 @@
             </div>
             <q-list>
               <q-separator spaced inset />
-              <q-item>
-                <q-item-section>
-                  <q-item-label>
-                    <div class="flex items-center">
-                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">
-                        <span v-if="route.query.asset === 'bch'">
-                          {{ $t('AssetId') }}
-                        </span>
-                        <span v-else>
-                          {{ $t('TokenId') }}
-                        </span>
-                      </span>
-                    </div>
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                 <q-item-label class="flex flex-wrap items-center">
-                   <span v-if="route.query.asset === 'bch'">
-                    BCH
-                  </span>
-                   <span v-else>
-                    {{ shortenString(route.query.asset, 20)}}<CopyButton :text="route.query.asset"/>
-                   </span>
-                 </q-item-label>
-                </q-item-section>
-              </q-item>
               <q-item v-if="wallet">
                 <q-item-section>
                   <q-item-label>
@@ -111,6 +81,26 @@
                  </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item v-if="route.query.asset !== 'bch'" dense>
+                <q-item-section>
+                  <q-item-label>
+                    <div class="flex items-center">
+                      <q-icon name="token"></q-icon>
+                      <span class="q-ml-xs">
+                        {{ $t('TokenId') }}
+                      </span>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                 <q-item-label class="flex flex-wrap items-center">
+                   <span>
+                    {{ shortenString(route.query.asset, 20)}}<CopyButton :text="route.query.asset"/>
+                   </span>
+                 </q-item-label>
+                </q-item-section>
+              </q-item>
+              
               <q-separator spaced inset />
             </q-list>
             <TransactionListItemSkeleton v-if="historyLoading"/>
