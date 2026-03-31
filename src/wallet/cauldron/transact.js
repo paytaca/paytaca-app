@@ -5,7 +5,7 @@ import { buildPoolV0UnlockingBytecode } from '@cashlab/cauldron';
 import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
 import { calcTradeSummary, calcTradeWithTargetDemandFromAPair, calcTradeWithTargetSupplyFromAPair } from "@cashlab/cauldron/util.js";
 
-const DUMMY_TOKEN_ID = Array.from({ length: 64 }).fill('0').join('');
+const PLACEHOLDER_TOKEN_ID_FOR_SIZE_CALC = Array.from({ length: 64 }).fill('0').join('');
 
 /**
  * @param {Object} opts 
@@ -228,7 +228,7 @@ export function createInputAndOutput(opts) {
       const changeTokenOutput = {
         to: lockingBytecode,
         amount: 1000n,
-        token: {category: DUMMY_TOKEN_ID, amount: remainingTokens * -1n },
+        token: {category: PLACEHOLDER_TOKEN_ID_FOR_SIZE_CALC, amount: remainingTokens * -1n },
       }
       satoshisToSupply += changeTokenOutput.amount
       satoshisToSupply += BigInt(getOutputSize(changeTokenOutput));

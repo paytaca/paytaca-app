@@ -559,7 +559,6 @@ export default defineComponent({
     const tradeResultError = ref('');
     const updateTradeResult = debounce(() => {
       const poolV0List = useFilteredPools.value ? poolTracker.getFilteredPools() : poolTracker.microPools;
-      if (useFilteredPools.value) console.log('Using filtered pools');
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
       if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
