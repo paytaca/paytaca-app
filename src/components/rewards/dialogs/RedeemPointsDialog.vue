@@ -40,22 +40,21 @@
           
           <q-card class="q-mb-md" flat bordered>
             <q-card-section>
-              <q-skeleton type="text" width="100px" class="q-mb-sm" />
-              <q-skeleton type="rect" height="60px" class="q-mb-md" />
-              <q-skeleton type="text" width="150px" class="q-mb-xs" />
-              <q-skeleton type="text" width="80%" />
+              <q-skeleton type="text" width="50%" class="q-mb-sm" />
+              <q-skeleton type="QInput" height="40px" class="q-mb-md" />
+              <div class="row items-center justify-between">
+                <q-skeleton type="QChip" class="col-2"/>
+                <q-skeleton type="QChip" class="col-2"/>
+                <q-skeleton type="QChip" class="col-2"/>
+                <q-skeleton type="QChip" class="col-2"/>
+              </div>
             </q-card-section>
           </q-card>
 
           <q-card flat bordered>
             <q-card-section>
-              <q-skeleton type="text" width="80px" class="q-mb-md" />
-              <q-skeleton type="rect" height="56px" class="q-mb-md" />
-              <div class="row justify-between q-mb-sm">
-                <q-skeleton type="text" width="60px" />
-                <q-skeleton type="text" width="40px" />
-              </div>
-              <q-skeleton type="rect" height="48px" />
+              <q-skeleton type="text" width="50%" class="q-mb-sm" />
+              <q-skeleton type="QInput" height="25px" />
             </q-card-section>
           </q-card>
         </div>
