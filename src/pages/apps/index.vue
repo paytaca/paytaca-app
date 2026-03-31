@@ -125,6 +125,7 @@
 </template>
 
 <script>
+import { Platform } from 'quasar';
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import MarketplaceAppSelectionDialog from 'src/components/marketplace/MarketplaceAppSelectionDialog.vue'
@@ -575,6 +576,40 @@ export default {
     },
     openApp (app) {
       if (!app.active) return
+      
+      if (app.id === 'wizardconnect') {
+        const loadingGroupName = 'wizardconnect-init';
+        this.$q.loading.show({
+          group: loadingGroupName,
+          message: this.$t('InitializingWizardConnect', {}, 'Initializing wizard connect')
+        })
+        // Initialize WizardConnect at app startup
+        this.$store.dispatch('wizardconnect/init')
+          .then((manager) => {
+            if (!manager) {
+              const errorMessage = this.$t('NoWizardConnectServiceFound', {}, 'No wizard connect service found');
+              throw new Error(errorMessage);
+            }
+            this.$router.push(app.path)
+          })
+          .catch((error) => {
+            const errorMessages = [this.$t('WizardConnectFailedToLoad', {}, 'Wizard Connect failed to load')]
+            if (Platform.is.ios) {
+              errorMessages.push(this.$t('ConsiderUpdatingIOSVersion', {}, 'Consider updating iOS version'))
+            }
+
+            this.$q.notify({
+              type: 'negative',
+              message: errorMessages.join('. '),
+              caption: String(error?.message ?? error),
+            })
+            console.error('Failed to initialize WizardConnect:', error)
+          })
+          .finally(() => {
+            this.$q.loading.hide(loadingGroupName);
+          })
+        return
+      }
       
       // If app is beta, show dialog first
       if (app.beta) {

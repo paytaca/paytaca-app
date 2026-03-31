@@ -446,14 +446,15 @@ export async function switchWallet (context, walletHashOrIndex) {
           // Initialize ramp store state for the new wallet
           context.commit('ramp/initializeWalletState', walletHash, { root: true })
           
-// Initialize paytacapos store state for the new wallet
-           context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
+          // Initialize paytacapos store state for the new wallet
+          context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
            
-           // Reset and reinitialize wizardconnect for the new wallet
-           context.dispatch('wizardconnect/reset', null, { root: true })
-           context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
-             console.warn('WizardConnect init failed during wallet switch:', err.message)
-           })
+          // Reset and reinitialize wizardconnect for the new wallet
+          context.dispatch('wizardconnect/reset', null, { root: true })
+          // Skipping init since it will run when page is refreshed after this one
+          // context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
+          //   console.warn('WizardConnect init failed during wallet switch:', err.message)
+          // })
           
           // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
           // Import migration dynamically to avoid circular dependencies
