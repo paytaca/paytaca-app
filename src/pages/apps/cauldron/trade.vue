@@ -338,7 +338,7 @@
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
-import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand } from 'src/wallet/cauldron/transact';
+import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand, testTradeResult } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -388,6 +388,7 @@ export default defineComponent({
 
     // const poolTracker = reactive(getMockPoolTracker());
     const poolTracker = reactive(new CauldronPoolTracker());
+    const useFilteredPools = ref(false);
     const updatingPool = ref(false);
     poolTracker.on('pool-updated', () => updateTradeResult())
     poolTracker.on('error', (error) => console.error('Error from pool tracker:', error))
@@ -498,11 +499,13 @@ export default defineComponent({
       if (amountInput.value > 0 && selectedToken.value) {
         isRecomputingTrade.value = true;
       }
+      useFilteredPools.value = false;
       updateTradeResult()
     })
     watch([selectedToken, isBuyingToken, isSupplyMode], () => {
       if (amountInput.value > 0 && selectedToken.value) {
         isRecomputingTrade.value = true;
+        useFilteredPools.value = false;
         updateTradeResult()
       }
     }, { deep: true })
@@ -543,7 +546,8 @@ export default defineComponent({
     const tradeResult = ref()
     const tradeResultError = ref('');
     const updateTradeResult = debounce(() => {
-      const poolV0List = poolTracker.microPools
+      const poolV0List = useFilteredPools.value ? poolTracker.getFilteredPools() : poolTracker.microPools;
+      if (useFilteredPools.value) console.log('Using filtered pools');
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
       if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
@@ -573,6 +577,19 @@ export default defineComponent({
           const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
+
+        if (!useFilteredPools.value) {
+          try {
+            testTradeResult({ tradeResult: result, verify: true }) 
+          } catch(error) {
+            if (String(error).indexOf('Program attempted an arithmetic operation which exceeds the range of VM Numbers') >= 0) {
+              useFilteredPools.value = true;
+              updateTradeResult();
+              return;
+            }
+          }
+        }
+
         tradeResult.value = result;
         tradeResultError.value = '';
         isRecomputingTrade.value = false;
