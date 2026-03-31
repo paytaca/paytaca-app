@@ -666,7 +666,7 @@ export class MultisigWallet {
 
     utxos?.forEach((u) => {
       const addressPaths = u.address_path?.split('/') 
-      if (addressPaths.length === 2 && addressPaths.every(p => /[0-9]/.test(p))) {
+      if (addressPaths.length === 2 && addressPaths.every(p => /^\d+$/.test(p))) {
         u.addressPath = u.address_path
         const [ addressType, addressIndex ] = addressPaths.map(p => Number(p)) 
         if (addressType === 0) {
@@ -1277,15 +1277,6 @@ export class MultisigWallet {
     return pst
   }
 
-  async createNftTransferProposal() {
-    if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
-      throw new Error('Sending mixed assets is not yet supported!')
-    }
-
-    await this.getWalletHashUtxos()
-
-  }
-
   async wcCreateProposal(sessionRequest) {
     const proposal = new Pst()
     const inputs = sessionRequest.params.request.params.transaction.inputs?.map((input) => {
@@ -1793,10 +1784,10 @@ async sync() {
     this.id = ''
   }
 
-  if (getWalletResponse?.status === 'fullfilled') {
+  if (getWalletResponse?.status === 'fulfilled') {
     this.id = getWalletResponse.value?.id
   }
-
+  
   this.save()
 
   return this 
