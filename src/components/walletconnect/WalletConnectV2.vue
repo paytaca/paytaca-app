@@ -232,14 +232,6 @@ import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import NewSessionDialog from './NewSessionDialog.vue'
 import ManualAddressEntryDialog from './ManualAddressEntryDialog.vue'
-import {
-  // createMultisigTransactionFromWCSessionRequest,
-  // generateTransactionHash,
-  // getRequiredSignatures,
-  // getStatusUrl,
-  // getTotalSigners,
-  isMultisigWalletSynced
-} from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { APP_VERSION, compareAppVersions } from 'src/utils/version-control'
 const $emit = defineEmits([
@@ -1226,32 +1218,39 @@ const approveSessionProposal = async (sessionProposal) => {
     processingSession.value[sessionProposal.pairingTopic] = ''
     await saveConnectedApp(session)
     const deffered = [loadSessionProposals(), $store.dispatch('global/loadWalletConnectedApps')]
-    const isMultisigWallet = Boolean(selectedAddress.template)
+    const isMultisigWallet = Boolean(selectedAddress.signers)
     if (isMultisigWallet) {
       const multisigWallet = selectedAddress
-      if (!isMultisigWalletSynced(multisigWallet)) {
-        deffered.push($store.dispatch('multisig/uploadWallet', multisigWallet))
+      if (!multisigWallet.id) { 
+        deffered.push(multisigWallet.upload())
       }
+      deffered.push(multisigWallet.wcSaveSession(session))
     }
-    Promise.all(deffered)
+    Promise.allSettled(deffered)
   } finally {
     processingSession.value[sessionProposal.pairingTopic] = ''
   }
 }
 
 const respondToSignTransactionRequest = async (sessionRequest) => {
+  
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
+    const loadingKey = 'wc-sign-transaction'
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
       if (wallet.signers) {
-        const proposal = await wallet.createProposalFromWcSessionRequest(sessionRequest)
 
+        $q.loading.show({ group: loadingKey, message: $t('ProcessingRequest') })
+        const proposal = await wallet.wcCreateProposal(sessionRequest)
+        proposal.setStore(wallet.options?.store)
         let statusUrl = `https://watchtower.cash/api/multisig/proposals/${proposal.unsignedTransactionHash}/status/`
 
         if (isChipnet.value) {
           `https://chipnet.watchtower.cash/api/multisig/proposals/${proposal.unsignedTransactionHash}/status/`
         }
+
+        $q.loading.show({ group: loadingKey, message: $t('SendingResponse') })
 
         await web3Wallet.value.respondSessionRequest({
           topic: sessionRequest.topic,
@@ -1276,7 +1275,11 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           }
         })
 
+        $q.loading.show({ group: loadingKey, message: $t('ProcessingTransactionProposal') })
+
         await proposal.save({ sync: true })
+
+        $q.loading.show({ group: loadingKey, message: $t('LoadingTransactionProposal') })
 
         return $router.push({
           name: 'app-multisig-wallet-pst-view',
@@ -1300,6 +1303,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           })
         })
       }
+
       response.result = await signBchTransaction(
         sessionRequest.params.request.params.transaction,
         sessionRequest.params.request.params.sourceOutputs,
@@ -1313,9 +1317,26 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           response.result = undefined
         }
       }
+
       processingSession.value[sessionRequest.topic] = 'Confirming request'
+
+      if (!response.result) delete response.result
+      if (!response.error) delete response.error
+      
+      await web3Wallet.value.respondSessionRequest({
+        topic: sessionRequest.topic, response
+      })
+
+      if (!sessionRequest.error) {
+        sessionRequest.confirmed = true
+      }
+
+      delete processingSession.value[sessionRequest.topic]
+      
+      await delay(2)
+      await loadSessionRequests()
+
     } catch (err) {
-      console.log("ERROR", err)
       response.error = {
         code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
@@ -1323,17 +1344,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
     } finally {
-      if (!response.result) delete response.result
-      if (!response.error) delete response.error
-      await web3Wallet.value.respondSessionRequest({
-        topic: sessionRequest.topic, response
-      })
-      if (!sessionRequest.error) {
-        sessionRequest.confirmed = true
-      }
-      delete processingSession.value[sessionRequest.topic]
-      await delay(3)
-      await loadSessionRequests()
+      $q.loading.hide(loadingKey)
     }
   }
 }
