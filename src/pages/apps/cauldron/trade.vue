@@ -137,6 +137,18 @@
                 <template v-else>
                   1 BCH ≈ {{ formattedPrice }} {{ tokenSymbol }}
                 </template>
+                <template v-if="useFilteredPools" class="q-mt-xs">
+                  <q-icon 
+                    name="info" 
+                    size="1.5em"
+                    color="primary"
+                    :class="getDarkModeClass(darkMode)"
+                  />
+                  <q-menu class="filtered-pools-tooltip pt-card-2 text-bow q-pa-sm" :class="getDarkModeClass(darkMode)">
+                    <div class="q-mb-xs"><strong>{{ $t('UsingOptimizedLiquidity') }}</strong></div>
+                    {{ $t('UsingOptimizedLiquidityTooltip') }}
+                  </q-menu>
+                </template>
               </div>
               <div v-else class="q-mb-md text-center text-caption text-grey">
                 {{ $t('UpdatingLiquidity') }}
@@ -338,7 +350,7 @@
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
 import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
-import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand } from 'src/wallet/cauldron/transact';
+import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand, testTradeResult } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -388,6 +400,7 @@ export default defineComponent({
 
     // const poolTracker = reactive(getMockPoolTracker());
     const poolTracker = reactive(new CauldronPoolTracker());
+    const useFilteredPools = ref(false);
     const updatingPool = ref(false);
     poolTracker.on('pool-updated', () => updateTradeResult())
     poolTracker.on('error', (error) => console.error('Error from pool tracker:', error))
@@ -498,11 +511,13 @@ export default defineComponent({
       if (amountInput.value > 0 && selectedToken.value) {
         isRecomputingTrade.value = true;
       }
+      useFilteredPools.value = false;
       updateTradeResult()
     })
     watch([selectedToken, isBuyingToken, isSupplyMode], () => {
       if (amountInput.value > 0 && selectedToken.value) {
         isRecomputingTrade.value = true;
+        useFilteredPools.value = false;
         updateTradeResult()
       }
     }, { deep: true })
@@ -543,7 +558,7 @@ export default defineComponent({
     const tradeResult = ref()
     const tradeResultError = ref('');
     const updateTradeResult = debounce(() => {
-      const poolV0List = poolTracker.microPools
+      const poolV0List = useFilteredPools.value ? poolTracker.getFilteredPools() : poolTracker.microPools;
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
       if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
@@ -573,6 +588,20 @@ export default defineComponent({
           const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
+
+        if (!useFilteredPools.value) {
+          try {
+            testTradeResult({ tradeResult: result, verify: true }) 
+          } catch(error) {
+            // Catch error as string since error doesnt have a specific code
+            if (error.message.indexOf('Program attempted an arithmetic operation which exceeds the range of VM Numbers') >= 0) {
+              useFilteredPools.value = true;
+              updateTradeResult();
+              return;
+            }
+          }
+        }
+
         tradeResult.value = result;
         tradeResultError.value = '';
         isRecomputingTrade.value = false;
@@ -1149,6 +1178,7 @@ export default defineComponent({
 
       poolTracker,
       updatingPool,
+      useFilteredPools,
       isRecomputingTrade,
       isLiquidityAvailable,
       tokenData,
@@ -1357,5 +1387,16 @@ export default defineComponent({
   &:active {
     transform: translateY(0);
   }
+}
+
+.filtered-pools-indicator {
+  // color: #ff9800;
+  cursor: help;
+}
+
+.filtered-pools-tooltip {
+  max-width: min(250px, 80vw);
+  // font-size: 12px;
+  // line-height: 1.4;
 }
 </style>

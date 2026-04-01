@@ -6,6 +6,7 @@ import WatchtowerExtended from '../../lib/watchtower'
 import { deleteAuthToken } from 'src/exchange/auth'
 import { decryptWalletName } from 'src/marketplace/chat/encryption'
 import { saveWalletName, getWalletName, removeWalletName } from 'src/utils/wallet-name-cache'
+import * as eloadServiceAPI from 'src/utils/eload-service'
 import { loadLibauthHdWallet, loadWallet, deleteMnemonic, getMnemonic, getMnemonicByHash, deleteMnemonicByHash, deleteAllWalletData, deleteDuplicateWalletData, computeWalletHash } from '../../wallet'
 import { getVaultIndexByWalletHashAsync } from 'src/utils/wallet-storage'
 import { Plugins } from '@capacitor/core'
@@ -445,15 +446,19 @@ export async function switchWallet (context, walletHashOrIndex) {
         if (walletHash) {
           // Initialize ramp store state for the new wallet
           context.commit('ramp/initializeWalletState', walletHash, { root: true })
+
+          // Clear Eload OAuth Token key
+          eloadServiceAPI.clearToken()
           
-// Initialize paytacapos store state for the new wallet
-           context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
+          // Initialize paytacapos store state for the new wallet
+          context.commit('paytacapos/initializeWalletState', walletHash, { root: true })
            
-           // Reset and reinitialize wizardconnect for the new wallet
-           context.dispatch('wizardconnect/reset', null, { root: true })
-           context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
-             console.warn('WizardConnect init failed during wallet switch:', err.message)
-           })
+          // Reset and reinitialize wizardconnect for the new wallet
+          context.dispatch('wizardconnect/reset', null, { root: true })
+          // Skipping init since it will run when page is refreshed after this one
+          // context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
+          //   console.warn('WizardConnect init failed during wallet switch:', err.message)
+          // })
           
           // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
           // Import migration dynamically to avoid circular dependencies
