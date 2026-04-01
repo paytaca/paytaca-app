@@ -63,8 +63,21 @@
 
     <!-- Merchants List -->
     <div class="text-subtitle2 q-mb-sm" :class="textColor">Merchants</div>
+    <!-- SKELETON LOADER for merchants title: <q-skeleton v-if="loading" type="text" width="80px" class="q-mb-sm" /> -->
     
     <div class="scroll merchant-list" style="height: 350px;">
+      <!--
+        SKELETON LOADER for merchant list when loading backend data:
+        <div v-if="loading" class="q-pa-md">
+          <q-item v-for="n in 5" :key="n" class="q-px-none q-py-sm">
+            <q-item-section>
+              <q-skeleton type="text" width="150px" class="q-mb-xs" />
+              <q-skeleton type="text" width="200px" height="12px" />
+            </q-item-section>
+            <q-item-section side><q-skeleton type="QToggle" /></q-item-section>
+          </q-item>
+        </div>
+      -->
       <div v-if="filteredMerchants.length > 0">
         <q-list separator :dark="$q.dark.isActive">
           <q-item 
@@ -86,6 +99,7 @@
                 class="text-weight-bold"
                 :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')"
               >
+                <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
                 {{ merchant.name }}
                 <span v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" class="text-caption text-secondary q-ml-xs">
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
@@ -95,10 +109,12 @@
                 class="text-caption text-weight-bold"
                 :class="merchant.isEnabled ? ($q.dark.isActive ? 'text-grey-4' : 'text-grey-7') : ($q.dark.isActive ? 'text-grey-7' : 'text-grey-5')"
               >
+                <!-- SKELETON LOADER for merchant address: <q-skeleton v-if="loading" type="text" width="200px" height="12px" /> -->
                 {{ merchant.address }}
               </div>
             </q-item-section>
             <q-item-section side>
+              <!-- SKELETON LOADER for toggle: <q-skeleton v-if="loading" type="QToggle" /> -->
               <q-toggle 
                 v-model="merchant.isEnabled"
                 :disable="genericAuthEnabled"
@@ -187,7 +203,8 @@ export default {
       showSpendLimitDialog: false,
       selectedMerchant: null,
       spendLimitInput: '1',
-      spendLimitError: ''
+      spendLimitError: '',
+      loading: false, // SKELETON LOADER: Set to true when fetching merchant data from backend
     }
   },
   computed: {
