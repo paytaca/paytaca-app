@@ -1,6 +1,45 @@
 <template>
   <div id="app-container" class="eload-page" :class="getDarkModeClass(darkMode)">
-    <HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav" />
+    <HeaderNav title="Eload Service" :backnavpath="backNavPath" class="header-nav" />
+
+    <!-- Tabs Section -->
+      <div v-if="$route.name !== 'eload-service-order-details'" class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
+        <div 
+          class="eload-tabs" 
+          :class="[getDarkModeClass(darkMode), { 'disabled': !isloaded }]"
+        >
+          <button
+            class="eload-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              tabButtonClass('products'),
+              `theme-${theme}`,
+              { 'disabled': !isloaded }
+            ]"
+            :style="activeTab === 'products' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            :disabled="!isloaded"
+            @click="changeTab('products')"
+          >
+            <q-icon name="shopping_cart" size="18px" class="q-mr-xs"/>
+            Products
+          </button>
+          <button
+            class="eload-tab"
+            :class="[
+              darkMode ? 'dark' : '',
+              tabButtonClass('orders'),
+              `theme-${theme}`,
+              { 'disabled': !isloaded }
+            ]"
+            :style="activeTab === 'orders' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            :disabled="!isloaded"
+            @click="changeTab('orders')"
+          >
+            <q-icon name="receipt_long" size="18px" class="q-mr-xs"/>
+            Orders
+          </button>
+        </div>
+      </div>
 
     <div v-if="!isloaded && !errorMsg" class="eload-skeleton q-px-lg q-pt-md full-width">
       <!-- Country Selector -->
@@ -33,42 +72,7 @@
       </div>
     </div>			
 
-    <template v-else>
-      <!-- Tabs Section -->
-      <div class="tabs-wrapper q-mt-sm q-mb-sm pt-header">
-        <div 
-          class="eload-tabs" 
-          :class="getDarkModeClass(darkMode)"
-        >
-          <button
-            class="eload-tab"
-            :class="[
-              darkMode ? 'dark' : '',
-              tabButtonClass('products'),
-              `theme-${theme}`
-            ]"
-            :style="activeTab === 'products' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="changeTab('products')"
-          >
-            <q-icon name="shopping_cart" size="18px" class="q-mr-xs"/>
-            Products
-          </button>
-          <button
-            class="eload-tab"
-            :class="[
-              darkMode ? 'dark' : '',
-              tabButtonClass('orders'),
-              `theme-${theme}`
-            ]"
-            :style="activeTab === 'orders' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="changeTab('orders')"
-          >
-            <q-icon name="receipt_long" size="18px" class="q-mr-xs"/>
-            Orders
-          </button>
-        </div>
-      </div>
-
+    <template v-else>      
       <!-- Tab Content -->
       <div class="eload-content">
         <router-view :key="$route.path"></router-view>
@@ -94,6 +98,12 @@ export default {
   computed: {
     theme () {
       return this.$store.getters['global/theme']
+    },
+    backNavPath () {
+      if (this.$route.name === 'eload-service-order-details') {
+        return { name: 'eload-service-orders' }
+      }
+      return '/apps'
     }
   },
   components: {

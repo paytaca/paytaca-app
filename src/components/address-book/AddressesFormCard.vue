@@ -1,13 +1,4 @@
 <template>
-  <QrScanner
-    v-model="showQrScanner"
-    @decode="onAddressQrDecoded"
-  />
-  <QRUploader
-    ref="qr-upload"
-    @detect-upload="onAddressQrDecoded"
-  />
-
   <q-card flat bordered class="form-card addresses-card">
     <q-card-section class="addresses-card-header">
       <div class="row justify-between items-center">
@@ -20,7 +11,7 @@
             flat
             icon="mdi-qrcode-scan"
             color="primary"
-            @click="showQrScanner = true"
+            @click="$emit('scan-qr')"
             :aria-label="$t('ScanQrCode')"
           />
 
@@ -29,7 +20,7 @@
             flat
             icon="mdi-image"
             color="primary"
-            @click="onQRUploaderClick"
+            @click="$emit('upload-qr')"
             :aria-label="$t('UploadQrImage')"
           />
 
@@ -103,29 +94,16 @@
 </template>
 
 <script>
-import QrScanner from 'src/components/qr-scanner.vue'
-import QRUploader from 'src/components/QRUploader'
 import { Address } from 'watchtower-cash-js';
 
 export default {
   name: 'AddressesFormCard',
 
-  components: {
-    QrScanner,
-    QRUploader,
-  },
-
   props: {
     modelValue: { type: Array, default: new Array }
   },
 
-  emits: ['update:modelValue'],
-
-  data () {
-    return {
-      showQrScanner: false,
-    }
-  },
+  emits: ['update:modelValue', 'scan-qr', 'upload-qr'],
 
   computed: {
     darkMode () {
@@ -143,20 +121,6 @@ export default {
   },
 
   methods: {
-    onQRUploaderClick () {
-      try {
-        this.$refs['qr-upload'].$refs['q-file'].pickFiles()
-      } catch (e) {
-        console.error('QR upload picker error:', e)
-        this.$q?.notify?.({
-          type: 'negative',
-          message: this.$t('FilePickerError'),
-          timeout: 2500,
-          position: 'top'
-        })
-      }
-    },
-
     normalizeQrContentToAddress (content) {
       if (typeof content !== 'string') return ''
       let value = content.trim()
@@ -188,9 +152,6 @@ export default {
     },
 
     onAddressQrDecoded (content) {
-      // Close camera overlay (mobile scanner uses its own UI; this is still safe)
-      this.showQrScanner = false
-
       const decoded = Array.isArray(content) ? content?.[0]?.rawValue : content
       const address = this.normalizeQrContentToAddress(decoded)
 

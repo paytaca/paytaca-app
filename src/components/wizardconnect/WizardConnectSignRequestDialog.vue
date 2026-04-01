@@ -1,7 +1,7 @@
 <template>
   <q-dialog :model-value="true" position="bottom" persistent seamless>
     <q-card class="pt-card text-bow bottom-card" :class="getDarkModeClass(darkMode)">
-      <div class="row items-center q-pb-sm q-px-sm q-pt-sm">
+      <div class="row items-center q-pa-md header">
         <div class="text-h5 q-space">
           Sign Request
           <q-spinner v-if="signing" />
@@ -14,7 +14,7 @@
         />
       </div>
 
-      <q-card-section class="q-pt-none" style="max-height:calc(80vh - 6rem);overflow:auto;">
+      <q-card-section class="q-pt-none transaction-details">
         <!-- dApp info -->
         <q-item dense class="q-mb-md">
           <q-item-section v-if="connection?.dappIcon" avatar>
@@ -44,7 +44,7 @@
         />
       </q-card-section>
 
-      <q-card-actions class="row justify-around q-pa-md q-mt-xl">
+      <q-card-actions class="row justify-around q-pa-md action-buttons">
         <q-btn
           outline
           color="negative"
@@ -153,5 +153,36 @@ function emitReject () {
 .bottom-card {
   width: 100%;
   max-width: 500px;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.bottom-card > * {
+  width: 100%;
+}
+
+.bottom-card .header, .bottom-card .action-buttons {
+  flex: 0 0 auto;      /* take only their natural height */
+}
+
+.bottom-card .action-buttons {
+  margin-top: 2rem;
+}
+
+.bottom-card .transaction-details {
+  flex: 1 1 auto;      /* take remaining space */
+  overflow-y: auto;    /* ONLY this scrolls */
+  min-height: 0;       /* IMPORTANT: allows shrinking */
+}
+
+@media (max-height: 700px) {
+  .bottom-card {
+    padding-bottom: calc(0.75 + env(safe-area-inset-bottom));
+  }
+
+  .bottom-card .action-buttons {
+    margin-top: 0rem;
+  }
 }
 </style>

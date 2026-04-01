@@ -219,6 +219,18 @@ module.exports = defineConfig((ctx) => {
         chain.resolve.alias.set('path', false)
         chain.resolve.alias.set('child_process', false)
 
+        chain.optimization.splitChunks({
+          chunks: 'all',
+          cacheGroups: {
+            wizardconnect: {
+              test: /[\\/]node_modules[\\/]@wizardconnect[\\/]/,
+              name: 'wizardconnect',
+              chunks: 'all',
+              priority: 10
+            }
+          }
+        })
+
         // Added for Quasar v1 to v2 migration
         // chain
         //   .plugin('eslint-webpack-plugin')

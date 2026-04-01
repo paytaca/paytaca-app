@@ -14,7 +14,7 @@
  		<q-separator class="q-mx-lg"/>
 
 		<!-- Order List -->
-		<div v-if="!initialLoading" class="scroll q-mt-sm q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
+		<div v-if="!initialLoading" class="scroll q-mt-sm q-px-lg" style="height: 70vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
 				<div v-if="orders.length == 0" class="relative text-center" style="margin-top: 50px;">
 	        <div>

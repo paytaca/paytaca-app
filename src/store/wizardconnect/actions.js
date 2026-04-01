@@ -75,28 +75,35 @@ export async function init ({ commit, dispatch, rootGetters }) {
     return
   }
 
+  manager.off('connectionStatusChanged');
   manager.on('connectionStatusChanged', (connectionId) => {
     const conn = manager.getConnections()[connectionId]
     if (!conn) return
+    console.log('WizC[connectionStatusChanged]', connectionId, conn);
     commit('updateConnection', {
       connectionId,
       data: serializeConnection(connectionId, conn)
     })
   })
 
+  manager.off('connectionsChanged');
   manager.on('connectionsChanged', () => {
     const connections = serializeConnections(manager.getConnections())
+    console.log('WizC[connectionsChanged]', connections);
     commit('setConnections', connections)
   })
 
+  manager.off('pendingSignRequest');
   manager.on('pendingSignRequest', (pending) => {
     dispatch('handleSignRequest', pending)
   })
 
+  manager.off('signCancelled');
   manager.on('signCancelled', (connectionId, sequence) => {
     dispatch('handleSignCancelled', { connectionId, sequence })
   })
 
+  manager.off('remoteDisconnect');
   manager.on('remoteDisconnect', (connectionId, reason, message) => {
     dispatch('handleRemoteDisconnect', { connectionId, reason, message })
   })
@@ -117,6 +124,7 @@ export async function init ({ commit, dispatch, rootGetters }) {
   // Sync initial connection state
   const connections = serializeConnections(manager.getConnections())
   commit('setConnections', connections)
+  return manager;
 }
 
 export function reset ({ commit }) {
