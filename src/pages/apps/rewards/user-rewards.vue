@@ -355,7 +355,7 @@
         </div>
   
         <span class="row justify-center text-body1 q-mb-sm">
-          {{ $t('PointsFromMerchant', 'Points from Merchant transactions') }}
+          {{ $t('PointsFromMerchant', 'Points from Merchant Transactions') }}
         </span>
   
         <!-- Loading Skeletons for Continuous -->
@@ -373,7 +373,7 @@
         <!-- Continuous Points Content -->
         <template v-else>
           <!-- Summary Card -->
-          <achievement-card v-if="totalMarketplaceTxCount > 0">
+          <achievement-card v-if="continuousPoints.marketplace.txCount > 0">
             <template #achievement-card-content>
               <q-card-section>
                 <div class="row items-center q-gutter-md">
@@ -385,16 +385,16 @@
                   />
                   <div class="col">
                     <div class="text-h6 text-weight-bold text-primary">
-                      {{ totalMarketplaceTxCount }} {{ totalMarketplaceTxCount === 1 ? 'order' : 'orders' }}
+                      {{ continuousPoints.marketplace.txCount }} {{ continuousPoints.marketplace.txCount === 1 ? 'order' : 'orders' }}
                     </div>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ totalMarketplacePoints }} {{ totalMarketplacePoints === 1 ? 'point' : 'points' }} earned
+                      {{ continuousPoints.marketplace.points }} {{ continuousPoints.marketplace.points === 1 ? 'point' : 'points' }} earned
                     </div>
                     <div
                       class="text-caption" 
                       :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                     >
-                      {{ formatMonthDisplay(firstMarketplaceTxDate) }} - {{ formatMonthDisplay(lastMarketplaceTxDate) }}
+                      {{ formatMonthDisplay(continuousPoints.marketplace.firstDate) }} - {{ formatMonthDisplay(continuousPoints.marketplace.lastDate) }}
                     </div>
                   </div>
                 </div>
@@ -412,7 +412,7 @@
   
           <!-- Empty State for Continuous -->
           <q-card
-            v-if="totalMarketplaceTxCount === 0"
+            v-if="continuousPoints.marketplace.txCount === 0"
             class="empty-state-card q-pa-lg text-center"
             :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
             flat
@@ -430,6 +430,160 @@
               {{ $t('PointsFromMarketplaceWarning2', 'Order from the Marketplace or pay over-the-counter at partner merchants to start earning points!') }}
             </div>
           </q-card>
+
+          <!-- Cashin Section -->
+          <span class="row justify-center text-body1 q-mb-sm q-mt-md">
+            {{ $t('PointsFromCashin', 'Points from Cash-in Transactions') }}
+          </span>
+
+          <!-- Loading Skeletons for Cashin -->
+          <template v-if="isLoading">
+            <achievement-card v-for="n in 2" :key="`skeleton-cashin-${n}`">
+              <template #achievement-card-content>
+                <q-card-section>
+                  <q-skeleton type="text" width="40%" height="24px" class="q-mb-sm" />
+                  <q-skeleton type="text" width="70%" height="16px" />
+                </q-card-section>
+              </template>
+            </achievement-card>
+          </template>
+
+          <!-- Cashin Points Content -->
+          <template v-else>
+            <!-- Summary Card -->
+            <achievement-card v-if="continuousPoints.cashin.txCount > 0">
+              <template #achievement-card-content>
+                <q-card-section>
+                  <div class="row items-center q-gutter-md">
+                    <q-icon
+                      name="mdi-cash-plus"
+                      size="32px"
+                      class="q-pa-sm bg-primary"
+                      style="border-radius: 50%;"
+                    />
+                    <div class="col">
+                      <div class="text-h6 text-weight-bold text-primary">
+                        {{ continuousPoints.cashin.txCount }} {{ continuousPoints.cashin.txCount === 1 ? 'order' : 'orders' }}
+                      </div>
+                      <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                        {{ continuousPoints.cashin.points }} {{ continuousPoints.cashin.points === 1 ? 'point' : 'points' }} earned
+                      </div>
+                      <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                        {{ formatMonthDisplay(continuousPoints.cashin.firstDate) }} - {{ formatMonthDisplay(continuousPoints.cashin.lastDate) }}
+                      </div>
+                    </div>
+                  </div>
+                  <q-btn
+                    outline
+                    rounded
+                    color="primary"
+                    class="full-width q-mt-sm"
+                    :label="$t('ViewFullHistory', 'View Full History')"
+                    @click="openCashinHistory"
+                  />
+                </q-card-section>
+              </template>
+            </achievement-card>
+
+            <!-- Empty State for Cashin -->
+            <q-card
+              v-if="continuousPoints.cashin.txCount === 0"
+              class="empty-state-card q-pa-lg text-center"
+              :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
+              flat
+            >
+              <q-icon
+                name="mdi-cash-plus"
+                size="48px"
+                class="q-mb-md q-pa-md bg-primary"
+                color="white"
+                style="border-radius: 50%;"
+              />
+              <div class="text-subtitle1 q-mb-sm">
+                {{ $t('PointsFromCashinWarning1', 'You do not have any cash-in transactions yet.') }}
+              </div>
+              <div class="text-body2">
+                {{ $t('PointsFromCashinWarning2', 'Cash-in thru our vending machine or P2P Ramp app to start earning points!') }}
+              </div>
+            </q-card>
+          </template>
+
+          <!-- Eload Section -->
+          <span class="row justify-center text-body1 q-mb-sm q-mt-md">
+            {{ $t('PointsFromEload', 'Points from Eload Service Transactions') }}
+          </span>
+
+          <!-- Loading Skeletons for Eload -->
+          <template v-if="isLoading">
+            <achievement-card v-for="n in 2" :key="`skeleton-eload-${n}`">
+              <template #achievement-card-content>
+                <q-card-section>
+                  <q-skeleton type="text" width="40%" height="24px" class="q-mb-sm" />
+                  <q-skeleton type="text" width="70%" height="16px" />
+                </q-card-section>
+              </template>
+            </achievement-card>
+          </template>
+
+          <!-- Eload Points Content -->
+          <template v-else>
+            <!-- Summary Card -->
+            <achievement-card v-if="continuousPoints.eload.txCount > 0">
+              <template #achievement-card-content>
+                <q-card-section>
+                  <div class="row items-center q-gutter-md">
+                    <q-icon
+                      name="card_membership"
+                      size="32px"
+                      class="q-pa-sm bg-primary"
+                      style="border-radius: 50%;"
+                    />
+                    <div class="col">
+                      <div class="text-h6 text-weight-bold text-primary">
+                        {{ continuousPoints.eload.txCount }} {{ continuousPoints.eload.txCount === 1 ? 'order' : 'orders' }}
+                      </div>
+                      <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                        {{ continuousPoints.eload.points }} {{ continuousPoints.eload.points === 1 ? 'point' : 'points' }} earned
+                      </div>
+                      <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                        {{ formatMonthDisplay(continuousPoints.eload.firstDate) }} - {{ formatMonthDisplay(continuousPoints.eload.lastDate) }}
+                      </div>
+                    </div>
+                  </div>
+                  <q-btn
+                    outline
+                    rounded
+                    color="primary"
+                    class="full-width q-mt-sm"
+                    :label="$t('ViewFullHistory', 'View Full History')"
+                    @click="openEloadHistory"
+                  />
+                </q-card-section>
+              </template>
+            </achievement-card>
+
+            <!-- Empty State for Eload -->
+            <q-card
+              v-if="continuousPoints.eload.txCount === 0"
+              class="empty-state-card q-pa-lg text-center"
+              :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
+              flat
+            >
+              <q-icon
+                name="card_membership"
+                size="48px"
+                class="q-mb-md q-pa-md bg-primary"
+                color="white"
+                style="border-radius: 50%;"
+              />
+              <div class="text-subtitle1 q-mb-sm">
+                {{ $t('PointsFromEloadWarning1', 'You do not have any Eload transactions yet.') }}
+              </div>
+              <div class="text-body2">
+                {{ $t('PointsFromEloadWarning2', 'Purchase services in our Eload Service app to start earning points!') }}
+              </div>
+            </q-card>
+          </template>
         </template>
       </template>
     </div>
@@ -512,10 +666,12 @@ export default {
       dateJoined: '',
       urContract: null,
 
-      totalMarketplaceTxCount: 0,
-      totalMarketplacePoints: 0,
-      firstMarketplaceTxDate: null,
-      lastMarketplaceTxDate: null,
+      // continuous points data grouped by type
+      continuousPoints: {
+        marketplace: { txCount: 0, points: 0, firstDate: null, lastDate: null },
+        cashin: { txCount: 0, points: 0, firstDate: null, lastDate: null },
+        eload: { txCount: 0, points: 0, firstDate: null, lastDate: null }
+      },
 
       firstSevenTransactions: [],
       marketplaceTransactions: []
@@ -640,11 +796,27 @@ export default {
       this.firstTxDate = urData.first_tx_date
       this.dateJoined = urData.date_joined
 
-      // continuous points marketplace
-      this.totalMarketplaceTxCount = urData.total_transaction_count
-      this.totalMarketplacePoints = urData.total_marketplace_points
-      this.firstMarketplaceTxDate = urData.first_transaction_date
-      this.lastMarketplaceTxDate = urData.last_transaction_date
+      // continuous points - grouped structure
+      this.continuousPoints.marketplace = {
+        txCount: urData.marketplace?.total_tx_count || 0,
+        points: urData.marketplace?.total_points || 0,
+        firstDate: urData.marketplace?.first_tx_date || null,
+        lastDate: urData.marketplace?.last_tx_date || null
+      }
+
+      this.continuousPoints.cashin = {
+        txCount: urData.cashin?.total_tx_count || 0,
+        points: urData.cashin?.total_points || 0,
+        firstDate: urData.cashin?.first_tx_date || null,
+        lastDate: urData.cashin?.last_tx_date || null
+      }
+
+      this.continuousPoints.eload = {
+        txCount: urData.eload?.total_tx_count || 0,
+        points: urData.eload?.total_points || 0,
+        firstDate: urData.eload?.first_tx_date || null,
+        lastDate: urData.eload?.last_tx_date || null
+      }
 
       this.firstSevenTransactions = urData.ur_seven_transactions
       for (let i = this.firstSevenTransactions.length; i < 7; i++) {
@@ -719,6 +891,18 @@ export default {
     openMarketplaceHistory () {
       this.$router.push({
         name: 'app-rewards-merchant-history',
+        params: { id: this.urId }
+      })
+    },
+    openCashinHistory () {
+      this.$router.push({
+        name: 'apps-rewards-cashin-history',
+        params: { id: this.urId }
+      })
+    },
+    openEloadHistory () {
+      this.$router.push({
+        name: 'apps-rewards-eload-history',
         params: { id: this.urId }
       })
     },
