@@ -285,7 +285,7 @@ export async function disconnectAllSessions() {
   if (!web3WalletInstance) return
 
   const sessions = web3WalletInstance.getActiveSessions()
-  const disconnectPromises = Object.keys(sessions).map(async (topic) => {
+  const sessionsDisconnectionPromises = Object.keys(sessions).map(async (topic) => {
     try {
       await web3WalletInstance.disconnectSession({
         topic,
@@ -296,7 +296,14 @@ export async function disconnectAllSessions() {
     }
   })
 
-  await Promise.all(disconnectPromises)
+  const pairings = web3WalletInstance.core.pairing.getPairings();
+  const pairingsDisconnectionPromises = pairings.map((pairing) =>
+    web3WalletInstance.core.pairing.disconnect({ 
+      topic: pairing.topic 
+    }).catch(e => console.warn(`Pairing ${pairing.topic} already gone`))
+  );
+
+  await Promise.all([...sessionsDisconnectionPromises, ...pairingsDisconnectionPromises]);
   stopPollingForCancellationRequest()
 }
 
