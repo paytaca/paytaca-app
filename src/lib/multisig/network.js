@@ -62,7 +62,6 @@ export const Network = {
 export const WatchtowerNetwork = {
     mainnet: 'mainnet',
     chipnet: 'chipnet',
-    local: 'local'
 }
 /**
  * @implements { NetworkProvider }
@@ -210,18 +209,10 @@ export class WatchtowerCoordinationServer {
         this.network = config.network || WatchtowerNetwork.mainnet
         switch (this.network) {
             case WatchtowerNetwork.chipnet:
-                // this.hostname = 'https://chipnet.watchtower.cash'
-                // this.hostname = 'http://localhost:8000'
-                this.hostname = 'http://192.168.1.41:8000'
+                this.hostname = 'https://chipnet.watchtower.cash'
                 break
             case WatchtowerNetwork.mainnet:
-                // this.hostname = 'https://watchtower.cash'    
-                // // this.hostname = 'http://localhost:8000'
-                this.hostname = 'http://192.168.1.41:8000'
-                break
-            case WatchtowerNetwork.local:
-                // this.hostname = 'http://localhost:8000'
-                this.hostname = 'http://192.168.1.41:8000'
+                this.hostname = 'https://watchtower.cash'    
                 break
         }
     }
