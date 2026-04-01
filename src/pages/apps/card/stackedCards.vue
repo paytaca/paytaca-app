@@ -4,6 +4,7 @@
       <CardPageHeader />
 
       <div class="q-px-md q-mt-md">
+        <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
         <div class="text-subtitle1 text-weight-bold" :class="textColor">My Cards</div>
         <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
       </div>
@@ -32,11 +33,19 @@
             </div>
             <!-- Card info positioned right below handle -->
             <div class="card-info row justify-between items-center no-wrap">
+              <!-- 
+                SKELETON LOADER for card stack items when loading backend data:
+                <div v-if="loadingCards" class="full-width row justify-between">
+                  <q-skeleton type="text" width="80px" />
+                  <q-skeleton type="text" width="60px" />
+                </div>
+              -->
               <div 
                 class="text-weight-bold text-subtitle2 ellipsis" 
                 style="max-width: 120px; font-size: 13px;"
                 :class="textColor"
               >
+                <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
                 {{ capitalizeFirst(card.name) }}
               </div>
               <div 
@@ -44,6 +53,7 @@
                 style="font-size: 13px;"
                 :class="textColor"
               >
+                <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
                 {{ card.balance || '0.00' }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
                 <!-- {{ card?.getBchBalance ? card.getBchBalance() : (card?.balance || '0.00') }} BCH -->
