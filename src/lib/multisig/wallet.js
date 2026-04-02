@@ -384,8 +384,15 @@ export class PriceOracle {
   }
 }
 
-export class MultisigWallet {
+const ADDRESS_SCAN_BUFFER = 20
 
+// TODO: Refactor split into smaller, focused modules:
+// - `wallet-manager.js` - Wallet CRUD operations
+// - `wallet-address.js` - Address derivation
+// - `wallet-utxo.js` - UTXO management
+// - `wallet-transaction.js` - Transaction creation
+
+export class MultisigWallet {
   /**
    * Creates a new MultisigWallet instance.
    * @param {MultisigWalletConfig} config - Wallet configuration options.
@@ -541,7 +548,7 @@ export class MultisigWallet {
 
     if (!this.options?.provider) throw new Error('Missing provider')
 
-    let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
+    let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + ADDRESS_SCAN_BUFFER
 
     let dCounter = 0
 
@@ -556,7 +563,7 @@ export class MultisigWallet {
       dCounter++
     }
 
-    let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
+    let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + ADDRESS_SCAN_BUFFER
 
     let cCounter = 0
 
