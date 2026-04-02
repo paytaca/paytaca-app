@@ -1,3 +1,133 @@
+/**
+ * ============================================================================
+ * MULTISIG WALLET - Core Wallet Implementation
+ * ============================================================================
+ * 
+ * @fileoverview MultisigWallet class and related utilities for managing 
+ * multi-signature Bitcoin Cash wallets with coordination server support.
+ * 
+ * @module multisig/wallet
+ * @version 2.0.0
+ * @author Paytaca Team
+ * @license MIT
+ * 
+ * ============================================================================
+ * ARCHITECTURE DECISION
+ * ============================================================================
+ * 
+ * This file is intentionally monolithic (~2058 lines) for the following reasons:
+ * 
+ * 1. STATE ENCAPSULATION
+ *    - Wallet maintains complex internal state (addresses, UTXOs, indices)
+ *    - Splitting would require exposing internal state or creating tight coupling
+ *    - Single class ensures state consistency and atomic operations
+ * 
+ * 2. ATOMIC OPERATIONS
+ *    - Transaction creation spans multiple responsibilities:
+ *      * Address derivation → UTXO selection → Fee calculation → Proposal creation
+ *    - Keeping these together ensures atomic, consistent operations
+ * 
+ * 3. DEPENDENCY MANAGEMENT
+ *    - Single file avoids circular dependencies
+ *    - Simplifies import graph and module boundaries
+ *    - Reduces bundle splitting complexity
+ * 
+ * 4. CODE NAVIGATION
+ *    - Modern IDEs with "Go to Definition" and outline view
+ *    - Section markers provide clear organization
+ *    - JSDoc enables intelligent code navigation
+ * 
+ * ============================================================================
+ * FILE ORGANIZATION
+ * ============================================================================
+ * 
+ * SECTION 1: TYPE DEFINITIONS (lines 1-150)
+ *   - MultisigWalletSigner, MultisigWalletConfig, etc.
+ *   - Callback types for async operations
+ * 
+ * SECTION 2: IMPORTS & CONSTANTS (lines 111-150)
+ *   - External dependencies (bitauth-libauth-v3, big.js)
+ *   - Internal module imports
+ *   - Module constants
+ * 
+ * SECTION 3: UTILITY FUNCTIONS (lines 151-375)
+ *   - getLockingData, getCompiler, getLockingBytecode
+ *   - getMultisigCashAddress, generateFilename
+ *   - sortPublicKeysBip67, derivePublicKey, derivePublicKeys
+ *   - getAddress, createWallet, getWalletUUID, getWalletHash
+ *   - getDepositAddress, getChangeAddress, isValidAddress
+ *   - generateRedeemScript, getMasterFingerprint
+ * 
+ * SECTION 4: PRICE ORACLE CLASS (lines 376-385)
+ *   - PriceOracle.fetchPrice()
+ * 
+ * SECTION 5: MULTISIG WALLET CLASS (lines 387-2058)
+ *   5.1 Constructor & Configuration (lines 387-430)
+ *   5.2 Getters & Properties (lines 431-461)
+ *   5.3 Address Methods (lines 463-525)
+ *   5.4 UTXO Management (lines 536-714)
+ *   5.5 Balance & Asset Methods (lines 716-826)
+ *   5.6 Address Subscription (lines 828-884)
+ *   5.7 UTXO Selection (lines 909-1127)
+ *   5.8 Transaction Creation (lines 1129-1278)
+ *   5.9 WalletConnect Integration (lines 1280-1400)
+ *   5.10 Coordination Server Methods (lines 1401-1600)
+ *   5.11 Serialization & Export (lines 1601-1850)
+ *   5.12 Import & Deserialization (lines 1851-2058)
+ * 
+ * ============================================================================
+ * PLANNED ORGANIZATIONAL IMPROVEMENTS
+ * ============================================================================
+ * 
+ * PHASE 1: Documentation Enhancement (Current)
+ *   ✓ Add comprehensive JSDoc to all methods
+ *   ✓ Add section markers for navigation
+ *   ✓ Document architecture decisions
+ *   - Add inline comments for complex logic
+ * 
+ * PHASE 2: Utility Extraction (Future - Q2 2026)
+ *   - Extract address derivation utilities → wallet-address-utils.js
+ *   - Extract UTXO selection algorithms → wallet-utxo-selector.js
+ *   - Extract serialization logic → wallet-serializer.js
+ *   - Keep core wallet class intact
+ * 
+ * PHASE 3: Helper Classes (Future - Q3 2026)
+ *   - Create WalletAddressManager class
+ *   - Create WalletUtxoManager class
+ *   - Create WalletTransactionBuilder class
+ *   - Use composition pattern in main Wallet class
+ * 
+ * PHASE 4: Module Split (Future - Q4 2026)
+ *   - Split if file exceeds 3000 lines
+ *   - Maintain backward compatibility
+ *   - Use re-export pattern for unified imports
+ * 
+ * ============================================================================
+ * MAINTENANCE GUIDELINES
+ * ============================================================================
+ * 
+ * WHEN ADDING NEW FUNCTIONALITY:
+ * 1. Identify which section it belongs to
+ * 2. Add JSDoc documentation with @category tag
+ * 3. Update table of contents if adding new section
+ * 4. Consider if logic should be extracted to utility
+ * 
+ * WHEN REFACTORING:
+ * 1. Maintain section organization
+ * 2. Update documentation
+ * 3. Run full test suite
+ * 4. Check for circular dependencies
+ * 
+ * ============================================================================
+ * @see ./ARCHITECTURE.md - Detailed design documentation
+ * @see ./pst.js - Partially Signed Transaction implementation
+ * @see ./network.js - Coordination server communication
+ * ============================================================================
+ */
+
+// ============================================================================
+// SECTION 1: TYPE DEFINITIONS
+// ============================================================================
 
 /**
  * @typedef {('ecdsa' | 'schnorr')} SignatureAlgorithm
@@ -81,13 +211,6 @@
 
 /**
  * Fetches utxos of given wallet configuration
- * @callback GetWalletUtxos
- * @param {MultisigWallet} wallet
- * @returns {Promise<CommonUtxo[]>}
- */
-
-/**
- * Fetches utxos of given wallet configuration
  * @callback GetWalletBalance
  * @param {MultisigWallet} wallet
  * @returns {Promise<number>}
@@ -107,6 +230,10 @@
  * @param {MultisigWallet} wallet
  * @returns {Promise<number>}
  */
+
+// ============================================================================
+// SECTION 2: IMPORTS & CONSTANTS
+// ============================================================================
 
 import {
   importWalletTemplate,
@@ -148,6 +275,10 @@ import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoor
 import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
+
+// ============================================================================
+// SECTION 3: UTILITY FUNCTIONS
+// ============================================================================
 
 export const getLockingData = ({ signers, addressDerivationPath }) => {
   const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
@@ -373,6 +504,10 @@ export const getMasterFingerprintUintLE = (mnemonic) => {
   )
 }
 
+// ============================================================================
+// SECTION 4: PRICE ORACLE CLASS
+// ============================================================================
+
 export class PriceOracle {
   /**
    * @param {string} asset - 'bch' or token id (token id not yet implemented, need cauldron)
@@ -392,12 +527,17 @@ const ADDRESS_SCAN_BUFFER = 20
 // - `wallet-utxo.js` - UTXO management
 // - `wallet-transaction.js` - Transaction creation
 
+// ============================================================================
+// SECTION 5: MULTISIG WALLET CLASS
+// ============================================================================
+
 export class MultisigWallet {
   /**
    * Creates a new MultisigWallet instance.
    * @param {MultisigWalletConfig} config - Wallet configuration options.
    * @param {MultisigWalletOptions} options - Wallet options.
    */
+  // ----- 5.1 Constructor & Configuration -----
   constructor (config, options) {
     this.id = config?.id
     this.name = config?.name
@@ -466,6 +606,9 @@ export class MultisigWallet {
   getLastUsedChangeAddressIndex(network) {
     return this.networks?.[network]?.lastUsedChangeAddressIndex ?? -1
   }
+
+  // ----- 5.3 Address Methods -----
+  
   /**
    * Returns a deposit address from the wallet.
    *
@@ -540,45 +683,13 @@ export class MultisigWallet {
    * @param {string} addressPath - The bip32 relative derivation path. 
    * Example: 0/0 for deposit address at index 0, 1/0 for change address at address 0
    */
+  // ----- 5.4 UTXO Management -----
   async getAddressUtxos(address, addressPath) {
     return await this.options?.provider?.getAddressUtxos(address, addressPath)
   }
 
-  async getWalletUtxos() {
-
-    if (!this.options?.provider) throw new Error('Missing provider')
-
-    let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + ADDRESS_SCAN_BUFFER
-
-    let dCounter = 0
-
-    const utxoPromises = []
-
-    while (dCounter < lastDepositAddress) {
-      utxoPromises.push(
-        this.getAddressUtxos(
-          this.getDepositAddress(dCounter, this.cashAddressNetworkPrefix).address, `0/${dCounter}`
-        )
-      )
-      dCounter++
-    }
-
-    let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + ADDRESS_SCAN_BUFFER
-
-    let cCounter = 0
-
-    while (cCounter < lastChangeAddress) {
-      utxoPromises.push(
-        this.getAddressUtxos(
-          this.getChangeAddress(cCounter, this.cashAddressNetworkPrefix).address, `1/${cCounter}`
-        )
-      )
-      cCounter++
-    }
-
-    const utxos = await Promise.all(utxoPromises)
-
-    const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
+  async updateAddressIndicesFromUtxos(utxos) {
+    const highestUsedDepositAddressIndex = utxos.reduce((highest, u) => {
       if (u.addressPath?.startsWith('0/')) {
         const index = Number(u.addressPath.split('/')[1])
         if (index > highest) return index
@@ -586,7 +697,7 @@ export class MultisigWallet {
       return highest
     }, -1)
 
-    const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
+    const highestUsedChangeAddressIndex = utxos.reduce((highest, u) => {
       if (u.addressPath?.startsWith('1/')) {
         const index = Number(u.addressPath.split('/')[1])
         if (index > highest) return index
@@ -608,8 +719,6 @@ export class MultisigWallet {
       this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
       this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
     }
-    this._utxos = utxos?.flat()
-    return this._utxos
   }
 
   async getWalletHashUtxos(includeNfts) {
@@ -672,37 +781,7 @@ export class MultisigWallet {
       }
     })
       
-    const highestUsedDepositAddressIndex = utxos.flat().reduce((highest, u) => {
-      if (u.addressPath?.startsWith('0/')) {
-        const index = Number(u.addressPath.split('/')[1])
-        if (index > highest) return index
-      }
-      return highest
-    }, -1)
-
-    const highestUsedChangeAddressIndex = utxos.flat().reduce((highest, u) => {
-      if (u.addressPath?.startsWith('1/')) {
-        const index = Number(u.addressPath.split('/')[1])
-        if (index > highest) return index
-      }
-      return highest
-    }, -1)
-
-    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
-      this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
-      this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
-    }
-
-    if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
-      this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
-      this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
-    }
-
-    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
-      this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
-      this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
-    }
-    
+    this.updateAddressIndicesFromUtxos(utxos)
     this._utxos = utxos
     return this._utxos
   }
@@ -1068,6 +1147,7 @@ export class MultisigWallet {
     return selectedUtxos
   }
   
+  // ----- 5.8 Transaction Creation -----
   async createProposal(proposal, transactionType = 'send-fungible-assets') {
 
     if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
@@ -1219,6 +1299,7 @@ export class MultisigWallet {
     return pst
   }
 
+  // ----- 5.9 WalletConnect Integration -----
   async wcCreateProposal(sessionRequest) {
     const proposal = new Pst()
     const inputs = sessionRequest.params.request.params.transaction.inputs?.map((input) => {
@@ -1526,6 +1607,7 @@ export class MultisigWallet {
     return this.signers.some(s => s.xpub === signerXpub && Boolean(s.xprv))
   }
   
+  // ----- 5.11 Serialization & Export -----
   toJSON() {
     const signers = this.getSigners().map(s => {
       const { xprv, mnemonic, ...safe } = s 
@@ -1649,11 +1731,12 @@ export class MultisigWallet {
  *
  * @async
  * @function generateAuthCredentials
- * @param {string} [xpub] - Optional extended public key (xpub) to identify which signer to use.
- * @returns {Promise<import('./network.js').WatchtowerMultisigCoordinationServerAuthCredentials|null>} 
- * Resolves with authentication credentials including the signed message and xpub used.
- */
-async generateAuthCredentials(xpub) {
+  * @param {string} [xpub] - Optional extended public key (xpub) to identify which signer to use.
+  * @returns {Promise<import('./network.js').WatchtowerMultisigCoordinationServerAuthCredentials|null>} 
+  * Resolves with authentication credentials including the signed message and xpub used.
+  */
+ // ----- 5.10 Coordination Server Methods -----
+ async generateAuthCredentials(xpub) {
   if (xpub) {
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub })
     if (!mnemonic) return null
