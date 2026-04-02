@@ -73,37 +73,15 @@ export class WatchtowerNetworkProvider {
      * @param {WatchtowerNetworkType} config.network
      */
     constructor(config) {
-        this.hostname = 'https://watchtower.cash'
-        // this.hostname = 'http://localhost:8000'
+        this.hostname = process.env.WATCHTOWER_MAINNET || 'https://watchtower.cash'
         this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
         this.network = config?.network || WatchtowerNetwork.mainnet
         if (this.network === WatchtowerNetwork.chipnet) {
-            this.hostname = 'https://chipnet.watchtower.cash'
+            this.hostname = process.env.WATCHTOWER_CHIPNET || 'https://chipnet.watchtower.cash'
             this.cashAddressNetworkPrefix = CashAddressNetworkPrefix.testnet
         }
     }
-
-    // {
-    //     txid: 'b9784ef85ef3f57039de7b56db40b70de96ddaa87a143be875e405a093163793',
-    //     vout: 0,
-    //     satoshis: 7200,
-    //     height: 909242,
-    //     coinbase: false,
-    //     token: null,
-    //     addressPath: '1/1',
-    //     address: 'bitcoincash:pq7tl7yy4uy4nsvpmvgnmz2v5yhpmv5qg5degh2usg'
-    // }
-    // {
-    //     "txid": "54f8d06f9f3120ceadc3f2ef88dda47604b830d0b62ecc724866941e288fac1c",
-    //     "vout": 0,
-    //     "satoshis": 1000,
-    //     "height": 0,
-    //     "coinbase": false,
-    //     "token": {
-    //      "amount": "30",
-    //      "category": "ea9e1baca02a8f3cc266348d39bacc141bf885d76c0eacb0687c7ecd81ab86b5"
-    //     }
-    // }
+    
     async getAddressUtxos(address, addressPath) {
         const response =  await axios.get(`${this.hostname}/api/multisig/wallets/utxos/${address}`) 
         response?.data?.forEach(utxo => {
