@@ -171,11 +171,6 @@ export class WatchtowerNetworkProvider {
 
     async subscribeWalletAddressIndex ({ walletHash, addresses, addressIndex, type = 'pair' }) {
       
-        if (type === 'pair') {
-            addresses.receiving = receiveAddress
-            addresses.change = changeAddress
-        }
-
         if (type === 'deposit') {
             delete addresses.change 
         }
