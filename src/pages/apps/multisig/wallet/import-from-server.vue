@@ -95,22 +95,32 @@ const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
 })
 
-const downloadWallet = (multisigWallet) => {
-  multisigWallet.setStore($store)
-  multisigWallet.save({
-    store: $store
-  })
-  const index = multisigWalletsFromServer.value.findIndex((w) => w.id === multisigWallet.id)
-  if (index !== -1) {
-    multisigWalletsFromServer.value.splice(index, 1)
-  }
-  $q.notify({
-    color: 'primary',
-    message: `${multisigWallet?.name || 'Wallet'} imported from server.`,
-    timeout: 2000
-  })
-  if (multisigWalletsFromServer.value?.length === 0) {
-    router.push({ name: 'app-multisig' })
+const downloadWallet = async (multisigWallet) => {
+  try {
+    multisigWallet.setStore($store)
+    await multisigWallet.save({ store: $store })
+    
+    const index = multisigWalletsFromServer.value.findIndex((w) => w.id === multisigWallet.id)
+
+    if (index !== -1) {
+      multisigWalletsFromServer.value.splice(index, 1)
+    }
+
+    $q.notify({
+      color: 'primary',
+      message: `${multisigWallet?.name || 'Wallet'} imported from server.`,
+      timeout: 2000
+    })
+
+    if (multisigWalletsFromServer.value?.length === 0) {
+      router.push({ name: 'app-multisig' })
+    }
+  } catch (error) {
+    $q.notify({
+      color: 'negative',
+      message: `Failed to import wallet: ${error.message}`,
+      timeout: 2000
+    })
   }
 }
 
