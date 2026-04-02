@@ -730,45 +730,7 @@ export class MultisigWallet {
     const balance = utxos.filter(u=> u.token && u.token.category === asset).reduce((b, u) => b += u.token.amount, 0)
     return balance / `1e${decimals || 0}`
   }
-
-  async scanAddresses() {
-
-    let lastDepositAddress = (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || 0) + 20
-
-    let dIndex = 0
-
-    const promises = []
-
-    while (dIndex < lastDepositAddress) {
-      promises.push(
-        (async () => {
-          await this.options?.store?.dispatch(
-            'multisig/subscribeWalletAddress',
-            this.getDepositAddress(cIndex, this.cashAddressNetworkPrefix).address
-          )
-        })()
-      )
-      dIndex++
-    }
-
-    let lastChangeAddress = (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || 0) + 20
-
-    let cIndex = 0
-
-    while (cIndex < lastChangeAddress) {
-      promises.push(
-        (async () => {
-            await this.options?.store?.dispatch(
-              'multisig/subscribeWalletAddress',
-              this.getChangeAddress(cIndex, this.cashAddressNetworkPrefix).address
-            )
-          })()
-      )
-      cIndex++
-    }
-    return await Promise.all(promises)
-  }
-
+  
   /**
    * @param {'bch'|string} [asset='bch']
    * @param {number} balance - Should be a decimal value. Example: 1.2 (BCH)
@@ -1045,6 +1007,7 @@ export class MultisigWallet {
      * @type {{Object.<string, Token>}} - Key is the asset which is the token category
      */
     let targetNfts = {}
+    let targetTokens = {}
     // Get target token amount of each asset(token category), convert decimal amount to vm number
     for (const r of proposal.recipients) {
       if (r.asset === 'bch') continue
