@@ -587,46 +587,20 @@ export class MultisigWallet {
       return highest
     }, -1)
 
-
-    // const syncAddressIndicesPromises = []
-
     if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
       this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
       this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
-      // syncAddressIndicesPromises.push({
-      //   key: 'lastUsedDepositAddressIndex',
-      //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network)  
-      // })
     }
 
     if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
       this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
       this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
-      // syncAddressIndicesPromises.push({
-      //   key: 'lastUsedChangeAddressIndex',
-      //   promise: async () => await this.options?.coordinationServer?.updateWalletLastUsedChangeAddressIndex(this, highestUsedChangeAddressIndex, this.options.provider.network)  
-      // })
     }
 
     if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
       this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
       this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
-      // syncAddressIndicesPromises.push({
-      //   key: 'lastIssuedDepositAddressIndex',
-      //   promise: async () => await this.options?.coordinationServer?.updateWalletLastIssuedDepositAddressIndex(this, highestUsedDepositAddressIndex, this.options.provider.network) 
-      // })    
     }
-
-    // const results = await Promise.allSettled(syncAddressIndicesPromises?.map(p => p.promise()))
-    // results.forEach((res, i) => {
-    //     const key = syncAddressIndicesPromises[i].key;
-    //     if (res.status === 'fullfilled') {
-    //       // Replace with the actual value here
-    //       console.log(`${key.replace(/^l/,'L')} success:`, results.data);
-    //     } 
-    //     // rejected
-    //   });
-
     this._utxos = utxos?.flat()
     return this._utxos
   }
@@ -644,9 +618,22 @@ export class MultisigWallet {
     }
     const responses = await Promise.allSettled(requests)
     let utxos = []
+    const errors = []
 
     for (const r of responses) {
-      utxos = utxos.concat(r?.value?.data?.utxos ?? [])
+      if (r.status === 'fulfilled') {
+        utxos = utxos.concat(r?.value?.data?.utxos ?? [])
+      } else {
+        errors.push(r.reason)
+        console.error('Failed to fetch UTXOs:', r.reason)
+      }
+    }
+
+    if (errors.length > 0 && utxos.length === 0) {
+      // Silently fail and return empty array if all requests failed,
+      // Function is re-invokable no need to break the app if the request fails.
+      console.log('Failed to fetch any UTXOs')
+      return []
     }
 
     const seen = new Set()
@@ -730,7 +717,7 @@ export class MultisigWallet {
     const balance = utxos.filter(u=> u.token && u.token.category === asset).reduce((b, u) => b += u.token.amount, 0)
     return balance / `1e${decimals || 0}`
   }
-  
+
   /**
    * @param {'bch'|string} [asset='bch']
    * @param {number} balance - Should be a decimal value. Example: 1.2 (BCH)
@@ -818,7 +805,6 @@ export class MultisigWallet {
     return await this.options?.provider?.getWalletTransactionHistory({walletHash, type, all, tokenCategory, page })
   }
 
-
   /**
    * Marks the address at addressIndex as issued.
    * 
@@ -833,13 +819,6 @@ export class MultisigWallet {
       'multisig/updateWalletLastIssuedDepositAddressIndex', 
       { wallet: this, lastIssuedDepositAddressIndex: addressIndex, network: this.options.provider.network }
     ) 
-    
-    // this.options
-    //     ?.coordinationServer
-    //     ?.updateWalletLastIssuedDepositAddressIndex(this, addressIndex, this.options.provider.network)
-    //     .catch(e => e)
-
-    // await this.subscribeWalletAddress(this.getDepositAddress(addressIndex, this.cashAddressNetworkPrefix).address)
     await this.subscribeWalletAddressIndex(addressIndex, 'deposit')
     
 
@@ -858,13 +837,6 @@ export class MultisigWallet {
         'multisig/updateWalletLastUsedChangeAddressIndex', 
         { wallet: this, lastUsedChangeAddressIndex: addressIndex, network: this.options.provider.network }
       ) 
-      
-      // this.options
-      //     ?.coordinationServer
-      //     ?.updateWalletLastUsedChangeAddressIndex(this, addressIndex, this.options.provider.network)
-      //     .catch(e => e)
-
-      // await this.subscribeWalletAddress(this.getChangeAddress(addressIndex, this.cashAddressNetworkPrefix).address)
       await this.subscribeWalletAddressIndex(addressIndex, 'change')
   }
 
