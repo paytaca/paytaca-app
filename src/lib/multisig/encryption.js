@@ -18,28 +18,39 @@ export async function decryptECIES(
   encryptedData,
   outputFormat = 'utf8'
 ) {
-  // Always treat encryptedData as hex → convert to binary
-  const ciphertextBytes = hexToBin(encryptedData);
 
-  // Perform decryption
-  const decryptedBytes = decrypt(ownerPrivateKeyBytes, ciphertextBytes);
+  try {
+    if (!ownerPrivateKeyBytes || !encryptedData) {
+      throw new Error('Missing required parameters');
+    }
+    
+    const ciphertextBytes = hexToBin(encryptedData);
+    if (!ciphertextBytes || ciphertextBytes.length === 0) {
+      throw new Error('Invalid encrypted data');
+    }
+    
+    const decryptedBytes = decrypt(ownerPrivateKeyBytes, ciphertextBytes);
 
-  // Return in requested format
-  switch (outputFormat) {
-    case 'utf8':
-      return binToUtf8(decryptedBytes);
+    switch (outputFormat) {
+      case 'utf8':
+        return binToUtf8(decryptedBytes);
 
-    case 'hex':
-      return binToHex(decryptedBytes);
+      case 'hex':
+        return binToHex(decryptedBytes);
 
-    case 'bytes':
-      return decryptedBytes;  // Uint8Array
+      case 'bytes':
+        return decryptedBytes;  // Uint8Array
 
-    default:
-      throw new Error(
-        `Invalid outputFormat: "${outputFormat}". Supported: 'utf8', 'hex', 'bytes'`
-      );
+      default:
+        throw new Error(
+          `Invalid outputFormat: "${outputFormat}". Supported: 'utf8', 'hex', 'bytes'`
+        );
+    }
+  } catch (error) {
+    throw new Error(`Decryption failed: ${error.message}`);
   }
+
+  
 }
 
 /**
