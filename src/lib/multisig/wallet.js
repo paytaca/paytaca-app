@@ -1777,10 +1777,18 @@ async generateCosignerAuthCredentials(xpub) {
 }
 
 async sync() {
+
+  if (this._syncInProgress) {
+    return this;
+  }
   
+  this._syncInProgress = true;
+
   if (!this.options?.coordinationServer) return
 
-  const [loadServerIdentityResponse, getWalletResponse] = 
+  try {
+    const [loadServerIdentityResponse, getWalletResponse] = 
+    
     await Promise.allSettled([
       this.loadSignersServerIdentity(), 
       this.options?.coordinationServer?.getWallet({ 
@@ -1788,34 +1796,41 @@ async sync() {
       })
     ])
 
-  if (loadServerIdentityResponse?.status === 'fulfilled' && !loadServerIdentityResponse.value) {
-    await this.loadSignersMnemonic()
-    const signerWithMnemonic = this.getSigners().find(s => s.mnemonic)
-    if (signerWithMnemonic) {
-      const serverIdentity = generateCoordinatorServerIdentityFromMnemonic({
-        name: signerWithMnemonic.xpub,
-        mnemonic: signerWithMnemonic.mnemonic,
-        network: this.options?.provider?.network
-      })
+    if (loadServerIdentityResponse?.status === 'fulfilled' && !loadServerIdentityResponse.value) {
+      await this.loadSignersMnemonic()
+      const signerWithMnemonic = this.getSigners().find(s => s.mnemonic)
+      if (signerWithMnemonic) {
+        const serverIdentity = generateCoordinatorServerIdentityFromMnemonic({
+          name: signerWithMnemonic.xpub,
+          mnemonic: signerWithMnemonic.mnemonic,
+          network: this.options?.provider?.network
+        })
 
-      await this.options.coordinationServer.createServerIdentity({ 
-        serverIdentity, 
-        authCredentialsGenerator: this 
-      })
+        await this.options.coordinationServer.createServerIdentity({ 
+          serverIdentity, 
+          authCredentialsGenerator: this 
+        })
+      }
     }
-  }
 
-  if (getWalletResponse?.status === 'rejected' && getWalletResponse.reason?.response?.status === 404) {
-    this.id = ''
-  }
+    if (getWalletResponse?.status === 'rejected' && getWalletResponse.reason?.response?.status === 404) {
+      this.id = ''
+    }
 
-  if (getWalletResponse?.status === 'fulfilled') {
-    this.id = getWalletResponse.value?.id
+    if (getWalletResponse?.status === 'fulfilled') {
+      this.id = getWalletResponse.value?.id
+    }
+    
+    this.save()
+
+    return this 
+    
+  } catch (error) {
+    console.error('Error during synchronization:', error);
+  } finally {
+    this._syncInProgress = false;
   }
   
-  this.save()
-
-  return this 
 }
 
 
