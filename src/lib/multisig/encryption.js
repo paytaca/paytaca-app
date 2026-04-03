@@ -62,8 +62,20 @@ export async function decryptECIES(
  * @throws {Error} If recipientRawPublicKey is undefined or null, or if encryption fails.
  */
 export async function encryptECIES(recipientRawPublicKey, dataBytes) {
-    const encryptedBytes = encrypt(recipientRawPublicKey, dataBytes);
-    return binToHex(encryptedBytes);
+
+    if (!recipientRawPublicKey) {
+        throw new Error('recipientRawPublicKey is required for ECIES encryption');
+    }
+    if (!dataBytes || dataBytes.length === 0) {
+        throw new Error('dataBytes is required and cannot be empty');
+    }
+    
+    try {
+        const encryptedBytes = encrypt(recipientRawPublicKey, dataBytes);
+        return binToHex(encryptedBytes);
+    } catch (error) {
+        throw new Error(`ECIES encryption failed: ${error.message}`);
+    }
 }
 
 /**
