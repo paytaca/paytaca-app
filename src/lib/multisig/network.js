@@ -3,6 +3,16 @@ import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3"
 import { ElectrumNetworkProvider } from 'cashscript';
 
 /**
+ * Default timeout for network requests (30 seconds)
+ */
+const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Timeout for critical operations like transaction broadcast (60 seconds)
+ */
+const BROADCAST_TIMEOUT = 60000;
+
+/**
  * @typedef {'mainnet' | 'testnet3' | 'testnet4' | 'chipnet' | 'mocknet' | 'regtest'} Network
  */
 
@@ -83,7 +93,10 @@ export class WatchtowerNetworkProvider {
     }
     
     async getAddressUtxos(address, addressPath) {
-        const response =  await axios.get(`${this.hostname}/api/multisig/wallets/utxos/${address}`) 
+        const response =  await axios.get(
+            `${this.hostname}/api/multisig/wallets/utxos/${address}`,
+            { timeout: DEFAULT_TIMEOUT }
+        ) 
         response?.data?.forEach(utxo => {
             utxo.addressPath = addressPath
             utxo.address = address
@@ -100,7 +113,7 @@ export class WatchtowerNetworkProvider {
         if (utxoType === 'cashtoken' && tokenFilter === 'nft') {
             url += `&is_cashtoken_nft=true`
         }
-        return await axios.get(url) 
+        return await axios.get(url, { timeout: DEFAULT_TIMEOUT }) 
 
     }
 
@@ -124,8 +137,36 @@ export class WatchtowerNetworkProvider {
     /**
      * @returns {Promise<{ success: boolean, txid: string }>}
      */
-    async broadcastTransaction(rawTxHex) { 
-        return  await axios.post(`${this.hostname}/api/broadcast/`, { transaction: rawTxHex })
+    async broadcastTransaction(rawTxHex, maxRetries = 3) { 
+
+        let lastError;
+        
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await axios.post(
+                    `${this.hostname}/api/broadcast/`, 
+                    { transaction: rawTxHex },
+                    { timeout: 60000 } // Longer timeout for broadcast
+                );
+                return response;
+            } catch (error) {
+                lastError = error;
+                
+                // Don't retry on certain errors
+                if (error.response?.status === 400) {
+                    throw error; // Invalid transaction, don't retry
+                }
+                
+                // Exponential backoff
+                if (attempt < maxRetries - 1) {
+                    await new Promise(resolve => 
+                        setTimeout(resolve, Math.pow(2, attempt) * 1000)
+                    );
+                }
+            }
+        }
+        
+        throw lastError;
     }
 
     async getRawTransaction(txid) {
@@ -143,7 +184,7 @@ export class WatchtowerNetworkProvider {
       
         url += `?type=${type}&all=${all}&page=${page}`
         
-        return await axios.get(url)
+        return await axios.get(url, { timeout: DEFAULT_TIMEOUT })
       }
       
 
@@ -162,12 +203,16 @@ export class WatchtowerNetworkProvider {
             chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
         }
 
-        return await axios.post(`${this.hostname}/api/subscription/`, {
-            project_id: projectId[this.network],
-            addresses,
-            address_index: addressIndex,
-            wallet_hash: walletHash
-        }) 
+        return await axios.post(
+            `${this.hostname}/api/subscription/`,
+            {
+                project_id: projectId[this.network],
+                addresses,
+                address_index: addressIndex,
+                wallet_hash: walletHash
+            },
+            { timeout: DEFAULT_TIMEOUT }
+        ) 
     }
       
 }
@@ -198,7 +243,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/`,
             wallet, 
-            { headers: await wallet.generateAuthCredentials() }
+            { 
+                headers: await wallet.generateAuthCredentials(),
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data   
     }
@@ -212,7 +260,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/`,
             wallet, 
-            { headers: await authCredentialsGenerator.generateAuthCredentials() }
+            { 
+                headers: await authCredentialsGenerator.generateAuthCredentials(),
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data   
     } 
@@ -221,7 +272,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/last-issued-deposit-address-index`,
             { network: network || this.network, lastIssuedDepositAddressIndex }, 
-            { headers: await wallet.generateAuthCredentials() }
+            { 
+                headers: await wallet.generateAuthCredentials(),
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -230,7 +284,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/last-used-deposit-address-index`,
             { network: network || this.network, lastUsedDepositAddressIndex }, 
-            { headers: await wallet.generateAuthCredentials() }
+            { 
+                headers: await wallet.generateAuthCredentials(),
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -239,7 +296,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/${wallet.walletHash}/last-used-change-address-index`,
             { network: network || this.network, lastUsedChangeAddressIndex }, 
-            { headers: await wallet.generateAuthCredentials() }
+            { 
+                headers: await wallet.generateAuthCredentials(),
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -253,7 +313,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/coordinator/server-identities/`,
             serverIdentity,
-            { headers: { ...authCredentials } }
+            { 
+                headers: { ...authCredentials },
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -262,21 +325,26 @@ export class WatchtowerCoordinationServer {
         const authCredentials = await authCredentialsGenerator.generateAuthCredentials()
         const response = await axios.get(
             `${this.hostname}/api/multisig/coordinator/server-identities/${publicKey}/`,
-            { headers: { ...authCredentials } }
+            { 
+                headers: { ...authCredentials },
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
 
     async getWallet({ identifier }) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/wallets/${identifier}/`
+            `${this.hostname}/api/multisig/wallets/${identifier}/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
 
     async getSignerWallets({ publicKey }) {        
         const response = await axios.get(
-            `${this.hostname}/api/multisig/signers/${publicKey}/wallets/`
+            `${this.hostname}/api/multisig/signers/${publicKey}/wallets/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
@@ -284,7 +352,8 @@ export class WatchtowerCoordinationServer {
 
     async getSignerWalletsByMasterFingerprint({ masterFingerprint }) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/signers/${masterFingerprint}/wallets/`
+            `${this.hostname}/api/multisig/signers/${masterFingerprint}/wallets/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
@@ -302,7 +371,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/proposals/?wallet_id=${payload.wallet}`,
             payload, 
-            { headers: { ...authCredentials, ...authCosignerAuthCredentials } }
+            { 
+                headers: { ...authCredentials, ...authCosignerAuthCredentials },
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -324,7 +396,10 @@ export class WatchtowerCoordinationServer {
         }
         const response = await axios.delete(
             `${this.hostname}/api/multisig/proposals/${id}/?wallet_id=${walletId}`, 
-            { headers: { ...credentials } }
+            { 
+                headers: { ...credentials },
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -335,20 +410,22 @@ export class WatchtowerCoordinationServer {
         if (queryFilter?.includeDeleted) {
             url += '?include_deleted=true'
         }
-        const response = await axios.get(url)
+        const response = await axios.get(url, { timeout: DEFAULT_TIMEOUT })
         return response?.data
     }
 
     async getProposalByUnsignedTransactionHash(unsignedTransactionHash) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/`
+            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
 
     async getProposalCoordinator({ unsignedTransactionHash }) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/coordinator/`
+            `${this.hostname}/api/multisig/proposals/${unsignedTransactionHash}/coordinator/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response?.data
     }
@@ -363,21 +440,24 @@ export class WatchtowerCoordinationServer {
      */
     async getSignerSignatures({ masterFingerprint, proposalUnsignedTransactionHash }) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/signatures/${masterFingerprint}/`
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/signatures/${masterFingerprint}/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
 
     async getSignatures({ proposalUnsignedTransactionHash }) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/signatures/`
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/signatures/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
 
     async getPsbts({ proposalUnsignedTransactionHash }) {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/psbts/`
+            `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/psbts/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
@@ -397,7 +477,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/proposals/${proposalUnsignedTransactionHash}/psbts/?wallet_id=${walletId}`,
             { content, standard, encoding },
-            { headers: { ...authCosignerAuthCredentials } }
+            { 
+                headers: { ...authCosignerAuthCredentials },
+                timeout: DEFAULT_TIMEOUT
+            }
         )
 
         return response?.data
@@ -417,7 +500,8 @@ export class WatchtowerCoordinationServer {
       */
     async getWalletProposals(walletIdentifier, status='pending') {
         const response = await axios.get(
-            `${this.hostname}/api/multisig/wallets/${walletIdentifier}/proposals/?status=${status}`
+            `${this.hostname}/api/multisig/wallets/${walletIdentifier}/proposals/?status=${status}`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
@@ -426,7 +510,10 @@ export class WatchtowerCoordinationServer {
         const response = await axios.post(
             `${this.hostname}/api/multisig/wallets/${walletIdentifier}/walletconnect/sessions/`,
             payload,
-            { headers: { ...authCosignerAuthCredentials } }
+            { 
+                headers: { ...authCosignerAuthCredentials },
+                timeout: DEFAULT_TIMEOUT
+            }
         )
         return response.data
     }
@@ -434,6 +521,7 @@ export class WatchtowerCoordinationServer {
     async getWalletWcSessions({ walletIdentifier }) {
         const response = await axios.get(
             `${this.hostname}/api/multisig/wallets/${walletIdentifier}/walletconnect/sessions/`,
+            { timeout: DEFAULT_TIMEOUT }
         )
         return response.data
     }
