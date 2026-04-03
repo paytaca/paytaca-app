@@ -586,7 +586,7 @@ export class MultisigWallet {
 
   get walletHash() {
     if (!this._walletHash) {
-      this._walletHash = this.getWalletHash(this)
+      this._walletHash = getWalletHash(this)
     }
     return this._walletHash
   }
