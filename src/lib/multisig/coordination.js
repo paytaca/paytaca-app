@@ -35,10 +35,15 @@ export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
  * @throws {Error} If signing operation fails.
  */
 export function generateCoordinationServerSignature(privateKey, message) {
+  try {
     const hash = sha256.hash(utf8ToBin(message))
     const schnorr = secp256k1.signMessageHashSchnorr(privateKey, hash)
     const der = secp256k1.signMessageHashDER(privateKey, hash)
     return `schnorr=${binToHex(schnorr)};der=${binToHex(der)}`
+  } catch (error) {
+    throw new Error(`Failed to generate coordination server signature`)
+  }
+    
 }
 
 /**
@@ -65,6 +70,7 @@ export function generateCoordinationServerSignature(privateKey, message) {
  * @see generateCoordinationServerSignature
  */
 export function generateCoordinatorServerIdentityFromXprv({ name, xprv }) {
+  try {
     const { hdPublicKey } = deriveHdPublicKey(xprv)
     const privateKey = decodeHdPrivateKey(xprv).node.privateKey
     const publicKey  = decodeHdPublicKey(hdPublicKey).node.publicKey
@@ -75,6 +81,10 @@ export function generateCoordinatorServerIdentityFromXprv({ name, xprv }) {
       message,
       signature: generateCoordinationServerSignature(privateKey, message)
     }
+  } catch (error) {
+    throw new Error(`Failed to generate coordination server identity`)
+  }
+    
 }
 
 /**
@@ -99,12 +109,17 @@ export function generateCoordinatorServerIdentityFromXprv({ name, xprv }) {
  * @see deriveHdKeysFromMnemonic
  */
 export function generateCoordinatorServerIdentityFromMnemonic({ name, mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) {
+  try {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
       hdPath
     })
     return generateCoordinatorServerIdentityFromXprv({ name, xprv: hdPrivateKey, network })
+  } catch (error) {
+    throw new Error(`Failed to generate coordination server identity from mnemonic`)
+  }
+    
 }
 
 /**
@@ -131,6 +146,7 @@ export function generateCoordinatorServerIdentityFromMnemonic({ name, mnemonic, 
  * @see generateCoordinationServerSignature
  */
 export function generateServerCredentialsFromXprv ({ xprv }) {
+  try {
     const { hdPublicKey } = deriveHdPublicKey(xprv)
     const privateKey = decodeHdPrivateKey(xprv).node.privateKey
     const publicKey  = decodeHdPublicKey(hdPublicKey).node.publicKey
@@ -140,7 +156,11 @@ export function generateServerCredentialsFromXprv ({ xprv }) {
         'X-Auth-Signature': generateCoordinationServerSignature(privateKey, message),
         'X-Auth-Message': message,
     }
+  } catch (error) {
+    throw new Error(`Failed to generate server credentials from xprv`)
   }
+    
+}
 
 /**
  * Generates authentication credentials for coordination server from a mnemonic seed phrase.
@@ -162,12 +182,17 @@ export function generateServerCredentialsFromXprv ({ xprv }) {
  * @see deriveHdKeysFromMnemonic
  */
 export function generateServerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) {
+  try {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
       hdPath 
     })
     return generateServerCredentialsFromXprv({ xprv: hdPrivateKey })
+  } catch (error) {
+    throw new Error(`Failed to generate server credentials from mnemonic`)
+  }
+    
 }
 
 /**
@@ -187,9 +212,13 @@ export function generateServerCredentialsFromMnemonic ({ mnemonic, network = 'ma
  * @see SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH
  */
 export function generateCosignerAuthPublicKeyFromXpub ({ xpub }) {
-  const decodedHdPublicKey = decodeHdPublicKey(xpub)
-  const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH) 
-  return binToHex(publicKey)
+  try {
+    const decodedHdPublicKey = decodeHdPublicKey(xpub)
+    const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH) 
+    return binToHex(publicKey)  
+  } catch (error) {
+    throw new Error(`Failed to generate cosigner auth public key from xpub`)
+  }
 }
 
 /**
@@ -215,6 +244,7 @@ export function generateCosignerAuthPublicKeyFromXpub ({ xpub }) {
  * @see deriveCosignerAuthPrivateKey
  */
 export function generateCosignerCredentialsFromXprv ({ xprv }) {
+  try {
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
     const privateKey = deriveCosignerAuthPrivateKey({ xprv })
     const message = `multisig:cosigner-auth:${Date.now()}`
@@ -223,7 +253,11 @@ export function generateCosignerCredentialsFromXprv ({ xprv }) {
         'X-Auth-Cosigner-Auth-Signature': generateCoordinationServerSignature(privateKey, message),
         'X-Auth-Cosigner-Auth-Message': message,
     }
+  } catch (error) {
+    throw new Error(`Failed to generate cosigner credentials from xprv`)
   }
+    
+}
 
 /**
  * Generates cosigner authentication credentials from a mnemonic seed phrase.
@@ -245,12 +279,17 @@ export function generateCosignerCredentialsFromXprv ({ xprv }) {
  * @see deriveHdKeysFromMnemonic
  */
 export function generateCosignerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/44'/145'/0'` }) {
+  try {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
       hdPath 
     })
     return generateCosignerCredentialsFromXprv({ xprv: hdPrivateKey })
+  } catch (error) {
+    throw new Error(`Failed to generate cosigner credentials from mnemonic`)
+  }
+    
 }
 
 /**
@@ -271,7 +310,11 @@ export function generateCosignerCredentialsFromMnemonic ({ mnemonic, network = '
  * @see SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH
  */
 export function deriveCosignerAuthPrivateKey({ xprv }) {
-  const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
-  const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
-  return privateKey
+  try {
+    const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
+    const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
+    return privateKey  
+  } catch (error) {
+    throw new Error(`Failed to derive cosigner auth private key from xprv`)
+  }
 }
