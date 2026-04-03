@@ -201,7 +201,7 @@ import {
 } from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
-import { generateCosignerAuthPublicKeyFromFromXpub } from 'src/lib/multisig/coordination'
+import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
 import { watchtowerUtxoToCommonUtxo } from 'src/lib/multisig/utxo'
 const $q = useQuasar()
 const $store = useStore()
@@ -386,7 +386,7 @@ const createProposal = async () => {
     for (const signer of wallet.value.signers) {
       const signerWallet = await getSignerWalletFromVault({ xpub: signer.xpub })
       if (signerWallet) {
-        creator = generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
+        creator = generateCosignerAuthPublicKeyFromXpub({ xpub: signer.xpub })
       }
     }
 

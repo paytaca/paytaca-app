@@ -111,6 +111,9 @@ export function generateCoordinatorServerIdentityFromMnemonic({ name, mnemonic, 
  * Generates authentication credentials for coordination server from an extended private key.
  * Creates HTTP headers containing the public key, signature, and message for server authentication.
  * 
+ * IMPORTANT: The server MUST validate that the timestamp is within
+ * an acceptable window (e.g., ±5 minutes) to prevent replay attacks.
+ * 
  * @param {Object} params - The parameters object.
  * @param {string} params.xprv - The extended private key in base58 format.
  * @returns {Object} Authentication headers object.
@@ -119,7 +122,7 @@ export function generateCoordinatorServerIdentityFromMnemonic({ name, mnemonic, 
  * @returns {string} return['X-Auth-Message'] - The signed message in format "multisig:<timestamp>".
  * 
  * @example
- * const credentials = generateCoordinationServerCredentialsFromXprv({
+ * const credentials = generateServerCredentialsFromXprv({
  *   xprv: 'xprv...'
  * });
  * // Use in HTTP request:
@@ -127,7 +130,7 @@ export function generateCoordinatorServerIdentityFromMnemonic({ name, mnemonic, 
  * 
  * @see generateCoordinationServerSignature
  */
-export function generateCoordinationServerCredentialsFromXprv ({ xprv }) {
+export function generateServerCredentialsFromXprv ({ xprv }) {
     const { hdPublicKey } = deriveHdPublicKey(xprv)
     const privateKey = decodeHdPrivateKey(xprv).node.privateKey
     const publicKey  = decodeHdPublicKey(hdPublicKey).node.publicKey
@@ -147,24 +150,24 @@ export function generateCoordinationServerCredentialsFromXprv ({ xprv }) {
  * @param {string} params.mnemonic - The BIP39 mnemonic seed phrase (12-24 words).
  * @param {string} [params.network='mainnet'] - The network type ('mainnet' or 'testnet').
  * @param {string} [params.hdPath="m/4501'/145'/0'/0'"] - The HD derivation path.
- * @returns {Object} Authentication headers object (see generateCoordinationServerCredentialsFromXprv).
+ * @returns {Object} Authentication headers object (see generateServerCredentialsFromXprv).
  * 
  * @example
- * const credentials = generateCoordinationServerCredentialsFromMnemonic({
+ * const credentials = generateServerCredentialsFromMnemonic({
  *   mnemonic: 'abandon abandon abandon ...',
  *   network: 'mainnet'
  * });
  * 
- * @see generateCoordinationServerCredentialsFromXprv
+ * @see generateServerCredentialsFromXprv
  * @see deriveHdKeysFromMnemonic
  */
-export function generateCoordinationServerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) {
+export function generateServerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/4501'/145'/0'/0'` }) {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
       hdPath 
     })
-    return generateCoordinationServerCredentialsFromXprv({ xprv: hdPrivateKey })
+    return generateServerCredentialsFromXprv({ xprv: hdPrivateKey })
 }
 
 /**
@@ -176,14 +179,14 @@ export function generateCoordinationServerCredentialsFromMnemonic ({ mnemonic, n
  * @returns {string} The derived public key in hexadecimal format.
  * 
  * @example
- * const authPubKey = generateCosignerAuthPublicKeyFromFromXpub({
+ * const authPubKey = generateCosignerAuthPublicKeyFromXpub({
  *   xpub: 'xpub...'
  * });
  * // Returns: "02a1b2c3..."
  * 
  * @see SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH
  */
-export function generateCosignerAuthPublicKeyFromFromXpub ({ xpub }) {
+export function generateCosignerAuthPublicKeyFromXpub ({ xpub }) {
   const decodedHdPublicKey = decodeHdPublicKey(xpub)
   const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH) 
   return binToHex(publicKey)
@@ -201,22 +204,22 @@ export function generateCosignerAuthPublicKeyFromFromXpub ({ xpub }) {
  * @returns {string} return['X-Auth-Cosigner-Auth-Message'] - The signed message in format "multisig:cosigner-auth:<timestamp>".
  * 
  * @example
- * const credentials = generateCoordinationServerCosignerCredentialsFromXprv({
+ * const credentials = generateCosignerCredentialsFromXprv({
  *   xprv: 'xprv...'
  * });
  * // Use in HTTP request:
  * // headers: { ...credentials }
  * 
- * @see generateCosignerAuthPublicKeyFromFromXpub
+ * @see generateCosignerAuthPublicKeyFromXpub
  * @see generateCoordinationServerSignature
- * @see deriveCoordinationServerCosignerAuthPrivateKey
+ * @see deriveCosignerAuthPrivateKey
  */
-export function generateCoordinationServerCosignerCredentialsFromXprv ({ xprv }) {
+export function generateCosignerCredentialsFromXprv ({ xprv }) {
     const { hdPublicKey: xpub } = deriveHdPublicKey(xprv)
-    const privateKey = deriveCoordinationServerCosignerAuthPrivateKey({ xprv })
+    const privateKey = deriveCosignerAuthPrivateKey({ xprv })
     const message = `multisig:cosigner-auth:${Date.now()}`
     return {
-        'X-Auth-Cosigner-Auth-PubKey': generateCosignerAuthPublicKeyFromFromXpub({ xpub }),
+        'X-Auth-Cosigner-Auth-PubKey': generateCosignerAuthPublicKeyFromXpub({ xpub }),
         'X-Auth-Cosigner-Auth-Signature': generateCoordinationServerSignature(privateKey, message),
         'X-Auth-Cosigner-Auth-Message': message,
     }
@@ -230,24 +233,24 @@ export function generateCoordinationServerCosignerCredentialsFromXprv ({ xprv })
  * @param {string} params.mnemonic - The BIP39 mnemonic seed phrase (12-24 words).
  * @param {string} [params.network='mainnet'] - The network type ('mainnet' or 'testnet').
  * @param {string} [params.hdPath="m/44'/145'/0'"] - The HD derivation path.
- * @returns {Object} Cosigner authentication headers object (see generateCoordinationServerCosignerCredentialsFromXprv).
+ * @returns {Object} Cosigner authentication headers object (see generateCosignerCredentialsFromXprv).
  * 
  * @example
- * const credentials = generateCoordinationServerCosignerCredentialsFromMnemonic({
+ * const credentials = generateCosignerCredentialsFromMnemonic({
  *   mnemonic: 'abandon abandon abandon ...',
  *   network: 'mainnet'
  * });
  * 
- * @see generateCoordinationServerCosignerCredentialsFromXprv
+ * @see generateCosignerCredentialsFromXprv
  * @see deriveHdKeysFromMnemonic
  */
-export function generateCoordinationServerCosignerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/44'/145'/0'` }) {
+export function generateCosignerCredentialsFromMnemonic ({ mnemonic, network = 'mainnet', hdPath = `m/44'/145'/0'` }) {
     const { hdPrivateKey } = deriveHdKeysFromMnemonic({ 
       mnemonic,
       network, 
       hdPath 
     })
-    return generateCoordinationServerCosignerCredentialsFromXprv({ xprv: hdPrivateKey })
+    return generateCosignerCredentialsFromXprv({ xprv: hdPrivateKey })
 }
 
 /**
@@ -260,14 +263,14 @@ export function generateCoordinationServerCosignerCredentialsFromMnemonic ({ mne
  * @returns {Uint8Array} The derived private key (32 bytes).
  * 
  * @example
- * const authPrivateKey = deriveCoordinationServerCosignerAuthPrivateKey({
+ * const authPrivateKey = deriveCosignerAuthPrivateKey({
  *   xprv: 'xprv...'
  * });
  * // Returns: Uint8Array(32) [...]
  * 
  * @see SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH
  */
-export function deriveCoordinationServerCosignerAuthPrivateKey({ xprv }) {
+export function deriveCosignerAuthPrivateKey({ xprv }) {
   const decodedHdPrivateKey = decodeHdPrivateKey(xprv)
   const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH)
   return privateKey

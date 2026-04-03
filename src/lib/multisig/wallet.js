@@ -271,7 +271,7 @@ import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
 import { encryptECIES, generateAES256GCMKey } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
-import { generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
+import { generateCosignerCredentialsFromMnemonic, generateServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
 
 export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
@@ -1740,7 +1740,7 @@ export class MultisigWallet {
   if (xpub) {
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub })
     if (!mnemonic) return null
-    return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
+    return generateServerCredentialsFromMnemonic({ mnemonic })
   }
   for (const signer of this.getSigners()) {
     let mnemonic = ''
@@ -1750,7 +1750,7 @@ export class MultisigWallet {
       mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     }
     if (mnemonic) {
-      return generateCoordinationServerCredentialsFromMnemonic({ mnemonic })
+      return generateServerCredentialsFromMnemonic({ mnemonic })
     }
   }
   return null
@@ -1760,7 +1760,7 @@ async generateCosignerAuthCredentials(xpub) {
   if (xpub) {
     const mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub })
     if (!mnemonic) return null
-    return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
+    return generateCosignerCredentialsFromMnemonic({ mnemonic })
   }
   for (const signer of this.getSigners()) {
     let mnemonic = ''
@@ -1770,7 +1770,7 @@ async generateCosignerAuthCredentials(xpub) {
       mnemonic = await this.options?.resolveMnemonicOfXpub({ xpub: signer.xpub })
     }
     if (mnemonic) {
-      return generateCoordinationServerCosignerCredentialsFromMnemonic({ mnemonic })
+      return generateCosignerCredentialsFromMnemonic({ mnemonic })
     }
   }
   return null
