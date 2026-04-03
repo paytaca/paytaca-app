@@ -1413,7 +1413,7 @@ export class MultisigWallet {
   }
 
   async wcForgetSession(topic) {
-    const i = this.wcSessions.findIndex(s => topic)
+    const i = this.wcSessions.findIndex(s => s.topic === topic)
     if (i !== -1) {
       this.wcSessions.splice(i, 1)
     }
