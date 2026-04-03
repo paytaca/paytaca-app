@@ -1659,6 +1659,18 @@ export class Psbt {
         if (unsignedTransactionHash !== h) {
           throw Error(`Unsigned transaction hash mismatch with psbt at index ${i}. Expecting ${unsignedTransactionHash} but got ${h}`)
         }
+
+        if (!psbtInstance.inputMap?.inputs) {
+            throw new Error(`PSBT at index ${i} has no inputs`);
+        }
+        
+        if (psbtInstance.inputMap.inputs.length !== this.inputMap.inputs.length) {
+            throw new Error(
+                `Input count mismatch at index ${i}. Expected ` +
+                `${this.inputMap.inputs.length}, got ${psbtInstance.inputMap.inputs.length}`
+            );
+        }
+        
         const sourceOutputs = psbtInstance.inputMap.inputs.map((input) => {
           return input.getSourceUtxo()
         })
