@@ -776,7 +776,7 @@ const queryServerForProposals = async () => {
           proposalsFromServer.value = p
         }
       })
-    }, 3000)
+    }, 5000)
   }
 }
 
