@@ -14,6 +14,7 @@ import {
 } from 'bitauth-libauth-v3'
 import { getMnemonic } from 'src/wallet/index'
 import { parseExtendedJson, signBchTransaction } from 'src/wallet/bch-sign'
+import { ConnectionKeepalive } from './keepalive.js'
 
 const seedCache = new Map()
 const relayKeyCache = new Map()
@@ -25,6 +26,8 @@ let _hdNodes = null
 let _walletIndex = 0
 let _isChipnet = false
 let _walletHash = null
+
+let _keepalive = null
 
 function getPrefix() {
   return _isChipnet ? 'bchtest' : 'bitcoincash'
@@ -129,6 +132,7 @@ export function setWalletConfig(walletIndex, isChipnet, walletHash = null) {
   
   // If wallet changed and manager exists, clear it so it will be reinitialized
   if (walletChanged && _manager) {
+    stopKeepalive()
     _manager.disconnectAll()
     _manager = null
     _hdNodes = null
@@ -140,12 +144,43 @@ export function getWalletHash() {
 }
 
 export function reset() {
+  stopKeepalive()
   if (_manager) {
     _manager.disconnectAll()
   }
   _walletHash = null;
   _manager = null
   _hdNodes = null
+}
+
+/** Record that relay activity was observed on a connection. */
+export function recordActivity(connectionId) {
+  _keepalive?.recordActivity(connectionId)
+}
+
+/**
+ * Start the keepalive watchdog.
+ * Detects zombie TCP connections by tracking relay activity per connection.
+ * Idempotent — safe to call on every init.
+ */
+export function startKeepalive() {
+  if (_keepalive) return
+  _keepalive = new ConnectionKeepalive({
+    getConnections: () => _manager?.getConnections() ?? {},
+    onReconnect: (id, uri) => {
+      _manager?.disconnect(id)
+      if (uri) {
+        // Small delay so disconnect fully propagates before reconnecting
+        setTimeout(() => { _manager?.connect(uri) }, 500)
+      }
+    },
+  })
+  _keepalive.start()
+}
+
+export function stopKeepalive() {
+  _keepalive?.stop()
+  _keepalive = null
 }
 
 export function connect(uri) {

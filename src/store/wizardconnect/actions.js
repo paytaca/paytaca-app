@@ -80,6 +80,8 @@ export async function init ({ commit, dispatch, rootGetters }) {
     const conn = manager.getConnections()[connectionId]
     if (!conn) return
     console.log('WizC[connectionStatusChanged]', connectionId, conn);
+    // Any status change from the relay is proof the connection is live
+    wizardConnectService.recordActivity(connectionId)
     commit('updateConnection', {
       connectionId,
       data: serializeConnection(connectionId, conn)
@@ -95,6 +97,8 @@ export async function init ({ commit, dispatch, rootGetters }) {
 
   manager.off('pendingSignRequest');
   manager.on('pendingSignRequest', (pending) => {
+    // Incoming sign request is proof the relay is alive
+    wizardConnectService.recordActivity(pending.connectionId)
     dispatch('handleSignRequest', pending)
   })
 
@@ -124,6 +128,10 @@ export async function init ({ commit, dispatch, rootGetters }) {
   // Sync initial connection state
   const connections = serializeConnections(manager.getConnections())
   commit('setConnections', connections)
+
+  // Start keepalive watchdog — detects zombie TCP connections and reconnects
+  wizardConnectService.startKeepalive()
+
   return manager;
 }
 
@@ -171,18 +179,36 @@ export async function handleSignRequest ({ commit, state }, pending) {
   })
 }
 
-export async function approveRequestWithData ({ commit }, { connectionId, sequence, transactionJson }) {
+export async function approveRequestWithData ({ commit, state, dispatch }, { connectionId, sequence, transactionJson }) {
   commit('removePendingRequest', { connectionId, sequence })
+
+  // Sign first — failures here are reported back to the dapp
+  let signedTxHex
   try {
     const request = JSON.parse(transactionJson)
-    const signedTxHex = await wizardConnectService.signRequest(request)
-    await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
+    signedTxHex = await wizardConnectService.signRequest(request)
   } catch (err) {
-    console.error('WizardConnect: sign error:', err)
+    console.error('WizardConnect: signing failed:', err)
     try {
       await wizardConnectService.sendSignError(connectionId, sequence, err.message || 'Signing failed')
     } catch {
-      // Already disconnected
+      // Connection is already dead — keepalive will reconnect
+    }
+    return
+  }
+
+  // Send the signed transaction — a failure here means a dead connection, not a
+  // signing error. Force a reconnect so the dapp can re-send its request on the
+  // new session rather than hanging indefinitely.
+  try {
+    await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
+  } catch (err) {
+    console.error('WizardConnect: send failed (connection may be zombie), forcing reconnect:', err)
+    const connection = state.connections[connectionId]
+    const uri = connection?.uri
+    wizardConnectService.disconnect(connectionId)
+    if (uri) {
+      setTimeout(() => { wizardConnectService.connect(uri) }, 500)
     }
   }
 }
