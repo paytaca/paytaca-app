@@ -346,6 +346,7 @@ const router = useRouter()
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const isBroadcasting = ref(false)
+const broadcastSuccessDialogShown = ref(false)
 const pst = ref()
 const isFetchingStatus = ref(false)
 
@@ -635,6 +636,7 @@ const commitSignTransaction = async () => {
 }
 
 const showBroadcastSuccessDialog = async (txid) => {
+  broadcastSuccessDialogShown.value = true
   const message = pst.value.purpose ? `${pst.value.purpose} success` : 'Successfully Sent'
   $q.dialog({
     component: BroadcastSuccessDialog,
@@ -644,10 +646,10 @@ const showBroadcastSuccessDialog = async (txid) => {
       successMessage: message,
       darkMode: darkMode.value
     }
-  }).onOk(() => {
-    pst.value.delete({ sync: false })
+  }).onOk(async () => {
+    await pst.value.delete({ sync: false })
     router.push({ 
-      name: 'app-multisig-wallet-view', params: { wallethash: route.params.wallethash } 
+      name: 'app-multisig-wallet-view', params: { wallethash: wallet.value.getWalletHash() } 
     })
   })
 }
@@ -665,6 +667,7 @@ const broadcastTransaction = async () => {
       })
     }
     const result = await pst.value.broadcast()
+    
     if (result.data?.success ||
         result.data?.error?.includes('txn-already-known') ||
         result.data?.error?.includes('txn-already-in-mempool')) {
@@ -825,7 +828,7 @@ const loadProposal = async () => {
 }
 
 watch(() => pst.value?.status, async (newVal) => {
-  if (newVal && newVal?.txid && (newVal.status === STATUS.BROADCASTED || newVal.status === STATUS.MEMPOOL || newVal.status === STATUS.CONFIRMED)) {
+  if (!broadcastSuccessDialogShown.value && newVal && newVal?.txid && (newVal.status === STATUS.BROADCASTED || newVal.status === STATUS.MEMPOOL || newVal.status === STATUS.CONFIRMED)) {
     return showBroadcastSuccessDialog(newVal.txid)
   }
   if (newVal && newVal?.status === STATUS.CONFLICTED) {
@@ -866,7 +869,7 @@ const refreshPage = async (done) => {
 }
 
 const checkProposalStatus = async () => {
-if (!isFetchingStatus.value && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
+if ((!isFetchingStatus.value || !isBroadcasting.value) && (!pst.value.status || pst.value?.status?.status === STATUS.PENDING)) {
     isFetchingStatus.value = true
     try {
       if (pst.value.id) {
