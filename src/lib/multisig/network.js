@@ -117,23 +117,6 @@ export class WatchtowerNetworkProvider {
 
     }
 
-    async getWalletUtxos(address) {
-        throw new Error('Not yet implemented')
-    }
-
-    async getAddressBalance(address) {
-        const decodedCashAddress = decodeCashAddress(address)
-        return []
-    }
-
-    async getWalletHashBalance(multisigWalletHash) {
-        throw new Error('Not yet implemented')
-    }
-
-    async getWalletBalance(multisigWallet) {
-        throw new Error('Not yet implemented')
-    }
-
     /**
      * @returns {Promise<{ success: boolean, txid: string }>}
      */
