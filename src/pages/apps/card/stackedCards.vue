@@ -495,6 +495,7 @@ export default {
       // Create new card with 0 balance
       const newCard = {
         id: Date.now(),
+        name: this.newCardName.trim(),  // Add name property for display
         raw: { alias: this.newCardName.trim() },
         balance: '0.00', // New card has 0 BCH balance
         status: 'Active',
