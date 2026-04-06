@@ -79,14 +79,14 @@ export default {
           showMerchantName: true
         },
         ramp: {
-          icon: 'mdi-cash-plus',
+          icon: 'img:ramp_icon_white.png',
           bgClass: 'bg-primary',
           label: (data) => `Ref ID ${data.ref_id}`,
           redirect: 'transaction',
           showMerchantName: false
         },
         vm: {
-          icon: 'mdi-cash-register',
+          icon: 'mdi-cash-plus',
           bgClass: 'bg-secondary',
           label: (data) => `Ref ID ${data.ref_id}`,
           redirect: 'transaction',
