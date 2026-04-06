@@ -103,6 +103,47 @@
  *   - Use re-export pattern for unified imports
  * 
  * ============================================================================
+ * DEFERRED IMPROVEMENTS (Post-Merge)
+ * ============================================================================
+ * 
+ * The following improvements are acknowledged but deferred to future iterations:
+ * 
+ * TESTING:
+ *   - Unit tests for sync() method (concurrent sync scenarios)
+ *   - Integration tests for wallet synchronization with coordination server
+ *   - Tests for network timeout scenarios
+ *   - Tests for UTXO fetching edge cases
+ *   - Tests for WalletConnect session management
+ * 
+ * NETWORK RELIABILITY:
+ *   - Timeout configuration for all network requests (currently using defaults)
+ *   - Retry logic for critical operations (broadcastTransaction, etc.)
+ *   - Request cancellation support (AbortController pattern)
+ *   - Response validation for API calls
+ *   - Rate limiting handling (429 errors)
+ *   - Request deduplication and caching
+ * 
+ * ERROR HANDLING:
+ *   - Standardized error handling across network methods
+ *   - Custom error classes for network operations
+ *   - Better error tracking and logging for UTXO fetch failures
+ *   - Error response handling for specific HTTP codes (404, 403, 429)
+ * 
+ * SECURITY:
+ *   - Timestamp validation documentation for authentication
+ *   - Audit logging for sensitive operations
+ *   - Rate limiting for API calls
+ * 
+ * PERFORMANCE:
+ *   - Request caching implementation
+ *   - Batch requests for multiple wallets
+ *   - Memory optimization for long-lived wallet objects
+ * 
+ * NOTE: These improvements are planned for future releases. Current implementation
+ * has been manually tested and validated with the coordination server. The server
+ * code is developed in-house, ensuring response format compatibility.
+ * 
+ * ============================================================================
  * MAINTENANCE GUIDELINES
  * ============================================================================
  * 

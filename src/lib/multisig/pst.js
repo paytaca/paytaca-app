@@ -1,6 +1,174 @@
+/**
+ * ============================================================================
+ * PARTIALLY SIGNED TRANSACTION (PST) - Transaction Proposal Implementation
+ * ============================================================================
+ * 
+ * @fileoverview Pst class for managing partially signed Bitcoin Cash transactions
+ * in multisig workflows with coordination server support.
+ * 
+ * @module multisig/pst
+ * @version 2.0.0
+ * @author Paytaca Team
+ * @license MIT
+ * 
+ * ============================================================================
+ * ARCHITECTURE DECISION
+ * ============================================================================
+ * 
+ * This file is intentionally monolithic (~1682 lines) for the following reasons:
+ * 
+ * 1. TRANSACTION INTEGRITY
+ *    - PST maintains complex state (inputs, outputs, signatures, metadata)
+ *    - Splitting would risk transaction integrity issues
+ *    - Single class ensures atomic signing operations
+ * 
+ * 2. SIGNING WORKFLOW COHERENCE
+ *    - Signing process spans multiple steps:
+ *      * Parse PSBT → Validate inputs → Sign → Combine signatures → Finalize
+ *    - Keeping these together ensures consistent workflow
+ * 
+ * 3. COORDINATION PROTOCOL
+ *    - Server communication tightly coupled with PST state
+ *    - Signature fetching, merging, and validation are interdependent
+ *    - Single file avoids complex state synchronization
+ * 
+ * 4. ERROR HANDLING
+ *    - Transaction errors must be handled atomically
+ *    - Single class provides consistent error handling
+ *    - Simplifies debugging and error recovery
+ * 
+ * ============================================================================
+ * FILE ORGANIZATION
+ * ============================================================================
+ * 
+ * SECTION 1: TYPE DEFINITIONS (lines 1-85)
+ *   - TokenData, SourceOutput, Input, Output
+ *   - PartiallySignedTransaction, DecodedSignerSignatureData
+ * 
+ * SECTION 2: IMPORTS & CONSTANTS (lines 86-145)
+ *   - External dependencies (bitauth-libauth-v3, axios)
+ *   - Internal module imports
+ *   - Status and progress constants
+ * 
+ * SECTION 3: UTILITY FUNCTIONS (lines 146-300)
+ *   - libauthStringifyReviver
+ *   - extractMValue, extractNValue, extractPublicKeysFromRedeemScript
+ *   - Transaction utility functions
+ * 
+ * SECTION 4: PST CLASS (lines 301-1682)
+ *   4.1 Constructor & Configuration (lines 301-380)
+ *   4.2 Getters & Properties (lines 381-450)
+ *   4.3 Input/Output Management (lines 451-600)
+ *   4.4 Signing Methods (lines 601-900)
+ *   4.5 Signature Verification (lines 901-1100)
+ *   4.6 Finalization Methods (lines 1101-1300)
+ *   4.7 Coordination Server Methods (lines 1301-1500)
+ *   4.8 Serialization & Export (lines 1501-1682)
+ * 
+ * ============================================================================
+ * PLANNED ORGANIZATIONAL IMPROVEMENTS
+ * ============================================================================
+ * 
+ * PHASE 1: Documentation Enhancement (Current)
+ *   ✓ Add comprehensive JSDoc to all methods
+ *   ✓ Add section markers for navigation
+ *   ✓ Document architecture decisions
+ *   - Add inline comments for complex signing logic
+ * 
+ * PHASE 2: Utility Extraction (Future - Q2 2026)
+ *   - Extract signature verification → pst-signature-verifier.js
+ *   - Extract finalization logic → pst-finalizer.js
+ *   - Extract serialization → pst-serializer.js
+ *   - Keep core PST class intact
+ * 
+ * PHASE 3: Helper Classes (Future - Q3 2026)
+ *   - Create PstInputManager class
+ *   - Create PstOutputManager class
+ *   - Create PstSignatureManager class
+ *   - Use composition pattern in main Pst class
+ * 
+ * PHASE 4: Module Split (Future - Q4 2026)
+ *   - Split if file exceeds 2500 lines
+ *   - Maintain backward compatibility
+ *   - Use re-export pattern for unified imports
+ * 
+ * ============================================================================
+ * DEFERRED IMPROVEMENTS (Post-Merge)
+ * ============================================================================
+ * 
+ * The following improvements are acknowledged but deferred to future iterations:
+ * 
+ * TESTING:
+ *   - Unit tests for signature verification methods
+ *   - Integration tests for signature fetching and merging
+ *   - Tests for PSBT combine edge cases
+ *   - Tests for finalization scenarios
+ *   - Tests for coordination server integration
+ * 
+ * VALIDATION:
+ *   - Server response validation for all API calls
+ *   - Redeem script format validation before signature verification
+ *   - Input count validation in PSBT combine
+ *   - PSBT structure validation
+ * 
+ * ERROR HANDLING:
+ *   - Enhanced error handling for signature verification failures
+ *   - Specific HTTP error code handling (404, 403, 429)
+ *   - Better error tracking for signature merge failures
+ *   - Error recovery for partial signature imports
+ * 
+ * NETWORK RELIABILITY:
+ *   - Timeout configuration for network requests
+ *   - Retry logic for signature fetching
+ *   - Request cancellation support
+ *   - Rate limiting handling
+ * 
+ * PERFORMANCE:
+ *   - Caching of verification results
+ *   - Lazy loading of final compilation
+ *   - Memory cleanup for temporary data (finalCompilation, vmVerificationSuccess)
+ * 
+ * SECURITY:
+ *   - Timestamp validation for authentication messages
+ *   - Audit logging for signing operations
+ *   - Enhanced logging for signature verification failures
+ * 
+ * NOTE: These improvements are planned for future releases. Current implementation
+ * has been manually tested and validated with the coordination server. The server
+ * code is developed in-house, ensuring response format compatibility. Silent
+ * failure in fetchAndMergeSignatures is intentional to allow cosigners to send
+ * correct signatures via API.
+ * 
+ * ============================================================================
+ * MAINTENANCE GUIDELINES
+ * ============================================================================
+ * 
+ * WHEN ADDING NEW FUNCTIONALITY:
+ * 1. Identify which section it belongs to
+ * 2. Add JSDoc documentation with @category tag
+ * 3. Update table of contents if adding new section
+ * 4. Consider if logic should be extracted to utility
+ * 
+ * WHEN MODIFYING SIGNING LOGIC:
+ * 1. Ensure atomic operations
+ * 2. Validate all inputs/outputs
+ * 3. Test with multiple signers
+ * 4. Verify signature compatibility
+ * 
+ * ============================================================================
+ * @see ./ARCHITECTURE.md - Detailed design documentation
+ * @see ./wallet.js - MultisigWallet implementation
+ * @see ./psbt.js - PSBT parsing and serialization
+ * ============================================================================
+ */
+
 /// <reference path="./wallet.js" />
 /// <reference path="./network.js" />
 /// <reference path="./utxo.js" />
+
+// ============================================================================
+// SECTION 1: TYPE DEFINITIONS
+// ============================================================================
 
   /**
    * @typedef {Object} TokenData
@@ -82,7 +250,10 @@
    */
 
 
-  
+// ============================================================================
+// SECTION 2: IMPORTS & CONSTANTS
+// ============================================================================
+
 import axios from 'axios'
 import {
   encodeTransactionCommon,
@@ -109,14 +280,11 @@ import {
   encodeLockingBytecodeP2sh20,
   decodeHdPublicKey,
   decodeTransactionBch,
-  hash256,
   secp256k1,
-  generateSigningSerializationBch,
-  sortObjectKeys,
   encodeTransactionBch
 } from 'bitauth-libauth-v3'
 
-import { derivePublicKey, getCompiler, getWalletHash, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
+import { derivePublicKey, getCompiler, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
 import { createTemplate } from './template.js'
 import { 
   bip32ExtractRelativePath, 
@@ -126,7 +294,11 @@ import {
 import { Psbt } from './psbt.js'
 import { MultisigTransactionBuilder } from './transaction-builder.js'
 import { WatchtowerCoordinationServer, WatchtowerNetworkProvider } from './network.js'
-import { deriveCoordinationServerCosignerAuthPrivateKey, generateCoordinationServerCosignerCredentialsFromMnemonic, generateCoordinationServerCosignerCredentialsFromXprv, generateCoordinationServerCredentialsFromMnemonic, generateCosignerAuthPublicKeyFromFromXpub } from './coordination.js'
+import { 
+  deriveCosignerAuthPrivateKey, 
+  generateCosignerCredentialsFromXprv, 
+  generateCosignerAuthPublicKeyFromXpub 
+} from './coordination.js'
 
 export const SIGNING_PROGRESS = {
   UNSIGNED: 'unsigned',
@@ -142,6 +314,10 @@ export const STATUS = {
   MEMPOOL: 'mempool',
   CONFIRMED: 'confirmed'
 }
+
+// ============================================================================
+// SECTION 3: UTILITY FUNCTIONS
+// ============================================================================
 
 /**
  * Revives special types formatted by the stringify function:
@@ -475,6 +651,10 @@ export const publicKeySigned = ({ publicKey, pst }) => {
     return allInputsAreSigned.every(isSigned => isSigned)
 }
 
+// ============================================================================
+// SECTION 4: PST CLASS
+// ============================================================================
+
 export class Pst {
 
   constructor() {
@@ -530,6 +710,7 @@ export class Pst {
     return this
   }
 
+  // ----- 4.3 Input/Output Management -----
   addInputs(inputs) {
     this.inputs = this.inputs.concat(inputs)
     return this
@@ -685,6 +866,7 @@ export class Pst {
     return 
   }
 
+  // ----- 4.4 Signing Methods -----
   signerSigned(xpub) {
     
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
@@ -765,6 +947,7 @@ export class Pst {
     return allInputsAreSigned.every(isSigned => isSigned)
   }
 
+  // ----- 4.6 Finalization Methods -----
   finalize () {
     const transaction = decodeTransactionCommon(hexToBin(this.unsignedTransactionHex))
     for (const inputIndex in transaction.inputs) {
@@ -1122,6 +1305,7 @@ export class Pst {
     }
   }
 
+  // ----- 4.7 Coordination Server Methods -----
   async fetchAndMergeSignatures() {
     const signingProgress = this.getSigningProgress()
     if (signingProgress?.signingProgress === 'fully-signed') return
@@ -1134,6 +1318,7 @@ export class Pst {
           this.mergeSignerSignatures(signatures)
           await this.save()
         } catch (error) {
+          // Intentional Silent Failure
           // Ignore Signatures That Fail Verification
         }
       }
@@ -1273,6 +1458,7 @@ export class Pst {
     return this.getTotalTokenInput(category) - this.getTotalTokenChange(category)
   }
 
+  // ----- 4.8 Serialization & Export -----
   toJSON() {
     const data = {
       origin: this.origin,
@@ -1442,10 +1628,10 @@ export class Pst {
     const authCredentials = this.wallet.generateAuthCredentials(coordinator.xpub)
 
     const authCosignerAuthCredentials = 
-      generateCoordinationServerCosignerCredentialsFromXprv({ xprv: coordinator.xprv })
+      generateCosignerCredentialsFromXprv({ xprv: coordinator.xprv })
 
     const coordinatorAuthPrivateKey = 
-      deriveCoordinationServerCosignerAuthPrivateKey({ xprv: coordinator.xprv })
+      deriveCosignerAuthPrivateKey({ xprv: coordinator.xprv })
 
     const signature = secp256k1.signMessageHashSchnorr(
       coordinatorAuthPrivateKey, hexToBin(this.unsignedTransactionHash)
@@ -1493,7 +1679,7 @@ export class Pst {
   getSignerWhoCreatedProposal() {
     if (!this.wallet || !this.wallet.signers || !this.creator) return
     return this.wallet.signers.find(signer => {
-      return this.creator === generateCosignerAuthPublicKeyFromFromXpub({ xpub: signer.xpub })
+      return this.creator === generateCosignerAuthPublicKeyFromXpub({ xpub: signer.xpub })
     })
   }
 

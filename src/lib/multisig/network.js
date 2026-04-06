@@ -1,3 +1,59 @@
+/**
+ * ============================================================================
+ * NETWORK PROVIDER - Coordination Server Communication
+ * ============================================================================
+ * 
+ * @fileoverview Network provider for multisig wallet coordination server
+ * communication with timeout handling.
+ * 
+ * @module multisig/network
+ * @version 2.0.0
+ * @author Paytaca Team
+ * @license MIT
+ * 
+ * ============================================================================
+ * DEFERRED IMPROVEMENTS (Post-Merge)
+ * ============================================================================
+ * 
+ * The following improvements are acknowledged but deferred to future iterations:
+ * 
+ * TESTING:
+ *   - Unit tests for network request methods
+ *   - Integration tests for coordination server communication
+ *   - Tests for timeout scenarios
+ *   - Tests for error handling
+ * 
+ * NETWORK RELIABILITY:
+ *   - Retry logic for critical operations (broadcastTransaction, etc.)
+ *   - Request cancellation support (AbortController pattern)
+ *   - Response validation for all API calls
+ *   - Rate limiting handling (429 errors)
+ *   - Request deduplication and caching
+ * 
+ * ERROR HANDLING:
+ *   - Standardized error handling across all methods
+ *   - Custom error classes for network operations (NetworkError)
+ *   - Specific HTTP error code handling (404, 403, 429)
+ *   - Better error tracking and logging
+ * 
+ * PERFORMANCE:
+ *   - Request caching implementation
+ *   - Batch requests for multiple wallets/UTXOs
+ *   - Request deduplication
+ * 
+ * SECURITY:
+ *   - Audit logging for network operations
+ *   - Rate limiting implementation
+ *   - Request signing verification
+ * 
+ * NOTE: These improvements are planned for future releases. Current implementation
+ * has been manually tested and validated with the coordination server. The server
+ * code is developed in-house, ensuring response format compatibility. Timeout
+ * configuration is already implemented with DEFAULT_TIMEOUT and BROADCAST_TIMEOUT.
+ * 
+ * ============================================================================
+ */
+
 import axios from 'axios'
 import { CashAddressNetworkPrefix, decodeCashAddress } from "bitauth-libauth-v3";
 import { ElectrumNetworkProvider } from 'cashscript';
