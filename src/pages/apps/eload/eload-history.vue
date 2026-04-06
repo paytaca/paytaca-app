@@ -1,7 +1,5 @@
 <template>
-	<HeaderNav title="Eload Service" backnavpath="/apps/eload/form" class="header-nav"/>
-	
-	<div class="">	
+	<div class="">
 		<div class="row justify-between q-px-lg">
 			<div class="q-pt-md lg-font-size text-italic text-weight-bold q-py-sm" :class="darkMode ? '' : 'text-grey-8'">Orders</div>
 			<FilterBtn v-if="!initialLoading" :filters="filters" :services="services" @submit-data="filterOrder"/>	
@@ -16,7 +14,7 @@
  		<q-separator class="q-mx-lg"/>
 
 		<!-- Order List -->
-		<div v-if="!initialLoading" class="scroll q-mt-sm q-px-lg" style="height: 80vh;" :class="darkMode ? 'text-white' : 'text-black'">
+		<div v-if="!initialLoading" class="scroll q-mt-sm q-px-lg" style="height: 70vh;" :class="darkMode ? 'text-white' : 'text-black'">
 			<q-pull-to-refresh @refresh="refresh">
 				<div v-if="orders.length == 0" class="relative text-center" style="margin-top: 50px;">
 	        <div>
@@ -101,7 +99,6 @@
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { formatDate } from 'src/exchange'
-import HeaderNav from 'src/components/header-nav.vue'
 import FilterBtn from 'src/components/eload/FilterBtn.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
@@ -127,7 +124,6 @@ export default {
 		}
 	},
 	components: {
-		HeaderNav,
 		FilterBtn
 	},
 	computed: {

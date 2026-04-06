@@ -265,13 +265,13 @@ export default {
 
 <style>
 /* DESKTOP */
-.scanner-container {
+ .scanner-container {
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
   right: 0;
-  background: lightcoral;
+  background: var(--scanner-bg, lightcoral);
   z-index: 9999;
   display: flex;
 }
@@ -279,8 +279,9 @@ export default {
   position: absolute;
   top: 0;
   right: 0;
+  margin-top: max(15px, env(safe-area-inset-top, 15px));
   margin-right: 15px;
-  color: #ef4f84;
+  color: var(--scanner-primary, #ef4f84);
   z-index: 2022;
 }
 .scanner-error-dialog {

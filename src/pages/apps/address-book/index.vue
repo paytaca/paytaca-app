@@ -49,6 +49,14 @@
         </template>
       </div>
 
+      <!-- Selection mode banner -->
+      <div v-if="isSelectionMode" class="q-mb-md q-pa-sm bg-primary text-white rounded-borders">
+        <div class="row items-center justify-between">
+          <div class="text-subtitle2">{{ $t('SelectContactPrompt', {}, 'Select a contact') }}</div>
+          <q-btn flat dense icon="close" color="white" @click="cancelSelection" />
+        </div>
+      </div>
+
       <!-- lists container -->
       <div id="lists-container">
         <template v-if="isLoading">
@@ -71,12 +79,22 @@
         <template v-else>
           <!-- favorites list -->
           <div v-if="!isLoading && filteredFavoriteRecords.length > 0">
-            <record-list :list="filteredFavoriteRecords" />
+            <record-list 
+              :list="filteredFavoriteRecords" 
+              :is-selection-mode="isSelectionMode"
+              :loading-record-id="loadingRecordId"
+              @select-record="onRecordSelected"
+            />
           </div>
   
           <!-- contacts list -->
           <div v-if="!isLoading && filteredRecords.length > 0">
-            <record-list :list="filteredRecords" />
+            <record-list 
+              :list="filteredRecords" 
+              :is-selection-mode="isSelectionMode"
+              :loading-record-id="loadingRecordId"
+              @select-record="onRecordSelected"
+            />
           </div>
   
           <div
@@ -118,7 +136,7 @@
 import { decryptMemo } from 'src/utils/transaction-memos';
 import { ensureKeypair } from 'src/utils/memo-service';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getWalletAddressBook } from 'src/utils/address-book-utils';
+import { getWalletAddressBook, getRecord } from 'src/utils/address-book-utils';
 
 import HeaderNav from 'src/components/header-nav.vue'
 import RecordList from 'src/components/address-book/RecordList.vue'
@@ -133,12 +151,16 @@ export default {
 
   data () {
     return {
-     favoritesList: [],
-     // non-favorite contacts
-     recordsList: [],
+      favoritesList: [],
+      // non-favorite contacts
+      recordsList: [],
 
-     isLoading: false,
-     searchQuery: ''
+      isLoading: false,
+      searchQuery: '',
+      isSelectionMode: false,
+      backPath: null,
+      backQuery: null,
+      loadingRecordId: null // Track which record is being loaded
     }
   },
 
@@ -226,6 +248,79 @@ export default {
   methods: {
     getDarkModeClass,
     
+    cancelSelection() {
+      if (this.backPath) {
+        this.$router.push({ path: this.backPath, query: this.backQuery || {} })
+      } else {
+        this.$router.push('/apps')
+      }
+    },
+    
+    async onRecordSelected(record) {
+      if (!this.isSelectionMode) return
+      if (this.loadingRecordId) return // Prevent double-clicks while loading
+      
+      this.loadingRecordId = record.id
+      
+      try {
+        const recordData = await getRecord(record.id)
+        if (!recordData || !recordData.addresses || recordData.addresses.length === 0) {
+          this.$q.notify({
+            type: 'warning',
+            message: this.$t('NoAddressesFound'),
+            timeout: 2000,
+            position: 'top'
+          })
+          return
+        }
+        
+        // If only one address, select it directly
+        if (recordData.addresses.length === 1) {
+          this.selectAddressAndGoBack(recordData.addresses[0].address)
+          return
+        }
+        
+        // Show dialog to select from multiple addresses
+        this.$q.dialog({
+          title: this.$t('SelectAddress', {}, 'Select Address'),
+          message: `${this.$t('Contact')}: ${record.name}`,
+          options: {
+            type: 'radio',
+            model: null,
+            items: recordData.addresses.map(addr => ({
+              label: `${addr.address} (${addr.address_type?.toUpperCase() || 'BCH'})`,
+              value: addr.address
+            }))
+          },
+          persistent: true,
+          cancel: true,
+          class: `text-bow ${this.getDarkModeClass(this.darkMode)}`
+        }).onOk(address => {
+          if (address) {
+            this.selectAddressAndGoBack(address)
+          }
+        })
+      } catch (error) {
+        console.error('Error loading record details:', error)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('ErrorLoadingContact'),
+          timeout: 2000,
+          position: 'top'
+        })
+      } finally {
+        this.loadingRecordId = null
+      }
+    },
+    
+    selectAddressAndGoBack(address) {
+      if (this.backPath) {
+        const query = { ...(this.backQuery || {}) }
+        query.address = address
+        this.$router.push({ path: this.backPath, query })
+      }
+    },
+    
     isLetterEnabled(letter) {
       // Check if the letter has corresponding data
       return this.availableLetterGroups.includes(letter.toLowerCase())
@@ -256,6 +351,17 @@ export default {
 
   async mounted () {
     this.isLoading = true
+    
+    // Check if in selection mode from send page
+    if (this.$route.query.fromSendPage === 'true') {
+      this.isSelectionMode = true
+      this.backPath = this.$route.query.backPath || '/apps'
+      try {
+        this.backQuery = this.$route.query.backQuery ? JSON.parse(this.$route.query.backQuery) : {}
+      } catch (e) {
+        this.backQuery = {}
+      }
+    }
 
     const headerHeight = document.getElementById('header-nav').clientHeight
     const searchFilterEl = document.getElementById('search-filter-div')

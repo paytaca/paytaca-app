@@ -594,17 +594,7 @@ async function saveGiftQRImage () {
       })
     }
     
-    // Website text
-    const websiteText = document.createElement('div')
-    websiteText.style.cssText = `
-      font-size: 26px;
-      font-weight: 500;
-      color: #4a5568;
-      letter-spacing: 0.2px;
-    `
-    websiteText.textContent = 'www.paytaca.com'
     footer.appendChild(paytacaLogoContainer)
-    footer.appendChild(websiteText)
     contentContainer.appendChild(footer)
     
     wrapper.appendChild(contentContainer)

@@ -1,23 +1,14 @@
 import {
-  SigningSerializationFlag,
-  authenticationTemplateP2pkhNonHd,
-  authenticationTemplateToCompilerBCH,
   binToHex,
   decodePrivateKeyWif,
-  encodeTransaction,
-  generateSigningSerializationBCH,
-  generateTransaction,
-  hash256,
-  hexToBin,
-  importAuthenticationTemplate,
   lockingBytecodeToCashAddress,
   secp256k1,
-  sha256
-} from '@bitauth/libauth'
+} from 'bitauth-libauth-v3'
 import { Core } from '@walletconnect/core'
 import { WalletKit } from '@reown/walletkit'
 import { getSdkError } from '@walletconnect/utils'
-import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, unpackSourceOutput } from './tx-sign-utils'
+import { parseExtendedJson, privateKeyToCashAddress, signBchTxError, signBchTransaction as signBchTransactionShared } from '../bch-sign'
+import { unpackSourceOutput } from './tx-sign-utils'
 import BCHJS from '@psf/bch-js'
 
 const bchjs = new BCHJS()
@@ -317,12 +308,11 @@ export function parseSessionRequest(sessionRequest) {
 
     const populateOutputAddress = output => {
       if (output?.lockingBytecode) {
-        const parseResp = lockingBytecodeToCashAddress(
-          output?.lockingBytecode,
-          undefined,
-          { tokenSupport: Boolean(output?.token) },
-        )
-        if (typeof parseResp === 'string') output.address = parseResp
+        const parseResp = lockingBytecodeToCashAddress({
+          bytecode: output?.lockingBytecode,
+          tokenSupport: Boolean(output?.token),
+        })
+        if (typeof parseResp !== 'string') output.address = parseResp.address
       }
       return output
     }
@@ -349,76 +339,35 @@ export async function signMessage(message, wif='') {
 }
 
 export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif='') {
-  const template = importAuthenticationTemplate(authenticationTemplateP2pkhNonHd);
-  const compiler = authenticationTemplateToCompilerBCH(template);
-
   const decodedPrivkey = decodePrivateKeyWif(wif)
   if (typeof decodedPrivkey === 'string') {
     throw signBchTxError('Not enough information provided, please include contract redeemScript')
   }
 
-  const privateKey = decodedPrivkey.privateKey;
-  const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(decodedPrivkey.privateKey)
+  const privateKey = decodedPrivkey.privateKey
+  const pubkeyCompressed = secp256k1.derivePublicKeyCompressed(privateKey)
   if (typeof pubkeyCompressed === 'string') throw signBchTxError(pubkeyCompressed)
   const signingAddress = privateKeyToCashAddress(privateKey)
 
-  const txTemplate = {...transaction}
-  for (const index in txTemplate.inputs) {
-    const input = txTemplate.inputs[index]
-    const sourceOutput = input?.sourceOutput
-
+  function resolveKey(lockingBytecode, inputIndex) {
+    const sourceOutput = sourceOutputsUnpacked[inputIndex]
+    // CashScript contract inputs: always provide the WIF key
     if (sourceOutput?.contract?.artifact?.contractName) {
-      let unlockingBytecodeHex = binToHex(sourceOutput?.unlockingBytecode);
-      const sigPlaceholder = "41" + binToHex(Uint8Array.from(Array(65)));
-      const pubkeyPlaceholder = "21" + binToHex(Uint8Array.from(Array(33)));
-      if (unlockingBytecodeHex.indexOf(sigPlaceholder) !== -1) {
-        // compute the signature argument
-        const hashType = SigningSerializationFlag.allOutputs | SigningSerializationFlag.utxos | SigningSerializationFlag.forkId;
-        const context = { inputIndex: index, sourceOutputs: sourceOutputsUnpacked, transaction: transaction };
-        const signingSerializationType = new Uint8Array([hashType]);
-
-        const coveredBytecode = sourceOutputsUnpacked[index].contract?.redeemScript;
-        if (!coveredBytecode) {
-          throw signBchTxError('Not enough information provided, please include contract redeemScript');
-        }
-        const sighashPreimage = generateSigningSerializationBCH(context, { coveredBytecode, signingSerializationType });
-        const sighash = hash256(sighashPreimage);
-        const signature = secp256k1.signMessageHashSchnorr(privateKey, sighash);
-        if (typeof signature === 'string') throw signBchTxError(signature);
-        const sig = Uint8Array.from([...signature, hashType]);
-
-        unlockingBytecodeHex = unlockingBytecodeHex.replace(sigPlaceholder, "41" + binToHex(sig));
-      }
-
-      if (unlockingBytecodeHex.indexOf(pubkeyPlaceholder) !== -1) {
-        unlockingBytecodeHex = unlockingBytecodeHex.replace(pubkeyPlaceholder, "21" + binToHex(pubkeyCompressed));
-      }
-
-      input.unlockingBytecode = hexToBin(unlockingBytecodeHex);
-    } else {
-      if (!sourceOutput?.unlockingBytecode?.length && lockingBytecodeToCashAddress(sourceOutput.lockingBytecode) === signingAddress) {
-        input.unlockingBytecode = {
-          compiler,
-          data: {
-            keys: { privateKeys: { key: privateKey } },
-          },
-          valueSatoshis: sourceOutput.valueSatoshis,
-          script: "unlock",
-          token: sourceOutput.token,
-        }
-      }
+      return { privateKey, publicKey: pubkeyCompressed }
     }
+    // P2PKH: only sign if address matches
+    const result = lockingBytecodeToCashAddress({ bytecode: lockingBytecode })
+    if (typeof result !== 'string' && result.address === signingAddress) {
+      return { privateKey, publicKey: pubkeyCompressed }
+    }
+    return null
   }
 
-  console.log(txTemplate)
-
-  const generated = generateTransaction(txTemplate);
-  if (!generated.success) {
-    throw signBchTxError(JSON.stringify(generated.errors, null, 2));
-  }
-  const encoded = encodeTransaction(generated.transaction);
-  const hash = binToHex(sha256.hash(sha256.hash(encoded)).reverse());
-  return { signedTransaction: binToHex(encoded), signedTransactionHash: hash }
+  return signBchTransactionShared({
+    transaction,
+    sourceOutputs: sourceOutputsUnpacked,
+    resolveKey,
+  })
 }
 
 export const sessionRequestsExample = [

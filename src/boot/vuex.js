@@ -7,6 +7,7 @@ import { getAllWalletNames } from 'src/utils/wallet-name-cache'
 import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
+import wizardconnectDefaultState from 'src/store/wizardconnect/state'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
@@ -96,6 +97,11 @@ export default boot(async (obj) => {
         }
       }
 
+      // Ensure wizardconnect module state is initialized
+      if (!parsedState.wizardconnect || typeof parsedState.wizardconnect !== 'object') {
+        parsedState.wizardconnect = wizardconnectDefaultState()
+      }
+
       store.replaceState(parsedState)
     }
 
@@ -134,7 +140,7 @@ export default boot(async (obj) => {
     loadCachedWalletNames(store)
     
     // Clean up null and deleted vault entries on startup
-    store.dispatch('global/cleanupNullAndDeletedWallets')
+    await store.dispatch('global/cleanupNullAndDeletedWallets')
     
     // Ensure current wallet index is valid (points to undeleted wallet)
     // This should run after wallets are recovered

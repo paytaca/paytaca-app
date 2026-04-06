@@ -237,7 +237,7 @@ export default defineComponent({
         historyData.value = await fetchPoolHistory(poolId.value)
 
         // Fetch token data if we have a token_id
-        if (historyData.value?.token_id && !tokenData.value) {
+        if (historyData.value?.token_id && tokenData.value?.token_id != historyData.value?.token_id) {
           const tokensResponse = await fetchTokensList({
             token_id: [historyData.value.token_id]
           })

@@ -2,13 +2,19 @@
   <q-dialog
     persistent
     seamless
-    ref="editRecordDialogRef"
+    ref="dialogRef"
     class="no-click-outside"
+    @hide="onDialogHide"
   >
     <q-card
       class="full-width text-bow edit-record-card"
       :class="getDarkModeClass(darkMode, 'pt-card-2')"
     >
+      <QrScanner
+        v-model="showQrScanner"
+        @decode="onScannerDecode"
+      />
+      <QRUploader ref="qr-upload" @detect-upload="onScannerDecode" />
       <q-card-section class="row justify-between items-center">
         <span class="text-h6 text-weight-bold col-10">{{ title }}</span>
         <q-btn
@@ -28,7 +34,12 @@
           <record-name-input-card v-model="recordName" />
         </div>
         <div v-else class="addresses-wrapper q-pa-sm">
-          <addresses-form-card v-model="addresses" />
+          <addresses-form-card
+            ref="addressesForm"
+            v-model="addresses"
+            @scan-qr="showQrScanner = true"
+            @upload-qr="onQRUploaderClick"
+          />
         </div>
       </div>
 
@@ -62,6 +73,7 @@
 </template>
 
 <script>
+import { useDialogPluginComponent } from 'quasar'
 import { Address } from 'watchtower-cash-js'
 import { encryptMemo } from 'src/utils/transaction-memos';
 import { ensureKeypair } from 'src/utils/memo-service';
@@ -74,6 +86,8 @@ import {
   deleteAddress
 } from 'src/utils/address-book-utils';
 
+import QrScanner from 'src/components/qr-scanner.vue'
+import QRUploader from 'src/components/QRUploader'
 import AddressesFormCard from './AddressesFormCard.vue';
 import RecordNameInputCard from './RecordNameInputCard.vue';
 
@@ -81,8 +95,24 @@ export default {
   name: 'EditRecordDialog',
 
   components: {
+    QrScanner,
+    QRUploader,
     RecordNameInputCard,
     AddressesFormCard
+  },
+
+  emits: [
+    ...useDialogPluginComponent.emits
+  ],
+
+  setup () {
+    const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
+    return {
+      dialogRef,
+      onDialogHide,
+      onDialogOK,
+      onDialogCancel
+    }
   },
 
   props: {
@@ -113,7 +143,8 @@ export default {
       recordName: '',
       addresses: [],
       originalAddresses: [],
-      isLoading: false
+      isLoading: false,
+      showQrScanner: false
     }
   },
 
@@ -133,6 +164,25 @@ export default {
 
   methods: {
     getDarkModeClass,
+
+    onScannerDecode (content) {
+      this.showQrScanner = false
+      this.$refs.addressesForm?.onAddressQrDecoded(content)
+    },
+
+    onQRUploaderClick () {
+      try {
+        this.$refs['qr-upload'].$refs['q-file'].pickFiles()
+      } catch (e) {
+        console.error('QR upload picker error:', e)
+        this.$q?.notify?.({
+          type: 'negative',
+          message: this.$t('FilePickerError'),
+          timeout: 2500,
+          position: 'top'
+        })
+      }
+    },
 
     cloneAddresses (addresses) {
       const source = Array.isArray(addresses) ? addresses : []
@@ -288,8 +338,7 @@ export default {
         if (this.isEditName) await this.updateRecordName()
         else await this.updateRecordAddresses()
 
-        this.$refs.editRecordDialogRef.$emit('ok')
-        this.$refs.editRecordDialogRef.hide()
+        this.onDialogOK()
       } catch (error) {
         console.error('An error occured while updating record: ', error)
         const fallback = this.isEditName

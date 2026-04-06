@@ -1,16 +1,6 @@
 <template>
-	<HeaderNav title="Eload Service" backnavpath="/apps" class="header-nav">
-		<template v-slot:top-right-menu>
-			<div class="q-mr-sm">
-				<q-btn flat round @click="$router.push({ name: 'eload-service-orders' })">
-					<q-icon name="receipt_long" size="30px"/>
-				</q-btn>					
-			</div>	        	
-	    </template>
-	</HeaderNav>
-
 	<div class="text-bow q-pb-md" :class="getDarkModeClass(darkMode)">
-		<div v-if="purchaseSuccess" class="q-px-md q-pt-md">
+		<div v-if="purchaseSuccess" ref="paymentSuccessMessage" class="q-px-md q-pt-md">
 			<q-card class="q-pa-lg br-15 text-center pt-card text-bow" :class="getDarkModeClass(darkMode)">
 				<q-icon name="task_alt" size="64px" class="text-positive" />
 				<div class="text-weight-bold text-h6 q-mt-sm" :class="darkMode ? 'text-white' : 'text-grey-9'">Payment sent</div>
@@ -173,7 +163,7 @@
 					<div
 						ref="categoryScrollContainer"
 						class="scroll-y q-pb-md"
-						:style="`max-height: ${minHeight - 275}px`"
+						:style="`max-height: ${minHeight - 325}px`"
 						@scroll="onCategoryScroll"
 					>
 						<div class="q-px-lg">
@@ -233,7 +223,7 @@
 				<div v-if="!loading">
 					<div  class="q-px-lg q-pt-md md-font-size text-italic" :class="darkMode ? 'text-white' : 'text-grey-8'">Select Promo</div>
 
-					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 300}px`" ref="scrollTarget">
+					<q-list class="scroll-y" @touchstart="preventPull" :style="`max-height: ${minHeight - 360}px`" ref="scrollTarget">
 						<q-card 
 							class="q-pa-md br-15 q-my-sm q-mx-lg bg-grad text-white" 
 							v-ripple 
@@ -264,7 +254,7 @@
 					<q-skeleton class="br-15 q-my-sm" type="text" width="120px"/>
 
 					<q-skeleton
-						v-for="i in 3"
+						v-for="i in 2"
 						:key="'svc-' + i"
 						animation="wave"
 						type="rect"
@@ -430,7 +420,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import PromoSearch from 'src/components/eload/PromoSearch.vue'
 import ServiceCard from 'src/components/eload/ServiceCard.vue'
 import PromoInfoCard from 'src/components/eload/PromoInfoCard.vue'
-import HeaderNav from 'src/components/header-nav.vue'
 import DragSlide from 'src/components/drag-slide.vue'
 import { cachedLoadWallet, Address } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -438,6 +427,7 @@ import * as sendPageUtils from 'src/utils/send-page-utils'
 import Pin from 'src/components/pin/index.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { Keyboard } from '@capacitor/keyboard'
 import CountrySelector from 'src/components/settings/CountrySelector.vue'
 
 // Note: service = purchaseType; service-group = serviceProviders
@@ -676,7 +666,6 @@ export default {
 		ServiceCard,
 		PromoInfoCard,
 		DragSlide,
-		HeaderNav,
 		Pin,
 		BiometricWarningAttempt,
 		CountrySelector
@@ -750,7 +739,7 @@ export default {
 				// Get Promos
 			}
 		}
-	},	
+	},
 	async mounted () {
 		const vm = this
 
@@ -766,7 +755,7 @@ export default {
 
 		if (result.success) {			
 			vm.services = result.data
-		}	
+		}
 
 		// Fetch Services
 		vm.loading = false
@@ -974,6 +963,17 @@ export default {
 			}
 
 			vm.buying = true
+
+			// Hide keyboard immediately when payment processing begins
+			try {
+				await Keyboard.hide()
+			} catch (e) {
+				// Fallback: blur any focused input
+				if (document.activeElement && document.activeElement.blur) {
+					document.activeElement.blur()
+				}
+			}
+
 			try {
 				// Ensure txn is prepared (creates server-side order if needed).
 				if (!vm.txnRecipientAddress) {
@@ -1044,6 +1044,14 @@ export default {
 
 				vm.purchaseTxid = sendResult?.txid || ''
 				vm.purchaseSuccess = true
+
+				// Scroll to the payment success message
+				vm.$nextTick(() => {
+					const successEl = vm.$refs.paymentSuccessMessage
+					if (successEl && successEl.scrollIntoView) {
+						successEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+					}
+				})
 			} catch (error) {
 				console.error('[Eload] Buy failed:', error)
 				const userMessage = error?.userMessage || 'Unable to complete purchase'
