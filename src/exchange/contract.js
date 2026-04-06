@@ -90,7 +90,7 @@ export class RampContract {
     let balance = 0
     let watchtowerErrored = false
     try {
-      const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
+      const response = await watchtower.BCH._api.get(`/balance/bch/${address}/`)
       balance = response?.data?.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)
