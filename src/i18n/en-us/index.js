@@ -133,6 +133,7 @@ export default {
   AppealableStatus: "Appealable Status",
   AppealableTime: "Appealable Time",
   Appealed: "Appealed",
+  AppealCountdownHelper: "If the other party is unresponsive, you can submit an appeal once the timer ends.",
   Applications: "Applications",
   ApproachingLimit: "Approaching limit",
   Approve: "Approve",
