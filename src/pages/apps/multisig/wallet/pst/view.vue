@@ -896,6 +896,7 @@ onMounted(async () => {
   await loadProposal()
   await checkProposalStatus()
   registerInterval(async () => {
+    if (broadcastSuccessDialogShown.value) return
     if (pst.value?.id && signingProgress.value?.signingProgress !== 'fully-signed') {
       pst.value.fetchAndMergeSignatures() 
     }
