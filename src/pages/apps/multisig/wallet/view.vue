@@ -765,7 +765,6 @@ const onUpdateTransactionFile = (file) => {
 
 const queryServerForProposals = async () => {
   if ((!proposals.value || proposals.value?.length === 0) && wallet.value?.id) {
-    proposalsFromServer.value = await wallet.value?.fetchProposals()
     registerInterval(() => {
       if (proposals.value?.length > 0 || proposalsFromServer.value?.length > 0) {
         removeInterval()
