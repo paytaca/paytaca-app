@@ -171,6 +171,14 @@ export async function fetchMerchantTransactionsData (data) {
   return await postFetchData('userreward/get_ur_merchant_transactions/', data)
 }
 
+export async function fetchCashinTransactionsData (data) {
+  return await postFetchData('userreward/get_ur_cashin_transactions/', data)
+}
+
+export async function fetchEloadTransactionsData (data) {
+  return await postFetchData('userreward/get_ur_eload_transactions/', data)
+}
+
 export async function getPromoRedeemHistory (promo, data) {
   const promoUrl = {
     'ur': 'userreward/get_ur_redeem_history/',

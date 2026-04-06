@@ -431,7 +431,7 @@
                 <div class="row items-center cursor-pointer hover-highlight" @click="openEloadHistory">
                   <q-icon name="card_membership" size="24px" class="q-mr-sm bg-primary q-pa-sm" style="border-radius: 50%;" />
                   <div class="col">
-                    <span class="text-body2 text-weight-medium">{{ $t('Eload', 'E-Load') }}</span>
+                    <span class="text-body2 text-weight-medium">{{ $t('Eload', 'Eload') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{ continuousPoints.eload.points }} {{ continuousPoints.eload.points === 1 ? 'point' : 'points' }} earned
                     </div>
