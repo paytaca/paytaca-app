@@ -1,7 +1,7 @@
 <template>
   <div class="filter-container">
     <!-- Tab Filter - Only show if there are multiple tabs -->
-    <div v-if="tabs && tabs.length > 1" class="tabs-wrapper">
+    <div v-if="tabs && tabs.length > 1" class="q-mb-sm tabs-wrapper">
       <div 
         class="filter-tabs" 
         :class="getDarkModeClass(darkMode)"
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Sort Control -->
-    <div class="row items-center justify-between q-mt-sm">
+    <div class="row items-center justify-between">
       <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
         {{ $t('Showing') }} {{ displayCount }} {{ $t(displayCount === 1 ? 'transaction' : 'transactions') }}
       </div>

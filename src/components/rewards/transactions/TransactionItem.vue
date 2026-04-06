@@ -14,7 +14,7 @@
     <q-item-section>
       <q-item-label clickable @click="redirect" class="row items-center">
         <span class="text-weight-medium">{{ labelText }}</span>
-        <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
+        <q-icon v-if="data.ref_id" name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
       </q-item-label>
       <q-item-label caption v-if="showMerchantName">
         <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -88,7 +88,7 @@ export default {
         vm: {
           icon: 'mdi-cash-plus',
           bgClass: 'bg-secondary',
-          label: (data) => `Ref ID ${data.ref_id}`,
+          label: (data) => data.ref_id ? `Ref ID ${data.ref_id}` : 'Vending Machine Cash-in',
           redirect: 'transaction',
           showMerchantName: false
         },
@@ -100,7 +100,7 @@ export default {
           showMerchantName: false
         }
       }
-      return configs[this.data.type] || configs.otc
+      return configs[this.data.type] || configs.eload
     },
     
     labelText() {
@@ -119,8 +119,10 @@ export default {
     redirect() {
       if (this.typeConfig.redirect === 'order') {
         this.redirectToOrder()
-      } else {
+      } else if (this.data.ref_id) {
         this.redirectToTransaction()
+      } else {
+        return
       }
     },
     

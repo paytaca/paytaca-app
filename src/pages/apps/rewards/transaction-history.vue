@@ -63,7 +63,7 @@
 
       <template v-else>
         <!-- Sticky Filters Section - Only show if has filters -->
-        <div v-if="hasFilters" class="pt-header sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
+        <div class="pt-header sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
           <transaction-filters
             v-model="activeTab"
             :tabs="filterTabs"
@@ -223,10 +223,6 @@ export default {
     
     pageTitle() {
       return this.currentConfig.title
-    },
-    
-    hasFilters() {
-      return this.currentConfig.filters.length > 1
     },
     
     filterTabs() {
