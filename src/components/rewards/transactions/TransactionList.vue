@@ -31,10 +31,10 @@
     >
       <q-icon name="history" size="48px" class="q-mb-md" />
       <div class="text-subtitle1 q-mb-sm">
-        {{ $t('NoTransactions', 'No transactions found') }}
+        {{ emptyState.title }}
       </div>
       <div class="text-body2">
-        {{ $t('NoTransactionsDesc', 'Start making orders or OTC trades to earn points!') }}
+        {{ emptyState.description }}
       </div>
     </q-card>
     
@@ -97,6 +97,13 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
+    },
+    emptyState: {
+      type: Object,
+      default: () => ({
+        title: 'No transactions found',
+        description: 'Start making transactions to earn points!'
+      })
     }
   },
   

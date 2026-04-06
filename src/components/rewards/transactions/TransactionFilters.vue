@@ -1,46 +1,24 @@
 <template>
   <div class="filter-container">
-    <!-- Tab Filter -->
-    <div class="tabs-wrapper">
+    <!-- Tab Filter - Only show if there are multiple tabs -->
+    <div v-if="tabs && tabs.length > 1" class="tabs-wrapper">
       <div 
         class="filter-tabs" 
         :class="getDarkModeClass(darkMode)"
       >
         <button
+          v-for="tab in tabs"
+          :key="tab.value"
           class="filter-tab"
           :class="[
             darkMode ? 'dark' : '',
-            { 'active-theme-btn': localActiveTab === 'all' },
+            { 'active-theme-btn': localActiveTab === tab.value },
             `theme-${theme}`
           ]"
-          :style="localActiveTab === 'all' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="setTab('all')"
+          :style="localActiveTab === tab.value ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+          @click="setTab(tab.value)"
         >
-          {{ $t('All') }}
-        </button>
-        <button
-          class="filter-tab"
-          :class="[
-            darkMode ? 'dark' : '',
-            { 'active-theme-btn': localActiveTab === 'orders' },
-            `theme-${theme}`
-          ]"
-          :style="localActiveTab === 'orders' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="setTab('orders')"
-        >
-          {{ $t('Orders') }}
-        </button>
-        <button
-          class="filter-tab"
-          :class="[
-            darkMode ? 'dark' : '',
-            { 'active-theme-btn': localActiveTab === 'otc' },
-            `theme-${theme}`
-          ]"
-          :style="localActiveTab === 'otc' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-          @click="setTab('otc')"
-        >
-          {{ $t('OTC') }}
+          {{ $t(tab.label, tab.label) }}
         </button>
       </div>
     </div>
@@ -86,6 +64,10 @@ export default {
     sortDesc: {
       type: Boolean,
       default: true
+    },
+    tabs: {
+      type: Array,
+      default: () => []
     }
   },
   

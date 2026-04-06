@@ -6,7 +6,7 @@
     />
 
     <h5 class="q-ma-none q-px-md text-primary text-weight-bold text-center">
-      Merchant Transactions History
+      {{ pageTitle }}
     </h5>
 
     <div class="q-px-md q-pt-md">
@@ -19,7 +19,7 @@
         <q-card-section>
           <template v-if="isLoading">
             <div class="row justify-around">
-              <div class="text-center" v-for="n in 3" :key="`stat-skeleton-${n}`">
+              <div class="text-center" v-for="n in currentConfig.stats.length" :key="`stat-skeleton-${n}`">
                 <q-skeleton type="text" width="60px" class="q-mx-auto" />
                 <q-skeleton type="text" width="40px" class="q-mx-auto" />
               </div>
@@ -28,22 +28,10 @@
           
           <template v-else>
             <div class="row justify-around">
-              <div class="text-center">
-                <div class="text-h6 text-bold text-primary">{{ summaryStats.total_transactions }}</div>
+              <div class="text-center" v-for="stat in currentConfig.stats" :key="stat.key">
+                <div class="text-h6 text-bold text-primary">{{ summaryStats[stat.count] }}</div>
                 <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ $t('Total', 'Total') }}
-                </div>
-              </div>
-              <div class="text-center">
-                <div class="text-h6 text-bold text-primary">{{ summaryStats.order_count }}</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ $t('Orders', 'Orders') }}
-                </div>
-              </div>
-              <div class="text-center">
-                <div class="text-h6 text-bold text-primary">{{ summaryStats.otc_count }}</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ $t('OTC', 'OTC') }}
+                  {{ $t(stat.label, stat.label) }}
                 </div>
               </div>
             </div>
@@ -70,10 +58,11 @@
       />
 
       <template v-else>
-        <!-- Sticky Filters Section -->
-        <div class="pt-header sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
+        <!-- Sticky Filters Section - Only show if has filters -->
+        <div v-if="hasFilters" class="pt-header sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
           <transaction-filters
             v-model="activeTab"
+            :tabs="filterTabs"
             :display-count="filteredTransactions.length"
             :dark-mode="darkMode"
             v-model:sort-desc="sortDesc"
@@ -88,6 +77,7 @@
           :loading="isLoading"
           :has-more="hasMoreData"
           :dark-mode="darkMode"
+          :empty-state="currentConfig.emptyState"
           @refresh="refreshData"
           @load-more="loadMore"
         >
@@ -105,16 +95,20 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { fetchMerchantTransactionsData } from 'src/utils/engagementhub-utils/rewards'
+import { 
+  fetchMerchantTransactionsData,
+  fetchCashinTransactionsData,
+  fetchEloadTransactionsData
+} from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
-import TransactionList from 'src/components/rewards/marketplace/TransactionList.vue'
-import TransactionFilters from 'src/components/rewards/marketplace/TransactionFilters.vue'
-import TransactionItem from 'src/components/rewards/marketplace/TransactionItem.vue'
+import TransactionList from 'src/components/rewards/transactions/TransactionList.vue'
+import TransactionFilters from 'src/components/rewards/transactions/TransactionFilters.vue'
+import TransactionItem from 'src/components/rewards/transactions/TransactionItem.vue'
 
 export default {
-  name: 'MarketplaceHistory',
+  name: 'TransactionHistory',
 
   components: {
     HeaderNav,
@@ -140,23 +134,99 @@ export default {
       allTransactions: [],
       filteredTransactions: [],
       summaryStats: {
-        total_transactions: 0,
-        total_points: 0,
-        order_count: 0,
-        order_points: 0,
-        otc_count: 0,
-        otc_points: 0
+        total_count: 0,
+        total_points: 0
       },
       
       limit: 20,
       offset: 0,
-      hasMoreData: false
+      hasMoreData: false,
+
+      // Category-specific configurations
+      categoryConfig: {
+        marketplace: {
+          title: 'Merchant Transactions History',
+          fetchFunction: fetchMerchantTransactionsData,
+          filters: [
+            { value: 'all', label: 'All' },
+            { value: 'orders', label: 'Orders', type: 'order' },
+            { value: 'otc', label: 'OTC', type: 'otc' }
+          ],
+          stats: [
+            { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' },
+            { key: 'orders', count: 'order_count', points: 'order_points', label: 'Orders' },
+            { key: 'otc', count: 'otc_count', points: 'otc_points', label: 'OTC' }
+          ],
+          emptyState: {
+            title: 'No merchant transactions found',
+            description: 'Start making orders or over-the-counter purchases to earn points!'
+          },
+          errorMessage: 'Unable to load your merchant history. Please try again.'
+        },
+        cashin: {
+          title: 'Cash-in History',
+          fetchFunction: fetchCashinTransactionsData,
+          filters: [
+            { value: 'all', label: 'All' },
+            { value: 'ramp', label: 'P2P Ramp', type: 'ramp' },
+            { value: 'vm', label: 'Vending Machine', type: 'vm' }
+          ],
+          stats: [
+            { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' },
+            { key: 'ramp', count: 'ramp_count', points: 'ramp_points', label: 'P2P Ramp' },
+            { key: 'vm', count: 'vm_count', points: 'vm_points', label: 'Vending Machine' }
+          ],
+          emptyState: {
+            title: 'No cash-in transactions found',
+            description: 'Cash in from the P2P Ramp app or through our vending machine to earn points!'
+          },
+          errorMessage: 'Unable to load your cash-in history. Please try again.'
+        },
+        eload: {
+          title: 'E-Load History',
+          fetchFunction: fetchEloadTransactionsData,
+          filters: [], // No filters for eload
+          stats: [
+            { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
+          ],
+          emptyState: {
+            title: 'No e-load transactions found',
+            description: 'Purchase eload services to earn points!'
+          },
+          errorMessage: 'Unable to load your eload history. Please try again.'
+        }
+      }
     }
   },
 
   computed: {
     darkMode() {
       return this.$store.getters['darkmode/getStatus']
+    },
+    
+    category() {
+      // Detect category from route name
+      const routeName = this.$route.name
+      if (routeName === 'app-rewards-merchant-history') return 'marketplace'
+      if (routeName === 'apps-rewards-cashin-history') return 'cashin'
+      if (routeName === 'apps-rewards-eload-history') return 'eload'
+      return 'marketplace' // Default fallback
+    },
+    
+    currentConfig() {
+      return this.categoryConfig[this.category]
+    },
+    
+    pageTitle() {
+      return this.currentConfig.title
+    },
+    
+    hasFilters() {
+      return this.currentConfig.filters.length > 1
+    },
+    
+    filterTabs() {
+      return this.currentConfig.filters
     }
   },
 
@@ -179,7 +249,7 @@ export default {
       this.urId = Number(this.$route.params.id || -1)
       
       try {
-        const data = await fetchMerchantTransactionsData({
+        const data = await this.currentConfig.fetchFunction({
           ur_id: this.urId,
           limit: this.limit,
           offset: this.offset
@@ -187,22 +257,30 @@ export default {
         
         if (data) {
           this.allTransactions = data.overall_data
-          this.summaryStats = {
-            total_transactions: data.overall_count,
-            total_points: data.overall_points,
-            order_count: data.order_count,
-            order_points: data.order_points,
-            otc_count: data.otc_count,
-            otc_points: data.otc_points
+          
+          // Build summary stats dynamically based on category config
+          const stats = {
+            total_count: data.total_count || data.overall_count || 0,
+            total_points: data.total_points || data.overall_points || 0
           }
+          
+          // Add type-specific stats based on config
+          this.currentConfig.stats.forEach(stat => {
+            if (stat.key !== 'total') {
+              stats[stat.count] = data[stat.count] || 0
+              stats[stat.points] = data[stat.points] || 0
+            }
+          })
+          
+          this.summaryStats = stats
           this.applyFilters()
           this.hasMoreData = this.allTransactions.length >= this.limit
         } else {
-          this.dataError = this.$t('FailedToLoadData', 'Unable to load your merchant history. Please try again.')
+          this.dataError = this.$t('FailedToLoadData', this.currentConfig.errorMessage)
         }
       } catch (error) {
-        console.error('Error loading merchant history:', error)
-        this.dataError = this.$t('FailedToLoadData', 'Unable to load your merchant history. Please try again.')
+        console.error(`Error loading ${this.category} history:`, error)
+        this.dataError = this.$t('FailedToLoadData', this.currentConfig.errorMessage)
       }
       
       this.isLoading = false
@@ -221,10 +299,16 @@ export default {
       
       this.filteredTransactions = filtered
     },
+    
     filterTransactionsByType(transactions, type) {
       if (type === 'all') return transactions
-      if (type === 'orders') return transactions.filter(t => t.type === 'order')
-      if (type === 'otc') return transactions.filter(t => t.type === 'otc')
+      
+      // Find the filter config for this type
+      const filterConfig = this.currentConfig.filters.find(f => f.value === type)
+      if (filterConfig && filterConfig.type) {
+        return transactions.filter(t => t.type === filterConfig.type)
+      }
+      
       return transactions
     },
     
@@ -240,8 +324,7 @@ export default {
     
     async loadMore() {
       this.offset += this.limit
-      // PLACEHOLDER: Implement pagination loading when API supports it
-      this.hasMoreData = false
+      await this.loadData()
     }
   }
 }

@@ -323,7 +323,19 @@ const routes = [
           {
             path: 'merchant-history/:id',
             name: 'app-rewards-merchant-history',
-            component: () => import('src/pages/apps/rewards/merchant-history.vue'),
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
+            path: 'cashin-history/:id',
+            name: 'apps-rewards-cashin-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
+            path: 'eload-history/:id',
+            name: 'apps-rewards-eload-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
             props: true
           }
         ]

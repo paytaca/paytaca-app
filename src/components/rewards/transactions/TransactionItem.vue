@@ -2,11 +2,11 @@
   <q-item class="transaction-item">
     <q-item-section avatar>
       <q-icon
-        :name="iconName"
+        :name="typeConfig.icon"
         size="24px"
         color="white"
         class="q-pa-sm"
-        :class="iconBgClass"
+        :class="typeConfig.bgClass"
         style="border-radius: 50%;"
       />
     </q-item-section>
@@ -16,7 +16,7 @@
         <span class="text-weight-medium">{{ labelText }}</span>
         <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
       </q-item-label>
-      <q-item-label caption>
+      <q-item-label caption v-if="showMerchantName">
         <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
           {{ data.merchant_name }}
         </span>
@@ -62,27 +62,53 @@ export default {
   },
   
   computed: {
-    isOrder() {
-      return this.data.type === 'order'
-    },
-    
-    isOTC() {
-      return this.data.type === 'otc'
-    },
-    
-    iconName() {
-      return this.isOrder ? 'shopping_cart' : 'store'
-    },
-    
-    iconBgClass() {
-      return this.isOrder ? 'bg-primary' : 'bg-secondary'
+    typeConfig() {
+      const configs = {
+        order: {
+          icon: 'shopping_cart',
+          bgClass: 'bg-primary',
+          label: (data) => `Order #${data.order_id}`,
+          redirect: 'order',
+          showMerchantName: true
+        },
+        otc: {
+          icon: 'store',
+          bgClass: 'bg-secondary',
+          label: (data) => `Ref ID ${data.ref_id}`,
+          redirect: 'transaction',
+          showMerchantName: true
+        },
+        ramp: {
+          icon: 'mdi-cash-plus',
+          bgClass: 'bg-primary',
+          label: (data) => `Ref ID ${data.ref_id}`,
+          redirect: 'transaction',
+          showMerchantName: false
+        },
+        vm: {
+          icon: 'mdi-cash-register',
+          bgClass: 'bg-secondary',
+          label: (data) => `Ref ID ${data.ref_id}`,
+          redirect: 'transaction',
+          showMerchantName: false
+        },
+        eload: {
+          icon: 'card_membership',
+          bgClass: 'bg-primary',
+          label: (data) => `Ref ID ${data.ref_id}`,
+          redirect: 'transaction',
+          showMerchantName: false
+        }
+      }
+      return configs[this.data.type] || configs.otc
     },
     
     labelText() {
-      if (this.isOrder) {
-        return `Order #${this.data.order_id}`
-      }
-      return `Ref ID ${this.data.ref_id}`
+      return this.typeConfig.label(this.data)
+    },
+    
+    showMerchantName() {
+      return this.typeConfig.showMerchantName && this.data.merchant_name
     }
   },
   
@@ -91,7 +117,7 @@ export default {
     formatDateLocaleRelative,
     
     redirect() {
-      if (this.isOrder) {
+      if (this.typeConfig.redirect === 'order') {
         this.redirectToOrder()
       } else {
         this.redirectToTransaction()
@@ -110,7 +136,7 @@ export default {
         this.$router.push({
           name: 'transaction-detail',
           params: { txid: this.data.tx_id },
-          query: { from: 'app-rewards-merchant-history' },
+          query: { from: 'app-rewards-transaction-history' }
         })
       }
     }
