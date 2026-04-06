@@ -113,6 +113,7 @@ export default {
   AppInfo: "Info Aplikasi",
   Appeal: "Banding",
   AppealCooldownHint: "Masa tunggu sebelum pihak lawan dapat mengajukan banding sengketa",
+  AppealCountdownHelper: "Jika pihak lain tidak merespons, Anda dapat mengajukan banding setelah timer berakhir.",
   AppealForm: "Formulir Banding",
   AppealFormAgreement1: "Dana BCH disimpan oleh kontrak pintar escrow hingga dipastikan bahwa semua persyaratan perjanjian antara pembeli dan penjual telah dipenuhi.",
   AppealFormAgreement2: "Mengajukan banding akan menimbulkan perselisihan mengenai dana yang memerlukan intervensi Arbiter yang ditugaskan pada kontrak pintar.",

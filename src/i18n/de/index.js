@@ -113,6 +113,7 @@ export default {
   AppInfo: "App-Info",
   Appeal: "Berufung",
   AppealCooldownHint: "Die Wartezeit, bevor Gegenparteien Einspruch einlegen können",
+  AppealCountdownHelper: "Wenn die andere Partei nicht reagiert, können Sie nach Ablauf des Timers Einspruch einlegen.",
   AppealForm: "Einspruchsformular",
   AppealFormAgreement1: "Die BCH-Gelder werden durch einen Treuhand-Smart-Vertrag verwaltet, bis bestätigt ist, dass alle Bedingungen der Vereinbarung zwischen Käufer und Verkäufer erfüllt wurden.",
   AppealFormAgreement2: "Das Einreichen einer Berufung führt zu Streitigkeiten über die Gelder, die das Eingreifen des dem Smart Contract zugewiesenen Schiedsrichters erfordern.",

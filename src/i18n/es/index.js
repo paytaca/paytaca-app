@@ -113,6 +113,7 @@ export default {
   AppInfo: "Información de la aplicación",
   Appeal: "Apelación",
   AppealCooldownHint: "El período de espera antes de que las contrapartes puedan presentar apelaciones por disputas",
+  AppealCountdownHelper: "Si la otra parte no responde, puede presentar una apelación una vez que termine el temporizador.",
   AppealForm: "Formulario de apelación",
   AppealFormAgreement1: "Los fondos en BCH se retienen en un contrato inteligente de garantía hasta que se confirma que se han cumplido todos los términos del acuerdo entre el comprador y el vendedor.",
   AppealFormAgreement2: "Presentar una apelación abrirá una disputa sobre los fondos, la cual requiere de la intervención del árbitro asignado al contrato inteligente.",

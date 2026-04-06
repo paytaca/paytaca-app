@@ -113,6 +113,7 @@ export default {
   AppInfo: "Impormasyon ng App",
   Appeal: "apela",
   AppealCooldownHint: "Ang panahon ng paghihintay bago ang mga katapat ay maaaring magsumite ng mga apela sa hindi pagkakaunawaan",
+  AppealCountdownHelper: "Kung ang kabilang partido ay hindi tumutugon, maaari kang magsumite ng apela kapag natapos ang timer.",
   AppealForm: "Form ng Apela",
   AppealFormAgreement1: "Ang mga pondo ng BCH ay hawak ng isang escrow smart contract hanggang sa makumpirma na ang lahat ng mga tuntunin ng kasunduan sa pagitan ng bumibili at nagbebenta ay natugunan.",
   AppealFormAgreement2: "Ang pagsusumite ng apela ay magpapalaki ng hindi pagkakaunawaan sa mga pondo na nangangailangan ng interbensyon ng nakatalagang Arbiter ng matalinong kontrata.",

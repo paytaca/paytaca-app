@@ -113,6 +113,7 @@ export default {
   AppInfo: "App inligting",
   Appeal: "Appèl",
   AppealCooldownHint: "Die wagtydperk voordat teenpartye dispuutappèlle kan indien",
+  AppealCountdownHelper: "As die ander party nie reageer nie, kan u 'n appèl indien sodra die tydrenteller afloop.",
   AppealForm: "Appèlvorm",
   AppealFormAgreement1: "Die BCH-fondse word deur 'n escrow-slimkontrak gehou totdat dit bevestig word dat al die bepalings van die ooreenkoms tussen die koper en verkoper nagekom is.",
   AppealFormAgreement2: "Die indiening van 'n appèl sal dispuut oor die fondse veroorsaak wat die ingryping van die slim kontrak se toegewysde Arbiter vereis.",

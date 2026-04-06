@@ -113,6 +113,7 @@ export default {
   AppInfo: "Bayanin App",
   Appeal: "Roko",
   AppealCooldownHint: "Lokacin jira kafin takwarorinsu na iya ƙaddamar da ƙarar gardama",
+  AppealCountdownHelper: "Idan ɗayan ba ya amsawa, zaku iya ƙaddamar da ƙara da zarar na'urar ƙididdiga ta ƙare.",
   AppealForm: "Form na roko",
   AppealFormAgreement1: "Ana riƙe kuɗin BCH ta hanyar escrow smart contract har sai an tabbatar da cewa an cika dukkan sharuɗɗan yarjejeniya tsakanin mai siye da mai siyarwa.",
   AppealFormAgreement2: "Ƙaddamar da ƙararrakin zai haifar da cece-kuce a kan kuɗin wanda ke buƙatar sa baki na mai yanke hukunci na kwangilar wayo.",

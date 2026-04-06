@@ -113,6 +113,7 @@ export default {
   AppInfo: "Informazioni sull'app",
   Appeal: "Appello",
   AppealCooldownHint: "Il periodo di attesa prima che le controparti possano presentare ricorsi contro le controversie",
+  AppealCountdownHelper: "Se l'altra parte non risponde, puoi presentare un ricorso una volta terminato il timer.",
   AppealForm: "Modulo di ricorso",
   AppealFormAgreement1: "I fondi BCH sono detenuti da un contratto intelligente di deposito a garanzia fino alla conferma che tutti i termini dell'accordo tra acquirente e venditore sono stati rispettati.",
   AppealFormAgreement2: "La presentazione di un ricorso solleverà una controversia sui fondi che richiede l'intervento dell'Arbitro assegnato allo smart contract.",

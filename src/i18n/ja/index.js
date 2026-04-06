@@ -113,6 +113,7 @@ export default {
   AppInfo: "アプリ情報",
   Appeal: "アピール",
   AppealCooldownHint: "相手方が紛争上訴を提出できるようになるまでの待機期間",
+  AppealCountdownHelper: "相手方が応答しない場合、タイマーが終了したら異議申し立てを提出できます。",
   AppealForm: "異議申し立てフォーム",
   AppealFormAgreement1: "BCH 資金は、買い手と売り手の間のすべての合意条件が満たされたことが確認されるまで、エスクロー スマート コントラクトによって保持されます。",
   AppealFormAgreement2: "異議申し立てを提出すると、スマートコントラクトに割り当てられたアービターの介入が必要となる資金に関する紛争が発生します。",

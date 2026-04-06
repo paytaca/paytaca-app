@@ -113,6 +113,7 @@ export default {
   AppInfo: "App-info",
   Appeal: "Beroep",
   AppealCooldownHint: "De wachttijd voordat tegenpartijen een geschilberoep kunnen indienen",
+  AppealCountdownHelper: "Als de andere partij niet reageert, kunt u na afloop van de timer een bezwaar indienen.",
   AppealForm: "Bezwaarformulier",
   AppealFormAgreement1: "De BCH-fondsen worden vastgehouden door een slim escrow-contract totdat wordt bevestigd dat aan alle voorwaarden van de overeenkomst tussen de koper en de verkoper is voldaan.",
   AppealFormAgreement2: "Als u een beroep indient, ontstaat er een geschil over de fondsen, waarvoor de tussenkomst van de toegewezen scheidsrechter van het slimme contract vereist is.",

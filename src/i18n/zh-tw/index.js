@@ -113,6 +113,7 @@ export default {
   AppInfo: "應用程序信息",
   Appeal: "上訴",
   AppealCooldownHint: "交易對手提交爭議上訴之前的等待期",
+  AppealCountdownHelper: "如果另一方無響應，計時器結束後您可以提交上訴。",
   AppealForm: "上訴表格",
   AppealFormAgreement1: "BCH 資金由託管智能合約持有，直到確認買方和賣方之間的所有協議條款均已得到滿足。",
   AppealFormAgreement2: "提交上訴將引發資金爭議，需要智能合約指定仲裁員的干預。",

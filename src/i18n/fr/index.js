@@ -113,6 +113,7 @@ export default {
   AppInfo: "Informations sur l'application",
   Appeal: "Appel",
   AppealCooldownHint: "Le délai d'attente avant que les contreparties puissent introduire des recours en cas de litige",
+  AppealCountdownHelper: "Si l'autre partie ne répond pas, vous pouvez déposer un appel une fois le minuteur terminé.",
   AppealForm: "Formulaire d'appel",
   AppealFormAgreement1: "Les fonds du BCH sont détenus par un contrat intelligent séquestre jusqu'à ce qu'il soit confirmé que toutes les conditions de l'accord entre l'acheteur et le vendeur ont été respectées.",
   AppealFormAgreement2: "La soumission d'un appel soulèvera un litige sur les fonds qui nécessitera l'intervention de l'arbitre désigné pour le contrat intelligent.",

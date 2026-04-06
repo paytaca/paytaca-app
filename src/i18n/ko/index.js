@@ -113,6 +113,7 @@ export default {
   AppInfo: "앱 정보",
   Appeal: "항소",
   AppealCooldownHint: "상대방이 분쟁 항소를 제출할 수 있을 때까지의 대기 기간",
+  AppealCountdownHelper: "상대방이 응답하지 않으면 타이머가 종료되면 항소를 제출할 수 있습니다.",
   AppealForm: "항소 양식",
   AppealFormAgreement1: "BCH 자금은 구매자와 판매자 간의 모든 계약 조건이 충족되었다는 것이 확인될 때까지 에스크로 스마트 계약에 의해 보관됩니다.",
   AppealFormAgreement2: "항소를 제출하면 스마트 계약에 할당된 중재자의 개입이 필요한 자금에 대한 분쟁이 발생합니다.",
