@@ -6,10 +6,17 @@
       
       <!-- Contract Information Section -->
       <div class="section-wrapper">
-        <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
-          {{ $t('ContractInformation', {}, 'Contract Information') }}
-        </p>
-        <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+        <div class="section-header" @click="toggleContractInfo">
+          <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+            {{ $t('ContractInformation', {}, 'Contract Information') }}
+          </p>
+          <q-icon 
+            :name="showContractInfo ? 'expand_less' : 'expand_more'" 
+            size="sm" 
+            color="blue-grey-6"
+            class="q-mr-sm" />
+        </div>
+        <q-list v-show="showContractInfo" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
           <!-- Arbiter -->
           <q-item>
             <q-item-section>
@@ -105,7 +112,8 @@ export default {
       autoRetryCount: 0,
       maxAutoRetries: 3,
       autoRetryDelay: 2000,
-      autoRetrying: false
+      autoRetrying: false,
+      showContractInfo: false
     }
   },
   emits: ['back', 'success', 'verifying'],
@@ -148,6 +156,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    toggleContractInfo () {
+      this.showContractInfo = !this.showContractInfo
+    },
     async loadTransactionId () {
       if (!this.transactionId) {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
@@ -421,6 +432,26 @@ export default {
   }
   &.light {
     color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Section Header (clickable to toggle contract info)
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 0 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  &.dark:hover {
+    background-color: rgba(255, 255, 255, 0.08);
   }
 }
 
