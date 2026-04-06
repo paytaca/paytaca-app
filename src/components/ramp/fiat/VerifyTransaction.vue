@@ -45,11 +45,12 @@
         @click="copyToClipboard(transactionId)"
         class="q-mb-md">
       </q-input>
-      <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
-        <q-icon name="error" size="1.2em" class="q-pr-xs"/>
-        <q-spinner v-if="autoRetrying" size="1.2em" class="q-ml-xs"/>
-        <span v-if="autoRetrying" class="q-ml-xs text-italic">{{ $t('RetryingXofY', { current: autoRetryCount, total: maxAutoRetries }, `Retrying ${autoRetryCount}/${maxAutoRetries}...`) }}</span>
-        {{ errorMessage }}
+      <div v-if="autoRetrying" class="info-box q-mx-xs q-my-sm" :class="darkMode ? 'info-box-dark' : 'info-box-light'">
+        <q-spinner size="1.2em" class="q-pr-xs"/>
+        <span class="q-ml-xs text-italic">{{ $t('RetryingXofY', { current: autoRetryCount, total: maxAutoRetries }, `Retrying ${autoRetryCount}/${maxAutoRetries}...`) }}</span>
+      </div>
+      <div v-if="errorMessage && !autoRetrying" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+        <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
       </div>
       <div v-if="showRetryBtn" class="row q-mb-md">
         <q-btn
@@ -378,5 +379,19 @@ export default {
   background-color: #333; /* Dark mode background color */
   color: #fff; /* Text color for dark mode */
   border: 1px solid #fb672d; /* Border color */
+}
+.info-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.info-box-light {
+  background-color: #e3f2fd; /* Light blue background */
+  border: 1px solid #2196f3; /* Blue border */
+  color: #1976d2; /* Blue text */
+}
+.info-box-dark {
+  background-color: #1e3a5f; /* Dark blue background */
+  border: 1px solid #64b5f6; /* Light blue border */
+  color: #bbdefb; /* Light blue text */
 }
 </style>
