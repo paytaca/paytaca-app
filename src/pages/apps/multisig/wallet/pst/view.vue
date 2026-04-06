@@ -667,11 +667,10 @@ const broadcastTransaction = async () => {
       })
     }
     const result = await pst.value.broadcast()
-    
     if (result.data?.success ||
         result.data?.error?.includes('txn-already-known') ||
         result.data?.error?.includes('txn-already-in-mempool')) {
-      return await showBroadcastSuccessDialog(result.data.txid)
+      return await showBroadcastSuccessDialog(result.data.txid || pst.value.signedTransactionHash)
     }
     throw new Error(result?.data?.error) 
   } catch (error) {
