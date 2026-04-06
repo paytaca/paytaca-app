@@ -2366,6 +2366,8 @@ export default {
   UseWalletBalance: "Ma'aunin BCH daga walat ɗin ku za a yi amfani da shi don kuɗin ma'amala.",
   UsedFundingProposal: "An riga an yi amfani da shawarar bayar da kuɗi",
   UserRejected: "An ƙi mai amfani",
+  UsingOptimizedLiquidity: "Amfani da ingantaccen ruwa",
+  UsingOptimizedLiquidityTooltip: "Wasu wuraren tafkunan ruwa ba su da samuwa na ɗan lokaci saboda gazawar fasaha.Kasuwancin ku zai yi amfani da wuraren waha masu jituwa kawai.",
   UtxoScan: "UTXO Scan",
   UtxoScanDescription: "Bincika don fitar da ma'amala da ba a kashe ba don gyara matsalolin ma'auni",
   ValidFundingProposal: "Shawarar ba da kuɗi tana aiki",

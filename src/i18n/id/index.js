@@ -2366,6 +2366,8 @@ export default {
   UseWalletBalance: "Saldo BCH dari dompet Anda akan digunakan untuk biaya transaksi.",
   UsedFundingProposal: "Proposal pendanaan sudah digunakan",
   UserRejected: "Pengguna ditolak",
+  UsingOptimizedLiquidity: "Menggunakan likuiditas yang dioptimalkan",
+  UsingOptimizedLiquidityTooltip: "Beberapa kumpulan likuiditas untuk sementara tidak tersedia karena keterbatasan teknis.Perdagangan Anda hanya akan menggunakan kumpulan yang kompatibel.",
   UtxoScan: "Pemindaian UTXO",
   UtxoScanDescription: "Pindai keluaran transaksi yang belum terpakai untuk memperbaiki masalah saldo",
   ValidFundingProposal: "Proposal pendanaan valid",

@@ -2366,6 +2366,8 @@ export default {
   UseWalletBalance: "Le solde BCH de votre portefeuille sera utilisé pour les frais de transaction.",
   UsedFundingProposal: "La proposition de financement est déjà utilisée",
   UserRejected: "Utilisateur rejeté",
+  UsingOptimizedLiquidity: "Utiliser des liquidités optimisées",
+  UsingOptimizedLiquidityTooltip: "Certains pools de liquidité sont temporairement indisponibles en raison de limitations techniques.Votre échange utilisera uniquement des pools compatibles.",
   UtxoScan: "Analyse UTXO",
   UtxoScanDescription: "Rechercher les sorties de transactions non dépensées pour résoudre les problèmes de solde",
   ValidFundingProposal: "Proposition de financement valide",

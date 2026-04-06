@@ -169,7 +169,7 @@ async function saveToken(token) {
 /**
  * Clear stored OAuth token
  */
-async function clearToken() {
+export async function clearToken() {
 	try {
 		await SecureStoragePlugin.remove({ key: OAUTH_TOKEN_KEY })
 		console.log('[OAuth] Token cleared from secure storage')

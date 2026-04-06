@@ -2374,6 +2374,8 @@ export default {
   UseWalletBalance: "BCH balance from your wallet will be used for transaction fees.",
   UsedFundingProposal: "Funding proposal is already used",
   UserRejected: "User rejected",
+  UsingOptimizedLiquidity: "Using optimized liquidity",
+  UsingOptimizedLiquidityTooltip: "Some liquidity pools are temporarily unavailable due to technical limitations. Your trade will use compatible pools only.",
   UtxoScan: "UTXO Scan",
   UtxoScanDescription: "Scan for unspent transaction outputs to fix balance issues",
   ValidFundingProposal: "Funding proposal valid",
