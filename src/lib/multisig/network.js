@@ -210,10 +210,10 @@ export class WatchtowerCoordinationServer {
         this.network = config.network || WatchtowerNetwork.mainnet
         switch (this.network) {
             case WatchtowerNetwork.chipnet:
-                this.hostname = 'https://chipnet.watchtower.cash'
+                this.hostname = process.env.WATCHTOWER_CHIPNET || 'https://chipnet.watchtower.cash'
                 break
             case WatchtowerNetwork.mainnet:
-                this.hostname = 'https://watchtower.cash'    
+                this.hostname = process.env.WATCHTOWER_MAINNET || 'https://watchtower.cash'
                 break
         }
     }
