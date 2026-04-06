@@ -3,48 +3,62 @@
     class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-lg">
-      <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
-      <q-input
-        class="q-pb-xs md-font-size"
-        readonly
-        dense
-        filled
-        :dark="darkMode"
-        :label="data?.arbiter?.address"
-        v-model="data.arbiter.name">
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
-      <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
-        <template v-slot:append>
-          <div v-if="contract.address" @click="copyToClipboard(contract.address)">
-            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-          </div>
-        </template>
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
-      <q-input
-        class="q-pb-xs md-font-size"
-        readonly
-        dense
-        filled
-        :loading="!balanceLoaded || retryBalance(contract.balance)"
-        :dark="darkMode"
-        v-model="contract.balance">
-        <template v-slot:append>
-          <span>BCH</span>
-        </template>
-      </q-input>
-      <div class="sm-font-size q-pl-sm q-py-xs">{{ $t('TransactionId') }}</div>
-      <q-input
-        filled
-        dense
-        :readonly="txidLoaded && transactionId?.length > 0"
-        :dark="darkMode"
-        :loading="!txidLoaded && !transactionId"
-        v-model="transactionId"
-        @click="copyToClipboard(transactionId)"
-        class="q-mb-md">
-      </q-input>
+      
+      <!-- Contract Information Section -->
+      <div class="section-wrapper">
+        <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+          {{ $t('ContractInformation', {}, 'Contract Information') }}
+        </p>
+        <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+          <!-- Arbiter -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('Arbiter') }}</q-item-label>
+              <q-item-label class="payment-detail-text">{{ data?.arbiter?.name }}</q-item-label>
+              <q-item-label caption class="text-caption q-mt-xs text-grey">{{ data?.arbiter?.address }}</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <!-- Contract Address -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('ContractAddress') }}</q-item-label>
+              <q-item-label class="payment-detail-text ellipsis">{{ contract?.address }}</q-item-label>
+            </q-item-section>
+            <q-item-section side v-if="contract?.address">
+              <div class="row q-gutter-xs">
+                <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(contract?.address)"/>
+              </div>
+            </q-item-section>
+          </q-item>
+
+          <!-- Contract Balance -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
+              <q-item-label class="payment-detail-text">
+                <span v-if="balanceLoaded">{{ contract?.balance }} BCH</span>
+                <q-skeleton v-else type="text" width="100px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <!-- Transaction ID -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('TransactionId') }}</q-item-label>
+              <q-item-label class="payment-detail-text ellipsis">
+                <span v-if="txidLoaded && transactionId">{{ transactionId }}</span>
+                <q-skeleton v-else type="text" width="200px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side v-if="transactionId">
+              <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(transactionId)"/>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
       <div v-if="autoRetrying" class="info-box q-mx-xs q-my-sm" :class="darkMode ? 'info-box-dark' : 'info-box-light'">
         <q-spinner size="1.2em" class="q-pr-xs"/>
         <span class="q-ml-xs text-italic">{{ $t('RetryingXofY', { current: autoRetryCount, total: maxAutoRetries }, `Retrying ${autoRetryCount}/${maxAutoRetries}...`) }}</span>
@@ -393,5 +407,49 @@ export default {
   background-color: #1e3a5f; /* Dark blue background */
   border: 1px solid #64b5f6; /* Light blue border */
   color: #bbdefb; /* Light blue text */
+}
+
+// Section Title (matching PaymentConfirmation.vue)
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Card Styling (matching PaymentConfirmation.vue)
+.pt-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Payment Info List
+.payment-info-list {
+  .q-item {
+    padding: 16px 20px;
+    min-height: 60px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+  
+  &.dark .q-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.payment-detail-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 4px;
 }
 </style>
