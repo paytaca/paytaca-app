@@ -3,87 +3,117 @@
     class="escrow-transfer-container q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-sm q-px-md">
-      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-xs">Arbiter</div>
-      <q-select
-        class="q-mb-md"
-        :dark="darkMode"
-        filled
-        dense
-        v-model="selectedArbiter"
-        hide-bottom-space
-        :loading="arbiterOptions?.length > 0 && !selectedArbiter"
-        :label="selectedArbiter ? selectedArbiter.address : ''"
-        :options="arbiterOptions"
-        :disable="!contractAddress || sendingBch || !hasArbiters"
-        @update:model-value="selectArbiter"
-        behavior="dialog">
-          <template v-slot:option="scope">
-            <q-item v-bind="scope.itemProps">
-              <q-item-section>
-                <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
-                  {{ scope.opt.name }}
-                </q-item-label>
-              </q-item-section>
-            </q-item>
-          </template>
-          <template v-slot:selected v-if="selectedArbiter">
-            <span :style="darkMode ? 'color: white;' : 'color: black;'">
-              {{ selectedArbiter.name }}
-            </span>
-          </template>
-      </q-select>
-      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-sm">Contract Address</div>
-      <q-input
-        class="q-pb-md"
-        readonly
-        filled
-        dense
-        hide-bottom-space
-        bottom-slots
-        error-message="Contract address mismatch"
-        :error="contractAddress && escrowContract?.getAddress() && !contractAddressMatch"
-        :dark="darkMode"
-        :loading="hasArbiters && !contractAddress"
-        :disable="!hasArbiters"
-        v-model="contractAddress">
-        <template v-slot:append v-if="contractAddress">
-          <div @click="copyToClipboard(contractAddress)">
-            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-          </div>
-          <div @click="onReloadContractAddress()">
-            <q-icon size="sm" name='loop' color="blue-grey-6"/>
-          </div>
-        </template>
-      </q-input>
+      
+      <!-- Contract Information Section -->
+      <div class="section-wrapper">
+        <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+          {{ $t('ContractInformation', {}, 'Contract Information') }}
+        </p>
+        <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+          <!-- Arbiter -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('Arbiter') }}</q-item-label>
+              <q-item-label class="payment-detail-text">
+                <q-select
+                  class="q-mt-xs"
+                  :dark="darkMode"
+                  filled
+                  dense
+                  hide-bottom-space
+                  borderless
+                  v-model="selectedArbiter"
+                  :loading="arbiterOptions?.length > 0 && !selectedArbiter"
+                  :label="selectedArbiter ? selectedArbiter.address : ''"
+                  :options="arbiterOptions"
+                  :disable="!contractAddress || sendingBch || !hasArbiters"
+                  @update:model-value="selectArbiter"
+                  behavior="dialog">
+                    <template v-slot:option="scope">
+                      <q-item v-bind="scope.itemProps">
+                        <q-item-section>
+                          <q-item-label :style="darkMode ? 'color: white;' : 'color: black;'">
+                            {{ scope.opt.name }}
+                          </q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                    <template v-slot:selected v-if="selectedArbiter">
+                      <span :style="darkMode ? 'color: white;' : 'color: black;'">
+                        {{ selectedArbiter.name }}
+                      </span>
+                    </template>
+                </q-select>
+              </q-item-label>
+            </q-item-section>
+          </q-item>
 
-      <!-- Display contract balance -->
-      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-sm">Contract Balance</div>
-      <q-input
-        class="q-pb-md"
-        readonly
-        filled
-        dense
-        :dark="darkMode"
-        :loading="escrowBalance === null"
-        v-model:model-value="escrowBalance">
-      </q-input>
-      <div class="sm-font-size q-pl-xs q-pb-xs q-pt-sm">Transfer Amount</div>
-      <q-input
-        class="q-pb-sm md-font-size"
-        readonly
-        filled
-        dense
-        hide-bottom-space
-        v-model="transferAmount"
-        :loading="!transferAmount"
-        :dark="darkMode"
-        :error="balanceExceeded"
-        :error-message="balanceExceeded? $t('Insufficient balance') : ''">
-        <template #append>
-          <div class="md-font-size">BCH</div>
-        </template>
-      </q-input>
-      <div class="row q-mb-md" v-if="sendErrors.length > 0">
+          <!-- Contract Address -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('ContractAddress') }}</q-item-label>
+              <q-item-label class="payment-detail-text ellipsis">
+                <span v-if="contractAddress">{{ contractAddress }}</span>
+                <q-skeleton v-else type="text" width="200px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side v-if="contractAddress">
+              <div class="row q-gutter-xs">
+                <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(contractAddress)"/>
+                <q-btn flat dense round size="sm" icon="loop" color="blue-grey-6" @click="onReloadContractAddress()"/>
+              </div>
+            </q-item-section>
+          </q-item>
+
+          <!-- Contract Balance -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
+              <q-item-label class="payment-detail-text">
+                <span v-if="escrowBalance !== null">{{ escrowBalance }} BCH</span>
+                <q-skeleton v-else type="text" width="100px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
+      <!-- Transfer Section -->
+      <div class="section-wrapper q-mt-md">
+        <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+          {{ $t('TransferDetails', {}, 'Transfer Details') }}
+        </p>
+        <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('TransferAmount') }}</q-item-label>
+              <q-item-label class="payment-detail-text text-weight-bold text-primary">
+                <span v-if="transferAmount">{{ transferAmount }} BCH</span>
+                <q-skeleton v-else type="text" width="150px" height="24px" />
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('Fee') }}</q-item-label>
+              <q-item-label class="payment-detail-text">
+                <span v-if="fees">{{ fees?.total / 100000000 }} BCH</span>
+                <q-skeleton v-else type="text" width="80px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+          
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('YourBalance') }}</q-item-label>
+              <q-item-label class="payment-detail-text">{{ balance }} BCH</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
+      <div class="row q-mb-md q-mt-md" v-if="sendErrors.length > 0">
         <div class="col">
           <ul style="margin-left: -40px; list-style: none;">
             <li v-for="(error, index) in sendErrors" :key="index" class="bg-red-1 text-red q-pa-lg pp-text">
@@ -93,20 +123,8 @@
           </ul>
         </div>
       </div>
-      <div v-else>
-        <!-- <div v-if="sendingBch" class="sm-font-size">
-          <q-spinner class="q-mr-sm"/>{{ $t('SendingBchPleaseWait') }}
-        </div> -->
-        <div class="sm-font-size q-mt-sm">
-          <div class="row q-ml-xs items-center">
-            Fee: <q-skeleton v-if="!fees" type="text" width="80px" height="16px" class="q-mx-sm" /><span v-if="fees" class="q-ml-sm"> {{ fees?.total / 100000000 }} BCH</span>
-          </div>
-          <div class="row q-ml-xs">
-            Balance: {{ balance }} BCH
-          </div>
-        </div>
-      </div>
     </div>
+    
     <!-- Warning message for when no currency arbiter is available for ad -->
     <div v-if="!loading && !hasArbiters" class="warning-box q-mx-lg q-my-md" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
       There's currently no arbiter assigned for transactions related to this ad in its currency ({{ this.order?.ad?.fiat_currency?.symbol }}). Please try again later.
@@ -483,7 +501,7 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style scoped lang="scss">
 .escrow-transfer-container {
   padding-bottom: 160px;
   
@@ -516,5 +534,49 @@ export default {
   background-color: #333; /* Dark mode background color */
   color: #fff; /* Text color for dark mode */
   border: 1px solid #fbc02d; /* Border color */
+}
+
+// Section Title (matching PaymentConfirmation.vue)
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Card Styling (matching PaymentConfirmation.vue)
+.pt-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Payment Info List
+.payment-info-list {
+  .q-item {
+    padding: 16px 20px;
+    min-height: 60px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+  
+  &.dark .q-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.payment-detail-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 4px;
 }
 </style>
