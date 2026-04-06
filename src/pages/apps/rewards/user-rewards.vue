@@ -530,9 +530,9 @@ export default {
 
       // continuous points data grouped by type
       continuousPoints: {
-        marketplace: { txCount: 0, points: 0, firstDate: null, lastDate: null },
-        cashin: { txCount: 0, points: 0, firstDate: null, lastDate: null },
-        eload: { txCount: 0, points: 0, firstDate: null, lastDate: null }
+        marketplace: { txCount: 0, points: 0 },
+        cashin: { txCount: 0, points: 0 },
+        eload: { txCount: 0, points: 0 }
       },
 
       firstSevenTransactions: [],
@@ -661,23 +661,17 @@ export default {
       // continuous points - grouped structure
       this.continuousPoints.marketplace = {
         txCount: urData.marketplace?.total_tx_count || 0,
-        points: urData.marketplace?.total_points || 0,
-        firstDate: urData.marketplace?.first_tx_date || null,
-        lastDate: urData.marketplace?.last_tx_date || null
+        points: urData.marketplace?.total_points || 0
       }
 
       this.continuousPoints.cashin = {
         txCount: urData.cashin?.total_tx_count || 0,
-        points: urData.cashin?.total_points || 0,
-        firstDate: urData.cashin?.first_tx_date || null,
-        lastDate: urData.cashin?.last_tx_date || null
+        points: urData.cashin?.total_points || 0
       }
 
       this.continuousPoints.eload = {
         txCount: urData.eload?.total_tx_count || 0,
-        points: urData.eload?.total_points || 0,
-        firstDate: urData.eload?.first_tx_date || null,
-        lastDate: urData.eload?.last_tx_date || null
+        points: urData.eload?.total_points || 0
       }
 
       this.firstSevenTransactions = urData.ur_seven_transactions
