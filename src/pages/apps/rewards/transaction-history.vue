@@ -16,10 +16,10 @@
         :class="getDarkModeClass(darkMode)"
         flat
       >
-        <q-card-section>
+        <q-card-section class="q-pa-sm">
           <template v-if="isLoading">
-            <div class="row justify-around">
-              <div class="text-center" v-for="n in currentConfig.stats.length" :key="`stat-skeleton-${n}`">
+            <div class="row q-col-gutter-md">
+              <div class="col text-center" v-for="n in currentConfig.stats.length" :key="`stat-skeleton-${n}`">
                 <q-skeleton type="text" width="60px" class="q-mx-auto" />
                 <q-skeleton type="text" width="40px" class="q-mx-auto" />
               </div>
@@ -27,16 +27,20 @@
           </template>
           
           <template v-else>
-            <div class="row justify-around">
-              <div class="text-center" v-for="stat in currentConfig.stats" :key="stat.key">
+            <div class="row">
+              <div class="col text-center q-pa-sm" v-for="stat in currentConfig.stats" :key="stat.key">
                 <div class="text-h6 text-bold text-primary">{{ summaryStats[stat.count] }}</div>
-                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                <div 
+                  class="text-caption" 
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                  style="word-break: break-word;"
+                >
                   {{ $t(stat.label, stat.label) }}
                 </div>
               </div>
             </div>
             
-            <q-separator class="q-my-md" />
+            <q-separator class="q-my-sm" />
             
             <div class="row items-center justify-center q-gutter-sm">
               <q-icon name="loop" color="primary" size="sm" />
