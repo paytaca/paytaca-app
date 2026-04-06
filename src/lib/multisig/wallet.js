@@ -203,13 +203,6 @@
  */
 
 /**
- * Fetches balance of the given address
- * @callback GetAddressBalance
- * @param {string} address
- * @returns {Promise<number>}
- */
-
-/**
  * Fetches utxos of given wallet configuration
  * @callback GetWalletBalance
  * @param {MultisigWallet} wallet
@@ -786,10 +779,6 @@ export class MultisigWallet {
     return this._utxos
   }
 
-  async getAddressBalance(address) {
-    return await this.options?.provider?.getAddressBalance(address)
-  }
-
   /**
    * @param {'bch'|string} [asset='bch'] - If not present assumed as 'bch', asset is a token category
    * @param {number} [decimals=0] - The asset decimals, defaults to 0 if asset is present and is not 'bch'
@@ -844,10 +833,6 @@ export class MultisigWallet {
       
     })
     return assetsBalances
-  }
-
-  async getWalletHashBalance() {
-    return await this.options?.provider?.getWalletHashBalance(this.getWalletHash())
   }
 
   async getWalletTokenBalance(tokenCategory, decimals = 0) {
