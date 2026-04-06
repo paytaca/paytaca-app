@@ -87,6 +87,8 @@ export class RampContract {
    */
   async getBalance (address = '', retry = false) {
     if (!address) address = this.contract.address
+    // Trim whitespace from address to prevent API errors
+    address = address.trim()
     let balance = 0
     let watchtowerErrored = false
     try {
