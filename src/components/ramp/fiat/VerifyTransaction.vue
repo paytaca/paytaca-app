@@ -46,13 +46,16 @@
         class="q-mb-md">
       </q-input>
       <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
-        <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
+        <q-icon name="error" size="1.2em" class="q-pr-xs"/>
+        <q-spinner v-if="autoRetrying" size="1.2em" class="q-ml-xs"/>
+        <span v-if="autoRetrying" class="q-ml-xs text-italic">{{ $t('RetryingXofY', { current: autoRetryCount, total: maxAutoRetries }, `Retrying ${autoRetryCount}/${maxAutoRetries}...`) }}</span>
+        {{ errorMessage }}
       </div>
       <div v-if="showRetryBtn" class="row q-mb-md">
         <q-btn
           rounded
           :loading="loading"
-          :disable="disableBtn"
+          :disable="disableBtn || autoRetrying"
           :label="$t('Retry')"
           class="col q-mx-lg button"
           @click="submitAction">
@@ -83,7 +86,11 @@ export default {
       txidLoaded: false,
       balanceLoaded: false,
       errorDialogActive: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      autoRetryCount: 0,
+      maxAutoRetries: 3,
+      autoRetryDelay: 2000,
+      autoRetrying: false
     }
   },
   emits: ['back', 'success', 'verifying'],
@@ -103,7 +110,17 @@ export default {
   },
   computed: {
     showRetryBtn () {
-      return this.txidLoaded && this.balanceLoaded && !this.hideBtn
+      return this.txidLoaded &&
+             this.balanceLoaded &&
+             !this.hideBtn &&
+             !this.autoRetrying &&
+             this.autoRetryCount >= this.maxAutoRetries
+    },
+    autoRetryMessage () {
+      if (this.autoRetrying && this.autoRetryCount <= this.maxAutoRetries) {
+        return this.$t('RetryingXofY', { current: this.autoRetryCount, total: this.maxAutoRetries }, `Retrying ${this.autoRetryCount}/${this.maxAutoRetries}...`)
+      }
+      return null
     }
   },
   async mounted () {
@@ -168,41 +185,76 @@ export default {
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
-        .then(() => {
-          this.$emit('success')
-        })
-        .catch(error => {
-          vm.errorMessage = error.response?.data?.error
-          vm.hideBtn = false
-          vm.disableBtn = false
-          vm.loading = false
-        })
-      vm.verifyingTx = false
+
+      try {
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
+        // Success - emit success event
+        vm.$emit('success')
+      } catch (error) {
+        vm.verifyingTx = false
+        vm.errorMessage = error.response?.data?.error || 'Verification failed'
+
+        // Attempt auto-retry
+        await vm.attemptAutoRetry(vm.verifyRelease)
+      }
     },
     async verifyEscrow () {
       const vm = this
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
-        .then(() => {
-          this.$emit('success')
-        })
-        .catch(error => {
-          if (error.response?.data?.error === 'txid is required') {
-            vm.errorMessage = 'Transaction ID is required for verification'
-          }
+
+      try {
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
+        // Success - emit success event
+        vm.$emit('success')
+      } catch (error) {
+        vm.verifyingTx = false
+
+        if (error.response?.data?.error === 'txid is required') {
+          vm.errorMessage = 'Transaction ID is required for verification'
+          vm.autoRetrying = false
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
-        })
-      vm.verifyingTx = false
+        } else {
+          // Other errors - attempt auto-retry
+          vm.errorMessage = error.response?.data?.error || 'Verification failed'
+          await vm.attemptAutoRetry(vm.verifyEscrow)
+        }
+      }
+    },
+    async attemptAutoRetry (verifyFunction) {
+      const vm = this
+
+      // Check if we can still auto-retry
+      if (vm.autoRetryCount < vm.maxAutoRetries) {
+        vm.autoRetryCount++
+        vm.autoRetrying = true
+        vm.errorMessage = vm.autoRetryMessage || vm.$t('RetryingVerification', {}, 'Retrying verification...')
+
+        // Wait for the fixed delay
+        await vm.delay(vm.autoRetryDelay)
+
+        // Attempt verification again
+        await verifyFunction.call(vm)
+      } else {
+        // Exhausted all auto-retries, show manual retry button
+        vm.autoRetrying = false
+        vm.hideBtn = false
+        vm.disableBtn = false
+        vm.errorMessage = vm.$t('VerificationFailedRetries', {}, 'Verification failed after multiple attempts. Please try again.')
+      }
     },
     submitAction () {
       const vm = this
+
+      // Reset auto-retry counter when manually clicking retry
+      vm.autoRetryCount = 0
+      vm.autoRetrying = false
       vm.hideBtn = true
       vm.errorMessage = null
       vm.loading = true
+
       switch (vm.data?.action) {
         case 'ESCROW':
           vm.verifyEscrow()
