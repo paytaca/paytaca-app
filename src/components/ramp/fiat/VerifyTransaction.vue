@@ -76,7 +76,7 @@ export default {
       loading: true,
       contract: {
         balance: null,
-        address: ' '
+        address: ''
       },
       transactionId: '',
       disableBtn: true,
@@ -144,12 +144,19 @@ export default {
       this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(this.fetchContractBalance())
+      this.fetchContract().then(() => {
+        // Only fetch balance after contract address is loaded
+        if (this.contract?.address) {
+          this.fetchContractBalance()
+        }
+      })
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
         if (!this.data?.escrow) return 0
-        this.data?.escrow?.getBalance(this.contract.address)
+        // Use the escrow contract's own address by not passing any parameter
+        // The RampContract will use its internally generated address
+        this.data?.escrow?.getBalance()
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true
@@ -173,6 +180,10 @@ export default {
         backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
           .then(response => {
             vm.contract = response.data
+            // If API doesn't return address, use the escrow contract's address
+            if (!vm.contract?.address && vm.data?.escrow) {
+              vm.contract.address = vm.data.escrow.getAddress()
+            }
             resolve(response.data)
           })
           .catch(error => {
