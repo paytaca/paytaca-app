@@ -842,7 +842,7 @@ export default {
           query: { assetID: assetId }
         }
       }
-      if (fromParam === 'app-rewards-merchant-history' || fromParam === 'user-rewards') {
+      if (['app-rewards-transaction-history', 'user-rewards'].includes(fromParam)) {
         return -1
       }
       if (fromParam?.includes('apps/multisig')) { 
