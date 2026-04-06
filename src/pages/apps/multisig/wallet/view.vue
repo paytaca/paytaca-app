@@ -601,7 +601,7 @@ const handleDeleteWalletAction = () => {
   })
 }
 
-const handlShareWalletAction = () => {
+const handleShareWalletAction = () => {
   $q.dialog({
     component: ShareWalletOptionsDialog,
     componentProps: {
