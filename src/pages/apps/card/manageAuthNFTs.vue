@@ -337,6 +337,22 @@ export default {
             }
             card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
             CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
+            
+            /* BACKEND IMPLEMENTATION: Mutate merchant-specific auth NFT with spend limit
+             * 
+             * const spendLimitSats = BigInt(Math.floor(spendLimit * 1e8));
+             * const cardInstance = await Card.createInitialized({ raw: { id: this.card.id } });
+             * await cardInstance.mutateMerchantAuthToken({
+             *   authorize: true,
+             *   spendLimitSats: spendLimitSats,
+             *   merchant: {
+             *     id: this.selectedMerchant.id,
+             *     pubkey: this.selectedMerchant.pubkey
+             *   }
+             * });
+             * 
+             * See: src/services/card/card.js lines 583-585 for mutateMerchantAuthToken() function
+             */
           }
         }
         
@@ -369,6 +385,18 @@ export default {
       // Save to localStorage
       if (this.card && this.card.id) {
         CardStorage.setCardProperty(this.card.id, 'genericSpendLimit', this.genericSpendLimit);
+        
+        /* BACKEND IMPLEMENTATION: Mutate global auth NFT with spend limit
+         * 
+         * const spendLimitSats = BigInt(Math.floor(spendLimit * 1e8));
+         * const cardInstance = await Card.createInitialized({ raw: { id: this.card.id } });
+         * await cardInstance.mutateGlobalAuthToken({
+         *   authorize: true,
+         *   spendLimitSats: spendLimitSats
+         * });
+         * 
+         * See: src/services/card/card.js lines 568-570 for mutateGlobalAuthToken() function
+         */
       }
       
       this.$q.notify({
