@@ -217,6 +217,10 @@ export async function processRampCashinPoints (data) {
   return await processPoints('userreward/process_cashin_points/', data)
 }
 
+export async function processEloadPoints (data) {
+  return await processPoints('userreward/process_eload_points/', data)
+}
+
 export async function recordPointsRedemption (data) {
   return await REWARDS_URL
     .post('userpromo/record_points_redemption/', data)
