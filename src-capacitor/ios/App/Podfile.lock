@@ -14,6 +14,8 @@ PODS:
   - CapacitorCordova (5.7.5)
   - CapacitorDevice (5.0.7):
     - Capacitor
+  - CapacitorFilesystem (5.2.2):
+    - Capacitor
   - CapacitorGeolocation (5.0.7):
     - Capacitor
   - CapacitorKeyboard (5.0.9):
@@ -21,6 +23,8 @@ PODS:
   - CapacitorNativeBiometric (0.0.1):
     - Capacitor
   - CapacitorPushNotifications (5.1.1):
+    - Capacitor
+  - CapacitorShare (5.0.8):
     - Capacitor
 
 DEPENDENCIES:
@@ -32,10 +36,12 @@ DEPENDENCIES:
   - "CapacitorCommunityNativeAudio (from `../../node_modules/@capacitor-community/native-audio`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorDevice (from `../../node_modules/@capacitor/device`)"
+  - "CapacitorFilesystem (from `../../../node_modules/@capacitor/filesystem`)"
   - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
   - CapacitorNativeBiometric (from `../../node_modules/capacitor-native-biometric`)
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
+  - "CapacitorShare (from `../../../node_modules/@capacitor/share`)"
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -54,6 +60,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/ios"
   CapacitorDevice:
     :path: "../../node_modules/@capacitor/device"
+  CapacitorFilesystem:
+    :path: "../../../node_modules/@capacitor/filesystem"
   CapacitorGeolocation:
     :path: "../../node_modules/@capacitor/geolocation"
   CapacitorKeyboard:
@@ -62,6 +70,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/capacitor-native-biometric"
   CapacitorPushNotifications:
     :path: "../../node_modules/@capacitor/push-notifications"
+  CapacitorShare:
+    :path: "../../../node_modules/@capacitor/share"
 
 SPEC CHECKSUMS:
   Capacitor: 7d42085cb786b2d3ea9ac8a17ebd7e3305be7b72
@@ -72,11 +82,13 @@ SPEC CHECKSUMS:
   CapacitorCommunityNativeAudio: 1a4d5490acb59f155602c0b6bcf1b42ee4efe91b
   CapacitorCordova: c946a6052b547e1e185fc46862003f7b9130ead1
   CapacitorDevice: fc91bdb484dc0e70755e9b621cd557afe642613a
+  CapacitorFilesystem: 202b158a878462ab4f401d0eb4d9644c67927333
   CapacitorGeolocation: 918a292459542bcce98433f9e7c7909f8c72838a
   CapacitorKeyboard: f2e78b60a5cb981b4ea9e511e80693ca355169bb
   CapacitorNativeBiometric: b47637a8cd349bdac014424bb4ddcae9ee5d4919
   CapacitorPushNotifications: 2327900bc002f5ff49ee6d2231796d0635b4a1b0
+  CapacitorShare: abef1f7be4e10b448693b0b83b540cb4b92dc849
 
-PODFILE CHECKSUM: 5a567dff54ae4796884e1fc79b53689caf097257
+PODFILE CHECKSUM: 14794330b978cabe4220a83df8625ea099e3382c
 
 COCOAPODS: 1.16.2
