@@ -200,8 +200,7 @@
 <script>
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getExplorerLink } from 'src/utils/send-page-utils'
-import { hexToRef } from 'src/utils/reference-id-utils';
+import { getChangeAddress, getExplorerLink } from 'src/utils/send-page-utils'
 
 export default {
   data () {
@@ -326,10 +325,10 @@ export default {
   		try {
   			// Prepare payload data
   			const payload = {
-  				bch_address: order.refund_address,
-					ref_id: hexToRef(order.settlement_txid.substring(0, 6)),
-  				tx_id: order.settlement_txid,
-  				points: this.calculatedPoints
+  				bch_address: await getChangeAddress('bch'),
+					order_txn_id: order.txn_id,
+					order_id: order.id,
+  				points_earned: this.calculatedPoints
   			}
   			
   			console.log('[Eload] Triggering success API call with payload:', payload)
