@@ -422,8 +422,8 @@ const createProposal = async () => {
       purpose: purpose.value,
       recipients: recipients.value,
       reserveWcAccountUtxos: reserveWcAccountUtxos.value
-  })
-    
+    })  
+      
     if (wallet.value.isOnline()) {
       await proposal.upload()
     }
@@ -490,15 +490,17 @@ watch(() => wallet.value?.id, async (walletId) => {
     walletWcSessionHistory.value = await wallet.value?.options?.coordinationServer?.getWalletWcSessions({
       walletIdentifier: wallet.value?.id
     })
+    
+    if (!walletWcSessionHistory.value || walletWcSessionHistory.value?.length === 0) {
+      reserveWcAccountUtxos.value = false  
+      return
+    }
     reserveWcAccountUtxos.value = wallet.value?.settings?.reserveWcAccountUtxos !== false
   }
 }, { immediate: true })
 
 watch(reserveWcAccountUtxos, () => {
   amountInputRefs.value.forEach(ref => ref?.validate?.())
-  if (reserveWcAccountUtxos.value !== false) {
-    
-  }
 }, { immediate: true })
 
 
