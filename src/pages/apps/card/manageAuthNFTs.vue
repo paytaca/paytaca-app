@@ -19,7 +19,11 @@
 
     <!-- Generic Auth NFT Toggle -->
     <div 
+<<<<<<< Updated upstream
       class="row items-center justify-between q-pa-md border-outlined br-10 q-mb-md"
+=======
+      class="row items-center justify-between q-pa-md border-outlined br-10 q-mb-md generic-auth-toggle"
+>>>>>>> Stashed changes
       :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'"
     >
       <div class="text-subtitle2 text-primary text-weight-bold">Generic Auth NFT</div>
@@ -62,9 +66,28 @@
     <q-separator class="q-mb-sm" :dark="$q.dark.isActive" />
 
     <!-- Merchants List -->
+<<<<<<< Updated upstream
     <div class="text-subtitle2 q-mb-sm" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Merchants</div>
     
     <div class="scroll" style="height: 350px;">
+=======
+    <div class="text-subtitle2 q-mb-sm" :class="textColor">Merchants</div>
+    <!-- SKELETON LOADER for merchants title: <q-skeleton v-if="loading" type="text" width="80px" class="q-mb-sm" /> -->
+    
+    <div class="scroll merchant-list" style="height: 350px;">
+      <!--
+        SKELETON LOADER for merchant list when loading backend data:
+        <div v-if="loading" class="q-pa-md">
+          <q-item v-for="n in 5" :key="n" class="q-px-none q-py-sm">
+            <q-item-section>
+              <q-skeleton type="text" width="150px" class="q-mb-xs" />
+              <q-skeleton type="text" width="200px" height="12px" />
+            </q-item-section>
+            <q-item-section side><q-skeleton type="QToggle" /></q-item-section>
+          </q-item>
+        </div>
+      -->
+>>>>>>> Stashed changes
       <div v-if="filteredMerchants.length > 0">
         <q-list separator :dark="$q.dark.isActive">
           <q-item 
@@ -84,10 +107,16 @@
               </q-tooltip>
               <div 
                 class="text-weight-bold"
+<<<<<<< Updated upstream
                 :class="genericAuthEnabled 
                   ? ($q.dark.isActive ? 'text-white' : 'text-grey-4') 
                   : ($q.dark.isActive ? 'text-white' : 'text-dark')"
               >
+=======
+                :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')"
+              >
+                <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
+>>>>>>> Stashed changes
                 {{ merchant.name }}
                 <span v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" class="text-caption text-secondary q-ml-xs">
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
@@ -95,20 +124,34 @@
               </div>
               <div 
                 class="text-caption text-weight-bold"
+<<<<<<< Updated upstream
                 :class="genericAuthEnabled 
                   ? ($q.dark.isActive ? 'text-grey-4' : 'text-grey-5') 
                   : ($q.dark.isActive ? 'text-grey-4' : 'text-grey')"
               >
+=======
+                :class="merchant.isEnabled ? ($q.dark.isActive ? 'text-grey-4' : 'text-grey-7') : ($q.dark.isActive ? 'text-grey-7' : 'text-grey-5')"
+              >
+                <!-- SKELETON LOADER for merchant address: <q-skeleton v-if="loading" type="text" width="200px" height="12px" /> -->
+>>>>>>> Stashed changes
                 {{ merchant.address }}
               </div>
             </q-item-section>
             <q-item-section side>
+<<<<<<< Updated upstream
+=======
+              <!-- SKELETON LOADER for toggle: <q-skeleton v-if="loading" type="QToggle" /> -->
+>>>>>>> Stashed changes
               <q-toggle 
                 v-model="merchant.isEnabled"
                 :disable="genericAuthEnabled"
                 :color="genericAuthEnabled 
                   ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
+<<<<<<< Updated upstream
                   : 'secondary'"
+=======
+                  : 'primary'"
+>>>>>>> Stashed changes
                 @update:model-value="(val) => onMerchantToggle(merchant, val)"
               />
             </q-item-section>
@@ -132,7 +175,11 @@
     <q-dialog v-model="showSpendLimitDialog" persistent>
       <q-card style="min-width: 320px">
         <q-card-section>
+<<<<<<< Updated upstream
           <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
+=======
+          <div class="text-h6" :class="textColor">
+>>>>>>> Stashed changes
             Set Spend Limit
           </div>
         </q-card-section>
@@ -140,7 +187,11 @@
         <q-card-section class="q-pt-none">
           <div 
             class="q-mb-sm"
+<<<<<<< Updated upstream
             :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+=======
+            :class="textColor"
+>>>>>>> Stashed changes
           >
             Merchant: <span class="text-weight-bold">{{ selectedMerchant?.name }}</span>
           </div>
@@ -174,10 +225,18 @@
 </template>
 
 <script>
+<<<<<<< Updated upstream
 import { getMerchantList } from './noBackend.js'
 
 export default {
   name: 'ManageAuthNFTs',
+=======
+import { getMerchantList, CardStorage, createCardLogic } from './noBackend.js'
+
+export default {
+  name: 'ManageAuthNFTs',
+  mixins: [createCardLogic],
+>>>>>>> Stashed changes
   props: {
     card: { type: Object, required: true }
   },
@@ -190,7 +249,12 @@ export default {
       showSpendLimitDialog: false,
       selectedMerchant: null,
       spendLimitInput: '1',
+<<<<<<< Updated upstream
       spendLimitError: ''
+=======
+      spendLimitError: '',
+      loading: false, // SKELETON LOADER: Set to true when fetching merchant data from backend
+>>>>>>> Stashed changes
     }
   },
   computed: {
@@ -201,6 +265,15 @@ export default {
         list = list.filter(m => m.name.toLowerCase().includes(s));
       }
       return list;
+<<<<<<< Updated upstream
+=======
+    },
+    textColor() {
+      return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
+    },
+    textColorGrey() {
+      return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
+>>>>>>> Stashed changes
     }
   },
   mounted() {
@@ -235,10 +308,14 @@ export default {
         }));
       } catch (error) {
         console.error('Failed to load merchant list:', error);
+<<<<<<< Updated upstream
         this.$q.notify({
           message: 'Failed to load merchants',
           color: 'negative'
         });
+=======
+        this.notifyError('Failed to load merchants');
+>>>>>>> Stashed changes
       }
     },
 
@@ -255,11 +332,15 @@ export default {
           m.wasEnabledBeforeGeneric = m.isEnabled; // preserve previous state
           m.isEnabled = true; // Show as enabled when generic auth is on
         });
+<<<<<<< Updated upstream
         this.$q.notify({
           message: 'Generic Auth NFT enabled - all merchants are authorized',
           color: 'positive',
           icon: 'check_circle'
         });
+=======
+        this.notifySuccess('Generic Auth NFT enabled - all merchants are authorized', { icon: 'check_circle' });
+>>>>>>> Stashed changes
       } else {
         // When Generic Auth is disabled, restore previous merchant states
         this.merchants.forEach(m => {
@@ -268,7 +349,12 @@ export default {
         this.$q.notify({
           message: 'Generic Auth NFT disabled - select specific merchants to authorize',
           color: 'info',
+<<<<<<< Updated upstream
           icon: 'info'
+=======
+          icon: 'info',
+          timeout: 1500
+>>>>>>> Stashed changes
         });
       }
     },
@@ -314,6 +400,7 @@ export default {
         
         // Save merchant spend limits to localStorage
         if (this.card && this.card.id) {
+<<<<<<< Updated upstream
           const savedCards = localStorage.getItem('mock_subcards');
           if (savedCards) {
             const allCards = JSON.parse(savedCards);
@@ -326,13 +413,45 @@ export default {
               allCards[cardIndex].merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
               localStorage.setItem('mock_subcards', JSON.stringify(allCards));
             }
+=======
+          const card = CardStorage.getCardById(this.card.id);
+          // TODO: Switch to backend - use await this.getCards() and find card by id
+          if (card) {
+            // Store merchant spend limits
+            if (!card.merchantSpendLimits) {
+              card.merchantSpendLimits = {};
+            }
+            card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
+            CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
+            
+            /* BACKEND IMPLEMENTATION: Mutate merchant-specific auth NFT with spend limit
+             * 
+             * const spendLimitSats = BigInt(Math.floor(spendLimit * 1e8));
+             * const cardInstance = await Card.createInitialized({ raw: { id: this.card.id } });
+             * await cardInstance.mutateMerchantAuthToken({
+             *   authorize: true,
+             *   spendLimitSats: spendLimitSats,
+             *   merchant: {
+             *     id: this.selectedMerchant.id,
+             *     pubkey: this.selectedMerchant.pubkey
+             *   }
+             * });
+             * 
+             * See: src/services/card/card.js lines 583-585 for mutateMerchantAuthToken() function
+             */
+>>>>>>> Stashed changes
           }
         }
         
         this.$q.notify({
           message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
           color: 'positive',
+<<<<<<< Updated upstream
           icon: 'check_circle'
+=======
+          icon: 'check_circle',
+          timeout: 1500
+>>>>>>> Stashed changes
         });
       }
 
@@ -346,7 +465,12 @@ export default {
         this.$q.notify({
           message: 'Please enter a valid amount greater than 0',
           color: 'negative',
+<<<<<<< Updated upstream
           icon: 'error'
+=======
+          icon: 'error',
+          timeout: 2000
+>>>>>>> Stashed changes
         });
         return;
       }
@@ -355,6 +479,7 @@ export default {
       
       // Save to localStorage
       if (this.card && this.card.id) {
+<<<<<<< Updated upstream
         const savedCards = localStorage.getItem('mock_subcards');
         if (savedCards) {
           const allCards = JSON.parse(savedCards);
@@ -364,12 +489,32 @@ export default {
             localStorage.setItem('mock_subcards', JSON.stringify(allCards));
           }
         }
+=======
+        CardStorage.setCardProperty(this.card.id, 'genericSpendLimit', this.genericSpendLimit);
+        
+        /* BACKEND IMPLEMENTATION: Mutate global auth NFT with spend limit
+         * 
+         * const spendLimitSats = BigInt(Math.floor(spendLimit * 1e8));
+         * const cardInstance = await Card.createInitialized({ raw: { id: this.card.id } });
+         * await cardInstance.mutateGlobalAuthToken({
+         *   authorize: true,
+         *   spendLimitSats: spendLimitSats
+         * });
+         * 
+         * See: src/services/card/card.js lines 568-570 for mutateGlobalAuthToken() function
+         */
+>>>>>>> Stashed changes
       }
       
       this.$q.notify({
         message: `Global spend limit set to ${this.genericSpendLimit} BCH`,
         color: 'positive',
+<<<<<<< Updated upstream
         icon: 'check_circle'
+=======
+        icon: 'check_circle',
+        timeout: 1500
+>>>>>>> Stashed changes
       });
     }
   }

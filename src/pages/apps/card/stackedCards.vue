@@ -1,4 +1,5 @@
 <template>
+<<<<<<< Updated upstream
   <q-layout view="lHh Lpr lFf">
     <q-page-container>
       <div class="row items-center q-pa-md">
@@ -18,6 +19,15 @@
 
       <div class="q-px-md q-mt-md">
         <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">My Cards</div>
+=======
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
+    <q-page-container>
+      <CardPageHeader />
+
+      <div class="q-px-md q-mt-md">
+        <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
+        <div class="text-subtitle1 text-weight-bold" :class="textColor">My Cards</div>
+>>>>>>> Stashed changes
         <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
       </div>
 
@@ -45,19 +55,45 @@
             </div>
             <!-- Card info positioned right below handle -->
             <div class="card-info row justify-between items-center no-wrap">
+<<<<<<< Updated upstream
               <div 
                 class="text-weight-bold text-subtitle2 ellipsis" 
                 style="max-width: 120px; font-size: 13px;"
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
                 {{ card.raw?.alias }}
+=======
+              <!-- 
+                SKELETON LOADER for card stack items when loading backend data:
+                <div v-if="loadingCards" class="full-width row justify-between">
+                  <q-skeleton type="text" width="80px" />
+                  <q-skeleton type="text" width="60px" />
+                </div>
+              -->
+              <div 
+                class="text-weight-bold text-subtitle2 ellipsis" 
+                style="max-width: 120px; font-size: 13px;"
+                :class="textColor"
+              >
+                <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
+                {{ capitalizeFirst(card.name) }}
+>>>>>>> Stashed changes
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
                 style="font-size: 13px;"
+<<<<<<< Updated upstream
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
               >
                 {{ card.balance }} BCH
+=======
+                :class="textColor"
+              >
+                <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
+                {{ card.balance || '0.00' }} BCH
+                <!-- NEW: Use Card class getBchBalance() method -->
+                <!-- {{ card?.getBchBalance ? card.getBchBalance() : (card?.balance || '0.00') }} BCH -->
+>>>>>>> Stashed changes
               </div>
             </div>
           </div>
@@ -70,7 +106,11 @@
             <q-card-section class="text-center slot-content">
               <div 
                 class="text-h6 q-mb-sm"
+<<<<<<< Updated upstream
                 :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+=======
+                :class="textColor"
+>>>>>>> Stashed changes
               >
                 Add a new card
               </div>
@@ -102,7 +142,11 @@
         <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
           <!-- Dialog Header -->
           <q-card-section class="row items-center">
+<<<<<<< Updated upstream
             <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Create New Card</div>
+=======
+            <div class="text-h6" :class="textColor">Create New Card</div>
+>>>>>>> Stashed changes
             <q-space />
             <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeDialog" />
           </q-card-section>
@@ -142,13 +186,21 @@
             />
             <div 
               class="text-h6 q-mb-sm"
+<<<<<<< Updated upstream
               :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
+=======
+              :class="textColor"
+>>>>>>> Stashed changes
             >
               Minting your card
             </div>
             <div 
               class="text-caption"
+<<<<<<< Updated upstream
               :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+=======
+              :class="textColorGrey"
+>>>>>>> Stashed changes
             >
               Please wait while we create your new card...
             </div>
@@ -180,11 +232,19 @@
 <script>
 import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+<<<<<<< Updated upstream
+=======
+import CardPageHeader from './CardPageHeader.vue';
+>>>>>>> Stashed changes
 
 export default {
   mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
+<<<<<<< Updated upstream
+=======
+    CardPageHeader,
+>>>>>>> Stashed changes
   },
 
   data () {
@@ -197,6 +257,12 @@ export default {
       showCreateCardDialog: false,
       newCardName: '',
       isMinting: false
+<<<<<<< Updated upstream
+=======
+      // Backend data fetching disabled
+      // loadingCards: true,
+      // backendDataMap: {} // Map of cardId -> backend data
+>>>>>>> Stashed changes
     }
   },
 
@@ -214,9 +280,122 @@ export default {
   mounted () {
     // when the page loads, fetch the cards in localStorage
     this.fetchCards()
+<<<<<<< Updated upstream
   },
 
   methods: {
+=======
+    // TODO: Switch to backend - use await this.getCards() instead
+    
+    // If no cards exist, redirect to card homepage
+    if (this.subCards.length === 0) {
+      this.$router.push({ name: 'app-card' })
+    }
+    
+    // Fetch backend data for all cards - DISABLED
+    // this.fetchCardsBackendData()
+    
+    /* NEW: Fetch real balances from backend using Card class
+     * Uncomment to enable real balance fetching:
+     * 
+     * async fetchCardBalances () {
+     *   if (this.subCards.length === 0) return
+     *   
+     *   try {
+     *     const { Card } = await import('src/services/card/card')
+     *     
+     *     for (const card of this.subCards) {
+     *       try {
+     *         const cardInstance = await Card.createInitialized(card)
+     *         
+     *         // Get BCH balance from server
+     *         const bchBalance = cardInstance.getBchBalance()
+     *         card.balance = bchBalance.toString()
+     *         
+     *         // Get Token balance
+     *         const tokenBalance = cardInstance.getTokenBalance()
+     *         console.log(`Card ${card.id} Token balance:`, tokenBalance)
+     *         
+     *         // Optionally get real-time balance from blockchain
+     *         // const contractBalance = await cardInstance.getContractBalance()
+     *         // console.log(`Card ${card.id} Contract balance:`, contractBalance)
+     *       } catch (error) {
+     *         console.error(`Error fetching balance for card ${card.id}:`, error)
+     *       }
+     *     }
+     *   } catch (error) {
+     *     console.error('Error fetching card balances:', error)
+     *   }
+     * }
+     * 
+     * // Call the method
+     * this.fetchCardBalances()
+     */
+  },
+
+  methods: {
+    /*
+    async fetchCardsBackendData () {
+      if (this.subCards.length === 0) {
+        this.loadingCards = false
+        return
+      }
+      
+      this.loadingCards = true
+      
+      try {
+        // Fetch backend data for each card
+        const promises = this.subCards.map(async (card) => {
+          try {
+            const cardInstance = await Card.createInitialized({ raw: { id: card.id } })
+            const bchUtxos = await cardInstance.getBchUtxos()
+            const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
+            const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8)
+            
+            this.backendDataMap[card.id] = {
+              balance: bchBalance,
+              contractAddress: cardInstance.raw?.contract_id
+            }
+          } catch (error) {
+            console.error(`Failed to fetch data for card ${card.id}:`, error)
+            this.backendDataMap[card.id] = null
+          }
+        })
+        
+        await Promise.all(promises)
+      } catch (error) {
+        console.error('Failed to fetch cards backend data:', error)
+      } finally {
+        this.loadingCards = false
+      }
+    },
+    */
+
+    capitalizeFirst (str) {
+      if (!str) return ''
+      return str.charAt(0).toUpperCase() + str.slice(1)
+    },
+
+    /* NEW: Helper method to get card BCH balance using Card class
+     * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
+     * Falls back to card.balance from localStorage if method not available
+     * 
+     * Usage: {{ getCardBchBalance(card) }} in template
+     * 
+     * getCardBchBalance (card) {
+     *   if (!card) return '0.00'
+     *   try {
+     *     // Use getBchBalance() from Card class
+     *     const balance = card.getBchBalance?.() ?? card.balance
+     *     return typeof balance === 'number' ? balance.toFixed(2) : (balance || '0.00')
+     *   } catch (error) {
+     *     console.error('Error getting card balance:', error)
+     *     return card?.balance || '0.00'
+     *   }
+     * },
+     */
+
+>>>>>>> Stashed changes
     getCardStyle (index) {
       const card = this.displayedCards[index]
       const cardId = card?.id
@@ -371,12 +550,16 @@ export default {
 
     async createCard () {
       if (!this.newCardName || !this.newCardName.trim()) {
+<<<<<<< Updated upstream
         this.$q.notify({
           message: 'Please enter a card name',
           color: 'negative',
           icon: 'error',
           position: 'top'
         })
+=======
+        this.notifyError('Please enter a card name')
+>>>>>>> Stashed changes
         return
       }
 
@@ -389,14 +572,23 @@ export default {
       // Create new card with 0 balance
       const newCard = {
         id: Date.now(),
+<<<<<<< Updated upstream
+=======
+        name: this.newCardName.trim(),  // Add name property for display
+>>>>>>> Stashed changes
         raw: { alias: this.newCardName.trim() },
         balance: '0.00', // New card has 0 BCH balance
         status: 'Active',
         contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
+<<<<<<< Updated upstream
+=======
+        // TODO: Replace with card_instance.raw.cash_address or card_instance.raw.token_address from Card class
+>>>>>>> Stashed changes
         isLocked: false,
         cardReplacementStatus: 'none'
       }
 
+<<<<<<< Updated upstream
       // Save to localStorage
       const savedData = localStorage.getItem('mock_subcards')
       const currentCards = savedData ? JSON.parse(savedData) : []
@@ -405,6 +597,13 @@ export default {
 
       // Update the displayed cards
       this.subCards = currentCards
+=======
+      // Save to localStorage using CardStorage
+      const createdCard = this.CardStorage.createCard(newCard);
+
+      // Update the displayed cards
+      this.subCards = this.CardStorage.getCards();
+>>>>>>> Stashed changes
 
       // Reset dialog state
       this.closeDialog()
@@ -415,7 +614,11 @@ export default {
         color: 'positive',
         icon: 'check_circle',
         position: 'top',
+<<<<<<< Updated upstream
         timeout: 2000
+=======
+        timeout: 1500
+>>>>>>> Stashed changes
       })
     }
   }
