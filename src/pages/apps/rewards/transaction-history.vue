@@ -292,8 +292,8 @@ export default {
       
       // Sort by date
       filtered.sort((a, b) => {
-        const dateA = new Date(a.date)
-        const dateB = new Date(b.date)
+        const dateA = new Date(a.created_at)
+        const dateB = new Date(b.created_at)
         return this.sortDesc ? dateB - dateA : dateA - dateB
       })
       
