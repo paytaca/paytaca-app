@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Unduh File Dompet",
   DownloadWalletFileDescription: "Unduh file konfigurasi dompet",
   Duration: "Durasi",
+  DustAmountError: "Jumlahnya di bawah batas minimum yang diizinkan jaringan (0,00000546 BCH)",
   Dutch: "Belanda",
   EarlyMaturation: "Pematangan Dini",
   EarlySupporterRound: "Putaran Suporter Awal",

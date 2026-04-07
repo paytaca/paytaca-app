@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "지갑 파일 다운로드",
   DownloadWalletFileDescription: "지갑 구성 파일 다운로드",
   Duration: "기간",
+  DustAmountError: "금액이 네트워크에서 허용되는 최소 금액(0.00000546 BCH)보다 낮습니다.",
   Dutch: "네덜란드어",
   EarlyMaturation: "조기 성숙",
   EarlySupporterRound: "얼리 서포터즈 라운드",

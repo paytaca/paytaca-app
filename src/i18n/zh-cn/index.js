@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "下载钱包文件",
   DownloadWalletFileDescription: "下载钱包配置文件",
   Duration: "持续时间",
+  DustAmountError: "金额低于网络允许的最低金额 (0.00000546 BCH)",
   Dutch: "荷兰语",
   EarlyMaturation: "早熟",
   EarlySupporterRound: "早期支持者回合",

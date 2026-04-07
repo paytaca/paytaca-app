@@ -692,6 +692,7 @@ export default {
   DownloadWalletFile: "Download Wallet File",
   DownloadWalletFileDescription: "Download the wallet configuration file",
   Duration: "Duration",
+  DustAmountError: "Amount is below the network allowed minimum (0.00000546 BCH)",
   Dutch: "Dutch",
   EarlyMaturation: "Early Maturation",
   EarlySupporterRound: "Early Supporter Round",

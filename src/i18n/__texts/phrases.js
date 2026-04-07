@@ -2411,7 +2411,8 @@ const phrases = {
       WhatIsAServerIdentity: 'What is a server identity?',
       XpubMustBeUnique: 'Xpub must be unique',
       XpubScanned: 'Xpub scanned',
-      YesProceed: 'Yes, proceed'
+      YesProceed: 'Yes, proceed',
+      DustAmountError: 'Amount is below the network allowed minimum (0.00000546 BCH)'
     }
   ]
 }

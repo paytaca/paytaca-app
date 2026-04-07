@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Laai Wallet-lêer af",
   DownloadWalletFileDescription: "Laai die beursie-konfigurasielêer af",
   Duration: "Duur",
+  DustAmountError: "Bedrag is onder die netwerk toegelaat minimum (0.00000546 BCH)",
   Dutch: "Nederlands",
   EarlyMaturation: "Vroeë rypwording",
   EarlySupporterRound: "Vroeë Ondersteunersronde",

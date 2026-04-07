@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Скачать файл кошелька",
   DownloadWalletFileDescription: "Загрузите файл конфигурации кошелька",
   Duration: "Продолжительность",
+  DustAmountError: "Сумма ниже разрешенного минимума сети (0,00000546 BCH)",
   Dutch: "голландский",
   EarlyMaturation: "Раннее созревание",
   EarlySupporterRound: "Ранний раунд поддержки",

@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Scarica il file Portafoglio",
   DownloadWalletFileDescription: "Scarica il file di configurazione del portafoglio",
   Duration: "Durata",
+  DustAmountError: "L'importo è inferiore al minimo consentito dalla rete (0,00000546 BCH)",
   Dutch: "olandese",
   EarlyMaturation: "Maturazione precoce",
   EarlySupporterRound: "Turno iniziale dei sostenitori",

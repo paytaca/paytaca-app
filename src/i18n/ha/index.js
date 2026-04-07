@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Zazzage Fayil ɗin Wallet",
   DownloadWalletFileDescription: "Zazzage fayil ɗin daidaitawar walat",
   Duration: "Tsawon lokaci",
+  DustAmountError: "Adadi yana ƙasa da mafi ƙarancin hanyar sadarwa (0.00000546 BCH)",
   Dutch: "Yaren mutanen Holland",
   EarlyMaturation: "Farkon Maturation",
   EarlySupporterRound: "Zagayen Magoya bayan Farko",

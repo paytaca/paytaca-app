@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "I-download ang Wallet File",
   DownloadWalletFileDescription: "I-download ang wallet configuration file",
   Duration: "Tagal",
+  DustAmountError: "Ang halaga ay mas mababa sa pinapayagang network na minimum (0.00000546 BCH)",
   Dutch: "Dutch",
   EarlyMaturation: "Maagang Pagkahinog",
   EarlySupporterRound: "Maagang Supporter Round",

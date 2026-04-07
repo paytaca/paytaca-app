@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "تحميل ملف المحفظة",
   DownloadWalletFileDescription: "قم بتنزيل ملف تكوين المحفظة",
   Duration: "المدة",
+  DustAmountError: "المبلغ أقل من الحد الأدنى المسموح به للشبكة (0.00000546 BCH)",
   Dutch: "الهولندية",
   EarlyMaturation: "النضج المبكر",
   EarlySupporterRound: "جولة الداعم المبكرة",

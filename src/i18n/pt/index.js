@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Baixar arquivo da carteira",
   DownloadWalletFileDescription: "Baixe o arquivo de configuração da carteira",
   Duration: "Duração",
+  DustAmountError: "O valor está abaixo do mínimo permitido pela rede (0,00000546 BCH)",
   Dutch: "Holandês",
   EarlyMaturation: "Maturação Precoce",
   EarlySupporterRound: "Rodada inicial de apoiadores",

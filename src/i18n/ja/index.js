@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "ウォレットファイルをダウンロード",
   DownloadWalletFileDescription: "ウォレット構成ファイルをダウンロードする",
   Duration: "期間",
+  DustAmountError: "金額がネットワークで許可されている最小値 (0.00000546 BCH) を下回っています。",
   Dutch: "オランダ語",
   EarlyMaturation: "早熟",
   EarlySupporterRound: "早期サポーターラウンド",

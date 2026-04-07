@@ -693,6 +693,7 @@ export default {
   DownloadWalletFile: "Descargar archivo de billetera",
   DownloadWalletFileDescription: "Descargue el archivo de configuración de la billetera",
   Duration: "Duración",
+  DustAmountError: "La cantidad está por debajo del mínimo permitido por la red (0.00000546 BCH)",
   Dutch: "holandés",
   EarlyMaturation: "Maduración temprana",
   EarlySupporterRound: "Ronda de apoyo anticipada",
