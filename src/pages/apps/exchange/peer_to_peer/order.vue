@@ -555,6 +555,7 @@ export default {
       showStatusHistory: false,
       noticeType: 'info',
       showNoticeDialog: false,
+      rewardNotified: false,
 
       // Tabs
       activeTab: 'details',
@@ -2191,7 +2192,7 @@ export default {
           break
         case 'RLS': // Released - Order completed successfully
           // Trigger reward API for buyer only
-          if (this.userTraderType === 'BUYER') {
+          if (this.userTraderType === 'BUYER' && !this.rewardNotified) {
             const buyerAddress = this.contract?.addresses?.buyer
             const txid = this.$store.getters['ramp/getOrderTxid'](this.order.id, 'RELEASE')
             
@@ -2204,9 +2205,10 @@ export default {
               })
 
               if (pointsResp) {
-                console.log('success')
-              } else {
-                console.error('(P2P Ramp) Cashin points processing failed.')
+                this.rewardNotified = true
+                this.noticeType = 'success'
+                this.errorMessage = 'Congratulations!<br><br>You have earned points for this P2P Ramp purchase!<br><br>Check your points balance in the Rewards app.'
+                this.showNoticeDialog = true
               }
             }
           }
