@@ -14,7 +14,13 @@
     <q-item-section>
       <q-item-label clickable @click="redirect" class="row items-center">
         <span class="text-weight-medium">{{ labelText }}</span>
-        <q-icon v-if="data.ref_id" name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
+        <q-icon
+          v-if="data.ref_id || data.order_txn_id"
+          name="open_in_new"
+          size="14px"
+          class="q-ml-sm"
+          color="primary"
+        />
       </q-item-label>
       <q-item-label caption v-if="showMerchantName">
         <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -95,7 +101,7 @@ export default {
         eload: {
           icon: 'card_membership',
           bgClass: 'bg-primary',
-          label: (data) => `Ref ID ${data.ref_id}`,
+          label: (data) => `Order ID ${data.order_txn_id}`,
           redirect: 'transaction',
           showMerchantName: false
         }
@@ -118,28 +124,23 @@ export default {
     
     redirect() {
       if (this.typeConfig.redirect === 'order') {
-        this.redirectToOrder()
-      } else if (this.data.ref_id) {
-        this.redirectToTransaction()
-      } else {
-        return
-      }
-    },
-    
-    redirectToOrder() {
-      this.$router.push({ 
-        name: 'app-marketplace-order', 
-        params: { orderId: this.data.order_id }
-      })
-    },
-    
-    redirectToTransaction() {
-      if (this.data.tx_id) {
+        this.$router.push({ 
+          name: 'app-marketplace-order', 
+          params: { orderId: this.data.order_id }
+        })
+      } else if (this.data.ref_id && this.data.tx_id) {
         this.$router.push({
           name: 'transaction-detail',
           params: { txid: this.data.tx_id },
           query: { from: 'app-rewards-transaction-history' }
         })
+      } else if (this.data.order_txn_id && this.data.order_id) {
+        this.$router.push({ 
+          name: 'eload-service-order-details', 
+          params: { orderId: this.data.order_id }
+        })
+      } else {
+        return
       }
     }
   }
