@@ -201,6 +201,7 @@
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getChangeAddress, getExplorerLink } from 'src/utils/send-page-utils'
+import { processEloadPoints } from 'src/utils/engagementhub-utils/rewards';
 
 export default {
   data () {
@@ -330,35 +331,24 @@ export default {
 					order_id: order.id,
   				points_earned: this.calculatedPoints
   			}
+
+				const eloadResp = await processEloadPoints(payload)
+
+				if (eloadResp) {
+					this.apiCallStatus.triggered = true
+					this.pointsEarned = this.calculatedPoints
+					this.showRewardsSection = true
+					
+					this.$q?.notify?.({ 
+						type: 'positive', 
+						icon: 'mdi-party-popper',
+						message: `Congratulations! You have earned ${this.pointsEarned} points!`,
+						timeout: 3000
+					})
+				} else {
+					throw new Error('Unable to process eload points for rewards.')
+				}
   			
-  			console.log('[Eload] Triggering success API call with payload:', payload)
-  			
-  			// PLACEHOLDER: Replace with actual API endpoint
-  			// const response = await fetch('YOUR_API_ENDPOINT_HERE', {
-  			//   method: 'POST',
-  			//   headers: {
-  			//     'Content-Type': 'application/json',
-  			//   },
-  			//   body: JSON.stringify(payload)
-  			// })
-  			
-  			// if (!response.ok) {
-  			//   throw new Error(`API returned ${response.status}`)
-  			// }
-  			
-  			// Simulate success for now (remove when implementing real API)
-  			await new Promise(resolve => setTimeout(resolve, 500))
-  			
-  			this.apiCallStatus.triggered = true
-  			this.pointsEarned = this.calculatedPoints
-  			this.showRewardsSection = true
-  			
-  			this.$q?.notify?.({ 
-  				type: 'positive', 
-					icon: 'mdi-party-popper',
-  				message: `Congratulations! You have earned ${this.pointsEarned} points!`,
-  				timeout: 3000
-  			})
   			
   		} catch (error) {
   			console.error('[Eload] API call failed:', error)
