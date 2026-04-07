@@ -1,5 +1,5 @@
-import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin } from "bitauth-libauth-v3"
-import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload } from "./utils.js"
+import { numberToBinInt32LE, bigIntToBinUint64LE, base64ToBin, bigIntToCompactUint, binsAreEqual, binToBase64, binToBigIntUint64LE, binToBigIntUintLE, binToHex, binToNumberInt32LE, binToNumberUint32LE, binToUtf8, compactUintToBigInt, decodeHdPublicKey, decodeTransaction, decodeTransactionBch, encodeHdPublicKey, encodeHdPublicKeyPayload, encodeTokenPrefix, encodeTransactionOutput, hexToBin, isBase64, isHex, numberToBinUint32LE, readBytes, readCompactUint, readMultiple, readRemainingBytes, readTokenPrefix, readTransactionOutput, sortObjectKeys, utf8ToBin, hashTransaction, decodeTransactionCommon, stringify } from "bitauth-libauth-v3"
+import { bip32DecodeDerivationPath, bip32EncodeDerivationPath, decodeHdPublicKeyPayload, verifyTransactionInputSignature } from "./utils.js"
 import { MultisigTransactionBuilder } from "./transaction-builder.js"
 export const PSBT_MAGIC = '70736274ff'
 
@@ -86,7 +86,36 @@ export const ProprietaryFields = Object.freeze({
       network: {
         subType: bigIntToCompactUint(3),
         subKeyData: utf8ToBin('network')
-      }
+      },
+      creator: {
+        subType: bigIntToCompactUint(4),
+        subKeyData: utf8ToBin('creator')
+      },
+    } 
+  },
+  metadata: {
+    identifier: utf8ToBin('metadata'),
+    subKey: {
+      walletHash: {
+        subType: bigIntToCompactUint(0),
+        subKeyData: utf8ToBin('walletHash')
+      },
+      origin: {
+        subType: bigIntToCompactUint(1),
+        subKeyData: utf8ToBin('origin')
+      },
+      purpose: {
+        subType: bigIntToCompactUint(2),
+        subKeyData: utf8ToBin('purpose')
+      },
+      network: {
+        subType: bigIntToCompactUint(3),
+        subKeyData: utf8ToBin('network')
+      },
+      creator: {
+        subType: bigIntToCompactUint(4),
+        subKeyData: utf8ToBin('creator')
+      },
     } 
   }
 })
@@ -265,13 +294,15 @@ export class ProprietaryField {
 
     for (const keypair of _keypairs) {
       const keyData = keypair.key?.keyData
+
       if (!keyData) return proprietaryFields
 
       const identifierLenReadResult = readCompactUint({ bin: keyData, index: 0})
       const identifierReader = readBytes(Number(identifierLenReadResult.result))
       const identifierReadResult = identifierReader(identifierLenReadResult.position)
       if (!binsAreEqual(identifier, identifierReadResult.result)) {
-        return 
+        // return 
+        continue
       }
       
       const proprietaryField = {
@@ -1052,11 +1083,19 @@ export class PsbtOutput {
    *
    */
   setToken(token) {
+
     if (!token) return
 
     let _token = token 
     
     if (typeof token === 'object' && token.category) {
+      token.amount = BigInt(token.amount)
+      if (typeof token.category === 'string') {
+        token.category = hexToBin(token.category)
+        if (token.nft && typeof token.nft.commitment === 'string') {
+          token.nft.commitment = hexToBin(token.nft.commitment || '')
+        }
+      } 
       _token = encodeTokenPrefix(token)
     }
 
@@ -1300,7 +1339,7 @@ export class Psbt {
       })
     }
 
-    for(const psbtOutput of psbt.outputMap?.outputs) {
+    for(const psbtOutput of this.outputMap?.outputs) {
       const o = {
         valueSatoshis: psbtOutput.getAmount()
       }
@@ -1311,9 +1350,16 @@ export class Psbt {
       tx.outputs.push(o)
     }
     const unsignedTx = new MultisigTransactionBuilder()
+
+    const unsignedInputs = tx.inputs.map(input => {
+       return {
+          ...input,
+          unlockingBytecode: []
+       }
+    })
     unsignedTx.setVersion(tx.version)
     unsignedTx.setLocktime(tx.locktime)
-    unsignedTx.addInputs(tx.inputs)
+    unsignedTx.addInputs(unsignedInputs)
     unsignedTx.addOutputs(tx.outputs)
     return hexToBin(unsignedTx.build())
   }
@@ -1393,7 +1439,7 @@ export class Psbt {
     this.globalMap.setOutputCount(decoded.outputs.length)
     this.globalMap.setPsbtVersion(version)
     this.globalMap.setFallbackLocktime(decoded.locktime)
-    console.log('DECODED', decoded)
+    
     // this.globalMap.addProprietaryField(
     //   ProprietaryFields.paytaca.identifier, 
     //   hexToBin(decoded.walletHash), 
@@ -1406,6 +1452,13 @@ export class Psbt {
       utf8ToBin(decoded.origin), 
       ProprietaryFields.paytaca.subKey.origin.subType, 
       ProprietaryFields.paytaca.subKey.origin.subKeyData
+    )
+
+    decoded.creator && this.globalMap.addProprietaryField(
+      ProprietaryFields.paytaca.identifier, 
+      utf8ToBin(decoded.creator), 
+      ProprietaryFields.paytaca.subKey.creator.subType, 
+      ProprietaryFields.paytaca.subKey.creator.subKeyData
     )
 
     decoded.purpose && this.globalMap.addProprietaryField(
@@ -1422,6 +1475,33 @@ export class Psbt {
         ProprietaryFields.paytaca.subKey.network.subKeyData
       )
 
+    decoded.origin && this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+      utf8ToBin(decoded.origin), 
+      ProprietaryFields.metadata.subKey.origin.subType, 
+      ProprietaryFields.metadata.subKey.origin.subKeyData
+    )
+
+    decoded.creator && this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+      utf8ToBin(decoded.creator), 
+      ProprietaryFields.metadata.subKey.creator.subType, 
+      ProprietaryFields.metadata.subKey.creator.subKeyData
+    )
+
+    decoded.purpose && this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+      utf8ToBin(decoded.purpose), 
+      ProprietaryFields.metadata.subKey.purpose.subType, 
+      ProprietaryFields.metadata.subKey.purpose.subKeyData
+    )
+
+    this.globalMap.addProprietaryField(
+      ProprietaryFields.metadata.identifier, 
+        utf8ToBin(decoded.network),
+        ProprietaryFields.metadata.subKey.network.subType, 
+        ProprietaryFields.metadata.subKey.network.subKeyData
+      )
 
     for(const input of decoded.inputs) {
       const psbtInput = new PsbtInput()
@@ -1493,7 +1573,7 @@ export class Psbt {
         signers: xpubs
       }
     }
-    
+
     this.globalMap.getProprietaryFields(ProprietaryFields.paytaca.identifier)?.forEach(pf => {
       if (pf.subKeyData && pf.value) {
         let valueDecoder = binToUtf8
@@ -1503,6 +1583,22 @@ export class Psbt {
         decodeResult[pf.getSubKeyData(binToUtf8)] = pf.getValue(valueDecoder)
       }
     })
+
+    const metadata = {}
+
+    this.globalMap.getProprietaryFields(ProprietaryFields.metadata.identifier)?.forEach(pf => {
+      if (pf.subKeyData && pf.value) {
+        let valueDecoder = binToUtf8
+        if (binsAreEqual(pf.subKeyData,  ProprietaryFields.metadata.subKey.walletHash.subKeyData)) {
+          valueDecoder = binToHex
+        }
+        metadata[[pf.getSubKeyData(binToUtf8)]] = pf.getValue(valueDecoder)
+      }
+    })
+
+    if (Object.keys(metadata).length > 0) {
+      decodeResult.metadata = metadata
+    }
 
     decodeResult.inputs = []
 
@@ -1516,7 +1612,8 @@ export class Psbt {
         bip32Derivation: psbtInput.getBip32Derivation(),
         redeemScript: psbtInput.getRedeemScript(),
         sourceOutput: psbtInput.getSourceUtxo(),
-        unlockingBytecode: psbtInput.getFinalScriptSig() || []
+        unlockingBytecode: psbtInput.getFinalScriptSig() || [],
+        scriptSig: psbtInput.getFinalScriptSig() || []
       })
     }
 
@@ -1541,6 +1638,90 @@ export class Psbt {
       decodeResult.outputs.push(o)
     }
     return this
+  }
+
+  /**
+   * Combines this instance and the passed psbts.
+   * This process mutates this psbt if there's a valid signature on
+   * the provided psbts and returns any error of the problematic psbts.
+   * 
+   * @param {string[]} psbts Base64 encoded string
+   */
+  combine(psbts) {
+    const results = []
+    const unsignedTransactionHash = hashTransaction(this.getUnsignedTx())
+    for (const [i, base64] of psbts.entries()) {
+      try {
+        const psbtInstance = new Psbt()
+        psbtInstance.deserialize(base64ToBin(base64))
+        const h = hashTransaction(psbtInstance.getUnsignedTx())
+        
+        if (unsignedTransactionHash !== h) {
+          throw Error(`Unsigned transaction hash mismatch with psbt at index ${i}. Expecting ${unsignedTransactionHash} but got ${h}`)
+        }
+
+        if (!psbtInstance.inputMap?.inputs) {
+            throw new Error(`PSBT at index ${i} has no inputs`);
+        }
+        
+        if (psbtInstance.inputMap.inputs.length !== this.inputMap.inputs.length) {
+            throw new Error(
+                `Input count mismatch at index ${i}. Expected ` +
+                `${this.inputMap.inputs.length}, got ${psbtInstance.inputMap.inputs.length}`
+            );
+        }
+        
+        const sourceOutputs = psbtInstance.inputMap.inputs.map((input) => {
+          return input.getSourceUtxo()
+        })
+
+        for (const [inputIndex, input] of psbtInstance.inputMap.inputs.entries()) {
+          const correspondingBaseInput = this.inputMap.inputs[inputIndex]
+          if (correspondingBaseInput.getFinalScriptSig()) continue
+          const partialSigs = input.getPartialSigs()
+          const bip32Derivation = input.getBip32Derivation()
+          if (!bip32Derivation) continue
+          const context = {
+            transaction: decodeTransactionCommon(this.getUnsignedTx()),
+            sourceOutputs
+          }
+          const inputTransactionHash = input.getOutpointTransactionHash()
+          context.inputIndex = context.transaction.inputs.findIndex((i) => {
+            return (
+              binsAreEqual(i.outpointTransactionHash, inputTransactionHash) &&
+              i.outpointIndex === input.getOutpointIndex()
+            )
+          })
+
+          if (context.inputIndex === -1) {
+            throw new Error(`Missing expected input with outpointTransactionHash ${inputTransactionHash}`)
+          }
+
+          if (!binsAreEqual(correspondingBaseInput.getRedeemScript(), input.getRedeemScript())) {
+            throw new Error(`Redeem script mismatch between base input and target input at index ${inputIndex}`)
+          }
+
+          Object.keys(partialSigs).forEach((publicKey) => {
+            const signatureVerificationSuccess = verifyTransactionInputSignature({
+              signature: partialSigs[publicKey],
+              publicKey: hexToBin(publicKey),
+              redeemScript: input.getRedeemScript(),
+              context
+            })
+            if (!signatureVerificationSuccess) {
+              throw new Error(`Failed signature vefication on psbt at index${i} input ${inputIndex}`)
+            }
+            correspondingBaseInput.addPartialSig(hexToBin(publicKey), partialSigs[publicKey])
+          })
+        }
+        results.push({ index: i, psbt: base64, combined: true })
+      } catch (error) {
+        console.log(`@Psbt.combine: `, error)
+        results.push({ index: i, psbt: base64, combined: error })
+      }
+    }
+    
+    return results
   }
 
   toString() {

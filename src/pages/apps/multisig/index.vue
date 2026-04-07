@@ -4,90 +4,131 @@
       <HeaderNav
           :title="$t('MultisigWallets', {}, 'Multisig Wallets')"
           backnavpath="/apps"
-          class="header-nav q-px-sm apps-header gift-app-header"
+          class="header-nav apps-header gift-app-header"
         >
       </HeaderNav>
       <div class="row justify-center">
         <div class="col-xs-12">
-          <q-banner class="q-ma-lg rounded text-caption text-justify q-pa-md" :class="getDarkModeClass(darkMode)" style="word-break: auto-phrase; border-radius: 15px;">
-            <q-icon name="warning" color="warning" size="sm" class="q-mr-sm"></q-icon>
-            {{ $t('MultisigWalletsBetaDisclaimerMessage') }}
-          </q-banner>
+          <q-card id="bch-card" class="q-my-sm" style="border-radius: 15px; color:white">
+            <q-card-section>
+              <div class="q-mx-md">
+                <div class="flex items-center q-gutter-x-sm">
+                  <q-icon name="groups" size="sm"></q-icon>
+                  <div class="text-bold text-h6">{{ $t('PaytacaMultisigWallets', {}, 'Paytaca Multisig Wallets') }}</div>
+                </div>
+                <div class="flex justify-start items-center q-gutter-x-sm">
+                    <span class="text-bold">{{$t('WalletCount')}}: {{ multisigWallets?.length || 0 }}</span>
+                  </div>  
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <div v-if="multisigWallets && multisigWallets.length > 0" class="col-xs-12 flex justify-between no-wrap q-gutter-x-xs q-my-md">
+          <q-btn flat dense no-caps  @click="onCreateWalletClick" size="14px" class="tile col" v-close-popup>
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="add" class="col-12" size="20px" style="position:relative">
+                </q-icon>
+                <div class="col-12 tile-label text-caption" style="font-size: 13px;">{{ $t('Create') }}</div>
+              </div>
+            </template>
+          </q-btn>
+          <q-btn flat dense no-caps @click="onImportWalletClick" class="tile col" size="14px" v-close-popup>
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="mdi-file-import-outline" class="col-12" size="20px"></q-icon>
+                <div class="col-12 tile-label text-caption" style="font-size: 13px;">{{ $t('Import') }}</div>
+              </div>
+            </template>
+          </q-btn>
+          <q-btn flat dense no-caps @click="onDeleteAllWalletsClick"  class="tile col" size="14px" v-close-popup>
+            <template v-slot:default>
+              <div class="row justify-center">
+                <q-icon name="mdi-delete-sweep-outline" class="col-12" size="20px" color="red"></q-icon>
+                <div class="col-12 tile-label text-caption" style="font-size: 13px;">{{ $t('DeleteAll', {}, 'Delete All') }}</div>
+              </div>
+            </template>
+          </q-btn>
         </div>
       </div>
-      <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center q-mb-lg">
-          <div class="col-xs-12 q-px-xs q-gutter-y-sm">
-            <div v-if="multisigWallets" class="q-mb-sm">
-              <div class="row justify-end q-gutter-x-sm q-mb-md">
-                <q-btn color="primary" icon="add" @click="onCreateWalletClick" round dense outline></q-btn>
-                <q-btn color="primary" icon="download" @click="onImportWalletClick" round dense outline></q-btn>
-                <q-btn color="red" icon="mdi-delete-sweep-outline" @click="onDeleteAllWalletsClick" round dense outline></q-btn>
-              </div>
-            </div>
-            <q-card
-              v-for="wallet, i in multisigWallets"
-              :key="i"
-              flat
-              class="q-mb-sm multisig-wallet-card"
-              :class="`${getDarkModeClass(darkMode)} ${$q.screen.gt.xs ? 'q-mx-lg': ''}`"
-              clickable
-              @click="router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })"
-            >
-              <q-card-section class="q-pa-md">
-                <div class="flex items-center q-mb-sm">
-                  <q-icon name="wallet" color="grad" size="md" class="q-mr-sm"></q-icon>
-                  <div class="text-weight-bold text-h6">{{ wallet.name }}</div>
-                </div>
-                <div class="flex items-center">
-                  <q-icon name="group" class="q-mr-sm" size="sm"></q-icon>
-                  <div class="text-body2">
-                    <span v-for="(signer, signerIndex) in wallet?.signers" :key="`signer-${i}-${signerIndex}`">
-                      {{ signer.name }}<span v-if="signerIndex < wallet.signers.length - 1">, </span>
-                    </span>
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
+      <div v-if="multisigWallets && multisigWallets.length > 0" class="row justify-center q-my-sm">
+          <div class="col-xs-12">
+            <!-- <q-item-label header>{{ $t('Wallets') }}</q-item-label> -->
+            <q-list class="rounded-borders" :class="getDarkModeClass(darkMode)" separator>
+              <!-- <q-item-label header class="text-h6">{{ $t('MyWallets') }}</q-item-label> -->
+              <q-separator></q-separator>
+              <q-item
+                v-for="wallet in multisigWallets"
+                :key="wallet.walletHash"
+                clickable
+                v-ripple
+                class="q-py-md"
+                style="padding: .5rem 0px"
+                @click.stop="openWalletPage(wallet)"
+              >
+                <q-item-section avatar top>
+                  <!-- <q-avatar color="primary" text-color="white" size="5rem" square class="br-15">
+                    <q-icon name="wallet"></q-icon>
+                  </q-avatar> -->
+                  <q-icon name="wallet" size="4rem" color="primary"></q-icon>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>
+                    <div class="ellipsis text-bold">{{ wallet.name }}</div>
+                  </q-item-label>
+                  <q-item-label caption>
+                    <div class="flex no-wrap items-center q-gutter-x-sm">
+                      <q-icon name="mdi-pound-box"></q-icon><span>{{ shortenString(wallet.walletHash, 20) }}</span>
+                    </div>
+                  </q-item-label>
+                  <q-item-label v-if="wallet.id" caption>
+                    <div class="flex items-center q-gutter-x-sm">
+                      <q-icon name="mdi-cloud-check"></q-icon><span>{{ wallet.id }}</span>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-icon name="chevron_right" color="primary"></q-icon>
+                </q-item-section>
+              </q-item>
+            </q-list>
           </div>
       </div>
-      <div v-else class="row justify-center items-center q-mt-lg">
-          <!-- <div class="col-10 text-center q-gutter-lg">
-            <div class="text-h6 text-bow-muted">No Multisig Wallet Found</div>
-            <div>
-            <q-btn
-              no-caps
-              icon="mdi-wallet-plus-outline"
-              :to="{ name: 'app-multisig-wallet-create'}"
-              dense
-              size="lg"
-              label="Create Wallet"
-              color="primary"
-            />
-            </div>
-          <div>
-            <q-btn
-              no-caps
-              icon="mdi-wallet-plus"
-              dense
-              size="lg"
-              label="Import Wallet"
-              @click="importWallet"
-              color="primary"
-            />
-          </div>
-          </div> -->
-          <div class="col-xs-12 row justify-center q-gutter-y-xl">
-            <div class="col-xs-12 text-center">
-              <q-btn size="lg"  @click="onCreateWalletClick" color="primary" class="button-default" :class="darkMode ? 'dark' : 'light'" round>
-                <q-icon class="default-text-color"  size="lg" name="qr_code" />
-              </q-btn>
-              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('CreateNewWallet') }}</div>
-            </div>
-            <div class="col-xs-12 text-center">
-              <q-btn color="primary" class="button-default" @click="onImportWalletClick" :class="darkMode ? 'dark' : 'light'" round size="lg">
-                <q-icon class="default-text-color" size="lg" name="download" />
-              </q-btn>
-              <div class="q-pt-xs text-h6 text-center text-capitalize" >{{ $t('ImportWallet') }}</div>
+      <div v-else class="row justify-center q-mt-lg">
+          <div class="col-xs-12 q-px-md">
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-sm-6">
+                <q-card
+                  flat
+                  class="action-card cursor-pointer"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="onCreateWalletClick"
+                >
+                  <q-card-section class="text-center q-pa-lg">
+                    <q-avatar color="primary" text-color="white" size="56px" class="q-mb-md">
+                      <q-icon name="add" size="32px"></q-icon>
+                    </q-avatar>
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ $t('CreateNewWallet') }}</div>
+                    <div class="text-body2 text-bow-muted">{{ $t('CreateNewWalletDescription', {}, 'Setup a new multisig wallet') }}</div>
+                  </q-card-section>
+                </q-card>
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-card
+                  flat
+                  class="action-card cursor-pointer"
+                  :class="getDarkModeClass(darkMode)"
+                  @click="onImportWalletClick"
+                >
+                  <q-card-section class="text-center q-pa-lg">
+                    <q-avatar color="primary" text-color="white" size="56px" class="q-mb-md">
+                      <q-icon name="mdi-file-import-outline" size="32px"></q-icon>
+                    </q-avatar>
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ $t('ImportWallet') }}</div>
+                    <div class="text-body2 text-bow-muted">{{ $t('ImportWalletDescripition', {}, 'Import a multisig wallet setup') }}</div>
+                  </q-card-section>
+                </q-card>
+              </div>
             </div>
           </div>
       </div>
@@ -115,6 +156,7 @@ import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { useTieredLimitGate } from 'src/composables/useTieredLimitGate'
+import { shortenString } from 'src/lib/multisig/utils'
 const $store = useStore()
 const $q = useQuasar()
 const router = useRouter()
@@ -192,9 +234,15 @@ const onUpdateWalletFileModelValue = (file) => {
   }
 }
 
+const openWalletPage = (wallet) => {
+  setTimeout(() => {
+    router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.walletHash } })
+  }, 300)
+  
+}
 
 // Check for importData in query params when component mounts
-onMounted(() => {
+onMounted(async () => {
   const importData = route.query.importData
   if (importData) {
     // Handle multi-part QR codes if needed
@@ -229,36 +277,24 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.multisig-wallet-card {
-  background-color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+.action-card {
   border-radius: 16px;
-  box-shadow: none !important;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &.light {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
   
   &.dark {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   &:hover {
-    background-color: rgba(255, 255, 255, 0.7);
-    border-color: rgba(0, 0, 0, 0.16);
-    
-    &.dark {
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-  }
-  
-  &:active {
-    background-color: rgba(255, 255, 255, 0.65);
-    border-color: rgba(0, 0, 0, 0.14);
-    
-    &.dark {
-      background-color: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.18);
-    }
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 }
+
 </style>

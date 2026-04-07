@@ -346,12 +346,12 @@ const routes = [
         children: [
           { path: '', component: () => import('src/pages/apps/multisig/index.vue'), name: 'app-multisig' },
           { path: 'settings', component: () => import('src/pages/apps/multisig/settings.vue'), name: 'app-multisig-settings' },
-          { path: 'wallet', component: () => import('src/pages/apps/multisig/wallet/index.vue'), name: 'app-multisig-wallets' },
-          { path: 'wallet/synced', component: () => import('src/pages/apps/multisig/wallet/synced.vue'), name: 'app-multisig-wallets-synced' },
           { path: 'wallet/create', component: () => import('src/pages/apps/multisig/wallet/create.vue'), name: 'app-multisig-wallet-create' },
           { path: 'wallet/import', component: () => import('src/pages/apps/multisig/wallet/import.vue'), name: 'app-multisig-wallet-import' },
+          { path: 'wallet/import-from-server', component: () => import('src/pages/apps/multisig/wallet/import-from-server.vue'), name: 'app-multisig-wallet-import-from-server' },
           { path: 'wallet/signer/qrcode', component: () => import('src/pages/apps/multisig/wallet/signer/qrcode.vue'), name: 'app-multisig-signer-qrcode' },
           { path: 'wallet/:wallethash', component: () => import('src/pages/apps/multisig/wallet/view.vue'), name: 'app-multisig-wallet-view' },
+          { path: 'wallet/:wallethash/settings', component: () => import('src/pages/apps/multisig/wallet/settings.vue'), name: 'app-multisig-wallet-settings' },
           { 
             path: 'wallet/:wallethash/asset',
             component: () => import('src/pages/apps/multisig/wallet/asset.vue'),
@@ -368,6 +368,16 @@ const routes = [
             component: () => import('src/pages/apps/multisig/wallet/addresses.vue'),
             name: 'app-multisig-wallet-addresses'
           },
+          { 
+            path: 'wallet/:wallethash/nfts',
+            component: () => import('src/pages/apps/multisig/wallet/nfts/index.vue'),
+            name: 'app-multisig-wallet-nfts'
+          },
+          { 
+            path: 'wallet/:wallethash/nfts/:tokenid',
+            component: () => import('src/pages/apps/multisig/wallet/nfts/category-collection.vue'),
+            name: 'app-multisig-wallet-nft-category-collection'
+          },
           {
             path: 'wallet/:wallethash/transaction/send',
             component: () => import('src/pages/apps/multisig/wallet/transaction/send.vue'),
@@ -378,6 +388,11 @@ const routes = [
                */
               queryType: {}
             }
+          },
+          {
+            path: 'wallet/:wallethash/nfts/:tokenid/send',
+            component: () => import('src/pages/apps/multisig/wallet/transaction/send-nft.vue'),
+            name: 'app-multisig-wallet-transaction-send-nft'
           },
           {
             path: 'wallet/:wallethash/psts',
@@ -393,7 +408,12 @@ const routes = [
             path: 'wallet/:wallethash/pst/:unsignedtransactionhash',
             component: () => import('src/pages/apps/multisig/wallet/pst/view.vue'),
             name: 'app-multisig-wallet-pst-view'
-          }
+          },
+          {
+            path: 'wallet/:wallethash/pst/:unsignedtransactionhash/signatures/import',
+            component: () => import('src/pages/apps/multisig/signatures/import.vue'),
+            name: 'app-multisig-wallet-pst-signatures-import'
+          },
         ]
       },
       {

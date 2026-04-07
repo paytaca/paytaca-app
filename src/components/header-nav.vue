@@ -42,11 +42,15 @@
 <script>
 import { vOnLongPress } from '@vueuse/components'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-
+import { useRoute } from 'vue-router'
 export default {
   name: 'header-nav',
   directives: {
     'on-long-press': vOnLongPress,
+  },
+  setup() {
+    const route = useRoute()
+    return { route }
   },
   props: {
     title: {

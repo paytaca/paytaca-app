@@ -1,6 +1,6 @@
 <template>
   <q-dialog ref="dialogRef" full-width full-height maximized transition-show="slide-up" transition-hide="slide-down">
-    <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow" style="margin-top: -20px" :class="getDarkModeClass(darkMode)">
+    <q-card class="q-dialog-plugin pt-card row items-center justify-center text-bow"  :class="getDarkModeClass(darkMode)">
       <q-card-section class="col-12 justify-center q-gutter-y-sm">
         <div class="text-grad text-center text-h6">{{$t('Receive')}}</div>
         <div class="text-subtitle-2 text-center text-bow-muted">{{ $t('ScanQRCodeFromDevice') }}</div>
@@ -33,7 +33,7 @@
           
       </q-card-section>
       <q-card-actions>
-        <q-btn :label="$t('Close')" @click="onDialogOkWrapper" color="red" v-close-popup></q-btn>
+        <q-btn :label="$t('Close')" @click="onDialogOkWrapper" color="red" v-close-popup rounded></q-btn>
       </q-card-actions>
     </q-card>
   </q-dialog>
