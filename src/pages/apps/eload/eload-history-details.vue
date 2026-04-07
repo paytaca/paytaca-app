@@ -146,6 +146,54 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Rewards Section - Shown when order succeeds and API triggered -->
+			<q-card 
+				v-if="shouldShowRewardsSection" 
+				class="q-pa-md br-15 q-mt-md q-mb-xl rewards-card"
+				:class="getDarkModeClass(darkMode)"
+			>
+				<div class="column items-center text-center q-gutter-y-md">
+					<!-- Celebration Icon -->
+					<q-icon
+						name="celebration"
+						size="45px"
+						color="primary"
+						class="animated heartBeat slower"
+					/>
+					
+					<!-- Congratulatory Title -->
+					<div class="text-h6 text-weight-bold" :class="darkMode ? 'text-white' : 'text-grey-9'">
+						Congratulations!
+					</div>
+					
+					<!-- Points Earned Display -->
+					<div 
+						class="text-body1 q-px-sm"
+						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+					>
+						You earned {{ pointsEarned }} points from this purchase.
+					</div>
+					
+					<!-- Instruction Text -->
+					<div 
+						class="text-body1 q-px-sm q-mt-sm"
+						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
+					>
+						Check your points in the Rewards app for a detailed breakdown.
+					</div>
+					
+					<!-- Navigate to Rewards Button -->
+					<q-btn
+						label="View Rewards"
+						icon="stars"
+						rounded
+						class="button bg-grad button-glow q-mt-md"
+						:class="getDarkModeClass(darkMode)"
+						@click="openRewardsApp"
+					/>
+				</div>
+			</q-card>
 		</q-pull-to-refresh>
 	</div>
 </template>
@@ -153,90 +201,242 @@
 import * as eloadServiceAPI from 'src/utils/eload-service.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
+import { hexToRef } from 'src/utils/reference-id-utils';
 
 export default {
-	data () {
-		return {
-			darkMode: this.$store.getters['darkmode/getStatus'],
-			order: null,
-			loading: true,
-			promoSnapshot: null,
-			loadError: ''
-		}
-	},
-	computed: {
-		getTxnID () {
-			const bchTxid = this.order?.bch_txid
-			if (!bchTxid || bchTxid.includes('-')) {
-				return this.order?.settlement_txid
-			}
-			return bchTxid
-		},
-		getSettleDate () {
-			return this.order?.settled_at || this.order?.completed_at
-		},
-		paymentCardTitle () {
-		if (this.order?.status === 'success') {
-			return 'Payment Details'
-		} else if (this.order?.status === 'failed') {
-			if (this.order?.settlement_txid) {
-				return 'Refund Details'
-				} else {
-					return 'Pending Refund'
-				}
-			}
-			return ''
-		}
-	},
-	async mounted () {
-		await this.fetchOrder()
-	},
-	methods: {	
-		getStatusLabel (order) {
-		if (order?.status === 'failed') {
-			if (order?.settlement_txid) {
-				return 'Refunded'
-				} else {
-					return 'Pending Refund'
-				}
-			}
-			return order?.status
-		},
-		explorerLink (txid) {
-		  return getExplorerLink(txid || '')
-		},
-		getDarkModeClass,
-		async onRefresh(done) {
-			await this.fetchOrder()
-			done()
-		},
-		async fetchOrder () {
-			this.loading = true
-			this.loadError = ''
-			this.order = null
-			this.promoSnapshot = null
-			const orderID = this.$route.params.orderId
+  data () {
+  	return {
+  		darkMode: this.$store.getters['darkmode/getStatus'],
+  		order: null,
+  		loading: true,
+  		promoSnapshot: null,
+  		loadError: '',
+  		
+  		// API Call Status Tracking
+  		apiCallStatus: {
+  			triggered: false,      // Whether API was successfully called
+  			loading: false,        // Whether API call is in progress
+  			error: null,           // Any error from API call
+  			lastOrderStatus: null // Track previous status for transition detection
+  		},
+  		
+  		// Polling
+  		pollingInterval: null,   // Store interval ID for cleanup
+  		POLLING_DELAY: 10000,   // 10 seconds
+  		
+  		// Rewards Section Display
+  		showRewardsSection: false,
+  		pointsEarned: 0
+  	}
+  },
+  computed: {
+  	getTxnID () {
+  		const bchTxid = this.order?.bch_txid
+  		if (!bchTxid || bchTxid.includes('-')) {
+  			return this.order?.settlement_txid
+  		}
+  		return bchTxid
+  	},
+  	getSettleDate () {
+  		return this.order?.settled_at || this.order?.completed_at
+  	},
+  	paymentCardTitle () {
+  		if (this.order?.status === 'success') {
+  			return 'Payment Details'
+  		} else if (this.order?.status === 'failed') {
+  			if (this.order?.settlement_txid) {
+  				return 'Refund Details'
+  			} else {
+  				return 'Pending Refund'
+  			}
+  		}
+  		return ''
+  	},
+  	
+  	// Rewards computed properties
+  	shouldShowRewardsSection() {
+  		// Show rewards section when:
+  		// 1. Order status is 'success'
+  		// 2. API has been triggered (meaning we detected the transition)
+  		return this.order?.status === 'success' && this.apiCallStatus.triggered
+  	},
+  	
+  	calculatedPoints() {
+  		const fee = Number.parseFloat(this.promoSnapshot?.convenience_fee_php || 0)
+  		return fee * 2
+  	}
+  },
+  async mounted () {
+  	// Initialize lastOrderStatus before first fetch
+  	this.apiCallStatus.lastOrderStatus = null
+  	await this.fetchOrder()
+  },
+  
+  beforeUnmount() {
+  	this.stopStatusPolling() // Clean up interval
+  },
+  
+  methods: {	
+  	getStatusLabel (order) {
+  		if (order?.status === 'failed') {
+  			if (order?.settlement_txid) {
+  				return 'Refunded'
+  			} else {
+  				return 'Pending Refund'
+  			}
+  		}
+  		return order?.status
+  	},
+  	
+  	// Polling methods
+  	/**
+  	 * Start polling when order is pending
+  	 */
+  	startStatusPolling() {
+  		if (this.pollingInterval) return // Already polling
+  		
+  		console.log('[Eload] Starting status polling...')
+  		this.pollingInterval = setInterval(() => {
+  			this.fetchOrder()
+  		}, this.POLLING_DELAY)
+  	},
+  	
+  	/**
+  	 * Stop polling
+  	 */
+  	stopStatusPolling() {
+  		if (this.pollingInterval) {
+  			console.log('[Eload] Stopping status polling...')
+  			clearInterval(this.pollingInterval)
+  			this.pollingInterval = null
+  		}
+  	},
+  	
+  	/**
+  	 * Trigger API call when order succeeds
+  	 */
+  	async triggerSuccessApiCall(order) {
+  		// Prevent duplicate calls
+  		if (this.apiCallStatus.triggered || this.apiCallStatus.loading) {
+  			return
+  		}
 
-			try {
-				const result = await eloadServiceAPI.fetchOrderDetails(orderID)
+  		this.apiCallStatus.loading = true
+  		
+  		try {
+  			// Prepare payload data
+  			const payload = {
+  				bch_address: order.refund_address,
+					ref_id: hexToRef(order.settlement_txid.substring(0, 6)),
+  				tx_id: order.settlement_txid,
+  				points: this.calculatedPoints
+  			}
+  			
+  			console.log('[Eload] Triggering success API call with payload:', payload)
+  			
+  			// PLACEHOLDER: Replace with actual API endpoint
+  			// const response = await fetch('YOUR_API_ENDPOINT_HERE', {
+  			//   method: 'POST',
+  			//   headers: {
+  			//     'Content-Type': 'application/json',
+  			//   },
+  			//   body: JSON.stringify(payload)
+  			// })
+  			
+  			// if (!response.ok) {
+  			//   throw new Error(`API returned ${response.status}`)
+  			// }
+  			
+  			// Simulate success for now (remove when implementing real API)
+  			await new Promise(resolve => setTimeout(resolve, 500))
+  			
+  			this.apiCallStatus.triggered = true
+  			this.pointsEarned = this.calculatedPoints
+  			this.showRewardsSection = true
+  			
+  			this.$q?.notify?.({ 
+  				type: 'positive', 
+					icon: 'mdi-party-popper',
+  				message: `Congratulations! You have earned ${this.pointsEarned} points!`,
+  				timeout: 3000
+  			})
+  			
+  		} catch (error) {
+  			console.error('[Eload] API call failed:', error)
+  			this.apiCallStatus.error = error.message
+  			// Don't mark as triggered so it won't retry (per requirements)
+  		} finally {
+  			this.apiCallStatus.loading = false
+  		}
+  	},
+  	
+  	/**
+  	 * Navigate to Rewards app
+  	 */
+  	openRewardsApp() {
+  		this.$router.push({ name: 'app-rewards' })
+  	},
+  	
+  	explorerLink (txid) {
+  	  return getExplorerLink(txid || '')
+  	},
+  	getDarkModeClass,
+  	async onRefresh(done) {
+  		await this.fetchOrder()
+  		done()
+  	},
+  	async fetchOrder () {
+  		this.loading = true
+  		this.loadError = ''
+  		// Don't clear order here to avoid UI flicker
+  		
+  		const orderID = this.$route.params.orderId
 
-				if (result?.success) {
-					this.order = result.data || {}
-					this.promoSnapshot = (result.data && result.data.promo_snapshot) ? result.data.promo_snapshot : {}
-				} else {
-					this.loadError = result?.error?.message || result?.error || this.$t?.('UnableToLoad') || 'Request failed'
-				}
-			} catch (e) {
-				console.error('[Eload] fetchOrderDetails failed:', e)
-				this.loadError = this.$t?.('UnableToLoad') || 'Request failed'
-			} finally {
-				this.loading = false
-			}
-		},
-		copyToClipboard (value) {
-	      this.$copyText(value)
-	      this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
-	    },
+  		try {
+  			const result = await eloadServiceAPI.fetchOrderDetails(orderID)
+
+  			if (result?.success) {
+  				const newOrder = result.data || {}
+					console.log(newOrder)
+  				const previousStatus = this.apiCallStatus.lastOrderStatus
+  				const currentStatus = newOrder.status
+  				
+  				// Update order data
+  				this.order = newOrder
+  				this.promoSnapshot = newOrder.promo_snapshot || {}
+
+					// Detect transition: pending → success
+  				if (previousStatus === 'pending' && currentStatus === 'success') {
+  					console.log('[Eload] Order transitioned from pending to success!')
+  					await this.triggerSuccessApiCall(newOrder)
+  				}
+  				
+  				// Update last known status
+  				this.apiCallStatus.lastOrderStatus = currentStatus
+  				
+  				// Manage polling based on status
+  				if (currentStatus === 'pending') {
+  					if (!this.pollingInterval) {
+  						this.startStatusPolling()
+  					}
+  				} else {
+  					this.stopStatusPolling()
+  				}
+  				
+  			} else {
+  				this.loadError = result?.error?.message || result?.error || 'Request failed'
+  			}
+  		} catch (e) {
+  			console.error('[Eload] fetchOrderDetails failed:', e)
+  			this.loadError = 'Request failed'
+  		} finally {
+  			this.loading = false
+  		}
+  	},
+  	copyToClipboard (value) {
+      this.$copyText(value)
+      this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
+    },
     formatDate (date) {
       const dateObj = new Date(date)
       const langs = [this.$store.getters['global/language'], 'en-US']
@@ -251,7 +451,7 @@ export default {
       }).format(dateObj)
     },
 
-	}
+  }
 }
 </script>
 <style lang="scss" scoped>
@@ -329,5 +529,47 @@ export default {
     max-width: 100%;
     overflow-x: hidden;
     box-sizing: border-box;
+  }
+  
+  /* Rewards Card Styling */
+  .rewards-card {
+    background: linear-gradient(135deg, rgba(var(--q-primary-rgb), 0.05) 0%, rgba(var(--q-primary-rgb), 0.02) 100%);
+    border: 1px solid rgba(var(--q-primary-rgb), 0.2);
+  }
+
+  /* Button Glow Animation */
+  .button-glow {
+    &.dark {
+      animation: glow-pulse-dark 2s ease-in-out infinite;
+    }
+    &.light {
+      animation: glow-pulse-light 2s ease-in-out infinite;
+    }
+  }
+
+  @keyframes glow-pulse-dark {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(255, 215, 0, 0.4),
+                  0 0 10px rgba(255, 215, 0, 0.3),
+                  0 0 15px rgba(255, 215, 0, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.6),
+                  0 0 20px rgba(255, 215, 0, 0.4),
+                  0 0 30px rgba(255, 215, 0, 0.3);
+    }
+  }
+
+  @keyframes glow-pulse-light {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(218, 165, 32, 0.5),
+                  0 0 10px rgba(218, 165, 32, 0.4),
+                  0 0 15px rgba(218, 165, 32, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 10px rgba(218, 165, 32, 0.7),
+                  0 0 20px rgba(218, 165, 32, 0.5),
+                  0 0 30px rgba(218, 165, 32, 0.4);
+    }
   }
 </style>
