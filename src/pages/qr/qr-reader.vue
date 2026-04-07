@@ -1,6 +1,6 @@
 <template>
   <div id="qr-reader-body" :class="getDarkModeClass(darkMode)">
-    <header-nav :title="$t('QRReader')" backnavpath="/" />
+    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" />
 
     <QRUploader ref="qr-upload" @detect-upload="onQRDecode" />
 
@@ -79,19 +79,21 @@
 
 <script>
 import { BarcodeScanner, SupportedFormat } from '@capacitor-community/barcode-scanner'
-import { UR, URDecoder } from "@ngraveio/bc-ur";
+import { URDecoder } from "@ngraveio/bc-ur";
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { extractWifFromUrl } from 'src/wallet/sweep'
 import { parsePayPro } from 'src/utils/pay-pro'
 import { QrcodeStream } from 'vue-qrcode-reader'
+import { cborDecode } from '@ngraveio/bc-ur/dist/cbor';
 import HeaderNav from 'src/components/header-nav'
 import QRUploader from 'src/components/QRUploader'
 import { parseWalletConnectUri } from 'src/wallet/walletconnect'
 import { isTokenAddress } from 'src/utils/address-utils';
 import { parseAddressWithoutPrefix } from 'src/utils/send-page-utils'
 import base58 from 'bs58'
-import { binToBase64 } from 'bitauth-libauth-v3';
-import { extractMValue, getWalletHash, Pst } from 'src/lib/multisig';
+import { binToBase64, base64ToBin } from 'bitauth-libauth-v3';
+import { extractMValue, getWalletHash, MultisigWallet, Pst } from 'src/lib/multisig';
+import { delay } from 'cashscript/dist/utils';
 
 export default {
   name: 'QRReader',
@@ -172,8 +174,8 @@ export default {
 
       const status = await vm.checkPermission()
       if (status) {
-        BarcodeScanner.prepare()
-        vm.scanBarcode()
+        await BarcodeScanner.prepare({ targetedFormats: [SupportedFormat.QR_CODE] })
+        await vm.scanBarcode()
       } else {
         vm.$q.notify({
           message: vm.$t('CameraPermissionDenied'),
@@ -240,51 +242,54 @@ export default {
     async scanBarcode () {
       const vm = this
 
-      BarcodeScanner.hideBackground()
+      await BarcodeScanner.hideBackground()
       document.body.classList.add('transparent-body')
-
-      const res = await BarcodeScanner.startScan({ targetedFormats: [SupportedFormat.QR_CODE] })
-      if (res.content) {
-        const _value = res.content
-        const isStreamingQR = _value?.startsWith('ur:crypto-mofnwallet') || _value?.startsWith('ur:crypto-psbt')
-        
-        // For streaming QR codes, process the part but continue scanning
-        if (isStreamingQR) {
-          const part = _value
-          vm.urDecoder.receivePart(part)
-          vm.progress = vm.urDecoder.estimatedPercentComplete()
-          
-          // If complete, process and stop scanning
-          if (vm.urDecoder.isComplete()) {
-            BarcodeScanner.showBackground()
-            BarcodeScanner.stopScan()
+      await delay(1000)
+      await BarcodeScanner.startScanning(
+        { targetedFormats: [SupportedFormat.QR_CODE]},
+        async (result, err) => {
+          if (err) {
+            console.error(err);
             document.body.classList.remove('transparent-body')
-            vm.onQRDecode([{ rawValue: res.content }])
-          } else {
-            // Not complete yet, continue scanning without stopping
-            // Prepare scanner and continue scanning for next part
-            BarcodeScanner.prepare()
-            vm.scanBarcode()
+            vm.$q.notify({
+              message: vm.$t('UnidentifiedQRCode'),
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
+            })
+            BarcodeScanner.resumeScanning()
+            return;
           }
-        } else {
-          // Non-streaming QR code - process normally and stop
-          BarcodeScanner.showBackground()
-          BarcodeScanner.stopScan()
-          document.body.classList.remove('transparent-body')
-          vm.onQRDecode([{ rawValue: res.content }])
+
+          if (result.hasContent) {
+            const isStreamingContent = result.content?.startsWith('ur:crypto-mofnwallet') || result.content?.startsWith('ur:crypto-psbt')
+
+            if (!isStreamingContent) {  
+              // Non-streaming QR code - process normally and stop
+              vm.stopScan()
+              document.body.classList.remove('transparent-body')
+              await vm.onQRDecode([{ rawValue: result.content }])
+              return 
+            }
+            
+            // Feed the fragment to the UR Decoder
+            await vm.urDecoder.receivePart(result.content);
+            vm.progress = await vm.urDecoder.estimatedPercentComplete();
+
+            // Check if we have all fragments
+            if (vm.urDecoder.isComplete()) {
+              // 1. Stop the continuous scanner using the callbackId
+              await BarcodeScanner.showBackground()
+              vm.stopScan()
+              document.body.classList.remove('transparent-body');
+              // 2. Final processing
+              await vm.onQRDecode([{ rawValue: result.content }]);
+              return
+            }
+            await BarcodeScanner.resumeScanning()
+          }
         }
-      } else {
-        BarcodeScanner.stopScan()
-        document.body.classList.remove('transparent-body')
-        vm.$q.notify({
-          message: vm.$t('UnidentifiedQRCode'),
-          timeout: 800,
-          color: 'red-9',
-          icon: 'mdi-qrcode-remove'
-        })
-        BarcodeScanner.prepare()
-        vm.scanBarcode()
-      }
+      );
     },
     stopScan () {
       BarcodeScanner.showBackground()
@@ -349,9 +354,13 @@ export default {
           if (vm.urDecoder.isComplete()) {
             const ur = vm.urDecoder.resultUR()
             const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
+            const decoded = cborDecode(base64ToBin(base64))
+            const wallet = MultisigWallet.import(decoded)
+            wallet.setStore(vm.$store)
+            wallet.save()
             vm.$router.push({
-              name: 'app-multisig-wallet-import',
-              query: { data: encodeURIComponent(base64) }
+              name: 'app-multisig-wallet-view',
+              params: { wallethash: wallet.getWalletHash() }
             })
           }
         } else if(_value?.startsWith('ur:crypto-psbt')) {
@@ -544,6 +553,7 @@ export default {
   },
 
   mounted () {
+    
     const vm = this
     vm.urDecoder = new URDecoder()
     if (vm.decode) {

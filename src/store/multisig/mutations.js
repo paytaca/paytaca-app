@@ -1,5 +1,5 @@
 import { hashTransaction, binsAreEqual } from 'bitauth-libauth-v3'
-import { findMultisigWalletByLockingData, getWalletHash } from 'src/lib/multisig'
+import { getWalletHash } from 'src/lib/multisig'
 import { Psbt } from 'src/lib/multisig/psbt'
 import { Store } from 'src/store'
 
@@ -24,9 +24,9 @@ export function updateWallet (state, { oldMultisigWallet, newMultisigWallet }) {
   state.wallets?.splice(index, 1, newMultisigWallet)
 }
 
-export function updateWalletId(state, { oldId, newId }) {
+export function updateWalletId(state, { walletHash, newId }) {
   const wallet = state.wallets.find(wallet => {
-      return wallet.id === oldId
+      return getWalletHash(wallet) === walletHash
   })
   if (!wallet) return
   wallet.id = newId
@@ -51,20 +51,10 @@ export function saveWallet (state, wallet) {
 
 export function deleteWallet (state, { multisigWallet }) {
   const index = state.wallets.findIndex((wallet) => {
-    return wallet.id == multisigWallet.id
+    return getWalletHash(wallet) == getWalletHash(multisigWallet)
   })
   if (index === -1) return
   state.wallets.splice(index, 1)
-}
-
-export function enableWallet(state, multisigWallet) {
-  const wallet = findMultisigWalletByLockingData({
-	  multisigWallets: state.wallets,
-	  template: multisigWallet.template,
-	  lockingData: multisigWallet.lockingData
-  })
-  if (!wallet) return
-  wallet.enabled = true
 }
 
 export function deleteAllWallets (state) {

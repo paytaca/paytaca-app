@@ -1,19 +1,15 @@
 import { useStore } from 'vuex'
 import { computed } from 'vue'
-import { loadWallet } from 'src/wallet'
-import { getMultisigCashAddress, getLockingBytecode, deriveHdKeysFromMnemonic, MultisigWallet } from 'src/lib/multisig'
-import { useRoute, useRouter } from 'vue-router'
-import Watchtower from 'src/lib/watchtower'
-import { CashAddressNetworkPrefix, binToHex } from 'bitauth-libauth-v3'
+import { getMnemonic } from 'src/wallet'
+import { deriveHdKeysFromMnemonic, getMasterFingerprint, MultisigWallet } from 'src/lib/multisig'
+import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import { getBcmrBackend } from 'src/wallet/cashtokens'
 import { WatchtowerCoordinationServer, WatchtowerNetwork, WatchtowerNetworkProvider } from 'src/lib/multisig/network'
-import { createXprvFromXpubResolver } from 'src/utils/multisig-utils'
+import { binToHex } from '@bitauth/libauth'
 import { getExplorerBaseUrl } from 'src/utils/send-page-utils'
 
 export const useMultisigHelpers = () => {
   const $store = useStore()
-  const route = useRoute()
-  const router = useRouter()
 
   const localWallets = computed(() => {
     return $store.getters['global/getVault']
@@ -39,10 +35,31 @@ export const useMultisigHelpers = () => {
     })
   })
 
-  const resolveXPrvOfXpub = computed(() => {
-    return createXprvFromXpubResolver({
-      walletVault: $store.getters['global/getVault']
-    })
+  const getWalletsFromVault = async () => {
+    const vault = $store.getters["global/getVault"]
+    const wallets = []
+    for (const index of vault.keys()) {
+      const m = await getMnemonic(index)
+      const masterFingerprint = binToHex(getMasterFingerprint(m))
+      const wallet = {
+        name: vault[index].name,
+        mnemonic: m,
+        masterFingerprint,
+        deleted: vault[index].deleted
+      }
+      const { hdPrivateKey: xprv, hdPublicKey: xpub } = deriveHdKeysFromMnemonic({ mnemonic: m, network: 'mainnet', hdPath: vault[index]?.wallet?.derivationPath })
+      wallet.xpub = xpub 
+      wallet.xprv = xprv
+      wallets[index] = wallet
+    }
+    return wallets
+  }
+
+  const resolveXprvOfXpub = computed(() => {
+    return async ({ xpub }) => {
+      const wallets = await getWalletsFromVault()
+      return wallets.find(w => w.xpub === xpub)?.xprv
+    }
   })
 
   const txExplorerUrl = computed(() => {
@@ -62,26 +79,25 @@ export const useMultisigHelpers = () => {
         store: $store,
         provider: multisigNetworkProvider.value,
         coordinationServer: multisigCoordinationServer.value,
-        resolveXprvOfXpub: resolveXPrvOfXpub.value
+        resolveXprvOfXpub: resolveXprvOfXpub.value,
+        resolveMnemonicOfXpub,
       })
     })
     return wallets
   })
 
-  // transactions.send
-  const getSignerWalletFromVault = ({ xpub }) => {
-    const vaultIndex = localWallets.value.findIndex((signerWallet) => {
-      return signerWallet.wallet.bch.xPubKey === xpub
-    })
-    if (vaultIndex === -1) return
-    const wallet = localWallets.value[vaultIndex]
-    return { wallet, vaultIndex }
+  const getSignerWalletFromVault = async ({ xpub }) => {
+    const wallets = await getWalletsFromVault()
+    return wallets.find(w => w.xpub === xpub)
+  }
+
+  const resolveMnemonicOfXpub = async ({ xpub }) => {
+    const wallets = await getWalletsFromVault()
+    return wallets.find(w => w.xpub === xpub)?.mnemonic
   }
 
   const getSignerXPrv = async ({ xpub }) => {
-    const signerWallet = getSignerWalletFromVault({ xpub })
-    if (!signerWallet) return
-    const { mnemonic } = await loadWallet('BCH', signerWallet.vaultIndex)
+    const mnemonic = await resolveMnemonicOfXpub({ xpub })
     if (!mnemonic) return
     const hdKeys = deriveHdKeysFromMnemonic({ mnemonic })
     if (xpub !== hdKeys.hdPublicKey) return
@@ -145,7 +161,9 @@ export const useMultisigHelpers = () => {
 
   return {
     localWallets,
+    getWalletsFromVault,
     getSignerWalletFromVault,
+    resolveMnemonicOfXpub,
     getSignerXPrv,
     cashAddressNetworkPrefix,
     multisigWallets,
@@ -153,7 +171,7 @@ export const useMultisigHelpers = () => {
     getAssetTokenIdentity,
     multisigNetworkProvider: multisigNetworkProvider.value,
     multisigCoordinationServer: multisigCoordinationServer.value,
-    resolveXprvOfXpub: resolveXPrvOfXpub.value,
+    resolveXprvOfXpub: resolveXprvOfXpub.value,
     network: network.value
   }
 }
