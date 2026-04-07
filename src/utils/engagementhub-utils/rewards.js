@@ -213,6 +213,10 @@ export async function processMerchantOtcPoints (data) {
   return await processPoints('userreward/process_merchant_otc_points/', data)
 }
 
+export async function processRampCashinPoints (data) {
+  return await processPoints('userreward/process_cashin_points/', data)
+}
+
 export async function recordPointsRedemption (data) {
   return await REWARDS_URL
     .post('userpromo/record_points_redemption/', data)
