@@ -759,11 +759,11 @@ export class MultisigWallet {
 
     if (!this.options?.provider) throw new Error('Missing provider') 
 
-    const r1 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash())
-    const r2 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken', 'ft')
+    const r1 = this.options?.provider?.getWalletHashUtxos(this.walletHash)
+    const r2 = this.options?.provider?.getWalletHashUtxos(this.walletHash, 'cashtoken', 'ft')
     let requests = [r1, r2]
     if (includeNfts) {
-      const r3 = this.options?.provider?.getWalletHashUtxos(this.getWalletHash(), 'cashtoken', 'nft')
+      const r3 = this.options?.provider?.getWalletHashUtxos(this.walletHash, 'cashtoken', 'nft')
       requests.push(r3)
     }
     const responses = await Promise.allSettled(requests)
@@ -953,17 +953,15 @@ export class MultisigWallet {
   }
 
   async selectUtxos(proposal, source) {
-
     if (!proposal?.recipients?.every(r=> r.asset === proposal.recipients[0].asset)) {
       throw new Error('Sending mixed assets is not yet supported!')
     }
 
     let utxos = source 
 
-    if (!utxos) {
+    if (utxos === undefined) {
       utxos = await this.getWalletHashUtxos()
     }
-
     let targetBch = 
       proposal.recipients
         ?.filter(r => r.asset === 'bch')
@@ -973,7 +971,6 @@ export class MultisigWallet {
         )
     
     let targetSatoshis = Big(targetBch).mul(1e8)
-
     /**
      * @type {{Object.<string, bigint>}} - Key is the asset which is the token category
      */
@@ -1182,19 +1179,21 @@ export class MultisigWallet {
 
     let utxos = []
     let selectedUtxos = []
-    if (transactionType === 'send-non-fungible-assets') {
-      utxos = await this.getWalletHashUtxos(true)
-      if (proposal.reserveWcAccountUtxos) {
-        utxos = utxos.filter(u => u.addressPath !== '0/0' && u.address_path !== '0/0')
-      }
+    let includeNfts = transactionType === 'send-non-fungible-assets'
 
+    utxos = await this.getWalletHashUtxos(includeNfts)
+    
+    if (proposal.reserveWcAccountUtxos) {
+      utxos = utxos.filter(u => u.addressPath !== '0/0' && u.address_path !== '0/0')
+    }
+
+    if (utxos.length === 0 ) {
+      throw new Error('Insufficient Balance')
+    }
+    
+    if (includeNfts) {
       selectedUtxos = await this.selectNftUtxos(proposal, utxos)
     } else {
-      utxos = await this.getWalletHashUtxos()
-      if (proposal.reserveWcAccountUtxos) {
-        utxos = utxos.filter(u => u.addressPath !== '0/0' && u.address_path !== '0/0')
-      }
-      
       selectedUtxos = await this.selectUtxos(proposal, utxos.filter(u => !u.token?.nft))
     }
 
@@ -1310,7 +1309,7 @@ export class MultisigWallet {
       })
       await this.issueChangeAddress(changeAddressIndex)
     }
-    
+
     const pst = new Pst()
     pst
       .setOrigin(proposal.origin)
