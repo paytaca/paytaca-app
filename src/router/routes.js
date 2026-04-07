@@ -169,7 +169,7 @@ const routes = [
         children: [          
           { path: 'form', component: () => import('src/pages/apps/eload/eload-form.vue'), name: 'eload-service-form' },
           { path: 'orders', component: () => import('src/pages/apps/eload/eload-history.vue'), name: 'eload-service-orders' },
-          { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details' },
+          { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details', props: route => ({ ...route.params, ...route.query}), },
         ]
       },
 
