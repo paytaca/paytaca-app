@@ -269,16 +269,21 @@
                   v-if="!editDescription" 
                   flat                 
                   :color="themeColor" 
-                  padding="none" round icon="edit" size="sm" 
+                  no-caps
+                  icon="edit" 
+                  size="md"
+                  class="edit-btn"
                   @click="editDescription = true"
-                />
+                >
+                  <span class="q-ml-xs">Edit</span>
+                </q-btn>
               </div>
               <div v-if="!editDescription">        
-                <div v-if="description" class="description q-pa-sm br-15" 
+                <div v-if="description" class="description q-pa-md br-15 description-display" 
                   :class="darkMode ? 'text-white description-bg-dark' : 'text-grey-8 description-bg-light'">
                   {{ description }}
                 </div>
-                <div v-else class="text-center text-italic q-py-md" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                <div v-else class="text-center text-italic q-py-md empty-description" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
                   No description added...
                 </div>
               </div>
@@ -290,24 +295,36 @@
                   type="textarea"
                   rows="4"
                   :dark="darkMode"
-                  class="glass-input">
-                  <template v-slot:append>
-                    <div class="column q-gutter-xs">
-                      <q-btn flat dense round size="xs" icon="save_as" 
-                        :color="themeColor"
-                        @click="() => { 
-                          editDescription = false
-                          adData.description = description
-                        }"/>
-                      <q-btn flat dense round size="xs" icon="close" 
-                        color="red"
-                        @click="() => { 
-                          editDescription = false 
-                          description = adData.description
-                        }"/>
-                    </div>
-                  </template>
-                </q-input>                 
+                  class="glass-input description-input">
+                </q-input>
+                <div class="row q-gutter-sm q-mt-md justify-end">
+                  <q-btn 
+                    flat 
+                    no-caps
+                    size="md"
+                    icon="close" 
+                    color="grey-7"
+                    class="action-btn cancel-btn"
+                    @click="() => { 
+                      editDescription = false 
+                      description = adData.description
+                    }">
+                    <span class="q-ml-xs">Cancel</span>
+                  </q-btn>
+                  <q-btn 
+                    unelevated
+                    no-caps
+                    size="md"
+                    icon="save_as" 
+                    :color="themeColor"
+                    class="action-btn save-btn"
+                    @click="() => { 
+                      editDescription = false
+                      adData.description = description
+                    }">
+                    <span class="q-ml-xs">Save</span>
+                  </q-btn>
+                </div>
               </div>
               <q-checkbox
                 class="q-mt-sm"
@@ -1346,6 +1363,15 @@ export default {
   line-height: 1.6;
 }
 
+.description-display {
+  min-height: 60px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
 .description-bg-dark {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1354,6 +1380,61 @@ export default {
 .description-bg-light {
   background: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.empty-description {
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.05);
+}
+
+.edit-btn {
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 4px 12px;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.description-input {
+  ::v-deep .q-field__control {
+    padding: 12px 16px;
+    min-height: 120px;
+  }
+  
+  ::v-deep textarea {
+    line-height: 1.6;
+  }
+}
+
+.action-btn {
+  min-width: 100px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active {
+    transform: translateY(-1px);
+  }
+}
+
+.cancel-btn {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  
+  &:hover {
+    background: rgba(128, 128, 128, 0.1);
+  }
+}
+
+.save-btn {
+  border-radius: 12px;
 }
 
 /* ==================== ANIMATIONS ==================== */
