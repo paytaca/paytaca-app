@@ -493,6 +493,8 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
+import { processRampCashinPoints } from 'src/utils/engagementhub-utils/rewards'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 export default {
   data () {
@@ -2183,7 +2185,32 @@ export default {
           break
         }
         case 'RFN': // Refunded
-        case 'RLS': // Released
+          this.clearStoredTxids(this.order?.id)
+          state = this.getDefaultState()
+          this.reloadChildComponents()
+          break
+        case 'RLS': // Released - Order completed successfully
+          // Trigger reward API for buyer only
+          if (this.userTraderType === 'BUYER') {
+            const buyerAddress = this.contract?.addresses?.buyer
+            const txid = this.$store.getters['ramp/getOrderTxid'](this.order.id, 'RELEASE')
+            
+            if (buyerAddress && txid) {
+              const pointsResp = await processRampCashinPoints({
+                bch_address: buyerAddress,
+                is_ramp: true,
+                ref_id: hexToRef(txid.substring(0, 6)),
+                tx_id: txid
+              })
+
+              if (pointsResp) {
+                console.log('success')
+              } else {
+                console.error('(P2P Ramp) Cashin points processing failed.')
+              }
+            }
+          }
+          
           this.clearStoredTxids(this.order?.id)
           state = this.getDefaultState()
           this.reloadChildComponents()
