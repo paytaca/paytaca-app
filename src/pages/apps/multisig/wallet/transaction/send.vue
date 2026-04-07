@@ -35,10 +35,9 @@
                             size="sm"
                             :color="assetHeaderIcon === 'token'? 'grey': '' "
                           />
-                          <!-- <span style="font-size: 2em">{{ balance !== undefined ? balance - (walletWcReserveFunds ?? 0) : "..." }}</span> -->
-                          <span style="font-size: 2em">{{ availableBalance?.toFixed(8)}}</span>
+                          <span style="font-size: 2em">{{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(8): '0'}}</span>
                         </div>
-                        <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                        <div>{{ (availableBalance ?? 0 ) > 0 && assetPrice ? `=${assetPrice}` : '' }}</div>
                       </div>
                       <div v-if="walletWcSessionHistory?.length > 0 && walletWcAccountUtxos?.length > 0" class="col-xs-12">
                         <div class="text-center">
