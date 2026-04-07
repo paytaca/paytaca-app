@@ -386,7 +386,6 @@ export default {
 
   			if (result?.success) {
   				const newOrder = result.data || {}
-					console.log(newOrder)
   				const previousStatus = this.apiCallStatus.lastOrderStatus
   				const currentStatus = newOrder.status
   				

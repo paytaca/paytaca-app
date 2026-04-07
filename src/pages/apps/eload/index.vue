@@ -100,6 +100,9 @@ export default {
       return this.$store.getters['global/theme']
     },
     backNavPath () {
+      if (this.$route?.query?.from === 'app-rewards-transaction-history') {
+        return -1
+      }
       if (this.$route.name === 'eload-service-order-details') {
         return { name: 'eload-service-orders' }
       }

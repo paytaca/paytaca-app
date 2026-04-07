@@ -137,7 +137,8 @@ export default {
       } else if (this.data.order_txn_id && this.data.order_id) {
         this.$router.push({ 
           name: 'eload-service-order-details', 
-          params: { orderId: this.data.order_id }
+          params: { orderId: this.data.order_id },
+          query: { from: 'app-rewards-transaction-history' }
         })
       } else {
         return
