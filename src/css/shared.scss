@@ -114,10 +114,10 @@ body.platform-ios {
 // Apply a small, consistent base font-size bump only to containers
 // that opt-in via this class.
 .multisig-app {
-  font-size: 15px;
+  // font-size: 15px;
   // Add consistent side gutters like other apps pages
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-left: .5em;
+  padding-right: .5em;
   box-sizing: border-box;
 }
 
@@ -224,12 +224,45 @@ div#q-app:has(.sticky-header-container) {
 .q-btn.tile span.q-btn__content {
   align-items: baseline !important;
 }
+.q-btn.tile .q-icon,
+.q-btn.tile .q-avatar {
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.174);
+  width: 2.75rem !important;
+  height: 2.75rem !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+}
+.q-btn.tile:hover .q-icon,
+.q-btn.tile:hover .q-avatar {
+  transform: scale(1.1);
+}
 .q-btn .tile-label {
   font-size: .8em;
 }
 
 .light .q-btn .tile-label {
   color: black;
+}
+.q-btn.tile .q-icon {
+  color: white;
+}
+.q-btn.tile .q-avatar .q-img {
+  filter: brightness(0) invert(1);
+}
+.light .q-btn.tile .q-icon,
+.light .q-btn.tile .q-avatar {
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.light .q-btn.tile .q-icon {
+  color: black;
+}
+.light .q-btn.tile .q-avatar .q-img {
+  filter: brightness(0);
 }
 .subtext-gray {
   &.dark {

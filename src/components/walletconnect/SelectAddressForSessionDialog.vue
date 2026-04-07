@@ -10,7 +10,7 @@
           {{ 
             $t(
               'WcSelectAddressHeader', 
-              { peerName: sessionProposal?.proposer?.metadata.name || 'the app'}, 
+              { peerName: sessionProposal?.proposer?.metadata?.name || 'the app'}, 
               'Select the address you want to connect to {peerName}') 
           }} 
           <q-avatar v-if="sessionProposal?.proposer?.metadata?.icons?.[0]" rounded>
@@ -54,6 +54,7 @@
         <q-item-label header class="text-justify">
           <p>{{ $t('SingleSigAddressSelectionHeader', 'Shows the last used address on this peer app (if any) and at most the last 4 receiving addresses of your wallet. The format is n-address where n is the address index.') }}</p>
         </q-item-label>
+        <q-item-label v-if="multisigAddressOptions?.length > 0" header>{{ $t("SingleSigWallets", {}, "Regular Wallets") }}</q-item-label>
         <q-item
           v-for="item in addressOptions"
             :key="item.address"
@@ -82,7 +83,7 @@
             </q-item-section>
           </q-item>
         <q-separator></q-separator>
-        <q-item-label v-if="multisigAddressOptions?.length > 0" header>Multisig Address</q-item-label>
+        <q-item-label v-if="multisigAddressOptions?.length > 0" header>{{ $t("MultisigWallets", {}, "Multisig Wallets") }}</q-item-label>
         <q-item
           v-for="item in multisigAddressOptions"
             :key="item.address"
@@ -93,7 +94,7 @@
           >
             <q-item-section>
               <q-item-label>{{ item.name }}</q-item-label>
-              <q-item-label caption lines="2">{{ `${formatAddressForDisplay(item.address)}` }} </q-item-label>
+              <q-item-label caption lines="2">{{ `${item.index}-${formatAddressForDisplay(item.address)}` }} </q-item-label>
             </q-item-section>
 
             <q-item-section side>
@@ -150,13 +151,16 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
+import { useI18n } from 'vue-i18n'
 import PeerInfo from './PeerInfo.vue'
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $store = useStore()
 const settings = computed(() => $store.getters['walletconnect/settings'])
+const { t: $t } = useI18n()
 
 const formatAddressForDisplay = (address) => {
+  if (!address) return ''
   if (settings.value?.addressDisplayFormat === 'tokenaddr') {
     return shortenAddressForDisplay(convertCashAddress(address, $store.getters['global/isChipnet'], true))
   }
@@ -180,7 +184,7 @@ const multisigAddressOptions = ref([]) /* <{label: string, value: string, select
 const onConnectClick = () => {
   let selectedWalletAddress = props.walletAddresses.find((walletAddress) => walletAddress.address === addressSelected.value)
   if (addressSelectedIsMultisig.value) {
-    selectedWalletAddress = props.multisigWallets.find((walletAddress) => walletAddress.address === addressSelected.value)
+    selectedWalletAddress = props.multisigWallets.find((walletAddress) => walletAddress.getDepositAddress(0).address === addressSelected.value)
   }
   onDialogOK({
     selectedWalletAddress,
@@ -223,7 +227,14 @@ const onIwantToProvideSpecificAddressClick = () => {
 onMounted(() => {
   // walletAddresses has wif we don't want to pass it as options to the dialog
   addressOptions.value = props.walletAddresses?.map((item) => ({ label: item.address, address: item.address, index: item.address_index }))
-  multisigAddressOptions.value = props.multisigWallets?.map((item) => ({ label: item.template.name, address: item.address, isMultisig: true }))
+  multisigAddressOptions.value = props.multisigWallets?.map((item) => {
+    return { 
+      label: item.name, 
+      address: item.getDepositAddress(0).address, 
+      index: 0,
+      isMultisig: true 
+    }
+  })
   if (props.walletAddresses) {
     addressSelected.value = props.walletAddresses[0].address
     addressOptions.value[0].selected = true

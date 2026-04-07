@@ -44,6 +44,9 @@
                     {{ bchWallet.xPubKey || $t('NotAvailable', {}, 'Not available') }}
                   </q-item-label>
                 </q-item-section>
+                <q-item-section side>
+                  <q-btn icon="qr_code" @click.stop="showXPubQrCode" flat></q-btn>
+                </q-item-section>
               </q-item>
               <q-item v-if="showSensitiveInfo" clickable v-ripple @click="copyToClipboard(walletMasterFingerprint)">
                 <q-item-section>
@@ -342,6 +345,7 @@ import DenominatorSelector from 'src/components/settings/DenominatorSelector.vue
 import ThemeSelector from 'src/components/settings/ThemeSelector.vue'
 import RenameDialog from 'src/components/multi-wallet/renameDialog.vue'
 import SubscriptionStatus from 'src/components/subscription/SubscriptionStatus.vue'
+import XPubQrCodeDialog from 'src/components/settings/dialogs/XPubQrCodeDialog.vue'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
 import { loadWallet, getMnemonic, pinExists } from 'src/wallet'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
@@ -378,7 +382,8 @@ export default {
     ThemeSelector,
     AdvertisementsSettings,
     RenameDialog,
-    SubscriptionStatus
+    SubscriptionStatus,
+    XPubQrCodeDialog
   },
   computed: {
     isMobile () {
@@ -480,6 +485,15 @@ export default {
         timeout: 200,
         color: 'blue-9',
         icon: 'mdi-clipboard-check'
+      })
+    },
+    showXPubQrCode () {
+      if (!this.bchWallet.xPubKey) return
+      this.$q.dialog({
+        component: XPubQrCodeDialog,
+        componentProps: {
+          xPubKey: this.bchWallet.xPubKey
+        }
       })
     },
     async toggleLockApp (value) {

@@ -47,6 +47,7 @@
           no-caps
           @click="onCloseClick"
           color="red"
+          rounded
          />
       </q-card-actions>
     </q-card>

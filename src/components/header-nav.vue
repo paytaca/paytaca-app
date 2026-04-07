@@ -33,6 +33,44 @@
             </span>
           </p>
         </div>
+        <div v-if="route.path?.startsWith('/apps/multisig')" style="position: absolute; right: 0px; ">
+          <q-btn
+            icon="more_horiz"
+            flat 
+          >
+          <q-menu anchor="bottom left" self="top right">
+            <q-item clickable to="/apps/multisig">
+              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="flex items-center q-gutter-x-sm">
+                  <q-icon name="mdi-home-export-outline"></q-icon><div>{{ $t('MultisigWallets', {}, 'Multisig Wallets') }}</div>
+                </div>
+              </q-item-section>
+            </q-item>
+            <q-item clickable to="/apps/wallet-connect">
+              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="flex items-center q-gutter-x-sm">
+                  <q-icon name="mdi-connection"></q-icon><div>{{ $t('OpenWalletConnectApp', {}, 'Open Wallet Connect App') }}</div>
+                </div>
+              </q-item-section>
+            </q-item>
+            <q-item clickable to="/apps">
+              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="flex items-center q-gutter-x-sm">
+                  <q-icon name="mdi-apps"></q-icon><div>{{ $t('GoToApps', {}, 'Go To Apps') }}</div>
+                </div>
+              </q-item-section>
+            </q-item>
+            <q-separator></q-separator>
+            <q-item clickable to="/">
+              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+                <div class="flex items-center q-gutter-x-sm">
+                  <q-icon name="mdi-exit-to-app"></q-icon><div>{{ $t('Exit') }}</div>
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-menu>
+        </q-btn>
+        </div>
         <div class="pt-header-right col-auto row items-center justify-end">
           <slot name="top-right-menu">&nbsp;</slot>
         </div>
@@ -90,11 +128,15 @@
 import { vOnLongPress } from '@vueuse/components'
 import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-
+import { useRoute } from 'vue-router'
 export default {
   name: 'header-nav',
   directives: {
     'on-long-press': vOnLongPress,
+  },
+  setup() {
+    const route = useRoute()
+    return { route }
   },
   props: {
     title: {
@@ -111,7 +153,7 @@ export default {
     }
   },
   components: {
-    HelpDialog
+    HelpDialog,
   },
   emits: ['click', 'long-press-title'],
   data () {
