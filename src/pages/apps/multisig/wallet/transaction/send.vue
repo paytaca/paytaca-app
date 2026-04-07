@@ -279,6 +279,7 @@ const assetDecimalsHint = computed(() => {
 const recipientRules = computed(() => {
 
   const correctAddressFormat = (v) => {
+    if (!v) return true
     const decoded = decodeCashAddress(v)
     if (typeof decoded === 'string') {
       return decoded
@@ -298,10 +299,18 @@ const recipientRules = computed(() => {
   return [correctAddressFormat]
 })
 
+const DUST_LIMIT = 546
+
 const amountRules = computed(() => {
   let rules = [
     v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || $t('InvalidValue'),
-    v => Number(v) < availableBalance.value || $t('ValueExceedsBalance')
+    v => !v || Number(v) < availableBalance.value || $t('ValueExceedsBalance'),
+    v => {
+      if (v === '' || v === undefined) return true
+      const sats = Math.round(v * 1e8);
+      if (sats < DUST_LIMIT) return $t('DustAmountError');
+      return true;
+    }
   ]
   if (route.query.asset !== 'bch') {
     if (assetTokenIdentity.value?.token?.decimals === undefined || assetTokenIdentity.value?.token?.decimals === 0) {
