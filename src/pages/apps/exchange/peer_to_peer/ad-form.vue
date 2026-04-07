@@ -1357,8 +1357,7 @@ export default {
 }
 
 .description {
-  text-align: justify;
-  text-align-last: left;
+  text-align: left;
   white-space: pre-wrap;
   line-height: 1.6;
 }
