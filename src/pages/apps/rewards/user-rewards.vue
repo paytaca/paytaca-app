@@ -461,6 +461,7 @@
 <script>
 import { formatDateLocaleRelative } from 'src/utils/time'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
   Promos,
   PromosBytes,
@@ -484,7 +485,6 @@ import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialo
 import RedeemHistoryDialog from 'src/components/rewards/dialogs/RedeemHistoryDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
-import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 
 export default {
   name: 'UserRewards',

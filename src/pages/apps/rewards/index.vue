@@ -106,6 +106,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
   PromosBytes,
   getUserPromoData,
@@ -118,7 +119,6 @@ import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
-import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 
 export default {
   name: 'RewardsPage',

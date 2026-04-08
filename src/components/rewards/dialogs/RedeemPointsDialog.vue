@@ -329,11 +329,12 @@
 </template>
 
 <script>
-import { ensureKeypair } from 'src/utils/memo-service'
+import { loadWallet } from 'src/wallet'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
   getWalletTokenAddress,
   recordPointsRedemption
@@ -347,7 +348,6 @@ import BiometricWarningAttempt from 'src/components/authOption/biometric-warning
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 import confetti from 'canvas-confetti'
-import { loadWallet } from 'src/wallet'
 
 export default {
   name: 'RedeemPointsDialog',
@@ -484,8 +484,9 @@ export default {
     
     async fetchContractPoints () {
       try {
-        const keyPair = await ensureKeypair()
-        this.contract = new PromoContract(keyPair.pubkey, this.promoBytes)
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        this.contract = new PromoContract(userPubkey, this.promoBytes)
         this.contractPoints = await this.contract.getTokenBalance()
       } catch (error) {
         console.error('Error initializing redeem dialog:', error)
