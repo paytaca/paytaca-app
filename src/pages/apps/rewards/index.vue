@@ -112,6 +112,7 @@ import {
   getUserPromoData,
   createUserPromoData,
   updateUserPromoData,
+  getLiftConversionRatio,
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -135,6 +136,8 @@ export default {
       isHelpActive: false,
       error: null,
       swapContractAddress: '',
+      totalPoints: 0,
+      liftConversionRatio: 1,
 
       pointsType: ['ur', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
@@ -177,12 +180,19 @@ export default {
       this.error = null
 
       const data = await getUserPromoData()
-      if (data && Object.keys(data).length > 0) {
+      const [upResp, ratioResp] = await Promise.allSettled(
+        [getUserPromoData(), getLiftConversionRatio()]
+      )
+      const upData = upResp.value
+      const ratioData = ratioResp.value
+
+      // process fetched upData
+      if (upData && Object.keys(upData).length > 0) {
         try {
           const walletIndex = this.$store.getters['global/getWalletIndex']
           const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
-            const promoId = data[type]
+            const promoId = upData[type]
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
               const contract = new PromoContract(userPubkey, targetPromo)
@@ -195,11 +205,14 @@ export default {
           console.error(error)
           this.error = this.$t('FailedToLoadPromoData', 'Unable to load promo data at the moment. Please try again later.')
         }
-      } else if (data && Object.keys(data.length === 0)) {
+      } else if (upData && Object.keys(upData.length === 0)) {
         await createUserPromoData()
       } else {
         this.error = this.$t('FailedToLoadPage', 'Unable to load page at the moment. Please try again later.')
       }
+
+      // process fetched ratioData
+      this.liftConversionRatio = ratioData
 
       this.isLoading = false
 
