@@ -274,7 +274,6 @@
 </template>
 
 <script>
-import { ensureKeypair } from 'src/utils/memo-service'
 import { formatDateLocaleRelative } from 'src/utils/time'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
@@ -298,6 +297,7 @@ import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialo
 import RedeemHistoryDialog from 'src/components/rewards/dialogs/RedeemHistoryDialog.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 
 export default {
   name: 'RFPromo',
@@ -373,8 +373,9 @@ export default {
 
       // initialize RP Promo Contract and retrieve points
       try {
-        const keyPair = await ensureKeypair()
-        this.rpContract = new PromoContract(keyPair.pubkey, PromosBytes.RP)
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        this.rpContract = new PromoContract(userPubkey, PromosBytes.RP)
         if (this.rpId === -1) await this.rpContract.subscribeAddress()
         this.points = await this.rpContract.getTokenBalance()
         this.animatePointsCounter()

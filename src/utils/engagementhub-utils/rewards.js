@@ -8,7 +8,7 @@ import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 //   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
-export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY || '8473d94f604de351cdee3030f6c354d36b257861ad8e95bbc0a06fbab2a2f9cf'
+export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 
 export const Promos = {
   USERREWARDS: 'ur',
@@ -29,9 +29,9 @@ export const PromosBytes = {
 // util functions
 // ================================
 
-export async function getWalletTokenAddress () {
+export async function getWalletTokenAddress (use0thAddressIndex=false) {
   const { generateReceivingAddress, getDerivationPathForWalletType } = await import('src/utils/address-generation-utils.js')
-  const addressIndex = Store.getters['global/getLastAddressIndex']('bch')
+  const addressIndex = use0thAddressIndex ? 0 : Store.getters['global/getLastAddressIndex']('bch')
   const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
   const bchAddress = await generateReceivingAddress({
     walletIndex: Store.getters['global/getWalletIndex'],

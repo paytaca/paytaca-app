@@ -347,6 +347,7 @@ import BiometricWarningAttempt from 'src/components/authOption/biometric-warning
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 import confetti from 'canvas-confetti'
+import { loadWallet } from 'src/wallet'
 
 export default {
   name: 'RedeemPointsDialog',
@@ -474,7 +475,7 @@ export default {
       // Store original total for display
       this.originalPoints = this.contractPoints
       // Get token address
-      this.tokenAddress = await getWalletTokenAddress()
+      this.tokenAddress = await getWalletTokenAddress(true)
       // Set initial display points (no animation on first load)
       this.displayPoints = this.contractPoints
 
@@ -625,8 +626,12 @@ export default {
       this.customKeyboardState = 'dismiss'
 
       try {
-        const keyPair = await ensureKeypair()
-        const wif = Buffer.from(keyPair.privkey, 'hex')
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const wallet = await loadWallet('BCH', walletIndex)
+        if (!wallet?.BCH) {
+          throw new Error('Failed to load BCH wallet.')
+        }
+        const wif = wallet.BCH.getPrivateKey('0/0')
         
         const redeemTxid = await this.contract.redeemPoints(
           wif, this.tokenAddress, BigInt(this.pointsToRedeem)

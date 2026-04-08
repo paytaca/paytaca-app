@@ -105,7 +105,6 @@
 </template>
 
 <script>
-import { ensureKeypair } from 'src/utils/memo-service'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import {
   PromosBytes,
@@ -119,6 +118,7 @@ import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 
 export default {
   name: 'RewardsPage',
@@ -179,12 +179,13 @@ export default {
       const data = await getUserPromoData()
       if (data && Object.keys(data).length > 0) {
         try {
-          const keyPair = await ensureKeypair()
+          const walletIndex = this.$store.getters['global/getWalletIndex']
+          const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
             const promoId = data[type]
             if (promoId) {
               const targetPromo = PromosBytes[type.toUpperCase()]
-              const contract = new PromoContract(keyPair.pubkey, targetPromo)
+              const contract = new PromoContract(userPubkey, targetPromo)
               const promoBalance = await contract.getTokenBalance()
               this.promos[type].points = promoBalance
               this.promos[type].id = promoId
