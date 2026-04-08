@@ -630,7 +630,7 @@ export default {
 
           // send 5 initial points when user is a first time user and was referred
           if (urData.is_first_time_user) {
-            await awardInitialUP({ ur: this.urId })
+            await awardInitialUP({ ur_id: this.urId })
             urData = await getUserRewardsData(this.urId)
             // sleep to allow utxos to update
             await new Promise(resolve => setTimeout(resolve, 1000))
