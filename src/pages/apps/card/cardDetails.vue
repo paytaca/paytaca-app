@@ -68,9 +68,9 @@
                 class="q-mr-sm"
                 :class="textColor"
               >
-                {{ activeCard?.balance || '0.00' }} BCH
+                {{ formatBalance(activeCard?.balance) }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
-                <!-- {{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH -->
+                <!-- {{ formatBalance(activeCard?.getBchBalance ? activeCard.getBchBalance() : activeCard?.balance) }} BCH -->
               </div>
               <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
             </div>
@@ -888,9 +888,9 @@
               class="q-mb-md"
               :class="textColorGrey"
             >
-              This will transfer all funds ({{ activeCard?.balance }} BCH) from your card back to your wallet.
+              This will transfer all funds ({{ formatBalance(activeCard?.balance) }} BCH) from your card back to your wallet.
               <!-- NEW: Use Card class method -->
-              <!-- This will transfer all funds ({{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH) from your card back to your wallet. -->
+              <!-- This will transfer all funds ({{ formatBalance(activeCard?.getBchBalance ? activeCard.getBchBalance() : activeCard?.balance) }} BCH) from your card back to your wallet. -->
             </div>
             <div 
               class="text-caption"
@@ -1273,7 +1273,7 @@ export default {
       }
 
       this.$q.notify({
-        message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(8)} BCH) to your card!`,
+        message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(4)} BCH) to your card!`,
         color: 'positive',
         position: 'top',
         timeout: 2000

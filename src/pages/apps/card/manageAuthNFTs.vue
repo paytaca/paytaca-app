@@ -160,7 +160,7 @@
             class="q-mb-md text-caption"
             :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'"
           >
-            Available Balance: {{ card?.balance }} BCH
+            Available Balance: {{ formatBalance(card?.balance) }} BCH
           </div>
           <q-input
             v-model="spendLimitInput"

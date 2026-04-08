@@ -46,7 +46,7 @@
               </div>
               <div class="card-balance text-weight-bold">
                 <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loading" type="text" width="80px" /> -->
-                {{ card.balance || '0.00' }} BCH
+                {{ formatBalance(card.balance) }} BCH
               </div>
             </div>
           </div>

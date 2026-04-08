@@ -54,9 +54,9 @@
                 :class="textColor"
               >
                 <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
-                {{ card.balance || '0.00' }} BCH
+                {{ formatBalance(card.balance) }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
-                <!-- {{ card?.getBchBalance ? card.getBchBalance() : (card?.balance || '0.00') }} BCH -->
+                <!-- {{ formatBalance(card?.getBchBalance ? card.getBchBalance() : card?.balance) }} BCH -->
               </div>
             </div>
           </div>
@@ -497,7 +497,7 @@ export default {
         id: Date.now(),
         name: this.newCardName.trim(),  // Add name property for display
         raw: { alias: this.newCardName.trim() },
-        balance: '0.00', // New card has 0 BCH balance
+        balance: '0.0000', // New card has 0 BCH balance
         status: 'Active',
         contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
         // TODO: Replace with card_instance.raw.cash_address or card_instance.raw.token_address from Card class
