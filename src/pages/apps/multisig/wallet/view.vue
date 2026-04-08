@@ -238,7 +238,7 @@
                         </div>
                     </q-item-section>
                     <q-item-section side>
-                      {{ balances?.[asset] ? Big(balances[asset]).div(`1e${balances?.[asset]?.decimals || 0}`) : '...' }}
+                      {{ balances?.[asset] ? Big(balances[asset]).div(`1e${tokenIdentities[asset]?.token?.decimals || 0}`) : '...' }}
                     </q-item-section>
                   </q-item>
                 </template>
@@ -688,6 +688,7 @@ const discoverTokenIdentities = async (balances) => {
       identity: await getAssetTokenIdentity(asset)
     }))
   )
+
   return Object.fromEntries(results.map(r => [r.asset, r.identity]))
 }
 

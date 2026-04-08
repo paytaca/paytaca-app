@@ -35,9 +35,14 @@
                             size="sm"
                             :color="assetHeaderIcon === 'token'? 'grey': '' "
                           />
-                          <span style="font-size: 2em">{{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(8): '0'}}</span>
+                          <span v-if="route.query.asset === 'bch'" style="font-size: 2em">
+                            {{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(8): '0'}}
+                          </span>
+                          <span v-else style="font-size: 2em">
+                            {{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(assetTokenIdentity?.token?.decimals || 0): '0'}}
+                          </span>
                         </div>
-                        <div>{{ (availableBalance ?? 0 ) > 0 && assetPrice ? `=${assetPrice}` : '' }}</div>
+                        <div v-if="route.query.asset === 'bch'" >{{ (availableBalance ?? 0 ) > 0 && assetPrice ? `=${assetPrice}` : '' }}</div>
                       </div>
                       <div v-if="walletWcSessionHistory?.length > 0 && walletWcAccountUtxos?.length > 0" class="col-xs-12">
                         <div class="text-center">
@@ -233,7 +238,8 @@ const walletWcReserveFunds = computed(() => {
     if (!asset || asset === 'bch') {
       return defaultAddressUtxos.filter(u => !u.token).reduce((b, u) => b + (u.satoshis || 0), 0) / 1e8
     }
-    return defaultAddressUtxos.filter(u => u.token && u.token?.category === asset).reduce((b, u) => b + (u.token?.amount || 0), 0)
+    const tokenReserveFunds = defaultAddressUtxos.filter(u => u.token && u.token?.category === asset).reduce((b, u) => b + (u.token?.amount || 0), 0)
+    return Big(tokenReserveFunds).div(`1e${assetTokenIdentity.value?.token?.decimals || 0}`).toString()
   }
   return undefined
 })
@@ -303,7 +309,16 @@ const DUST_LIMIT = 546
 const amountRules = computed(() => {
   let rules = [
     v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || $t('InvalidValue'),
-    v => !v || Number(v) < availableBalance.value || $t('ValueExceedsBalance'),
+    v => {
+      if (!v) return true
+      if (route.query.asset !== 'bch') {
+        return (Number(v) <= availableBalance.value) || $t('ValueExceedsBalance') 
+      }
+      if (route.query.asset === 'bch') {
+        return (Number(v) < availableBalance.value) || $t('ValueExceedsBalance') 
+      }
+      return true
+    },
     v => {
       if (v === '' || v === undefined) return true
       const sats = Math.round(v * 1e8);
@@ -424,6 +439,13 @@ const createProposal = async () => {
         creator = generateCosignerAuthPublicKeyFromXpub({ xpub: signer.xpub })
       }
     }
+
+    if (route.query.asset !== 'bch' && Number(assetTokenIdentity.value?.token?.decimals || 0) > 0) {
+      recipients.value.forEach((r) => {
+        r.decimals =  Number(assetTokenIdentity.value.token.decimals)
+      })
+    }
+
     const proposal = await wallet.value.createProposal({
       creator: creator,
       origin: 'paytaca-wallet',
@@ -519,14 +541,20 @@ onBeforeMount(async () => {
 
 onMounted(async () => {
   balance.value = await wallet.value.getWalletBalance(route.query.asset)
-  
   balanceConvertionRates.value = 
       await wallet.value.convertBalanceToCurrencies(
         route.query.asset,
         balance.value,
         [$store.getters['market/selectedCurrency'].symbol]
       )
+  
   assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
+  if (route.query.asset !== 'bch' && 
+    assetTokenIdentity.value?.token?.decimals && 
+    Number(assetTokenIdentity.value?.token?.decimals) > 0) {
+    balance.value = Big(balance.value).div(`1e${assetTokenIdentity.value.token.decimals}`).toString()
+  }
+
   await wallet.value.subscribeWalletAddressIndex(wallet.value.getLastUsedChangeAddressIndex(network) + 1, 'change')
   purpose.value = `${$t('Send')} ${assetHeaderName.value}`
 })
