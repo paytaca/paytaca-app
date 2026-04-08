@@ -632,7 +632,7 @@ export default {
         if (!wallet?.BCH) {
           throw new Error('Failed to load BCH wallet.')
         }
-        const wif = wallet.BCH.getPrivateKey('0/0')
+        const wif = await wallet.BCH.getPrivateKey('0/0')
         
         const redeemTxid = await this.contract.redeemPoints(
           wif, this.tokenAddress, BigInt(this.pointsToRedeem)

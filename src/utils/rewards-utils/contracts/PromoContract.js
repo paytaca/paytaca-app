@@ -9,7 +9,7 @@ import {
 
 import { getOutputSize } from "cashscript/dist/utils";
 import { calculateInputSize } from 'src/utils/cashscript-utils';
-import { PROMO_TOKEN_CATEGORY } from "src/utils/engagementhub-utils/rewards"
+import { PROMO_TOKEN_CATEGORY, PROMO_TOKEN_DECIMALS } from "src/utils/engagementhub-utils/rewards"
 
 import axios from "axios"
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
@@ -48,12 +48,14 @@ export default class PromoContract {
   async redeemPoints (userWif, userTokenAddress, pointsToRedeem) {
     // get utxos
     const contractUtxos = await this.contract.getUtxos()
-
     // compute bch and token balances
     const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
     const tokenBalance = contractUtxos
       .filter(utxo => utxo.token)
       .reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
+
+    // multiple points to redeem by token decimal
+    const actualPointstoRedeem = pointsToRedeem * (10n ** BigInt(PROMO_TOKEN_DECIMALS))
 
     // build input
     const inputs = contractUtxos
@@ -65,20 +67,20 @@ export default class PromoContract {
         to: userTokenAddress,
         amount: 1000n,
         token: {
-          amount: pointsToRedeem,
+          amount: actualPointstoRedeem,
           category: PROMO_TOKEN_CATEGORY
         }
       }
     ]
 
-    if (tokenBalance - pointsToRedeem > 0n) {
+    if (tokenBalance - actualPointstoRedeem > 0n) {
       // token change output in outputs[1]
       // (will be outputs[2] later on after inserting bch change output)
       outputs.push({
         to: this.contract.tokenAddress,
         amount: 1000n,
         token: {
-          amount: tokenBalance - pointsToRedeem,
+          amount: tokenBalance - actualPointstoRedeem,
           category: PROMO_TOKEN_CATEGORY
         }
       })
@@ -130,7 +132,7 @@ export default class PromoContract {
     return tokenUtxos
       .reduce((total, el) => {
         return total + (Number(el.token?.amount))
-      }, 0)
+      }, 0) / (10 ** PROMO_TOKEN_DECIMALS)
   }
 
   /**
