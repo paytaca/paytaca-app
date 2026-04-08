@@ -131,8 +131,16 @@ export async function getRfPromoData (id) {
 
 export async function getRpMaxRedeemable () {
   const rpMax = await getData('rfpromo/get_rp_max_redeemable/')
-  // fallback to original 10_000 when something goes wrong with server fetch
+  // fallback to original value of 10_000 when something goes wrong with server fetch
   return rpMax && Object.keys(rpMax).length > 0 ? rpMax.rp_max : 10000
+}
+
+export async function getLiftConversionRatio () {
+  const conversionRatio = await getData('userpromo/get_lift_convertion_ratio/')
+  // fallback to original value of 4 when something goes wrong with server fetch
+  return conversionRatio && Object.keys(conversionRatio).length > 0
+    ? conversionRatio.conversion_ratio
+    : 4
 }
 
 // ========== create functions ==========
