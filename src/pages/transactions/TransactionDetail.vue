@@ -153,8 +153,7 @@
                 </div>
               </template>
             </q-img>
-            <!-- View in Collectibles Button -->
-            <div class="q-mt-md q-mb-sm">
+            <div v-if="isReceivedNft" class="q-mt-md q-mb-sm">
               <q-btn
                 no-caps
                 rounded
@@ -690,6 +689,9 @@ export default {
         if (nftAttribute) return true
       }
       return false
+    },
+    isReceivedNft () {
+      return this.isNft && this.tx && this.tx.record_type === 'incoming'
     },
     nftTokenId () {
       if (!this.isNft || !this.tx) return null
