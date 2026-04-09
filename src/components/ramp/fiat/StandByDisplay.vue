@@ -2,23 +2,6 @@
   <div :class="getDarkModeClass(darkMode)" class="text-bow">
     <div v-if="isloaded">
       <div class="q-px-sm q-mx-lg">
-        <div v-if="isAppealed">
-          <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
-            <q-card-section>
-              <div class="text-weight-bold md-font-size">{{ $t('AppealReasons') }}</div>
-              <div v-if="appeal">
-                <q-badge
-                  v-for="reason in appeal.reasons"
-                  :key="reason"
-                  rounded
-                  size="sm"
-                  outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                  class="q-mr-xs"
-                  :label="reason" />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
         <div v-if="displayContractInfo" class="q-mt-sm q-mx-sm">
           <!-- Contract Information Section -->
           <div class="section-wrapper">
@@ -79,6 +62,29 @@
               </q-item>
             </q-list>
           </div>
+        </div>
+        <div v-if="isAppealed">
+          <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
+            <q-card-section>
+              <div class="text-weight-bold md-font-size">{{ $t('Appealed') }}</div>
+              <div v-if="appeal" class="q-mt-xs">
+                <template v-if="appeal.type && appealAmountBCH">
+                  {{ $t('AppealStatement', { action: appealAction, amount: appealAmountBCH, recipient: appealRecipient }, `You have appealed to ${appealAction} the ${appealAmountBCH} BCH to ${appealRecipient}.`) }}
+                </template>
+                <div class="q-mt-xs">
+                  <span class="text-weight-medium">{{ $t('Reason', {}, 'Reason') }}:</span>
+                  <q-badge
+                    v-for="reason in appeal.reasons"
+                    :key="reason"
+                    rounded
+                    size="sm"
+                    outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                    class="q-mx-xs"
+                    :label="reason" />
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
         </div>
         <!-- Payment methods -->
         <div v-if="showSelectedPaymentMethod" class="q-px-xs q-pt-sm">
@@ -257,7 +263,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink, getExplorerAddressLink } from 'src/utils/send-page-utils'
-import { formatCurrency } from 'src/exchange'
+import { formatCurrency, satoshiToBch } from 'src/exchange'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
@@ -356,6 +362,30 @@ export default {
     isAppealed () {
       return this.data?.order?.status?.value === 'APL'
     },
+    appealRecipient () {
+      if (!this.appeal?.type?.value) return ''
+      const isRelease = this.appeal.type.value === 'RLS'
+      const isBuyer = this.userType === 'buyer'
+      if (isRelease) {
+        return isBuyer
+          ? this.$t('YouTheBuyer', {}, 'you (the buyer)')
+          : this.$t('TheBuyer', {}, 'the buyer')
+      }
+      return isBuyer
+        ? this.$t('TheSeller', {}, 'the seller')
+        : this.$t('YouTheSeller', {}, 'you (the seller)')
+    },
+    appealAction () {
+      if (!this.appeal?.type?.value) return ''
+      return this.appeal.type.value === 'RLS'
+        ? this.$t('Release', {}, 'Release').toLowerCase()
+        : this.$t('Refund', {}, 'Refund').toLowerCase()
+    },
+    appealAmountBCH () {
+      const satoshis = this.data?.order?.trade_amount
+      if (!satoshis) return ''
+      return satoshiToBch(satoshis)
+    },
     isCompletedOrder () {
       return (this.data?.order?.status.value === 'RLS' || this.data?.order?.status.value === 'RFN')
     },
@@ -390,7 +420,7 @@ export default {
       }
     },
     hasLabel () {
-      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'APL']
       return stat.includes(this.data?.order?.status.value)
     },
     label () {
@@ -423,6 +453,7 @@ export default {
       }
 
       const labels = {
+        APL: this.$t('StandByDisplayLabelApl', {}, 'An appeal has been submitted. Please wait while the arbiter reviews the case. The arbiter will decide whether the funds in the escrow contract are refunded to the seller or released to the buyer. You may use the chat to communicate with the arbiter and the other party.'),
         SBM: this.$t('StandByDisplayLabelSbm'),
         CNF: this.$t('StandByDisplayLabelCnf'),
         ESCRW_PN: this.$t('StandByDisplayLabelEscrwPn'),
