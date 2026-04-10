@@ -15,13 +15,13 @@
           class="button"
           icon="question_mark"
           size="sm"
-          @click="isHelpActive = true"
+          @click="isSummaryExpanded = false; isHelpActive = true"
         />
       </template>
     </header-nav>
 
     <!-- Collapsible Aggregated Points & LIFT Value Section -->
-    <div class="q-mx-lg q-mt-md q-mb-md">
+    <div class="q-mx-lg q-mt-md q-mb-md card-help-highlight">
       <div
         class="br-15 q-pa-md group-currency cursor-pointer transition-card"
         :class="[getDarkModeClass(darkMode), { 'q-pb-md': !isSummaryExpanded }]"
@@ -179,6 +179,8 @@
         </q-slide-transition>
       </div>
     </div>
+
+    <q-separator class="q-mx-md" />
 
     <!-- Error State -->
     <error-card
