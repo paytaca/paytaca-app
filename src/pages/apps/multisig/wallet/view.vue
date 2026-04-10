@@ -28,7 +28,7 @@
                       <q-icon name="img:bitcoin-cash-circle.svg" size="md"></q-icon>
                       <div class="text-h6 text-bold">
                         <q-skeleton 
-                          v-if="balances?.['bch'] === undefined || balancesRefreshing"
+                          v-if="balances === undefined || balancesRefreshing"
                           type="text" 
                           width="5em" 
                           height="2.7em"
