@@ -58,7 +58,7 @@
                 
                 <!-- Line 2: BCH • Fiat -->
                 <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ formattedBchPrice }} BCH • {{ formattedFiatPrice }} {{ selectedCurrency?.symbol }}
+                  {{ formattedBchPrice }} BCH • {{ formattedFiatPrice }}
                 </div>
               </template>
             </div>
@@ -85,7 +85,7 @@
 
         <!-- Expanded State Content (Animated) -->
         <q-slide-transition>
-          <div v-show="isSummaryExpanded" class="q-pt-md">
+          <div v-show="isSummaryExpanded" class="q-pt-sm">
             
             <!-- Total Points Display -->
             <div class="row justify-between items-baseline q-mb-xs">
@@ -134,7 +134,7 @@
                   &nbsp;≈&nbsp;
                 </span>
                 <span class="text-body2" :class="getDarkModeClass(darkMode)">
-                  {{ formattedFiatPrice }} {{ selectedCurrency?.symbol }}
+                  {{ formattedFiatPrice }}
                 </span>
               </div>
             </div>
@@ -153,7 +153,7 @@
                   ≈ {{ formattedTotalBch }} BCH
                 </span>
                 <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  ≈ {{ formattedTotalFiat }} {{ selectedCurrency?.symbol }}
+                  ≈ {{ formattedTotalFiat }}
                 </span>
               </div>
             </div>
@@ -248,6 +248,8 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
+import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import {
   PromosBytes,
   getUserPromoData,
@@ -261,12 +263,6 @@ import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
-import {
-  LIFT_TOKEN_CATEGORY,
-  LIFT_TOKEN_DECIMALS
-} from 'src/utils/subscription-utils'
-import { convertTokenAmount } from 'src/wallet/chipnet'
-import { formatCurrency } from 'src/exchange'
 
 export default {
   name: 'RewardsPage',
@@ -364,12 +360,10 @@ export default {
     // Format LIFT amount with proper decimals (using convertTokenAmount)
     formattedLiftAmount () {
       if (this.liftTokenAmount === 0) return '0'
-      return convertTokenAmount(
-        this.liftTokenAmount * Math.pow(10, LIFT_TOKEN_DECIMALS),
-        LIFT_TOKEN_DECIMALS,
-        LIFT_TOKEN_DECIMALS,
-        false,
-        false
+      const hasFraction = this.liftTokenAmount % 1 !== 0
+      return formatWithLocale(
+        this.liftTokenAmount,
+        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
       )
     },
 
@@ -392,17 +386,17 @@ export default {
       })
     },
 
-    // Format fiat price using formatCurrency with locale detection
+    // Format fiat price using parseFiatCurrency with locale detection
     formattedFiatPrice () {
       if (!this.liftFiatPrice || this.liftFiatPrice === 0) return '--'
-      return formatCurrency(this.liftFiatPrice, this.selectedCurrency?.symbol)
+      return parseFiatCurrency(this.liftFiatPrice, this.selectedCurrency?.symbol)
     },
 
     // Format total fiat value
     formattedTotalFiat () {
       if (this.totalFiatValue === 0) return '0'
       if (!this.totalFiatValue) return '--'
-      return formatCurrency(this.totalFiatValue, this.selectedCurrency?.symbol)
+      return parseFiatCurrency(this.totalFiatValue, this.selectedCurrency?.symbol)
     },
 
     // Format conversion ratio display
