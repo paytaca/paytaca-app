@@ -395,7 +395,13 @@
               <q-card-section>
                 <!-- Marketplace Row -->
                 <div class="row items-center q-mb-md cursor-pointer hover-highlight" @click="openMarketplaceHistory">
-                  <q-icon name="img:marketplace.png" size="24px" class="q-mr-sm bg-primary q-pa-sm" style="border-radius: 50%;" />
+                  <q-icon
+                    name="img:marketplace.png"
+                    size="24px"
+                    class="q-mr-sm bg-primary q-pa-sm"
+                    color="white"
+                    style="border-radius: 50%;"
+                  />
                   <div class="col">
                     <span class="text-body2 text-weight-medium">{{ $t('Merchant', 'Merchant') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -412,7 +418,13 @@
 
                 <!-- Cashin Row -->
                 <div class="row items-center q-mb-md cursor-pointer hover-highlight" @click="openCashinHistory">
-                  <q-icon name="mdi-cash-plus" size="24px" class="q-mr-sm bg-primary q-pa-sm" style="border-radius: 50%;" />
+                  <q-icon
+                    name="mdi-cash-plus"
+                    size="24px"
+                    class="q-mr-sm bg-primary q-pa-sm"
+                    style="border-radius: 50%;"
+                    color="white"
+                  />
                   <div class="col">
                     <span class="text-body2 text-weight-medium">{{ $t('Cashin', 'Cash-in') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -429,7 +441,13 @@
 
                 <!-- Eload Row -->
                 <div class="row items-center cursor-pointer hover-highlight" @click="openEloadHistory">
-                  <q-icon name="card_membership" size="24px" class="q-mr-sm bg-primary q-pa-sm" style="border-radius: 50%;" />
+                  <q-icon
+                    name="card_membership"
+                    size="24px"
+                    class="q-mr-sm bg-primary q-pa-sm"
+                    style="border-radius: 50%;"
+                    color="white"
+                  />
                   <div class="col">
                     <span class="text-body2 text-weight-medium">{{ $t('Eload', 'Eload') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
