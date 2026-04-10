@@ -1,9 +1,10 @@
 import router from 'src/router/index';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-import { getMerchantList } from 'src/services/card/merchants';
+import { getMerchantList as getMerchantListService } from 'src/services/card/merchants';
 import { Card } from 'src/services/card/card';
 
-export { getMerchantList };
+// Re-export merchant service for components
+export { getMerchantListService as getMerchantList };
 
 // For card data structure documentation, see CARD_DATA_REFERENCE.md
 // CardStorage utility for localStorage CRUD operations

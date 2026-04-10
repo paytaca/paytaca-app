@@ -154,7 +154,8 @@ export const createCardLogic = {
       try {
         await this.getCards()
         const card = this.subCards[0]
-        const merchants = await getMerchantList()
+        // Fetch merchants without location filter (get all verified merchants)
+        const merchants = await getMerchantList({ limit: 10, offset: 0 })
         console.log('Merchants fetched:', merchants)
         const merchant = merchants.results[0]
         console.log('merchant:', merchant)
@@ -332,12 +333,15 @@ export const createCardLogic = {
       },
 
       // Merchant methods - fetch real merchant data from API
+      // Note: This fetches ALL verified merchants without location filtering
+      // For location-based merchant list, use manageAuthNFTs.vue instead
       async refreshMerchants() {
         this.merchantsLoading = true
         try {
-          const data = await getMerchantList({ limit: 100, page: 1})
-          this.merchantList = data.results || data || []
-          console.log('Merchants loaded:', this.merchantList)
+          // Fetch all merchants without location filter (limit=0 means no limit)
+          const data = await getMerchantList({ limit: 0, offset: 0 })
+          this.merchantList = data.results || []
+          console.log('Merchants loaded:', this.merchantList.length, 'merchants')
         }
         catch (error) {
           console.error("Error fetching merchants: ", error)

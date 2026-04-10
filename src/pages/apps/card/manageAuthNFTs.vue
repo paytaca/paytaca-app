@@ -1,5 +1,47 @@
 <template>
   <div class="full-width">
+    <!-- Location Info -->
+    <div 
+      v-if="userLocation"
+      class="row items-center q-mb-md q-px-sm"
+      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+    >
+      <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
+      <span class="text-caption ellipsis">
+        {{ userLocation.formatted || 'Using current location' }}
+      </span>
+      <q-btn
+        flat
+        dense
+        no-caps
+        size="0.75rem"
+        color="primary"
+        class="q-ml-sm"
+        @click="openLocationSelector"
+      >
+        Change
+      </q-btn>
+    </div>
+    <div 
+      v-else
+      class="row items-center q-mb-md q-px-sm"
+      :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+    >
+      <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
+      <span class="text-caption">Set your location to find nearby merchants</span>
+      <q-btn
+        flat
+        dense
+        no-caps
+        size="0.75rem"
+        color="primary"
+        class="q-ml-sm"
+        @click="openLocationSelector"
+      >
+        Set Location
+      </q-btn>
+    </div>
+
     <!-- Search bar -->
     <div class="row items-center q-mb-md q-gutter-x-sm">
       <div class="col">
@@ -9,6 +51,7 @@
           outlined 
           dense
           :dark="$q.dark.isActive"
+          clearable
         >
           <template v-slot:append>
             <q-icon name="search" />
@@ -62,23 +105,61 @@
     <q-separator class="q-mb-sm" :dark="$q.dark.isActive" />
 
     <!-- Merchants List -->
-    <div class="text-subtitle2 q-mb-sm" :class="textColor">Merchants</div>
-    <!-- SKELETON LOADER for merchants title: <q-skeleton v-if="loading" type="text" width="80px" class="q-mb-sm" /> -->
+    <div class="text-subtitle2 q-mb-sm" :class="textColor">
+      Nearby Merchants
+      <span v-if="merchantsPagination.count > 0" class="text-caption text-grey">
+        ({{ filteredMerchants.length }} of {{ merchantsPagination.count }})
+      </span>
+    </div>
     
-    <div class="scroll merchant-list" style="height: 350px;">
-      <!--
-        SKELETON LOADER for merchant list when loading backend data:
-        <div v-if="loading" class="q-pa-md">
-          <q-item v-for="n in 5" :key="n" class="q-px-none q-py-sm">
-            <q-item-section>
-              <q-skeleton type="text" width="150px" class="q-mb-xs" />
-              <q-skeleton type="text" width="200px" height="12px" />
-            </q-item-section>
-            <q-item-section side><q-skeleton type="QToggle" /></q-item-section>
-          </q-item>
+    <div 
+      ref="merchantListContainer"
+      class="scroll merchant-list" 
+      style="height: 350px; overflow-y: auto;"
+      @scroll="handleScroll"
+    >
+      <!-- Loading State -->
+      <div v-if="loading && merchants.length === 0" class="q-pa-md">
+        <q-item v-for="n in 3" :key="n" class="q-px-none q-py-sm">
+          <q-item-section>
+            <q-skeleton type="text" width="150px" class="q-mb-xs" />
+            <q-skeleton type="text" width="200px" height="12px" />
+          </q-item-section>
+          <q-item-section side><q-skeleton type="QToggle" /></q-item-section>
+        </q-item>
+      </div>
+
+      <!-- Empty State - No Location -->
+      <div 
+        v-else-if="!userLocationValid" 
+        class="text-center q-pa-xl" 
+        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+      >
+        <q-icon name="location_off" size="48px" class="q-mb-md" />
+        <div>Set your location to find nearby merchants</div>
+        <q-btn
+          color="primary"
+          label="Set Location"
+          class="q-mt-md"
+          @click="openLocationSelector"
+        />
+      </div>
+
+      <!-- Empty State - No Merchants -->
+      <div 
+        v-else-if="filteredMerchants.length === 0 && !loading" 
+        class="text-center q-pa-xl" 
+        :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+      >
+        <q-icon name="storefront" size="48px" class="q-mb-md" />
+        <div>No verified merchants found near your location</div>
+        <div class="text-caption q-mt-sm">
+          Try expanding your search radius or changing your location
         </div>
-      -->
-      <div v-if="filteredMerchants.length > 0">
+      </div>
+
+      <!-- Merchant List -->
+      <div v-else-if="filteredMerchants.length > 0">
         <q-list separator :dark="$q.dark.isActive">
           <q-item 
             v-for="merchant in filteredMerchants" 
@@ -92,29 +173,27 @@
             @click="openSpendLimitDialog(merchant)"
           >
             <q-item-section>
-              <q-tooltip v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" anchor="top middle" self="bottom middle">
+              <q-tooltip 
+                v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
+                anchor="top middle" 
+                self="bottom middle"
+              >
                 Spend Limit: {{ formatSpendLimit(merchant.spendLimit) }} BCH
               </q-tooltip>
               <div 
                 class="text-weight-bold"
                 :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')"
               >
-                <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
                 {{ merchant.name }}
-                <span v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" class="text-caption text-secondary q-ml-xs">
+                <span 
+                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
+                  class="text-caption text-secondary q-ml-xs"
+                >
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
                 </span>
               </div>
-              <div 
-                class="text-caption text-weight-bold"
-                :class="merchant.isEnabled ? ($q.dark.isActive ? 'text-grey-4' : 'text-grey-7') : ($q.dark.isActive ? 'text-grey-7' : 'text-grey-5')"
-              >
-                <!-- SKELETON LOADER for merchant address: <q-skeleton v-if="loading" type="text" width="200px" height="12px" /> -->
-                {{ merchant.address }}
-              </div>
             </q-item-section>
             <q-item-section side>
-              <!-- SKELETON LOADER for toggle: <q-skeleton v-if="loading" type="QToggle" /> -->
               <q-toggle 
                 v-model="merchant.isEnabled"
                 :disable="genericAuthEnabled"
@@ -126,9 +205,21 @@
             </q-item-section>
           </q-item>
         </q-list>
-      </div>
-      <div v-else class="text-center q-pa-xl" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
-        No merchants found
+
+        <!-- Loading More Indicator -->
+        <div v-if="loadingMore" class="text-center q-pa-md">
+          <q-spinner color="primary" size="2rem" />
+          <div class="text-caption q-mt-sm" :class="textColorGrey">Loading more merchants...</div>
+        </div>
+
+        <!-- No More Results -->
+        <div 
+          v-else-if="!merchantsPagination.hasMore && filteredMerchants.length > 0" 
+          class="text-center q-pa-md text-caption"
+          :class="$q.dark.isActive ? 'text-grey-6' : 'text-grey'"
+        >
+          No more merchants
+        </div>
       </div>
     </div>
 
@@ -182,11 +273,13 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
   </div>
 </template>
 
 <script>
 import { getMerchantList, CardStorage, createCardLogic } from './noBackend.js'
+import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 export default {
   name: 'ManageAuthNFTs',
@@ -197,17 +290,35 @@ export default {
   data() {
     return {
       search: '',
-      genericAuthEnabled: true, // Toggled ON by default
-      genericSpendLimit: '1', // Global spend limit for generic auth NFT
+      genericAuthEnabled: true,
+      genericSpendLimit: '1',
       merchants: [],
       showSpendLimitDialog: false,
       selectedMerchant: null,
       spendLimitInput: '1',
       spendLimitError: '',
-      loading: false, // SKELETON LOADER: Set to true when fetching merchant data from backend
+      loading: false,
+      loadingMore: false,
+      merchantsPagination: {
+        count: 0,
+        limit: 10,
+        offset: 0,
+        hasMore: false
+      },
+      radius: 30, // Default search radius in km
     }
   },
   computed: {
+    userLocation() {
+      return this.$store.getters['marketplace/sessionLocation']
+    },
+    userLocationValid() {
+      const coords = this.$store.getters['marketplace/customerCoordinates']
+      return Number.isFinite(coords?.latitude) && Number.isFinite(coords?.longitude)
+    },
+    userCoordinates() {
+      return this.$store.getters['marketplace/customerCoordinates']
+    },
     filteredMerchants() {
       let list = [...this.merchants];
       if (this.search) {
@@ -223,12 +334,28 @@ export default {
       return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
     }
   },
+  watch: {
+    userLocation: {
+      handler(newLocation, oldLocation) {
+        // Reload merchants when location changes
+        if (newLocation?.id !== oldLocation?.id) {
+          this.loadMerchantList({ reset: true })
+        }
+      },
+      deep: true
+    }
+  },
   mounted() {
-    this.loadMerchantList();
+    // Load merchants if location is already set
+    if (this.userLocationValid) {
+      this.loadMerchantList({ reset: true })
+    }
+    
     // Load global spend limit from card if available
     if (this.card && this.card.genericSpendLimit) {
       this.genericSpendLimit = this.card.genericSpendLimit;
     }
+    
     // Load merchant spend limits from card if available
     if (this.card && this.card.merchantSpendLimits) {
       this.merchants.forEach(merchant => {
@@ -239,23 +366,151 @@ export default {
     }
   },
   methods: {
-    async loadMerchantList() {
+    async loadMerchantList(opts = {}) {
+      if (!this.userLocationValid) {
+        this.loading = false
+        return
+      }
+
+      const isReset = opts.reset || false
+      
+      if (isReset) {
+        this.merchants = []
+        this.merchantsPagination = {
+          count: 0,
+          limit: 10,
+          offset: 0,
+          hasMore: false
+        }
+      }
+
+      // Don't load more if already loading or no more results
+      if (this.loading || this.loadingMore) return
+      if (!isReset && !this.merchantsPagination.hasMore) return
+
+      if (isReset) {
+        this.loading = true
+      } else {
+        this.loadingMore = true
+      }
+
       try {
-        const response = await getMerchantList({ limit: 1000, page: 1 });
-        console.log('Merchant list API response:', response);
-        const merchantData = response.results || response;
-        console.log('Total merchants:', merchantData.length);
-        console.log('Merchant names:', merchantData.map(m => m.name));
+        const params = {
+          limit: this.merchantsPagination.limit,
+          offset: this.merchantsPagination.offset,
+          location: this.userCoordinates,
+          radius: this.radius
+        }
+
+        const response = await getMerchantList(params)
         
-        this.merchants = merchantData.map(merchant => ({
+        // Map new merchants with UI state
+        const newMerchants = response.results.map(merchant => ({
           ...merchant,
           isEnabled: false,
           wasEnabledBeforeGeneric: false,
           spendLimit: null
-        }));
+        }))
+
+        // Merge with existing merchants
+        if (isReset) {
+          this.merchants = newMerchants
+        } else {
+          // Avoid duplicates
+          const existingIds = new Set(this.merchants.map(m => m.id))
+          const uniqueNewMerchants = newMerchants.filter(m => !existingIds.has(m.id))
+          this.merchants = [...this.merchants, ...uniqueNewMerchants]
+        }
+
+        // Update pagination
+        this.merchantsPagination = {
+          count: response.count,
+          limit: response.limit,
+          offset: response.offset + newMerchants.length,
+          hasMore: response.hasMore
+        }
+
+        console.log(`Loaded ${newMerchants.length} merchants. Total: ${this.merchants.length}/${response.count}`)
       } catch (error) {
         console.error('Failed to load merchant list:', error);
-        this.notifyError('Failed to load merchants');
+        this.notifyError('Failed to load merchants near your location');
+      } finally {
+        this.loading = false
+        this.loadingMore = false
+      }
+    },
+
+    handleScroll(evt) {
+      const container = evt.target
+      const scrollBottom = container.scrollTop + container.clientHeight
+      const threshold = container.scrollHeight - 100 // 100px before bottom
+
+      if (scrollBottom >= threshold && !this.loading && !this.loadingMore && this.merchantsPagination.hasMore) {
+        this.loadMerchantList()
+      }
+    },
+
+    openLocationSelector() {
+      // Get current coordinates or use defaults
+      const coords = this.userCoordinates
+      const initLocation = {
+        latitude: coords?.latitude || null,
+        longitude: coords?.longitude || null
+      }
+
+      // Open the pin location dialog
+      this.$q.dialog({
+        component: PinLocationDialog,
+        componentProps: {
+          initLocation,
+          headerText: this.$t('Select Location') || 'Select Location'
+        }
+      }).onOk((coordinates) => {
+        // Update the location in the store
+        this.updateStoreLocation(coordinates.lat, coordinates.lng)
+      })
+    },
+
+    async updateStoreLocation(lat, lng) {
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+      // Show loading dialog
+      const dialog = this.$q.dialog({
+        title: 'Updating location',
+        message: 'Getting address...',
+        progress: true,
+        ok: false,
+        cancel: false,
+        persistent: true,
+        color: 'brandblue',
+        class: `br-15 pt-card-2 text-bow ${this.$q.dark.isActive ? 'dark' : 'light'}`
+      })
+
+      try {
+        // Reverse geocode to get address
+        const { geolocationManager } = await import('src/boot/geolocation')
+        const response = await geolocationManager.reverseGeocode({ lat, lon: lng })
+
+        // Update store location
+        this.$store.commit('marketplace/updateLocationData', response)
+        this.$store.commit('marketplace/setSelectedSessionLocationId')
+
+        dialog.hide()
+
+        // Reload merchant list with new location
+        this.loadMerchantList({ reset: true })
+
+        // Show success notification
+        this.$q.notify({
+          message: `Location updated to ${response?.formatted || 'new location'}`,
+          color: 'positive',
+          icon: 'check',
+          timeout: 2000
+        })
+      } catch (error) {
+        console.error('Failed to update location:', error)
+        dialog.update({ message: 'Unable to get address. Please try again.' })
+        setTimeout(() => dialog.hide(), 1500)
       }
     },
 
@@ -266,15 +521,12 @@ export default {
 
     onGenericAuthToggle(enabled) {
       if (enabled) {
-        // When Generic Auth is enabled, all merchants are authorized
-        // Store previous states before overwriting
         this.merchants.forEach(m => {
-          m.wasEnabledBeforeGeneric = m.isEnabled; // preserve previous state
-          m.isEnabled = true; // Show as enabled when generic auth is on
+          m.wasEnabledBeforeGeneric = m.isEnabled;
+          m.isEnabled = true;
         });
         this.notifySuccess('Generic Auth NFT enabled - all merchants are authorized', { icon: 'check_circle' });
       } else {
-        // When Generic Auth is disabled, restore previous merchant states
         this.merchants.forEach(m => {
           m.isEnabled = m.wasEnabledBeforeGeneric || false;
         });
@@ -326,33 +578,14 @@ export default {
       if (this.selectedMerchant) {
         this.selectedMerchant.spendLimit = spendLimit.toFixed(8);
         
-        // Save merchant spend limits to localStorage
         if (this.card && this.card.id) {
           const card = CardStorage.getCardById(this.card.id);
-          // TODO: Switch to backend - use await this.getCards() and find card by id
           if (card) {
-            // Store merchant spend limits
             if (!card.merchantSpendLimits) {
               card.merchantSpendLimits = {};
             }
             card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
             CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
-            
-            /* BACKEND IMPLEMENTATION: Mutate merchant-specific auth NFT with spend limit
-             * 
-             * const spendLimitSats = BigInt(Math.floor(spendLimit * 1e8));
-             * const cardInstance = await Card.createInitialized({ raw: { id: this.card.id } });
-             * await cardInstance.mutateMerchantAuthToken({
-             *   authorize: true,
-             *   spendLimitSats: spendLimitSats,
-             *   merchant: {
-             *     id: this.selectedMerchant.id,
-             *     pubkey: this.selectedMerchant.pubkey
-             *   }
-             * });
-             * 
-             * See: src/services/card/card.js lines 583-585 for mutateMerchantAuthToken() function
-             */
           }
         }
         
@@ -382,21 +615,8 @@ export default {
 
       this.genericSpendLimit = spendLimit.toFixed(8);
       
-      // Save to localStorage
       if (this.card && this.card.id) {
         CardStorage.setCardProperty(this.card.id, 'genericSpendLimit', this.genericSpendLimit);
-        
-        /* BACKEND IMPLEMENTATION: Mutate global auth NFT with spend limit
-         * 
-         * const spendLimitSats = BigInt(Math.floor(spendLimit * 1e8));
-         * const cardInstance = await Card.createInitialized({ raw: { id: this.card.id } });
-         * await cardInstance.mutateGlobalAuthToken({
-         *   authorize: true,
-         *   spendLimitSats: spendLimitSats
-         * });
-         * 
-         * See: src/services/card/card.js lines 568-570 for mutateGlobalAuthToken() function
-         */
       }
       
       this.$q.notify({
