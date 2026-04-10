@@ -644,7 +644,7 @@ export default {
         const wif = await wallet.BCH.getPrivateKey('0/0')
         
         const redeemTxid = await this.contract.redeemPoints(
-          wif, this.tokenAddress, BigInt(this.liftToReceive)
+          wif, this.tokenAddress, this.liftToReceive
         )
 
         const recordResp = await recordPointsRedemption({

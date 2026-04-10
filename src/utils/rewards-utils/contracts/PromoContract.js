@@ -56,7 +56,7 @@ export default class PromoContract {
       .reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
 
     // multiple points to redeem by token decimal
-    const actualPointstoRedeem = pointsToRedeem * (10n ** BigInt(PROMO_TOKEN_DECIMALS))
+    const actualPointstoRedeem = BigInt(pointsToRedeem * (10 ** PROMO_TOKEN_DECIMALS))
 
     // build input
     const inputs = contractUtxos
