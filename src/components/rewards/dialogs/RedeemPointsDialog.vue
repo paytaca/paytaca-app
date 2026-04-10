@@ -188,7 +188,7 @@
                         {{ $t('YouWillReceive') }}
                       </div>
                       <div class="text-h6 text-weight-bold text-positive">
-                        {{ pointsToRedeem }} LIFT
+                        {{ liftToReceive }} LIFT
                       </div>
                       <div class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
                         {{ $t('ToYourTokenAddress', 'to your token address') }}
@@ -336,9 +336,12 @@ import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
+  getLiftConversionRatio,
   getWalletTokenAddress,
   recordPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
+
+import confetti from 'canvas-confetti'
 
 import PinDialog from 'src/components/pin/index.vue'
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
@@ -347,7 +350,6 @@ import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
-import confetti from 'canvas-confetti'
 
 export default {
   name: 'RedeemPointsDialog',
@@ -381,6 +383,7 @@ export default {
       showCelebration: false,
       isCalculatingQuickAmount: false,
       activeQuickAmount: null,
+      liftConversionRate: 0,
       
       // Security
       isSecurityCheckSuccess: false,
@@ -411,6 +414,9 @@ export default {
       if (this.redeemedPoints !== null && this.maxRedeemable !== null)
         return this.maxRedeemable - this.redeemedPoints
       return null
+    },
+    liftToReceive () {
+      return this.pointsToRedeem / this.liftConversionRate
     },
     hasValidationError () {
       const amount = Number(this.pointsToRedeem || 0)
@@ -471,6 +477,9 @@ export default {
       this.loadingError = null
       
       await this.fetchContractPoints()
+
+      // fetch LIFT conversion ratio
+      this.liftConversionRate = await getLiftConversionRatio()
       
       // Store original total for display
       this.originalPoints = this.contractPoints
@@ -635,14 +644,14 @@ export default {
         const wif = await wallet.BCH.getPrivateKey('0/0')
         
         const redeemTxid = await this.contract.redeemPoints(
-          wif, this.tokenAddress, BigInt(this.pointsToRedeem)
+          wif, this.tokenAddress, BigInt(this.liftToReceive)
         )
 
         const recordResp = await recordPointsRedemption({
             promo_type: this.promoType,
             promo_id: this.promoId,
             redeemed_points: this.pointsToRedeem,
-            lift_received: this.pointsToRedeem, // TODO replace with conversion calculation
+            lift_received: this.liftToReceive,
             tx_id: redeemTxid,
             month_max: this.maxRedeemable
         })
