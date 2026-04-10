@@ -227,6 +227,7 @@ import {
   shortenString,
   MultisigWallet
 } from 'src/lib/multisig'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import TransactionListItemSkeleton from 'components/transactions/TransactionListItemSkeleton.vue'
 import CopyButton from 'components/CopyButton.vue'
@@ -265,7 +266,7 @@ const historyQoutePrice = computed(() => {
     if (!amount || !marketPrices) return ''
     const price = marketPrices[currency]
     if (price === undefined || price === null || isNaN(price)) return ''
-    return `${amount * price} ${currency}`  
+    return parseFiatCurrency(amount * price, currency)
   }
 })
 const historyLoading = ref(false)

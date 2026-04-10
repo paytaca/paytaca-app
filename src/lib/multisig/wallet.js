@@ -303,6 +303,7 @@ import { estimateFee, getMofNDustThreshold, recipientsToLibauthTransactionOutput
 import { Pst } from './pst.js'
 import { PsbtWallet, WALLET_MAGIC } from './psbt-wallet.js'
 import { retryWithBackoff } from './utils.js'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import { encryptECIES, generateAES256GCMKey } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCosignerCredentialsFromMnemonic, generateServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
@@ -845,7 +846,7 @@ export class MultisigWallet {
       const priceData = await response.json()
       return priceData?.map((price) => {
         const p = Big(balance).mul(price.price_value).toString()
-        price[`assetPriceIn${price.currency}Text`] = `${p} ${price.currency}`
+        price[`assetPriceIn${price.currency}Text`] = parseFiatCurrency(p, price.currency)
         price['assetPrice'] = p
         return price
       })
