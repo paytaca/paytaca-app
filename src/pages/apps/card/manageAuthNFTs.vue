@@ -290,7 +290,7 @@ export default {
   data() {
     return {
       search: '',
-      genericAuthEnabled: true,
+      genericAuthEnabled: false,
       genericSpendLimit: '1',
       merchants: [],
       showSpendLimitDialog: false,
