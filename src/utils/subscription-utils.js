@@ -3,7 +3,7 @@ import Watchtower from 'watchtower-cash-js'
 
 export const LIFT_TOKEN_CATEGORY = process.env.LIFT_TOKEN_CATEGORY || '5932b2fd4915d6a75d3ec53282cd49118149a2176ee67ed68b1111ff0786f7fc'
 
-const LIFT_TOKEN_DECIMALS = 2
+export const LIFT_TOKEN_DECIMALS = 2
 const CACHE_DURATION = 30000 // 30 seconds
 const balanceCache = {
   totalBalance: null,
