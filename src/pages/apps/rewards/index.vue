@@ -46,12 +46,18 @@
               <!-- Loaded State -->
               <template v-else>
                 <!-- Line 1: Points → LIFT -->
-                <div class="text-body2 text-weight-medium">
-                  <span class="text-primary q-mx-xs">
+                <div class="text-weight-medium" style="font-size: 15px !important;">
+                  <span class="text-primary">
                     {{ totalPoints.toLocaleString() }} points
                   </span>
-                  <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">→</span>
-                  <span class="text-token q-mx-xs" :class="getDarkModeClass(darkMode)">
+                  <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    &nbsp;=&nbsp;
+                  </span>
+                  <span
+                    class="text-token"
+                    :class="getDarkModeClass(darkMode)"
+                    style="font-size: 15px !important;"
+                  >
                     {{ formattedLiftAmount }} LIFT
                   </span>
                 </div>
