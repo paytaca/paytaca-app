@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "minti daya da suka wuce",
   Minutes: "mintuna",
   MinutesAgo: "mintuna da suka gabata",
+  MissingTokenMetadataWarning: "Ba a sami cikakkun bayanai ba.Ba za mu iya tabbatar da madaidaicin tsarin ƙima na wannan alamar ba.Ana nuna ƙimar daɗaɗɗen alamar.Idan kuna tunanin daidai za ku iya ci gaba",
   MnemonicBackupPhrase: "Jumlar Ajiyayyen Mnemonic",
   MnemonicBackupPhraseDescription1: "Bincika sau biyu idan wannan ya dace da jimlar ajiyar ku ta mnemonic",
   MnemonicBackupPhraseDescription2: "Rubuta a kan takarda ko ɗaukar hoton allo kuma ajiye shi a wani wuri mai aminci",

@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "vor einer Minute",
   Minutes: "Minuten",
   MinutesAgo: "vor Minuten",
+  MissingTokenMetadataWarning: "Tokendetails nicht gefunden.Wir können das korrekte Dezimalformat für dieses Token nicht überprüfen.Der rohe Tokenwert wird angezeigt.Wenn Sie denken, dass es richtig ist, können Sie fortfahren",
   MnemonicBackupPhrase: "Mnemonic Backup-Phrase",
   MnemonicBackupPhraseDescription1: "Überprüfen Sie noch einmal, ob dies mit Ihrer mnemonischen Backup-Phrase übereinstimmt",
   MnemonicBackupPhraseDescription2: "Schreiben Sie auf Papier oder machen Sie einen Screenshot und bewahren Sie ihn an einem sicheren Ort auf",

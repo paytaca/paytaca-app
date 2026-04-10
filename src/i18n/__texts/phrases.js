@@ -2412,7 +2412,9 @@ const phrases = {
       XpubMustBeUnique: 'Xpub must be unique',
       XpubScanned: 'Xpub scanned',
       YesProceed: 'Yes, proceed',
-      DustAmountError: 'Amount is below the network allowed minimum (0.00000546 BCH)'
+      DustAmountError: 'Amount is below the network allowed minimum (0.00000546 BCH)',
+      MissingTokenMetadataWarning: 'Token details not found. We can’t verify the correct decimal format for this token. Raw token value is displayed. If you think it\'s correct you may proceed',
+      Change: 'Change'
     }
   ]
 }

@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "분 전",
   Minutes: "분",
   MinutesAgo: "몇 분 전",
+  MissingTokenMetadataWarning: "토큰 세부정보를 찾을 수 없습니다.이 토큰의 올바른 십진수 형식을 확인할 수 없습니다.원시 토큰 값이 표시됩니다.그것이 옳다고 생각한다면 계속 진행해도 됩니다.",
   MnemonicBackupPhrase: "니모닉 백업 문구",
   MnemonicBackupPhraseDescription1: "이것이 니모닉 백업 문구와 일치하는지 다시 확인하세요.",
   MnemonicBackupPhraseDescription2: "종이에 쓰거나 스크린샷을 찍어 안전한 곳에 보관하세요.",

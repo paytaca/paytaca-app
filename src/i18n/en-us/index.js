@@ -1322,6 +1322,7 @@ export default {
   MinuteAgo: " minute ago",
   Minutes: "minutes",
   MinutesAgo: " minutes ago",
+  MissingTokenMetadataWarning: "Token details not found. We can’t verify the correct decimal format for this token. Raw token value is displayed. If you think it's correct you may proceed",
   MnemonicBackupPhrase: "Mnemonic Backup Phrase",
   MnemonicBackupPhraseDescription1: "Double check if this matches your mnemonic backup phrase",
   MnemonicBackupPhraseDescription2: "Write on paper or take a screenshot and keep it somewhere safe",

@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "分钟前",
   Minutes: "分钟",
   MinutesAgo: "分钟前",
+  MissingTokenMetadataWarning: "未找到令牌详细信息。我们无法验证此令牌的正确十进制格式。显示原始令牌值。如果您认为正确，您可以继续",
   MnemonicBackupPhrase: "助记词备份短语",
   MnemonicBackupPhraseDescription1: "仔细检查这是否与您的助记词备份短语匹配",
   MnemonicBackupPhraseDescription2: "在纸上书写或截图并将其保存在安全的地方",

@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "منذ دقيقة",
   Minutes: "دقائق",
   MinutesAgo: "قبل دقائق",
+  MissingTokenMetadataWarning: "لم يتم العثور على تفاصيل الرمز المميز.لا يمكننا التحقق من التنسيق العشري الصحيح لهذا الرمز المميز.يتم عرض قيمة الرمز المميز الخام.إذا كنت تعتقد أنه صحيح يمكنك المتابعة",
   MnemonicBackupPhrase: "عبارة النسخ الاحتياطي التذكرية",
   MnemonicBackupPhraseDescription1: "تحقق مرتين من تطابق عبارة النسخ الاحتياطي التذكرية",
   MnemonicBackupPhraseDescription2: "اكتبها على ورقة أو التقط لقطة شاشة واحتفظ بها في مكان آمن",

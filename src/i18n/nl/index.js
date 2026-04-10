@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "minuut geleden",
   Minutes: "minuten",
   MinutesAgo: "minuten geleden",
+  MissingTokenMetadataWarning: "Tokendetails niet gevonden.We kunnen het juiste decimale formaat voor dit token niet verifiëren.De ruwe tokenwaarde wordt weergegeven.Als u denkt dat dit juist is, kunt u doorgaan",
   MnemonicBackupPhrase: "Geheugensteuntje als reservezin",
   MnemonicBackupPhraseDescription1: "Controleer nogmaals of dit overeenkomt met uw geheugensteunzin",
   MnemonicBackupPhraseDescription2: "Schrijf op papier of maak een screenshot en bewaar deze op een veilige plek",
