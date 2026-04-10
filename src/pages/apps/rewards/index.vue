@@ -120,49 +120,55 @@
             </div>
             
             <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
-            
-            <!-- Current LIFT Price -->
-            <div class="q-mb-sm">
-              <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                Current LIFT Price
-              </div>
-              <div class="row items-center gap-sm">
-                <span class="text-body2 text-weight-medium">
-                  {{ formattedBchPrice }} BCH
-                </span>
-                <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  &nbsp;≈&nbsp;
-                </span>
-                <span class="text-body2" :class="getDarkModeClass(darkMode)">
-                  {{ formattedFiatPrice }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- Total Value Estimate -->
-            <div 
-              class="q-pa-sm br-10"
-              :class="darkMode ? 'bg-dark' : 'bg-grey-2'"
-              style="border-left: 3px solid var(--q-primary);"
-            >
-              <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                Estimated Value
-              </div>
-              <div class="column">
-                <span class="text-h6 text-weight-bold text-primary">
-                  ≈ {{ formattedTotalBch }} BCH
-                </span>
-                <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  ≈ {{ formattedTotalFiat }}
-                </span>
-              </div>
-            </div>
-            
+
             <!-- Price Error Message -->
-            <div v-if="priceError" class="text-caption text-negative q-mt-sm">
+            <div
+              v-if="priceError"
+              class="text-caption q-mt-sm"
+              :class="darkMode ? 'text-red-5' : 'text-negative'"
+            >
               <q-icon name="error_outline" size="xs" class="q-mr-xs" />
               {{ priceError }}
             </div>
+            
+            <template v-else>
+              <!-- Current LIFT Price -->
+              <div class="q-mb-sm">
+                <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  Current LIFT Price
+                </div>
+                <div class="row items-center gap-sm">
+                  <span class="text-body2 text-weight-medium">
+                    {{ formattedBchPrice }} BCH
+                  </span>
+                  <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    &nbsp;≈&nbsp;
+                  </span>
+                  <span class="text-body2" :class="getDarkModeClass(darkMode)">
+                    {{ formattedFiatPrice }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Total Value Estimate -->
+              <div 
+                class="q-pa-sm br-10"
+                :class="darkMode ? 'bg-dark' : 'bg-grey-2'"
+                style="border-left: 3px solid var(--q-primary);"
+              >
+                <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  Estimated Value
+                </div>
+                <div class="column">
+                  <span class="text-h6 text-weight-bold text-primary">
+                    ≈ {{ formattedTotalBch }} BCH
+                  </span>
+                  <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                    ≈ {{ formattedTotalFiat }}
+                  </span>
+                </div>
+              </div>
+            </template>
           </div>
         </q-slide-transition>
       </div>
@@ -450,7 +456,7 @@ export default {
       try {
         this.isPriceLoading = true
         this.priceError = null
-        
+
         const tokens = await fetchTokensList({ token_id: LIFT_TOKEN_CATEGORY })
         
         if (tokens && tokens.length > 0) {
@@ -525,7 +531,7 @@ export default {
       } else if (upData && Object.keys(upData.length === 0)) {
         await createUserPromoData()
       } else {
-        this.error = this.$t('FailedToLoadPage', 'Unable to load page at the moment. Please try again later.')
+        this.error = this.$t('FailedToLoadPage', 'Unable to load points at the moment. Please try again later.')
       }
 
       // process fetched ratioData
