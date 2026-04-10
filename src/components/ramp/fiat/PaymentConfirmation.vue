@@ -6,10 +6,17 @@
     
     <!-- Contract Information Section -->
     <div class="section-wrapper">
-      <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
-        {{ $t('ContractInformation', {}, 'Contract Information') }}
-      </p>
-      <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+      <div class="section-header" @click="toggleContractInfo">
+        <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+          {{ $t('ContractInformation', {}, 'Contract Information') }}
+        </p>
+        <q-icon 
+          :name="showContractInfo ? 'expand_less' : 'expand_more'" 
+          size="sm" 
+          color="blue-grey-6"
+          class="q-mr-sm" />
+      </div>
+      <q-list v-show="showContractInfo" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
         <q-item>
           <q-item-section>
             <q-item-label caption class="text-caption">{{ $t('Arbiter') }}</q-item-label>
@@ -111,19 +118,19 @@
               <div class="upload-section q-pa-md" :class="getDarkModeClass(darkMode)">
                 <!-- Upload Button for Buyer -->
                 <q-btn
-                  v-if="data?.type !== 'seller' && !method.attachment && (!method.attachments || method.attachments.length === 0)"
+                  v-if="data?.type !== 'seller' && !method.attachment && (!method.attachments || method.attachments.length === 0) && !uploadingProofByMethodId?.[method.id]"
                   unelevated
                   no-caps
                   color="primary"
                   class="full-width upload-proof-btn"
                   icon="cloud_upload"
-                  label="Upload Proof of Payment"
+                  :label="uploadProofErrorByMethodId?.[method.id] ? 'Retry Upload' : 'Upload Proof of Payment'"
                   @click="selectAndUpload(method, index)"
                 />
                 
                 <!-- Attachment Display (pending upload) -->
                 <q-chip
-                  v-if="data?.type !== 'seller' && method.attachment"
+                  v-if="data?.type !== 'seller' && method.attachment && (!method.attachments || method.attachments.length === 0)"
                   removable
                   color="primary"
                   text-color="white"
@@ -135,33 +142,40 @@
                     {{ method.attachment?.name }}
                   </span>
                 </q-chip>
-
-                <!-- Waiting for swipe (indeterminate progress) -->
-                <div
-                  v-if="data?.type !== 'seller' && method.attachment && (!method.attachments || method.attachments.length === 0) && !uploadingProofByMethodId?.[method.id]"
-                  class="q-px-md q-pb-sm"
-                >
-                  <q-linear-progress
-                    rounded
-                    indeterminate
-                    color="primary"
-                  />
-                  <div class="text-caption text-grey-7 text-center q-mt-xs" :class="getDarkModeClass(darkMode)">
-                    {{ $t('SwipeButtonToProceed', {}, 'Swipe the button to proceed') }}
+                
+                <!-- Uploaded proof info and actions -->
+                <div v-if="method.attachments?.length > 0" class="q-mt-xs">
+                  <div class="text-caption text-weight-medium q-mb-xs" :class="getDarkModeClass(darkMode)">
+                    {{ $t('ProofOfPayment', {}, 'Proof of Payment') }}
+                  </div>
+                  <div class="row items-center q-mb-sm text-caption text-grey-7" :class="getDarkModeClass(darkMode)">
+                    <q-icon name="attach_file" size="xs" class="q-mr-xs" />
+                    <span class="ellipsis" style="max-width: 180px;">{{ getAttachmentFilename(method.attachments[0]) }}</span>
+                    <span v-if="method.attachments[0].image?.size" class="q-ml-xs text-grey-6">({{ formatFileSize(method.attachments[0].image.size) }})</span>
+                  </div>
+                  <div class="row q-gutter-sm">
+                    <q-btn
+                      outline
+                      no-caps
+                      color="positive"
+                      icon="image"
+                      label="View"
+                      class="col"
+                      @click.stop="viewPaymentAttachment(method.attachments[0].image?.url)"
+                    />
+                    <q-btn
+                      v-if="data?.type !== 'seller' && !orderCompleted"
+                      outline
+                      no-caps
+                      color="negative"
+                      icon="delete"
+                      label="Delete"
+                      class="col"
+                      :loading="deletingAttachmentByMethodId?.[method.id]"
+                      @click.stop="confirmDeleteAttachment(method)"
+                    />
                   </div>
                 </div>
-                
-                <!-- View uploaded proof -->
-                <q-btn
-                  v-if="method.attachments?.length > 0"
-                  outline
-                  no-caps
-                  color="positive"
-                  icon="image"
-                  label="View Uploaded Proof of Payment"
-                  class="full-width"
-                  @click.stop="viewPaymentAttachment(method.attachments[0].image?.url)"
-                />
                 
                 <!-- Uploading message -->
                 <div v-if="hasUploadingMsg && !method.attachment && (!method.attachments || method.attachments.length === 0)" class="text-center q-py-sm">
@@ -379,6 +393,7 @@ export default {
       uploadingProofByMethodId: {}, // { [paymentMethodId]: true }
       uploadProofErrorByMethodId: {}, // { [paymentMethodId]: string }
       uploadProofProgressByMethodId: {}, // { [paymentMethodId]: number (0-100) }
+      deletingAttachmentByMethodId: {},
       showDragSlide: true,
       showAppealForm: false,
       dragSlideKey: 0,
@@ -395,7 +410,8 @@ export default {
       errorDialogActive: false,
       showNoticeDialog: false,
       appealSubmitted: false,
-      allowReleaseWithoutProof: false
+      allowReleaseWithoutProof: false,
+      showContractInfo: false
     }
   },
   components: {
@@ -425,6 +441,10 @@ export default {
         this.order?.status?.value === 'PD_PN' &&
         this.proofMissingOnServer
       )
+    },
+    orderCompleted () {
+      const status = this.order?.status?.value
+      return status === 'RLS' || status === 'RFN' || status === 'CNCL'
     },
     showAppealBtn () {
       let showBtn = false
@@ -505,15 +525,13 @@ export default {
       const vm = this
       if (vm.data?.type !== 'buyer') return false
       if (vm.uploadingProof) return false
-      // Nudge when user has selected proof(s) and is ready to swipe (pre-upload)
-      const anyPending = (vm.selectedPaymentMethods || []).some(sel => {
+      // Nudge when user has completed uploads and is ready to swipe
+      if (vm.selectedPaymentMethods.length === 0) return false
+      const allUploaded = (vm.selectedPaymentMethods || []).every(sel => {
         const method = vm.paymentMethods?.find?.(m => m?.id === sel?.id)
-        const hasLocal = !!sel?.attachment
-        const hasServer = Array.isArray(method?.attachments) && method.attachments.length > 0
-        const isUploading = !!vm.uploadingProofByMethodId?.[sel?.id]
-        return hasLocal && !hasServer && !isUploading
+        return Array.isArray(method?.attachments) && method.attachments.length > 0
       })
-      return anyPending && !vm.lockDragSlide
+      return allUploaded && !vm.lockDragSlide
     },
     fiatAmount () {
       const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
@@ -543,6 +561,31 @@ export default {
     formatCurrency,
     getDarkModeClass,
     openURL,
+    formatFileSize (bytes) {
+      if (!bytes || bytes <= 0) return ''
+      if (bytes < 1024) return bytes + ' B'
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    },
+    getAttachmentFilename (attachment) {
+      if (!attachment) return ''
+      if (attachment.image?.url_path) {
+        const parts = attachment.image.url_path.split('/')
+        return parts[parts.length - 1] || attachment.image.url_path
+      }
+      if (attachment.image?.url) {
+        try {
+          const parts = new URL(attachment.image.url).pathname.split('/')
+          return parts[parts.length - 1] || attachment.image.url
+        } catch {
+          return attachment.image.url
+        }
+      }
+      return 'Proof of Payment'
+    },
+    toggleContractInfo () {
+      this.showContractInfo = !this.showContractInfo
+    },
     async loadData () {
       const vm = this
       await vm.fetchOrderDetail()
@@ -562,6 +605,79 @@ export default {
         this.selectedPaymentMethods[index].attachment = null
       }
     },
+    async uploadAttachmentEarly (paymentMethodId, file) {
+      const vm = this
+      vm.uploadingProofByMethodId = { ...vm.uploadingProofByMethodId, [paymentMethodId]: true }
+      vm.uploadProofErrorByMethodId = { ...vm.uploadProofErrorByMethodId, [paymentMethodId]: '' }
+      vm.uploadProofProgressByMethodId = { ...vm.uploadProofProgressByMethodId, [paymentMethodId]: 0 }
+      vm.uploadingProof = true
+
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('order_id', vm.data?.order?.id)
+      formData.append('payment_method_id', paymentMethodId)
+
+      const maxRetries = 3
+      const maxAttempts = 1 + maxRetries
+      let lastErr = null
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          vm.uploadProofProgressByMethodId = { ...vm.uploadProofProgressByMethodId, [paymentMethodId]: 0 }
+          const resp = await backend.post(
+            '/ramp-p2p/order/payment/upload-by-method/',
+            formData,
+            {
+              headers: { 'Content-Type': 'multipart/form-data' },
+              authorize: true,
+              timeout: 60_000,
+              onUploadProgress: (evt) => {
+                const total = Number(evt?.total)
+                const loaded = Number(evt?.loaded)
+                if (!Number.isFinite(total) || total <= 0) return
+                if (!Number.isFinite(loaded) || loaded < 0) return
+                const pct = Math.round((loaded / total) * 100)
+                vm.uploadProofProgressByMethodId = {
+                  ...vm.uploadProofProgressByMethodId,
+                  [paymentMethodId]: Math.min(100, Math.max(0, pct))
+                }
+              }
+            }
+          )
+          vm.uploadingProofByMethodId = { ...vm.uploadingProofByMethodId, [paymentMethodId]: false }
+          vm.uploadProofProgressByMethodId = { ...vm.uploadProofProgressByMethodId, [paymentMethodId]: 100 }
+
+          await vm.fetchOrderDetail()
+
+          const maxVerifyAttempts = 4
+          for (let va = 0; va < maxVerifyAttempts; va++) {
+            if (!vm.proofMissingOnServer) break
+            await vm.sleep(800 * (va + 1))
+            await vm.fetchOrderDetail()
+          }
+          if (vm.proofMissingOnServer) {
+            vm.uploadProofErrorByMethodId = { ...vm.uploadProofErrorByMethodId, [paymentMethodId]: 'Proof upload did not finish successfully. Please retry.' }
+          } else {
+            const methodIndex = vm.paymentMethods.findIndex(m => m.id === paymentMethodId)
+            if (methodIndex > -1) vm.paymentMethods[methodIndex].attachment = null
+          }
+
+          vm.uploadingProof = Object.values(vm.uploadingProofByMethodId).some(v => v)
+          return
+        } catch (error) {
+          lastErr = error
+          const retryable = vm.shouldRetryUpload(error)
+          const msg = error?.response?.data?.error || error?.response?.data?.detail || error?.message || 'Upload failed'
+          vm.uploadProofErrorByMethodId = { ...vm.uploadProofErrorByMethodId, [paymentMethodId]: msg }
+          if (!retryable || attempt === maxAttempts) break
+          const delay = Math.min(4000, 600 * (2 ** (attempt - 1)))
+          await vm.sleep(delay)
+        }
+      }
+
+      vm.uploadingProofByMethodId = { ...vm.uploadingProofByMethodId, [paymentMethodId]: false }
+      vm.uploadingProof = Object.values(vm.uploadingProofByMethodId).some(v => v)
+    },
     onClickUpload (index) {
       this.$refs.filePickerRef[index].pickFiles()
     },
@@ -575,14 +691,16 @@ export default {
         message: message
       })
     },
-    onSelectAttachment (methodIndex, methodId) {
+onSelectAttachment (methodIndex, methodId) {
       const attachment = this.paymentMethods?.[methodIndex]?.attachment
       const index = this.selectedPaymentMethods.map(e => e.id).indexOf(methodId)
       if (index > -1) {
         this.selectedPaymentMethods[index].attachment = attachment
       } else {
-        // Defensive: ensure selectedPaymentMethods has an entry for this method
         this.selectedPaymentMethods.push({ id: methodId, attachment })
+      }
+      if (attachment) {
+        this.uploadAttachmentEarly(methodId, attachment)
       }
     },
     sleep (ms) {
@@ -733,6 +851,41 @@ export default {
       this.showAttachmentDialog = true
       this.attachmentUrl = url
     },
+    confirmDeleteAttachment (method) {
+      this.$q.dialog({
+        title: this.$t('DeleteProofOfPayment', {}, 'Delete Proof of Payment'),
+        message: this.$t('DeleteProofOfPaymentConfirm', {}, 'Are you sure you want to delete this proof of payment? You can upload a new one after deleting.'),
+        cancel: true,
+        persistent: true,
+        ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true }
+      }).onOk(() => {
+        this.deleteAttachment(method)
+      })
+    },
+    async deleteAttachment (method) {
+      const vm = this
+      if (!method.attachments?.length) return
+      const attachment = method.attachments[0]
+      vm.deletingAttachmentByMethodId = { ...vm.deletingAttachmentByMethodId, [method.id]: true }
+      try {
+        await backend.delete(`/ramp-p2p/order/payment/${attachment.id}/attachment/`, { authorize: true })
+        method.attachments = []
+        const methodIndex = vm.selectedPaymentMethods.findIndex(sm => sm.id === method.id)
+        if (methodIndex > -1) {
+          vm.selectedPaymentMethods[methodIndex].attachment = null
+        }
+        await vm.fetchOrderDetail()
+      } catch (error) {
+        console.error(error)
+        vm.$q.notify({
+          type: 'negative',
+          message: error?.response?.data?.error || error?.message || 'Failed to delete attachment'
+        })
+      } finally {
+        vm.deletingAttachmentByMethodId = { ...vm.deletingAttachmentByMethodId, [method.id]: false }
+      }
+    },
     fetchContractBalance () {
       const vm = this
       if (vm.data?.escrow) {
@@ -752,8 +905,7 @@ export default {
       try {
         switch (status) {
           case 'ESCRW': {
-            const resp = await vm.sendConfirmPayment(vm.data?.type)
-            await vm.uploadAttachments(resp.order_payment_methods)
+            await vm.sendConfirmPayment(vm.data?.type)
             break
           }
           case 'PD_PN': {
@@ -867,6 +1019,14 @@ export default {
           } else {
             vm.paymentMethods = orderPaymentTypes
           }
+
+          vm.paymentMethods.forEach(method => {
+            const selectedMethod = vm.order?.payment_methods_selected?.find(sm => sm.id === method.id)
+            if (selectedMethod) {
+              method.attachments = selectedMethod.attachments
+              method.order_payment_id = selectedMethod.order_payment_id
+            }
+          })
         })
         .catch(error => {
           this.showErrorDialog(error)
@@ -1019,6 +1179,26 @@ export default {
   }
   &.light {
     color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Section Header (clickable to toggle contract info)
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 0 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  &.dark:hover {
+    background-color: rgba(255, 255, 255, 0.08);
   }
 }
 

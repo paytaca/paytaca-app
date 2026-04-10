@@ -86,11 +86,20 @@ export class RampContract {
    * @returns {Promise<number>} A promise that resolves with the balance of the contract in Bitcoin Cash (BCH).
    */
   async getBalance (address = '', retry = false) {
-    if (!address) address = this.contract.address
+    if (!address) address = this.contract?.address
+    // Trim whitespace from address to prevent API errors
+    address = address?.trim()
+    
+    // Validate address before making API call
+    if (!address) {
+      console.error('Contract address is empty or undefined')
+      return 0
+    }
+    
     let balance = 0
     let watchtowerErrored = false
     try {
-      const response = await watchtower.BCH._api.get(`/balance/bch/${address}`)
+      const response = await watchtower.BCH._api.get(`/balance/bch/${address}/`)
       balance = response?.data?.balance
     } catch (error) {
       console.error('Failed to fetch contract balance through watchtower:', error.response)

@@ -153,8 +153,7 @@
                 </div>
               </template>
             </q-img>
-            <!-- View in Collectibles Button -->
-            <div class="q-mt-md q-mb-sm">
+            <div v-if="isReceivedNft" class="q-mt-md q-mb-sm">
               <q-btn
                 no-caps
                 rounded
@@ -691,6 +690,9 @@ export default {
       }
       return false
     },
+    isReceivedNft () {
+      return this.isNft && this.tx && this.tx.record_type === 'incoming'
+    },
     nftTokenId () {
       if (!this.isNft || !this.tx) return null
       // Extract category from token field
@@ -733,6 +735,14 @@ export default {
         const commitmentAttr = this.tx.attributes.find(attr => attr.key === 'commitment')
         if (commitmentAttr && commitmentAttr.value) {
           commitment = commitmentAttr.value
+        }
+      }
+
+      // If not found, try route query
+      if (!commitment) {
+        const queryCommitment = this.$route?.query?.commitment
+        if (queryCommitment) {
+          commitment = queryCommitment
         }
       }
       
@@ -1679,28 +1689,42 @@ export default {
       }
     },
     async fetchNftMetadata () {
-      // Only fetch if it's an NFT and we have token ID
       if (!this.isNft) return
-      // Don't fetch if already fetching or if we already have the image
       if (this.fetchingNftMetadata || this.nftImageUrl) return
 
       this.fetchingNftMetadata = true
       try {
-        const tokenId = this.nftTokenId
-        if (!tokenId) {
+        const category = this.nftTokenId
+        if (!category) {
           this.fetchingNftMetadata = false
           return
         }
 
-        // Fetch NFT metadata from BCMR
-        const response = await axios.get(`https://bcmr.paytaca.com/api/tokens/${tokenId}/`)
+        const commitment = this.nftCommitment
+        let url = `tokens/${category}/`
+        if (commitment) {
+          url = `tokens/${category}/${commitment}/`
+        }
+
+        const response = await getBcmrBackend().get(url)
         const metadata = response?.data
 
-        if (metadata?.token?.uris?.icon) {
-          this.nftImageUrl = metadata.token.uris.icon
+        if (commitment && metadata?.type_metadata?.uris) {
+          const typeUris = metadata.type_metadata.uris
+          const imageUrl = typeUris.icon || typeUris.image || typeUris.asset
+          if (imageUrl) {
+            this.nftImageUrl = this.appendIpfsGatewayToken(convertIpfsUrl(imageUrl))
+          }
+          if (metadata.type_metadata.name) {
+            this.nftName = metadata.type_metadata.name
+          }
+        } else if (metadata?.uris?.icon) {
+          this.nftImageUrl = this.appendIpfsGatewayToken(convertIpfsUrl(metadata.uris.icon))
+        } else if (metadata?.token?.uris?.icon) {
+          this.nftImageUrl = this.appendIpfsGatewayToken(convertIpfsUrl(metadata.token.uris.icon))
         }
-        if (metadata?.token?.name) {
-          this.nftName = metadata.token.name
+        if (!this.nftName) {
+          this.nftName = metadata?.type_metadata?.name || metadata?.name || metadata?.token?.name || null
         }
       } catch (error) {
         console.error('[TransactionDetail] Error fetching NFT metadata:', error)
@@ -2668,6 +2692,14 @@ export default {
           return 'bch-logo.png'
         }
       }
+    },
+    appendIpfsGatewayToken (url) {
+      if (typeof url !== 'string') return url
+      if (url.startsWith('https://ipfs.paytaca.com/ipfs')) {
+        const separator = url.includes('?') ? '&' : '?'
+        return url + separator + 'pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+      }
+      return url
     },
     async preloadAudio () {
       console.log('[NativeAudio] preloadAudio started')

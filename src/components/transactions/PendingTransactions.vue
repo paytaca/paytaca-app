@@ -250,19 +250,19 @@ export default {
 	      }
 	      return order?.owner?.name
 	    },
-	    selectTransaction(transactionID, type) {
-	    	if (type === 'exchange') {
-	    		const params = {
-		    		order: transactionID,
-		    		redirect: true
-		    	}
-		    	this.$router.push({ name: 'exchange', query: { order_id: transactionID } })
-	    	} else if (type === 'marketplace') {
-	    		this.$router.push({ name: 'app-marketplace-order', params: { orderId: transactionID } })
-	    	} else if (type === 'appeal') {
-	    		this.$router.push({ name: 'exchange', query: { appeal_id: transactionID }})
-	    	}
-	    },
+    selectTransaction(transactionID, type) {
+    	if (type === 'exchange') {
+    		const params = {
+    			order: transactionID,
+    			redirect: true
+    		}
+    		this.$router.push({ name: 'exchange', query: { order_id: transactionID, source: 'home' } })
+    	} else if (type === 'marketplace') {
+    		this.$router.push({ name: 'app-marketplace-order', params: { orderId: transactionID } })
+    	} else if (type === 'appeal') {
+    		this.$router.push({ name: 'exchange', query: { appeal_id: transactionID }})
+    	}
+    },
 async fetchMarketOrders(opts={limit: 0, offset: 0 }) {    	
     	const vm = this	
   	  	const params = {

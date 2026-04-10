@@ -57,7 +57,11 @@ export default {
   mounted () {
     console.log('Query', this.$route.query)
     if ('order_id' in this.$route.query) {
-      this.$router.push({ name: 'p2p-order', params: { order: this.$route.query.order_id } })
+      this.$router.push({ 
+        name: 'p2p-order', 
+        params: { order: this.$route.query.order_id },
+        query: this.$route.query
+      })
     }
   }
 }

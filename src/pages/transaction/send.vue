@@ -1045,6 +1045,9 @@ export default {
         date_created: timestamp,
         _fromWebsocket: true
       }
+      if (this.commitment) {
+        sendTx.token = { commitment: this.commitment }
+      }
       const query = {
         from: 'send-page',
         assetID: this.assetId || 'bch',
@@ -1057,6 +1060,9 @@ export default {
       const assetId = this.assetId || ''
       if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
         query.category = assetId.split('/')[1]
+      }
+      if (this.commitment) {
+        query.commitment = this.commitment
       }
       return {
         query,
