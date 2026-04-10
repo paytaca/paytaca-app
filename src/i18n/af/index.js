@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "minuut gelede",
   Minutes: "minute",
   MinutesAgo: "minute gelede",
+  MissingTokenMetadataWarning: "Tokenbesonderhede nie gevind nie.Ons kan nie die korrekte desimale formaat vir hierdie teken verifieer nie.Rou tokenwaarde word vertoon.As jy dink dit is korrek, kan jy voortgaan",
   MnemonicBackupPhrase: "Mnemoniese rugsteunfrase",
   MnemonicBackupPhraseDescription1: "Maak dubbel seker of dit ooreenstem met jou mnemoniese rugsteunfrase",
   MnemonicBackupPhraseDescription2: "Skryf op papier of neem 'n skermskoot en hou dit iewers veilig",

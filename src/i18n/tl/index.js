@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "minuto ang nakalipas",
   Minutes: "minuto",
   MinutesAgo: "minuto ang nakalipas",
+  MissingTokenMetadataWarning: "Hindi nakita ang mga detalye ng token.Hindi namin ma-verify ang tamang decimal na format para sa token na ito.Ang halaga ng raw na token ay ipinapakita.Kung sa tingin mo ay tama maaari kang magpatuloy",
   MnemonicBackupPhrase: "Mnemonic Backup Phrase",
   MnemonicBackupPhraseDescription1: "I-double check kung tumutugma ito sa iyong mnemonic backup na parirala",
   MnemonicBackupPhraseDescription2: "Sumulat sa papel o kumuha ng screenshot at panatilihin ito sa isang lugar na ligtas",

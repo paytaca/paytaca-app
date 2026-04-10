@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "1分前",
   Minutes: "分",
   MinutesAgo: "数分前",
+  MissingTokenMetadataWarning: "トークンの詳細が見つかりません。このトークンの正しい 10 進形式を確認できません。生のトークン値が表示されます。それが正しいと思われる場合は、続行してください",
   MnemonicBackupPhrase: "ニーモニックバックアップフレーズ",
   MnemonicBackupPhraseDescription1: "これがニーモニックバックアップフレーズと一致するかどうかを再確認してください",
   MnemonicBackupPhraseDescription2: "紙に書くかスクリーンショットを撮って安全な場所に保管してください",

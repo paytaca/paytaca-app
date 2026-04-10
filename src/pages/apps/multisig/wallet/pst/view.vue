@@ -58,7 +58,7 @@
             <q-btn flat dense no-caps class="tile" @click="showShareProposalOptionsDialog">
               <template v-slot:default>
                 <div class="row justify-center">
-                  <q-icon name="mdi-share" class="col-12" color="primary" size="md"></q-icon>
+                  <q-icon name="mdi-share" class="col-12"></q-icon>
                   <div class="col-12 tile-label">{{ $t('Share') }}</div>
                 </div>
               </template>
@@ -66,7 +66,7 @@
             <q-btn flat dense no-caps class="tile" @click="showProposalDetailsDialog">
               <template v-slot:default>
                 <div class="row justify-center">
-                  <q-icon name="info" class="col-12" color="primary" size="md"></q-icon>
+                  <q-icon name="info" class="col-12"></q-icon>
                   <div class="col-12 tile-label">{{ $t('Details') }}</div>
                 </div>
               </template>
@@ -74,7 +74,7 @@
             <q-btn flat dense no-caps class="tile" @click="onDeleteProposalAction">
               <template v-slot:default>
                 <div class="row justify-center">
-                  <q-icon name="delete_forever" class="col-12" color="red" size="md"></q-icon>
+                  <q-icon name="delete_forever" class="col-12" color="red"></q-icon>
                   <div class="col-12 tile-label">{{ $t('Delete') }}</div>
                 </div>
               </template>
@@ -82,68 +82,95 @@
           </div>
           <q-separator class="q-my-md"></q-separator>
           <q-list>
-            <template v-if="pst.getTotalSatsDebit() > 0">
-              <q-item >
+            <q-item v-if="pst.getTotalSatsDebit() > 0">
                 <q-item-section>
-                  Debit
+                  <span class="coin-symbol">BCH</span>
                 </q-item-section>
-                <q-item-section side>
-                  <q-btn flat dense icon-right="img:bitcoin-cash-circle.svg" :label="`- ${pst.getTotalSatsDebit() / 1e8}`" color="red">
-                    &nbsp;
-                  </q-btn>
+                <q-item-section side top class="q-gutter-y-sm">
+                  <div class="flex no-wrap items-center text-red">
+                    <span class="coin-amount">- {{ pst.getTotalSatsDebit() / 1e8 }}&nbsp;</span>
+                    <q-icon name="img:bitcoin-cash-circle.svg" size="sm"></q-icon>
+                  </div>
+                  <div class="flex no-wrap items-center">
+                    <span class="text-caption q-mr-xs">[{{ $t('Change') }}]</span>
+                    <span class="coin-amount">
+                      {{ Big(pst.getTotalSatsChange()).div(1e8).toString() }}&nbsp;
+                    </span>
+                    <q-icon name="img:bitcoin-cash-circle.svg" size="sm"></q-icon>
+                  </div>
                 </q-item-section>
               </q-item>
-              <q-item>
-                <q-item-section>
-                  Change [BCH]
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn icon-right="img:bitcoin-cash-circle.svg" :label="Big(pst.getTotalSatsChange()).div(1e8).toString()" flat dense>
-                    &nbsp;
-                  </q-btn>
-                </q-item-section>
-              </q-item>
-            </template>
-            <template v-for="category, i in pstOutputsTokenCategories">
+            <template v-for="category, i in tokenCategories">
               <q-item v-if="pst.getTotalTokenDebit(category) > 0">
-                <q-item-section>
-                 Token Debit [{{ shortenString(category, 12)}}]
+                <q-item-section top>
+                  <div class="flex no-wrap q-gutter-x-sm">
+                    <div v-if="tokenIdentities[category]?.token?.symbol" class="coin-symbol ellipsis">
+                      {{ ((tokenIdentities[category].token.symbol).toUpperCase()) }}
+                    </div>
+                    <template v-else>
+                      <span class="text-bold">Token</span><span class="text-caption">[{{ shortenString(category, 12)}}] </span>
+                    </template>
+                  </div>
                 </q-item-section>
-                <q-item-section side>
-                  <q-btn flat dense icon-right="token" :label="`- ${pst.getTotalTokenDebit(category)}`" color="red">
-                    &nbsp;
-                  </q-btn>
-                </q-item-section>
-              </q-item>
-              <q-item v-if="pst.getTotalTokenDebit(category) > 0">
-                <q-item-section>
-                  Token Change [{{ shortenString(category, 12)}}] 
-                </q-item-section>
-                <q-item-section side>
-                  <q-btn icon-right="token" :label="pst.getTotalTokenChange(category)" flat dense>
-                    &nbsp;
-                  </q-btn>
+                <q-item-section side top class="q-gutter-y-sm">
+                  <div class="flex no-wrap items-center text-red">
+                    <span class="coin-amount">- {{ totalTokenDebit(category) }}<q-icon v-if="!tokenIdentities[category]" name="warning_amber"></q-icon>&nbsp;</span>
+                    <q-avatar size="sm">
+                      <q-img 
+                        v-if="Boolean(tokenIdentities[category]) && Boolean(tokenIdentities[category]?.uris?.icon) && Boolean(tokenIdentities[category]?.iconUriError) !== true" 
+                        :src="tokenIdentities[category]?.uris?.icon"
+                        @error="() => tokenIdentities[category] = {...(tokenIdentities[category] || {}), iconUriError: true }"
+                        >
+                      </q-img>
+                      <q-icon v-else name="token" size="sm"></q-icon>
+                    </q-avatar>
+                  </div>
+                  <div class="flex no-wrap items-center">
+                    <span class="text-caption q-mr-xs">[{{ $t('Change') }}]</span><span class="coin-amount">{{ totalTokenChange(category) }}<q-icon v-if="!tokenIdentities[category]" name="warning_amber"></q-icon>&nbsp;</span>
+                    <q-avatar size="sm">
+                      <q-img 
+                        v-if="Boolean(tokenIdentities[category]) && Boolean(tokenIdentities[category]?.uris?.icon) && Boolean(tokenIdentities[category]?.iconUriError) !== true" 
+                        :src="tokenIdentities[category]?.uris?.icon"
+                        @error="() => tokenIdentities[category] = {...(tokenIdentities[category] || {}), iconUriError: true }"
+                        >
+                      </q-img>
+                      <q-icon v-else name="token" size="sm"></q-icon>
+                    </q-avatar>
+                  </div>
+                  <q-item-label v-if="!tokenIdentities[category]" caption class="text-italic">
+                    <q-icon name="warning" color="warning" size="sm"></q-icon>
+                    <span>{{ $t('MissingTokenMetadataWarning')}}</span>
+                  </q-item-label>
                 </q-item-section>
               </q-item>
               <q-item v-if="pst.getTotalNftCredit(category) > 0">
                 <q-item-section>
-                  NFT Credit [{{ shortenString(category, 12)}}] 
+                  <div class="flex no-wrap q-gutter-x-sm">
+                    <div v-if="tokenIdentities[category]?.token?.symbol" class="text-bold">{{ ((tokenIdentities[category].token.symbol).toUpperCase()) }} </div>
+                    <template v-else>
+                      <span class="text-bold">NFT</span><span class="text-caption">[{{ shortenString(category, 12)}}] </span>
+                    </template>
+                  </div>
                 </q-item-section>
                 <q-item-section side>
-                  <q-btn color="green" icon-right="token" :label="`+ ${pst.getTotalNftCredit(category)} pc`" flat dense no-caps>
-                    &nbsp;
-                  </q-btn>
+                  <div class="flex no-wrap items-center text-green">
+                    <span class="coin-amount">+ {{ pst.getTotalNftCredit(category) }} pc&nbsp;</span>
+                    <q-icon name="mdi-alpha-n-circle" size="sm"></q-icon>
+                  </div>
                 </q-item-section>
               </q-item>
             </template>
             <q-item>
               <q-item-section>
-                Fee
+                <q-item-label caption>
+                  {{ $t('TransactionFee') }}
+                </q-item-label>
               </q-item-section>
               <q-item-section side>
-                <q-btn icon-right="img:bitcoin-cash-circle.svg" :label="Big(pst.getSatsFee()).div(1e8).toString()" flat dense>
-                  &nbsp;
-                </q-btn>
+                <div class="flex no-wrap items-center justify-right">
+                  <span class="coin-amount">{{Big(pst.getSatsFee()).div(1e8).toString()}}&nbsp;</span>
+                  <q-icon name="img:bitcoin-cash-circle.svg" size="sm"></q-icon>
+                </div>
               </q-item-section>
             </q-item>
             <q-separator></q-separator>
@@ -333,9 +360,10 @@ import { STATUS } from 'src/lib/multisig/pst'
 const {
   multisigNetworkProvider,
   multisigCoordinationServer,
+  isChipnet,
   resolveXprvOfXpub,
   resolveMnemonicOfXpub,
-  isChipnet
+  getAssetTokenIdentity
 } = useMultisigHelpers()
 const $q = useQuasar()
 const $store = useStore()
@@ -347,8 +375,10 @@ const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
 const isBroadcasting = ref(false)
 const broadcastSuccessDialogShown = ref(false)
+const wallet = ref()
 const pst = ref()
 const isFetchingStatus = ref(false)
+const tokenIdentities = ref({})
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -357,16 +387,6 @@ const darkMode = computed(() => {
 const signingProgress = computed(() => {
   if (!pst.value) return {}
   return pst.value.getSigningProgress()
-})
-
-const wallet = ref()
-
-const pstOutputsTokenCategories = computed(() => {
-    return new Set(
-      pst.value?.outputs.map(o => 
-        o.token?.category ? binToHex(o.token.category) : '').filter(c=> Boolean(c)
-      ) || []
-    )
 })
 
 const proposedBy = computed(() => {
@@ -402,6 +422,27 @@ const signersWhoCanSign = computed(() => {
 const signerWhoCanSign = computed(() => {
   return signersWhoCanSign.value[0] || null
 })
+
+const tokenCategories = computed(() => {
+    return new Set(
+      pst.value?.outputs.map(o => 
+        o.token?.category ? binToHex(o.token.category) : '').filter(c=> Boolean(c)
+      ) || []
+    )
+})
+
+const totalTokenDebit = computed(() => {
+  return (category) => {
+    return Big(pst.value.getTotalTokenDebit(category)).div(`1e${tokenIdentities.value[category]?.token?.decimals || 0}`).toString()
+  }
+})
+
+const totalTokenChange = computed(() => {
+  return (category) => {
+    return Big(pst.value.getTotalTokenChange(category)).div(`1e${tokenIdentities.value[category]?.token?.decimals || 0}`).toString()
+  }
+})
+
 
 const openFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fileExtension, data}) => {
   $q.dialog({
@@ -707,53 +748,14 @@ const onConfirmSliderSwiped = async (reset) => {
   })
 }
 
-const importSignerSignature = (masterFingerprint, name) => {
-  router.push({ 
-    name: 'app-multisig-wallet-pst-signatures-import',
-    params: {
-      wallethash: route.params.wallethash,
-      unsignedtransactionhash: route.params.unsignedtransactionhash,
-      masterfingerprint: masterFingerprint
-    },
-    query: {
-      signerName: name
-    }
-  })
-}
-
 const showImportSignatureDialog = () => {
   router.push({ 
     name: 'app-multisig-wallet-pst-signatures-import',
     params: {
       wallethash: route.params.wallethash,
       unsignedtransactionhash: route.params.unsignedtransactionhash,
-      // masterfingerprint: masterFingerprint
     },
-    // query: {
-    //   signerName: name
-    // }
   })
-
-  // const unsignedSigners = wallet.value?.signers?.filter(s => !pst.value?.signerSigned(s.xpub)) || []
-  // if (unsignedSigners.length === 0) return
-  
-  // if (unsignedSigners.length === 1) {
-  //   importSignerSignature(unsignedSigners[0].masterFingerprint, unsignedSigners[0].name)
-  //   return
-  // }
-  
-  // $q.bottomSheet({
-  //   message: $t('SelectSigner'),
-  //   class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)}`,
-  //   actions: unsignedSigners.map((s, i) => ({
-  //     label: s.name || `Signer ${i + 1}`,
-  //     id: s.masterFingerprint,
-  //     icon: 'person',
-  //     name: s.name
-  //   }))
-  // }).onOk(action => {
-  //   importSignerSignature(action.id, action.name)
-  // })
 }
 
 const loadWallet = async () => {
@@ -889,11 +891,27 @@ if ((!isFetchingStatus.value || !isBroadcasting.value) && (!pst.value.status || 
   }
 }
 
+const discoverTokenIdentities = async() => {
+  const promises = []
+  const categories = Array.from(tokenCategories.value || [])
+  for (const category of categories) {
+    promises.push({
+      category, 
+      promise: getAssetTokenIdentity(category)
+    })
+  }
+  const results = await Promise.allSettled(promises.map(p => p.promise))
+  results.forEach((r, i) => {
+    tokenIdentities.value[promises[i].category] = r.value ? JSON.parse(JSON.stringify(r.value)): null
+  })
+}
+
 onMounted(async () => {
 
   await loadWallet()
   await loadProposal()
   await checkProposalStatus()
+  await discoverTokenIdentities()
   registerInterval(async () => {
     if (broadcastSuccessDialogShown.value) return
     if (pst.value?.id && signingProgress.value?.signingProgress !== 'fully-signed') {
@@ -944,4 +962,5 @@ onMounted(async () => {
 .sticky-bottom-spacer {
   height: 100px;
 }
+
 </style>

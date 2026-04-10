@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "menit yang lalu",
   Minutes: "menit",
   MinutesAgo: "beberapa menit yang lalu",
+  MissingTokenMetadataWarning: "Detail token tidak ditemukan.Kami tidak dapat memverifikasi format desimal yang benar untuk token ini.Nilai token mentah ditampilkan.Jika menurut Anda itu benar, Anda dapat melanjutkan",
   MnemonicBackupPhrase: "Frase Cadangan Mnemonik",
   MnemonicBackupPhraseDescription1: "Periksa kembali apakah ini cocok dengan frasa cadangan mnemonik Anda",
   MnemonicBackupPhraseDescription2: "Tulis di kertas atau ambil tangkapan layar dan simpan di tempat yang aman",

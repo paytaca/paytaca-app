@@ -1320,6 +1320,7 @@ export default {
   MinuteAgo: "il y a une minute",
   Minutes: "minutes",
   MinutesAgo: "il y a quelques minutes",
+  MissingTokenMetadataWarning: "Détails du jeton introuvables.Nous ne pouvons pas vérifier le format décimal correct pour ce jeton.La valeur brute du jeton est affichée.Si vous pensez que c'est correct, vous pouvez continuer",
   MnemonicBackupPhrase: "Phrase de sauvegarde mnémonique",
   MnemonicBackupPhraseDescription1: "Vérifiez si cela correspond à votre phrase de sauvegarde mnémonique",
   MnemonicBackupPhraseDescription2: "Écrivez sur papier ou prenez une capture d'écran et conservez-la dans un endroit sûr",
