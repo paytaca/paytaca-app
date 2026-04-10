@@ -20,11 +20,126 @@
       </template>
     </header-nav>
 
-    <!-- Welcome Message -->
+    <!-- Aggregated Points & LIFT Value Section -->
     <div class="q-mx-lg q-mt-md q-mb-md">
-      <p class="text-body1 text-center q-ma-none">
-        {{ $t('WelcomeToRewards', 'Welcome! Explore rewards and promos and start earning points.') }}
-      </p>
+      <div
+        class="br-15 q-pa-md group-currency"
+        :class="getDarkModeClass(darkMode)"
+        style="background: linear-gradient(135deg, rgba(101, 85, 192, 0.1) 0%, rgba(60, 52, 107, 0.05) 100%);"
+      >
+        <!-- Header: Points Summary -->
+        <div class="row items-center q-mb-sm">
+          <q-icon name="stars" color="primary" size="sm" class="q-mr-sm" />
+          <span class="text-subtitle1 text-weight-medium">
+            Rewards Summary
+          </span>
+        </div>
+
+        <!-- Total Points Display -->
+        <div class="row justify-between items-baseline q-mb-xs">
+          <span class="text-caption text-grey-6">Total Points</span>
+          <span class="text-h6 text-weight-bold text-primary">
+            <template v-if="isLoading">
+              <q-skeleton type="text" width="80px" height="24px" />
+            </template>
+            <template v-else>
+              {{ totalPoints.toLocaleString() }}
+            </template>
+          </span>
+        </div>
+
+        <!-- Conversion Ratio Display -->
+        <div class="row justify-between items-center q-mb-xs q-px-sm">
+          <span class="text-caption text-grey-5">
+            <q-icon name="calculate" size="xs" class="q-mr-xs" />
+            Conversion Rate
+          </span>
+          <span class="text-caption text-weight-medium text-grey-6">
+            <template v-if="isLoading">
+              <q-skeleton type="text" width="100px" height="16px" />
+            </template>
+            <template v-else>
+              {{ formattedConversionRatio }}
+            </template>
+          </span>
+        </div>
+
+        <!-- LIFT Conversion Display -->
+        <div class="row justify-between items-baseline q-mb-md">
+          <span class="text-caption text-grey-6">
+            <q-icon name="sync_alt" size="xs" class="q-mr-xs" />
+            Convertible to
+          </span>
+          <span class="text-subtitle1 text-weight-medium">
+            <template v-if="isLoading">
+              <q-skeleton type="text" width="100px" height="20px" />
+            </template>
+            <template v-else>
+              <span class="text-token" :class="getDarkModeClass(darkMode)">
+                <q-icon name="diamond" color="primary" size="sm" class="q-mr-xs" />
+                {{ formattedLiftAmount }} LIFT
+              </span>
+            </template>
+          </span>
+        </div>
+
+        <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
+
+        <!-- Current LIFT Price -->
+        <div class="q-mb-sm">
+          <div class="text-caption text-grey-6 q-mb-xs">
+            Current LIFT Price
+          </div>
+          <div class="row items-center gap-sm">
+            <template v-if="isPriceLoading || isLoading">
+              <q-skeleton type="text" width="120px" height="18px" />
+              <q-skeleton type="text" width="80px" height="18px" />
+            </template>
+            <template v-else>
+              <span class="text-body2 text-weight-medium">
+                {{ formattedBchPrice }} BCH
+              </span>
+              <span class="text-caption text-grey-6">≈</span>
+              <span class="text-body2" :class="getDarkModeClass(darkMode)">
+                {{ selectedCurrency?.symbol }} {{ formattedFiatPrice }}
+              </span>
+            </template>
+          </div>
+        </div>
+
+        <!-- Total Value Estimate -->
+        <div
+          class="q-pa-sm br-10"
+          :class="darkMode ? 'bg-dark' : 'bg-grey-2'"
+          style="border-left: 3px solid var(--q-primary);"
+        >
+          <div class="text-caption text-grey-6 q-mb-xs">
+            Estimated Value
+          </div>
+          <div class="row justify-between items-baseline">
+            <div class="column">
+              <template v-if="isPriceLoading || isLoading">
+                <q-skeleton type="text" width="140px" height="24px" />
+                <q-skeleton type="text" width="100px" height="18px" class="q-mt-xs" />
+              </template>
+              <template v-else>
+                <span class="text-h6 text-weight-bold text-primary">
+                  ≈ {{ formattedTotalBch }} BCH
+                </span>
+                <span class="text-caption text-grey-6">
+                  ≈ {{ selectedCurrency?.symbol }} {{ formattedTotalFiat }}
+                </span>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Error Message -->
+        <div v-if="priceError && !isLoading" class="text-caption text-negative q-mt-sm">
+          <q-icon name="error_outline" size="xs" class="q-mr-xs" />
+          {{ priceError }}
+        </div>
+      </div>
     </div>
 
     <!-- Error State -->
@@ -120,6 +235,12 @@ import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+import {
+  LIFT_TOKEN_CATEGORY,
+  LIFT_TOKEN_DECIMALS
+} from 'src/utils/subscription-utils'
+import { convertTokenAmount } from 'src/wallet/chipnet'
+import { formatCurrency } from 'src/exchange'
 
 export default {
   name: 'RewardsPage',
@@ -138,6 +259,11 @@ export default {
       swapContractAddress: '',
       totalPoints: 0,
       liftConversionRatio: 1,
+
+      // LIFT token price tracking
+      liftAssetId: `ct/${LIFT_TOKEN_CATEGORY}`,
+      isPriceLoading: false,
+      priceError: null,
 
       pointsType: ['ur', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
@@ -165,6 +291,107 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+
+    // User's selected fiat currency
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
+    },
+
+    // Calculate LIFT token amount from points
+    liftTokenAmount () {
+      if (!this.liftConversionRatio || this.liftConversionRatio === 0) return 0
+      return this.totalPoints / this.liftConversionRatio
+    },
+
+    // Get LIFT price in BCH from store
+    liftBchPrice () {
+      return this.$store.getters['market/getAssetPrice'](this.liftAssetId, 'bch')
+    },
+
+    // Get LIFT price in user's selected fiat currency
+    liftFiatPrice () {
+      if (!this.selectedCurrency?.symbol) return null
+      return this.$store.getters['market/getAssetPrice'](
+        this.liftAssetId,
+        this.selectedCurrency.symbol
+      )
+    },
+
+    // Calculate total BCH value of user's convertible LIFT
+    totalBchValue () {
+      const price = this.liftBchPrice
+      if (!price || price === 0) return 0
+      return price * this.liftTokenAmount
+    },
+
+    // Calculate total fiat value of user's convertible LIFT
+    totalFiatValue () {
+      const price = this.liftFiatPrice
+      if (!price || price === 0) return 0
+      return price * this.liftTokenAmount
+    },
+
+    // Format LIFT amount with proper decimals (using convertTokenAmount)
+    formattedLiftAmount () {
+      if (this.liftTokenAmount === 0) return '0'
+      return convertTokenAmount(
+        this.liftTokenAmount * Math.pow(10, LIFT_TOKEN_DECIMALS),
+        LIFT_TOKEN_DECIMALS,
+        LIFT_TOKEN_DECIMALS,
+        false,
+        false
+      )
+    },
+
+    // Format BCH price with 8 decimals
+    formattedBchPrice () {
+      if (!this.liftBchPrice || this.liftBchPrice === 0) return '--'
+      return this.liftBchPrice.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 8
+      })
+    },
+
+    // Format total BCH value with 8 decimals
+    formattedTotalBch () {
+      if (this.totalBchValue === 0) return '0'
+      if (!this.totalBchValue) return '--'
+      return this.totalBchValue.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 8
+      })
+    },
+
+    // Format fiat price using formatCurrency with locale detection
+    formattedFiatPrice () {
+      if (!this.liftFiatPrice || this.liftFiatPrice === 0) return '--'
+      return formatCurrency(this.liftFiatPrice, this.selectedCurrency?.symbol)
+    },
+
+    // Format total fiat value
+    formattedTotalFiat () {
+      if (this.totalFiatValue === 0) return '0'
+      if (!this.totalFiatValue) return '--'
+      return formatCurrency(this.totalFiatValue, this.selectedCurrency?.symbol)
+    },
+
+    // Format conversion ratio display
+    formattedConversionRatio () {
+      if (!this.liftConversionRatio || this.liftConversionRatio === 0) return '--'
+      return `${this.liftConversionRatio} points = -- LIFT`
+    }
+  },
+
+  watch: {
+    // Refetch prices when currency changes
+    'selectedCurrency.symbol' (newSymbol, oldSymbol) {
+      if (newSymbol && newSymbol !== oldSymbol) {
+        this.$store.dispatch('market/updateAssetPrices', {
+          assetId: this.liftAssetId,
+          customCurrency: newSymbol
+        })
+      }
     }
   },
 
@@ -178,6 +405,8 @@ export default {
     async loadRewards () {
       this.isLoading = true
       this.error = null
+      this.isPriceLoading = true
+      this.priceError = null
 
       const data = await getUserPromoData()
       const [upResp, ratioResp] = await Promise.allSettled(
@@ -197,6 +426,7 @@ export default {
               const targetPromo = PromosBytes[type.toUpperCase()]
               const contract = new PromoContract(userPubkey, targetPromo)
               const promoBalance = await contract.getTokenBalance()
+              this.totalPoints += promoBalance
               this.promos[type].points = promoBalance
               this.promos[type].id = promoId
             }
@@ -213,6 +443,21 @@ export default {
 
       // process fetched ratioData
       this.liftConversionRatio = ratioData
+
+      // Fetch LIFT token price from market store
+      try {
+        if (this.selectedCurrency?.symbol) {
+          await this.$store.dispatch('market/updateAssetPrices', {
+            assetId: this.liftAssetId,
+            customCurrency: this.selectedCurrency.symbol
+          })
+        }
+      } catch (priceError) {
+        console.error('Failed to fetch LIFT price:', priceError)
+        this.priceError = 'Unable to fetch current LIFT price'
+      } finally {
+        this.isPriceLoading = false
+      }
 
       this.isLoading = false
 

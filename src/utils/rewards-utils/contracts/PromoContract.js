@@ -41,6 +41,7 @@ export default class PromoContract {
    */
   initializeContract (userPubKey) {
     this.provider = new ElectrumNetworkProvider(Network.MAINNET)
+    // TODO change endianness of PROMO_TOKEN_CATEGORY
     const contractParams = [ADMIN_PUBKEY, userPubKey, PROMO_TOKEN_CATEGORY, this.promo]
     this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
   }
