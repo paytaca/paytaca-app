@@ -391,7 +391,8 @@ export default {
 
     // Format BCH price with 8 decimals
     formattedBchPrice () {
-      if (!this.liftBchPrice || this.liftBchPrice === 0) return '--'
+      if (this.liftBchPrice === 0) return '0'
+      if (!this.liftBchPrice) return '--'
       return this.liftBchPrice.toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 8
@@ -416,7 +417,7 @@ export default {
 
     // Format total fiat value
     formattedTotalFiat () {
-      if (this.totalFiatValue === 0) return '0'
+      if (this.totalFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
       if (!this.totalFiatValue) return '--'
       return parseFiatCurrency(this.totalFiatValue, this.selectedCurrency?.symbol)
     },
