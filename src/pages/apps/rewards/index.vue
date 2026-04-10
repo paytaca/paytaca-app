@@ -58,7 +58,7 @@
                 
                 <!-- Line 2: BCH • Fiat -->
                 <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ formattedBchPrice }} BCH • {{ formattedFiatPrice }}
+                  {{ formattedTotalBch }} BCH • {{ formattedTotalFiat }}
                 </div>
               </template>
             </div>
@@ -250,6 +250,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import {
   PromosBytes,
   getUserPromoData,
@@ -286,6 +287,11 @@ export default {
       liftAssetId: `ct/${LIFT_TOKEN_CATEGORY}`,
       isPriceLoading: false,
       priceError: null,
+
+      // Cauldron API price storage
+      liftBchPriceValue: null,
+      liftUsdPriceValue: null,
+      cauldronPriceIntervalId: null,
 
       // Collapsible section state
       isSummaryExpanded: false,
@@ -329,18 +335,22 @@ export default {
       return this.totalPoints / this.liftConversionRatio
     },
 
-    // Get LIFT price in BCH from store
+    // Get LIFT price in BCH from Cauldron data
     liftBchPrice () {
-      return this.$store.getters['market/getAssetPrice'](this.liftAssetId, 'bch')
+      return this.liftBchPriceValue
     },
 
     // Get LIFT price in user's selected fiat currency
     liftFiatPrice () {
-      if (!this.selectedCurrency?.symbol) return null
-      return this.$store.getters['market/getAssetPrice'](
-        this.liftAssetId,
-        this.selectedCurrency.symbol
-      )
+      if (!this.selectedCurrency?.symbol || !this.liftBchPriceValue) return null
+      
+      // Get BCH price in user's fiat from store (for fiat conversion rates)
+      const bchToFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedCurrency.symbol)
+      
+      if (!bchToFiat) return null
+      
+      // Convert: LIFT price (in BCH) × BCH price (in fiat) = LIFT price in fiat
+      return this.liftBchPriceValue * bchToFiat
     },
 
     // Calculate total BCH value of user's convertible LIFT
@@ -418,6 +428,13 @@ export default {
     }
   },
 
+  beforeUnmount () {
+    // Cleanup Cauldron price polling interval
+    if (this.cauldronPriceIntervalId) {
+      clearInterval(this.cauldronPriceIntervalId)
+    }
+  },
+
   async mounted () {
     await this.loadRewards()
   },
@@ -427,6 +444,49 @@ export default {
 
     toggleSummary () {
       this.isSummaryExpanded = !this.isSummaryExpanded
+    },
+
+    async fetchLiftPriceFromCauldron () {
+      try {
+        this.isPriceLoading = true
+        this.priceError = null
+        
+        const tokens = await fetchTokensList({ token_id: LIFT_TOKEN_CATEGORY })
+        
+        if (tokens && tokens.length > 0) {
+          const liftToken = tokens[0]
+          // Format prices according to Cauldron's approach: price / 10^(8 - decimals)
+          this.liftBchPriceValue = liftToken.price_now 
+            ? liftToken.price_now / Math.pow(10, 8)
+            : null
+          this.liftUsdPriceValue = liftToken.price_now_usd
+            ? liftToken.price_now_usd / Math.pow(10, 8 - LIFT_TOKEN_DECIMALS)
+            : null
+        } else {
+          this.liftBchPriceValue = null
+          this.liftUsdPriceValue = null
+          this.priceError = 'LIFT token not found on Cauldron'
+        }
+      } catch (error) {
+        console.error('Error fetching LIFT price from Cauldron:', error)
+        this.priceError = 'Unable to fetch LIFT price from Cauldron'
+        this.liftBchPriceValue = null
+        this.liftUsdPriceValue = null
+      } finally {
+        this.isPriceLoading = false
+      }
+    },
+
+    startCauldronPricePolling () {
+      // Clear any existing interval
+      if (this.cauldronPriceIntervalId) {
+        clearInterval(this.cauldronPriceIntervalId)
+      }
+      
+      // Poll every 60 seconds
+      this.cauldronPriceIntervalId = setInterval(() => {
+        this.fetchLiftPriceFromCauldron()
+      }, 60 * 1000)
     },
 
     async loadRewards () {
@@ -471,20 +531,11 @@ export default {
       // process fetched ratioData
       this.liftConversionRatio = ratioData
 
-      // Fetch LIFT token price from market store
-      try {
-        if (this.selectedCurrency?.symbol) {
-          await this.$store.dispatch('market/updateAssetPrices', {
-            assetId: this.liftAssetId,
-            customCurrency: this.selectedCurrency.symbol
-          })
-        }
-      } catch (priceError) {
-        console.error('Failed to fetch LIFT price:', priceError)
-        this.priceError = 'Unable to fetch current LIFT price'
-      } finally {
-        this.isPriceLoading = false
-      }
+      // Fetch LIFT token price from Cauldron API
+      await this.fetchLiftPriceFromCauldron()
+      
+      // Start polling Cauldron prices (every 60 seconds)
+      this.startCauldronPricePolling()
 
       this.isLoading = false
 
