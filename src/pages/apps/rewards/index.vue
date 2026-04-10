@@ -20,125 +20,151 @@
       </template>
     </header-nav>
 
-    <!-- Aggregated Points & LIFT Value Section -->
+    <!-- Collapsible Aggregated Points & LIFT Value Section -->
     <div class="q-mx-lg q-mt-md q-mb-md">
       <div
-        class="br-15 q-pa-md group-currency"
-        :class="getDarkModeClass(darkMode)"
+        class="br-15 q-pa-md group-currency cursor-pointer transition-card"
+        :class="[getDarkModeClass(darkMode), { 'q-pb-md': !isSummaryExpanded }]"
         style="background: linear-gradient(135deg, rgba(101, 85, 192, 0.1) 0%, rgba(60, 52, 107, 0.05) 100%);"
+        @click="toggleSummary"
       >
-        <!-- Header: Points Summary -->
-        <div class="row items-center q-mb-sm">
-          <q-icon name="stars" color="primary" size="sm" class="q-mr-sm" />
-          <span class="text-subtitle1 text-weight-medium">
-            Rewards Summary
-          </span>
-        </div>
-
-        <!-- Total Points Display -->
-        <div class="row justify-between items-baseline q-mb-xs">
-          <span class="text-caption text-grey-6">Total Points</span>
-          <span class="text-h6 text-weight-bold text-primary">
-            <template v-if="isLoading">
-              <q-skeleton type="text" width="80px" height="24px" />
-            </template>
-            <template v-else>
-              {{ totalPoints.toLocaleString() }}
-            </template>
-          </span>
-        </div>
-
-        <!-- Conversion Ratio Display -->
-        <div class="row justify-between items-center q-mb-xs q-px-sm">
-          <span class="text-caption text-grey-5">
-            <q-icon name="calculate" size="xs" class="q-mr-xs" />
-            Conversion Rate
-          </span>
-          <span class="text-caption text-weight-medium text-grey-6">
-            <template v-if="isLoading">
-              <q-skeleton type="text" width="100px" height="16px" />
-            </template>
-            <template v-else>
-              {{ formattedConversionRatio }}
-            </template>
-          </span>
-        </div>
-
-        <!-- LIFT Conversion Display -->
-        <div class="row justify-between items-baseline q-mb-md">
-          <span class="text-caption text-grey-6">
-            <q-icon name="sync_alt" size="xs" class="q-mr-xs" />
-            Convertible to
-          </span>
-          <span class="text-subtitle1 text-weight-medium">
-            <template v-if="isLoading">
-              <q-skeleton type="text" width="100px" height="20px" />
-            </template>
-            <template v-else>
-              <span class="text-token" :class="getDarkModeClass(darkMode)">
-                <q-icon name="diamond" color="primary" size="sm" class="q-mr-xs" />
-                {{ formattedLiftAmount }} LIFT
-              </span>
-            </template>
-          </span>
-        </div>
-
-        <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
-
-        <!-- Current LIFT Price -->
-        <div class="q-mb-sm">
-          <div class="text-caption text-grey-6 q-mb-xs">
-            Current LIFT Price
-          </div>
-          <div class="row items-center gap-sm">
-            <template v-if="isPriceLoading || isLoading">
-              <q-skeleton type="text" width="120px" height="18px" />
-              <q-skeleton type="text" width="80px" height="18px" />
-            </template>
-            <template v-else>
-              <span class="text-body2 text-weight-medium">
-                {{ formattedBchPrice }} BCH
-              </span>
-              <span class="text-caption text-grey-6">≈</span>
-              <span class="text-body2" :class="getDarkModeClass(darkMode)">
-                {{ selectedCurrency?.symbol }} {{ formattedFiatPrice }}
-              </span>
-            </template>
-          </div>
-        </div>
-
-        <!-- Total Value Estimate -->
-        <div
-          class="q-pa-sm br-10"
-          :class="darkMode ? 'bg-dark' : 'bg-grey-2'"
-          style="border-left: 3px solid var(--q-primary);"
-        >
-          <div class="text-caption text-grey-6 q-mb-xs">
-            Estimated Value
-          </div>
-          <div class="row justify-between items-baseline">
-            <div class="column">
-              <template v-if="isPriceLoading || isLoading">
-                <q-skeleton type="text" width="140px" height="24px" />
-                <q-skeleton type="text" width="100px" height="18px" class="q-mt-xs" />
+        <!-- Header with Instant Text Swap -->
+        <div class="row items-center justify-between">
+          <div class="col">
+            <!-- Collapsed: Essential Info -->
+            <div v-if="!isSummaryExpanded" class="column q-gutter-y-xs">
+              <!-- Loading State -->
+              <template v-if="isLoading || isPriceLoading">
+                <div class="row items-center q-gutter-x-sm">
+                  <q-skeleton type="text" width="180px" height="20px" />
+                </div>
+                <div class="row items-center q-gutter-x-sm">
+                  <q-skeleton type="text" width="150px" height="16px" />
+                </div>
               </template>
+              
+              <!-- Loaded State -->
               <template v-else>
+                <!-- Line 1: Points → LIFT -->
+                <div class="text-body2 text-weight-medium">
+                  <span class="text-primary q-mx-xs">
+                    {{ totalPoints.toLocaleString() }} points
+                  </span>
+                  <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">→</span>
+                  <span class="text-token q-mx-xs" :class="getDarkModeClass(darkMode)">
+                    {{ formattedLiftAmount }} LIFT
+                  </span>
+                </div>
+                
+                <!-- Line 2: BCH • Fiat -->
+                <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  {{ formattedBchPrice }} BCH • {{ formattedFiatPrice }} {{ selectedCurrency?.symbol }}
+                </div>
+              </template>
+            </div>
+            
+            <!-- Expanded: Rewards Summary Header -->
+            <div v-else class="row items-center">
+              <q-icon name="stars" color="primary" size="sm" class="q-mr-sm" />
+              <span class="text-subtitle1 text-weight-medium">
+                Rewards Summary
+              </span>
+            </div>
+          </div>
+          
+          <!-- Chevron - Centered Vertically -->
+          <div class="col-auto flex flex-center" v-if="!isLoading">
+            <q-icon 
+              :name="isSummaryExpanded ? 'expand_less' : 'expand_more'"
+              size="sm"
+              class="transition-rotate text-bow"
+              :class="[{ 'rotate-180': isSummaryExpanded }, getDarkModeClass(darkMode)]"
+            />
+          </div>
+        </div>
+
+        <!-- Expanded State Content (Animated) -->
+        <q-slide-transition>
+          <div v-show="isSummaryExpanded" class="q-pt-md">
+            
+            <!-- Total Points Display -->
+            <div class="row justify-between items-baseline q-mb-xs">
+              <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                Total Points
+              </span>
+              <span class="text-h6 text-weight-bold text-primary">
+                {{ totalPoints.toLocaleString() }} points
+              </span>
+            </div>
+            
+            <!-- Conversion Ratio Display -->
+            <div class="row justify-between items-center q-mb-xs q-px-sm">
+              <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+                Conversion Rate
+              </span>
+              <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ formattedConversionRatio }}
+              </span>
+            </div>
+            
+            <!-- LIFT Conversion Display -->
+            <div class="row justify-between items-baseline q-mb-md">
+              <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                Convertible to
+              </span>
+              <span class="text-subtitle1 text-weight-medium">
+                <span class="text-token" :class="getDarkModeClass(darkMode)">
+                  {{ formattedLiftAmount }} LIFT
+                </span>
+              </span>
+            </div>
+            
+            <q-separator class="q-my-sm" :class="getDarkModeClass(darkMode)" />
+            
+            <!-- Current LIFT Price -->
+            <div class="q-mb-sm">
+              <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                Current LIFT Price
+              </div>
+              <div class="row items-center gap-sm">
+                <span class="text-body2 text-weight-medium">
+                  {{ formattedBchPrice }} BCH
+                </span>
+                <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  &nbsp;≈&nbsp;
+                </span>
+                <span class="text-body2" :class="getDarkModeClass(darkMode)">
+                  {{ formattedFiatPrice }} {{ selectedCurrency?.symbol }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Total Value Estimate -->
+            <div 
+              class="q-pa-sm br-10"
+              :class="darkMode ? 'bg-dark' : 'bg-grey-2'"
+              style="border-left: 3px solid var(--q-primary);"
+            >
+              <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                Estimated Value
+              </div>
+              <div class="column">
                 <span class="text-h6 text-weight-bold text-primary">
                   ≈ {{ formattedTotalBch }} BCH
                 </span>
-                <span class="text-caption text-grey-6">
-                  ≈ {{ selectedCurrency?.symbol }} {{ formattedTotalFiat }}
+                <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  ≈ {{ formattedTotalFiat }} {{ selectedCurrency?.symbol }}
                 </span>
-              </template>
+              </div>
+            </div>
+            
+            <!-- Price Error Message -->
+            <div v-if="priceError" class="text-caption text-negative q-mt-sm">
+              <q-icon name="error_outline" size="xs" class="q-mr-xs" />
+              {{ priceError }}
             </div>
           </div>
-        </div>
-
-        <!-- Price Error Message -->
-        <div v-if="priceError && !isLoading" class="text-caption text-negative q-mt-sm">
-          <q-icon name="error_outline" size="xs" class="q-mr-xs" />
-          {{ priceError }}
-        </div>
+        </q-slide-transition>
       </div>
     </div>
 
@@ -265,6 +291,9 @@ export default {
       isPriceLoading: false,
       priceError: null,
 
+      // Collapsible section state
+      isSummaryExpanded: false,
+
       pointsType: ['ur', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
         ur: {
@@ -379,7 +408,7 @@ export default {
     // Format conversion ratio display
     formattedConversionRatio () {
       if (!this.liftConversionRatio || this.liftConversionRatio === 0) return '--'
-      return `${this.liftConversionRatio} points = -- LIFT`
+      return `${this.liftConversionRatio} points = 1 LIFT`
     }
   },
 
@@ -401,6 +430,10 @@ export default {
 
   methods: {
     getDarkModeClass,
+
+    toggleSummary () {
+      this.isSummaryExpanded = !this.isSummaryExpanded
+    },
 
     async loadRewards () {
       this.isLoading = true
@@ -478,3 +511,15 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* Smooth card transition */
+.transition-card {
+  transition: all 0.3s ease;
+}
+
+/* Chevron rotation transition */
+.transition-rotate {
+  transition: transform 0.3s ease;
+}
+</style>
