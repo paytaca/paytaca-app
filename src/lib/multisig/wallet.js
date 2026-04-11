@@ -740,19 +740,23 @@ export class MultisigWallet {
       return highest
     }, -1)
 
-    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastUsedDepositAddressIndex || -1)) {
-      this.networks[this.options.provider.network].lastUsedDepositAddressIndex = highestUsedDepositAddressIndex
-      this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network })
+    const network = this.options.provider.network
+
+    if (highestUsedDepositAddressIndex >= (this.networks[network].lastUsedDepositAddressIndex || -1)) {
+      this.options?.store?.commit?.('multisig/updateWalletLastUsedDepositAddressIndex', { wallet: this, lastUsedDepositAddressIndex: highestUsedDepositAddressIndex, network })
     }
 
-    if (highestUsedChangeAddressIndex >= (this.networks[this.options.provider.network].lastUsedChangeAddressIndex || -1)) {
-      this.networks[this.options.provider.network].lastUsedChangeAddressIndex = highestUsedChangeAddressIndex      
-      this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network: this.options.provider.network }) 
+    if (highestUsedChangeAddressIndex >= (this.networks[network].lastUsedChangeAddressIndex || -1)) {
+      this.options?.store?.commit?.('multisig/updateWalletLastUsedChangeAddressIndex', { wallet: this, lastUsedChangeAddressIndex: highestUsedChangeAddressIndex, network }) 
     }
 
-    if (highestUsedDepositAddressIndex >= (this.networks[this.options.provider.network].lastIssuedDepositAddressIndex || -1)) {
-      this.networks[this.options.provider.network].lastIssuedDepositAddressIndex = highestUsedDepositAddressIndex
-      this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network: this.options.provider.network})  
+    if (highestUsedDepositAddressIndex >= (this.networks[network].lastIssuedDepositAddressIndex || -1)) {
+      this.options?.store?.commit?.('multisig/updateWalletLastIssuedDepositAddressIndex', { wallet: this, lastIssuedDepositAddressIndex: highestUsedDepositAddressIndex, network})  
+    }
+
+    const storedWallet = this.options?.store?.state?.multisig?.wallets?.find(w => w.walletHash === this.walletHash)
+    if (storedWallet?.networks?.[network]) {
+      this.networks[network] = storedWallet.networks[network]
     }
   }
 

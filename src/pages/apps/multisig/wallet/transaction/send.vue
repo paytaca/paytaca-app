@@ -123,6 +123,7 @@
                           clearable
                           filled 
                           :disable="isCreatingProposal"
+                          @focus="onAddressFocus"
                           :ref="el => { if (el) addressInputRefs[i] = el }"
                           hide-bottom-space
                         >
@@ -137,6 +138,8 @@
                           :rules="amountRules"
                           clearable
                           :disable="isCreatingProposal"
+                          inputmode="none"
+                          @focus="onAmountFocus(i)"
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                         </q-input>
@@ -166,7 +169,7 @@
           </q-page>
         </q-page-container>
       </q-pull-to-refresh>
-      <div class="sticky-bottom-actions">
+      <div class="sticky-bottom-actions" v-if="customKeyboardState !== 'show'">
         <q-btn
           :loading="isCreatingProposal"
           style="width: 100%; filter: opacity((100%))"
@@ -182,6 +185,11 @@
           {{ $t('CreateProposal') }}
         </q-btn>
       </div>
+      <CustomKeyboard
+        :custom-keyboard-state="customKeyboardState"
+        v-on:addKey="setAmount"
+        v-on:makeKeyAction="makeKeyAction"
+      />
   </q-layout>
 </template>
 
@@ -196,10 +204,12 @@ import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import {
   shortenString,
   MultisigWallet,
 } from 'src/lib/multisig'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
@@ -252,6 +262,8 @@ const showWcHeldFundsDialog = ref(false)
 const reserveWcAccountUtxos = ref(true)
 const showQrScanner = ref(false)
 const currentRecipientIndex = ref(null)
+const customKeyboardState = ref('dismiss')
+const focusedInputField = ref('')
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -414,6 +426,55 @@ const addRecipient = async () => {
 const openQrScanner = (recipientIndex) => {
   currentRecipientIndex.value = recipientIndex
   showQrScanner.value = true
+}
+
+const onAmountFocus = (index) => {
+  currentRecipientIndex.value = index
+  focusedInputField.value = 'amount'
+  customKeyboardState.value = 'show'
+}
+
+const onAddressFocus = () => {
+  focusedInputField.value = ''
+  customKeyboardState.value = 'dismiss'
+}
+
+const asset = computed(() => {
+  if (route.query.asset === 'bch') {
+    return { id: 'bch', symbol: 'BCH', decimals: 8 }
+  }
+  return {
+    id: route.query.asset,
+    symbol: assetHeaderName.value,
+    decimals: assetTokenIdentity.value?.token?.decimals ?? 8
+  }
+})
+
+const setAmount = (key) => {
+  if (focusedInputField.value !== 'amount') return
+  const recipient = recipients.value[currentRecipientIndex.value]
+  if (!recipient) return
+  const currentRef = amountInputRefs.value[currentRecipientIndex.value]
+  const caret = currentRef?.nativeEl?.selectionStart
+  recipient.amount = parseKey(key, recipient.amount, caret, asset.value)
+}
+
+const makeKeyAction = (action) => {
+  if (focusedInputField.value !== 'amount') return
+  const recipient = recipients.value[currentRecipientIndex.value]
+  if (!recipient) return
+  const currentRef = amountInputRefs.value[currentRecipientIndex.value]
+
+  if (action === 'backspace') {
+    const caret = (currentRef?.nativeEl?.selectionStart ?? recipient.amount.length) - 1
+    recipient.amount = adjustSplicedAmount(recipient.amount, caret)
+  } else if (action === 'delete') {
+    recipient.amount = ''
+  } else {
+    customKeyboardState.value = 'dismiss'
+    focusedInputField.value = ''
+    nextTick(() => currentRef?.blur())
+  }
 }
 
 const onQrDecoded = (content) => {
