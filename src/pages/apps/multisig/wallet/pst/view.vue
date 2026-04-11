@@ -193,8 +193,12 @@
             <q-item>
               <q-item-section>
                 <q-item-label>{{ $t('CanSignOnDevice', {}, 'Can Sign on this device?') }}</q-item-label>
-                <q-item-label v-if="signersWithXprv.length > 0" caption lines="2">
-                  {{ $t('CanSignAs', {}, 'You can sign on this device as') }} <span class="text-bold">{{ signersWithXprv.map(s => s.name).join(` ${$t('or')} `) }}</span>
+                <q-item-label v-if="signersWithXprv.length > 0" caption lines="3">
+                  <div v-for="signer in signersWithXprv" :key="signer.xpub" class="q-mt-xs">
+                    <q-icon v-if="signer.xpub === activeSigner?.xpub" name="draw" size="xs" color="primary" class="q-mr-xs" />
+                    <span :class="{ 'text-bold text-primary': signer.xpub === activeSigner?.xpub }">{{ signer.name }}</span>
+                    <span v-if="pst && pst.signerSigned(signer.xpub)" class="text-caption q-ml-xs text-positive">({{ $t('AlreadySigned', {}, 'Already signed') }})</span>
+                  </div>
                 </q-item-label>
               </q-item-section>
               <q-item-section side top>
@@ -277,17 +281,34 @@
           <q-icon name="cell_tower" class="q-mr-sm"></q-icon>
           {{ $t('Broadcast') }}
         </q-btn>
-        <q-btn
-          v-else-if="canSign && !showActionConfirmationSlider"
-          color="primary"
-          unelevated
-          rounded
-          class="full-width q-py-md"
-          @click="initiateSignTransaction(signerWhoCanSign)"
-        >
-          <q-icon name="draw" class="q-mr-sm"></q-icon>
-          {{ $t('SignTx') }}
-        </q-btn>
+        <template v-else-if="canSign && !showActionConfirmationSlider">
+          <q-btn
+            v-if="signersWhoCanSign.length === 1 || selectedSigner"
+            color="primary"
+            unelevated
+            rounded
+            class="full-width q-py-md"
+            @click="initiateSignTransaction(selectedSigner || signerWhoCanSign)"
+          >
+            <q-icon name="draw" class="q-mr-sm"></q-icon>
+            {{ $t('SignAs', {}, 'Sign as') }} {{ (selectedSigner || signerWhoCanSign)?.name }}
+          </q-btn>
+          <div v-else class="column items-center q-gutter-y-sm">
+            <div class="text-body2 text-center">{{ $t('SelectSignerToSign', {}, 'Select a signer to sign with') }}</div>
+            <q-btn
+              v-for="signer in sortedSignersWhoCanSign"
+              :key="signer.xpub"
+              color="primary"
+              unelevated
+              rounded
+              class="full-width q-py-sm"
+              @click="selectedSigner = signer"
+            >
+              <q-icon name="draw" class="q-mr-sm"></q-icon>
+              {{ $t('SignAs', {}, 'Sign as') }} {{ signer.name }}
+            </q-btn>
+          </div>
+        </template>
       </div>
       <div v-if="pst && pst.status?.status !== STATUS.CONFLICTED && (signingProgress?.signingProgress === 'unsigned' || signingProgress?.signingProgress === 'partially-signed') && !canSign" class="sticky-bottom-actions" :class="getDarkModeClass(darkMode)">
         <q-btn
@@ -315,19 +336,22 @@
           {{ $t('DeleteConflictedProposal') }}
         </q-btn>
       </div>
-      <div
-          v-if="showActionConfirmationSlider"
-          class="action-confirmation-backdrop"
-          @click="cancelActionConfirmationSlider"
-        >
-          <div class="action-confirmation-slider-content" @click.stop>
-            <DragSlide
-              @swiped="onConfirmSliderSwiped"
-              text="Swipe to confirm"
-              :disable-absolute-bottom="true"
-            />
-          </div>
-        </div>
+<div
+           v-if="showActionConfirmationSlider"
+           class="action-confirmation-backdrop"
+           @click="cancelActionConfirmationSlider"
+         >
+           <div class="action-confirmation-slider-content" @click.stop>
+             <div class="text-center q-mb-sm text-bold" :class="getDarkModeClass(darkMode)">
+               {{ $t('SignAs', {}, 'Sign as') }} {{ signingInitiatedBy?.name }}
+             </div>
+             <DragSlide
+               @swiped="onConfirmSliderSwiped"
+               :text="$t('SwipeToConfirm', {}, 'Swipe to confirm')"
+               :disable-absolute-bottom="true"
+             />
+           </div>
+         </div>
     </div>
   </q-pull-to-refresh>
 </template>
@@ -362,6 +386,7 @@ const {
   multisigCoordinationServer,
   isChipnet,
   resolveXprvOfXpub,
+  getWalletsFromVault,
   resolveMnemonicOfXpub,
   getAssetTokenIdentity
 } = useMultisigHelpers()
@@ -373,12 +398,14 @@ const route = useRoute()
 const router = useRouter()
 const showActionConfirmationSlider = ref(false)
 const signingInitiatedBy = ref()
+const selectedSigner = ref(null)
 const isBroadcasting = ref(false)
 const broadcastSuccessDialogShown = ref(false)
 const wallet = ref()
 const pst = ref()
 const isFetchingStatus = ref(false)
 const tokenIdentities = ref({})
+const currentWalletXpub = ref(null)
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -419,8 +446,36 @@ const signersWhoCanSign = computed(() => {
   return wallet.value.signers.filter(s => s.xprv && !pst.value.signerSigned(s.xpub))
 })
 
+const sortedSignersWhoCanSign = computed(() => {
+  if (!wallet.value?.signers || !pst.value) return []
+  const signers = wallet.value.signers.filter(s => s.xprv && !pst.value.signerSigned(s.xpub))
+  const creatorXpub = pst.value.getSignerWhoCreatedProposal?.()?.xpub
+  if (creatorXpub) {
+    const creatorIndex = signers.findIndex(s => s.xpub === creatorXpub)
+    if (creatorIndex > 0) {
+      const [creator] = signers.splice(creatorIndex, 1)
+      signers.unshift(creator)
+    }
+  }
+  const currentXpub = currentWalletXpub.value
+  if (currentXpub) {
+    const currentIndex = signers.findIndex(s => s.xpub === currentXpub)
+    if (currentIndex > 0) {
+      const [current] = signers.splice(currentIndex, 1)
+      signers.unshift(current)
+    }
+  }
+  return signers
+})
+
 const signerWhoCanSign = computed(() => {
-  return signersWhoCanSign.value[0] || null
+  return sortedSignersWhoCanSign.value[0] || null
+})
+
+const activeSigner = computed(() => {
+  if (signingInitiatedBy.value) return signingInitiatedBy.value
+  if (selectedSigner.value) return selectedSigner.value
+  return null
 })
 
 const tokenCategories = computed(() => {
@@ -674,6 +729,7 @@ const commitSignTransaction = async () => {
   if (!signingInitiatedBy.value) return
   await pst.value.sign(signingInitiatedBy.value.xprv)
   signingInitiatedBy.value = null
+  selectedSigner.value = null
 }
 
 const showBroadcastSuccessDialog = async (txid) => {
@@ -742,6 +798,7 @@ const onConfirmSliderSwiped = async (reset) => {
     })
     .onDismiss(() => {
       signingInitiatedBy.value = null
+      selectedSigner.value = null
       reset?.()
       resolve(false)
     })
@@ -771,6 +828,12 @@ const loadWallet = async () => {
       }
     )
     await wallet.value.loadSignersXPrv()
+    const wallets = await getWalletsFromVault()
+    const walletIndex = $store.getters['global/getWalletIndex']
+    const currentVaultWallet = wallets[walletIndex]
+    if (currentVaultWallet) {
+      currentWalletXpub.value = currentVaultWallet.xpub
+    }
   }
 }
  
