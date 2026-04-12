@@ -181,7 +181,7 @@ export function updatedCurrentAssets (state, index) {
     favorite: 0
   }
 
-  // Filter out tokens when loading from vault - keep only base assets (BCH, sBCH)
+  // Filter out tokens when loading from vault - keep only base assets (BCH)
   // Tokens will be populated by API calls after wallet switch
   const filterBaseAssetsOnly = (assets) => {
     if (!Array.isArray(assets) || assets.length === 0) {

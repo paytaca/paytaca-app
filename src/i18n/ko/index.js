@@ -2546,7 +2546,7 @@ export default {
   WaitingBchTransaction: "비트코인 캐시 거래를 기다리는 중",
   WaitingForOthersToJoinCall: "다른 사람이 통화에 참여할 때까지 기다리는 중",
   WaitingForTransactionToComplete: "거래가 완료되기를 기다리는 중",
-  WaitingSmartBchTransaction: "Smart BCH에서 거래를 기다리는 중",
+  WaitingTransaction: "거래를 기다리는 중",
   Wallet: "지갑",
   "Wallet Details": "지갑 세부 정보",
   "Wallet Qr Code": "지갑 QR 코드",

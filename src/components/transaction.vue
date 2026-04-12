@@ -66,9 +66,7 @@
                 </template>
               </q-item-label>
               <q-item-label v-if="!stablehedgeTxView" class="row items-center text-caption" style="margin-top: 0;">
-                <template
-                  v-if="['bch', 'sbch'].includes(transaction.asset?.symbol.toLowerCase())"
-                >
+                <template v-if="['bch'].includes(transaction.asset?.symbol.toLowerCase())">
                   <q-badge
                     rounded
                     class="flex justify-start items-center yield-container"

@@ -30,7 +30,6 @@ export default function () {
     autoGenerateAddress: true,
     enableStablhedge: false,
     enableSLP: false,
-    enableSmartBCH: false, // SmartBCH is deprecated and forcibly disabled
     wallets: {
       bch: {
         walletHash: '',

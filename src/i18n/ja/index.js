@@ -2546,7 +2546,7 @@ export default {
   WaitingBchTransaction: "ビットコインキャッシュでの取引を待っています",
   WaitingForOthersToJoinCall: "他の人が通話に参加するのを待っています",
   WaitingForTransactionToComplete: "トランザクションが完了するのを待っています",
-  WaitingSmartBchTransaction: "スマートBCHでトランザクションを待っています",
+  WaitingTransaction: "トランザクションを待っています",
   Wallet: "ウォレット",
   "Wallet Details": "ウォレットの詳細",
   "Wallet Qr Code": "ウォレットQRコード",

@@ -43,7 +43,8 @@ export default boot(({ router, /* store */ }) => {
           String(url),
           { chain: url.protocol === 'ethereum:' ? 'smart' : 'main' },
         )
-        query.network = parsedPaymentUri.asset.chain === 'smart' ? 'sBCH' : 'BCH'
+        // Legacy network-specific handling removed; route treated as BCH
+        query.network = 'BCH'
       } catch(error) { console.error(error) }
       router.push({ name: 'transaction-send', query: query })
     } else if (url.host === 'explorer.paytaca.com') {

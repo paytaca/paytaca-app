@@ -286,23 +286,7 @@ export default {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },
-	    // SmartBCH assets removed
-	    // assets () {
-	    //   const vm = this
-	    //   if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
-	      
-	    //   if (vm.stablehedgeView) {
-	    //     return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
-	    //   }
-
-	    //   return vm.mainchainAssets.filter(token => {
-	    //     const assetId = token.id?.split?.('/')?.[0]
-	    //     return (
-	    //       vm.isCashToken && assetId === 'ct' ||
-	    //       !vm.isCashToken && assetId === 'slp'
-	    //     )
-	    //   })
-	    // },
+    // Legacy network-specific assets removed — asset resolution treats network assets under BCH conventions
 	    assets () {
 	      const vm = this
 

@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Важные примечания",
   "Insufficient balance": "Недостаточно средств",
   "Invalid amount": "Неверная сумма",
-  SmartBCHDeprecated: "SmartBCH устарел",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Подключиться к Paytaca",
   "Required number of signers": "Необходимое количество подписантов",
   "Total number of signers": "Общее количество подписантов",
@@ -201,4 +201,3 @@ export default {
   MultisigWalletLimitReached: "Вы достигли лимита {free} кошельков с мультиподписью.Обновитесь до Paytaca Plus, чтобы создать больше кошельков с мультиподписью.",
   WalletLimitReached: "Вы достигли лимита {free} кошельков.Обновите Paytaca Plus, чтобы создать больше кошельков.",
 }
-

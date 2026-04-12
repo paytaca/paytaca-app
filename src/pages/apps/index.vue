@@ -365,7 +365,7 @@ export default {
       return this.$store.getters['global/theme']
     },
     enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
+      return false
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -663,7 +663,7 @@ export default {
         this.filteredApps.push(this.debugApp)
       }
       
-      // SmartBCH filtering removed - no longer needed
+      // Deprecated network filtering removed - no longer needed
     }
   },
   created () {
