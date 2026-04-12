@@ -2551,7 +2551,7 @@ export default {
   WaitingBchTransaction: "等待比特币现金交易",
   WaitingForOthersToJoinCall: "等待其他人加入通话",
   WaitingForTransactionToComplete: "等待交易完成",
-  WaitingSmartBchTransaction: "等待Smart BCH交易",
+  WaitingTransaction: "等待交易",
   Wallet: "钱包",
   "Wallet Details": "钱包详情",
   "Wallet Qr Code": "钱包二维码",

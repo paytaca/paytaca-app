@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Belangrijke opmerkingen",
   "Insufficient balance": "Onvoldoende saldo",
   "Invalid amount": "Ongeldig bedrag",
-  SmartBCHDeprecated: "SmartBCH verouderd",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Verbinden met Paytaca",
   "Required number of signers": "Vereist aantal ondertekenaars",
   "Total number of signers": "Totaal aantal ondertekenaars",
@@ -178,4 +178,3 @@ export default {
   Devicesuspended: "Apparaat opgeschort",
   LegacyAddressWarning: "U hebt een legacy adres ingevoerd. Zorg ervoor dat het een <span class=\"highlighted-word\">BCH stortingsadres</span> is, niet een BTC stortingsadres.",
 }
-

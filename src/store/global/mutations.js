@@ -459,13 +459,8 @@ export function enableSLP (state) {
   }
 }
 
-/**
- * Forcibly disable SmartBCH support (deprecated feature)
- * SmartBCH network is no longer supported in preparation for future deprecation
- */
-export function disableSmartBCH (state) {
-  state.enableSmartBCH = false
-}
+// Legacy feature removed; legacy mutation deleted.
+
 
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
@@ -691,4 +686,3 @@ export function setLockApp (state, value) {
 export function setIsUnlocked (state, value) {
   state.isUnlocked = Boolean(value)
 }
-

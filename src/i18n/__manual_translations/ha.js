@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Muhimman bayanin kula",
   "Insufficient balance": "Ma'auni bai isa ba",
   "Invalid amount": "Adadi mara inganci",
-  SmartBCHDeprecated: "SmartBCH an daina amfani da shi",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Haɗa zuwa Paytaca",
   "Required number of signers": "Adadin masu sanya hannu da ake buƙata",
   "Total number of signers": "Jimlar adadin masu sanya hannu",
@@ -185,4 +185,3 @@ export default {
   PostAd: "POST {type} AD",
   ResolvedDate: "An warware {date}",
 }
-

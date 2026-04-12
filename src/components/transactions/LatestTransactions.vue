@@ -213,11 +213,7 @@ export default {
       ]
     },
     async loadTransactions () {
-      if (this.selectedNetwork === 'sBCH') {
-        // For sBCH, we'll skip for now or implement separately
-        this.transactionsLoaded = true
-        return
-      }
+      // Legacy network-specific references removed; assets treated under BCH conventions
       
       try {
         this.transactionsLoaded = false
@@ -667,4 +663,3 @@ export default {
   background-color: #e91e63 !important;
 }
 </style>
-

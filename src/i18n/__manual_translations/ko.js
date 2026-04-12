@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "중요한 참고 사항",
   "Insufficient balance": "잔액 부족",
   "Invalid amount": "잘못된 금액",
-  SmartBCHDeprecated: "SmartBCH는 더 이상 사용되지 않습니다",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Paytaca에 연결",
   "Required number of signers": "필요한 서명자 수",
   "Total number of signers": "서명자 총 수",
@@ -199,4 +199,3 @@ export default {
   WalletLimitReached: "{free} 지갑 한도에 도달했습니다.더 많은 지갑을 생성하려면 Paytaca Plus로 업그레이드하세요.",
   
 }
-

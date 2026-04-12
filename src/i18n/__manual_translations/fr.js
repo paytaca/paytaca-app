@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Notes importantes",
   "Insufficient balance": "Solde insuffisant",
   "Invalid amount": "Montant invalide",
-  SmartBCHDeprecated: "SmartBCH obsolète",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Se connecter à Paytaca",
   "Required number of signers": "Nombre requis de signataires",
   "Total number of signers": "Nombre total de signataires",
@@ -184,4 +184,3 @@ export default {
   PayForLIFT: "Payer pour LIFT",
   PaytacaWebsiteDescription: "Visitez le {paytacaWebsite}",
 }
-

@@ -364,9 +364,6 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
-    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return 'pink-6'
@@ -663,7 +660,7 @@ export default {
         this.filteredApps.push(this.debugApp)
       }
       
-      // SmartBCH filtering removed - no longer needed
+      // Deprecated network filtering removed - no longer needed
     }
   },
   created () {

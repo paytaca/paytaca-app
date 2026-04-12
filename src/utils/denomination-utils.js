@@ -117,7 +117,8 @@ export function parseLocaleNumber (value) {
 
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0, maxFractionDigitsOverride = null) {
   const balanceCheck = asset.balance ?? 0
-  const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
+  // Treat BCH symbol as BCH. Legacy network-specific support removed; normalize to BCH.
+  const isBCH = asset.symbol === 'BCH'
   let newBalance = ''
   let symbol = ''
 
