@@ -7,7 +7,7 @@
           class="header-nav apps-header gift-app-header"
         >
       </HeaderNav>
-      <div class="row justify-center">
+      <div class="row justify-center q-px-xs">
         <div class="col-xs-12">
           <q-card id="bch-card" class="q-my-sm" style="border-radius: 15px; color:white">
             <q-card-section>
@@ -94,7 +94,7 @@
             </q-list>
           </div>
       </div>
-      <div v-else class="row justify-center q-mt-lg">
+      <div v-else class="row justify-center q-mt-lg q-px-xs">
           <div class="col-xs-12 q-px-md">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-sm-6">
