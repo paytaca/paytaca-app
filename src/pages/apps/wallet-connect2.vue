@@ -37,13 +37,13 @@
     </HeaderNav>
 
     <q-dialog v-model="showResetConfirm">
-      <q-card class="br-15 pt-card" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="row items-center">
+      <q-card class="br-15 pt-card text-bow" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="row items-center" :class="getDarkModeClass(darkMode)">
           <div class="text-h6">{{ $t('ResetWalletConnect') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
-        <q-card-section>
+        <q-card-section :class="getDarkModeClass(darkMode)">
           {{ $t('ResetWalletConnectConfirmMessage') }}
         </q-card-section>
         <q-card-actions align="right">
