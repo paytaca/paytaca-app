@@ -253,11 +253,7 @@ export default {
         // initilize custom list
         const assetIDs = this.assets.map(asset => asset.id)
 
-        if (this.network === 'BCH') {
-          await assetSettings.initializeCustomList(assetIDs, [])        
-        } else {        
-          await assetSettings.initializeCustomList([], assetIDs)
-        }
+        await assetSettings.initializeCustomList(assetIDs)
 
         // initialize favorites
         await assetSettings.initializeFavorites(this.assets)   

@@ -323,9 +323,6 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    enableSmartBCH () {
-      return false
-    },
     enableSLP () {
       return this.$store.getters['global/enableSLP']
     },

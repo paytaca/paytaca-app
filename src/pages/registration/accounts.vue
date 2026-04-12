@@ -945,7 +945,6 @@ export default {
             isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
             autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
             enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: false,
             enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']
@@ -1027,7 +1026,6 @@ export default {
             isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
             autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
             enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: false,
             enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']
@@ -1115,7 +1113,6 @@ export default {
         isChipnet: existingSettings.isChipnet !== undefined ? existingSettings.isChipnet : this.$store.getters['global/isChipnet'],
         autoGenerateAddress: existingSettings.autoGenerateAddress !== undefined ? existingSettings.autoGenerateAddress : this.$store.getters['global/autoGenerateAddress'],
         enableStablhedge: existingSettings.enableStablhedge !== undefined ? existingSettings.enableStablhedge : this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: false,
         enableSLP: existingSettings.enableSLP !== undefined ? existingSettings.enableSLP : this.$store.getters['global/enableSLP'],
         // Get darkMode from darkmode module (always use current state)
         darkMode: this.$store.getters['darkmode/getStatus'],
@@ -1802,7 +1799,6 @@ export default {
             isChipnet: this.$store.getters['global/isChipnet'],
             autoGenerateAddress: this.$store.getters['global/autoGenerateAddress'],
             enableStablhedge: this.$store.getters['global/enableStablhedge'],
-            enableSmartBCH: false,
             enableSLP: this.$store.getters['global/enableSLP'],
             darkMode: this.$store.getters['darkmode/getStatus'],
             currency: this.$store.getters['market/selectedCurrency']

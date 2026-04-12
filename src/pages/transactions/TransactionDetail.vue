@@ -1821,11 +1821,7 @@ export default {
         // Initialize custom list if needed (same as asset list page)
         if (!customList || 'error' in customList || Object.keys(customList).length === 0) {
           const assetIDs = assets.map((asset) => asset.id)
-          if (selectedNetwork === 'BCH') {
-            await assetSettings.initializeCustomList(assetIDs, [])
-          } else {
-            await assetSettings.initializeCustomList([], assetIDs)
-          }
+          await assetSettings.initializeCustomList(assetIDs)
           customList = await assetSettings.fetchCustomList()
         }
         

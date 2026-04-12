@@ -364,9 +364,6 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    enableSmartBCH () {
-      return false
-    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return 'pink-6'
