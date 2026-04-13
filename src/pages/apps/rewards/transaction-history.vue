@@ -255,7 +255,7 @@ export default {
         })
         
         if (data) {
-          this.allTransactions = [...data.overall_data, ...data.overall_data, ...data.overall_data, ...data.overall_data, ...data.overall_data]
+          this.allTransactions = data.overall_data
           
           // Build summary stats dynamically based on category config
           const stats = {
