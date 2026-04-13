@@ -1,7 +1,13 @@
 import router from 'src/router/index';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import { getMerchantList } from 'src/services/card/merchants';
+<<<<<<< Updated upstream
+
+export { getMerchantList };
+
+=======
 import { Card } from 'src/services/card/card';
+
 export { getMerchantList };
 
 // For card data structure documentation, see CARD_DATA_REFERENCE.md
@@ -135,10 +141,6 @@ export const createCardLogic = {
 
   async mounted () {
     console.log("GO!")
-    // console.log('creating a new card...')
-    // const card = await Card.createInitialized()
-    // const newCard = await card.create('My First Card')
-    // console.log('Card created:', newCard)
   },
 
   computed: {
