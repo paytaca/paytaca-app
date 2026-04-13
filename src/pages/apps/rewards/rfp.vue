@@ -108,29 +108,29 @@
             <q-btn
               rounded
               size="lg"
-              class="button redeem-btn full-width q-mb-md card-help-highlight"
+              class="button redeem-btn q-mb-md card-help-highlight"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
               :disable="points === 0 || redeemedPoints > 0"
               @click="openRedeemPointsDialog"
             />
-
+            <br/>
             <q-btn
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width q-mb-md card-help-highlight"
-              :style="{ maxWidth: '200px' }"
+              class="button button-text-primary q-mb-sm card-help-highlight"
+              :style="{ minWidth: '200px' }"
               :class="getDarkModeClass(darkMode)"
               :label="$t('ViewRedeemHistory', 'View Redeem History')"
               @click="openRedeemHistoryDialog"
             />
-
+            <br/>
             <q-btn
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width referral-btn card-help-highlight"
+              class="button button-text-primary referral-btn card-help-highlight"
               :label="$t('ShowReferralQR', 'Show Referral QR')"
               @click="openReferralQrDialog"
             />
@@ -513,7 +513,7 @@ export default {
 }
 
 .redeem-btn {
-  max-width: 200px;
+  min-width: 200px;
   font-weight: 600;
   
   &:not(:disabled) {
@@ -522,7 +522,7 @@ export default {
 }
 
 .referral-btn {
-  max-width: 200px;
+  min-width: 200px;
   font-weight: 500;
 }
 

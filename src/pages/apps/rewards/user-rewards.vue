@@ -68,19 +68,19 @@
             <q-btn
               rounded
               size="lg"
-              class="button redeem-btn full-width card-help-highlight"
+              class="button redeem-btn card-help-highlight"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
               :disable="points === 0"
               @click="openRedeemPointsDialog"
             />
-
+            <br/>
             <q-btn
               rounded
               outline
               size="md"
-              class="button button-text-primary full-width q-mt-md card-help-highlight"
-              :style="{ maxWidth: '200px' }"
+              class="button button-text-primary q-mt-md card-help-highlight"
+              :style="{ minWidth: '200px' }"
               :class="getDarkModeClass(darkMode)"
               :label="$t('ViewRedeemHistory', 'View Redeem History')"
               @click="openRedeemHistoryDialog"
@@ -821,7 +821,7 @@ export default {
 }
 
 .redeem-btn {
-  max-width: 200px;
+  min-width: 200px;
   font-weight: 600;
   
   &:not(:disabled) {

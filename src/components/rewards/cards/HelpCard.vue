@@ -750,7 +750,7 @@ export default {
       this.cardPosition = []
 
       const CARD_HEIGHT_ESTIMATE = 250
-      const CARD_WIDTH_ESTIMATE = window.innerWidth * 0.85
+      const CARD_WIDTH_ESTIMATE = window.innerWidth > 600 ? 450 : window.innerWidth * 0.85
       const centeredLeft = (window.innerWidth - CARD_WIDTH_ESTIMATE) / 2
 
       const promoCards = document.getElementsByClassName('card-help-highlight')
@@ -897,6 +897,12 @@ export default {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+  }
+}
+
+@media (min-width: 600px) {
+  .help-card {
+    max-width: 450px;
   }
 }
 </style>

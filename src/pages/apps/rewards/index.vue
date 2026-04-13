@@ -193,7 +193,7 @@
 
     <div
       v-else
-      class="row q-mx-lg q-gutter-y-md q-pt-md"
+      class="row q-mx-lg q-gutter-y-md q-pt-md justify-center"
       style="font-size: 18px;"
     >
       <!-- Loading State - Skeleton Cards -->
@@ -201,7 +201,7 @@
         <div
           v-for="n in pointsType.length"
           :key="n"
-          class="row col-12 justify-between items-center q-pa-md br-15 group-currency"
+          class="row col-12 justify-between items-center q-pa-md br-15 group-currency promo-card"
           :class="getDarkModeClass(darkMode)"
         >
           <div class="col-8">
@@ -221,13 +221,13 @@
           :key="index"
           transition="jump-up"
           once
-          class="col-12 card-help-highlight"
+          class="col-12 card-help-highlight promo-card"
         >
           <div
             class="row full-width justify-between items-center q-pa-md br-15 group-currency"
             :class="getDarkModeClass(darkMode)"
           >
-            <div class="row col-2">
+            <div class="row col-2 promo-icon">
               <q-icon :name="promo.icon" size="md" color="primary" />
             </div>
             <div class="col-8">
@@ -572,7 +572,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* Smooth card transition */
 .transition-card {
   transition: all 0.3s ease;
@@ -581,5 +581,15 @@ export default {
 /* Chevron rotation transition */
 .transition-rotate {
   transition: transform 0.3s ease;
+}
+
+@media (min-width: 600px) {
+  .promo-card {
+    max-width: 500px;
+
+    .promo-icon {
+      justify-content: center;
+    }
+  }
 }
 </style>

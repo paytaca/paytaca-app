@@ -233,7 +233,6 @@ export default {
   async mounted() {
     await this.loadData()
 
-    // adjust style of sticky-filters-wrapper
     const headerNavHeight = document.getElementsByClassName('header-nav-wrapper')[0].clientHeight
     const stickyFilterWrapper = document.getElementsByClassName('sticky-filters-wrapper')[0]
     if (stickyFilterWrapper) stickyFilterWrapper.style.top = `${headerNavHeight - 1}px`
@@ -256,7 +255,7 @@ export default {
         })
         
         if (data) {
-          this.allTransactions = data.overall_data
+          this.allTransactions = [...data.overall_data, ...data.overall_data, ...data.overall_data, ...data.overall_data, ...data.overall_data]
           
           // Build summary stats dynamically based on category config
           const stats = {
@@ -345,6 +344,7 @@ export default {
 /* Sticky filters wrapper - uses same background as app container */
 .sticky-filters-wrapper {
   position: sticky;
+  top: 0;
   z-index: 2900;
   padding: 8px 16px;
   margin: 0 -16px;
@@ -360,7 +360,6 @@ export default {
     margin: 0;
     border-radius: 12px;
     margin-bottom: 16px;
-    position: relative;
     top: 0;
     border-bottom: none;
     
