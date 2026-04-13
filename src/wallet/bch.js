@@ -189,6 +189,161 @@ export class BchWallet {
     return response
   }
 
+  /**
+   * Discovers addresses with transaction history using BIP44 gap-limit scanning.
+   * Sends batches of addresses to the Watchtower `wallet/address-discover/` endpoint
+   * which checks each address against the BCH node for transaction history.
+   * An address with zero balance but transaction history is still considered "discovered"
+   * (important for CashFusion recovery where coins move through many addresses).
+   *
+   * Scans both receiving (chain 0) and change (chain 1) address chains independently.
+   * Stops scanning a chain when `gapLimit` consecutive addresses have no history.
+   * After discovery, subscribes all addresses from 0 to the highest discovered index.
+   *
+   * @param {Object} opts
+   * @param {number} [opts.gapLimit=20] - Consecutive empty addresses before stopping a chain
+   * @param {number} [opts.batchSize=50] - Addresses per batch API request
+   * @param {number} [opts.maxScans=500] - Safety cap on total addresses to scan
+   * @param {Function} [opts.onProgress] - Progress callback
+   * @returns {Promise<Object>} Discovery result with discovered indices and subscription status
+   */
+  async discoverAddresses(opts = {}) {
+    const {
+      gapLimit = 20,
+      batchSize = 50,
+      maxScans = 500,
+      onProgress,
+    } = opts
+
+    const result = {
+      success: false,
+      discoveredReceiving: [],
+      discoveredChange: [],
+      highestReceivingIndex: -1,
+      highestChangeIndex: -1,
+      subscribed: 0,
+      scanned: 0,
+      error: null,
+    }
+
+    let receivingGapCount = 0
+    let changeGapCount = 0
+    let receivingDone = false
+    let changeDone = false
+    let currentIndex = 0
+    let totalScanned = 0
+
+    while (totalScanned < maxScans && !(receivingDone && changeDone)) {
+      const batchEnd = Math.min(currentIndex + batchSize, maxScans)
+      const addressSets = []
+
+      for (let i = currentIndex; i < batchEnd; i++) {
+        const addresses = await this.getAddressSetAt(i)
+        addressSets.push({
+          address_index: i,
+          receiving: addresses.receiving,
+          change: addresses.change,
+        })
+      }
+
+      try {
+        const apiResponse = await this.watchtower.BCH._api.post(
+          'wallet/address-discover/',
+          {
+            address_sets: addressSets,
+            wallet_hash: this.walletHash,
+            project_id: this.projectId,
+          }
+        )
+
+        const discoveryResults = apiResponse.data?.results || []
+
+        for (const discovery of discoveryResults) {
+          const idx = discovery.address_index
+
+          if (!receivingDone) {
+            const receivingHasHistory = discovery.receiving?.has_history === true
+            if (receivingHasHistory) {
+              receivingGapCount = 0
+              result.discoveredReceiving.push({
+                address_index: idx,
+                address: discovery.receiving.address,
+              })
+              if (idx > result.highestReceivingIndex) {
+                result.highestReceivingIndex = idx
+              }
+            } else {
+              receivingGapCount++
+              if (receivingGapCount >= gapLimit) {
+                receivingDone = true
+              }
+            }
+          }
+
+          if (!changeDone) {
+            const changeHasHistory = discovery.change?.has_history === true
+            if (changeHasHistory) {
+              changeGapCount = 0
+              result.discoveredChange.push({
+                address_index: idx,
+                address: discovery.change.address,
+              })
+              if (idx > result.highestChangeIndex) {
+                result.highestChangeIndex = idx
+              }
+            } else {
+              changeGapCount++
+              if (changeGapCount >= gapLimit) {
+                changeDone = true
+              }
+            }
+          }
+        }
+
+        totalScanned += addressSets.length
+        currentIndex = batchEnd
+
+        if (onProgress) {
+          onProgress({
+            scanned: totalScanned,
+            discoveredReceiving: result.discoveredReceiving.length,
+            discoveredChange: result.discoveredChange.length,
+            phase: 'discovering',
+          })
+        }
+      } catch (error) {
+        result.error = error?.message || String(error)
+        return result
+      }
+    }
+
+    result.scanned = totalScanned
+
+    const highestIndex = Math.max(result.highestReceivingIndex, result.highestChangeIndex)
+
+    if (highestIndex >= 0) {
+      const subscribeCount = highestIndex + 1
+      if (onProgress) {
+        onProgress({
+          scanned: totalScanned,
+          discoveredReceiving: result.discoveredReceiving.length,
+          discoveredChange: result.discoveredChange.length,
+          phase: 'subscribing',
+        })
+      }
+      const subscribeResult = await this.scanAddresses({
+        startIndex: 0,
+        count: subscribeCount,
+      })
+      if (subscribeResult.success) {
+        result.subscribed = subscribeCount
+      }
+    }
+
+    result.success = true
+    return result
+  }
+
   async getPrivateKey (addressPath, derivationPath = '', useChildNode = false, index = 0) {
     let __derivationPath = derivationPath
     if (derivationPath === '') __derivationPath = this.derivationPath 
