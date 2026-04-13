@@ -65,27 +65,7 @@
         <!-- Gallery Tab -->
         <q-tab-panel name="gallery" class="q-pa-none tab-panel-content">
           <!-- Network Tabs for Gallery -->
-          <q-tabs
-            dense
-            v-if="enableSmartBCH"
-            active-color="brandblue"
-            class="col-12 q-px-lg"
-            :modelValue="selectedNetwork"
-            @update:modelValue="changeNetwork"
-          >
-            <q-tab
-              class="network-selection-tab"
-              :class="getDarkModeClass(darkMode)"
-              name="BCH"
-              label="BCH"
-            />
-            <q-tab
-              class="network-selection-tab"
-              :class="getDarkModeClass(darkMode)"
-              name="sBCH"
-              label="SmartBCH"
-            />
-          </q-tabs>
+          <!-- Network selection simplified: deprecated network removed -->
           <q-tab-panels v-model="selectedNetwork" keep-alive style="background:inherit;" class="collectibles-panel">
             <q-tab-panel name="BCH">
               <div v-if="enableSLP && !selectedCategory" class="row items-center justify-end">
@@ -131,14 +111,7 @@
                 style="margin:auto;"
               />
             </q-tab-panel>
-            <q-tab-panel name="sBCH">
-              <!-- SmartBCH support has been removed -->
-              <div class="q-pa-lg text-center">
-                <p class="text-h6" :class="getDarkModeClass(darkMode)">
-                  {{ $t('SmartBCHDeprecated', {}, 'SmartBCH is no longer supported') }}
-                </p>
-              </div>
-            </q-tab-panel>
+            <!-- Deprecated network tab removed -->
           </q-tab-panels>
         </q-tab-panel>
         
@@ -350,14 +323,12 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    enableSmartBCH () {
-      return this.$store.getters['global/enableSmartBCH']
-    },
     enableSLP () {
       return this.$store.getters['global/enableSLP']
     },
     isSep20 () {
-      return this.selectedNetwork === 'sBCH'
+      // Deprecated network removed: always false
+      return false
     },
     selectedNetwork: {
       get () {
@@ -849,33 +820,15 @@ export default {
     loadWallet () {
       const vm = this
       getMnemonic(vm.$store.getters['global/getWalletIndex']).then(function (mnemonic) {
+        // Deprecated network removed: always use BCH/selectedNetwork which will be BCH by default
         const wallet = new Wallet(mnemonic, vm.selectedNetwork)
         vm.wallet = markRaw(wallet)
       })
     },
     async getReceivingAddress () {
       // Dynamically generate address like the Receive page
-      if (this.isSep20) {
-        // For sBCH, generate dynamically
-        try {
-          const address = await generateSbchAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex']
-          })
-          if (!address) {
-            throw new Error('Failed to generate and subscribe sBCH address')
-          }
-          this.receivingAddress = address
-        } catch (error) {
-          console.error('Error generating sBCH address:', error)
-          this.$q.notify({
-            message: this.$t('FailedToGenerateAddress') || 'Failed to generate address. Please try again.',
-            color: 'negative',
-            icon: 'warning'
-          })
-          // Don't fallback to store - address generation must succeed
-          this.receivingAddress = null
-        }
-      } else {
+      // Always generate BCH/SLP/CashTokens receiving address (deprecated network support removed)
+      {
         // For BCH/SLP/CashTokens, generate dynamically
         const walletType = this.bchNftType === 'ct' ? 'bch' : 'slp'
         try {
@@ -1328,4 +1281,3 @@ export default {
     }
   }
 </style>
-

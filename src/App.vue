@@ -807,8 +807,7 @@ export default {
     // Note: Removed autoGenerateAddress calls - no longer needed since balances
     // are fetched via wallet hash API (cashtokens/fungible) instead of individual addresses
 
-    // Forcibly disable SmartBCH, in preparation for future deprecation
-    this.$store.commit('global/disableSmartBCH')
+    // Legacy feature flag removed; no-op (handled by removal in store)
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)

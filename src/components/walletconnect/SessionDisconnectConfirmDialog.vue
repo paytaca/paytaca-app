@@ -1,7 +1,7 @@
 <template>
   <q-dialog ref="dialogRef" persistent seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
-      <q-card-section class="text-black">
+      <q-card-section :class="getDarkModeClass(darkMode)">
         <div class="text-grad">
           Are you sure you want to disconnect 
           {{ session.peer?.metadata?.name }}?

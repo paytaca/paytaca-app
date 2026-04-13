@@ -282,3 +282,16 @@ div#q-app:has(.sticky-header-container) {
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
 }
+
+.coin-amount {
+  font-weight: bold;
+  font-family: monospace;
+  letter-spacing: 0.02em;
+  font-size: 1.1em;
+}
+
+.coin-symbol {
+  font-weight: bold;
+  font-family: monospace;
+  letter-spacing: 0.03em;
+}

@@ -32,9 +32,17 @@
                       </div>
                       <div class="col-xs-12 text-center">
                         <div class="text-white">{{ $t('Balance') }}</div>
-                        <div class="items-center justify-center q-gutter-x-sm">
-                          <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
+                        <div v-if="route.query.asset === 'bch'" class="items-center justify-center q-gutter-x-sm">
+                          <span style="font-size: 2em">
+                            {{ balance !== undefined ? balance : "..." }}
+                          </span>
                           <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                        </div>
+                        <div v-else class="items-center justify-center q-gutter-x-sm">
+                          <span style="font-size: 2em">
+
+                            {{ Big(balance ?? 0).div(`1e${assetTokenIdentity?.token?.decimals || 0}`) }}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -96,6 +104,25 @@
                  <q-item-label class="flex flex-wrap items-center">
                    <span>
                     {{ shortenString(route.query.asset, 20)}}<CopyButton :text="route.query.asset"/>
+                   </span>
+                 </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="route.query.asset !== 'bch'" dense>
+                <q-item-section>
+                  <q-item-label>
+                    <div class="flex items-center">
+                      <q-icon name="mdi-numeric"></q-icon>
+                      <span class="q-ml-xs">
+                        {{ $t('Decimals' ) }}
+                      </span>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                 <q-item-label class="flex flex-wrap items-center">
+                   <span>
+                    {{ assetTokenIdentity?.token?.decimals || '?'}}
                    </span>
                  </q-item-label>
                 </q-item-section>
@@ -192,6 +219,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
+import Big from 'big.js'
 import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -199,6 +227,7 @@ import {
   shortenString,
   MultisigWallet
 } from 'src/lib/multisig'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import TransactionListItemSkeleton from 'components/transactions/TransactionListItemSkeleton.vue'
 import CopyButton from 'components/CopyButton.vue'
@@ -237,7 +266,7 @@ const historyQoutePrice = computed(() => {
     if (!amount || !marketPrices) return ''
     const price = marketPrices[currency]
     if (price === undefined || price === null || isNaN(price)) return ''
-    return `${amount * price} ${currency}`  
+    return parseFiatCurrency(amount * price, currency)
   }
 })
 const historyLoading = ref(false)

@@ -105,9 +105,8 @@ export default {
     },
 
     async sign () {
-      this.signedMessage = this.assetId === "sbch" ?
-        await this.signSmartBCH() :
-        await this.signBCH()
+      // Deprecated network support removed: always use BCH signing
+      this.signedMessage = await this.signBCH()
       this.$q.bex.send('background.paytaca.signMessageResponse', {signedMessage: this.signedMessage, eventResponseKey: this.eventResponseKey})
       this.sentResponse = true
       window.close()
@@ -146,7 +145,8 @@ export default {
     },
 
     async signSmartBCH () {
-      return this.wallet.sBCH._wallet.signMessage(this.message)
+      // Deprecated network removed: fallback to BCH
+      return this.signBCH()
     },
 
     async cancel () {
@@ -156,7 +156,7 @@ export default {
     },
   },
 
-  async mounted () {
+    async mounted () {
     // use the currently selected address as signer
     const walletInfo = this.$store.getters['global/getWallet'](this.assetId)
     const { connectedAddress, connectedAddressIndex } = walletInfo
@@ -164,10 +164,9 @@ export default {
     this.connectedAddressIndex = connectedAddressIndex;
     // Load wallets
     const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-    const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
+    const network = {bch: "BCH", slp: "BCH"}[this.assetId]
     const wallet = new Wallet(mnemonic, network)
     this.wallet = markRaw(wallet)
-    if (this.assetId === 'sbch') this.wallet.sBCH.getOrInitWallet()
   },
 }
 </script>

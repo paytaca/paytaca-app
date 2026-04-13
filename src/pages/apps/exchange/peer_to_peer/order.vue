@@ -1,5 +1,5 @@
 <template>
-    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/orders" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="getBackNavigationPath" class="header-nav" />
     
     <!-- Skeleton Loader -->
     <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
@@ -753,27 +753,38 @@ export default {
       // If there is a closure timestamp, only allow sending during the grace period.
       return this.isChatEnabled && this.chatGraceCountdownActive
     },
-    headerTitle () {
-      switch (this.state) {
-        case 'order-confirm-decline':
-        case 'standby-view':
-          if (this.order?.status?.value === 'CNF') {
-            return 'Escrow Pending'
-          } else {
-            const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
-            // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
-            return formattedStatus || this.order?.status?.label || ''
-          }
-        case 'escrow-bch':
-          return 'Escrow bch'
-        case 'tx-confirmation':
-          return `verifying ${this.verifyAction}`
-        case 'payment-confirmation':
-          return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
-        default:
-          return ''
-      }
-    },
+     headerTitle () {
+       switch (this.state) {
+         case 'order-confirm-decline':
+         case 'standby-view':
+           if (this.order?.status?.value === 'CNF') {
+             return 'Escrow Pending'
+           } else {
+             const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
+             // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
+             return formattedStatus || this.order?.status?.label || ''
+           }
+         case 'escrow-bch':
+           return 'Escrow bch'
+         case 'tx-confirmation':
+           return `verifying ${this.verifyAction}`
+         case 'payment-confirmation':
+           return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
+         default:
+           return ''
+       }
+     },
+getBackNavigationPath () {
+        console.log('Source param:', this.$route.query.source)
+        // If we came from the home page (pending orders), go back there
+        if (this.$route.query.source === 'home') {
+          console.log('Routing back to home page with name: transaction-index')
+          return { name: 'transaction-index' }
+        }
+        // Default back path to orders list
+        console.log('Routing back to orders list')
+        return '/apps/exchange/peer-to-peer/orders'
+      },
     escrowTransferData () {
       return {
         order: this.order,

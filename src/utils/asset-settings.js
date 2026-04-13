@@ -23,7 +23,7 @@ function getCurrentWalletHash() {
 
 /**
  * Get current wallet hash for a given wallet type
- * @param {'bch'|'slp'|'sbch'} walletType
+ * @param {'bch'|'slp'} walletType
  * @returns {string|null}
  */
 function getCurrentWalletHashByType(walletType = 'bch') {
@@ -312,14 +312,13 @@ export async function saveUnlistedTokens (list) {
 	return unlisted_token
 }
 
-export async function initializeCustomList (bch = [], sbch = []) {
-	// console.log('initialize custom list')
-	const data = {
-		BCH: bch,
-		sBCH: sbch 
-	}
+export async function initializeCustomList (bch = []) {
+    // Initialize custom list only for BCH
+    const data = {
+        BCH: bch,
+    }
 
-	saveCustomList(data) 
+    saveCustomList(data)
 
 }
 

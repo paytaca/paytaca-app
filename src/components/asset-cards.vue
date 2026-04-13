@@ -125,7 +125,8 @@ export default {
   },
   computed: {
     isSep20 () {
-      return this.network === 'sBCH'
+      // Deprecated network removed: never treat network as deprecated network
+      return false
     },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
@@ -154,7 +155,7 @@ export default {
           // Use favorite field from tokens (API provides this)
           return this.assets.filter(asset => asset && (asset.favorite === 1 || asset.favorite === true))
         } else {
-          // Fall back to old favorites array system (for sBCH/SLP)
+          // Fall back to legacy favorites array system for SLP compatibility
           if (Array.isArray(this.favorites)) {
             return this.assets.filter(asset => asset && this.favorites.includes(asset.id))
           }
@@ -177,14 +178,14 @@ export default {
   },
   watch: {
     // For CashTokens on BCH, assets come from API with favorite field - no need to watch/save
-    // Only watch for sBCH/SLP which still use the old system
+    // Only watch for legacy SLP which still use the old system
     async assets (newAssets, oldAssets) {
       // Skip for CashTokens on BCH network - API handles everything
       if (this.network === 'BCH' && this.isCashToken) {
         return
       }
       
-      // Only process if we have customListIDs initialized and new assets (for sBCH/SLP)
+      // Only process if we have customListIDs initialized and new assets (legacy SLP support)
       if (!this.customListIDs || !newAssets || newAssets.length === 0) {
         return
       }
@@ -240,8 +241,8 @@ export default {
       return
     }
     
-    // For sBCH/SLP, still use old system
-    this.customListIDs = await assetSettings.fetchCustomList()      
+    // For legacy SLP custom lists the behavior remains
+    this.customListIDs = await assetSettings.fetchCustomList()
 
     if (this.customListIDs) {
       
@@ -252,11 +253,7 @@ export default {
         // initilize custom list
         const assetIDs = this.assets.map(asset => asset.id)
 
-        if (this.network === 'BCH') {
-          await assetSettings.initializeCustomList(assetIDs, [])        
-        } else {        
-          await assetSettings.initializeCustomList([], assetIDs)
-        }
+        await assetSettings.initializeCustomList(assetIDs)
 
         // initialize favorites
         await assetSettings.initializeFavorites(this.assets)   

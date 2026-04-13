@@ -206,7 +206,7 @@ export default {
   ImportantNotes: "Wichtige Hinweise",
   "Insufficient balance": "Unzureichender Saldo",
   "Invalid amount": "Ungültiger Betrag",
-  SmartBCHDeprecated: "SmartBCH veraltet",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Mit Paytaca verbinden",
   "Required number of signers": "Erforderliche Anzahl von Unterzeichnern",
   "Total number of signers": "Gesamtzahl der Unterzeichner",
@@ -215,4 +215,3 @@ export default {
   LegacyAddressWarning: "Sie haben ein Legacy-Adresse eingefügt. Bitte stellen Sie sicher, dass es sich um ein <span class=\"highlighted-word\">BCH-Deposit-Adresse</span> handelt, nicht um eine BTC-Deposit-Adresse.",
   BitcoinCash: "Bitcoin Cash",
 }
-

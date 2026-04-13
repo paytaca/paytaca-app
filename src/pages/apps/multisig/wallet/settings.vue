@@ -316,7 +316,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import HeaderNav from 'components/header-nav'
@@ -332,6 +332,7 @@ const { t: $t } = useI18n()
 const $store = useStore()
 const $q = useQuasar()
 const route = useRoute()
+const $router = useRouter()
 const { 
   multisigNetworkProvider, 
   resolveXprvOfXpub, 
@@ -433,10 +434,27 @@ const openCreateServerIdentityDialog = (signer) => {
 
 const openRenameDialog = () => {
   $q.dialog({
-    component: RenameDialog,
-    componentProps: {
-      index: wallet.value.getIndex()
-    }
+    title: $t('RenameWallet'),
+    message: $t('EnterNewWalletName', {}, 'Enter a new name for this wallet'),
+    prompt: {
+      model: wallet.value.name,
+      type: 'text',
+      outlined: true
+    },
+    ok: {
+      label: $t('Rename'),
+      color: 'primary',
+      rounded: true
+    },
+    cancel: {
+      label: $t('Cancel'),
+      flat: true,
+      rounded: true
+    },
+    class: `pt-card text-bow br-15 ${getDarkModeClass(darkMode.value)}`
+  }).onOk((name) => {
+    wallet.value.name = name
+    wallet.value.save()
   })
 }
 
@@ -488,6 +506,28 @@ const wcDisconnectSession = async (activeSession) => {
   } finally {
     delete wcProcessingSession.value[activeSession.topic]
   }
+}
+
+const confirmDeleteWallet = () => {
+  $q.dialog({
+    title: $t('DeleteWallet'),
+    message: $t('DeleteWalletWarning', {}, 'Permanently remove this wallet and all its data. This action cannot be undone.'),
+    seamless: true,
+    cancel: true,
+    ok: {
+      label: $t('DeleteWalletNow'),
+      color: 'red',
+      flat: true
+    },
+    cancel: {
+      label: $t('Cancel'),
+      flat: true
+    },
+    class: `pt-card text-bow ${getDarkModeClass(darkMode.value)}`
+  }).onOk(() => {
+    $store.commit('multisig/deleteWallet', { multisigWallet: $store.getters['multisig/getWalletByHash'](route.params.wallethash) })
+    $router.push('/apps/multisig')
+  })
 }
 
 const toggleReserveWcAccountUtxos = (value) => {

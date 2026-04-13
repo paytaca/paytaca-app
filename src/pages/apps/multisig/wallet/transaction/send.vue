@@ -35,9 +35,14 @@
                             size="sm"
                             :color="assetHeaderIcon === 'token'? 'grey': '' "
                           />
-                          <span style="font-size: 2em">{{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(8): '0'}}</span>
+                          <span v-if="route.query.asset === 'bch'" style="font-size: 2em">
+                            {{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(8): '0'}}
+                          </span>
+                          <span v-else style="font-size: 2em">
+                            {{ (availableBalance ?? 0 ) > 0 ? availableBalance?.toFixed(assetTokenIdentity?.token?.decimals || 0): '0'}}
+                          </span>
                         </div>
-                        <div>{{ (availableBalance ?? 0 ) > 0 && assetPrice ? `=${assetPrice}` : '' }}</div>
+                        <div v-if="route.query.asset === 'bch'" >{{ (availableBalance ?? 0 ) > 0 && assetPrice ? `=${assetPrice}` : '' }}</div>
                       </div>
                       <div v-if="walletWcSessionHistory?.length > 0 && walletWcAccountUtxos?.length > 0" class="col-xs-12">
                         <div class="text-center">
@@ -118,6 +123,7 @@
                           clearable
                           filled 
                           :disable="isCreatingProposal"
+                          @focus="onAddressFocus"
                           :ref="el => { if (el) addressInputRefs[i] = el }"
                           hide-bottom-space
                         >
@@ -132,6 +138,8 @@
                           :rules="amountRules"
                           clearable
                           :disable="isCreatingProposal"
+                          inputmode="none"
+                          @focus="onAmountFocus(i)"
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                         </q-input>
@@ -161,7 +169,7 @@
           </q-page>
         </q-page-container>
       </q-pull-to-refresh>
-      <div class="sticky-bottom-actions">
+      <div class="sticky-bottom-actions" v-if="customKeyboardState !== 'show'">
         <q-btn
           :loading="isCreatingProposal"
           style="width: 100%; filter: opacity((100%))"
@@ -177,6 +185,11 @@
           {{ $t('CreateProposal') }}
         </q-btn>
       </div>
+      <CustomKeyboard
+        :custom-keyboard-state="customKeyboardState"
+        v-on:addKey="setAmount"
+        v-on:makeKeyAction="makeKeyAction"
+      />
   </q-layout>
 </template>
 
@@ -191,10 +204,12 @@ import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import {
   shortenString,
   MultisigWallet,
 } from 'src/lib/multisig'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
@@ -233,7 +248,8 @@ const walletWcReserveFunds = computed(() => {
     if (!asset || asset === 'bch') {
       return defaultAddressUtxos.filter(u => !u.token).reduce((b, u) => b + (u.satoshis || 0), 0) / 1e8
     }
-    return defaultAddressUtxos.filter(u => u.token && u.token?.category === asset).reduce((b, u) => b + (u.token?.amount || 0), 0)
+    const tokenReserveFunds = defaultAddressUtxos.filter(u => u.token && u.token?.category === asset).reduce((b, u) => b + (u.token?.amount || 0), 0)
+    return Big(tokenReserveFunds).div(`1e${assetTokenIdentity.value?.token?.decimals || 0}`).toString()
   }
   return undefined
 })
@@ -246,6 +262,8 @@ const showWcHeldFundsDialog = ref(false)
 const reserveWcAccountUtxos = ref(true)
 const showQrScanner = ref(false)
 const currentRecipientIndex = ref(null)
+const customKeyboardState = ref('dismiss')
+const focusedInputField = ref('')
 
 const darkMode = computed(() => {
   return $store.getters['darkmode/getStatus']
@@ -303,7 +321,16 @@ const DUST_LIMIT = 546
 const amountRules = computed(() => {
   let rules = [
     v => ( v?.length === 0 || /^(\d+)?\.?(\d+)?$/.test(v)) || $t('InvalidValue'),
-    v => !v || Number(v) < availableBalance.value || $t('ValueExceedsBalance'),
+    v => {
+      if (!v) return true
+      if (route.query.asset !== 'bch') {
+        return (Number(v) <= availableBalance.value) || $t('ValueExceedsBalance') 
+      }
+      if (route.query.asset === 'bch') {
+        return (Number(v) < availableBalance.value) || $t('ValueExceedsBalance') 
+      }
+      return true
+    },
     v => {
       if (v === '' || v === undefined) return true
       const sats = Math.round(v * 1e8);
@@ -401,6 +428,55 @@ const openQrScanner = (recipientIndex) => {
   showQrScanner.value = true
 }
 
+const onAmountFocus = (index) => {
+  currentRecipientIndex.value = index
+  focusedInputField.value = 'amount'
+  customKeyboardState.value = 'show'
+}
+
+const onAddressFocus = () => {
+  focusedInputField.value = ''
+  customKeyboardState.value = 'dismiss'
+}
+
+const asset = computed(() => {
+  if (route.query.asset === 'bch') {
+    return { id: 'bch', symbol: 'BCH', decimals: 8 }
+  }
+  return {
+    id: route.query.asset,
+    symbol: assetHeaderName.value,
+    decimals: assetTokenIdentity.value?.token?.decimals ?? 8
+  }
+})
+
+const setAmount = (key) => {
+  if (focusedInputField.value !== 'amount') return
+  const recipient = recipients.value[currentRecipientIndex.value]
+  if (!recipient) return
+  const currentRef = amountInputRefs.value[currentRecipientIndex.value]
+  const caret = currentRef?.nativeEl?.selectionStart
+  recipient.amount = parseKey(key, recipient.amount, caret, asset.value)
+}
+
+const makeKeyAction = (action) => {
+  if (focusedInputField.value !== 'amount') return
+  const recipient = recipients.value[currentRecipientIndex.value]
+  if (!recipient) return
+  const currentRef = amountInputRefs.value[currentRecipientIndex.value]
+
+  if (action === 'backspace') {
+    const caret = (currentRef?.nativeEl?.selectionStart ?? recipient.amount.length) - 1
+    recipient.amount = adjustSplicedAmount(recipient.amount, caret)
+  } else if (action === 'delete') {
+    recipient.amount = ''
+  } else {
+    customKeyboardState.value = 'dismiss'
+    focusedInputField.value = ''
+    nextTick(() => currentRef?.blur())
+  }
+}
+
 const onQrDecoded = (content) => {
   showQrScanner.value = false
   
@@ -424,6 +500,13 @@ const createProposal = async () => {
         creator = generateCosignerAuthPublicKeyFromXpub({ xpub: signer.xpub })
       }
     }
+
+    if (route.query.asset !== 'bch' && Number(assetTokenIdentity.value?.token?.decimals || 0) > 0) {
+      recipients.value.forEach((r) => {
+        r.decimals =  Number(assetTokenIdentity.value.token.decimals)
+      })
+    }
+
     const proposal = await wallet.value.createProposal({
       creator: creator,
       origin: 'paytaca-wallet',
@@ -519,14 +602,20 @@ onBeforeMount(async () => {
 
 onMounted(async () => {
   balance.value = await wallet.value.getWalletBalance(route.query.asset)
-  
   balanceConvertionRates.value = 
       await wallet.value.convertBalanceToCurrencies(
         route.query.asset,
         balance.value,
         [$store.getters['market/selectedCurrency'].symbol]
       )
+  
   assetTokenIdentity.value = await getAssetTokenIdentity(route.query.asset)
+  if (route.query.asset !== 'bch' && 
+    assetTokenIdentity.value?.token?.decimals && 
+    Number(assetTokenIdentity.value?.token?.decimals) > 0) {
+    balance.value = Big(balance.value).div(`1e${assetTokenIdentity.value.token.decimals}`).toString()
+  }
+
   await wallet.value.subscribeWalletAddressIndex(wallet.value.getLastUsedChangeAddressIndex(network) + 1, 'change')
   purpose.value = `${$t('Send')} ${assetHeaderName.value}`
 })

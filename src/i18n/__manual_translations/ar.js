@@ -224,7 +224,7 @@ export default {
   ImportantNotes: "ملاحظات مهمة",
   "Insufficient balance": "رصيد غير كافٍ",
   "Invalid amount": "مبلغ غير صالح",
-  SmartBCHDeprecated: "SmartBCH قديم",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "الاتصال بـ Paytaca",
   "Required number of signers": "عدد الموقعين المطلوب",
   "Total number of signers": "إجمالي عدد الموقعين",

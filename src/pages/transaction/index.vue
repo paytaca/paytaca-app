@@ -327,75 +327,7 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-      <!-- <div ref="transactionSection" class="row transaction-row">
-        <transaction
-          ref="transaction"
-          :wallet="wallet"
-          :denominationTabSelected="denominationTabSelected"
-        />
-        <div class="col transaction-container" :class="getDarkModeClass(darkMode)">
-          <div class="row no-wrap justify-between">
-            <p class="q-ma-lg section-title transaction-wallet" :class="getDarkModeClass(darkMode)">
-              <template v-if="!txSearchActive">
-                {{ selectedAsset.symbol }} {{ $t('Transactions') }}
-                <span>
-                  &nbsp;<q-icon name="search" @click="() => { txSearchActive = !txSearchActive }"></q-icon>
-                </span>
-              </template>
-            </p>
-            <div class="row items-center justify-end q-mr-lg" :style="{width: txSearchActive ? '100%' : 'auto'}">
-              <div v-if="txSearchActive" class="full-width">
-                <q-input
-                  ref="tx-search"
-                  style="margin-left: -20px; padding-bottom: 22px;"
-                  maxlength="8"
-                  label="Search by Reference ID"
-                  v-model="txSearchReference"
-                  debounce="200"
-                  placeholder="00000000"
-                  @update:model-value="(val) => { 
-                    const cleaned = val.replace(/[^0-9]/g, '').slice(0, 8);
-                    txSearchReference = cleaned;
-                    executeTxSearch(txSearchReference);
-                  }"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="search" />
-                  </template>
-                  <template v-slot:append>
-                    <q-icon name="close" @click="() => { txSearchActive = false; txSearchReference = ''; $refs['transaction-list-component'].getTransactions() }" />
-                  </template>
-                </q-input>
-              </div>
-            </div>
-          </div>
-          <div
-            class="col q-gutter-xs q-mx-lg q-mb-sm text-center pt-card btn-transaction"
-            :class="getDarkModeClass(darkMode, '', 'btn-transaction-bg')"
-          >
-            <button
-              v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
-              class="btn-custom q-mt-none"
-              :class="[
-                getDarkModeClass(darkMode), 
-                `btn-${transactionFilterOpt.value}`,
-                {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
-              ]"
-              @click="setTransactionsFilter(transactionFilterOpt.value)"
-            >
-              {{ transactionFilterOpt?.label }}
-            </button>
-          </div>
-          <TransactionList
-            ref="transaction-list-component"
-            :selectedAssetProps="selectedAsset"
-            :denominationTabSelected="denominationTabSelected"
-            :wallet="wallet"
-            :selectedNetworkProps="selectedNetwork"
-            @on-show-transaction-details="showTransactionDetails"
-          />
-        </div>
-      </div> -->
+      <!-- Transaction list UI migrated; legacy network-specific code removed. -->
       <footer-menu ref="footerMenu" data-tour="main-menus" />
     </div>
 
@@ -1923,32 +1855,9 @@ export default {
       //       })
       //     })
       //   }
-      // } else if (vm.selectedNetwork === 'sBCH') {
-      //   const lastAddress = vm.getWallet('sbch').lastAddress
-      //   let subscribeSbchAddress = !vm.getWallet('sbch').subscribed
-      //   if (lastAddress.length === 0) {
-      //     await vm.wallet.sBCH.getOrInitWallet()
-      //     subscribeSbchAddress = true
-      //     vm.$store.commit('global/updateWallet', {
-      //       type: 'sbch',
-      //       derivationPath: vm.wallet.sBCH.derivationPath,
-      //       walletHash: vm.wallet.sBCH.walletHash,
-      //       lastAddress: vm.wallet.sBCH._wallet ? vm.wallet.sBCH._wallet.address : ''
-      //     })
-
-      //     if (subscribeSbchAddress) {
-      //       wallet.sBCH.subscribeWallet()
-      //         .then(response => {
-      //           if (response && response.success) {
-      //             vm.$store.commit('global/setWalletSubscribed', {
-      //               type: 'sbch',
-      //               subscribed: true
-      //             })
-      //           }
-      //         })
-      //     }
-      //   }
-      // }
+      // Legacy network-specific wallet initialization removed; handled by BCH wallet
+      // deprecated. All network handling for BCH-compatible chains is unified
+      // under the BCH wallet implementation.
     },
     async onConnectivityChange (online) {
       const vm = this

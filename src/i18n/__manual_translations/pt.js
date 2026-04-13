@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Notas importantes",
   "Insufficient balance": "Saldo insuficiente",
   "Invalid amount": "Valor inválido",
-  SmartBCHDeprecated: "SmartBCH obsoleto",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Conectar ao Paytaca",
   "Required number of signers": "Número necessário de signatários",
   "Total number of signers": "Número total de signatários",
@@ -185,4 +185,3 @@ export default {
   WhatIsLIFT: "O que é LIFT?",
   PurchaseLift: "Comprar LIFT",
 }
-

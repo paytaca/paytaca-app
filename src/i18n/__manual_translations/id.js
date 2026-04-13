@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Catatan penting",
   "Insufficient balance": "Saldo tidak mencukupi",
   "Invalid amount": "Jumlah tidak valid",
-  SmartBCHDeprecated: "SmartBCH tidak digunakan lagi",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Hubungkan ke Paytaca",
   "Required number of signers": "Jumlah penandatangan yang diperlukan",
   "Total number of signers": "Jumlah total penandatangan",
@@ -183,4 +183,3 @@ export default {
   BitcoinIsCashDescription: "Pelajari tentang Bitcoin Cash",
   
 }
-

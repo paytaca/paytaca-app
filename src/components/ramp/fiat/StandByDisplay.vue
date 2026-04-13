@@ -2,76 +2,89 @@
   <div :class="getDarkModeClass(darkMode)" class="text-bow">
     <div v-if="isloaded">
       <div class="q-px-sm q-mx-lg">
+        <div v-if="displayContractInfo" class="q-mt-sm q-mx-sm">
+          <!-- Contract Information Section -->
+          <div class="section-wrapper">
+            <div class="section-header" @click="toggleContractInfo">
+              <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+                {{ $t('ContractInformation', {}, 'Contract Information') }}
+              </p>
+              <q-icon 
+                :name="showContractInfo ? 'expand_less' : 'expand_more'" 
+                size="sm" 
+                color="blue-grey-6"
+                class="q-mr-sm" />
+            </div>
+            <q-list v-show="showContractInfo" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+              <!-- Arbiter -->
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption class="text-caption">{{ $t('Arbiter') }}</q-item-label>
+                  <q-item-label class="payment-detail-text">{{ arbiterName }}</q-item-label>
+                  <q-item-label caption class="text-caption q-mt-xs text-grey">{{ data?.arbiter?.address }}</q-item-label>
+                </q-item-section>
+              </q-item>
+
+              <!-- Contract Address -->
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption class="text-caption">{{ $t('ContractAddress') }}</q-item-label>
+                  <q-item-label class="payment-detail-text ellipsis">{{ data?.contractAddress }}</q-item-label>
+                </q-item-section>
+                <q-item-section side v-if="data?.contractAddress">
+                  <div class="row q-gutter-xs">
+                    <q-btn flat dense round size="sm" icon="open_in_new" color="blue-grey-6" @click="openURL(explorerLink('address'))"/>
+                    <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(data?.contractAddress)"/>
+                  </div>
+                </q-item-section>
+              </q-item>
+
+              <!-- Transaction ID (only for released orders) -->
+              <q-item v-if="data?.order?.status?.value === 'RLS'">
+                <q-item-section>
+                  <q-item-label caption class="text-caption">{{ $t('TransactionId') }}</q-item-label>
+                  <q-item-label class="payment-detail-text ellipsis">{{ txid }}</q-item-label>
+                </q-item-section>
+                <q-item-section side v-if="txid">
+                  <div class="row q-gutter-xs">
+                    <q-btn flat dense round size="sm" icon="open_in_new" color="blue-grey-6" @click="openURL(explorerLink())"/>
+                    <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(txid)"/>
+                  </div>
+                </q-item-section>
+              </q-item>
+
+              <!-- Contract Balance -->
+              <q-item>
+                <q-item-section>
+                  <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
+                  <q-item-label class="payment-detail-text">{{ contractBalance }} BCH</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </div>
+        </div>
         <div v-if="isAppealed">
           <q-card class="q-mt-md pt-card" bordered flat :class="getDarkModeClass(darkMode)">
             <q-card-section>
-              <div class="text-weight-bold md-font-size">{{ $t('AppealReasons') }}</div>
-              <div v-if="appeal">
-                <q-badge
-                  v-for="reason in appeal.reasons"
-                  :key="reason"
-                  rounded
-                  size="sm"
-                  outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
-                  class="q-mr-xs"
-                  :label="reason" />
+              <div class="text-weight-bold md-font-size">{{ $t('Appealed') }}</div>
+              <div v-if="appeal" class="q-mt-xs">
+                <template v-if="appeal.type && appealAmountBCH">
+                  {{ $t('AppealStatement', { action: appealAction, amount: appealAmountBCH, recipient: appealRecipient }, `You have appealed to ${appealAction} the ${appealAmountBCH} BCH to ${appealRecipient}.`) }}
+                </template>
+                <div class="q-mt-xs">
+                  <span class="text-weight-medium">{{ $t('Reason', {}, 'Reason') }}:</span>
+                  <q-badge
+                    v-for="reason in appeal.reasons"
+                    :key="reason"
+                    rounded
+                    size="sm"
+                    outline :color="darkMode ? 'blue-grey-4' : 'blue-grey-6'"
+                    class="q-mx-xs"
+                    :label="reason" />
+                </div>
               </div>
             </q-card-section>
           </q-card>
-        </div>
-        <div v-if="displayContractInfo" class="q-mt-sm q-mx-sm">
-          <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
-          <q-input
-            class="q-pb-xs md-font-size"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            :label="data?.arbiter?.address"
-            v-model="arbiterName">
-          </q-input>
-          <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
-          <q-input
-            class="q-pb-xs md-font-size"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            :label="data.contractAddress">
-            <template v-slot:append>
-              <div v-if="data?.contractAddress">
-                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink('address'))"/>
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(data?.contractAddress)"/>
-              </div>
-            </template>
-          </q-input>
-          <div v-if="data?.order?.status?.value === 'RLS'">
-            <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('TransactionId') }}</div>
-            <q-input
-              class="q-pb-xs md-font-size"
-              readonly
-              dense
-              filled
-              :dark="darkMode"
-              :label="txid">
-              <template v-slot:append>
-                <q-icon size="sm" name='open_in_new' color="blue-grey-6" @click="openURL(explorerLink())"/>
-                <q-icon size="sm" name='o_content_copy' color="blue-grey-6" @click="copyToClipboard(txid)"/>
-              </template>
-            </q-input>
-          </div>
-          <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
-          <q-input
-            class="q-pb-xs md-font-size"
-            readonly
-            dense
-            filled
-            :dark="darkMode"
-            v-model="contractBalance">
-            <template v-slot:append>
-              <span>BCH</span>
-            </template>
-          </q-input>
         </div>
         <!-- Payment methods -->
         <div v-if="showSelectedPaymentMethod" class="q-px-xs q-pt-sm">
@@ -250,7 +263,7 @@ import { bus } from 'src/wallet/event-bus.js'
 import { backend } from 'src/exchange/backend'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink, getExplorerAddressLink } from 'src/utils/send-page-utils'
-import { formatCurrency } from 'src/exchange'
+import { formatCurrency, satoshiToBch } from 'src/exchange'
 import AttachmentDialog from 'src/components/ramp/fiat/dialogs/AttachmentDialog.vue'
 
 export default {
@@ -276,7 +289,8 @@ export default {
       showAttachmentDialog: false,
       attachmentUrl: null,
       loadCancelButton: false,
-      loadAppealButton: false
+      loadAppealButton: false,
+      showContractInfo: false
     }
   },
   props: {
@@ -348,6 +362,30 @@ export default {
     isAppealed () {
       return this.data?.order?.status?.value === 'APL'
     },
+    appealRecipient () {
+      if (!this.appeal?.type?.value) return ''
+      const isRelease = this.appeal.type.value === 'RLS'
+      const isBuyer = this.userType === 'buyer'
+      if (isRelease) {
+        return isBuyer
+          ? this.$t('YouTheBuyer', {}, 'you (the buyer)')
+          : this.$t('TheBuyer', {}, 'the buyer')
+      }
+      return isBuyer
+        ? this.$t('TheSeller', {}, 'the seller')
+        : this.$t('YouTheSeller', {}, 'you (the seller)')
+    },
+    appealAction () {
+      if (!this.appeal?.type?.value) return ''
+      return this.appeal.type.value === 'RLS'
+        ? this.$t('Release', {}, 'Release').toLowerCase()
+        : this.$t('Refund', {}, 'Refund').toLowerCase()
+    },
+    appealAmountBCH () {
+      const satoshis = this.data?.order?.trade_amount
+      if (!satoshis) return ''
+      return satoshiToBch(satoshis)
+    },
     isCompletedOrder () {
       return (this.data?.order?.status.value === 'RLS' || this.data?.order?.status.value === 'RFN')
     },
@@ -382,7 +420,7 @@ export default {
       }
     },
     hasLabel () {
-      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN']
+      const stat = ['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'APL']
       return stat.includes(this.data?.order?.status.value)
     },
     label () {
@@ -415,6 +453,7 @@ export default {
       }
 
       const labels = {
+        APL: this.$t('StandByDisplayLabelApl', {}, 'An appeal has been submitted. Please wait while the arbiter reviews the case. The arbiter will decide whether the funds in the escrow contract are refunded to the seller or released to the buyer. You may use the chat to communicate with the arbiter and the other party.'),
         SBM: this.$t('StandByDisplayLabelSbm'),
         CNF: this.$t('StandByDisplayLabelCnf'),
         ESCRW_PN: this.$t('StandByDisplayLabelEscrwPn'),
@@ -491,6 +530,9 @@ export default {
     formatCurrency,
     getDarkModeClass,
     openURL,
+    toggleContractInfo () {
+      this.showContractInfo = !this.showContractInfo
+    },
     explorerLink (linkType = 'txid') {
       if (linkType === 'txid') {
         return getExplorerLink(this.txid || '')
@@ -796,5 +838,69 @@ export default {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
   }
+}
+
+// Section Title (matching PaymentConfirmation.vue)
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Section Header (clickable to toggle contract info)
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 0 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  &.dark:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+// Card Styling (matching PaymentConfirmation.vue)
+.pt-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Payment Info List
+.payment-info-list {
+  .q-item {
+    padding: 16px 20px;
+    min-height: 60px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+  
+  &.dark .q-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.payment-detail-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 4px;
 }
 </style>

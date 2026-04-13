@@ -14,9 +14,9 @@
         </q-item-label>
         <q-item-label caption>
           <slot name="url">
-            <div class="text-light session-info-attribute-url" style="word-break: break-all">{{ metadata?.url  }}</div>
-            <div v-if="sessionId" class="text-light session-info-attribute">Sid: {{ sessionId  }}</div>
-            <div v-if="sessionTopic" class="text-light session-info-attribute">Topic: {{ sessionTopic?.replace(sessionTopic.slice(3, sessionTopic.length - 6), '...')  }}</div>
+            <div class="session-info-attribute-url" :class="getDarkModeClass(darkMode)" style="word-break: break-all">{{ metadata?.url  }}</div>
+            <div v-if="sessionId" class="session-info-attribute" :class="getDarkModeClass(darkMode)">Sid: {{ sessionId  }}</div>
+            <div v-if="sessionTopic" class="session-info-attribute" :class="getDarkModeClass(darkMode)">Topic: {{ sessionTopic?.replace(sessionTopic.slice(3, sessionTopic.length - 6), '...')  }}</div>
           </slot>
         </q-item-label>
       </q-item-section>
@@ -24,6 +24,8 @@
 
 </template>
 <script setup>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 defineProps({
     /**
      * Session peer's metadata.
@@ -40,6 +42,7 @@ defineProps({
     metadata: {}, // wallet connect session
     sessionId: Number,
     sessionTopic: String,
+    darkMode: Boolean,
 })
 </script>
 

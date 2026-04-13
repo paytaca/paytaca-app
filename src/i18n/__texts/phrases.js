@@ -371,7 +371,7 @@ const phrases = {
       ViewTokens: "View Tokens",
       ViewTransactions: "View Transactions",
       ViewTransactionInExplorer: "View transaction in explorer",
-      WaitingSmartBchTransaction: "Waiting for transaction in Smart BCH",
+      WaitingTransaction: "Waiting for transaction",
       WaitingBchTransaction: "Waiting for transaction in Bitcoin Cash",
       WalletBalance: "Wallet balance",
        WalletConnect: "WalletConnect",
@@ -831,6 +831,7 @@ const phrases = {
       SwipeButtonToProceed: 'Swipe the button to proceed',
       NothingToDisplay: 'Nothing to display',
       AppealReasons: 'Appeal reasons',
+      AppealStatement: 'You have appealed to {action} the {amount} BCH to {recipient}.',
       SendBeforeTimerEnds: 'Send amount before the timer ends...',
       TryAgain: 'Try Again',
       SorryFailedToSendBch: 'Sorry, failed to send BCH...',
@@ -853,6 +854,7 @@ const phrases = {
       SubmitAnAppeal: 'Submit an appeal',
       StandByDisplayLabelSbm: 'Please wait for counterparty to confirm your order. This order will automatically be cancelled if not confirmed within 24 hours.',
       StandByDisplayLabelCnf: 'Please wait for the Seller to Escrow the funds.',
+      StandByDisplayLabelApl: 'An appeal has been submitted. Please wait while the arbiter reviews the case. The arbiter will decide whether the funds in the escrow contract are refunded to the seller or released to the buyer. You may use the chat to communicate with the arbiter and the other party.',
       StandByDisplayLabelEscrwPn: 'Please wait for the seller to Escrow the funds.',
       StandByDisplayLabelEscrw: 'Please wait for the buyer to send and confirm their fiat payment.',
       StandByDisplayLabelEscrwWithAppeal: 'Please wait for the buyer to send and confirm their fiat payment or submit an appeal to release your BCH from the escrow contract.',
@@ -2035,7 +2037,7 @@ const phrases = {
       ImportantNotes: 'Important notes',
       'Insufficient balance': 'Insufficient balance',
       'Invalid amount': 'Invalid amount',
-      SmartBCHDeprecated: 'SmartBCH deprecated',
+      SmartBCHDeprecated: 'Deprecated network',
       'Connect to Paytaca': 'Connect to Paytaca',
       'Required number of signers': 'Required number of signers',
       'Total number of signers': 'Total number of signers',
@@ -2412,7 +2414,9 @@ const phrases = {
       XpubMustBeUnique: 'Xpub must be unique',
       XpubScanned: 'Xpub scanned',
       YesProceed: 'Yes, proceed',
-      DustAmountError: 'Amount is below the network allowed minimum (0.00000546 BCH)'
+      DustAmountError: 'Amount is below the network allowed minimum (0.00000546 BCH)',
+      MissingTokenMetadataWarning: 'Token details not found. We can’t verify the correct decimal format for this token. Raw token value is displayed. If you think it\'s correct you may proceed',
+      Change: 'Change'
     }
   ]
 }
