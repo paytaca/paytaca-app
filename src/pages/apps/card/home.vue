@@ -16,7 +16,7 @@
             flat
             class="create-card-action q-pa-xl text-center full-width cursor-pointer"
             :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            @click="openCreateCardDialog"
+            @click="showCreateCardForm = true"
           >
             <div class="text-h4 text-weight-bold q-mb-sm" :class="textColor">
               {{ $t('Create New Card') }}
@@ -102,30 +102,25 @@
     </q-page>
     
     <!-- Create Card Dialog -->
-    <createCardDialog 
-      v-model="createCardDialog"
-      v-model:newCardName="newCardName"
-      @handleCreateCard="handleCreateCard"
-    />
+    <CreateCardForm v-if="showCreateCardForm" @onClose="showCreateCardForm=false"/>
 
 </template>
 <script>
-import createCardDialog from 'src/components/card/createCardDialog.vue';
-import { createCardLogic } from 'src/components/card/noBackend';
+import CreateCardForm from 'src/components/card/CreateCardForm.vue';
+// import { createCardLogic } from 'src/components/card/noBackend';
 import { loadCardUser } from 'src/services/card/user';
 
 export default {
-    inject: ['cardUser'],
-    mixins: [createCardLogic],
+    // mixins: [createCardLogic],
     components: {
-        createCardDialog,
+        CreateCardForm,
     },
 
     data () {
         return {
         user: null,
         isloaded: false,
-        createCardDialog: false,
+        showCreateCardForm: false,
         newCardName: ''
         }
     },
@@ -136,6 +131,12 @@ export default {
         },
         textColorGrey () {
         return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'
+        }
+    },
+
+    watch: {
+        showCreateCardForm(newVal) {
+            console.log('showCreateCardForm changed:', newVal)
         }
     },
 

@@ -118,12 +118,12 @@
 </template>
 
 <script>
-import createCardDialog from './createCardDialog.vue';
+// import createCardDialog from './createCardDialog.vue';
 import CardPageHeader from './CardPageHeader.vue';
-import { createCardLogic } from './noBackend.js'
+// import { createCardLogic } from './noBackend.js'
 
 export default {
-  mixins: [createCardLogic],
+  // mixins: [createCardLogic],
   components: {
     createCardDialog,
     CardPageHeader,

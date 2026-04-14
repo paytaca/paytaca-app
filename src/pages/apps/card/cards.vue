@@ -1,7 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
-      <CardPageHeader />
 
       <div class="q-px-md q-mt-md">
         <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
@@ -46,7 +45,7 @@
                 :class="textColor"
               >
                 <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
-                {{ capitalizeFirst(card.name) }}
+                {{ capitalizeFirst(card.alias) }}
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
@@ -54,7 +53,7 @@
                 :class="textColor"
               >
                 <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
-                {{ formatBalance(card.balance) }} BCH
+                {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
                 <!-- {{ formatBalance(card?.getBchBalance ? card.getBchBalance() : card?.balance) }} BCH -->
               </div>
@@ -97,96 +96,26 @@
       </div>
       
       <!-- Create Card Dialog -->
-      <q-dialog v-model="showCreateCardDialog" persistent>
-        <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
-          <!-- Dialog Header -->
-          <q-card-section class="row items-center">
-            <div class="text-h6" :class="textColor">Create New Card</div>
-            <q-space />
-            <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeDialog" />
-          </q-card-section>
-
-          <q-separator :dark="$q.dark.isActive" />
-
-          <!-- Normal Content -->
-          <q-card-section v-if="!isMinting">
-            <q-input
-              v-model="newCardName"
-              label="Card Name *"
-              :dark="$q.dark.isActive"
-              :rules="[
-                val => !!val || 'Card name is required',
-                val => val.length <= 10 || 'Maximum 10 characters'
-              ]"
-              @keyup.enter="createCard"
-              autofocus
-              outlined
-              maxlength="10"
-              counter
-              hint="Max of 10 characters allowed"
-            >
-              <template v-slot:prepend>
-                <q-icon name="credit_card" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
-              </template>
-            </q-input>
-          </q-card-section>
-
-          <!-- Minting Loading State -->
-          <q-card-section v-else class="text-center q-pa-lg">
-            <q-icon
-              name="token"
-              size="64px"
-              :color="$q.dark.isActive ? 'primary' : 'primary'"
-              class="q-mb-md"
-            />
-            <div 
-              class="text-h6 q-mb-sm"
-              :class="textColor"
-            >
-              Minting your card
-            </div>
-            <div 
-              class="text-caption"
-              :class="textColorGrey"
-            >
-              Please wait while we create your new card...
-            </div>
-            <q-linear-progress indeterminate color="primary" class="q-mt-md" />
-          </q-card-section>
-
-          <!-- Action Buttons (only show when not minting) -->
-          <q-card-actions v-if="!isMinting" align="right" class="q-pa-md">
-            <q-btn 
-              flat 
-              label="Cancel" 
-              :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" 
-              @click="closeDialog" 
-            />
-            <q-btn 
-              label="Done" 
-              color="primary" 
-              :disable="!newCardName || !newCardName.trim() || newCardName.length > 10"
-              @click="createCard"
-            />
-          </q-card-actions>
-        </q-card>
-      </q-dialog>
+      <CreateCardForm v-if="showCreateCardDialog" @onClose="showCreateCardDialog=false"/>
 
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
-import { createCardLogic } from 'src/components/card/noBackend.js';
+import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
+import { createCardLogic } from 'src/components/card/noBackend.js';
 import { loadCardUser } from 'src/services/card/user.js';
+import { satoshiToBch } from 'src/exchange';
 
 export default {
   mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
+    CreateCardForm,
   },
 
   data () {
@@ -198,10 +127,11 @@ export default {
       currentX: 0,
       showCreateCardDialog: false,
       newCardName: '',
-      isMinting: false
+      isMinting: false,
       // Backend data fetching disabled
       // loadingCards: true,
       // backendDataMap: {} // Map of cardId -> backend data
+      cardBalances: []
     }
   },
 
@@ -217,12 +147,7 @@ export default {
   },
 
   async mounted () {
-    console.log('MOUNTED stackedCards.vue')
-    this.user = await loadCardUser()
-    console.log('Loaded card user:', this.user)
-    // when the page loads, fetch the cards in localStorage
-    this.fetchCards()
-    // TODO: Switch to backend - use await this.getCards() instead
+    await this.loadData()
     
     // If no cards exist, redirect to card homepage
     if (this.subCards.length === 0) {
@@ -271,6 +196,51 @@ export default {
   },
 
   methods: {
+    satoshiToBch,
+    async loadData () {
+      await this.loadCardUser()
+      await this.fetchCards()
+      this.fetchCardsBalance()
+    },
+
+    async loadCardUser () {
+      await loadCardUser().then(user => {
+        this.user = user
+      }).catch(err => {
+        console.error('Error loading card user:', err)
+        this.user = null
+      })   
+    },
+
+    async fetchCards () {
+      await this.user?.fetchCards().then(cards => {
+        this.subCards = cards
+      }).catch(err => {
+        console.error('Error fetching cards:', err)
+        this.subCards = []
+      })
+    },
+
+    async fetchCardsBalance () {
+      if (!this.user || this.subCards.length === 0) return
+
+      try {
+        this.cardBalances = (await this.user.fetchCardsBalance()).results
+      } catch (err) {
+        console.error('Error fetching card balances:', err)
+      }
+    },
+
+    getCardBalance (cardId) {
+      const card = this.cardBalances?.find(card => {
+        return card.id === cardId
+      })
+      const temp = {
+        bch: card?.bch_balance ?? '0',
+        cashtoken: card?.ct_balance ?? []
+      }
+      return temp
+    },
     /*
     async fetchCardsBackendData () {
       if (this.subCards.length === 0) {

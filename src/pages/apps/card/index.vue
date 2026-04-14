@@ -53,14 +53,14 @@ export default {
   methods: {
     async loadData () {
       await this.loadUser()
-
-      if (this.user?.cardCount > 0) {
-        console.log('User has existing cards, redirecting to cards list')
-        this.goToCardsList()
-      } else {
-        console.log('No existing cards for user')
-        this.goToHome()
-      }
+      this.goToHome()
+    //   if (this.user?.cardCount > 0) {
+    //     console.log('User has existing cards, redirecting to cards list')
+    //     this.goToCardsList()
+    //   } else {
+    //     console.log('No existing cards for user')
+    //     this.goToHome()
+    //   }
     },
 
     async loadUser () {

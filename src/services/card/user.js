@@ -228,6 +228,20 @@ export class CardUser {
     }
 
     /**
+     * Fetches the balance of all cards linked to the authenticated user.
+     * @returns {Promise<object>} An object containing the balances of all cards.
+     */
+    async fetchCardsBalance() {
+        try {
+            const response = await backend.get('/cards/balance/');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching card balances:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Fetches auth token UTXOs for the current wallet.
      * @param {string} tokenId Token ID/category to fetch.
      * @returns {Promise<void>}
