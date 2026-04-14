@@ -1,9 +1,10 @@
 import router from 'src/router/index';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-import { getMerchantList } from 'src/services/card/merchants';
+import { getMerchantList as getMerchantListService } from 'src/services/card/merchants';
 import { Card } from 'src/services/card/card';
 
-export { getMerchantList };
+// Re-export merchant service for components
+export { getMerchantListService as getMerchantList };
 
 // For card data structure documentation, see CARD_DATA_REFERENCE.md
 // CardStorage utility for localStorage CRUD operations
@@ -11,12 +12,30 @@ const STORAGE_KEY = 'mock_subcards';
 
 export const CardStorage = {
   /**
+   * Normalize card balance to 4 decimal places
+   * @param {string|number} balance - Raw balance value
+   * @returns {string} Formatted balance with 4 decimal places
+   */
+  normalizeBalance(balance) {
+    if (!balance || balance === '0' || balance === 0) return '0.0000'
+    const num = parseFloat(balance)
+    if (isNaN(num)) return '0.0000'
+    return num.toFixed(4)
+  },
+
+  /**
    * Get all cards from localStorage
    * @returns {Array} Array of card objects
    */
   getCards() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    const cards = JSON.parse(saved);
+    // Normalize all card balances to 4 decimal places
+    return cards.map(card => ({
+      ...card,
+      balance: this.normalizeBalance(card.balance)
+    }));
   },
 
   /**
@@ -106,7 +125,7 @@ export const CardStorage = {
   incrementCardProperty(cardId, property, amount) {
     return this.updateCard(cardId, card => {
       const current = parseFloat(card[property]) || 0;
-      card[property] = (current + amount).toFixed(8);
+      card[property] = (current + amount).toFixed(4);
     });
   }
 };
@@ -177,6 +196,13 @@ export const createCardLogic = {
       const str = String(addr)
       if (str.length <= 9) return str
       return str.slice(0, 16) + '...' + str.slice(-5)
+    },
+
+    formatBalance(balance) {
+      if (!balance || balance === '0' || balance === 0) return '0.0000'
+      const num = parseFloat(balance)
+      if (isNaN(num)) return '0.0000'
+      return num.toFixed(4)
     },
 
     checkExistingCards () {
@@ -265,7 +291,7 @@ export const createCardLogic = {
           id: mockId,
           uid: mockUid,
           name: capitalizedName,
-          balance: '0.00000000',  // Start with zero balance
+          balance: '0.0000',  // Start with zero balance
           isLocked: false,
           transactionAlerts: true,
           merchantSpendLimits: {},
@@ -295,6 +321,16 @@ export const createCardLogic = {
       }
     },
 
+    openCreateCardDialog(){
+      this.newCardName = ''
+      this.createCardDialog = true
+    },
+
+    // UI test only, pulls from browser memory
+    fetchCards () {
+      this.subCards = CardStorage.getCards();
+    },
+    
     navigateToCardDetails(card, tab = 'transactions') {
       this.$router.push({
         name: 'card-details',

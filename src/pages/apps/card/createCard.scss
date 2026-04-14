@@ -234,7 +234,7 @@ animation: float 6s ease-in-out infinite;
 	height: 4px;
 	background: rgba(255, 255, 255, 0.9);
 	border-radius: 3px;
-	box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+	box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .body--light {
@@ -804,6 +804,35 @@ animation: float 6s ease-in-out infinite;
   flex-direction: column;
   align-items: center;
 }
+
+.create-card-icon {
+  // Static, no hover effect
+}
+
+.create-card-action:hover .tap-icon {
+  transform: scale(1.2);
+  color: var(--q-primary);
+}
+
+.view-cards-btn {
+  transition: all 0.2s ease;
+  border-radius: 20px;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed !important;
+  pointer-events: all !important; 
+}
+
+.opacity-50 {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
 
 // ====== createCard.vue styles ======
 .create-card-action {

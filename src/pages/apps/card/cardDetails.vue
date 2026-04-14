@@ -890,7 +890,7 @@
             >
               This will transfer all funds ({{ formatBalance(activeCard?.balance) }} BCH) from your card back to your wallet.
               <!-- NEW: Use Card class method -->
-              <!-- This will transfer all funds ({{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH) from your card back to your wallet. -->
+              <!-- This will transfer all funds ({{ formatBalance(activeCard?.getBchBalance ? activeCard.getBchBalance() : activeCard?.balance) }} BCH) from your card back to your wallet. -->
             </div>
             <div 
               class="text-caption"

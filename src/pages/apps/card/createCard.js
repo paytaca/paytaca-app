@@ -8,12 +8,30 @@ const STORAGE_KEY = 'card_ui_state';
 
 export const CardStorage = {
   /**
+   * Normalize card balance to 4 decimal places
+   * @param {string|number} balance - Raw balance value
+   * @returns {string} Formatted balance with 4 decimal places
+   */
+  normalizeBalance(balance) {
+    if (!balance || balance === '0' || balance === 0) return '0.0000'
+    const num = parseFloat(balance)
+    if (isNaN(num)) return '0.0000'
+    return num.toFixed(4)
+  },
+
+  /**
    * Get all cards from localStorage
    * @returns {Array} Array of card objects
    */
   getCards() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    const cards = JSON.parse(saved);
+    // Normalize all card balances to 4 decimal places
+    return cards.map(card => ({
+      ...card,
+      balance: this.normalizeBalance(card.balance)
+    }));
   },
 
   /**
@@ -136,7 +154,8 @@ export const createCardLogic = {
       try {
         await this.getCards()
         const card = this.subCards[0]
-        const merchants = await getMerchantList()
+        // Fetch merchants without location filter (get all verified merchants)
+        const merchants = await getMerchantList({ limit: 10, offset: 0 })
         console.log('Merchants fetched:', merchants)
         const merchant = merchants.results[0]
         console.log('merchant:', merchant)
@@ -238,13 +257,6 @@ export const createCardLogic = {
       }
     },
 
-    beforeUnmount() {
-      console.log('Component is about to be unmounted. Cleaning up...')
-      if (this.ws) {
-        this.ws.close()
-      }
-    },
-
     methods: {
       loadCardUser,
 
@@ -321,12 +333,15 @@ export const createCardLogic = {
       },
 
       // Merchant methods - fetch real merchant data from API
+      // Note: This fetches ALL verified merchants without location filtering
+      // For location-based merchant list, use manageAuthNFTs.vue instead
       async refreshMerchants() {
         this.merchantsLoading = true
         try {
-          const data = await getMerchantList({ limit: 100, page: 1})
-          this.merchantList = data.results || data || []
-          console.log('Merchants loaded:', this.merchantList)
+          // Fetch all merchants without location filter (limit=0 means no limit)
+          const data = await getMerchantList({ limit: 0, offset: 0 })
+          this.merchantList = data.results || []
+          console.log('Merchants loaded:', this.merchantList.length, 'merchants')
         }
         catch (error) {
           console.error("Error fetching merchants: ", error)
@@ -574,7 +589,7 @@ export const createCardLogic = {
            * // Get real-time balance from blockchain (async)
            * const contractBalance = await card.getContractBalance()
            * console.log('New card contract balance:', contractBalance)
-            
+           
            * this.$q.notify({
            *   message: `Card created! Balance: ${bchBalance} BCH`,
            *   color: 'positive',
@@ -615,6 +630,13 @@ export const createCardLogic = {
         const str = String(addr)
         if (str.length <= 9) return str
         return str.slice(0, 16) + '...' + str.slice(-5)
+      },
+
+      formatBalance(balance) {
+        if (!balance || balance === '0' || balance === 0) return '0.0000'
+        const num = parseFloat(balance)
+        if (isNaN(num)) return '0.0000'
+        return num.toFixed(4)
       },
 
       checkExistingCards () {

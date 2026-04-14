@@ -441,7 +441,6 @@ export class Card {
   }
 
   // ==================== CONTRACT OPERATIONS ====================
-
   /**
    * Returns BCH balance for card address. 
    * Fetches from server data, server queries blockchain.
@@ -468,7 +467,7 @@ export class Card {
     this._initializeContract()
     return await this.contract.getContract().getBalance();
   }
-
+  
   /**
    * Gets UTXOs for card address
    * @returns {Promise<Array>}

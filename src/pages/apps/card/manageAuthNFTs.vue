@@ -194,14 +194,29 @@
               </div>
             </q-item-section>
             <q-item-section side>
-              <q-toggle 
-                v-model="merchant.isEnabled"
-                :disable="genericAuthEnabled"
-                :color="genericAuthEnabled 
-                  ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
-                  : 'primary'"
-                @update:model-value="(val) => onMerchantToggle(merchant, val)"
-              />
+              <div class="row items-center q-gutter-x-sm">
+                <!-- Loading spinner when minting -->
+                <q-spinner
+                  v-if="mintingMerchants.has(merchant.id)"
+                  color="primary"
+                  size="1.2rem"
+                />
+                <!-- Success message when minting done -->
+                <span
+                  v-else-if="mintedMerchants.has(merchant.id)"
+                  class="text-positive text-caption"
+                >
+                  minting done
+                </span>
+                <q-toggle 
+                  v-model="merchant.isEnabled"
+                  :disable="genericAuthEnabled || mintingMerchants.has(merchant.id)"
+                  :color="genericAuthEnabled 
+                    ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
+                    : 'primary'"
+                  @update:model-value="(val) => onMerchantToggle(merchant, val)"
+                />
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
@@ -299,6 +314,8 @@ export default {
       spendLimitError: '',
       loading: false,
       loadingMore: false,
+      mintingMerchants: new Set(), // Track merchants currently being minted
+      mintedMerchants: new Set(), // Track merchants that just finished minting
       merchantsPagination: {
         count: 0,
         limit: 10,
@@ -515,8 +532,10 @@ export default {
     },
 
     formatSpendLimit(value) {
-      if (!value) return '0';
-      return parseFloat(value).toFixed(3);
+      if (!value) return '0.0000';
+      const num = parseFloat(value);
+      if (isNaN(num)) return '0.0000';
+      return num.toFixed(4);
     },
 
     onGenericAuthToggle(enabled) {
@@ -539,10 +558,32 @@ export default {
       }
     },
 
-    onMerchantToggle(merchant, enabled) {
+    async onMerchantToggle(merchant, enabled) {
       if (enabled) {
         merchant.spendLimit = merchant.spendLimit || '1';
+        
+        // Start minting process
+        this.mintingMerchants.add(merchant.id);
+        this.mintingMerchants = new Set(this.mintingMerchants); // Trigger reactivity
+        
+        // Simulate minting delay (2 seconds)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Minting complete
+        this.mintingMerchants.delete(merchant.id);
+        this.mintingMerchants = new Set(this.mintingMerchants);
+        
+        // Show success message
+        this.mintedMerchants.add(merchant.id);
+        this.mintedMerchants = new Set(this.mintedMerchants);
+        
+        // Clear success message after 2 seconds
+        setTimeout(() => {
+          this.mintedMerchants.delete(merchant.id);
+          this.mintedMerchants = new Set(this.mintedMerchants);
+        }, 2000);
       }
+      
       const action = enabled ? 'enabled' : 'disabled';
       this.$q.notify({
         message: `${merchant.name} ${action}`,
