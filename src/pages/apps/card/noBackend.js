@@ -1,11 +1,6 @@
 import router from 'src/router/index';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import { getMerchantList } from 'src/services/card/merchants';
-<<<<<<< Updated upstream
-
-export { getMerchantList };
-
-=======
 import { Card } from 'src/services/card/card';
 
 export { getMerchantList };
@@ -116,7 +111,6 @@ export const CardStorage = {
   }
 };
 
->>>>>>> Stashed changes
 export const createCardLogic = {
       
   data () {
@@ -125,13 +119,9 @@ export const createCardLogic = {
       newCardName: '',
       subCards: [],
       contractAddress: 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw', // dummy
-<<<<<<< Updated upstream
-      hasOrderedPhysicalCard: false
-=======
       // TODO: Replace with card_instance.raw.cash_address from Card class when backend is enabled
       hasOrderedPhysicalCard: false,
       CardStorage, // Expose CardStorage utilities to components
->>>>>>> Stashed changes
     }
   },
 
@@ -155,14 +145,6 @@ export const createCardLogic = {
       }
     },
 
-<<<<<<< Updated upstream
-  },
-
-  methods: {
-    checkExistingCards () {
-      const savedCards = localStorage.getItem('mock_subcards')
-      const cards = savedCards ? JSON.parse(savedCards) : []
-=======
     // Dark mode computed properties for classes
     textColor () {
       return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
@@ -199,13 +181,10 @@ export const createCardLogic = {
 
     checkExistingCards () {
       const cards = CardStorage.getCards();
->>>>>>> Stashed changes
 
       // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
       if (cards.length > 0 && this.$route.name === 'app-card'){
         this.$router.push({ name: 'stacked-cards'})
-<<<<<<< Updated upstream
-=======
       } 
     },
 
@@ -313,56 +292,9 @@ export const createCardLogic = {
         this.notifyError(error.message || 'Failed to create card')
       } finally {
         this.$q.loading.hide()
->>>>>>> Stashed changes
       }
     },
 
-    openCreateCardDialog(){
-      this.newCardName = ''
-      this.createCardDialog = true
-    },
-
-    // UI test only, pulls from browser memory
-    fetchCards () {
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      this.subCards = savedCards ? JSON.parse(savedCards) : []
-    },
-    
-    async handleCreateCard(){
-      if(!this.newCardName){
-        this.$q.notify({message: 'Please enter a Card name', color: 'negative'})
-        return
-      }  
-      // create mock card object
-      const newCard = {
-        id: Date.now(),
-        raw: {alias: this.newCardName},
-        balance: (Math.random() * 10).toFixed(2), // random balance
-        status: 'Active',
-        contractAddress: this.contractAddress
-      }
-
-      // save to localStorage
-      const savedData = localStorage.getItem('mock_subcards')
-      const currentCards = savedData ? JSON.parse(savedData) : []
-      currentCards.push(newCard)
-      localStorage.setItem('mock_subcards', JSON.stringify(currentCards))
-
-      // reset UI state
-      this.createCardDialog = false
-      
-      // redirect
-      this.$router.push({name: 'stacked-cards'})
-
-      this.newCardName = ''
-    },
-
-=======
-      this.subCards = CardStorage.getCards();
-    },
-    
->>>>>>> Stashed changes
     navigateToCardDetails(card, tab = 'transactions') {
       this.$router.push({
         name: 'card-details',
@@ -373,8 +305,6 @@ export const createCardLogic = {
       })
     },
 
-<<<<<<< Updated upstream
-=======
     // Notification helper methods
     notifySuccess(message, opts = {}) {
       this.$q.notify({
@@ -420,6 +350,5 @@ export const createCardLogic = {
       })
     },
 
->>>>>>> Stashed changes
   }
 }

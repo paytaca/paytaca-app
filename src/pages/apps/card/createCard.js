@@ -1,15 +1,7 @@
 
 import Card from 'src/services/card/card.js';
 import { loadCardUser, fetchCardByIdentifier, getAuthToken } from 'src/services/card/user';
-<<<<<<< Updated upstream
-import { selectedCurrency } from 'src/store/market/getters';
 import { getMerchantList } from 'src/services/card/merchants';
-import { title } from 'process';
-import { onBeforeUnmount, onUnmounted } from 'vue';
-import { set } from 'date-fns';
-=======
-import { getMerchantList } from 'src/services/card/merchants';
->>>>>>> Stashed changes
 
 // CardStorage utility for localStorage CRUD operations - used for UI state persistence
 const STORAGE_KEY = 'card_ui_state';
@@ -132,14 +124,6 @@ export const createCardLogic = {
         merchantSearch: '',
         selectedMerchants: '',
         genericAuthEnabled: false,
-<<<<<<< Updated upstream
-        allMerchants: [],
-        // Card Replacement
-        cardReplacementDialog: false,
-        selectedCardToReplace: null,
-        ws: null
-=======
->>>>>>> Stashed changes
       }
     },
     
@@ -148,9 +132,6 @@ export const createCardLogic = {
       this.$nextTick(() => {
         this.initMap()
       })
-<<<<<<< Updated upstream
-      await this.getCards()
-=======
       
       try {
         await this.getCards()
@@ -165,7 +146,6 @@ export const createCardLogic = {
       } catch (error) {
         console.error('Error during mounted lifecycle:', error.response || error)
       }
->>>>>>> Stashed changes
     },
 
     computed: {
@@ -445,8 +425,6 @@ export const createCardLogic = {
       },
 
       /**
-<<<<<<< Updated upstream
-=======
        * Delete this later, this function belongs in the paytaca POS app.
        * This is here only for testing purposes
        */
@@ -467,7 +445,6 @@ export const createCardLogic = {
       },
 
       /**
->>>>>>> Stashed changes
        * Sweep UTXOs from card back to wallet
        * @param card {Card} - Card instance
        */
@@ -583,8 +560,6 @@ export const createCardLogic = {
 
           await card.create(this.newCardName)
           this.createCardDialog = false; // close dialog
-<<<<<<< Updated upstream
-=======
           
           /* Use Card class methods to get balance after creation
           
@@ -599,13 +574,12 @@ export const createCardLogic = {
            * // Get real-time balance from blockchain (async)
            * const contractBalance = await card.getContractBalance()
            * console.log('New card contract balance:', contractBalance)
-           
+            
            * this.$q.notify({
            *   message: `Card created! Balance: ${bchBalance} BCH`,
            *   color: 'positive',
            * })
            */
->>>>>>> Stashed changes
 
           this.$q.notify({
             message: 'Card created successfully!',

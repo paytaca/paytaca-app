@@ -1,25 +1,4 @@
 <template>
-<<<<<<< Updated upstream
-  <q-layout view="lHh Lpr lFf">
-    <q-page-container>
-      <div class="row items-center q-pa-md">
-        <q-btn 
-          flat
-          round
-          dense
-          icon="arrow_back"
-          color="primary"
-          @click="$router.back()"
-        />
-        <div class="col">
-          <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
-        </div>
-        <div class="q-pa-xs" style="width: 32px"></div>
-      </div>
-
-      <div class="q-px-md q-mt-md">
-        <div class="text-subtitle1 text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">My Cards</div>
-=======
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
       <CardPageHeader />
@@ -27,7 +6,6 @@
       <div class="q-px-md q-mt-md">
         <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
         <div class="text-subtitle1 text-weight-bold" :class="textColor">My Cards</div>
->>>>>>> Stashed changes
         <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
       </div>
 
@@ -55,14 +33,6 @@
             </div>
             <!-- Card info positioned right below handle -->
             <div class="card-info row justify-between items-center no-wrap">
-<<<<<<< Updated upstream
-              <div 
-                class="text-weight-bold text-subtitle2 ellipsis" 
-                style="max-width: 120px; font-size: 13px;"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                {{ card.raw?.alias }}
-=======
               <!-- 
                 SKELETON LOADER for card stack items when loading backend data:
                 <div v-if="loadingCards" class="full-width row justify-between">
@@ -77,23 +47,16 @@
               >
                 <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
                 {{ capitalizeFirst(card.name) }}
->>>>>>> Stashed changes
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
                 style="font-size: 13px;"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                {{ card.balance }} BCH
-=======
                 :class="textColor"
               >
                 <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
                 {{ card.balance || '0.00' }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
                 <!-- {{ card?.getBchBalance ? card.getBchBalance() : (card?.balance || '0.00') }} BCH -->
->>>>>>> Stashed changes
               </div>
             </div>
           </div>
@@ -106,11 +69,7 @@
             <q-card-section class="text-center slot-content">
               <div 
                 class="text-h6 q-mb-sm"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                 :class="textColor"
->>>>>>> Stashed changes
               >
                 Add a new card
               </div>
@@ -142,11 +101,7 @@
         <q-card style="min-width: 350px" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
           <!-- Dialog Header -->
           <q-card-section class="row items-center">
-<<<<<<< Updated upstream
-            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Create New Card</div>
-=======
             <div class="text-h6" :class="textColor">Create New Card</div>
->>>>>>> Stashed changes
             <q-space />
             <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeDialog" />
           </q-card-section>
@@ -186,21 +141,13 @@
             />
             <div 
               class="text-h6 q-mb-sm"
-<<<<<<< Updated upstream
-              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
               :class="textColor"
->>>>>>> Stashed changes
             >
               Minting your card
             </div>
             <div 
               class="text-caption"
-<<<<<<< Updated upstream
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
               :class="textColorGrey"
->>>>>>> Stashed changes
             >
               Please wait while we create your new card...
             </div>
@@ -232,19 +179,13 @@
 <script>
 import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-<<<<<<< Updated upstream
-=======
 import CardPageHeader from './CardPageHeader.vue';
->>>>>>> Stashed changes
 
 export default {
   mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
-<<<<<<< Updated upstream
-=======
     CardPageHeader,
->>>>>>> Stashed changes
   },
 
   data () {
@@ -257,12 +198,9 @@ export default {
       showCreateCardDialog: false,
       newCardName: '',
       isMinting: false
-<<<<<<< Updated upstream
-=======
       // Backend data fetching disabled
       // loadingCards: true,
       // backendDataMap: {} // Map of cardId -> backend data
->>>>>>> Stashed changes
     }
   },
 
@@ -280,11 +218,6 @@ export default {
   mounted () {
     // when the page loads, fetch the cards in localStorage
     this.fetchCards()
-<<<<<<< Updated upstream
-  },
-
-  methods: {
-=======
     // TODO: Switch to backend - use await this.getCards() instead
     
     // If no cards exist, redirect to card homepage
@@ -395,7 +328,6 @@ export default {
      * },
      */
 
->>>>>>> Stashed changes
     getCardStyle (index) {
       const card = this.displayedCards[index]
       const cardId = card?.id
@@ -550,16 +482,7 @@ export default {
 
     async createCard () {
       if (!this.newCardName || !this.newCardName.trim()) {
-<<<<<<< Updated upstream
-        this.$q.notify({
-          message: 'Please enter a card name',
-          color: 'negative',
-          icon: 'error',
-          position: 'top'
-        })
-=======
         this.notifyError('Please enter a card name')
->>>>>>> Stashed changes
         return
       }
 
@@ -572,38 +495,21 @@ export default {
       // Create new card with 0 balance
       const newCard = {
         id: Date.now(),
-<<<<<<< Updated upstream
-=======
         name: this.newCardName.trim(),  // Add name property for display
->>>>>>> Stashed changes
         raw: { alias: this.newCardName.trim() },
         balance: '0.00', // New card has 0 BCH balance
         status: 'Active',
         contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
-<<<<<<< Updated upstream
-=======
         // TODO: Replace with card_instance.raw.cash_address or card_instance.raw.token_address from Card class
->>>>>>> Stashed changes
         isLocked: false,
         cardReplacementStatus: 'none'
       }
 
-<<<<<<< Updated upstream
-      // Save to localStorage
-      const savedData = localStorage.getItem('mock_subcards')
-      const currentCards = savedData ? JSON.parse(savedData) : []
-      currentCards.push(newCard)
-      localStorage.setItem('mock_subcards', JSON.stringify(currentCards))
-
-      // Update the displayed cards
-      this.subCards = currentCards
-=======
       // Save to localStorage using CardStorage
       const createdCard = this.CardStorage.createCard(newCard);
 
       // Update the displayed cards
       this.subCards = this.CardStorage.getCards();
->>>>>>> Stashed changes
 
       // Reset dialog state
       this.closeDialog()
@@ -614,11 +520,7 @@ export default {
         color: 'positive',
         icon: 'check_circle',
         position: 'top',
-<<<<<<< Updated upstream
-        timeout: 2000
-=======
         timeout: 1500
->>>>>>> Stashed changes
       })
     }
   }

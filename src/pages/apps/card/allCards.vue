@@ -1,39 +1,15 @@
 <template>
-<<<<<<< Updated upstream
-  <q-layout view="lHh Lpr lFf">
-    <q-page-container>
-      <div class="row items-center q-pa-md">
-        <q-btn 
-          flat
-          round
-          dense
-          icon="arrow_back"
-          color="primary"
-          @click="$router.back()"
-        />
-        <div class="col">
-          <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
-        </div>
-        <div class="q-pa-xs" style="width: 32px"></div>
-      </div>
-=======
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
       <CardPageHeader />
->>>>>>> Stashed changes
 
       <div>
         <MultiWalletDropdown></MultiWalletDropdown>
       </div>
 
-<<<<<<< Updated upstream
-      <div class="q-pa-md">
-        <div class="text-subtitle1 text-weight-bold q-mb-md" :class="$q.dark.isActive ? 'text-grey-4' : 'text-dark'">
-=======
       <div class="q-pa-md" style="min-height: 100vh;">
         <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loading" type="text" width="150px" /> -->
         <div class="text-subtitle1 text-weight-bold q-mb-md" :class="textColor">
->>>>>>> Stashed changes
           My Cards ({{ subCards.length }})
         </div>
 
@@ -49,8 +25,6 @@
         </div>
 
         <div v-else class="cards-grid">
-<<<<<<< Updated upstream
-=======
           <!--
             SKELETON LOADER for cards grid when loading backend data:
             <div v-if="loading" class="cards-grid">
@@ -59,7 +33,6 @@
               </div>
             </div>
           -->
->>>>>>> Stashed changes
           <div
             v-for="card in sortedCards"
             :key="card.id"
@@ -68,19 +41,12 @@
           >
             <div class="card-grid-info">
               <div class="card-name text-weight-bold ellipsis">
-<<<<<<< Updated upstream
-                {{ card.raw?.alias }}
-              </div>
-              <div class="card-balance text-weight-bold">
-                {{ card.balance }} BCH
-=======
                 <!-- SKELETON LOADER for card name: <q-skeleton v-if="loading" type="text" width="120px" /> -->
                 {{ capitalizeFirst(card.name) }}
               </div>
               <div class="card-balance text-weight-bold">
                 <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loading" type="text" width="80px" /> -->
                 {{ card.balance || '0.00' }} BCH
->>>>>>> Stashed changes
               </div>
             </div>
           </div>
@@ -93,20 +59,14 @@
 
 <script>
 import {createCardLogic} from './noBackend.js'
-<<<<<<< Updated upstream
-import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-=======
 // import { Card } from 'src/services/card/card'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from './CardPageHeader.vue';
->>>>>>> Stashed changes
 
 export default {
   mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
-<<<<<<< Updated upstream
-=======
     CardPageHeader,
   },
 
@@ -116,7 +76,6 @@ export default {
       // loading: true,
       // backendDataMap: {} // Map of cardId -> backend data
     }
->>>>>>> Stashed changes
   },
 
   computed: {
@@ -128,11 +87,6 @@ export default {
 
   mounted () {
     this.fetchCards()
-<<<<<<< Updated upstream
-  },
-
-  methods: {
-=======
     // TODO: Switch to backend - use await this.getCards() instead
     
     // If no cards exist, redirect to card homepage
@@ -186,7 +140,6 @@ export default {
       return str.charAt(0).toUpperCase() + str.slice(1)
     },
 
->>>>>>> Stashed changes
     goToCardDetails (card) {
       if (card && card.id) {
         this.$router.push({ name: 'card-details', query: {id: card.id} })

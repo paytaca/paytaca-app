@@ -1,36 +1,11 @@
 <template>
   <q-layout view="LHh Lpr lFf">
-<<<<<<< Updated upstream
-    <q-page-container>
-      <div class="row items-center q-pa-md">
-        <q-btn 
-          flat
-          round
-          dense
-          icon="arrow_back"
-          color="primary"
-          @click="$router.back()"
-        />
-        <div class="col">
-          <h5 class="text-primary text-weight-bold text-center q-ma-none">Card Management</h5>
-        </div>
-        <div class="q-pa-xs" style="width: 32px"></div>
-      </div>
-=======
     <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
       <CardPageHeader />
->>>>>>> Stashed changes
 
       <q-page v-if="activeCard" class="q-px-md">
         <div class="column items-center q-mb-lg">
           <div class="row items-center q-mb-sm full-width q-gutter-sm">
-<<<<<<< Updated upstream
-            <div 
-              class="text-subtitle1 q-mr-sm"
-              :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-            >
-              {{activeCard?.raw?.alias}}
-=======
             <!-- Card name - uses localStorage (add skeleton when enabling backend)
                  Backend option: <q-skeleton v-if="loading" type="text" width="120px" /> -->
             <div 
@@ -38,7 +13,6 @@
               :class="textColor"
             >
               {{ getCardName(activeCard) }}
->>>>>>> Stashed changes
             </div>
             <q-badge 
               rounded 
@@ -48,11 +22,7 @@
             >
               <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
             </q-badge>
-<<<<<<< Updated upstream
-            <q-btn flat dense icon="edit" size="sm" @click="showEditNameDialog = true"/>
-=======
             <q-btn flat dense icon="edit" size="sm" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="showEditNameDialog = true"/>
->>>>>>> Stashed changes
           </div>
 
           <div 
@@ -62,10 +32,6 @@
             <div class="virtual-card-content full-width full-height q-pa-sm">
               <!-- Card Header with Logo -->
               <div class="row items-center justify-between">
-<<<<<<< Updated upstream
-                <div class="virtual-card-chip">
-                  <q-icon name="memory" size="20px" color="amber-3" />
-=======
                 <div class="virtual-card-chip row items-center no-wrap" style="gap: 6px; padding: 0 8px;">
                   <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                   <!-- Card name in chip - uses localStorage
@@ -73,7 +39,6 @@
                   <div class="text-caption text-weight-bold ellipsis" style="max-width: 100px; color: inherit; font-family: 'Courier New', monospace; letter-spacing: 0.5px;">
                     {{ getCardName(activeCard) || 'My Card' }}
                   </div>
->>>>>>> Stashed changes
                 </div>
                 <q-img
                   src="~assets/paytaca_logo.png"
@@ -84,39 +49,17 @@
               
               <!-- Contract Address (Card Number) -->
               <div class="virtual-card-address text-caption text-weight-medium q-mt-sm">
-<<<<<<< Updated upstream
-                {{ formatContractAddress(activeCard?.contractAddress) || 'bitcoincash:qz6zv...efvjw' }}
-              </div>
-              
-              <!-- Bottom Section: Card Name -->
-              <div class="q-mt-auto">
-                <div class="text-caption text-weight-medium virtual-card-label">CARD NAME</div>
-                <div class="text-body2 text-weight-bold ellipsis" style="max-width: 100%;">
-                  {{ activeCard?.raw?.alias || 'My Card' }}
-                </div>
-              </div>
-=======
               {{ formatContractAddress(activeCard?.contractAddress) || 'bitcoincash:qz6zv...efvjw' }}
               <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
             </div>
               
               <!-- Bottom Section: Reserved for future use -->
               <div class="q-mt-auto"></div>
->>>>>>> Stashed changes
             </div>
           </div>
 
           <div class="row justify-center full-width q-mt-md">
             <div class="row items-center">
-<<<<<<< Updated upstream
-              <div 
-                class="q-mr-sm"
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                {{ activeCard.balance }} BCH
-              </div>
-                <q-btn outline dense label="Cash In" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
-=======
               <!-- Backend data fetching disabled - showing localStorage data only -->
               <!-- <div v-if="loading" class="q-mr-sm">
                 <q-skeleton type="text" width="120px" height="24px" />
@@ -125,12 +68,11 @@
                 class="q-mr-sm"
                 :class="textColor"
               >
-                {{ activeCard?.balance || '0.00' }} BCH
+                {{ formatBalance(activeCard?.balance) }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
-                <!-- {{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH -->
+                <!-- {{ formatBalance(activeCard?.getBchBalance ? activeCard.getBchBalance() : activeCard?.balance) }} BCH -->
               </div>
               <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
->>>>>>> Stashed changes
             </div>
           </div>
         </div>
@@ -168,31 +110,19 @@
             <div v-if="!showOrderPhysicalCardForm" class="order-physical-card-intro text-center q-pa-lg">
               <div 
                 class="text-h5 text-weight-bold q-mb-sm"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                 :class="textColor"
->>>>>>> Stashed changes
               >
                 Your new Paytaca card awaits.
               </div>
               <p 
                 class="opacity-80 q-mb-lg"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                 :class="textColorGrey"
->>>>>>> Stashed changes
               >
                 Global payments, Paytaca style.
               </p>
               <div 
                 class="text-caption q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'"
-=======
                 :class="textColorGreyLight"
->>>>>>> Stashed changes
                 style="max-width: 400px; margin: 0 auto;"
               >
                 <q-icon name="local_shipping" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
@@ -213,11 +143,7 @@
             <div v-else class="order-physical-card-form">
               <div 
                 class="row items-center justify-between q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
-=======
                 :class="bgColor"
->>>>>>> Stashed changes
                 style="border-radius: 12px; padding: 16px;"
               >
                 <div 
@@ -290,11 +216,7 @@
                 
                 <div 
                   class="text-caption q-mt-sm"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                   :class="textColorGrey"
->>>>>>> Stashed changes
                 >
                   <q-icon name="place" color="primary"/>
                   Click or drag the marker to your location to auto-fill address fields.
@@ -323,12 +245,8 @@
 
           <div 
             v-else-if="activeTab === 'Card Replacement' && activeCard"
-<<<<<<< Updated upstream
-            class="full-width"
-=======
             class="content-box flex flex-center"
             :class="$q.dark.isActive ? 'content-box-dark' : 'content-box-light'"
->>>>>>> Stashed changes
           >
             <!-- PENDING: Request Under Review -->
             <div v-if="cardReplacementStatus === 'pending'" class="card-replacement-status text-center q-pa-xl">
@@ -340,21 +258,13 @@
               />
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                 :class="textColor"
->>>>>>> Stashed changes
               >
                 Request Under Review
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                 :class="textColorGrey"
->>>>>>> Stashed changes
                 style="max-width: 400px; margin: 0 auto;"
               >
                 We're reviewing your card replacement request. This typically takes 1-2 business days. You'll receive a notification once your request is approved.
@@ -362,11 +272,7 @@
               <div class="q-mt-md">
                 <q-btn 
                   flat
-<<<<<<< Updated upstream
-                  color="grey"
-=======
                   :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
->>>>>>> Stashed changes
                   icon="refresh"
                   label="Simulate Progress (Testing)"
                   @click="simulateStatusProgression"
@@ -393,21 +299,13 @@
               />
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                 :class="textColor"
->>>>>>> Stashed changes
               >
                 Processing Your Card
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                 :class="textColorGrey"
->>>>>>> Stashed changes
                 style="max-width: 400px; margin: 0 auto;"
               >
                 We're now processing your card replacement request. Your new card is being produced and personalized. Expect to receive your card within 7-10 business days.
@@ -415,11 +313,7 @@
               <div class="q-mt-md">
                 <q-btn 
                   flat
-<<<<<<< Updated upstream
-                  color="grey"
-=======
                   :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
->>>>>>> Stashed changes
                   icon="refresh"
                   label="Simulate Progress (Testing)"
                   @click="simulateStatusProgression"
@@ -446,21 +340,13 @@
               />
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                 :class="textColor"
->>>>>>> Stashed changes
               >
                 Your New Card is on the Way!
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                 :class="textColorGrey"
->>>>>>> Stashed changes
                 style="max-width: 400px; margin: 0 auto;"
               >
                 Welcome your new card! Your replacement card has been shipped and is on its way to you. You should receive it within 2-3 business days. Please activate it upon arrival.
@@ -468,15 +354,9 @@
               <div class="q-mt-md">
                 <q-btn 
                   flat
-<<<<<<< Updated upstream
-                  color="grey"
-                  icon="refresh"
-                  label="Reset Status (Testing)"
-=======
                   :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   icon="refresh"
                   label="Simulate Progress (Testing)"
->>>>>>> Stashed changes
                   @click="simulateStatusProgression"
                   class="q-mr-sm"
                 />
@@ -495,11 +375,7 @@
             <div v-else-if="showReplacementLocationForm" class="order-physical-card-form q-mt-xl">
               <div 
                 class="row items-center justify-between q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'"
-=======
                 :class="bgColor"
->>>>>>> Stashed changes
                 style="border-radius: 12px; padding: 16px;"
               >
                 <div class="text-subtitle1 text-bold text-primary">
@@ -570,11 +446,7 @@
 
                 <div 
                   class="text-caption q-mt-sm"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                   :class="textColorGrey"
->>>>>>> Stashed changes
                 >
                   <q-icon name="place" color="primary"/>
                   Click or drag the marker to your location to auto-fill address fields.
@@ -590,11 +462,7 @@
                 <div class="row justify-center q-mt-lg q-gutter-md">
                   <q-btn 
                     label="Back" 
-<<<<<<< Updated upstream
-                    color="grey"
-=======
                     :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
->>>>>>> Stashed changes
                     class="q-px-xl"
                     unelevated
                     rounded
@@ -619,21 +487,13 @@
             <div v-else-if="locationSame !== null && !showReplacementLocationForm" class="card-replacement-confirm text-center q-pa-lg q-mt-xl">
               <div 
                 class="text-h5 text-weight-bold q-mb-md"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                 :class="textColor"
->>>>>>> Stashed changes
               >
                 Ready to Replace Your Card
               </div>
               <div 
                 class="text-subtitle1 q-mb-lg"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
                 :class="textColorGrey"
->>>>>>> Stashed changes
               >
                 Reason: <span class="text-capitalize">{{ replacementReason }}</span>
               </div>
@@ -646,12 +506,8 @@
               <div class="row justify-center q-mt-lg q-gutter-md">
                 <q-btn 
                   label="Go Back" 
-<<<<<<< Updated upstream
-                  color="grey"
-=======
                   flat
                   :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
->>>>>>> Stashed changes
                   class="q-px-xl"
                   unelevated
                   rounded
@@ -678,11 +534,7 @@
               <div class="q-mb-xl">
                 <div 
                   class="text-h5 text-weight-bold q-mb-md"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                   :class="textColor"
->>>>>>> Stashed changes
                 >
                   Why do you want to replace your card?
                 </div>
@@ -692,12 +544,8 @@
                     :key="option.value"
                     :label="option.label"
                     :outline="replacementReason !== option.value"
-<<<<<<< Updated upstream
-                    :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
-=======
                     :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
                     text-color="primary"
->>>>>>> Stashed changes
                     class="q-ma-sm"
                     unelevated
                     rounded
@@ -714,11 +562,7 @@
               <div class="q-mb-xl" :class="{ 'disabled-section': !replacementReason }">
                 <div 
                   class="text-h5 text-weight-bold q-mb-md"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                   :class="textColor"
->>>>>>> Stashed changes
                 >
                   Is your shipping location still the same?
                 </div>
@@ -727,12 +571,8 @@
                     label="Yes, proceed" 
                     :disable="!replacementReason || hasCardBalance"
                     :outline="locationSame !== true"
-<<<<<<< Updated upstream
-                    :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
-=======
                     :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
                     text-color="primary"
->>>>>>> Stashed changes
                     class="q-ma-sm q-px-xl"
                     unelevated
                     rounded
@@ -742,12 +582,8 @@
                     label="No, I need to update" 
                     :disable="!replacementReason || hasCardBalance"
                     :outline="locationSame !== false"
-<<<<<<< Updated upstream
-                    :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-4' : 'grey-7')"
-=======
                     :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')"
                     text-color="primary"
->>>>>>> Stashed changes
                     class="q-ma-sm q-px-xl"
                     unelevated
                     rounded
@@ -764,11 +600,7 @@
                 <q-btn 
                   label="Reset" 
                   flat
-<<<<<<< Updated upstream
-                  color="grey"
-=======
                   :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
->>>>>>> Stashed changes
                   icon="refresh"
                   @click="resetReplacementFlow"
                 />
@@ -777,39 +609,22 @@
           </div>
 
           <div 
-<<<<<<< Updated upstream
-            v-else-if="activeTab === 'Other Settings' && activeCard"
-            class="other-settings-container full-width"
-          >
-            <div 
-              class="settings-section q-mb-md"
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
-=======
             v-else-if="activeTab === 'Card Security' && activeCard"
             class="full-width"
           >
             <div 
               class="settings-section q-mb-md"
->>>>>>> Stashed changes
             >
               <div class="settings-header q-pa-md">
                 <div 
                   class="text-subtitle1 text-weight-bold"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                   :class="textColor"
->>>>>>> Stashed changes
                 >
                   Card Settings
                 </div>
               </div>
 
-<<<<<<< Updated upstream
-              <q-separator :dark="$q.dark.isActive" />
-=======
               <q-separator color="primary" />
->>>>>>> Stashed changes
 
               <div class="settings-list">
                 <div class="settings-item">
@@ -822,14 +637,9 @@
                     <div class="q-ml-md">
                       <div 
                         class="text-subtitle2"
-<<<<<<< Updated upstream
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-                      >
-=======
                         :class="textColor"
                       >
                         <!-- SKELETON LOADER for lock status: <q-skeleton v-if="loadingLockStatus" type="text" width="120px" /> -->
->>>>>>> Stashed changes
                         {{ activeCard?.isLocked ? 'Unlock Card' : 'Temporary Lock Card' }}
                       </div>
                       <div 
@@ -844,19 +654,12 @@
                     :model-value="activeCard?.isLocked"
                     @update:model-value="(val) => toggleCardLock(val)"
                     color="warning"
-<<<<<<< Updated upstream
-                  />
-                </div>
-
-                <q-separator :dark="$q.dark.isActive" />
-=======
                     :disable="loadingLockStatus" 
                   />
                   <!-- BACKEND: Disable toggle during API call -->
                 </div>
 
                 <q-separator color="primary" />
->>>>>>> Stashed changes
 
                 <div class="settings-item">
                   <div class="settings-item-content">
@@ -868,11 +671,7 @@
                     <div class="q-ml-md">
                       <div 
                         class="text-subtitle2"
-<<<<<<< Updated upstream
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                         :class="textColor"
->>>>>>> Stashed changes
                       >
                         Transaction Alerts
                       </div>
@@ -891,39 +690,23 @@
                   />
                 </div>
 
-<<<<<<< Updated upstream
-                <q-separator :dark="$q.dark.isActive" />
-=======
                 <q-separator color="primary" />
->>>>>>> Stashed changes
               </div>
             </div>
 
             <div 
               class="settings-section q-mb-md"
-<<<<<<< Updated upstream
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
-=======
->>>>>>> Stashed changes
             >
               <div class="settings-header q-pa-md">
                 <div 
                   class="text-subtitle1 text-weight-bold"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                   :class="textColor"
->>>>>>> Stashed changes
                 >
                   Funds Management
                 </div>
               </div>
 
-<<<<<<< Updated upstream
-              <q-separator :dark="$q.dark.isActive" />
-=======
               <q-separator color="primary" />
->>>>>>> Stashed changes
 
               <div class="settings-list">
                 <div class="settings-item clickable" @click="showSweepFundsDialog = true">
@@ -932,11 +715,7 @@
                     <div class="q-ml-md">
                       <div 
                         class="text-subtitle2"
-<<<<<<< Updated upstream
-                        :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                         :class="textColor"
->>>>>>> Stashed changes
                       >
                         Sweep Funds
                       </div>
@@ -955,29 +734,17 @@
 
             <div 
               class="settings-section"
-<<<<<<< Updated upstream
-              :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-1'"
-=======
->>>>>>> Stashed changes
             >
               <div class="settings-header q-pa-md">
                 <div 
                   class="text-subtitle1 text-weight-bold"
-<<<<<<< Updated upstream
-                  :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-=======
                   :class="textColor"
->>>>>>> Stashed changes
                 >
                   Danger Zone
                 </div>
               </div>
 
-<<<<<<< Updated upstream
-              <q-separator :dark="$q.dark.isActive" />
-=======
               <q-separator color="primary" />
->>>>>>> Stashed changes
 
               <div class="settings-list">
                 <div 
@@ -1019,11 +786,7 @@
       <q-dialog v-model="showEditNameDialog">
         <q-card style="min-width: 300px">
           <q-card-section>
-<<<<<<< Updated upstream
-            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Edit Card Name</div>
-=======
             <div class="text-h6" :class="textColor">Edit Card Name</div>
->>>>>>> Stashed changes
           </q-card-section>
 
           <q-card-section class="q-pt-none">
@@ -1046,17 +809,10 @@
       </q-dialog>
 
       <q-dialog v-model="showCashInDialog">
-<<<<<<< Updated upstream
-        <q-card class="cash-in-dialog">
-          <q-card-section class="row justify-between items-center q-pb-none">
-            <div class="text-h6 q-mb-md" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Cash In</div>
-            <q-btn flat round dense icon="close" @click="showCashInDialog = false" />
-=======
         <q-card class="cash-in-dialog" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
           <q-card-section class="row justify-between items-center q-pb-none">
             <div class="text-h6 q-mb-md" :class="textColor">Cash In</div>
             <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="showCashInDialog = false" />
->>>>>>> Stashed changes
           </q-card-section>
 
           <q-card-section class="text-center q-pt-sm">
@@ -1074,10 +830,7 @@
                 :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'"
               >
                 {{ formatContractAddress(getContractAddress(activeCard)) }}
-<<<<<<< Updated upstream
-=======
                 <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
->>>>>>> Stashed changes
               </div>
               <q-btn 
                 flat 
@@ -1109,10 +862,7 @@
                 emit-value
                 map-options
                 class="currency-select"
-<<<<<<< Updated upstream
-=======
                 popup-content-class="text-dark"
->>>>>>> Stashed changes
               />
             </div>
 
@@ -1130,27 +880,17 @@
       <q-dialog v-model="showSweepFundsDialog" persistent>
         <q-card style="min-width: 320px">
           <q-card-section>
-<<<<<<< Updated upstream
-            <div class="text-h6" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">Sweep Funds</div>
-=======
             <div class="text-h6" :class="textColor">Sweep Funds</div>
->>>>>>> Stashed changes
           </q-card-section>
 
           <q-card-section class="q-pt-none">
             <div 
               class="q-mb-md"
-<<<<<<< Updated upstream
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-            >
-              This will transfer all funds ({{ activeCard?.balance }} BCH) from your card back to your wallet.
-=======
               :class="textColorGrey"
             >
-              This will transfer all funds ({{ activeCard?.balance }} BCH) from your card back to your wallet.
+              This will transfer all funds ({{ formatBalance(activeCard?.balance) }} BCH) from your card back to your wallet.
               <!-- NEW: Use Card class method -->
               <!-- This will transfer all funds ({{ activeCard?.getBchBalance ? activeCard.getBchBalance() : (activeCard?.balance || '0.00') }} BCH) from your card back to your wallet. -->
->>>>>>> Stashed changes
             </div>
             <div 
               class="text-caption"
@@ -1176,11 +916,7 @@
           <q-card-section class="q-pt-none">
             <div 
               class="q-mb-md"
-<<<<<<< Updated upstream
-              :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-=======
               :class="textColorGrey"
->>>>>>> Stashed changes
             >
               Are you sure you want to delete this card? This action cannot be undone.
             </div>
@@ -1207,21 +943,14 @@ import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown
 import TransactionHistory from './transactionHistory.vue'
 import ManageAuthNFTs from './manageAuthNFTs.vue'
 import L from 'leaflet'
-<<<<<<< Updated upstream
-=======
 import CardPageHeader from './CardPageHeader.vue'
->>>>>>> Stashed changes
 
 export default {
   mixins: [createCardLogic],
   components: {
     TransactionHistory,
-<<<<<<< Updated upstream
-    ManageAuthNFTs
-=======
     ManageAuthNFTs,
     CardPageHeader
->>>>>>> Stashed changes
   },
 
   data () {
@@ -1251,14 +980,11 @@ export default {
       locationSame: null,
       showReplacementLocationForm: false,
       cardReplacementStatus: 'none'
-<<<<<<< Updated upstream
-=======
       // Backend data fetching disabled
       // loading: true,
       // backendData: null,
       // dataError: null,
       // loadingLockStatus: false, // BACKEND: Loading state for lock/unlock API call
->>>>>>> Stashed changes
     }
   },
 
@@ -1278,11 +1004,7 @@ export default {
   computed: {
     tabs () {
       const hasPhysicalCard = this.activeCard?.hasOrderedPhysicalCard || this.hasOrderedPhysicalCard
-<<<<<<< Updated upstream
-      const baseTabs = ['Transactions', 'Manage Merchants', 'Other Settings']
-=======
       const baseTabs = ['Transactions', 'Manage Merchants', 'Card Security']
->>>>>>> Stashed changes
       const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Card'
       baseTabs.splice(2, 0, thirdTab)
       return baseTabs
@@ -1316,10 +1038,7 @@ export default {
 
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
-<<<<<<< Updated upstream
-=======
       // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
->>>>>>> Stashed changes
       return balance > 0
     },
     
@@ -1335,8 +1054,6 @@ export default {
   },
 
   mounted () {
-<<<<<<< Updated upstream
-=======
     // Check if any cards exist - if not, redirect to card homepage
     const cards = this.CardStorage.getCards()
     // TODO: Switch to backend - use await this.getCards() instead
@@ -1345,7 +1062,6 @@ export default {
       return
     }
     
->>>>>>> Stashed changes
     // Load card replacement status if available
     this.loadCardReplacementStatus()
     
@@ -1358,11 +1074,7 @@ export default {
         'manage-merchants': 'Manage Merchants',
         'card-replacement': 'Card Replacement',
         'order-card': 'Order Card',
-<<<<<<< Updated upstream
-        'other-settings': 'Other Settings'
-=======
         'other-settings': 'Card Security'
->>>>>>> Stashed changes
       }
       if (tabMap[requestedTab]) {
         this.activeTab = tabMap[requestedTab]
@@ -1372,43 +1084,6 @@ export default {
   },
 
   methods: {
-<<<<<<< Updated upstream
-    formatContractAddress (address) {
-      if (!address) return null
-      const str = String(address)
-      if (str.length <= 20) return str
-      return str.slice(0, 12) + '...' + str.slice(-8)
-    },
-
-    loadSpecificCard () {
-      const cardId = this.$route.query.id
-      // get all cards from localStorage
-      const savedCards = localStorage.getItem('mock_subcards')
-
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        // find the specifc card
-        const found = allCards.find(c => String(c.id) === String(cardId))
-        
-        if (found) {
-          this.activeCard = found
-          this.newCardName = found.raw?.alias || ''
-          
-          if (this.activeCard.isLocked === undefined) {
-            this.activeCard.isLocked = false
-          }
-          if (this.activeCard.transactionAlerts === undefined) {
-            this.activeCard.transactionAlerts = false
-          }
-        }
-        else {
-          console.error("Card not found in storage");
-          this.$router.push({ name: 'stacked-cards' });
-        }
-      }   
-    },
-    
-=======
 
     capitalizeFirst (str) {
       if (!str) return ''
@@ -1523,41 +1198,10 @@ export default {
     },
     */
 
->>>>>>> Stashed changes
     saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
         const trimmedName = this.newCardName.trim()
         
-<<<<<<< Updated upstream
-        // Ensure raw object exists
-        if (!this.activeCard.raw) {
-          this.activeCard.raw = {}
-        }
-        
-        // Update the alias
-        this.activeCard.raw.alias = trimmedName
-        this.newCardName = trimmedName
-        
-        // Save to localStorage
-        const savedCards = localStorage.getItem('mock_subcards')
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards)
-          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-          if (cardIndex !== -1) {
-            allCards[cardIndex] = this.activeCard
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          }
-        }
-        
-        // Show success notification
-        this.$q.notify({
-          message: 'Card name updated successfully',
-          color: 'positive',
-          icon: 'check',
-          position: 'top',
-          timeout: 2000
-        })
-=======
         // Update the name directly
         this.activeCard.name = this.capitalizeFirst(trimmedName)
         this.newCardName = this.capitalizeFirst(trimmedName)
@@ -1570,36 +1214,17 @@ export default {
         
         // Show success notification
         this.notifySuccess('Card name updated successfully')
->>>>>>> Stashed changes
       }
       this.showEditNameDialog = false
     },
 
-<<<<<<< Updated upstream
-    formatContractAddress (addr) {
-      if (!addr) return ''
-      const address = typeof addr === 'object' ? addr.contractAddress : addr
-      if (!address) return ''
-      const len = address.length
-      return address.substring(0, 12) + '...' + address.substring(len - 12, len)
-    },
-=======
 
->>>>>>> Stashed changes
 
     copyContractAddress () {
       const address = this.getContractAddress(this.activeCard)
       if (address) {
         navigator.clipboard.writeText(address)
-<<<<<<< Updated upstream
-        this.$q.notify({
-          message: 'Contract address copied!',
-          color: 'positive',
-          position: 'top'
-        })
-=======
         this.notifySuccess('Contract address copied!')
->>>>>>> Stashed changes
       }
     },
 
@@ -1616,15 +1241,7 @@ export default {
 
     handleCashIn () {
       if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
-<<<<<<< Updated upstream
-        this.$q.notify({
-          message: 'Please enter a valid amount greater than 0',
-          color: 'negative',
-          position: 'top'
-        })
-=======
         this.notifyError('Please enter a valid amount greater than 0')
->>>>>>> Stashed changes
         return
       }
 
@@ -1640,15 +1257,7 @@ export default {
         // Use real market price from store
         const bchPrice = this.bchPriceInSelectedCurrency
         if (!bchPrice) {
-<<<<<<< Updated upstream
-          this.$q.notify({
-            message: 'Unable to fetch current BCH price. Please try again.',
-            color: 'negative',
-            position: 'top'
-          })
-=======
           this.notifyError('Unable to fetch current BCH price. Please try again.')
->>>>>>> Stashed changes
           return
         }
         // Convert fiat to BCH: amount / price = BCH
@@ -1656,36 +1265,18 @@ export default {
       }
 
       // Update card balance in localStorage
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards && this.activeCard) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          const currentBalance = parseFloat(allCards[cardIndex].balance) || 0
-          allCards[cardIndex].balance = (currentBalance + amountInBCH).toFixed(8)
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          
-          // Update activeCard for display
-          this.activeCard.balance = allCards[cardIndex].balance
-=======
       if (this.activeCard) {
         const updatedCard = this.CardStorage.incrementCardProperty(this.activeCard.id, 'balance', amountInBCH)
         if (updatedCard) {
           this.activeCard.balance = updatedCard.balance
->>>>>>> Stashed changes
         }
       }
 
       this.$q.notify({
-        message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(8)} BCH) to your card!`,
+        message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(4)} BCH) to your card!`,
         color: 'positive',
-<<<<<<< Updated upstream
-        position: 'top'
-=======
         position: 'top',
         timeout: 2000
->>>>>>> Stashed changes
       })
       
       this.showCashInDialog = false
@@ -1696,44 +1287,15 @@ export default {
       if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 
           !this.orderPhysicalCardData.state || !this.orderPhysicalCardData.zip || 
           !this.orderPhysicalCardData.country) {
-<<<<<<< Updated upstream
-        this.$q.notify({
-          message: 'Please fill in all required fields',
-          color: 'negative',
-          position: 'top'
-        })
-        return
-      }
-
-      this.$q.notify({
-        message: 'Card order submitted successfully!',
-        color: 'positive',
-        position: 'top'
-      })
-=======
         this.notifyError('Please fill in all required fields')
         return
       }
 
       this.notifySuccess('Card order submitted successfully!')
->>>>>>> Stashed changes
 
       this.hasOrderedPhysicalCard = true
       
       if (this.activeCard) {
-<<<<<<< Updated upstream
-        const savedCards = localStorage.getItem('mock_subcards')
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards)
-          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-          if (cardIndex !== -1) {
-            allCards[cardIndex].hasOrderedPhysicalCard = true
-            allCards[cardIndex].shippingAddress = { ...this.orderPhysicalCardData }
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-            this.activeCard.hasOrderedPhysicalCard = true
-            this.activeCard.shippingAddress = { ...this.orderPhysicalCardData }
-          }
-=======
         const updates = {
           hasOrderedPhysicalCard: true,
           shippingAddress: { ...this.orderPhysicalCardData }
@@ -1742,7 +1304,6 @@ export default {
         if (updatedCard) {
           this.activeCard.hasOrderedPhysicalCard = updatedCard.hasOrderedPhysicalCard
           this.activeCard.shippingAddress = updatedCard.shippingAddress
->>>>>>> Stashed changes
         }
       }
 
@@ -1806,23 +1367,12 @@ export default {
         this.$q.notify({
           message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
           icon: 'check', 
-<<<<<<< Updated upstream
-          color: 'positive'
-        })
-      }
-      catch (error) {
-        this.$q.notify({
-          message: 'Geocoding failed',
-          color: 'negative'
-        })
-=======
           color: 'positive',
           timeout: 1500
         })
       }
       catch (error) {
         this.notifyError('Geocoding failed')
->>>>>>> Stashed changes
       }
     },
 
@@ -1936,23 +1486,12 @@ export default {
         this.$q.notify({
           message: `Location set to ${this.orderPhysicalCardData.city || this.orderPhysicalCardData.state || 'Unknown'}`,
           icon: 'check', 
-<<<<<<< Updated upstream
-          color: 'positive'
-        })
-      }
-      catch (error) {
-        this.$q.notify({
-          message: 'Geocoding failed',
-          color: 'negative'
-        })
-=======
           color: 'positive',
           timeout: 1500
         })
       }
       catch (error) {
         this.notifyError('Geocoding failed')
->>>>>>> Stashed changes
       }
     },
 
@@ -1970,57 +1509,25 @@ export default {
     },
 
     saveShippingAddress () {
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards && this.activeCard) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].shippingAddress = { ...this.orderPhysicalCardData }
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          this.activeCard.shippingAddress = { ...this.orderPhysicalCardData }
-=======
       if (this.activeCard) {
         const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'shippingAddress', { ...this.orderPhysicalCardData })
         if (updatedCard) {
           this.activeCard.shippingAddress = updatedCard.shippingAddress
->>>>>>> Stashed changes
         }
       }
     },
 
     confirmCardReplacement () {
-<<<<<<< Updated upstream
-      this.$q.notify({
-        message: 'Card replacement order submitted successfully!',
-        color: 'positive',
-        icon: 'check_circle',
-        position: 'top'
-      })
-=======
       this.notifySuccess('Card replacement order submitted successfully!', { icon: 'check_circle' })
->>>>>>> Stashed changes
       this.cardReplacementStatus = 'pending'
       this.saveCardReplacementStatus()
     },
 
     saveCardReplacementStatus () {
       if (this.activeCard) {
-<<<<<<< Updated upstream
-        const savedCards = localStorage.getItem('mock_subcards')
-        if (savedCards) {
-          const allCards = JSON.parse(savedCards)
-          const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-          if (cardIndex !== -1) {
-            allCards[cardIndex].cardReplacementStatus = this.cardReplacementStatus
-            localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-            this.activeCard.cardReplacementStatus = this.cardReplacementStatus
-          }
-=======
         const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'cardReplacementStatus', this.cardReplacementStatus)
         if (updatedCard) {
           this.activeCard.cardReplacementStatus = updatedCard.cardReplacementStatus
->>>>>>> Stashed changes
         }
       }
     },
@@ -2040,44 +1547,22 @@ export default {
       this.$q.notify({
         message: `Status updated to: ${nextStatus}`,
         color: 'info',
-<<<<<<< Updated upstream
-        icon: 'update'
-=======
         icon: 'update',
         timeout: 1500
->>>>>>> Stashed changes
       })
     },
 
     toggleCardLock (locked) {
       if (!this.activeCard) return
 
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].isLocked = locked
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          this.activeCard.isLocked = locked
-        }
-=======
       const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', locked)
       if (updatedCard) {
         this.activeCard.isLocked = updatedCard.isLocked
->>>>>>> Stashed changes
       }
 
       this.$q.notify({
         message: locked ? 'Card has been locked' : 'Card has been unlocked',
         color: locked ? 'warning' : 'positive',
-<<<<<<< Updated upstream
-        icon: locked ? 'lock' : 'lock_open'
-      })
-    },
-
-=======
         icon: locked ? 'lock' : 'lock_open',
         timeout: 1500
       })
@@ -2187,46 +1672,26 @@ export default {
      * // await this.fetchCardLockStatus()
      */
 
->>>>>>> Stashed changes
     handleSweepFunds () {
       if (!this.activeCard) return
 
-      const balance = parseFloat(this.activeCard.balance) || 0
-<<<<<<< Updated upstream
-=======
+      const balance = parseFloat(this.activeCard?.balance) || 0
       // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
->>>>>>> Stashed changes
 
       if (balance <= 0) {
         this.$q.notify({
           message: 'No funds to sweep',
           color: 'warning',
-<<<<<<< Updated upstream
-          position: 'top'
-=======
           position: 'top',
           timeout: 1500
->>>>>>> Stashed changes
         })
         this.showSweepFundsDialog = false
         return
       }
 
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].balance = '0'
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-          this.activeCard.balance = '0'
-        }
-=======
       const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'balance', '0')
       if (updatedCard) {
         this.activeCard.balance = updatedCard.balance
->>>>>>> Stashed changes
       }
 
       this.$q.notify({
@@ -2242,25 +1707,6 @@ export default {
     handleDeleteCard () {
       if (!this.activeCard) return
 
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards.splice(cardIndex, 1)
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-        }
-      }
-
-      this.$q.notify({
-        message: 'Card has been deleted',
-        color: 'positive',
-        icon: 'delete',
-        position: 'top'
-      })
-
-=======
       const deleted = this.CardStorage.deleteCard(this.activeCard.id)
       
       if (deleted) {
@@ -2273,7 +1719,6 @@ export default {
         })
       }
 
->>>>>>> Stashed changes
       this.showDeleteCardDialog = false
       this.$router.push({ name: 'stacked-cards' })
     },
@@ -2281,21 +1726,8 @@ export default {
     saveCardSettings () {
       if (!this.activeCard) return
 
-<<<<<<< Updated upstream
-      const savedCards = localStorage.getItem('mock_subcards')
-      if (savedCards) {
-        const allCards = JSON.parse(savedCards)
-        const cardIndex = allCards.findIndex(c => String(c.id) === String(this.activeCard.id))
-        if (cardIndex !== -1) {
-          allCards[cardIndex].transactionAlerts = this.activeCard.transactionAlerts
-          localStorage.setItem('mock_subcards', JSON.stringify(allCards))
-        }
-      }
-
-=======
       const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'transactionAlerts', this.activeCard.transactionAlerts)
       
->>>>>>> Stashed changes
       this.$q.notify({
         message: 'Settings saved',
         color: 'positive',

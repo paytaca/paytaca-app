@@ -17,35 +17,21 @@
     </div>
 
     <div class="row items-center q-mb-sm">
-<<<<<<< Updated upstream
-      <div class="text-subtitle2" :class="$q.dark.isActive ? 'text-white' : 'text-dark'">History</div>
-      <q-space />
-      <q-btn
-        flat dense size="sm"
-        :color="sortKey === 'date' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
-=======
       <div class="text-subtitle2" :class="textColor">History</div>
       <!-- SKELETON LOADER for title when loading backend data: <q-skeleton v-if="loading" type="text" width="80px" /> -->
       <q-space />
       <q-btn
         flat dense size="sm"
         :color="sortKey === 'date' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey-8')"
->>>>>>> Stashed changes
         label="Date"
         @click="toggleSort('date')"
       >
         <q-icon :name="sortKey === 'date' ? (sortOrder === 'asc' ? 'expand_less' : 'expand_more') : 'unfold_more'" />
       </q-btn>
-<<<<<<< Updated upstream
-      <q-btn
-        flat dense size="sm"
-        :color="sortKey === 'amount' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey')"
-=======
       <!-- SKELETON LOADER for sort buttons when loading backend data: <q-skeleton v-if="loading" type="rect" width="60px" class="q-ml-sm" /> -->
       <q-btn
         flat dense size="sm"
         :color="sortKey === 'amount' ? 'primary' : ($q.dark.isActive ? 'grey-5' : 'grey-8')"
->>>>>>> Stashed changes
         label="Amount"
         @click="toggleSort('amount')"
       >
@@ -56,11 +42,6 @@
     <q-separator class="q-mb-sm" :dark="$q.dark.isActive" />
 
     <div class="scroll" style="height: 350px;">
-<<<<<<< Updated upstream
-      <div v-if="filteredTransactions.length > 0">
-        <q-list separator :dark="$q.dark.isActive">
-          <q-item v-for="t in filteredTransactions" :key="t.id" class="q-px-none">
-=======
       <!-- 
         SKELETON LOADER for transaction list when loading backend data:
         <div v-if="loading" class="q-pa-md">
@@ -78,7 +59,6 @@
         <q-list separator :dark="$q.dark.isActive">
           <q-item v-for="t in filteredTransactions" :key="t.id" class="q-px-none">
             <!-- SKELETON LOADER for transaction icon: <q-item-section avatar><q-skeleton type="QAvatar" size="24px" /></q-item-section> -->
->>>>>>> Stashed changes
             <q-item-section avatar>
                <q-icon :name="t.amount > 0 ? 'south_west' : 'north_east'" 
                        :color="t.amount > 0 ? 'positive' : 'negative'" 
@@ -87,15 +67,6 @@
             <q-item-section>
               <div 
                 class="text-weight-bold"
-<<<<<<< Updated upstream
-                :class="$q.dark.isActive ? 'text-white' : 'text-dark'"
-              >
-                {{ t.name }}
-              </div>
-              <div class="text-caption text-weight-bold text-grey">{{ t.date }}</div>
-            </q-item-section>
-            <q-item-section side>
-=======
                 :class="textColor"
               >
                 <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
@@ -106,7 +77,6 @@
             </q-item-section>
             <q-item-section side>
               <!-- SKELETON LOADER for amount: <q-skeleton v-if="loading" type="text" width="70px" /> -->
->>>>>>> Stashed changes
               <div class="text-weight-bold" :class="t.amount > 0 ? 'text-positive' : 'text-negative'">
                 {{ t.amount > 0 ? '+' : '' }}{{ t.amount }} BCH
               </div>
@@ -132,13 +102,9 @@ export default {
       search: '',
       sortKey: 'date',
       sortOrder: 'desc',
-<<<<<<< Updated upstream
-      // Mock data - in a real app, you'd fetch this using this.card.id
-=======
       // loading: false, // SKELETON LOADER: Set to true when fetching backend data
       // Mock data - in a real app, you'd fetch this using this.card.id
       // SKELETON LOADER: Replace with backend fetch in mounted() or a method
->>>>>>> Stashed changes
       transactions: [
         { id: 1, name: 'Main Street Coffee', amount: -0.0012, date: '2026-02-28' },
         { id: 2, name: 'Refund: Tech Store', amount: 0.05, date: '2026-02-27' },
@@ -159,12 +125,9 @@ export default {
         return (new Date(a.date) - new Date(b.date)) * mod;
       });
       return list;
-<<<<<<< Updated upstream
-=======
     },
     textColor() {
       return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
->>>>>>> Stashed changes
     }
   },
   methods: {
@@ -176,8 +139,6 @@ export default {
         this.sortOrder = 'desc';
       }
     }
-<<<<<<< Updated upstream
-=======
     // SKELETON LOADER: Add this method to fetch transactions from backend
     // async fetchTransactions() {
     //   this.loading = true
@@ -191,7 +152,6 @@ export default {
     //     this.loading = false
     //   }
     // }
->>>>>>> Stashed changes
   }
 }
 </script>
