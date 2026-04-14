@@ -84,8 +84,7 @@ export default class PromoContract {
       // token change output in outputs[1]
       // (will be outputs[2] later on after inserting bch change output)
       outputs.push({
-        // to: this.contract.tokenAddress,
-        to: userTokenAddress,
+        to: this.contract.tokenAddress,
         amount: 1000n,
         token: {
           amount: tokenBalance - actualPointstoRedeem,
@@ -97,13 +96,12 @@ export default class PromoContract {
     // compute fee
     const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
     // +1 in outputs length for bch change output
-    const fee = this.computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.25)
+    const fee = this.computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5)
 
     // insert bch change outputs to outputs[1]
     // (token change output is now in outputs[2] if existing)
     outputs.splice(1, 0, {
-      // to: this.contract.tokenAddress,
-      to: userTokenAddress,
+      to: this.contract.tokenAddress,
       amount: bchBalance - fee - 1000n
     })
 
@@ -112,7 +110,7 @@ export default class PromoContract {
       const txDetails = await new TransactionBuilder({ provider: this.provider })
         .addInputs(
           inputs,
-          this.contract.unlock.withdraw(new SignatureTemplate(userWif), this.promo)
+          this.contract.unlock.easyWithdraw(new SignatureTemplate(userWif), this.promo)
         )
         .addOutputs(outputs)
         .send()
