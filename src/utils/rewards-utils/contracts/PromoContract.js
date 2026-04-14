@@ -51,6 +51,8 @@ export default class PromoContract {
   }
 
   async redeemPoints (userWif, userTokenAddress, pointsToRedeem) {
+    const payload = { txid: '', error: '', fee: 0 }
+
     // get utxos
     const contractUtxos = await this.contract.getUtxos()
     // compute bch and token balances
@@ -69,7 +71,7 @@ export default class PromoContract {
     const outputs = [
       // user address in outputs[0]
       {
-        to: userTokenAddress,
+        to: userTokenAddress, // TODO send to RewardsSwapContract address
         amount: 1000n,
         token: {
           amount: actualPointstoRedeem,
@@ -82,7 +84,8 @@ export default class PromoContract {
       // token change output in outputs[1]
       // (will be outputs[2] later on after inserting bch change output)
       outputs.push({
-        to: this.contract.tokenAddress,
+        // to: this.contract.tokenAddress,
+        to: userTokenAddress,
         amount: 1000n,
         token: {
           amount: tokenBalance - actualPointstoRedeem,
@@ -99,20 +102,30 @@ export default class PromoContract {
     // insert bch change outputs to outputs[1]
     // (token change output is now in outputs[2] if existing)
     outputs.splice(1, 0, {
-      to: this.contract.tokenAddress,
+      // to: this.contract.tokenAddress,
+      to: userTokenAddress,
       amount: bchBalance - fee - 1000n
     })
 
     // build tx
-    const txDetails = await new TransactionBuilder({ provider: this.provider })
-      .addInputs(
-        inputs,
-        this.contract.unlock.easyWithdraw(new SignatureTemplate(userWif), this.promo)
-      )
-      .addOutputs(outputs)
-      .send()
+    try {
+      const txDetails = await new TransactionBuilder({ provider: this.provider })
+        .addInputs(
+          inputs,
+          this.contract.unlock.withdraw(new SignatureTemplate(userWif), this.promo)
+        )
+        .addOutputs(outputs)
+        .send()
+  
+      payload.txid = txDetails.txid
+    } catch (error) {
+      if (error?.requireStatement?.message)
+        payload.error = error?.requireStatement?.message
+      else payload.error = error.message
+      payload.fee = fee + 1000n
+    }
 
-    return txDetails.txid
+    return payload
   }
 
   /**
