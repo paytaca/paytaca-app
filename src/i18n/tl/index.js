@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "Na-apply ang discount",
   DiscountApplied1: "Isang {discount}% na diskwento ang inilapat, na nakakatipid sa iyo ng {currency}",
   DiscountApplied2: "May inilapat na {discount}% na diskwento",
+  Discount: "Diskwento",
+  OriginalPrice: "Orihinal na presyo",
   Dismiss: "I-dismiss",
   DisplayPartialSignatureQrCode: "Ipakita ang bahagyang signature na QR code",
   DisplayPartialSignatureQrCodeHint: "Ipakita ang QR code na naglalaman ng iyong bahagyang lagda",

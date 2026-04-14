@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "An yi amfani da rangwame",
   DiscountApplied1: "Ana amfani da rangwamen {discount}%, yana adana ku {currency}",
   DiscountApplied2: "Ana amfani da rangwamen {discount}%",
+  Discount: "Rangwame",
+  OriginalPrice: "Farashin asali",
   Dismiss: "Korar",
   DisplayPartialSignatureQrCode: "Nuna lambar QR sa hannu",
   DisplayPartialSignatureQrCodeHint: "Nuna lambar QR mai ɗauke da sa hannun sa hannunka",

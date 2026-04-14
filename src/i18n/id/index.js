@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "Diskon diterapkan",
   DiscountApplied1: "Diskon {discount}% diterapkan, sehingga Anda menghemat {currency}",
   DiscountApplied2: "Diskon {discount}% diterapkan",
+  Discount: "Diskon",
+  OriginalPrice: "Harga asli",
   Dismiss: "Singkirkan",
   DisplayPartialSignatureQrCode: "Tampilkan sebagian kode QR tanda tangan",
   DisplayPartialSignatureQrCodeHint: "Tunjukkan kode QR yang berisi sebagian tanda tangan Anda",

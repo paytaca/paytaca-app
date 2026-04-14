@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "Afslag toegepas",
   DiscountApplied1: "'n {discount}% afslag word toegepas, wat jou {currency} bespaar",
   DiscountApplied2: "'n {discount}% afslag word toegepas",
+  Discount: "Afslag",
+  OriginalPrice: "Oorspronklike prys",
   Dismiss: "Verwerp",
   DisplayPartialSignatureQrCode: "Vertoon gedeeltelike handtekening QR-kode",
   DisplayPartialSignatureQrCodeHint: "Wys die QR-kode wat jou gedeeltelike handtekening bevat",

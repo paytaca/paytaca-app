@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "تم تطبيق الخصم",
   DiscountApplied1: "يتم تطبيق خصم {discount}%، مما يوفر لك {currency}",
   DiscountApplied2: "يتم تطبيق خصم {discount}%",
+  Discount: "خصم",
+  OriginalPrice: "السعر الأصلي",
   Dismiss: "استبعاد",
   DisplayPartialSignatureQrCode: "عرض رمز الاستجابة السريعة للتوقيع الجزئي",
   DisplayPartialSignatureQrCodeHint: "أظهر رمز الاستجابة السريعة الذي يحتوي على توقيعك الجزئي",

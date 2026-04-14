@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "割引が適用されました",
   DiscountApplied1: "{discount}% の割引が適用され、{currency} が節約されます",
   DiscountApplied2: "{discount}% の割引が適用されます",
+  Discount: "割引",
+  OriginalPrice: "元の価格",
   Dismiss: "解雇する",
   DisplayPartialSignatureQrCode: "部分署名 QR コードを表示",
   DisplayPartialSignatureQrCodeHint: "部分的な署名を含む QR コードを表示します",

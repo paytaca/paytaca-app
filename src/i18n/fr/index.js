@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "Remise appliquée",
   DiscountApplied1: "Une remise de {discount} % est appliquée, vous permettant d'économiser {currency}",
   DiscountApplied2: "Une remise de {discount} % est appliquée",
+  Discount: "Remise",
+  OriginalPrice: "Prix d'origine",
   Dismiss: "Rejeter",
   DisplayPartialSignatureQrCode: "Afficher le code QR de signature partielle",
   DisplayPartialSignatureQrCodeHint: "Montrez le QR code contenant votre signature partielle",

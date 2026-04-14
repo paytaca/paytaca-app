@@ -667,6 +667,8 @@ export default {
   DiscountApplied: "已应用折扣",
   DiscountApplied1: "享受 {discount}% 折扣，为您节省 {currency}",
   DiscountApplied2: "已应用 {discount}% 折扣",
+  Discount: "折扣",
+  OriginalPrice: "原价",
   Dismiss: "解雇",
   DisplayPartialSignatureQrCode: "显示部分签名二维码",
   DisplayPartialSignatureQrCodeHint: "显示包含您的部分签名的二维码",

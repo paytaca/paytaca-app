@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "할인이 적용되었습니다",
   DiscountApplied1: "{discount}% 할인이 적용되어 {currency}이 절약됩니다.",
   DiscountApplied2: "{discount}% 할인이 적용됩니다",
+  Discount: "할인",
+  OriginalPrice: "원래 가격",
   Dismiss: "닫기",
   DisplayPartialSignatureQrCode: "부분 서명 QR 코드 표시",
   DisplayPartialSignatureQrCodeHint: "부분 서명이 포함된 QR 코드를 보여주세요.",

@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "Скидка применена",
   DiscountApplied1: "Применяется скидка {discount}%, позволяющая сэкономить {currency}.",
   DiscountApplied2: "Применяется скидка {discount} %.",
+  Discount: "Скидка",
+  OriginalPrice: "Первоначальная цена",
   Dismiss: "Уволить",
   DisplayPartialSignatureQrCode: "Отобразить QR-код частичной подписи",
   DisplayPartialSignatureQrCodeHint: "Покажите QR-код, содержащий вашу частичную подпись.",

@@ -666,6 +666,8 @@ export default {
   DiscountApplied: "Korting toegepast",
   DiscountApplied1: "Er wordt een korting van {discount}% toegepast, waardoor u {currency} bespaart",
   DiscountApplied2: "Er wordt een korting van {discount}% toegepast",
+  Discount: "Korting",
+  OriginalPrice: "Oorspronkelijke prijs",
   Dismiss: "Negeren",
   DisplayPartialSignatureQrCode: "Geef een gedeeltelijke handtekening-QR-code weer",
   DisplayPartialSignatureQrCodeHint: "Toon de QR-code met uw gedeeltelijke handtekening",
