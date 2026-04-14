@@ -309,15 +309,12 @@
                     class="q-expansion-item-recipient"
                     v-model="expandedItems[`R${index + 1}`]"
                     :class="getDarkModeClass(darkMode)"
+                    :label="`${$t('Recipient')} #${index + 1}`"
+                    :header-class="[
+                      inputExtras[index].incorrectAddress ? 'expansion-item-error' : '',
+                      'q-px-none',
+                    ]"
                   >
-                    <template v-slot:header>
-                      <span
-                        :class="inputExtras[index].incorrectAddress ? 'expansion-item-error' : ''"
-                      >
-                        {{ `${$t('Recipient')} #${index + 1}` }}
-                      </span>
-                    </template>
-
                     <SendPageForm
                       :recipient="recipients[index]"
                       :inputExtras="inputExtras[index]"
@@ -325,6 +322,7 @@
                       :index="index"
                       :showQrScanner="showQrScanner"
                       :computingMax="computingMax"
+                      :calculatingCauldronTrade="calculatingCauldronTrade"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
                       :currentWalletBalance="currentWalletBalance"
@@ -340,6 +338,7 @@
                       @on-selected-denomination-change="onSelectedDenomination"
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
+                      @on-cauldron-toggle="onCauldronToggle"
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
@@ -374,6 +373,7 @@
                     @on-selected-denomination-change="onSelectedDenomination"
                     @on-qr-uploader-click="onQRUploaderClick"
                     @on-selected-change-address="onUserSelectedChangeAddress"
+                    @on-cauldron-toggle="onCauldronToggle"
                     :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
@@ -470,6 +470,9 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
+import { prepareSendWithCauldron } from 'src/wallet/cauldron/send'
+import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -583,6 +586,7 @@ export default {
       recipients: [{
         amount: '',
         fiatAmount: '',
+        cauldronAmount: '',
         fixedAmount: false,
         recipientAddress: '',
         paymentAckMemo: ''
@@ -598,11 +602,19 @@ export default {
         isLegacyAddress: false,
         isWalletAddress: false,
         cashbackData: null,
-        incorrectAddress: false
+        incorrectAddress: false,
+        cauldron: {
+          enable: false,
+          token: null,
+          amountFormatted: '0',
+        }
       }],
       expandedItems: {},
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
+
+      calculatingCauldronTrade: false,
+      poolTracker: new MultiCauldronPoolTracker(),
 
       /** @type {Wallet} */
       wallet: null,
@@ -1534,6 +1546,7 @@ export default {
       }
 
       this.adjustWalletBalance()
+      this.prepareCauldronTrade()
       sendPageUtils.addRemoveInputFocus(
         this.currentRecipientIndex, this.focusedInputField
       )
@@ -1606,6 +1619,7 @@ export default {
       }
 
       this.adjustWalletBalance()
+      this.prepareCauldronTrade()
     },
 
     // add/remove recipient
@@ -1630,7 +1644,8 @@ export default {
           isBip21: false,
           isLegacyAddress: false,
           cashbackData: null,
-          incorrectAddress: false
+          incorrectAddress: false,
+          cauldron: { enable: false, token: '', amountFormatted: '' },
         })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
@@ -2021,6 +2036,54 @@ export default {
       this.userSelectedChangeAddress = changeAddress
     },
 
+    // ========= cauldron related ==========
+    onCauldronToggle (cauldronData) {
+      console.debug(this.currentRecipientIndex, cauldronData)
+      this.inputExtras[this.currentRecipientIndex].cauldron = {
+        enable: cauldronData.enable,
+        token: cauldronData.token,
+        amountFormatted: cauldronData.amountFormatted || '',
+      }
+
+      let tokenId
+      if (this.asset.id === 'bch') tokenId = cauldronData.token?.token_id;
+      else if (this.asset.id.startsWith('ct/') && !this.isNFT) tokenId = this.asset.id.replace('ct/', '');
+
+      if (tokenId) {
+        this.calculatingCauldronTrade = true;
+        this.poolTracker.subscribeToken(tokenId).finally(() => {
+          this.calculatingCauldronTrade = false;
+        });
+        if (!this._poolTrackerUpdateHooked) {
+          this.poolTracker.on('pool-updated', () => this.prepareCauldronTrade())
+          this._poolTrackerUpdateHooked = true;
+        }
+      }
+      this.prepareCauldronTrade();
+    },
+    prepareCauldronTrade: debounce(function () {
+      const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
+      if (!hasCauldron) return;
+
+      try {
+        this.calculatingCauldronTrade = true;
+        console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.tokenPools);
+        const { recipients, inputExtras } = prepareSendWithCauldron(
+          this.asset,
+          this.recipients,
+          this.inputExtras,
+          this.poolTracker.tokenPools,
+        );
+  
+        console.debug(recipients, inputExtras);
+        this.recipients = recipients;
+        this.inputExtras = inputExtras;
+      } finally {
+        this.calculatingCauldronTrade = false;
+      }
+    }, 500),
+
+
     // ========== util methods ==========
     // getters
     currentSendPageCurrency () {
@@ -2030,6 +2093,7 @@ export default {
       const keys = []
       keys.push(...Object.entries(this.recipients[index]))
       keys.push(...Object.entries(this.inputExtras[index]))
+      keys.push(...Object.entries(this.inputExtras[index]?.cauldron))
       return keys
     },
 
@@ -2680,6 +2744,8 @@ export default {
     if (container) {
       container.removeEventListener('scroll', this.handleScroll)
     }
+
+    this.poolTracker.unsubscribeToken({ closeConnection: true });
   },
 
   created () {

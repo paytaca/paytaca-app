@@ -149,6 +149,42 @@
     </div>
   </div>
 
+  <div class="row items-center no-wrap q-mt-sm">
+    <div class="full-width">
+      <q-input
+        v-if="cauldronEnabled"
+        ref="cauldronAmountInput"
+        type="text"
+        inputmode="none"
+        filled
+        :loading="calculatingCauldronTrade"
+        readonly
+        v-model="cauldronAmountFormatted"
+        :label="$t('Amount')"
+        :dark="darkMode"
+      >
+        <template v-slot:append>
+          <q-btn
+            size="lg"
+            padding="none"
+            flat
+            no-caps
+            :color="cauldronEnabled ? undefined : 'grey'"
+            :label="assetIsBch ? (cauldronToken?.bcmr?.token?.symbol || $t('SelectToken')) : 'BCH'"
+            @click="cauldronTokenDialog = assetIsBch"
+          />
+        </template>
+      </q-input>
+    </div>
+    <q-btn
+      flat
+      color="cauldronEnabled ? undefined : 'grey'"
+      icon="img:cauldron-logo.svg"
+      padding="md"
+      @click="toggleCauldron()"
+    />
+  </div>
+
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
       <template v-if="asset?.id === 'bch'">
@@ -187,12 +223,17 @@
   >
     <span v-html="cashbackAmountText()"></span>
   </q-card>
+  <TokenSelectDialog
+    v-model="cauldronTokenDialog"
+    @select-token="onCauldronTokenSelect"
+  />
 </template>
 
 <script>
 
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
+import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue'
 import { convertTokenAmount, convertCashAddress } from 'src/wallet/chipnet'
 import {
   parseAssetDenomination,
@@ -209,7 +250,8 @@ import SelectChangeAddress from 'src/components/SelectChangeAddress.vue'
 
 export default {
   components: {
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    TokenSelectDialog
   },
 
   props: {
@@ -228,6 +270,7 @@ export default {
     index: { type: Number },
     showQrScanner: { type: Boolean },
     computingMax: { type: Boolean },
+    calculatingCauldronTrade: Boolean,
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
     currentWalletBalance: { type: Number },
@@ -246,7 +289,8 @@ export default {
     'on-empty-recipient',
     'on-selected-denomination-change',
     'on-qr-uploader-click',
-    'on-selected-change-address'
+    'on-selected-change-address',
+    'on-cauldron-toggle'
   ],
 
   data () {
@@ -259,11 +303,15 @@ export default {
       emptyRecipient: false,
       selectedDenomination: 'BCH',
       changeAddresses: [],
-      selectedChangeAddress: ''
+      selectedChangeAddress: '',
+      cauldronTokenDialog: false,
+      cauldronToken: null,
+      cauldronEnabled: false,
+      cauldronAmountFormatted: '',
     }
   },
 
-  mounted () {
+  beforeMount () {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
     this.fiatFormatted = this.inputExtras.fiatFormatted
@@ -273,6 +321,16 @@ export default {
       this.selectedDenomination = this.inputExtras.selectedDenomination
     }
     this.selectedChangeAddress = this.defaultSelectedFtChangeAddress
+
+    if (this.inputExtras.cauldron) {
+      this.cauldronExpanded = this.inputExtras.cauldron.expanded;
+      this.cauldronEnabled = this.inputExtras.cauldron.enable;
+      this.cauldronAmountFormatted = this.inputExtras.cauldron.amountFormatted || ''
+
+      if (this.inputExtras.cauldron.token) {
+        this.cauldronToken = this.inputExtras.cauldron.token;
+      }
+    }
   },
 
   computed: {
@@ -308,6 +366,9 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
+    },
+    assetIsBch () {
+      return this.$props.asset?.id === 'bch';
     },
     assetIsFT () {
       return this.$props.asset?.id?.startsWith('ct/') && this.$props.asset?.balance > 0
@@ -418,6 +479,23 @@ export default {
           color: 'brandblue',
           class: `button q-mr-md ${this.getDarkModeClass(this.darkMode)}`
         }
+      })
+    },
+    toggleCauldron() {
+      this.cauldronEnabled = !this.cauldronEnabled;
+      this.emitCauldronToggle();
+
+      if (this.cauldronEnabled) this.cauldronTokenDialog = true
+    },
+    onCauldronTokenSelect (token) {
+      this.cauldronToken = token
+      this.emitCauldronToggle();
+    },
+    emitCauldronToggle() {
+      this.$emit('on-cauldron-toggle', {
+        enable: this.cauldronEnabled,
+        token: this.cauldronToken,
+        amountFormatted: this.cauldronAmountFormatted,
       })
     }
   },

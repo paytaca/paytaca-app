@@ -9,7 +9,7 @@ const PLACEHOLDER_TOKEN_ID_FOR_SIZE_CALC = Array.from({ length: 64 }).fill('0').
 
 /**
  * @param {Object} opts 
- * @param {ExchangeLab} opts.exlab
+ * @param {ExchangeLab} [opts.exlab]
  * @param {import("@cashlab/cauldron").PoolV0[]} opts.pools
  * @param {Boolean} opts.isBuyingToken
  * @param {BigInt} opts.supply
