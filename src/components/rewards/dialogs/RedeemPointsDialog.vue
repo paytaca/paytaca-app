@@ -25,6 +25,7 @@
           icon="close"
           class="close-button"
           v-close-popup
+          :disable="isLoading"
         />
       </div>
 
@@ -228,7 +229,6 @@
               </div>
               <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
                 <div class="row items-center no-wrap">
-                  <q-icon name="vpn_key" size="16px" class="q-mr-sm" color="primary" />
                   <span class="text-body2 text-grey-8 ellipsis">{{ tokenAddress }}</span>
                   <q-btn
                     flat
@@ -330,9 +330,12 @@
 
 <script>
 import { loadWallet } from 'src/wallet'
+import { markRaw } from '@vue/reactivity'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { getChangeAddress } from 'src/utils/send-page-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
@@ -395,7 +398,8 @@ export default {
       contractPoints: 0,
       originalPoints: 0,
       tokenAddress: '',
-      quickAmounts: [25, 50, 75, 100]
+      quickAmounts: [25, 50, 75, 100],
+      wallet: null
     }
   },
 
@@ -452,6 +456,10 @@ export default {
     isRedeemReady () {
       const amount = Number(this.pointsToRedeem || 0)
       return amount > 0 && !this.hasValidationError && !this.isSending
+    },
+    walletBalance() {
+      const asset = this.$store.getters['assets/getAssets'][0]
+      return asset?.spendable || 0
     }
   },
 
@@ -465,11 +473,17 @@ export default {
   },
 
   async mounted () {
-    await this.initializeData()
+    Promise.allSettled([this.initWallet(), this.initializeData()])
   },
 
   methods: {
     getDarkModeClass,
+
+    async initWallet () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const wallet = await loadWallet('BCH', walletIndex)
+      this.wallet = markRaw(wallet)
+    },
     
     // Initialization
     async initializeData () {
@@ -631,44 +645,82 @@ export default {
     },
     
     // Redemption Process
-    async redeemPoints () {
+    async redeemPoints (retries=0) {
       this.isSending = true
       this.customKeyboardState = 'dismiss'
 
+      let fee = 0
+      let notifyMessage = ''
+
       try {
-        const walletIndex = this.$store.getters['global/getWalletIndex']
-        const wallet = await loadWallet('BCH', walletIndex)
-        if (!wallet?.BCH) {
+        if (!this.wallet?.BCH) {
           throw new Error('Failed to load BCH wallet.')
         }
-        const wif = await wallet.BCH.getPrivateKey('0/0')
+        const wif = await this.wallet.BCH.getPrivateKey('0/0')
         
-        const redeemTxid = await this.contract.redeemPoints(
+        // call contract to swap promo tokens to LIFT
+        const redeemResp = await this.contract.redeemPoints(
           wif, this.tokenAddress, this.liftToReceive
         )
+        if (redeemResp.error !== '') {
+          fee = Number(redeemResp.fee)
+          throw new Error(redeemResp.error)
+        }
 
+        // call API for recording points redemption
         const recordResp = await recordPointsRedemption({
             promo_type: this.promoType,
             promo_id: this.promoId,
             redeemed_points: this.pointsToRedeem,
             lift_received: this.liftToReceive,
-            tx_id: redeemTxid,
+            tx_id: redeemResp.txid,
             month_max: this.maxRedeemable
         })
+        if (recordResp?.error !== '') throw new Error (recordResp?.error)
 
-        if (recordResp?.error === '') {
-          this.showSuccessCelebration()
-          
-          // Update contract points and animate to new remaining balance
-          const redeemedAmount = Number(this.pointsToRedeem)
-          this.contractPoints = this.contractPoints - redeemedAmount
-          this.animateDisplayPoints(this.displayPoints, this.contractPoints, 500)
-        } else {
-          throw new Error (recordResp?.error)
-        }
+        // success call
+        this.showSuccessCelebration()
+        // Update contract points and animate to new remaining balance
+        const redeemedAmount = Number(this.pointsToRedeem)
+        this.contractPoints = this.contractPoints - redeemedAmount
+        this.animateDisplayPoints(this.displayPoints, this.contractPoints, 500)
       } catch (error) {
-        console.error('Redemption error:', error)
-        raiseNotifyError('Failed to redeem points. Please try again later.')
+        console.error('Redemption error:', error.message)
+
+        // OutputSatoshisTooSmallError; 3 retries before stopping
+        if (error.message.includes('which is less than the required minimum') && retries < 3) {
+          const feeBch = fee / 10 ** 8
+          if (this.walletBalance < feeBch) {
+            notifyMessage = 'Failed to redeem points. Ensure that your wallet has enough BCH balance before trying again.'
+          } else {
+            // TODO adjust 'processing redemption' message to reflect sending of BCH balance to contract?
+            // send small balance from user's wallet to PromoContract
+            const changeAddress = await getChangeAddress('bch')
+            await getWalletByNetwork(this.wallet, 'bch').sendBch(
+              undefined,
+              '',
+              changeAddress,
+              null,
+              undefined,
+              [{
+                address: this.contract.contract.address,
+                amount: feeBch,
+                tokenAmount: undefined
+              }],
+              undefined
+            )
+            // sleep for 2 seconds to resolve UTXOs after sending to PromoContract
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            // call this method again
+            retries++
+            await this.redeemPoints(retries)
+          }
+        // other errors
+        } else {
+          notifyMessage = 'Failed to redeem points. Please try again later.'
+        }
+        
+        if (notifyMessage !== '') raiseNotifyError(notifyMessage)
       } finally {
         this.isSending = false
       }
