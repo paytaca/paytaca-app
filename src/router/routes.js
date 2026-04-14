@@ -391,32 +391,34 @@ const routes = [
       },
       {
         path: 'card',
+        component: () => import('src/pages/apps/card/index.vue'),
         children: [
           {
             path: '',
             name: 'app-card',
-            component: () => import('src/pages/apps/card/createCard.vue')
+            component: () => import('src/pages/apps/card/home.vue')
+          },
+          {
+            path: 'list',
+            name: 'card-list',
+            component: () => import('src/pages/apps/card/cards.vue')
           },
           {
             path: 'auth-nfts',
             name: 'card-auth-nfts',
             component: () => import('src/pages/apps/card/auth-nfts.vue')
-          },
-          {
-            path: 'my-cards',
-            name: 'stacked-cards',
-            component: () => import('src/pages/apps/card/stackedCards.vue')
-          },
-          {
-            path: 'card-details',
-            name: 'card-details',
-            component: () => import('src/pages/apps/card/cardDetails.vue')
-          },
-          {
-            path: 'all-cards',
-            name: 'all-cards',
-            component: () => import('src/pages/apps/card/allCards.vue')
           }
+
+          // {
+          //   path: 'details/:id',
+          //   name: 'card-details',
+          //   component: () => import('src/pages/apps/card/card.vue')
+          // },
+          // {
+          //   path: 'all-cards',
+          //   name: 'all-cards',
+          //   component: () => import('src/pages/apps/card/allCards.vue')
+          // }
         ]
       },
       {

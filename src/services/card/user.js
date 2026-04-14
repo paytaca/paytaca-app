@@ -33,14 +33,6 @@ export class CardUser {
     static parse(data) {
         return new CardUser(data);
     }
-
-    /**
-     * Raw response payload from backend.
-     * @returns {object}
-     */
-    get raw() {
-        return this._rawData;
-    }
     
     /**
      * @param {object} data
@@ -49,6 +41,18 @@ export class CardUser {
         this._rawData = data;
         this.public_key = data?.public_key;
         this.is_authenticated = data?.is_authenticated;
+    }
+
+    /**
+     * Raw response payload from backend.
+     * @returns {object}
+     */
+    get raw() {
+        return this._rawData;
+    }
+
+    get cardCount() {
+        return this.raw?.card_count ?? 0;
     }
 
     // ================ FACTORIES ==================
@@ -339,11 +343,17 @@ export async function fetchCardUser(wallet) {
     }
 }
 
+
+let _cachedUser = null;
+
 /**
  * Loads CardUser for active wallet and ensures authenticated session.
  * @returns {Promise<CardUser>}
  */
 export async function loadCardUser() {
+    if (_cachedUser) return _cachedUser;
+
+    console.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
         const user = await fetchCardUser(wallet);
@@ -352,6 +362,8 @@ export async function loadCardUser() {
             await user.login();
         }
         
+        _cachedUser = user;
+
         return user;
     } catch (error) {
         console.error('Error loading Card User:', error);
@@ -361,6 +373,12 @@ export async function loadCardUser() {
         }
         throw error;
     }
+}
+
+/** Clears the cached CardUser instance.
+ */
+export function clearCardUserCache() {
+  _cachedUser = null;
 }
 
 /**

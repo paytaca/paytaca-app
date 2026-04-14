@@ -64,7 +64,7 @@ import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown
 import CardPageHeader from './CardPageHeader.vue';
 
 export default {
-  mixins: [createCardLogic],
+  // mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
     CardPageHeader,

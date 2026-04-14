@@ -180,6 +180,7 @@
 import {createCardLogic} from './noBackend.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from './CardPageHeader.vue';
+import { loadCardUser } from 'src/services/card/user.js';
 
 export default {
   mixins: [createCardLogic],
@@ -215,7 +216,10 @@ export default {
     }
   },
 
-  mounted () {
+  async mounted () {
+    console.log('MOUNTED stackedCards.vue')
+    const user = await loadCardUser()
+    console.log('Loaded card user:', user)
     // when the page loads, fetch the cards in localStorage
     this.fetchCards()
     // TODO: Switch to backend - use await this.getCards() instead
