@@ -2067,12 +2067,12 @@ export default {
 
       try {
         this.calculatingCauldronTrade = true;
-        console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.tokenPools);
+        console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
         const { recipients, inputExtras } = prepareSendWithCauldron(
           this.asset,
           this.recipients,
           this.inputExtras,
-          this.poolTracker.tokenPools,
+          this.poolTracker.getTokenPoolsMap(),
         );
   
         console.debug(recipients, inputExtras);
@@ -2745,7 +2745,7 @@ export default {
       container.removeEventListener('scroll', this.handleScroll)
     }
 
-    this.poolTracker.unsubscribeToken({ closeConnection: true });
+    this.poolTracker.cleanup();
   },
 
   created () {

@@ -193,6 +193,14 @@ export class MultiCauldronPoolTracker extends EventEmitter {
   }
 
   /**
+   * Returns the internal Map of token IDs to their pools.
+   * This is used by prepareSendWithCauldron which expects a Map.
+   */
+  getTokenPoolsMap(): Map<string, PoolV0[]> {
+    return this.tokenPools;
+  }
+
+  /**
    * Handle connection close with reconnection logic
    */
   private handleConnectionClose(): void {
@@ -549,6 +557,16 @@ export class MultiCauldronPoolTracker extends EventEmitter {
    */
   parseRate(rate: Fraction, tokenDecimals: number, isBuyingToken: boolean): string {
     return parseRate(rate, tokenDecimals, isBuyingToken);
+  }
+
+  /**
+   * Set mock pools for a token (for testing purposes)
+   * @param tokenId - The token ID to set pools for
+   * @param pools - Array of mock PoolV0 objects
+   */
+  setMockPools(tokenId: string, pools: PoolV0[]): void {
+    this.tokenPools.set(tokenId, pools);
+    this.subscribedTokenIds.add(tokenId);
   }
 }
 
