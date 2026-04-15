@@ -10,7 +10,7 @@
 
 <script>
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import { createCardLogic } from 'src/components/card/noBackend';
+import { createCardLogic } from 'src/components/card/createCard.js';
 import { clearCardUserCache, loadCardUser } from 'src/services/card/user';
 
 export default {

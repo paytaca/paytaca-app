@@ -107,7 +107,7 @@
 </template>
 <script>
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
-// import { createCardLogic } from 'src/components/card/noBackend';
+// import { createCardLogic } from 'src/components/card/createCard.js';
 import { loadCardUser } from 'src/services/card/user';
 
 export default {

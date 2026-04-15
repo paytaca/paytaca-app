@@ -106,7 +106,7 @@
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import { createCardLogic } from 'src/components/card/noBackend.js';
+import { createCardLogic } from 'src/components/card/createCard.js';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 
