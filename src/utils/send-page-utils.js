@@ -189,6 +189,51 @@ export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice) {
   return computedBalance.toFixed(8)
 }
 
+/**
+ * @param {{ id: string, balance: number, decimals: number, spendable: number }} asset 
+ * @param {{ amount: string, amountFiat: string, cauldronAmount: string, cauldronTokenId?: string }[]} amountsArray
+ * @returns 
+ */
+export function adjustWalletBalances(asset, amountsArray) {
+  const isCashtokenFT = asset.id.startsWith('ct/');
+
+  /** @type {Record<string, number>} Map of asset IDs and remaining balances */
+  const assetBalancesMap = {}
+
+  return amountsArray
+    .map(amounts => { /** Populate assetBalanceMap and deduct from each */
+      let assetToDeduct = asset;
+      let amountToDeduct = Number(amounts.amount);
+      if (amounts.cauldronAmount) {
+        assetToDeduct = getAsset(isCashtokenFT ? 'bch' : `ct/${amounts.cauldronTokenId}`);
+        amountToDeduct = Number(amounts.cauldronAmount);
+      }
+
+      // Check and populate if balance has not yet been initialized
+      if (assetBalancesMap[assetToDeduct.id] === undefined) {
+        const assetToAdd = assetToDeduct.id === asset.id ? asset : getAsset(assetToDeduct.id, '');
+
+        // At the moment, balances for cashtokens are in base units,
+        // while for bch asset it is not in satoshis but BCH
+        // so we have to normalize the non BCH balances
+        const balance = Number(assetToDeduct.id === 'bch' ? assetToAdd.spendable : assetToAdd.balance) || 0;
+        const assetDecimals = parseInt(assetToDeduct.decimals) || 0;
+        const normalizedBalance = assetToDeduct.id === 'bch' ? balance : (balance / 10 ** assetDecimals);
+
+        assetBalancesMap[assetToDeduct.id] = normalizedBalance
+        console.debug('Adding wallet balances', { assetToAdd, assetBalancesMap });
+      }
+
+      assetBalancesMap[assetToDeduct.id] -= amountToDeduct;
+      console.debug('Adjusting wallet balances', { amounts, assetToDeduct, amountToDeduct, assetBalancesMap });
+      return { assetId: assetToDeduct.id }
+    })
+    .map(data => {
+      return { ...data, balance: assetBalancesMap[data.assetId] }
+    })
+}
+
+
 export function adjustWalletBalance (asset, amountArray) {
   const assetId = String(asset?.id || '')
   const isCashToken = assetId.startsWith('ct/')

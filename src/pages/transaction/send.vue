@@ -325,7 +325,8 @@
                       :calculatingCauldronTrade="calculatingCauldronTrade"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
-                      :currentWalletBalance="currentWalletBalance"
+                      :currentWalletBalance="currentWalletBalances[index].balance"
+                      :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
@@ -361,7 +362,8 @@
                     :computingMax="computingMax"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
-                    :currentWalletBalance="currentWalletBalance"
+                    :currentWalletBalance="currentWalletBalances[index].balance"
+                    :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
@@ -641,7 +643,8 @@ export default {
       currentRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
-      currentWalletBalance: 0,
+      currentWalletBalance: 0, // TODO: Remove if `currentWalletBalances` is mainly used
+      currentWalletBalances: [{ balance: 0, assetId: '' }],
       isLegacyAddress: false,
       isWalletAddress: false,
       userSelectedChangeAddress: '',
@@ -680,6 +683,9 @@ export default {
       if (this.isScrolledToBottom) return true
 
       return false
+    },
+    isFungibleCashtoken() {
+      return this.asset?.id?.startsWith?.('ct/') && this.asset?.is_nft;
     },
     isNFT () {
       if (erc721IdRegexp.test(this.assetId)) return true
@@ -1545,8 +1551,7 @@ export default {
         )
       }
 
-      this.adjustWalletBalance()
-      this.prepareCauldronTrade()
+      this.updateCauldronAndRemainingBalance();
       sendPageUtils.addRemoveInputFocus(
         this.currentRecipientIndex, this.focusedInputField
       )
@@ -1618,9 +1623,18 @@ export default {
         sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
       }
 
-      this.adjustWalletBalance()
-      this.prepareCauldronTrade()
+      this.updateCauldronAndRemainingBalance();
     },
+
+    /**
+     * This function is meant to ensure `this.adjustWalletBalance()` doesnt run on stale data.
+     * In the future, some asynchronous merchanism for updating amounts (like cauldron's trade calculations) might be added,
+     * might want to change names later on if functionality expands
+     */
+    updateCauldronAndRemainingBalance: debounce(function () {
+      this.prepareCauldronTrade();
+      this.adjustWalletBalance();
+    }, 500),
 
     // add/remove recipient
     addAnotherRecipient () {
@@ -2054,20 +2068,27 @@ export default {
         this.poolTracker.subscribeToken(tokenId).finally(() => {
           this.calculatingCauldronTrade = false;
         });
+
+        // This could be added in `mounted`. But for readability, placed here to be close to related code
+        // this.poolTracker.cleanup() is in `unmounted` since can't find a way to do it here
         if (!this._poolTrackerUpdateHooked) {
-          this.poolTracker.on('pool-updated', () => this.prepareCauldronTrade())
+          this.poolTracker.on('pool-updated', () => this.updateCauldronAndRemainingBalance());
           this._poolTrackerUpdateHooked = true;
         }
       }
-      this.prepareCauldronTrade();
+
+      this.updateCauldronAndRemainingBalance();
     },
-    prepareCauldronTrade: debounce(function () {
+    prepareCauldronTrade() {
       const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
       if (!hasCauldron) return;
 
       try {
         this.calculatingCauldronTrade = true;
         console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
+
+        // This function actually modifies the passed parameters: recipients, inputExtras
+        // And returns it
         const { recipients, inputExtras } = prepareSendWithCauldron(
           this.asset,
           this.recipients,
@@ -2081,7 +2102,7 @@ export default {
       } finally {
         this.calculatingCauldronTrade = false;
       }
-    }, 500),
+    },
 
 
     // ========== util methods ==========
@@ -2118,6 +2139,24 @@ export default {
       this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
         this.asset, this.recipients.map(a => Number(a.amount))
       )
+      console.debug(this.currentWalletBalance);
+      const amountsData = this.recipients.map((recipient, index) => {
+        const data = {
+          ...recipient,
+          cauldronTokenId: this.inputExtras[index]?.cauldron?.token?.token_id ,
+        }
+        if (!this.inputExtras[index]?.cauldron?.enable) {
+          data.cauldronAmount = '';
+          data.cauldronTokenId = '';
+        }
+        return data
+      })
+      console.debug('Adjusting wallet balances', amountsData);
+      this.currentWalletBalances = sendPageUtils.adjustWalletBalances(
+        this.asset,
+        amountsData,
+      )
+      console.debug('Wallet balances', this.currentWalletBalances);
     },
 
     // address checking/validation
