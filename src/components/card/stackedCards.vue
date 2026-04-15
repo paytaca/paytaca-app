@@ -177,7 +177,7 @@
 </template>
 
 <script>
-import {createCardLogic} from './noBackend.js'
+import { createCardLogic } from './createCard.js'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from './CardPageHeader.vue';
 import { loadCardUser } from 'src/services/card/user.js';

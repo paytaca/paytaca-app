@@ -58,13 +58,13 @@
 </template>
 
 <script>
-import {createCardLogic} from './noBackend.js'
+import { createCardLogic } from './createCard.js'
 // import { Card } from 'src/services/card/card'
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from './CardPageHeader.vue';
 
 export default {
-  // mixins: [createCardLogic],
+  mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
     CardPageHeader,

@@ -938,8 +938,7 @@
 </template>
 
 <script>
-import {createCardLogic} from './noBackend.js'
-import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
+import {createCardLogic} from './createCard.js'
 import TransactionHistory from './transactionHistory.vue'
 import ManageAuthNFTs from './manageAuthNFTs.vue'
 import L from 'leaflet'
@@ -1734,7 +1733,139 @@ export default {
         icon: 'check',
         position: 'top'
       })
-    }
+    },
+
+    // Card operations - moved from createCard.js
+    
+    /**
+     * Sweep UTXOs from card back to wallet
+     * @param card {Card} - Card instance
+     */
+    async sweep(card) {
+      const result = await card.sweep()
+      console.log('sweep result:', result)
+
+      await card.getUtxos().then(utxos => {
+        console.log('Card UTXOs (after sweep):', utxos)
+      })
+    },
+
+    /**
+     * Burn a Merchant Auth Token to revoke authorization for a specific merchant
+     * @param card {Card} - Card instance
+     * @param merchant {Object} - merchant details {id, pubkey}
+     * @param opts {Object} - options {retryOnFundFailure: boolean}
+     */
+    async burnMerchantAuthToken(card, merchant, opts = { retryOnFundFailure: true }) {
+      try {
+        const cardUser = await this.loadCardUser()
+        const tokenId = card.raw.category
+        const result = await cardUser.burnMerchantAuthToken(tokenId, merchant.id, merchant.pubkey)
+        return result
+      } catch (error) {
+        console.error('Error burning merchant auth token:', error)
+        if (opts?.retryOnFundFailure)
+          await this.createFundingUtxoAndCallback(error, this.burnMerchantAuthToken)
+      }
+    },
+
+    /**
+     * Burn a Global Auth Token to revoke all authorizations
+     * @param card {Card} - Card instance
+     * @param opts {Object} - options {retryOnFundFailure: boolean}
+     */
+    async burnGlobalAuthToken(card, opts = { retryOnFundFailure: true }) {
+      try {
+        const cardUser = await this.loadCardUser()
+        const tokenId = card.raw.category
+        const result = await cardUser.burnGlobalAuthToken(tokenId)
+        return result
+      } catch (error) {
+        console.error('Error burning global auth token:', error)
+        if (opts?.retryOnFundFailure)
+          await this.createFundingUtxoAndCallback(error, this.burnGlobalAuthToken)
+      }
+    },
+
+    async createFundingUtxoAndCallback(error, operationCallback) {
+      console.error(error)
+      const satsNeeded = this.parseSatoshisNeeded(error.message)
+      console.log('Satoshis needed for operation:', satsNeeded)
+      if (satsNeeded !== null) {
+        const cardUser = await this.loadCardUser()
+        const result = await cardUser.wallet.createFundingUtxo(satsNeeded)
+        console.log('Funding UTXO created:', result)
+        console.log('Retrying operation...')
+        await operationCallback({retryOnFundFailure: false})
+      }
+    },
+
+    /**
+     * Mutate Global Auth Token
+     * @param {Card} card - Card instance
+     * @param {Object} mutation - mutation parameters
+     * @param mutation.authorize {boolean} - true to authorize, false to deauthorize
+     * @param mutation.spendLimitSats {number} - (optional) spend limit in satoshis
+     * @param mutation.broadcast {boolean} - (optional) whether to broadcast the transaction, default: true
+     */
+    async mutateGlobalAuthToken(card, mutation) {
+      if (!mutation) {
+        console.error('Mutation parameter is required')
+        return
+      }
+      try {
+        const result = await card.mutateGlobalAuthToken(mutation)
+        console.log('Mutate Global Auth Token result:', result)
+      } catch(error) {
+        const satsNeeded = this.parseSatoshisNeeded(error.message)
+        if (satsNeeded !== null) {
+          console.error("Insufficient funds in contract:", error.message)
+        } else {
+          console.error(error)
+        }
+      }
+    },
+
+    /**
+     * Mutate Merchant Auth Token
+     * @param card 
+     * @param mutation 
+     * @param mutation.authorize {boolean} - true to authorize, false to deauthorize
+     * @param mutation.merchant {Object} - merchant details {id, pubkey}
+     * @param mutation.spendLimitSats {number} - (optional) spend limit in satoshis
+     * @param mutation.broadcast {boolean} - (optional) whether to broadcast the transaction, default: true
+     */
+    async mutateMerchantAuthToken(card, mutation) {
+      try {
+        const result = await card.mutateMerchantAuthToken(mutation)
+        console.log('Mutate Merchant Auth Token result:', result)
+      } catch(error) {
+        const satsNeeded = this.parseSatoshisNeeded(error.message)
+        if (satsNeeded !== null) {
+          console.error("Insufficient funds in contract:", error.message)
+        } else {
+          console.error(error)
+        }
+      }
+    },
+
+    /**
+     * Mint Merchant Auth Token
+     * @param {Card} card - Card instance
+     * @param {Object} merchant - merchant details {id, pubkey}
+     */
+    async mintMerchantAuthToken(card, merchant) {
+      const mintParams = {
+        authorized: true,
+        merchant: {
+          id: merchant.id,
+          pubkey: merchant.pubkey
+        }
+      }
+      const { mintResult, issueResult } = await card.issueMerchantAuthToken(mintParams)
+      console.log('Mint Result:', mintResult)
+      console.log('Issue Result:', issueResult)
+    },
   },
 
   beforeUnmount () {

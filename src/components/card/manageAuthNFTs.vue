@@ -293,7 +293,8 @@
 </template>
 
 <script>
-import { getMerchantList, CardStorage, createCardLogic } from './noBackend.js'
+import { createCardLogic, CardStorage } from './createCard.js'
+import { getMerchantList } from 'src/services/card/merchants'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 export default {
