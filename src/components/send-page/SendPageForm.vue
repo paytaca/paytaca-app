@@ -187,22 +187,16 @@
 
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
-      <template v-if="asset?.id === 'bch'">
+      <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
         <span>
-        {{ parseAssetDenomination(selectedDenomination, {
-          ...asset,
-          balance: currentWalletBalance
-        }) }}
+        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
       </span>
         {{ ` = ${parseFiatCurrency(
           convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
         }` }}
       </template>
       <span v-else>
-        {{ parseAssetDenomination(selectedDenomination, {
-          ...asset,
-          balance: currentWalletBalance * (10 ** (asset?.decimals || 0))
-        }) }}
+        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
       </span>
       <q-btn
         flat
@@ -273,7 +267,10 @@ export default {
     calculatingCauldronTrade: Boolean,
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
+
+    // Wallet balance is normalized (not in it's base units)
     currentWalletBalance: { type: Number },
+    currentWalletBalanceAssetId: String,
 
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
@@ -366,6 +363,25 @@ export default {
       if (!computedBalance) return ''
 
       return computedBalance.toFixed(2)
+    },
+    currentWalletBalanceAsAsset() {
+      let asset = { ...this.asset };
+      if (this.currentWalletBalanceAssetId || this.currentWalletBalanceAssetId !== this.asset?.id) {
+        asset = { ...this.$store.getters['assets/getAsset'](this.currentWalletBalanceAssetId)[0] }
+      }
+
+      if (asset.id === 'bch') {
+        asset.balance = this.currentWalletBalance;
+      } else {
+        // Although currentWalletBalance is assumed to always be in normalized version
+        // In the codebase, asset balances are normalized for BCH and base units in non BCH assets
+        // So we have to convert to base units here
+        const decimals = parseInt(asset?.decimals) || 0;
+        const balanceUnits = Number((this.currentWalletBalance * 10 ** decimals).toFixed(decimals));
+        asset.balance = balanceUnits;
+      }
+
+      return asset;
     },
     assetIsBch () {
       return this.$props.asset?.id === 'bch';
