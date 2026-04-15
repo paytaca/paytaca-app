@@ -532,5 +532,5 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  @import "./createCard.scss";
+  @import "src/css/app-card.scss";
 </style>
