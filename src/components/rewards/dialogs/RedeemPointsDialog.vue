@@ -340,6 +340,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
   getLiftConversionRatio,
+  getRewardsSwapContractAddress,
   getWalletTokenAddress,
   recordPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
@@ -399,7 +400,8 @@ export default {
       originalPoints: 0,
       tokenAddress: '',
       quickAmounts: [25, 50, 75, 100],
-      wallet: null
+      wallet: null,
+      rewardsSwapContractAddress: null
     }
   },
 
@@ -473,7 +475,11 @@ export default {
   },
 
   async mounted () {
-    Promise.allSettled([this.initWallet(), this.initializeData()])
+    Promise.allSettled([
+      this.initWallet(),
+      this.initializeData(),
+      this.fetchRewardsSwapContractAddress()
+    ])
   },
 
   methods: {
@@ -504,7 +510,6 @@ export default {
 
       this.isLoading = false
     },
-    
     async fetchContractPoints () {
       try {
         const walletIndex = this.$store.getters['global/getWalletIndex']
@@ -513,6 +518,14 @@ export default {
         this.contractPoints = await this.contract.getTokenBalance()
       } catch (error) {
         console.error('Error initializing redeem dialog:', error)
+        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
+      }
+    },
+    async fetchRewardsSwapContractAddress () {
+      const tokenAddress = await getRewardsSwapContractAddress()
+      if (tokenAddress) this.rewardsSwapContractAddress = tokenAddress
+      else {
+        console.error('Error fetching rewards swap contract address.')
         this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
       }
     },
