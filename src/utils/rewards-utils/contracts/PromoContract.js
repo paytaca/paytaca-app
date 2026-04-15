@@ -50,7 +50,7 @@ export default class PromoContract {
     this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
   }
 
-  async redeemPoints (userWif, userTokenAddress, pointsToRedeem) {
+  async redeemPoints (userWif, rewardsSwapContractAddress, pointsToRedeem) {
     const payload = { txid: '', error: '', fee: 0 }
 
     // get utxos
@@ -71,7 +71,7 @@ export default class PromoContract {
     const outputs = [
       // user address in outputs[0]
       {
-        to: userTokenAddress, // TODO send to RewardsSwapContract address
+        to: rewardsSwapContractAddress,
         amount: 1000n,
         token: {
           amount: actualPointstoRedeem,

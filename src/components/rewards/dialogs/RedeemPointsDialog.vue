@@ -673,7 +673,7 @@ export default {
         
         // call contract to swap promo tokens to LIFT
         const redeemResp = await this.contract.redeemPoints(
-          wif, this.tokenAddress, this.liftToReceive
+          wif, this.rewardsSwapContractAddress, this.liftToReceive
         )
         if (redeemResp.error !== '') {
           fee = Number(redeemResp.fee)
