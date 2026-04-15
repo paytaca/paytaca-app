@@ -408,11 +408,11 @@ const routes = [
             name: 'card-auth-nfts',
             component: () => import('src/pages/apps/card/auth-nfts.vue')
           },
-          // {
-          //   path: 'details/:id',
-          //   name: 'card-details',
-          //   component: () => import('src/pages/apps/card/card.vue')
-          // },
+          {
+            path: 'details/:id',
+            name: 'card-details',
+            component: () => import('src/pages/apps/card/card.vue')
+          },
           // {
           //   path: 'all-cards',
           //   name: 'all-cards',

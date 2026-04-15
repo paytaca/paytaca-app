@@ -142,7 +142,7 @@ export default {
 
     goToCardDetails (card) {
       if (card && card.id) {
-        this.$router.push({ name: 'card-details', query: {id: card.id} })
+        this.$router.push({ name: 'card-details', params: {id: card.id} })
       }
     }
   }

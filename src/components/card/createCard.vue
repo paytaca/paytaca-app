@@ -50,7 +50,7 @@
               no-caps
               color="grey-7"
               class="view-cards-btn"
-              @click="$router.push({ name: 'stacked-cards' })"
+              @click="$router.push({ name: 'card-list' })"
             >
               <q-icon name="credit_card" class="q-mr-sm" />
               {{ $t('View') }} {{ subCards.length }} {{ $t('existing card(s)') }}

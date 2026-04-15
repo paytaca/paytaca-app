@@ -3,7 +3,13 @@
     <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
       <CardPageHeader />
 
-      <q-page v-if="activeCard" class="q-px-md">
+      <!-- Loading state while fetching card -->
+      <q-page v-if="loading" class="flex flex-center">
+        <q-spinner color="primary" size="3em" />
+        <div class="text-subtitle1 q-ml-md" :class="textColor">Loading card...</div>
+      </q-page>
+
+      <q-page v-else-if="activeCard" class="q-px-md">
         <div class="column items-center q-mb-lg">
           <div class="row items-center q-mb-sm full-width q-gutter-sm">
             <!-- Card name - uses localStorage (add skeleton when enabling backend)
@@ -955,6 +961,7 @@ export default {
   data () {
     return {
       activeCard: null,
+      loading: false, // Loading state while fetching card from backend
       activeTab: 'Transactions',
       showEditNameDialog: false,
       newCardName: '',
@@ -1052,15 +1059,7 @@ export default {
     }
   },
 
-  mounted () {
-    // Check if any cards exist - if not, redirect to card homepage
-    const cards = this.CardStorage.getCards()
-    // TODO: Switch to backend - use await this.getCards() instead
-    if (cards.length === 0) {
-      this.$router.push({ name: 'app-card' })
-      return
-    }
-    
+  async mounted () {
     // Load card replacement status if available
     this.loadCardReplacementStatus()
     
@@ -1079,7 +1078,9 @@ export default {
         this.activeTab = tabMap[requestedTab]
       }
     }
-    this.loadSpecificCard()
+    
+    // Load the specific card (from localStorage or backend)
+    await this.loadSpecificCard()
   },
 
   methods: {
@@ -1137,27 +1138,67 @@ export default {
      * },
      */
 
-    loadSpecificCard () {
-      const cardId = this.$route.query.id
-      // get card from storage
-      const found = this.CardStorage.getCardById(cardId)
+    async loadSpecificCard () {
+      const cardId = this.$route.params.id || this.$route.query.id
+      console.log('Loading specific card with ID:', cardId, 'from route:', this.$route.path)
       
-      if (found) {
-        this.activeCard = found
-        this.newCardName = found.name || ''
-        
-        if (this.activeCard.isLocked === undefined) {
-          this.activeCard.isLocked = false
-        }
-        if (this.activeCard.transactionAlerts === undefined) {
-          this.activeCard.transactionAlerts = false
-        }
-        
-        
+      if (!cardId) {
+        console.error('No card ID found in route params or query')
+        this.$router.push({ name: 'card-list' })
+        return
       }
-      else {
-        console.error("Card not found in storage");
-        this.$router.push({ name: 'stacked-cards' });
+      
+      this.loading = true
+      
+      try {
+        // First try to get card from localStorage (UI testing mode)
+        let found = this.CardStorage.getCardById(cardId)
+        
+        if (found) {
+          console.log('Card found in localStorage:', found.name)
+          this.activeCard = found
+          this.newCardName = found.name || ''
+          
+          if (this.activeCard.isLocked === undefined) {
+            this.activeCard.isLocked = false
+          }
+          if (this.activeCard.transactionAlerts === undefined) {
+            this.activeCard.transactionAlerts = false
+          }
+          this.loading = false
+          return
+        }
+        
+        // If not in localStorage, try to fetch from backend
+        console.log('Card not in localStorage, fetching from backend...')
+        const cardUser = await this.loadCardUser()
+        const cards = await cardUser.fetchCards()
+        const backendCard = cards.find(c => String(c.id) === String(cardId))
+        
+        if (backendCard) {
+          console.log('Card found in backend:', backendCard.alias || backendCard.name)
+          // Convert backend card format to match localStorage format
+          this.activeCard = {
+            id: backendCard.id,
+            name: backendCard.alias || backendCard.name,
+            balance: backendCard.bch_balance || '0',
+            isLocked: backendCard.isLocked || false,
+            transactionAlerts: backendCard.transactionAlerts || false,
+            // Add other properties as needed
+            ...backendCard
+          }
+          this.newCardName = this.activeCard.name || ''
+          this.loading = false
+          return
+        }
+        
+        console.error("Card not found for ID:", cardId);
+        this.loading = false
+        this.$router.push({ name: 'card-list' });
+      } catch (error) {
+        console.error('Error loading card:', error)
+        this.loading = false
+        this.$router.push({ name: 'card-list' });
       }
     },
 
@@ -1719,7 +1760,7 @@ export default {
       }
 
       this.showDeleteCardDialog = false
-      this.$router.push({ name: 'stacked-cards' })
+      this.$router.push({ name: 'card-list' })
     },
 
     saveCardSettings () {

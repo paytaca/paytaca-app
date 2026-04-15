@@ -345,8 +345,12 @@ export default {
     },
 
     startDrag (evt, card) {
+      console.log('startDrag called for card:', card?.id)
       const cardId = card?.id
-      if (!cardId) return
+      if (!cardId) {
+        console.log('startDrag early return - no cardId')
+        return
+      }
 
       evt.preventDefault()
       
@@ -356,6 +360,8 @@ export default {
       const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
       this.startX = clientX
       this.currentX = this.swipeStates[cardId] || 0
+      
+      console.log('startDrag initialized - startX:', this.startX, 'currentX:', this.currentX)
       
       // Add global event listeners for dragging outside the element
       document.addEventListener('mousemove', this.onGlobalMove)
@@ -388,7 +394,11 @@ export default {
     },
 
     endDrag (card) {
-      if (!this.isDragging || this.currentCardId !== card?.id) return
+      console.log('endDrag called for card:', card?.id)
+      if (!this.isDragging || this.currentCardId !== card?.id) {
+        console.log('endDrag early return - isDragging:', this.isDragging, 'currentCardId:', this.currentCardId, 'card.id:', card?.id)
+        return
+      }
       
       this.isDragging = false
       
@@ -399,12 +409,15 @@ export default {
       document.removeEventListener('touchend', this.onGlobalEnd)
 
       const swipeX = this.swipeStates[card.id] || 0
+      console.log('Swipe distance:', swipeX)
 
       // if swipe distance is enough, navigate
       if (swipeX > 150) {
+        console.log('Swipe distance > 150, calling goToCardDetails')
         this.goToCardDetails(card)
       }
       else {
+        console.log('Swipe distance < 150, resetting card position')
         // brings card back to initial position
         this.swipeStates[card.id] = 0
       }
@@ -413,9 +426,14 @@ export default {
     },
 
     onGlobalEnd () {
-      if (!this.currentCardId) return
+      console.log('onGlobalEnd called, currentCardId:', this.currentCardId)
+      if (!this.currentCardId) {
+        console.log('onGlobalEnd early return - no currentCardId')
+        return
+      }
       
       const swipeX = this.swipeStates[this.currentCardId] || 0
+      console.log('onGlobalEnd swipe distance:', swipeX)
       
       this.isDragging = false
       
@@ -427,10 +445,13 @@ export default {
 
       // if swipe distance is enough, navigate
       if (swipeX > 150) {
+        console.log('onGlobalEnd: swipe > 150, finding card...')
         const card = this.displayedCards.find(c => c.id === this.currentCardId)
+        console.log('onGlobalEnd: found card:', card)
         if (card) this.goToCardDetails(card)
       }
       else {
+        console.log('onGlobalEnd: swipe < 150, resetting position')
         // brings card back to initial position
         this.swipeStates[this.currentCardId] = 0
       }
@@ -439,13 +460,19 @@ export default {
     },
 
     goToCardDetails (card) {
+      console.log('goToCardDetails called with card:', card)
       if (card && card.id) {
-        this.$router.push({ name: 'card-details', query: {id: card.id} })
+        console.log('Navigating to card-details with id:', card.id)
+        this.$router.push({ name: 'card-details', params: {id: card.id} })
+          .then(() => console.log('Navigation to card-details successful'))
+          .catch(err => console.error('Navigation to card-details failed:', err))
+      } else {
+        console.warn('goToCardDetails: card or card.id is missing')
       }
     },
 
     showAllCards () {
-      this.$router.push({ name: 'all-cards' })
+      this.$router.push({ name: 'card-list' })
     },
 
     closeDialog () {

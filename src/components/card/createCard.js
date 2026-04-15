@@ -3,7 +3,8 @@ import { loadCardUser } from 'src/services/card/user';
 import { getMerchantList } from 'src/services/card/merchants';
 
 // CardStorage utility for localStorage CRUD operations - used for UI state persistence
-const STORAGE_KEY = 'card_ui_state';
+// NOTE: Keeping 'mock_subcards' for backward compatibility with existing cards
+const STORAGE_KEY = 'mock_subcards';
 
 export const CardStorage = {
   /**
@@ -245,15 +246,17 @@ export const createCardLogic = {
 
       // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
       if (cards.length > 0 && this.$route.name === 'app-card'){
-        this.$router.push({ name: 'stacked-cards'})
+        this.$router.push({ name: 'card-list' })
       }
     },
 
     navigateToCardDetails(card, tab = 'transactions') {
       this.$router.push({
         name: 'card-details',
-        query: { 
-          id: card.id,
+        params: { 
+          id: card.id
+        },
+        query: {
           tab: tab
         }
       })

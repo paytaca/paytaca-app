@@ -177,16 +177,17 @@
 </template>
 
 <script>
-import { createCardLogic } from './createCard.js'
-import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
-import CardPageHeader from './CardPageHeader.vue';
+import CreateCardForm from 'src/components/card/CreateCardForm.vue';
+import CardPageHeader from 'src/components/card/CardPageHeader.vue';
+import { createCardLogic } from './createCard.js';
 import { loadCardUser } from 'src/services/card/user.js';
+import { satoshiToBch } from 'src/exchange';
 
 export default {
   mixins: [createCardLogic],
   components : {
-    MultiWalletDropdown,
-    CardPageHeader,
+    CardPageHeader, 
+    CreateCardForm,
   },
 
   data () {
@@ -469,13 +470,19 @@ export default {
     },
 
     goToCardDetails (card) {
+      console.log('goToCardDetails called with card:', card)
       if (card && card.id) {
-        this.$router.push({ name: 'card-details', query: {id: card.id} })
+        console.log('Navigating to card-details with id:', card.id)
+        this.$router.push({ name: 'card-details', params: {id: card.id} })
+          .then(() => console.log('Navigation successful'))
+          .catch(err => console.error('Navigation error:', err))
+      } else {
+        console.warn('Cannot navigate: card or card.id is missing')
       }
     },
 
     showAllCards () {
-      this.$router.push({ name: 'all-cards' })
+      this.$router.push({ name: 'card-list' })
     },
 
     closeDialog () {
