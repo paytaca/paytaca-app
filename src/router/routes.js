@@ -413,11 +413,11 @@ const routes = [
             name: 'card-details',
             component: () => import('src/pages/apps/card/card.vue')
           },
-          // {
-          //   path: 'all-cards',
-          //   name: 'all-cards',
-          //   component: () => import('src/pages/apps/card/allCards.vue')
-          // }
+          {
+            path: 'all-cards',
+            name: 'all-cards',
+            component: () => import('src/pages/apps/card/allCardsPage.vue')
+          }
         ]
       },
       {

@@ -472,7 +472,7 @@ export default {
     },
 
     showAllCards () {
-      this.$router.push({ name: 'card-list' })
+      this.$router.push({ name: 'all-cards' })
     },
 
     closeDialog () {
