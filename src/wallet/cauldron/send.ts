@@ -47,6 +47,7 @@ export function prepareSendWithCauldron(
     const recipient = recipients[index]!;
     const inputExtra = inputExtras[index]!;
     inputExtra.cauldron.amountFormatted = '';
+    recipient.cauldronAmount = '';
 
     console.debug('[CauldronSend]', index, { recipient, inputExtra });
 
@@ -114,6 +115,7 @@ export function prepareSendWithCauldron(
     const amountFormatted = Number(supplyAmount) / 10 ** supplyDecimals;
     console.debug('[CauldronSend]', index, { supplyAmount, supplyDecimals, amountFormatted });
     inputExtra.cauldron.amountFormatted = amountFormatted.toFixed(supplyDecimals);
+    recipient.cauldronAmount = amountFormatted.toFixed(supplyDecimals);
   }
 
   return { recipients, inputExtras }
