@@ -1,10 +1,7 @@
 <template>
-  <q-layout view="LHh Lpr lFf">
-    <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
-      <CardPageHeader />
-
-      <!-- Loading state while fetching card -->
-      <q-page v-if="loading" class="flex flex-center">
+  <div :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
+    <!-- Loading state while fetching card -->
+    <q-page v-if="loading" class="flex flex-center">
         <q-spinner color="primary" size="3em" />
         <div class="text-subtitle1 q-ml-md" :class="textColor">Loading card...</div>
       </q-page>
@@ -939,8 +936,7 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-    </q-page-container>
-  </q-layout>
+  </div>
 </template>
 
 <script>
@@ -948,14 +944,12 @@ import {createCardLogic} from 'src/components/card/createCard.js'
 import TransactionHistory from 'src/components/card/transactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/manageAuthNFTs.vue'
 import L from 'leaflet'
-import CardPageHeader from 'src/components/card/CardPageHeader.vue'
 
 export default {
   mixins: [createCardLogic],
   components: {
     TransactionHistory,
     ManageAuthNFTs,
-    CardPageHeader
   },
 
   data () {
