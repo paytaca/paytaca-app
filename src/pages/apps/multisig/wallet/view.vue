@@ -668,7 +668,7 @@ const openWalletActionsDialog = () => {
       handleDeleteWalletAction()
     }
     if (action.value === 'share-wallet') {
-      handlShareWalletAction()
+      handleShareWalletAction()
     }
     if (action.value === 'view-wallet-settings') {
       router.push({ name: 'app-multisig-wallet-settings', params: { wallethash: route.params.wallethash } })
