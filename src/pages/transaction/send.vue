@@ -1471,23 +1471,44 @@ export default {
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       currentInputExtras.setMax = true
       
-      if (this.asset.id === 'bch') {
-        currentRecipient.amount = this.asset.spendable
-        currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
-        
-        currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
-        )
-        currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
-        )
-      } else {
-        if (this.asset?.id?.startsWith('ct/')) {
-          currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
+      if (currentInputExtras.cauldron.enable) {
+        const isBch = this.asset.id === 'bch';
+        const assetId = isBch ? `ct/${currentInputExtras.cauldron?.token?.token_id}` : 'bch';
+        const asset = sendPageUtils.getAsset(assetId);
+        console.debug('[SetMax]', { isBch, assetId, asset });
+
+        if (isBch) {
+          currentRecipient.cauldronAmount = (asset?.balance / 10 ** asset?.decimals) || 0;
         } else {
-          currentRecipient.amount = this.asset?.balance || 0
+          currentRecipient.cauldronAmount = asset?.spendable
         }
-        currentInputExtras.amountFormatted = currentRecipient.amount
+        currentInputExtras.cauldron.amountFormatted = currentRecipient.cauldronAmount;
+        console.debug('[SetMax] currentRecipient', {...currentRecipient});
+        console.debug('[SetMax] currentInputExtras.cauldron', { ...currentInputExtras.cauldron });
+
+        currentRecipient.amount = '';
+        currentRecipient.fiatAmount = '';
+        currentInputExtras.amountFormatted = '';
+        currentInputExtras.fiatFormatted = '';
+      } else {
+        if (this.asset.id === 'bch') {
+          currentRecipient.amount = this.asset.spendable
+          currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
+          
+          currentInputExtras.amountFormatted = formatWithLocale(
+            currentRecipient.amount, this.decimalObj(false)
+          )
+          currentInputExtras.fiatFormatted = formatWithLocale(
+            currentRecipient.fiatAmount, this.decimalObj(true)
+          )
+        } else {
+          if (this.asset?.id?.startsWith('ct/')) {
+            currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
+          } else {
+            currentRecipient.amount = this.asset?.balance || 0
+          }
+          currentInputExtras.amountFormatted = currentRecipient.amount
+        }
       }
 
       // remove recipients except for the one where MAX was clicked
@@ -1509,6 +1530,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      currentInputExtras.setMax = false;
 
       let caret = null
       if (this.focusedInputField === 'fiat')
@@ -1563,6 +1586,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      currentInputExtras.setMax = false;
 
       let amountCaretPosition = currentRefs.amountInput.nativeEl.selectionStart - 1
       if (amountCaretPosition >= currentRecipient.amount.length)
@@ -2082,7 +2107,12 @@ export default {
         }
       }
 
-      this.updateCauldronAndRemainingBalance();
+      if (this.inputExtras[this.currentRecipientIndex].setMax) {
+        this.setMaximumSendAmount();
+      } else {
+        this.updateCauldronAndRemainingBalance();
+      }
+
     },
     prepareCauldronTrade() {
       const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
@@ -2092,6 +2122,14 @@ export default {
         this.calculatingCauldronTrade = true;
         console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
 
+        // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
+        // Since supply mode sets the amount & fiatAmount using cauldronAmount
+        const amountToFiat = (amount) => {
+          const fiatAmount = this.convertToFiatAmount(amount);
+          const fiatFormatted = formatWithLocale(fiatAmount, this.decimalObj(true));
+          return { fiatAmount, fiatFormatted };
+        }
+
         // This function actually modifies the passed parameters: recipients, inputExtras
         // And returns it
         const { recipients, inputExtras } = prepareSendWithCauldron(
@@ -2099,6 +2137,7 @@ export default {
           this.recipients,
           this.inputExtras,
           this.poolTracker.getTokenPoolsMap(),
+          amountToFiat,
         );
   
         console.debug(recipients, inputExtras);
