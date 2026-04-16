@@ -509,6 +509,7 @@ export default {
     },
     emitCauldronToggle() {
       this.$emit('on-cauldron-toggle', {
+        index: this.index,
         enable: this.cauldronEnabled,
         token: this.cauldronToken,
         amountFormatted: this.cauldronAmountFormatted,

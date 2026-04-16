@@ -1493,12 +1493,14 @@ export default {
       // remove recipients except for the one where MAX was clicked
       const remainingRecipient = this.recipients.filter((_a, i) => i === this.currentRecipientIndex)
       const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentRecipientIndex)
+      const currentWalletBalances = this.currentWalletBalances.filter((_a, i) => i === this.currentRecipientIndex)
 
       this.recipients = remainingRecipient
       this.inputExtras = remainingInputExtras
+      this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance()
       this.sliderStatus = true
     },
 
@@ -1644,6 +1646,7 @@ export default {
         this.recipients.push({
           amount: '',
           fiatAmount: '',
+          cauldronAmount: '',
           fixedAmount: false,
           recipientAddress: '',
           paymentAckMemo: ''
@@ -1659,8 +1662,9 @@ export default {
           isLegacyAddress: false,
           cashbackData: null,
           incorrectAddress: false,
-          cauldron: { enable: false, token: '', amountFormatted: '' },
+          cauldron: { enable: false, token: null, amountFormatted: '' },
         })
+        this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
         }
@@ -2052,6 +2056,7 @@ export default {
 
     // ========= cauldron related ==========
     onCauldronToggle (cauldronData) {
+      this.currentRecipientIndex = cauldronData.index;
       console.debug(this.currentRecipientIndex, cauldronData)
       this.inputExtras[this.currentRecipientIndex].cauldron = {
         enable: cauldronData.enable,
