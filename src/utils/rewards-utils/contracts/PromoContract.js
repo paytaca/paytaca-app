@@ -44,7 +44,7 @@ export default class PromoContract {
     const contractParams = [
       ADMIN_PUBKEY,
       userPubKey,
-      this.changeEndianness(PROMO_TOKEN_CATEGORY),
+      changeEndianness(PROMO_TOKEN_CATEGORY),
       this.promo
   ]
     this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
@@ -137,8 +137,8 @@ export default class PromoContract {
   }
 
   /**
-   * Computes the LIFT token balance of the contract.
-   * @returns the computed LIFT token balance
+   * Computes the promo token balance of the contract.
+   * @returns the computed promo token balance
    */
   async getTokenBalance () {
     const tokenUtxos = await this.contract.getUtxos()
@@ -149,23 +149,6 @@ export default class PromoContract {
       .reduce((total, el) => {
         return total + (Number(el.token?.amount))
       }, 0) / (10 ** PROMO_TOKEN_DECIMALS)
-  }
-
-  /**
-   * Swaps the endian-ness (byte order) of the string,
-   * since the contract uses the reversed order.
-   * From https://stackoverflow.com/a/47668549.
-   * @param {string} string the string to be reversed
-   * @returns the swapped string
-   */
-  changeEndianness(string) {
-    const result = [];
-    let len = string.length - 2;
-    while (len >= 0) {
-      result.push(string.substring(len, len + 2));
-      len -= 2;
-    }
-    return result.join("");
   }
 
   /**
@@ -187,4 +170,21 @@ export default class PromoContract {
 
     return BigInt(Math.floor(((inputSize * inputLen) + (outputSize * outputLen) + 10) * feeRate))
   }
+}
+
+/**
+ * Swaps the endian-ness (byte order) of the string,
+ * since the contract uses the reversed order.
+ * From https://stackoverflow.com/a/47668549.
+ * @param {string} string the string to be reversed
+ * @returns the swapped string
+ */
+export function changeEndianness(string) {
+  const result = [];
+  let len = string.length - 2;
+  while (len >= 0) {
+    result.push(string.substring(len, len + 2));
+    len -= 2;
+  }
+  return result.join("");
 }
