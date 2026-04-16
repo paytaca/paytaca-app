@@ -9,6 +9,7 @@ import {
 
 import { getOutputSize } from "cashscript/dist/utils";
 import { calculateInputSize } from 'src/utils/cashscript-utils';
+import { changeEndianness } from "src/utils/engagementhub-utils/lift-token";
 import { PROMO_TOKEN_CATEGORY, PROMO_TOKEN_DECIMALS } from "src/utils/engagementhub-utils/rewards"
 
 import axios from "axios"
@@ -170,21 +171,4 @@ export default class PromoContract {
 
     return BigInt(Math.floor(((inputSize * inputLen) + (outputSize * outputLen) + 10) * feeRate))
   }
-}
-
-/**
- * Swaps the endian-ness (byte order) of the string,
- * since the contract uses the reversed order.
- * From https://stackoverflow.com/a/47668549.
- * @param {string} string the string to be reversed
- * @returns the swapped string
- */
-export function changeEndianness(string) {
-  const result = [];
-  let len = string.length - 2;
-  while (len >= 0) {
-    result.push(string.substring(len, len + 2));
-    len -= 2;
-  }
-  return result.join("");
 }
