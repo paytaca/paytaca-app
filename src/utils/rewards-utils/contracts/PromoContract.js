@@ -1,5 +1,10 @@
+import { computeContractFee } from "src/utils/cashscript-utils";
+import { changeEndianness } from "src/utils/engagementhub-utils/lift-token";
 import {
-  Output,
+  PROMO_TOKEN_CATEGORY,
+  PROMO_TOKEN_DECIMALS
+} from "src/utils/engagementhub-utils/rewards"
+import {
   Network,
   Contract,
   SignatureTemplate,
@@ -7,12 +12,8 @@ import {
   ElectrumNetworkProvider,
 } from "cashscript"
 
-import { getOutputSize } from "cashscript/dist/utils";
-import { calculateInputSize } from 'src/utils/cashscript-utils';
-import { changeEndianness } from "src/utils/engagementhub-utils/lift-token";
-import { PROMO_TOKEN_CATEGORY, PROMO_TOKEN_DECIMALS } from "src/utils/engagementhub-utils/rewards"
-
 import axios from "axios"
+
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
 
 
@@ -97,7 +98,7 @@ export default class PromoContract {
     // compute fee
     const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
     // +1 in outputs length for bch change output
-    const fee = this.computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5)
+    const fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5)
 
     // insert bch change outputs to outputs[1]
     // (token change output is now in outputs[2] if existing)
@@ -150,25 +151,5 @@ export default class PromoContract {
       .reduce((total, el) => {
         return total + (Number(el.token?.amount))
       }, 0) / (10 ** PROMO_TOKEN_DECIMALS)
-  }
-
-  /**
-   * Compute the network fee of a contract transaction.
-   * @param {Transaction} tx the transaction used to compute the input size
-   * @param {Output[]} outputs the outputs of the transaction
-   * @param {number} inputLen the length of the input
-   * @param {number} outputLen the length of the output
-   * @param {number} feeRate the fee rate to be used for the computation (default 1 sats/byte)
-   * @returns the computed contract network fee
-   */
-  computeContractFee(tx, outputs, inputLen, outputLen, feeRate=1) {
-    const inputSize = calculateInputSize(tx)
-
-    let outputSize = 0
-    for (const output of outputs) {
-      outputSize += getOutputSize(output)
-    }
-
-    return BigInt(Math.floor(((inputSize * inputLen) + (outputSize * outputLen) + 10) * feeRate))
   }
 }
