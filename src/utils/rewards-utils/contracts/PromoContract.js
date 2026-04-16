@@ -55,60 +55,62 @@ export default class PromoContract {
   async redeemPoints (userWif, rewardsSwapContractAddress, pointsToRedeem) {
     const payload = { txid: '', error: '', fee: 0 }
 
-    // get utxos
-    const contractUtxos = await this.contract.getUtxos()
-    // compute bch and token balances
-    const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
-    const tokenBalance = contractUtxos
-      .filter(utxo => utxo.token)
-      .reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
-
-    // multiple points to redeem by token decimal
-    const actualPointstoRedeem = BigInt(pointsToRedeem * (10 ** PROMO_TOKEN_DECIMALS))
-
-    // build input
-    const inputs = contractUtxos
-
-    // build output
-    const outputs = [
-      // user address in outputs[0]
-      {
-        to: rewardsSwapContractAddress,
-        amount: 1000n,
-        token: {
-          amount: actualPointstoRedeem,
-          category: PROMO_TOKEN_CATEGORY
-        }
-      }
-    ]
-
-    if (tokenBalance - actualPointstoRedeem > 0n) {
-      // token change output in outputs[1]
-      // (will be outputs[2] later on after inserting bch change output)
-      outputs.push({
-        to: this.contract.tokenAddress,
-        amount: 1000n,
-        token: {
-          amount: tokenBalance - actualPointstoRedeem,
-          category: PROMO_TOKEN_CATEGORY
-        }
-      })
-    }
-
-    // compute fee
-    const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
-    // +1 in outputs length for bch change output
-    const fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5)
-
-    // insert bch change outputs to outputs[1]
-    // (token change output is now in outputs[2] if existing)
-    outputs.splice(1, 0, {
-      to: this.contract.tokenAddress,
-      amount: bchBalance - fee - 1000n
-    })
-
-    // build tx
     try {
+      // get utxos
+      const contractUtxos = await this.contract.getUtxos()
+      if (contractUtxos.length === 0) throw new Error('Contract has no UTXOs')
+
+      // compute bch and token balances
+      const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
+      const tokenBalance = contractUtxos
+        .filter(utxo => utxo.token)
+        .reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
+
+      // multiple points to redeem by token decimal
+      const actualPointstoRedeem = BigInt(pointsToRedeem * (10 ** PROMO_TOKEN_DECIMALS))
+
+      // build input
+      const inputs = contractUtxos
+
+      // build output
+      const outputs = [
+        // user address in outputs[0]
+        {
+          to: rewardsSwapContractAddress,
+          amount: 1000n,
+          token: {
+            amount: actualPointstoRedeem,
+            category: PROMO_TOKEN_CATEGORY
+          }
+        }
+      ]
+
+      if (tokenBalance - actualPointstoRedeem > 0n) {
+        // token change output in outputs[1]
+        // (will be outputs[2] later on after inserting bch change output)
+        outputs.push({
+          to: this.contract.tokenAddress,
+          amount: 1000n,
+          token: {
+            amount: tokenBalance - actualPointstoRedeem,
+            category: PROMO_TOKEN_CATEGORY
+          }
+        })
+      }
+
+      // compute fee
+      const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
+      // +1 in outputs length for bch change output
+      const fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5)
+
+      // insert bch change outputs to outputs[1]
+      // (token change output is now in outputs[2] if existing)
+      outputs.splice(1, 0, {
+        to: this.contract.tokenAddress,
+        amount: bchBalance - fee - 1000n
+      })
+
+      // build tx
       const txDetails = await new TransactionBuilder({ provider: this.provider })
         .addInputs(
           inputs,
@@ -122,7 +124,7 @@ export default class PromoContract {
       if (error?.requireStatement?.message)
         payload.error = error?.requireStatement?.message
       else payload.error = error.message
-      payload.fee = fee + 1000n
+      payload.fee = (fee || 0n) + 1000n
     }
 
     return payload
