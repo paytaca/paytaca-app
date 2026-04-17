@@ -368,7 +368,8 @@ export default {
       if (!parsedAmount) return ''
       if (!this.selectedAssetMarketPrice) return ''
       const computedBalance = Number(parsedAmount || 0) / Number(this.selectedAssetMarketPrice)
-      return computedBalance.toFixed(8)
+      const decimals = this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
+      return computedBalance.toFixed(decimals)
     },
     selectedMarketCurrency () {
       const currency = this.$store.getters['market/selectedCurrency']
