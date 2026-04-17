@@ -1,4 +1,4 @@
-pragma cashscript ^0.11.0;
+pragma cashscript 0.11.5;
 
 contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
 
@@ -20,36 +20,36 @@ contract TapToPay(bytes20 ownerPkh, bytes20 backendPkh, bytes category) {
         bytes tokenCategory = (tx.inputs[0].tokenCategory).split(32)[0]; 
         require(tokenCategory == category, 'Invalid token category'); 
 
+        int maxGlobalAuthSpendLimit = 100000; // 0.001 BCH 
+
+        // Parses the commitment from the first input (enforced to be the auth NFT)
         bytes commitment = tx.inputs[0].nftCommitment;
-
-        // obtains the authFlag from the commitment (authFlag is 1 byte), 
-        // and checks if payment is enabled
-        bytes authFlag, bytes rest = commitment.split(1);
-        require(authFlag == 0x01, 'Access denied: Merchant is not authorized');
-
-        // obtains the spendLimit from the next 8 bytes of the commitment (the rest of the remaining bytes is the expectedMerchantHash),
-        // and checks if the send amount is within spend limit
-        bytes spendLimit, bytes expectedMerchantHash = rest.split(8);
-        int actualSendAmount = tx.outputs[1].value;
-        require(actualSendAmount <= int(spendLimit), 'Send amount exceeds spend limit');
-
-        // verify that the parameter merchantHash matches expectedMerchantHash from the commitment
+        bytes authFlag, bytes rest = commitment.split(1); // (1 byte) authFlag = 0x00 (not authorized) | 0x01 (authorized)
+        bytes spendLimit, bytes expectedMerchantHash = rest.split(8); // (8 bytes) spendLimit in satoshis, (remaining bytes) expectedMerchantHash
+        
+        // Construct the merchant hash from the merchantId and merchantPk provided in the parameters
         bytes fullHash = sha256(merchantId + merchantPk);
         bytes merchantHash = fullHash.split(31)[0];
-        require(expectedMerchantHash == 0x || merchantHash == expectedMerchantHash, 'Access denied: Invalid global auth or merchant hash');
+        
+        // The actual send amount is parsed from the second output (enforced to be the recipient output)
+        int actualSendAmount = tx.outputs[1].value;
 
-        // require that auth NFT commitment is not tampered with after spending
-        require(commitment == tx.outputs[0].nftCommitment, 'Auth NFT output commitment should not change');
+        bool isAuthorized = authFlag == 0x01;
+        bool isGlobalAuth = expectedMerchantHash == 0x;
+        bool isMerchantAuth = merchantHash == expectedMerchantHash;
+        bool isSendAmountWithinLimit = (isMerchantAuth && (actualSendAmount <= int(spendLimit))) || 
+            (isGlobalAuth && (actualSendAmount <= maxGlobalAuthSpendLimit));
+        bool commitmentUnchanged = commitment == tx.outputs[0].nftCommitment;
+
+        require(isAuthorized, 'Access denied: Merchant is not authorized');
+        require(isGlobalAuth || isMerchantAuth, 'Access denied: Invalid global auth or merchant hash');
+        require(isSendAmountWithinLimit, 'Send amount exceeds spend limit');
+        require(commitmentUnchanged, 'Auth NFT output commitment should not change');
 
         // require that auth NFT is sent back to this contract
-        bytes contractLock = tx.inputs[this.activeInputIndex].lockingBytecode;
+        bytes contractLock = tx.inputs[0].lockingBytecode;
         bool nftSendsToContract = tx.outputs[0].lockingBytecode == contractLock;
         require(nftSendsToContract, 'Auth NFT must send back to this contract');
-
-        // require that the send amount is sent to the recipient (merchant)
-        bytes25 recipientLock = new LockingBytecodeP2PKH(hash160(merchantPk));
-        bool sendsToRecipient = tx.outputs[1].lockingBytecode == recipientLock;
-        require(sendsToRecipient, 'Send amount must send to the recipient');
 
         // require that any change (enforced to be at output[2]) is sent back to this contract
         if (tx.outputs.length == 3) {
