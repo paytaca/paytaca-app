@@ -105,8 +105,8 @@
         :loading="computingMax"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
-        :error="balanceExceeded"
-        :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
+        :error="balanceExceeded && !cauldronEnabled"
+        :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
         :key="inputExtras.amountFormatted"
       >
         <template v-slot:append>
@@ -136,8 +136,8 @@
         @focus="onInputFocus(index, 'fiat')"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
-        :error="balanceExceeded"
-        :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
+        :error="balanceExceeded && !cauldronEnabled"
+        :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
         :label="$t('Amount')"
         :dark="darkMode"
         :key="inputExtras.fiatFormatted"
@@ -149,7 +149,7 @@
     </div>
   </div>
 
-  <div class="row items-center no-wrap q-mt-sm">
+  <div class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
         v-if="cauldronEnabled"
@@ -162,6 +162,8 @@
         v-model="cauldronAmountFormatted"
         :label="$t('Amount')"
         :dark="darkMode"
+        :error="balanceExceeded && cauldronEnabled"
+        :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
       >
         <template v-slot:append>
           <q-btn
@@ -304,6 +306,7 @@ export default {
       cauldronTokenDialog: false,
       cauldronToken: null,
       cauldronEnabled: false,
+      cauldronAmount: '',
       cauldronAmountFormatted: '',
     }
   },
@@ -311,6 +314,7 @@ export default {
   beforeMount () {
     this.amount = this.recipient.amount
     this.amountFormatted = this.inputExtras.amountFormatted
+    this.cauldronAmount = this.recipient.cauldronAmount;
     this.fiatFormatted = this.inputExtras.fiatFormatted
     if (this.inputExtras.isBip21) {
       this.selectedDenomination = 'BCH'
@@ -519,6 +523,8 @@ export default {
 
   watch: {
     amount: function (value) {
+      if (this.cauldronEnabled) return;
+
       if (this.asset?.id?.startsWith('ct/')) {
         this.balanceExceeded = value > ((this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0)))
       } else if (this.asset?.id === 'bch') {
@@ -526,6 +532,12 @@ export default {
       }
 
       this.$emit('on-balance-exceeded', this.balanceExceeded)
+    },
+    cauldronAmount: function (value) {
+      if (!this.cauldronEnabled) return;
+      if (!this.cauldronAmount) return;
+      this.balanceExceeded = this.currentWalletBalance < 0;
+      this.$emit('on-balance-exceeded', this.balanceExceeded);
     }
   }
 }
