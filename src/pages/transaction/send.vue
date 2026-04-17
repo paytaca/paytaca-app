@@ -643,7 +643,6 @@ export default {
       currentRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
-      currentWalletBalance: 0, // TODO: Remove if `currentWalletBalances` is mainly used
       currentWalletBalances: [{ balance: 0, assetId: '' }],
       isLegacyAddress: false,
       isWalletAddress: false,
@@ -1690,6 +1689,7 @@ export default {
           cauldron: { enable: false, token: null, amountFormatted: '' },
         })
         this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
+        this.adjustWalletBalance();
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
         }
@@ -2180,10 +2180,6 @@ export default {
       return sendPageUtils.convertToFiatAmount(amount, this.selectedAssetMarketPrice)
     },
     adjustWalletBalance () {
-      this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
-        this.asset, this.recipients.map(a => Number(a.amount))
-      )
-      console.debug(this.currentWalletBalance);
       const amountsData = this.recipients.map((recipient, index) => {
         const data = {
           ...recipient,
