@@ -1,6 +1,15 @@
-import { ExchangeLab, TradeResult, type PoolV0 } from "@cashlab/cauldron";
+import { binToHex, cashAddressToLockingBytecode, isHex } from "@bitauth/libauth";
+import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common';
+import { buildPoolV0UnlockingBytecode, ExchangeLab, PoolTrade, TradeResult, type PoolV0 } from "@cashlab/cauldron";
+import { ElectrumNetworkProvider, Recipient, SignatureTemplate, TransactionBuilder, type Output, type Unlocker, type Utxo } from "cashscript";
+import { watchtowerUtxoToCashscript } from "src/utils/utxo-utils";
 import { attemptTrade } from "./transact";
 import { type CauldronTokenData } from "./tokens";
+import { TransactionBalancer } from "../stablehedge/transaction-utils";
+import BchWallet from "../bch";
+import { getInputSize } from "cashscript/dist/utils";
+import { LibauthHDWallet } from "../bch-libauth";
+import { getChangeAddress } from "src/utils/send-page-utils";
 
 interface AssetData {
   id: string;
@@ -39,13 +48,38 @@ interface NormalizedRecipient {
 type AmountToFiat = (amount: number) => { fiatAmount: number | string, fiatFormatted: number | string };
 type PoolsMap = Map<string, PoolV0[]>;
 
+interface SendWithCauldronPrep {
+  recipients: RecipientData[];
+  inputExtras: InputExtra[];
+  tradeResults: (TradeResult | void)[];
+}
+
+interface ExecuteSendParams {
+  asset: AssetData;
+  recipients: RecipientData[];
+  inputExtras: InputExtra[];
+  tradeResults: (TradeResult| void) [];
+  bchWallet: BchWallet;
+}
+
+
+interface CustomUnlocker extends Unlocker {
+  getInputSize?: () => number;
+  // Extend `generateUnlockingBytecode` to accept the original unlocker 
+}
+
+interface UnlockableUtxo extends Utxo {
+  unlocker: CustomUnlocker;
+}
+
+
 export function prepareSendWithCauldron(
   asset: AssetData,
   recipients: RecipientData[],
   inputExtras: InputExtra[],
   poolsMap: PoolsMap,
   amountToFiat: AmountToFiat,
-): { recipients: RecipientData[], inputExtras: InputExtra[] } {
+): SendWithCauldronPrep {
   const normalized = normalizeRecipients(asset, recipients, inputExtras);
   console.debug(`Prepare send`, { normalized, recipients, inputExtras })
 
@@ -65,14 +99,8 @@ export function prepareSendWithCauldron(
   const groupedSupplies: Record<string, bigint> = {};
   const groupedDemands: Record<string, bigint> = {};
 
-  const assetType = {
-    isBch: asset.id === 'bch',
-    isFT: asset.id.startsWith('ct/') && !asset.is_nft,
-    tokenCategory: asset.id.startsWith('ct/') ? asset.id.replace('ct/', '') : '',
-    decimals: asset.decimals,
-  };
-
-  if (!assetType.isFT && !assetType.isBch) return { recipients, inputExtras };
+  const assetType = parseAssetType(asset);
+  if (!assetType.isFT && !assetType.isBch) return { recipients, inputExtras, tradeResults: [] };
 
   // Save original cauldron amounts before reset
   const originalCauldronAmounts = recipients.map(r => r.cauldronAmount);
@@ -105,6 +133,7 @@ export function prepareSendWithCauldron(
   // 3. Attempt trades for each token
   const exlab = new ExchangeLab();
   const tradeResults: Map<string, TradeResult> = new Map();
+  const tradeResultList: (TradeResult | void)[] = [];
 
   // Handle supply-based trades (setMax)
   for (const [tokenId, supplyAmount] of Object.entries(groupedSupplies)) {
@@ -166,10 +195,11 @@ export function prepareSendWithCauldron(
     let tradeResult = tradeResults.get(tokenId);
     console.debug('[CauldronSend]', index, { tradeResult });
     if (!tradeResult) continue;
+    tradeResultList[index] = tradeResult;
 
     if (record.supply > 0n) {
       // Calculate the demand share (what user receives) from trade result based on their supply proportion
-      const demandAmount = calculateDemandShare(
+      const demandAmount = calculateProportionalShare(
         tradeResult.summary.supply,
         tradeResult.summary.demand,
         record.supply,
@@ -185,7 +215,7 @@ export function prepareSendWithCauldron(
     } else if (record.demand > 0n) {
       // Demand mode: Original logic - calculate cauldron amounts from trade supply
       // Calculate the supply share (what user pays in cauldron token) from trade result
-      const supplyAmount = calculateSupplyShare(
+      const supplyAmount = calculateProportionalShare(
         tradeResult.summary.demand,
         tradeResult.summary.supply,
         record.demand,
@@ -196,7 +226,247 @@ export function prepareSendWithCauldron(
     }
   }
 
-  return { recipients, inputExtras };
+  return { recipients, inputExtras, tradeResults: tradeResultList };
+}
+
+export async function executeSendWithCauldron(opts: ExecuteSendParams) {
+  const txBuilder = await buildCauldronSendTransaction(opts);
+  const txHex = txBuilder.build();
+  const broadcastData = { transaction: txHex }
+  const broadcastResponse = await opts.bchWallet.watchtower.BCH._api.post('broadcast/', broadcastData)
+  return broadcastResponse.data;
+}
+
+/**
+ * Generates a Cashscript Transaction 
+ * Since we are leveraging TransactionBalancer class to calculate needed funding amounts
+ */
+export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
+  const { asset, recipients, inputExtras, tradeResults, bchWallet } = opts;
+
+  const assetType = parseAssetType(asset);
+  const normalized = normalizeRecipients(asset, recipients, inputExtras);
+
+  if (!assetType.isBch && assetType.isFT) throw new Error('Invalid asset');
+
+  // TODO: Improve
+  const uniqueTradeResults = tradeResults
+    .filter(Boolean)
+    .filter((element, index, list) => list.indexOf(element) === index) as TradeResult[];
+
+  // Prepare necessary data for building the transaction
+  const poolTrades = uniqueTradeResults.map(tradeResult => tradeResult.entries).flat();
+  const outputs = generateRecipientOutputs(assetType, normalized, recipients, tradeResults);
+  const utxosList = await fetchUtxosForTrade(normalized, bchWallet);
+  const changeAddress = await getChangeAddress('bch');
+
+  const balancer = new TransactionBalancer({
+    inputSizeCalculator: (utxo: UnlockableUtxo) => {
+      if (!utxo.unlocker.getInputSize) return;
+      utxo.unlocker.getInputSize();
+    }
+  })
+
+  // Add the pool trades
+  for(const poolTrade of poolTrades) {
+    const { utxo, output } = poolTradeToCashscriptUtxoAndOutput(poolTrade);
+    balancer.inputs.push(utxo);
+    balancer.outputs.push(output as Recipient);
+  }
+
+  // Add recipient outputs
+  for(const output of outputs) {
+    balancer.outputs.push(output as Recipient);
+  }
+
+
+  // Extract token IDs in inputs and outputs
+  const tokenIds: Set<string> = new Set();
+  balancer.inputs.forEach(utxo => {
+    if (!utxo.token?.category) return;
+    tokenIds.add(utxo.token.category);
+  })
+  balancer.outputs.forEach(output => {
+    if (!output.token?.category) return;
+    tokenIds.add(output.token.category);
+  })
+
+  // This flow is for providing the utxos for inputs (if there are any)
+  for(const tokenId of tokenIds.keys()) {
+    const utxos = utxosList[`ct/${tokenId}`];
+    if (utxos) {
+      for(const utxo of utxos) {
+        const tokenChange = balancer.tokenChange(tokenId);
+        if (tokenChange >= 0n) break;
+        balancer.inputs.push(utxo);
+      }
+    }
+
+    const tokenChange = balancer.tokenChange(tokenId);
+    if (tokenChange < 0n) {
+      throw new CauldronSendError(
+        `Insufficient token balance: ${tokenId}`,
+        CauldronSendError.INSUFFICIENT_BALANCE,
+      );
+    } else if (tokenChange > 0n) {
+      balancer.outputs.push({
+        to: changeAddress,
+        amount: 1000n,
+        token: { category: tokenId, amount: tokenChange },
+      })
+    }
+  }
+
+  const bchUtxos = utxosList['bch'];
+  if (bchUtxos) {
+    for (const utxo of bchUtxos) {
+      const excessSats = balancer.excessSats;
+      if (excessSats >= 0n) break;
+      balancer.inputs.push(utxo);
+    }
+  }
+
+  const excessSats = balancer.excessSats;
+  if (excessSats >= 546n) {
+    balancer.outputs.push({ to: changeAddress, amount: excessSats })
+  } else if(excessSats < 0n) {
+    throw new CauldronSendError('Insufficient BCH balance', CauldronSendError.INSUFFICIENT_BALANCE);
+  }
+
+  const txBuilder = new TransactionBuilder({ provider: new ElectrumNetworkProvider() })
+  for(const utxo of balancer.inputs) {
+    const unlockableUtxo = utxo as UnlockableUtxo;
+    txBuilder.addInput(unlockableUtxo, unlockableUtxo.unlocker);
+  }
+  txBuilder.addOutputs(balancer.outputs);
+
+  return txBuilder;
+}
+
+
+function generateRecipientOutputs(
+  assetType: ReturnType<typeof parseAssetType>,
+  normalized: NormalizedRecipient[],
+  recipients: RecipientData[],
+  tradeResults: (TradeResult | void)[],
+): Output[] {
+  return normalized.map((normalizedRecord, index) => {
+    if (!recipients[index]?.recipientAddress) {
+      throw new CauldronSendError('Missing recipient address', CauldronSendError.MISSING_RECIPIENT);
+    }
+
+    const lockingBytecodeEncodeResult = cashAddressToLockingBytecode(recipients[index].recipientAddress);
+    if (typeof lockingBytecodeEncodeResult === 'string') {
+      throw new CauldronSendError(`Invalid address: ${lockingBytecodeEncodeResult}`, CauldronSendError.INVALID_ADDRESS);
+    }
+
+    const lockingBytecode = lockingBytecodeEncodeResult.bytecode;
+
+    let payoutAmount = 0n;
+    if (normalizedRecord.supply > 0n) {
+      const tradeResult = tradeResults[index];
+      if (!tradeResult) throw new CauldronSendError('No trade result for recipient');
+      payoutAmount = calculateProportionalShare(tradeResult.summary.supply, tradeResult.summary.demand, normalizedRecord.supply);
+    } else {
+      payoutAmount = normalizedRecord.demand;
+    }
+
+    const output: Output = {
+      to: lockingBytecode,
+      amount: assetType.isFT ? 1000n : payoutAmount,
+    }
+    if (assetType.isFT) {
+      output.token = { category: assetType.tokenCategory, amount: payoutAmount }
+    }
+    return output;
+  })
+}
+
+/**
+ * Returns Map of asset id and cashscript utxos
+ */
+async function fetchUtxosForTrade(normalized: NormalizedRecipient[], bchWallet: BchWallet) {
+  const uniqueAssetIds = normalized
+    .map(normalizedRecord => normalizedRecord.supplyAssetId)
+    .filter((value, index, list) => list.indexOf(value) === index) as string[];
+
+  const invalidAssetIds = uniqueAssetIds.filter(assetId => {
+    if (!assetId) return false;
+    if (assetId === 'bch') return false;
+    if (!assetId?.startsWith?.('ct/')) return false;
+    const tokenId = assetId.replace('ct/', '');
+    return !isHex(tokenId) || tokenId.length !== 64;
+  })
+
+  if (invalidAssetIds.length) {
+    throw new CauldronSendError(
+      `Invalid assets: [${invalidAssetIds.join(',')}]`, 
+      CauldronSendError.INVALID_ASSET,
+    );
+  }
+
+  // We're using libuathWallet to generate private keys since it's not async
+  const libauthWallet = new LibauthHDWallet(bchWallet.mnemonic, bchWallet.derivationPath);
+  const wifsMap: Map<string, string> = new Map();
+
+  const utxosMap: Record<string, UnlockableUtxo[]> = {};
+  const utxoFetchPromises = uniqueAssetIds.map(async (assetId) => {
+    const watchtowerUtxos = await bchWallet.getUtxos({
+      category: assetId === 'bch' ? undefined : assetId.replace('ct/', '')
+    })
+    const utxos: UnlockableUtxo[] = watchtowerUtxos.map((wtUtxo: any) => {
+      const cashscriptUtxo: UnlockableUtxo = watchtowerUtxoToCashscript(wtUtxo) as UnlockableUtxo;
+      const addressPath = wtUtxo.address_path as string;
+
+      const wif = wifsMap.get(addressPath) || libauthWallet.getPrivateKeyWifAt(addressPath);
+      wifsMap.set(addressPath, wif);
+
+      const signatureTemplate = new SignatureTemplate(wif);
+      cashscriptUtxo.unlocker = signatureTemplate.unlockP2PKH();
+      cashscriptUtxo.unlocker.getInputSize = () => 141; // this is the input size of P2PKH using Schnorr signature
+      return cashscriptUtxo;
+    });
+    utxosMap[assetId] = utxos;
+  })
+
+  await Promise.all(utxoFetchPromises);
+  return utxosMap;
+}
+
+function poolTradeToCashscriptUtxoAndOutput(poolTrade: PoolTrade) {
+  const unlockingBytecode = buildPoolV0UnlockingBytecode(poolTrade.pool.parameters);
+
+  // Calculate how much satoshis or token is added or deducted
+  const isSupplyingBch = poolTrade.supply_token_id == NATIVE_BCH_TOKEN_ID;
+  const satoshisDelta = isSupplyingBch ? poolTrade.supply : poolTrade.demand * -1n;
+  const tokenDelta = isSupplyingBch ? poolTrade.demand * -1n : poolTrade.supply;
+
+  const poolOutput = poolTrade.pool.output;
+  const output: Output = {
+    to: poolOutput.locking_bytecode,
+    amount: poolOutput.amount + satoshisDelta,
+    token: {
+      amount: poolOutput.token.amount + tokenDelta,
+      category: poolOutput.token.token_id,
+    }
+  };
+
+  const unlocker: CustomUnlocker = {
+    getInputSize: () => getInputSize(unlockingBytecode),
+    generateUnlockingBytecode: () => unlockingBytecode,
+    generateLockingBytecode: () => poolTrade.pool.output.locking_bytecode,
+  }
+  
+  const poolOutpoint = poolTrade.pool.outpoint;
+  const utxo: UnlockableUtxo = {
+    unlocker,
+    txid: binToHex(poolOutpoint.txhash),
+    vout: poolOutpoint.index,
+    satoshis: poolOutput.amount,
+    token: { category: poolOutput.token.token_id, amount: poolOutput.token.amount }
+  };
+
+  return { utxo, output };
 }
 
 
@@ -231,22 +501,38 @@ function normalizeRecipients(asset:AssetData, recipients: RecipientData[], input
   return normalized;
 }
 
-function calculateSupplyShare(totalDemand: bigint, totalSupply: bigint, shareDemand: bigint): bigint {
+function calculateProportionalShare(sourceTotal: bigint, targetTotal: bigint, sourceAmount: bigint): bigint {
   const precision = 1_00_000n;
-  const pctg = shareDemand * precision / totalDemand;
-  const supplyShare = totalSupply * pctg / precision;
-  return supplyShare;
+  const pctg = sourceAmount * precision / sourceTotal;
+  const targetAmount = targetTotal * pctg / precision;
+  return targetAmount;
 }
 
-function calculateDemandShare(totalSupply: bigint, totalDemand: bigint, shareSupply: bigint): bigint {
-  const precision = 1_00_000n;
-  const pctg = shareSupply * precision / totalSupply;
-  const demandShare = totalDemand * pctg / precision;
-  return demandShare;
+function parseAssetType(asset: AssetData) {
+  return {
+    isBch: asset.id === 'bch',
+    isFT: asset.id.startsWith('ct/') && !asset.is_nft,
+    tokenCategory: asset.id.startsWith('ct/') ? asset.id.replace('ct/', '') : '',
+    decimals: asset.decimals,
+  };
 }
 
 function normalizedAmountToUnits(value: string | number, decimals: number): bigint {
   const _value = Number(value);
   const unitsNum = Math.floor(_value * 10 ** decimals);
   return BigInt(unitsNum);
+}
+
+
+class CauldronSendError extends Error {
+  static MISSING_RECIPIENT: string = 'missing_recipient';
+  static INVALID_ADDRESS: string = 'invalid_address';
+  static INSUFFICIENT_BALANCE: string = 'insufficient_balance';
+  static INVALID_ASSET: string = 'invalid_asset';
+
+  public code: string | undefined;
+  constructor(message: string, code?: string, ...args: any[]) {
+    super(message, ...args);
+    this.code = code;
+  }
 }
