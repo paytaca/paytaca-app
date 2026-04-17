@@ -191,7 +191,7 @@ export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice) {
 
 /**
  * @param {{ id: string, balance: number, decimals: number, spendable: number }} asset 
- * @param {{ amount: string, amountFiat: string, cauldronAmount: string, cauldronTokenId?: string }[]} amountsArray
+ * @param {{ amount: string, amountFiat: string, cauldronEnabled: boolean, cauldronAmount: string, cauldronTokenId?: string }[]} amountsArray
  * @returns 
  */
 export function adjustWalletBalances(asset, amountsArray) {
@@ -204,7 +204,7 @@ export function adjustWalletBalances(asset, amountsArray) {
     .map(amounts => { /** Populate assetBalanceMap and deduct from each */
       let assetToDeduct = asset;
       let amountToDeduct = Number(amounts.amount);
-      if (amounts.cauldronAmount) {
+      if (amounts.cauldronAmount || amounts.cauldronEnabled) {
         assetToDeduct = getAsset(isCashtokenFT ? 'bch' : `ct/${amounts.cauldronTokenId}`);
         amountToDeduct = Number(amounts.cauldronAmount);
       }

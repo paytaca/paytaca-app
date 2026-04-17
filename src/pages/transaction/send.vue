@@ -2183,6 +2183,7 @@ export default {
       const amountsData = this.recipients.map((recipient, index) => {
         const data = {
           ...recipient,
+          cauldronEnabled: this.inputExtras[index]?.cauldron?.enable,
           cauldronTokenId: this.inputExtras[index]?.cauldron?.token?.token_id ,
         }
         if (!this.inputExtras[index]?.cauldron?.enable) {
