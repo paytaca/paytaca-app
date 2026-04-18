@@ -1898,7 +1898,8 @@ export default {
             const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
             token = {
               tokenId: tokenId,
-              commitment: vm.commitment || undefined,
+              // empty-string is valid for an NFT commitment so should not be collapsed to undefined
+              commitment: vm.commitment ?? undefined,
               capability: vm.capability || undefined,
               txid: vm.$route.query.txid,
               vout: vm.$route.query.vout
