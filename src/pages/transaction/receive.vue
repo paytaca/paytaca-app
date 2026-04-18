@@ -27,7 +27,7 @@
             </q-item>
             <q-separator />
             <q-item clickable v-close-popup>
-              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="generateNewAddress">
+              <q-item-section class="pt-label" :class="getDarkModeClass(darkMode)" @click="confirmGenerateNewAddress">
                 {{ $t('GenerateNewAddress') }}
               </q-item-section>
             </q-item>
@@ -116,42 +116,56 @@
               </div>
               
             </div>
-            <div class="row justify-center q-mt-md q-mx-lg">
+            <div class="row justify-center q-mt-md q-mx-lg" style="gap: 8px;">
               <q-btn
-                outline
+                flat
                 no-caps
-                class="br-15"
-                color="grey-7"
+                rounded
+                dense
+                color="primary"
                 icon="content_copy"
-                padding="xs md"
-                :label="$t('ClickToCopyAddress')"
+                :label="$t('Copy')"
                 @click="copyToClipboard(isCt ? address : addressAmountFormat)"
               />
+              <q-btn
+                flat
+                no-caps
+                rounded
+                dense
+                color="primary"
+                icon="autorenew"
+                :label="$t('NewAddress')"
+                :loading="generating"
+                :disable="generating"
+@click="confirmGenerateNewAddress"
+              />
+              <q-btn
+                v-if="!isCt && !assetId.endsWith('unlisted')"
+                flat
+                no-caps
+                rounded
+                dense
+                color="primary"
+                icon="edit"
+                :label="amount ? $t('UpdateAmount') : $t('SetAmount')"
+                @click="amountDialog = true"
+              />
             </div>
-            <div v-if="amount && !isCt" class="text-center">
-              <q-separator class="q-mb-sm q-mx-md q-mt-md" style="height: 2px;" />
+            <div v-if="amount && !isCt" class="text-center q-mt-sm">
               <div class="text-bow" :class="getDarkModeClass(darkMode)">
-                <div class="receive-label q-mt-md">
+                <div class="receive-label">
                   {{ $t('YouWillReceive') }}
                 </div>
                 <div class="text-weight-light receive-amount-label">
                   {{ formatWithLocale(amount, decimalObj) }}
                   {{ setAmountInFiat ? String(selectedMarketCurrency()).toUpperCase() : asset?.symbol }}
+                  <span
+                    class="text-negative cursor-pointer q-ml-sm"
+                    style="font-size: 13px;"
+                    @click="amount = ''"
+                  >{{ $t('RemoveAmount') }}</span>
                 </div>
               </div>
-            </div>
-            <div
-              v-if="!isCt && !assetId.endsWith('unlisted')"
-              class="text-center button button-text-primary q-pt-md"
-              style="font-size: 18px;"
-              :class="getDarkModeClass(darkMode)"
-            >
-              <span class="cursor-pointer" @click="amountDialog = true;">
-                {{ amount ? $t('Update') : $t('Set') }} {{ $t('Amount') }}
-              </span>
-              <span class="q-ml-md text-negative cursor-pointer" @click="amount = ''">
-                {{ amount ? 'Remove Amount' : '' }}
-              </span>
             </div>
           </div>
         </div>
@@ -416,6 +430,25 @@ export default {
     getScreenWidth () {
       const divBounds = document.body.getBoundingClientRect()
       return divBounds.width
+    },
+    confirmGenerateNewAddress () {
+      this.$q.dialog({
+        title: this.$t('GenerateNewAddress'),
+        message: this.$t('GenerateNewAddressConfirm'),
+        cancel: true,
+        persistent: false,
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        ok: {
+          label: this.$t('GenerateNewAddress'),
+          color: 'primary'
+        },
+        cancel: {
+          label: this.$t('Cancel'),
+          flat: true
+        }
+      }).onOk(() => {
+        this.generateNewAddress()
+      })
     },
     generateNewAddress () {
       const vm = this
