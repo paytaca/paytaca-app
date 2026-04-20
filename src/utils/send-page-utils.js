@@ -181,12 +181,13 @@ export function convertToFiatAmount (amount, selectedAssetMarketPrice) {
   else return computedBalance.toFixed(4)
 }
 
-export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice) {
+export function convertFiatToSelectedAsset (amount, selectedAssetMarketPrice, decimals = 8) {
   const parsedAmount = Number(amount)
   if (!parsedAmount) return ''
   if (!selectedAssetMarketPrice) return ''
   const computedBalance = Number(parsedAmount || 0) / Number(selectedAssetMarketPrice)
-  return computedBalance.toFixed(8)
+  const safeDecimals = Number.isFinite(decimals) && decimals >= 0 ? decimals : 8
+  return computedBalance.toFixed(safeDecimals)
 }
 
 export function adjustWalletBalance (asset, amountArray) {
@@ -196,7 +197,7 @@ export function adjustWalletBalance (asset, amountArray) {
   // - BCH should always be treated as 8 decimals for send/balance math.
   // - Some navigation paths pass an `asset` object with `decimals: 0` for BCH,
   //   which would round values like 0.09 BCH down to 0 when using `toFixed(0)`.
-  const decimals = assetId === 'bch' ? 8 : (asset?.decimals ?? 8)
+  const decimals = assetId === 'bch' ? 8 : (asset?.decimals ?? 0)
   const tokenDenominator = 10 ** decimals
 
   const totalAmountNumber = amountArray.reduce((acc, curr) => acc + (Number(curr) || 0), 0)
