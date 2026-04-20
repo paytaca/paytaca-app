@@ -473,7 +473,7 @@ import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedD
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
-import { prepareSendWithCauldron } from 'src/wallet/cauldron/send'
+import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -617,6 +617,8 @@ export default {
 
       calculatingCauldronTrade: false,
       poolTracker: new MultiCauldronPoolTracker(),
+      /** @type {(import("@cashlab/cauldron").TradeResult | undefined)[]} */
+      tradeResults: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -737,6 +739,12 @@ export default {
       return currency && currency.symbol
     },
     showSlider () {
+      console.debug('Show slider', {
+        amounts: this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0,
+        exceeded: this.inputExtras.map(a => a.balanceExceeded).findIndex(i => i) < 0,
+        emptyRecipient: this.inputExtras.map(a => a.emptyRecipient).findIndex(i => i) < 0,
+        emptyRecipient2: this.recipients.map(a => !!a.recipientAddress).findIndex(i => !i) < 0,
+      })
       if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
         !this.sending && this.sliderStatus &&
@@ -1807,6 +1815,41 @@ export default {
           .toFixed(2)
       } else vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
 
+      // Check if send will require cauldron trade
+      // this condition will trigger early exit of the main function
+      // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
+      // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
+      if (vm.inputExtras.some(inputExtra => inputExtra.cauldron.enable)) {
+        console.debug('[CauldronSend] Executing send', {
+          asset: vm.asset,
+          recipients: vm.recipients,
+          inputExtras: vm.inputExtras,
+          tradeResults: vm.tradeResults,
+          bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+        })
+
+        try {
+          vm.sending = true
+          vm.sliderStatus = false;
+          const broadcastResult = await executeSendWithCauldron({
+            asset: vm.asset,
+            recipients: vm.recipients,
+            inputExtras: vm.inputExtras,
+            tradeResults: vm.tradeResults,
+            bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+          });
+          vm.submitPromiseResponseHandler(broadcastResult, vm.walletType);
+        } catch(error) {
+          vm.handleCaulronError(error);
+        } finally {
+          vm.sending = false;
+          vm.sliderStatus = true;
+        }
+        return;
+      }
+
+      throw new Error('Some block since testing for cauldron for now');
+
       let token = null // bch token
       let toSendBchRecipients = []
       let toSendSlpRecipients = []
@@ -2132,7 +2175,7 @@ export default {
 
         // This function actually modifies the passed parameters: recipients, inputExtras
         // And returns it
-        const { recipients, inputExtras } = prepareSendWithCauldron(
+        const { recipients, inputExtras, tradeResults } = prepareSendWithCauldron(
           this.asset,
           this.recipients,
           this.inputExtras,
@@ -2140,11 +2183,40 @@ export default {
           amountToFiat,
         );
   
-        console.debug(recipients, inputExtras);
+        console.debug(recipients, inputExtras, tradeResults);
         this.recipients = recipients;
         this.inputExtras = inputExtras;
+        this.tradeResults = tradeResults;
       } finally {
         this.calculatingCauldronTrade = false;
+      }
+    },
+    /**
+     * @param {CauldronSendError} error
+     */
+    handleCaulronError(error) {
+      console.debug('CauldronError', error);
+      const isCauldronError = error instanceof CauldronSendError;
+      console.debug('CauldronError', isCauldronError);
+      if (!isCauldronError) throw error;
+
+      const code = error.code;
+      if (code == CauldronSendError.MISSING_RECIPIENT) {
+        // Some recipients have missing address
+        raiseNotifyError(this.$t('EmptyRecipient'));
+      } else if (code == CauldronSendError.INVALID_ADDRESS) {
+        // Some recipients have invalid address
+        raiseNotifyError(this.$t('InvalidAddress'));
+      } else if (code == CauldronSendError.INSUFFICIENT_BALANCE) {
+        // It's either BCH or token that's lacking balance
+        raiseNotifyError(this.$t('InsufficientBalance'));
+      } else if (code == CauldronSendError.INVALID_ASSET) {
+        // Some of the supply or demand asset is not a bch or cashtoken asset
+        // TODO: Add own translation text
+        raiseNotifyError(this.$t('InvalidAssetError'));
+      } else {
+        // A fallback case for unknown errors
+        raiseNotifyError(this.$t('UnknownError'));
       }
     },
 
