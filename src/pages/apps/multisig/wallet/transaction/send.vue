@@ -204,7 +204,7 @@ import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
+import { adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import {
   shortenString,
   MultisigWallet,
