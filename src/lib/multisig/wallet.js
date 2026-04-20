@@ -270,31 +270,17 @@
 // ============================================================================
 
 import {
-  importWalletTemplate,
   lockingBytecodeToCashAddress,
-  walletTemplateToCompilerBch,
-  decodeHdPublicKey,
-  decodeHdPrivateKey,
-  deriveHdPathRelative,
-  utf8ToBin,
-  base64ToBin,
-  binToUtf8,
   CashAddressNetworkPrefix,
   binToHex,
   hexToBin,
   sha256,
   cashAddressToLockingBytecode,
-  compileScript,
-  base58AddressToLockingBytecode,
   secp256k1,
-  deriveHdPublicNode,
-  deriveSeedFromBip39Mnemonic,
-  deriveHdPrivateNodeFromSeed,
-  hash160,
-  bigIntToVmNumber,
   SigningSerializationTypeBch,
   readBytes,
   binsAreEqual,
+  utf8ToBin
 } from 'bitauth-libauth-v3'
 import Big from 'big.js'
 import { createTemplate } from './template.js'
@@ -308,6 +294,20 @@ import { encryptECIES, generateAES256GCMKey } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCosignerCredentialsFromMnemonic, generateServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
+import {
+  getLockingData,
+  getDepositAddress,
+  getChangeAddress,
+  getLockingBytecode,
+  generateRedeemScript
+} from './wallet-address.js'
+
+import {
+  derivePublicKey,
+  derivePublicKeys,
+} from './wallet-keys.js'
+
+export { getCompiler } from './template.js'
 
 export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
 
@@ -315,121 +315,11 @@ export const SIGNER_AUTH_PUBLIC_KEY_RELATIVE_PATH = '999/0'
 // SECTION 3: UTILITY FUNCTIONS
 // ============================================================================
 
-export const getLockingData = ({ signers, addressDerivationPath }) => {
-  const signersWithPublicKeys = derivePublicKeys({ signers, addressDerivationPath })
-  const lockingData = {
-    bytecode: {}
-  }
-  for (const index in signersWithPublicKeys) {
-    let publicKey = signersWithPublicKeys[index].publicKey 
-    if (typeof(publicKey) === 'string') {
-      publicKey = hexToBin(publicKey)
-    }
-    lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
-  }
-  return lockingData
-}
-
-export const getCompiler = ({ template }) => {
-  const parsedTemplate = importWalletTemplate(template)
-  if (typeof parsedTemplate === 'string') {
-    throw new Error('Failed creating multisig wallet template.')
-  }
-  return walletTemplateToCompilerBch(parsedTemplate)
-}
-
-export const getLockingBytecode = ({ lockingData, template, hex = false }) => {
-  const compiler = getCompiler({ template })
-  const lockingBytecode = compiler.generateBytecode({
-    data: lockingData,
-    scriptId: 'lock'
-  })
-  if (hex) {
-    lockingBytecode.bytecode = binToHex(lockingBytecode.bytecode)
-    return lockingBytecode
-  }
-  return lockingBytecode
-}
-
-export const getMultisigCashAddress = ({
-  lockingData,
-  template,
-  cashAddressNetworkPrefix = CashAddressNetworkPrefix.mainnet
-}) => {
-  const lockingBytecode = getLockingBytecode({ lockingData, template })
-  const { address } = lockingBytecodeToCashAddress({
-    bytecode: lockingBytecode.bytecode,
-    prefix: cashAddressNetworkPrefix
-  })
-  return address
-}
-
 export const generateFilename = multisigWallet => {
   if (multisigWallet.name) {
     return `${multisigWallet.name}.pmwif`
   }
   return `${multisigWallet.m}-of-${multisigWallet.signers.length}-multisig-wallet.pmwif`
-}
-
-
-export const sortPublicKeysBip67 = (publicKeys) => {
-  return publicKeys.sort((publicKeyA, publicKeyB) => {
-    return binToHex(publicKeyA).localeCompare(binToHex(publicKeyB))
-  })
-}
-
-/** 
-* @param {string} xpub
-* @param {string} relativeDerivationPath Example: '0/1' 
-* @returns {Uint8Array} The public key at the provided Bip32 relative derivation path. 
-*/
-export const derivePublicKey = (xpub, relativeDerivationPath) => {
-  const decodedHdPublicKey = decodeHdPublicKey(xpub, relativeDerivationPath)
-  const { publicKey } = deriveHdPathRelative(decodedHdPublicKey.node, relativeDerivationPath)
-  return publicKey
-}
-
-export const derivePrivateKey = (xprv, relativeDerivationPath) => {
-  const decodedHdPrivateKey = decodeHdPrivateKey(xprv, relativeDerivationPath)
-  const { privateKey } = deriveHdPathRelative(decodedHdPrivateKey.node, relativeDerivationPath)
-  return privateKey
-}
-
-/**
- * @param {Object} params
- * @param {MultisigWalletSigner[]} params.signers
- * @param {string} [params.addressDerivationPath='0/0']
- * @returns {MultisigWalletSigner[]} The multisig wallet signers with publicKey at `addressDerivationPath` set
- */
-export const derivePublicKeys = ({ signers, addressDerivationPath, bip67Sort = true }) => {
-  const _signers = structuredClone(signers)
-  const signersWithPublicKeys = _signers.map(signer => {
-    signer.publicKey = binToHex(derivePublicKey(signer.xpub, addressDerivationPath))
-    signer.addressDerivationPath = addressDerivationPath
-    return signer
-  })
-
-  if (!bip67Sort) return signersWithPublicKeys
-
-  signersWithPublicKeys.sort((signerA, signerB) => {
-    return signerA.publicKey.localeCompare(signerB.publicKey)
-  })
-  return signersWithPublicKeys
-
-}
-
-export const getAddress = ({ lockingData, compiler, prefix = CashAddressNetworkPrefix.mainnet }) => {
-    const lockingBytecode = compiler.generateBytecode({
-      data: lockingData,
-      scriptId: 'lock',
-      debug: true
-    })
-
-    const address = lockingBytecodeToCashAddress({
-      bytecode: lockingBytecode.bytecode,
-      prefix: prefix
-    });
-    return address.address
 }
 
 export const createWallet = ({ name, m, signers }) => {
@@ -459,84 +349,6 @@ export const getWalletHash = multisigWallet => {
   const uuid = getWalletUUID(multisigWallet)
   const hash = sha256.hash(hexToBin(uuid))
   return binToHex(hash)
-}
-
-export const getDepositAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
-    const template = createTemplate({ ...multisigWallet })
-    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: `0/${addressIndex}` })
-    const compiler = getCompiler({ template })
-    return getAddress({ lockingData, compiler, prefix })
-    
-} 
-
-export const getChangeAddress = ({ multisigWallet, addressIndex = 0, prefix = CashAddressNetworkPrefix.mainnet }) => {
-    const template = createTemplate({ ...multisigWallet })
-    const lockingData = getLockingData({ signers: multisigWallet.signers, addressDerivationPath: `1/${addressIndex}` })
-    const compiler = getCompiler({ template })
-    return getAddress({ lockingData, compiler, prefix })
-}
-
-export const isValidAddress = (address) => {
-  let lockingBytecodeOrError = cashAddressToLockingBytecode(address)
-  if (typeof(lockingBytecodeOrError) !== 'string' && lockingBytecodeOrError.bytecode) {
-    return [true]
-  }
-  lockingBytecodeOrError = base58AddressToLockingBytecode(address)
-  if (typeof(lockingBytecodeOrError) !== 'string' && lockingBytecodeOrError.bytecode) {
-    return [true]
-  }
-  return [false, lockingBytecodeOrError]
-}
-
-/**
- * @param {Object} wallet 
- * @param {number} m 
- * @param {Array<{ publicKey: string, name?: string }>} signers Signers with public keys 
- */
-export const generateRedeemScript = (m, publicKeys) => {
-  const sortedPublicKeys = sortPublicKeysBip67(publicKeys)
-  const lockingData = {
-    bytecode: {}
-  }
-  for (const index in sortedPublicKeys) {
-    let publicKey = sortedPublicKeys[index]
-    if (typeof(publicKey) === 'string') {
-      publicKey = hexToBin(publicKey)
-    }
-    lockingData.bytecode[`key${Number(index) + 1}.public_key`] = publicKey
-  }
-
-  const template = createTemplate({ m, signers: sortedPublicKeys.map((p) => ({ publicKey: p })) }) // Create template for public key set
-  const compiler = getCompiler({ template })
-  const script = compileScript('lock', lockingData, compiler.configuration)
-  // const lockingScript = script.bytecode
-  return script.reduce.bytecode
-}
-
-/**
- * @returns 1st 4 bytes of the hash160 of the master public key
- */
-export const getMasterFingerprint = (mnemonic) => {
-  return hash160(
-    deriveHdPublicNode(
-      deriveHdPrivateNodeFromSeed(
-        deriveSeedFromBip39Mnemonic(mnemonic)
-      )).publicKey
-    ).slice(0, 4)
-}
-
-/**
- * @returns {Uint8Array} 1st 4 bytes of the hash160 of the master public key in UintLE 
- */
-export const getMasterFingerprintUintLE = (mnemonic) => {
-  return bigIntToVmNumber(
-    BigInt(
-        parseInt(
-          binToHex(getMasterFingerprint(mnemonic)), 
-          16
-        )
-      )
-  )
 }
 
 // ============================================================================
