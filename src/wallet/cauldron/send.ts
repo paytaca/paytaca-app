@@ -10,6 +10,7 @@ import BchWallet from "../bch";
 import { getInputSize } from "cashscript/dist/utils";
 import { LibauthHDWallet } from "../bch-libauth";
 import { getChangeAddress } from "src/utils/send-page-utils";
+import { toTokenAddress } from "src/utils/crypto";
 
 interface AssetData {
   id: string;
@@ -70,6 +71,12 @@ interface CustomUnlocker extends Unlocker {
 
 interface UnlockableUtxo extends Utxo {
   unlocker: CustomUnlocker;
+}
+
+interface WatchtowerBroadcastResponse {
+  success: boolean;
+  txid?: string;
+  error?: string;
 }
 
 
@@ -229,12 +236,22 @@ export function prepareSendWithCauldron(
   return { recipients, inputExtras, tradeResults: tradeResultList };
 }
 
-export async function executeSendWithCauldron(opts: ExecuteSendParams) {
+export async function executeSendWithCauldron(opts: ExecuteSendParams): Promise<WatchtowerBroadcastResponse> {
   const txBuilder = await buildCauldronSendTransaction(opts);
   const txHex = txBuilder.build();
   const broadcastData = { transaction: txHex }
-  const broadcastResponse = await opts.bchWallet.watchtower.BCH._api.post('broadcast/', broadcastData)
-  return broadcastResponse.data;
+
+  const apiPath = 'broadcast'; // for actual execution;
+  // const apiPath = 'stablehedge/test-utils/test_mempool_accept/'; // for testing
+  const broadcastResponse = await opts.bchWallet.watchtower.BCH._api.post(apiPath, broadcastData)
+  const data = broadcastResponse.data;
+
+  // this case is probably only for mempool test api
+  if (data.result) {
+    data[data.success ? 'txid' : 'error'] = data.result;
+    delete data.result;
+  }
+  return data;
 }
 
 /**
@@ -310,7 +327,7 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
       );
     } else if (tokenChange > 0n) {
       balancer.outputs.push({
-        to: changeAddress,
+        to: toTokenAddress(changeAddress),
         amount: 1000n,
         token: { category: tokenId, amount: tokenChange },
       })
@@ -334,10 +351,7 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
   }
 
   const txBuilder = new TransactionBuilder({ provider: new ElectrumNetworkProvider() })
-  for(const utxo of balancer.inputs) {
-    const unlockableUtxo = utxo as UnlockableUtxo;
-    txBuilder.addInput(unlockableUtxo, unlockableUtxo.unlocker);
-  }
+  txBuilder.addInputs(balancer.inputs as UnlockableUtxo[]);
   txBuilder.addOutputs(balancer.outputs);
 
   return txBuilder;
@@ -479,7 +493,7 @@ function normalizeRecipients(asset:AssetData, recipients: RecipientData[], input
     // undefined cauldron can be enabled without a token yet
     let supplyAssetId: string | undefined = asset.id;
     if (inputExtra.cauldron.enable) {
-      supplyAssetId = inputExtra.cauldron.token?.token_id;
+      supplyAssetId = `ct/${inputExtra.cauldron.token?.token_id}`;
     }
 
     let demand: bigint = normalizedAmountToUnits(recipient.amount, Number(asset?.decimals) || 0);
@@ -524,7 +538,7 @@ function normalizedAmountToUnits(value: string | number, decimals: number): bigi
 }
 
 
-class CauldronSendError extends Error {
+export class CauldronSendError extends Error {
   static MISSING_RECIPIENT: string = 'missing_recipient';
   static INVALID_ADDRESS: string = 'invalid_address';
   static INSUFFICIENT_BALANCE: string = 'insufficient_balance';
