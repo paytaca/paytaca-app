@@ -42,7 +42,7 @@
       </q-btn>
     </div>
 
-    <!-- Search bar -->
+    <!-- Search bar and Select Multiple Toggle -->
     <div class="row items-center q-mb-md q-gutter-x-sm">
       <div class="col">
         <q-input 
@@ -58,14 +58,53 @@
           </template>
         </q-input>
       </div>
+      <q-btn
+        :color="selectMultipleMode ? 'secondary' : 'primary'"
+        :icon="selectMultipleMode ? 'checklist' : 'checklist_rtl'"
+        :label="selectMultipleMode ? 'Done' : 'Select'"
+        dense
+        no-caps
+        outline
+        @click="toggleSelectMultipleMode"
+      />
+    </div>
+
+    <!-- Batch Action Bar (shown when in select multiple mode and items selected) -->
+    <div 
+      v-if="selectMultipleMode && selectedMerchants.size > 0"
+      class="row items-center justify-between q-pa-md br-10 q-mb-md manage-auth-batch-bar"
+      :class="$q.dark.isActive ? 'glassmorphic-batch-bar-dark' : 'glassmorphic-batch-bar-light'"
+    >
+      <div class="row items-center q-gutter-x-sm">
+        <q-checkbox 
+          v-model="allSelected" 
+          :dark="$q.dark.isActive"
+          @update:model-value="toggleSelectAll"
+          color="primary"
+        />
+        <span class="text-subtitle2 text-weight-medium" :class="textColor">
+          {{ selectedMerchants.size }} selected
+        </span>
+      </div>
+      <q-btn
+        color="primary"
+        icon="token"
+        label="Mint Selected"
+        dense
+        no-caps
+        unelevated
+        :loading="batchMinting"
+        @click="mintSelectedMerchants"
+        class="manage-auth-btn"
+      />
     </div>
 
     <!-- Generic Auth NFT Toggle -->
     <div 
-      class="row items-center justify-between q-pa-md border-outlined br-10 q-mb-md generic-auth-toggle"
-      :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'"
+      class="row items-center justify-between q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
+      :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'"
     >
-      <div class="text-subtitle2 text-primary text-weight-bold">Generic Auth NFT</div>
+      <div class="text-subtitle2 text-weight-bold text-primary">Generic Auth NFT</div>
       <q-toggle 
         v-model="genericAuthEnabled"
         color="primary"
@@ -76,10 +115,13 @@
     <!-- Global Spend Limit Input (shown when Generic Auth NFT is enabled) -->
     <div 
       v-if="genericAuthEnabled"
-      class="q-pa-md border-outlined br-10 q-mb-md"
-      :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'"
+      class="q-pa-md br-10 q-mb-md"
+      :class="$q.dark.isActive ? 'glassmorphic-dark' : 'glassmorphic-light'"
     >
-      <div class="text-subtitle2 text-primary text-weight-bold q-mb-sm">Global Spend Limit</div>
+      <div class="row items-center q-mb-sm q-gutter-x-sm">
+        <q-icon name="savings" color="primary" size="1.1rem" />
+        <div class="text-subtitle2 text-weight-bold" :class="$q.dark.isActive ? 'text-primary' : 'text-primary'">Global Spend Limit</div>
+      </div>
       <div class="row items-center q-gutter-x-sm">
         <div class="col">
           <q-input
@@ -98,6 +140,8 @@
           label="Save" 
           @click="saveGlobalSpendLimit"
           dense
+          unelevated
+          class="glassmorphic-btn"
         />
       </div>
     </div>
@@ -114,7 +158,7 @@
     
     <div 
       ref="merchantListContainer"
-      class="scroll merchant-list" 
+      class="scroll manage-auth-merchant-list" 
       style="height: 350px; overflow-y: auto;"
       @scroll="handleScroll"
     >
@@ -164,17 +208,28 @@
           <q-item 
             v-for="merchant in filteredMerchants" 
             :key="merchant.id" 
-            class="q-px-none merchant-item"
+            class="q-px-none manage-auth-merchant-item"
             :class="{ 
               'disabled-merchant': genericAuthEnabled,
-              'clickable-merchant': merchant.isEnabled && !genericAuthEnabled
+              'clickable-merchant': merchant.isEnabled && !genericAuthEnabled && !selectMultipleMode,
+              'glassmorphic-selected-item-light': selectMultipleMode && selectedMerchants.has(merchant.id) && !$q.dark.isActive,
+              'glassmorphic-selected-item-dark': selectMultipleMode && selectedMerchants.has(merchant.id) && $q.dark.isActive
             }"
-            :clickable="merchant.isEnabled && !genericAuthEnabled"
-            @click="openSpendLimitDialog(merchant)"
+            :clickable="merchant.isEnabled && !genericAuthEnabled && !selectMultipleMode"
+            @click="handleMerchantClick(merchant)"
           >
+            <!-- Checkbox for select multiple mode -->
+            <q-item-section v-if="selectMultipleMode" side class="q-pr-sm">
+              <q-checkbox 
+                :model-value="selectedMerchants.has(merchant.id)"
+                :dark="$q.dark.isActive"
+                @update:model-value="(val) => toggleMerchantSelection(merchant, val)"
+              />
+            </q-item-section>
+            
             <q-item-section>
               <q-tooltip 
-                v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
+                v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit && !selectMultipleMode" 
                 anchor="top middle" 
                 self="bottom middle"
               >
@@ -186,7 +241,7 @@
               >
                 {{ merchant.name }}
                 <span 
-                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit" 
+                  v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit && !selectMultipleMode" 
                   class="text-caption text-secondary q-ml-xs"
                 >
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
@@ -208,7 +263,9 @@
                 >
                   minting done
                 </span>
+                <!-- Toggle (hidden in select multiple mode) -->
                 <q-toggle 
+                  v-if="!selectMultipleMode"
                   v-model="merchant.isEnabled"
                   :disable="genericAuthEnabled || mintingMerchants.has(merchant.id)"
                   :color="genericAuthEnabled 
@@ -324,6 +381,9 @@ export default {
         hasMore: false
       },
       radius: 30, // Default search radius in km
+      selectMultipleMode: false, // Toggle for select multiple mode
+      selectedMerchants: new Set(), // Track selected merchants in batch mode
+      batchMinting: false, // Track batch minting state
     }
   },
   computed: {
@@ -350,6 +410,14 @@ export default {
     },
     textColorGrey() {
       return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
+    },
+    allSelected: {
+      get() {
+        return this.filteredMerchants.length > 0 && this.filteredMerchants.every(m => this.selectedMerchants.has(m.id))
+      },
+      set(val) {
+        this.toggleSelectAll(val)
+      }
     }
   },
   watch: {
@@ -667,6 +735,136 @@ export default {
         icon: 'check_circle',
         timeout: 1500
       });
+    },
+
+    // Select Multiple Mode Methods
+    toggleSelectMultipleMode() {
+      this.selectMultipleMode = !this.selectMultipleMode;
+      if (!this.selectMultipleMode) {
+        // Clear selections when exiting select mode
+        this.selectedMerchants.clear();
+        this.selectedMerchants = new Set();
+      }
+    },
+
+    handleMerchantClick(merchant) {
+      if (this.selectMultipleMode) {
+        // In select mode, toggle selection
+        this.toggleMerchantSelection(merchant, !this.selectedMerchants.has(merchant.id));
+      } else {
+        // Normal mode, open spend limit dialog
+        this.openSpendLimitDialog(merchant);
+      }
+    },
+
+    toggleMerchantSelection(merchant, selected) {
+      if (selected) {
+        this.selectedMerchants.add(merchant.id);
+      } else {
+        this.selectedMerchants.delete(merchant.id);
+      }
+      // Trigger reactivity
+      this.selectedMerchants = new Set(this.selectedMerchants);
+    },
+
+    toggleSelectAll(selectAll) {
+      if (selectAll) {
+        // Select all filtered merchants
+        this.filteredMerchants.forEach(merchant => {
+          this.selectedMerchants.add(merchant.id);
+        });
+      } else {
+        // Deselect all
+        this.selectedMerchants.clear();
+      }
+      // Trigger reactivity
+      this.selectedMerchants = new Set(this.selectedMerchants);
+    },
+
+    async mintSelectedMerchants() {
+      if (this.selectedMerchants.size === 0) return;
+
+      this.batchMinting = true;
+      
+      // Get selected merchant objects
+      const merchantsToMint = this.merchants.filter(m => this.selectedMerchants.has(m.id));
+      
+      // Show progress dialog
+      const progressDialog = this.$q.dialog({
+        title: 'Minting Merchants',
+        message: `Processing ${merchantsToMint.length} merchants...`,
+        progress: true,
+        ok: false,
+        cancel: false,
+        persistent: true,
+        color: 'primary'
+      });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Process each merchant
+      for (const merchant of merchantsToMint) {
+        try {
+          // Add to minting set
+          this.mintingMerchants.add(merchant.id);
+          this.mintingMerchants = new Set(this.mintingMerchants);
+          
+          // Set default spend limit if not set
+          merchant.spendLimit = merchant.spendLimit || '1';
+          merchant.isEnabled = true;
+          
+          // Simulate minting delay
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Remove from minting, add to minted
+          this.mintingMerchants.delete(merchant.id);
+          this.mintingMerchants = new Set(this.mintingMerchants);
+          this.mintedMerchants.add(merchant.id);
+          this.mintedMerchants = new Set(this.mintedMerchants);
+          
+          successCount++;
+          
+          // Clear success message after delay
+          setTimeout(() => {
+            this.mintedMerchants.delete(merchant.id);
+            this.mintedMerchants = new Set(this.mintedMerchants);
+          }, 2000);
+          
+        } catch (error) {
+          console.error(`Failed to mint merchant ${merchant.name}:`, error);
+          this.mintingMerchants.delete(merchant.id);
+          this.mintingMerchants = new Set(this.mintingMerchants);
+          failCount++;
+        }
+      }
+
+      progressDialog.hide();
+      this.batchMinting = false;
+      
+      // Clear selections
+      this.selectedMerchants.clear();
+      this.selectedMerchants = new Set();
+      
+      // Show result notification
+      if (successCount > 0) {
+        this.$q.notify({
+          message: `Successfully minted ${successCount} merchant${successCount > 1 ? 's' : ''}${failCount > 0 ? `, ${failCount} failed` : ''}`,
+          color: failCount > 0 ? 'warning' : 'positive',
+          icon: failCount > 0 ? 'warning' : 'check_circle',
+          timeout: 3000
+        });
+      } else {
+        this.$q.notify({
+          message: 'Failed to mint merchants. Please try again.',
+          color: 'negative',
+          icon: 'error',
+          timeout: 3000
+        });
+      }
+      
+      // Exit select mode after batch minting
+      this.selectMultipleMode = false;
     }
   }
 }
