@@ -233,6 +233,9 @@ import {
 
 import { NativeBiometric } from 'capacitor-native-biometric'
 
+import { Capacitor } from '@capacitor/core'
+import AudioMode from 'src/utils/audio-mode'
+
 import { PaymentRequest } from './payment-request'
 
 export default {
@@ -312,16 +315,25 @@ export default {
     }
   },
   methods: {
-    playSound (success) {
+    async playSound (success) {
+      if (!success) return
+
+      // Respect DND/silent mode on native platforms
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { isSilentOrDnd } = await AudioMode.isSilentOrDnd()
+          if (isSilentOrDnd) return
+        } catch (e) {
+          // Continue playing sound if detection fails
+        }
+      }
+
       let path = 'send-success.mp3'
       if (this.$q.platform.is.ios) {
         path = 'public/assets/send-success.mp3'
       }
-      if (success) {
-        const path = path
-        const audio = new Audio(path)
-        audio.play()
-      }
+      const audio = new Audio(path)
+      audio.play()
     },
 
     async swiped () {
