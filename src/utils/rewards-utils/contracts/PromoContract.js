@@ -15,6 +15,7 @@ import {
 import axios from "axios"
 
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
+import { broadcastTxUsingWatchtower } from "src/utils/engagementhub-utils/shared";
 
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
@@ -110,16 +111,16 @@ export default class PromoContract {
         amount: bchBalance - fee - 1000n
       })
 
-      // build tx
-      const txDetails = await new TransactionBuilder({ provider: this.provider })
+      // build and broadcast transaction
+      const txHex = new TransactionBuilder({ provider: this.provider })
         .addInputs(
           inputs,
           this.contract.unlock.easyWithdraw(new SignatureTemplate(userWif), this.promo)
         )
         .addOutputs(outputs)
-        .send()
+        .build()
   
-      payload.txid = txDetails.txid
+      payload.txid = await broadcastTxUsingWatchtower(txHex)
     } catch (error) {
       if (error?.requireStatement?.message)
         payload.error = error?.requireStatement?.message
