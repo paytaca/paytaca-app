@@ -654,10 +654,10 @@
                     </div>
                   </div>
                   <q-toggle 
-                    :model-value="activeCard?.isLocked"
-                    @update:model-value="(val) => toggleCardLock(val)"
+                    v-model="activeCard.isLocked"
                     color="warning"
-                    :disable="loadingLockStatus" 
+                    :disable="loadingLockStatus"
+                    @update:model-value="(val) => onCardLockToggle(val)"
                   />
                   <!-- BACKEND: Disable toggle during API call -->
                 </div>
@@ -979,12 +979,12 @@ export default {
       replacementReason: null,
       locationSame: null,
       showReplacementLocationForm: false,
-      cardReplacementStatus: 'none'
+      cardReplacementStatus: 'none',
+      loadingLockStatus: false, // Loading state for lock/unlock operations
       // Backend data fetching disabled
       // loading: true,
       // backendData: null,
       // dataError: null,
-      // loadingLockStatus: false, // BACKEND: Loading state for lock/unlock API call
     }
   },
 
@@ -1150,15 +1150,14 @@ export default {
         
         if (found) {
           console.log('Card found in localStorage:', found.name)
-          this.activeCard = found
+          // Ensure all reactive properties exist with defaults
+          const cardWithDefaults = {
+            isLocked: false,
+            transactionAlerts: false,
+            ...found
+          }
+          this.activeCard = cardWithDefaults
           this.newCardName = found.name || ''
-          
-          if (this.activeCard.isLocked === undefined) {
-            this.activeCard.isLocked = false
-          }
-          if (this.activeCard.transactionAlerts === undefined) {
-            this.activeCard.transactionAlerts = false
-          }
           this.loading = false
           return
         }
@@ -1586,12 +1585,16 @@ export default {
       })
     },
 
-    toggleCardLock (locked) {
+    onCardLockToggle (locked) {
       if (!this.activeCard) return
 
+      // Save to localStorage
       const updatedCard = this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', locked)
+      
       if (updatedCard) {
-        this.activeCard.isLocked = updatedCard.isLocked
+        // Ensure the activeCard is updated (it should already be reactive via v-model)
+        // This is just to ensure persistence
+        console.log('Card lock status updated:', updatedCard.isLocked)
       }
 
       this.$q.notify({
