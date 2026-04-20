@@ -1,6 +1,6 @@
 import { CashAddressNetworkPrefix } from "bitauth-libauth-v3"
 import axios from 'axios'
-import { getDepositAddress, getChangeAddress } from "src/lib/multisig/address"
+import { getDepositAddress, getChangeAddress } from "src/lib/multisig/wallet-address"
 
 const DEFAULT_TIMEOUT = 30000
 const MINIMUM_NUMBER_OF_ADDRESSES = 200
