@@ -1880,8 +1880,6 @@ export default {
         return;
       }
 
-      throw new Error('Some block since testing for cauldron for now');
-
       let token = null // bch token
       let toSendBchRecipients = []
       let toSendSlpRecipients = []
