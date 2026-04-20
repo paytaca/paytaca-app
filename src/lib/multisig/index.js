@@ -1,5 +1,7 @@
 // export * from './template'
 export * from './wallet.js'
+export * from './wallet-address.js'
+export * from './wallet-keys.js'
 export * from './utils.js'
 export * from './pst.js'
 export * from './transaction-builder.js'
