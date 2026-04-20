@@ -12,7 +12,7 @@
           <template v-slot:header>
             <div class="send-option-header full-width row items-center justify-between">
               <div class="send-option-title">
-                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
                   {{ $t('InitiateNewSession') }}
                 </div>
               </div>
@@ -26,7 +26,7 @@
           </template>
 
           <div class="q-px-lg q-pb-lg">
-            <div class="text-caption q-mb-md" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+            <div class="text-caption q-mb-md text-bow" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
               {{ $t('WcScanOrPasteURL') }}
             </div>
             <div class="row q-gutter-sm">
@@ -1874,5 +1874,21 @@ defineExpose({
 }
 .transition-transform {
   transition: transform 0.3s ease;
+}
+.scan-option-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+</style>
+
+<style lang="scss">
+.wallet-connect-container.dark .scan-option-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+.wallet-connect-container.dark .scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 </style>
