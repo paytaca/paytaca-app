@@ -1475,6 +1475,12 @@ export default {
         // Refresh pending transactions
         this.pendingTransactionsKey++
         
+        // Refresh WalletConnect session requests
+        this.$store.dispatch('walletconnect/loadSessionRequests')
+        
+        // Refresh WizardConnect (re-init to restore connections and receive pending requests)
+        this.$store.dispatch('wizardconnect/init')
+        
         // Refresh latest transactions
         if (this.$refs['latest-transactions']) {
           await this.$refs['latest-transactions'].refresh()
@@ -2505,6 +2511,20 @@ export default {
         vm.computeWalletYield()
       } catch (error) {
         console.error('Error computing wallet yield:', error)
+      }
+
+      // Load WalletConnect session requests for pending transactions display
+      try {
+        vm.$store.dispatch('walletconnect/loadSessionRequests')
+      } catch (error) {
+        console.error('Error loading WalletConnect session requests:', error)
+      }
+
+      // Initialize WizardConnect to restore connections and receive pending requests
+      try {
+        vm.$store.dispatch('wizardconnect/init')
+      } catch (error) {
+        console.error('Error initializing WizardConnect:', error)
       }
 
       // Set loading to false after initial mount operations complete
