@@ -45,7 +45,6 @@ import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const { t: $t } = useI18n()
-import { getMultisigCashAddress } from 'src/lib/multisig'
 import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { CashAddressType, decodeCashAddress, encodeCashAddress } from 'bitauth-libauth-v3'
 import CopyButton from 'src/components/CopyButton.vue'
