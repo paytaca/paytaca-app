@@ -284,8 +284,9 @@ import {
   encodeTransactionBch
 } from 'bitauth-libauth-v3'
 
-import { derivePublicKey, getCompiler, MultisigWallet, sortPublicKeysBip67 } from './wallet.js'
-import { createTemplate } from './template.js'
+import { MultisigWallet } from './wallet.js'
+import { createTemplate, getCompiler } from './template.js'
+import { sortPublicKeysBip67, derivePublicKey } from './wallet-keys.js'
 import { 
   bip32ExtractRelativePath, 
   verifyTransactionInputSignature, 
