@@ -473,7 +473,7 @@ import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedD
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
-import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError } from 'src/wallet/cauldron/send'
+import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -1484,11 +1484,10 @@ export default {
         const asset = sendPageUtils.getAsset(assetId);
         console.debug('[SetMax]', { isBch, assetId, asset });
 
-        if (isBch) {
-          currentRecipient.cauldronAmount = (asset?.balance / 10 ** asset?.decimals) || 0;
-        } else {
-          currentRecipient.cauldronAmount = asset?.spendable
-        }
+        const tokenId = isBch ? currentInputExtras.cauldron?.token?.token_id : this.asset.id.replace('ct/', '');
+        const pools = this.poolTracker.getPoolsForToken(tokenId);
+        currentRecipient.cauldronAmount = calculateMaxSpendableForCauldron(asset, pools);
+
         currentInputExtras.cauldron.amountFormatted = currentRecipient.cauldronAmount;
         console.debug('[SetMax] currentRecipient', {...currentRecipient});
         console.debug('[SetMax] currentInputExtras.cauldron', { ...currentInputExtras.cauldron });
@@ -1788,6 +1787,7 @@ export default {
     },
     async handleSubmit () {
       const vm = this
+      const hasCauldronEnabled = vm.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
       const toSendData = vm.recipients
 
       // check if total amount being sent is greater than current wallet amount
@@ -1798,7 +1798,7 @@ export default {
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(8)
 
-        if (Number(totalAmount) > vm.asset.balance) {
+        if (Number(totalAmount) > vm.asset.balance && !hasCauldronEnabled) {
           raiseNotifyError(vm.$t('TotalAmountError'))
           return
         }
@@ -1819,7 +1819,7 @@ export default {
       // this condition will trigger early exit of the main function
       // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
       // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
-      if (vm.inputExtras.some(inputExtra => inputExtra.cauldron.enable)) {
+      if (hasCauldronEnabled) {
         console.debug('[CauldronSend] Executing send', {
           asset: vm.asset,
           recipients: vm.recipients,

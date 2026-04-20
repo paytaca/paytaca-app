@@ -7,7 +7,7 @@ import { attemptTrade } from "./transact";
 import { type CauldronTokenData } from "./tokens";
 import { TransactionBalancer } from "../stablehedge/transaction-utils";
 import BchWallet from "../bch";
-import { getInputSize } from "cashscript/dist/utils";
+import { getInputSize, getOutputSize } from "cashscript/dist/utils";
 import { LibauthHDWallet } from "../bch-libauth";
 import { getChangeAddress } from "src/utils/send-page-utils";
 import { toTokenAddress } from "src/utils/crypto";
@@ -18,6 +18,8 @@ interface AssetData {
   symbol: string;
   decimals: number;
   is_nft: boolean;
+  balance: number;
+  spendable: number;
   // There are more data here but only id is significant at the moment
 }
 
@@ -241,7 +243,7 @@ export async function executeSendWithCauldron(opts: ExecuteSendParams): Promise<
   const txHex = txBuilder.build();
   const broadcastData = { transaction: txHex }
 
-  const apiPath = 'broadcast'; // for actual execution;
+  const apiPath = 'broadcast/'; // for actual execution;
   // const apiPath = 'stablehedge/test-utils/test_mempool_accept/'; // for testing
   const broadcastResponse = await opts.bchWallet.watchtower.BCH._api.post(apiPath, broadcastData)
   const data = broadcastResponse.data;
@@ -264,7 +266,9 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
   const assetType = parseAssetType(asset);
   const normalized = normalizeRecipients(asset, recipients, inputExtras);
 
-  if (!assetType.isBch && assetType.isFT) throw new Error('Invalid asset');
+  console.debug('[SendBuild]', { assetType, normalized });
+
+  if (!assetType.isBch && !assetType.isFT) throw new CauldronSendError('Invalid asset', CauldronSendError.INVALID_ASSET);
 
   // TODO: Improve
   const uniqueTradeResults = tradeResults
@@ -273,14 +277,18 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
 
   // Prepare necessary data for building the transaction
   const poolTrades = uniqueTradeResults.map(tradeResult => tradeResult.entries).flat();
+  console.debug('[SendBuild] Pool Trades', poolTrades);
   const outputs = generateRecipientOutputs(assetType, normalized, recipients, tradeResults);
+  console.debug('[SendBuild] Recipient Outputs', outputs);
   const utxosList = await fetchUtxosForTrade(normalized, bchWallet);
+  console.debug('[SendBuild] UTXOs', utxosList);
   const changeAddress = await getChangeAddress('bch');
+  console.debug('[SendBuild] UTXOs', { changeAddress });
 
   const balancer = new TransactionBalancer({
     inputSizeCalculator: (utxo: UnlockableUtxo) => {
       if (!utxo.unlocker.getInputSize) return;
-      utxo.unlocker.getInputSize();
+      return utxo.unlocker.getInputSize();
     }
   })
 
@@ -307,10 +315,15 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
     if (!output.token?.category) return;
     tokenIds.add(output.token.category);
   })
+  console.debug('[SendBuild] TokenIDs', Array.from(tokenIds));
 
   // This flow is for providing the utxos for inputs (if there are any)
   for(const tokenId of tokenIds.keys()) {
     const utxos = utxosList[`ct/${tokenId}`];
+    console.debug('[SendBuild] Providing token UTXOs', {
+      tokenId, utxos,
+      tokenChange: balancer.tokenChange(tokenId),
+    });
     if (utxos) {
       for(const utxo of utxos) {
         const tokenChange = balancer.tokenChange(tokenId);
@@ -335,6 +348,7 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
   }
 
   const bchUtxos = utxosList['bch'];
+  console.debug('[SendBuild] Providing BCH UTXOs', { bchUtxos, excessSats: balancer.excessSats });
   if (bchUtxos) {
     for (const utxo of bchUtxos) {
       const excessSats = balancer.excessSats;
@@ -344,12 +358,27 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
   }
 
   const excessSats = balancer.excessSats;
-  if (excessSats >= 546n) {
-    balancer.outputs.push({ to: changeAddress, amount: excessSats })
+  const returnableSats = excessSats - 34n;
+  if (returnableSats >= 546n) {
+    balancer.outputs.push({ to: changeAddress, amount: returnableSats })
   } else if(excessSats < 0n) {
+    console.debug('[SendBuild] Insufficient BCH', {
+      satoshis: excessSats * -1n,
+      totalInput: balancer.inputSats,
+      totalOutputs: balancer.outputSats,
+      txFee: balancer.txFee,
+      txSize: balancer.txSize,
+    })
+
     throw new CauldronSendError('Insufficient BCH balance', CauldronSendError.INSUFFICIENT_BALANCE);
   }
 
+  /** @ts-ignore */
+  window.balancer = balancer;
+  console.debug('[SendBuild] Finalizing build', {
+    excessSats: balancer.excessSats,
+    tokenChanges: Array.from(tokenIds).map(tokenId => balancer.tokenChange(tokenId)),
+  })
   const txBuilder = new TransactionBuilder({ provider: new ElectrumNetworkProvider() })
   txBuilder.addInputs(balancer.inputs as UnlockableUtxo[]);
   txBuilder.addOutputs(balancer.outputs);
@@ -449,28 +478,12 @@ async function fetchUtxosForTrade(normalized: NormalizedRecipient[], bchWallet: 
 
 function poolTradeToCashscriptUtxoAndOutput(poolTrade: PoolTrade) {
   const unlockingBytecode = buildPoolV0UnlockingBytecode(poolTrade.pool.parameters);
-
-  // Calculate how much satoshis or token is added or deducted
-  const isSupplyingBch = poolTrade.supply_token_id == NATIVE_BCH_TOKEN_ID;
-  const satoshisDelta = isSupplyingBch ? poolTrade.supply : poolTrade.demand * -1n;
-  const tokenDelta = isSupplyingBch ? poolTrade.demand * -1n : poolTrade.supply;
-
-  const poolOutput = poolTrade.pool.output;
-  const output: Output = {
-    to: poolOutput.locking_bytecode,
-    amount: poolOutput.amount + satoshisDelta,
-    token: {
-      amount: poolOutput.token.amount + tokenDelta,
-      category: poolOutput.token.token_id,
-    }
-  };
-
   const unlocker: CustomUnlocker = {
     getInputSize: () => getInputSize(unlockingBytecode),
     generateUnlockingBytecode: () => unlockingBytecode,
     generateLockingBytecode: () => poolTrade.pool.output.locking_bytecode,
   }
-  
+  const poolOutput = poolTrade.pool.output;
   const poolOutpoint = poolTrade.pool.outpoint;
   const utxo: UnlockableUtxo = {
     unlocker,
@@ -480,9 +493,28 @@ function poolTradeToCashscriptUtxoAndOutput(poolTrade: PoolTrade) {
     token: { category: poolOutput.token.token_id, amount: poolOutput.token.amount }
   };
 
+  const output = poolTradeToCashscriptOutput(poolTrade);
+
   return { utxo, output };
 }
 
+function poolTradeToCashscriptOutput(poolTrade: PoolTrade): Output {
+  // Calculate how much satoshis or token is added or deducted
+  const isSupplyingBch = poolTrade.supply_token_id == NATIVE_BCH_TOKEN_ID;
+  const satoshisDelta = isSupplyingBch ? poolTrade.supply : poolTrade.demand * -1n;
+  const tokenDelta = isSupplyingBch ? poolTrade.demand * -1n : poolTrade.supply;
+
+  const poolOutput = poolTrade.pool.output;
+  return {
+    to: poolOutput.locking_bytecode,
+    amount: poolOutput.amount + satoshisDelta,
+    token: {
+      amount: poolOutput.token.amount + tokenDelta,
+      category: poolOutput.token.token_id,
+    }
+  };
+
+}
 
 function normalizeRecipients(asset:AssetData, recipients: RecipientData[], inputExtras: InputExtra[]): NormalizedRecipient[] {
   const normalized = [];
@@ -493,7 +525,7 @@ function normalizeRecipients(asset:AssetData, recipients: RecipientData[], input
     // undefined cauldron can be enabled without a token yet
     let supplyAssetId: string | undefined = asset.id;
     if (inputExtra.cauldron.enable) {
-      supplyAssetId = `ct/${inputExtra.cauldron.token?.token_id}`;
+      supplyAssetId = asset.id === 'bch' ? `ct/${inputExtra.cauldron.token?.token_id}` : 'bch';
     }
 
     let demand: bigint = normalizedAmountToUnits(recipient.amount, Number(asset?.decimals) || 0);
@@ -535,6 +567,61 @@ function normalizedAmountToUnits(value: string | number, decimals: number): bigi
   const _value = Number(value);
   const unitsNum = Math.floor(_value * 10 ** decimals);
   return BigInt(unitsNum);
+}
+
+/**
+ * @param asset Asset you will use to supply the trade
+ * @param pools Pools for that trade
+ */
+export function calculateMaxSpendableForCauldron(asset: AssetData, pools: PoolV0[]) {
+  // NOTE: At time of writing, asset balances for BCH is normalized(or BCH) while others are in base units
+  const assetType = parseAssetType(asset);
+  console.debug('[CauldronMaxSend', { asset, assetType });
+  if (assetType.isFT) return asset.balance;
+
+  if (!assetType.isBch) {
+    throw new CauldronSendError('Unable to calculate max for asset', CauldronSendError.INVALID_ASSET);
+  }
+
+  // spendable is just a balance deducted by an estimate sweep tx fee
+  // spendable = balance - (UTXO_count * P2PKH_input_size) - (1 * P2PKH_output_size) - base_fee_of_10_sats;
+  let spendableSats = Math.floor(Number(asset.spendable * 10 ** 8));
+
+  // Spendable sats assume sending to a BCH only output, but with cauldron trade;
+  // it's actually a FT output so we have to take account the off amount;
+  // 34 is exact output size of p2pkh bch only, 87 is the max size of p2sh32 fungible token output (see above)
+  spendableSats = spendableSats - (87-34);
+
+  // Trade will require a cashtoken output which requires a dust of 1000 sats
+  spendableSats = spendableSats - 1000;
+
+  // On top of spendable we will subtract an estimate added fee of trading with cauldron
+  const tradeResult = attemptTrade({ pools, supply: BigInt(spendableSats), demand: 0n, isBuyingToken: true });
+  console.debug('[CauldronMaxSend', { tradeResult });
+
+  // 110 is the actual input size of cauldron trade inputs:
+  //  -> 69b script sig + 1b script sig size + 32b txid + 4b vout + 4b sequence
+  const POOL_INPUT_SIZE = 110;
+  const totalPoolInputsSize = tradeResult.entries.length * POOL_INPUT_SIZE;
+
+  // Outputs with fungible tokens have variable sizes so we have to actually calculate individual outputs
+  // 79 - 87 is an estimate size of an output that has p2sh32 address & fungible cashtoken (accding to chatgpt)
+  const poolOutputs = tradeResult.entries.map(entry => poolTradeToCashscriptOutput(entry));
+  const poolOutputSizes = poolOutputs.map(output => getOutputSize(output));
+  const totalPoolOutputsSize = poolOutputSizes.reduce((subtotal, size) => subtotal + size, 0);
+  
+  const poolFees = totalPoolInputsSize + totalPoolOutputsSize;
+
+  const cauldronCalculatedSpendable = Math.round(spendableSats - poolFees);
+
+  console.debug('[CauldronMaxSend]', {
+    spendableSats,
+    poolFees,
+    totalPoolInputsSize,
+    totalPoolOutputsSize,
+    cauldronCalculatedSpendable,
+  });
+  return cauldronCalculatedSpendable / 10 ** 8;
 }
 
 
