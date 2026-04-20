@@ -1060,7 +1060,34 @@ export default {
     buildTransactionDetailState (txid, opts = {}) {
       const timestamp = opts.timestamp ?? Date.now()
       const amount = opts.amount ?? Math.abs(this.totalAmountSent || 0)
-      const asset = this.asset || sendPageUtils.getAsset(this.assetId, this.symbol)
+
+      // Check if all recipients have cauldron enabled
+      const allRecipientsHaveCauldron = this.inputExtras?.length > 0 &&
+        this.inputExtras.every(extra => extra?.cauldron?.enable)
+
+      /**
+       * When enabling cauldron on all recipients, the resulting wallet history(or histories)
+       * generated will have an asset different from this.assetId. 
+       * e.g.
+       *  - sending tokens with cauldron spends BCH so wallet history shows sending BCH
+       *  - sending BCH using tokens will create wallet histories that says sending tokens.
+       *    sending BCH can possible use multiple tokens, so we will use 1 token only.
+       *    possible improvement could be allowing multiple wallet histories shown using 1 txid
+       */
+      let effectiveAssetId = this.assetId || 'bch'
+      if (allRecipientsHaveCauldron) {
+        if (this.assetId === 'bch') {
+          const tokenIds = this.inputExtras
+            .map(inputExtra => inputExtra.cauldron?.token?.token_id)
+            .filter(Boolean)
+
+          effectiveAssetId = tokenIds[0];
+        } else if (this.assetId?.startsWith?.('ct/')) {
+          effectiveAssetId = 'bch'
+        }
+      }
+
+      const asset = sendPageUtils.getAsset(effectiveAssetId, this.symbol) || this.asset;
       const sendTx = {
         txid,
         record_type: 'outgoing',
@@ -1075,17 +1102,22 @@ export default {
       }
       const query = {
         from: 'send-page',
-        assetID: this.assetId || 'bch',
+        assetID: effectiveAssetId,
         new: 'true'
       }
       // Add recipient address for "Add to Address Book" feature
       if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
         query.recipient = this.recipients[0].recipientAddress
       }
-      const assetId = this.assetId || ''
-      if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
-        query.category = assetId.split('/')[1]
+
+      // Only add category for token assets
+      // When all recipients have cauldron enabled AND we're sending BCH with cauldron,
+      // we skip adding category since we're spending BCH, not tokens
+      const shouldAddCategory = effectiveAssetId.startsWith('ct/') || effectiveAssetId.startsWith('slp/')
+      if (shouldAddCategory) {
+        query.category = effectiveAssetId.split('/')[1]
       }
+
       if (this.commitment) {
         query.commitment = this.commitment
       }
