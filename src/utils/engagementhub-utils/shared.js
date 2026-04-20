@@ -40,3 +40,27 @@ export function parseLiftToken (amount) {
 
   return `${finalAmount} LIFT`
 }
+
+// ==============================
+// Promise functions
+// ==============================
+
+/**
+ * Broadcast given transaction hex to network using the Watchtower API.
+ * This is done because the `send()` function of CashScript sometimes has
+ * a delay when broadcasting transaction to nodes.
+ * @param {String} txHex The built transaction in hex string
+ * @returns {Promise<string>} A string containing the successfully broadcasted transaction ID
+ * @throws A generic error when broadcasting fails
+ */
+export async function broadcastTxUsingWatchtower(txHex) {
+  const resp = await axios.post("https://watchtower.cash/api/broadcast/", {
+    transaction: txHex,
+  });
+
+  if (resp?.status === 200 && resp?.data?.success) {
+    return resp?.data?.txid;
+  } else {
+    throw new Error("Failed to broadcast transaction.");
+  }
+}
