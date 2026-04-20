@@ -3,7 +3,7 @@ import axios from 'axios'
 import { getDepositAddress, getChangeAddress } from "src/lib/multisig/address"
 
 const DEFAULT_TIMEOUT = 30000
-
+const MINIMUM_NUMBER_OF_ADDRESSES = 200
 async function startAddressDiscovery(data) {
   console.log('DATA', data)
   const {
@@ -20,11 +20,10 @@ async function startAddressDiscovery(data) {
   let changeAddrNextIndex = lastUsedChangeAddressIndex + 1
 
   let applyRateLimit = true
-  let limit = 1000
-  
+  let minimumNumberOfAddresses = options.minimumNumberOfAddresses || MINIMUM_NUMBER_OF_ADDRESSES
   let nextIndex = options.fullScan ? 0: Math.min(depositAddrNextIndex, changeAddrNextIndex)
 
-  while (depositAddrGapLimit > 0 || changeAddrGapLimit > 0 && limit > 0) {
+  while (depositAddrGapLimit > 0 || changeAddrGapLimit > 0 || minimumNumberOfAddresses > 0) {
     const addressSets = []
     let nextDepositAddr = ''
     let nextChangeAddr = ''
@@ -83,81 +82,35 @@ async function startAddressDiscovery(data) {
 
       const results = response.data?.results
       results?.sort((a, b) => b.address_index - a.address_index)
-      const depositWithHistory = results.filter(r => r.receiving?.has_history).length 
-      const changeWithHistory = results.filter(r => r.change?.has_history).length 
-      
-      depositAddrGapLimit = depositWithHistory 
-      changeAddrGapLimit = changeWithHistory 
+      const depositWithHistory = results.filter(r => r.receiving?.has_history) 
+      const changeWithHistory = results.filter(r => r.change?.has_history) 
+      depositAddrGapLimit = depositWithHistory.length
+      changeAddrGapLimit = changeWithHistory.length
 
-      console.log('results', depositAddrGapLimit, changeAddrGapLimit)  
+      if (depositWithHistory[0]?.address_index !== undefined) {
+        lastUsedDepositAddressIndex = depositWithHistory[0]?.address_index
+      }
+      if (changeWithHistory[0]?.address_index !== undefined) {
+        lastUsedChangeAddressIndex = changeWithHistory[0]?.address_index
+      }
 
-      lastUsedDepositAddressIndex = depositWithHistory[0]?.address_index || nextIndex
-      lastUsedChangeAddressIndex = changeWithHistory[0]?.address_index || nextIndex
       self.postMessage({
         id,
         success: true,
-        final: depositAddrGapLimit > 0 || changeAddrGapLimit > 0,
+        final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
         lastUsedDepositAddressIndex,
         lastUsedChangeAddressIndex
       })
-
-      
-    //   limit--
-    //   break
-    //   // lastUsedDepositAddressIndex = results.find(r => r.receiving && r.has_history)?.address_index ?? lastUsedDepositAddressIndex
-    //   // lastUsedChangeAddressIndex = results.find(r => r.change && r.has_history)?.address_index ?? lastUsedChangeAddressIndex
-    //   // for (const r of results) {}
-
-    //   // if (failedReqCount >= stopOnFailedNetworkReqAttempts ) {
-    //   //   self.postMessage({
-    //   //     type: 'MULTISIG_ADDRESS_DISCOVERY_UPDATE',
-    //   //     data: {
-    //   //       lastUsedDepositAddressIndex,
-    //   //       lastUsedChangeAddressIndex,
-    //   //       depositAddrNextIndex,
-    //   //       changeAddrNextIndex,
-    //   //       final: false,
-    //   //       stopped: true,
-    //   //       stoppedBecause: 'Stopped on max number of failed network request attempts'
-    //   //     }
-    //   //   })
-    //   //   break
-    //   // }
-
-    //   const now = Date.now()
-    //   const timeSinceLastEmit = now - lastEmitTime;
-    //   const isBatchMilestone = (seenAddressCount % milestoneNumber === 0);
-    //   if (timeSinceLastEmit > updateThrottleMs || isBatchMilestone) {
-    //     self.postMessage({
-    //       type: 'MULTISIG_ADDRESS_DISCOVERY_UPDATE',
-    //       data: {
-    //         lastUsedDepositAddressIndex,
-    //         lastUsedChangeAddressIndex,
-    //         depositAddrNextIndex,
-    //         changeAddrNextIndex,
-    //         final: false,
-    //         walletHash: multisigWallet.walletHash
-    //       }
-    //     })
-    //     lastEmitTime = now
-    //   }
-
-      
+      minimumNumberOfAddresses -= options.gapLimit
     } catch (error) {
-      console.log('error', error)
-      break
-      // self.postMessage({
-      //   type: 'MULTISIG_ADDRESS_DISCOVERY_UPDATE',
-      //   data: {
-      //     lastUsedDepositAddressIndex,
-      //     lastUsedChangeAddressIndex,
-      //     depositAddrNextIndex,
-      //     changeAddrNextIndex,
-      //     final: false,
-      //     error,
-      //     walletHash: multisigWallet.walletHash
-      //   }
-      // })
+      self.postMessage({
+        id,
+        success: false,
+        final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+        lastUsedDepositAddressIndex,
+        lastUsedChangeAddressIndex
+      })
+      return
     }
     
     if (applyRateLimit) {
@@ -166,13 +119,11 @@ async function startAddressDiscovery(data) {
   }
   
   self.postMessage({
-    type: 'MULTISIG_ADDRESS_DISCOVERY_UPDATE',
-    data: {
-      lastUsedDepositAddressIndex,
-      lastUsedChangeAddressIndex,
-      final: true,
-      walletHash: multisigWallet.walletHash
-    }
+    id,
+    success: true,
+    final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+    lastUsedDepositAddressIndex,
+    lastUsedChangeAddressIndex
   })
 }
 
@@ -180,9 +131,6 @@ async function startAddressDiscovery(data) {
 
 self.onmessage = async (event) => {
   const { type, data } = event.data
-
-  console.log('TYPE DATA', type, data)
-
   if (!data.multisigWallet?.walletHash) {
     return self.postMessage({ error: 'Multisig Wallet Hash Required', success: false })
   }
@@ -198,7 +146,6 @@ self.onmessage = async (event) => {
       default:
         throw new Error(`Unknown worker message type: ${type}`)
     }
-    
   } catch (error) {
     self.postMessage({ error: error.message, success: false })
   }
