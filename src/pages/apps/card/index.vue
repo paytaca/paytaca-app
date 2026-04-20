@@ -61,6 +61,7 @@ export default {
     //     console.log('No existing cards for user')
     //     this.goToHome()
     //   }
+      clearCardUserCache() // temporary only
     },
 
     async loadUser () {

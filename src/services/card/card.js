@@ -4,7 +4,13 @@ import { TapToPay } from './tap-to-pay';
 import { backend } from './backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
-import { signPreimages } from './utils';
+import { 
+  saveCreateCardAttempt, 
+  updateCreateCardAttempt, 
+  getCreateCardAttempt,
+  clearCreateCardAttempt,
+  CardCreateAttemptStatus 
+} from './storage';
 
 export class Card {
   constructor(data) {
@@ -124,33 +130,74 @@ export class Card {
    * Complete card creation workflow
    * @returns {Promise<Card>}
    */
-  async create(alias, callbackOnProgress=null) {
-    console.log('Creating card ', alias);
+  async create(alias, callbackOnProgress=null, lastAttempt = null) {
     this.notifyCallbackFn(callbackOnProgress, 'Starting card creation workflow');
 
     try {
-      const cardData = await this._createCardEntry(alias);
-      this.notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
+
+      let currentStatus = lastAttempt?.status || CardCreateAttemptStatus.CARD_INITIATED;
+      let cardId = lastAttempt?.cardId || null;
+
+      if (currentStatus < CardCreateAttemptStatus.CARD_SAVED) {
+        const { id: newCardId } = await this._createCardEntry(alias);
+        cardId = newCardId;
+        this.notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
+        currentStatus = CardCreateAttemptStatus.CARD_SAVED;
+        updateCreateCardAttempt({ cardId, status: currentStatus });
+      } else {
+        console.log('Resuming card creation with:', lastAttempt);
+        this.notifyCallbackFn(callbackOnProgress, 'Resuming card creation workflow');
+      }
       
-      this.notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
-      const genesisResult = await this._mintGenesisToken();
-      this.notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
-      
+      let category
+      if (currentStatus <= CardCreateAttemptStatus.CARD_SAVED) {
+        console.log('Minting genesis token for card ID:', cardId);
+        this.notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
+        const genesisResult = await this._mintGenesisToken();
+        category = genesisResult.tokenId
+        this.notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
+        
+        currentStatus = CardCreateAttemptStatus.GENESIS_MINTED;
+        updateCreateCardAttempt({ category: category, status: currentStatus });
+      }
+
       await this._ensureCardUserAuthenticated();
       this.notifyCallbackFn(callbackOnProgress, 'Card user authenticated');
 
-      this.raw = await this._saveGenesis(cardData.id, genesisResult);
-      this.notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
+      if (currentStatus <= CardCreateAttemptStatus.GENESIS_MINTED) {
+        let savedAttempt = lastAttempt
+        
+        if (!category) {
+          savedAttempt = getCreateCardAttempt();
+          console.log('Re-fetching last attempt for category:', savedAttempt);
+          category = savedAttempt?.category;
+        }
 
-      // Reinitialize contract now that we have contract_id
+        this.raw = await this._saveGenesis(cardId, category, savedAttempt?.idempotencyKey);
+        this.notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
+        
+        currentStatus = CardCreateAttemptStatus.GENESIS_SAVED;
+        updateCreateCardAttempt({ status: currentStatus });
+      } 
+      
+      this.raw = (await backend.get(`/cards/${cardId}/`)).data;
+
       this._initializeContract();
-      this.notifyCallbackFn(callbackOnProgress, 'Contract initialized');
+      this.notifyCallbackFn(callbackOnProgress, 'Contract initialized locally');
 
-      await this._issueGlobalAuthToken();
-      this.notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
+      if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
+        await this._issueGlobalAuthToken();
+        this.notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
+
+        currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
+        updateCreateCardAttempt({ status: currentStatus });
+      }
 
       console.log('Card creation completed successfully');
       this.notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
+
+      // Clear the create card attempt from local storage since workflow is complete
+      clearCreateCardAttempt();
 
       return this;
     } catch (error) {
@@ -182,6 +229,7 @@ export class Card {
   async _createCardEntry(alias) {
     console.log('Creating card entry...');
     this._assertWallet();
+    const idempotencyKey = crypto.randomUUID();
 
     const data = {
       alias: alias || "",
@@ -189,30 +237,38 @@ export class Card {
       public_key: this.wallet.pubkey(),
       address_path: this.wallet.addressPath()
     };
+
+    saveCreateCardAttempt({
+      idempotencyKey,
+      alias: alias || "",
+      walletHash: this.wallet.walletHash,
+      createdAt: Date.now(),
+    });
     
-    const response = await backend.post('/cards/', data);
-    console.log('Card entry created:', response.data);
-    return response.data;
+    const response = await backend.post('/cards/', data,
+      { headers: { 'Idempotency-Key': `create-card-${this.wallet.pubkey()}-${idempotencyKey}` } }
+    );
+    
+    const cardEntry = response.data;
+    console.log('Card entry created:', cardEntry);
+    updateCreateCardAttempt({ cardId: cardEntry.id, status: CardCreateAttemptStatus.CARD_SAVED });
+
+    return cardEntry;
   }
 
   /**
    * Saves genesis token id (category) to server
    * @private
    * @param {number} cardId
-   * @param {Object} genesisResult
+   * @param {String} category
    * @returns {Promise<Object>}
    */
-  async _saveGenesis(cardId, genesisResult) {
-    if (!genesisResult.utxos || genesisResult.utxos.length === 0) {
-      throw new Error('No UTXOs available from genesis result');
-    }
-    
-    const nftData = genesisResult.utxos[0];
-    const payload = {
-      category: nftData.token?.tokenId,
-    };
+  async _saveGenesis(cardId, category, idempotencyKey = null) {
+    const data = { category };
+    const response = await backend.patch(`/cards/${cardId}/`, data, 
+      { headers: { 'Idempotency-Key': `create-card-${this.wallet.pubkey()}-${idempotencyKey}` } }
+    );
 
-    const response = await backend.patch(`/cards/${cardId}/`, payload);
     return response.data;
   }
 
@@ -329,7 +385,9 @@ export class Card {
             spendLimitSats: spendLimitSats || defaultSpendLimitSats,
           }]
       });
+      
       console.log('Global auth token minted:', result);
+
       return result;
     } catch (error) {
       console.error('Error during global auth token minting:', error.message || error);
@@ -469,6 +527,7 @@ export class Card {
     console.log('Issuing to recipients:', recipients);
     const result = await this.authNftService.issue({recipients});
     console.log('Auth tokens issued:', result);
+
     return result;
   }
 
