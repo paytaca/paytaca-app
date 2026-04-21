@@ -371,7 +371,6 @@ export default {
             titleDefault: 'One-time Points',
             content: [
               { key: 'RewardsHelpUR42', default: 'One-time points can be earned only once and are awarded after completing specific tasks.' },
-              { key: 'RewardsHelpUR43', default: 'Please note that these points are only available for new Paytaca users. Existing users cannot earn them.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -381,13 +380,30 @@ export default {
               if (this.hasBoundingRects) this.isHighlighting = true
               this.highlightIndex = 3
             },
+            onNext: () => { this.isHighlighting = false }
+          },
+          {
+            id: '7',
+            isCentered: true,
+            icon: 'repeat_one',
+            titleKey: 'RewardsHelpUR41',
+            titleDefault: 'Earning One-time Points',
+            content: [
+              { key: 'RewardsHelpUR42', default: 'Valid transactions include purchases made with our merchants either through the Marketplace or over the counter, as well as purchases of Eload services.' },
+              { key: 'RewardsHelpUR43', default: 'Please note that these points are only available for new Paytaca users. Existing users cannot earn them.' },
+            ],
+            hasBack: true,
+            primaryBtn: 'Next',
+            nextStep: '8',
+            backStep: '6',
+            onEnter: () => { this.isHighlighting = false },
             onNext: () => {
               this.isHighlighting = true
               this.highlightIndex = 4
             }
           },
           {
-            id: '7',
+            id: '8',
             isCentered: false,
             needsBoundingRects: true,
             highlightIndex: 4,
@@ -399,17 +415,17 @@ export default {
             ],
             hasBack: true,
             primaryBtn: 'Next',
-            backStep: '6',
-            nextStep: '8',
+            nextStep: '9',
+            backStep: '7',
             onEnter: () => { if (this.hasBoundingRects) this.isHighlighting = true },
             onNext: () => { this.isHighlighting = false }
           },
           {
-            id: '8',
+            id: '9',
             isCentered: true,
             icon: 'loop',
             titleKey: 'RewardsHelpUR51',
-            titleDefault: 'Continuous Points',
+            titleDefault: 'Earning Continuous Points',
             content: [
               { key: 'RewardsHelpUR53', default: 'You can get points when you shop with our merchants in the Marketplace or pay over the counter. Plus, you can earn even more points by buying from inactive merchants.' },
               { key: 'RewardsHelpUR54', default: 'You can also earn points when you buy BCH through the P2P Ramp or cash in using our vending machines.' },
@@ -417,7 +433,7 @@ export default {
             ],
             hasBack: true,
             primaryBtn: 'Done',
-            backStep: '7',
+            backStep: '8',
             onEnter: () => { this.isHighlighting = false },
             onNext: () => this.close()
           },
