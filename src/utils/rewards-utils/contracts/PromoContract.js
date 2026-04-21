@@ -102,13 +102,13 @@ export default class PromoContract {
       // compute fee
       const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
       // +1 in outputs length for bch change output
-      const fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5)
+      payload.fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5) + 1000n
 
       // insert bch change outputs to outputs[1]
       // (token change output is now in outputs[2] if existing)
       outputs.splice(1, 0, {
         to: this.contract.tokenAddress,
-        amount: bchBalance - fee - 1000n
+        amount: bchBalance - payload.fee
       })
 
       // build and broadcast transaction
@@ -125,7 +125,7 @@ export default class PromoContract {
       if (error?.requireStatement?.message)
         payload.error = error?.requireStatement?.message
       else payload.error = error.message
-      payload.fee = (fee || 0n) + 1000n
+      payload.fee = (payload.fee || 0n) + 1000n
     }
 
     return payload
