@@ -18,7 +18,7 @@ async function startAddressDiscovery(data) {
   let depositAddrNextIndex = lastUsedDepositAddressIndex + 1
   let changeAddrNextIndex = lastUsedChangeAddressIndex + 1
 
-  let applyRateLimit = true
+  let applyRateLimit = options.applyRateLimit ?? true
   let minimumNumberOfAddresses = options.minimumNumberOfAddresses || MINIMUM_NUMBER_OF_ADDRESSES
   let nextIndex = options.fullScan ? 0: Math.min(depositAddrNextIndex, changeAddrNextIndex)
 
@@ -34,28 +34,6 @@ async function startAddressDiscovery(data) {
         }
   
         const addressPrefix = options.network === 'mainnet' ? CashAddressNetworkPrefix.mainnet : CashAddressNetworkPrefix.testnet
-        
-        // if (depositAddrGapLimit > 0) {
-        //   nextDepositAddr = getDepositAddress({ 
-        //     multisigWallet, 
-        //     addressIndex: depositAddrNextIndex, 
-        //     prefix: addressPrefix
-        //   })
-        //   addressSet.receiving = nextDepositAddr
-        //   depositAddrNextIndex++
-        // }
-  
-        // if (changeAddrGapLimit > 0) {
-        //   nextChangeAddr = getChangeAddress({ 
-        //     multisigWallet, 
-        //     addressIndex: changeAddrNextIndex, 
-        //     prefix: addressPrefix
-        //   })
-  
-        //   addressSet.receiving = nextChangeAddr
-        //   changeAddrNextIndex++
-        // }
-
         
         nextDepositAddr = getDepositAddress({ 
           multisigWallet, 
@@ -81,18 +59,44 @@ async function startAddressDiscovery(data) {
 
       const results = response.data?.results
       results?.sort((a, b) => b.address_index - a.address_index)
-      const depositWithHistory = results.filter(r => r.receiving?.has_history) 
-      const changeWithHistory = results.filter(r => r.change?.has_history) 
-      depositAddrGapLimit = depositWithHistory.length
-      changeAddrGapLimit = changeWithHistory.length
 
-      if (depositWithHistory[0]?.address_index !== undefined) {
-        lastUsedDepositAddressIndex = depositWithHistory[0]?.address_index
-      }
-      if (changeWithHistory[0]?.address_index !== undefined) {
-        lastUsedChangeAddressIndex = changeWithHistory[0]?.address_index
+      let newLastUsedDepositIndex = -1
+      let newLastUsedChangeIndex = -1
+      let depositUnusedCount = 0
+      let changeUnusedCount = 0
+
+      for (const result of results) {
+        const hasDepositHistory = result.receiving?.has_history
+        const hasChangeHistory = result.change?.has_history
+
+        if (hasDepositHistory) {
+          if (result.address_index > newLastUsedDepositIndex) {
+            newLastUsedDepositIndex = result.address_index
+          }
+          depositUnusedCount = 0
+        } else {
+          depositUnusedCount++
+        }
+
+        if (hasChangeHistory) {
+          if (result.address_index > newLastUsedChangeIndex) {
+            newLastUsedChangeIndex = result.address_index
+          }
+          changeUnusedCount = 0
+        } else {
+          changeUnusedCount++
+        }
       }
 
+      if (newLastUsedDepositIndex > lastUsedDepositAddressIndex) {
+        lastUsedDepositAddressIndex = newLastUsedDepositIndex
+      }
+      if (newLastUsedChangeIndex > lastUsedChangeAddressIndex) {
+        lastUsedChangeAddressIndex = newLastUsedChangeIndex
+      }
+
+      depositAddrGapLimit = Math.max(0, options.gapLimit - depositUnusedCount)
+      changeAddrGapLimit = Math.max(0, options.gapLimit - changeUnusedCount)
       self.postMessage({
         id,
         success: true,
