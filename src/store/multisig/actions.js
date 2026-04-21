@@ -10,7 +10,6 @@ export async function discoverAddresses({ commit, state, rootState, rootGetters 
         const network = rootState.isChipnet ? 'chipnet': 'mainnet'
         
         const onProgress = (workerProgress) => {  
-            workerId = workerProgress.id
             if (!state.workers?.[workerProgress.id]) {
                 commit('addWorker', {
                     id: workerProgress.id,
