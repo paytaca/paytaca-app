@@ -17,9 +17,7 @@ export class MultisigWorker {
       const pending = this.pendingRequests.get(id)
       // console.log('EVENT DATA RECEIVED', event.data, result.final === false && pending.onProgress)
       if (pending) {
-        console.log('PENDING', pending)
         if (success) {
-          console.log('EVENT', event)
           if (final === false && pending.onProgress) {
             pending.onProgress(event.data)
             return 
