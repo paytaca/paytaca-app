@@ -71,6 +71,7 @@
               class="button redeem-btn card-help-highlight"
               :class="getDarkModeClass(darkMode)"
               :label="$t('RedeemPoints', 'Redeem Points')"
+              :disable="points === 0"
               @click="openRedeemPointsDialog"
             />
             <br/>
