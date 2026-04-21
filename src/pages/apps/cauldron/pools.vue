@@ -198,7 +198,7 @@ import { useCauldronValueFormatters } from "src/composables/cauldron/ui-helpers"
 import { useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from "vuex";
-import { defineComponent, computed, ref, onMounted, onActivated } from "vue";
+import { defineComponent, computed, ref, onMounted, onActivated, watch } from "vue";
 import HeaderNav from 'src/components/header-nav';
 import CauldronHeaderMenu from "src/components/cauldron/CauldronHeaderMenu.vue";
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
@@ -215,6 +215,9 @@ export default defineComponent({
     const $store = useStore();
     const $q = useQuasar();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    
+    // Wallet index for detecting wallet switches
+    const walletIndex = computed(() => $store.getters['global/getWalletIndex']);
 
     /** @type {import('vue').Ref<import('src/wallet').Wallet>} */
     const wallet = ref();
@@ -242,6 +245,20 @@ export default defineComponent({
         fetchingPools.value = false
       }
     }
+
+    // Watch for wallet switching - re-initialize wallet and fetch pools for new wallet
+    watch(walletIndex, async (newIndex, oldIndex) => {
+      if (oldIndex === undefined) return; // Skip initial value
+      
+      // Reset pools list
+      pools.value = [];
+      
+      // Re-initialize wallet with new wallet index
+      await initializeWallet();
+      
+      // Fetch pools for new wallet
+      await fetchMicroPools();
+    });
 
     /** @type {import('vue').Ref<import('src/wallet/cauldron/tokens').CauldronTokenData[]>} */
     const tokenData = ref([])

@@ -35,14 +35,21 @@
           <div class="amount-display q-mb-xs">
             {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
           </div>
+          <div class="price-per-token text-caption q-mb-xs" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+            @ ${{ getPricePerToken() }}/LIFT
+          </div>
+          <div v-if="getPurchaseDiscount() > 0" class="discount-info q-mb-xs">
+            <q-icon name="mdi-sale" size="14px" class="q-mr-xs text-positive" />
+            <span class="text-caption text-weight-bold text-positive">
+              {{ formatWithLocale(getPurchaseDiscount(), { max: 2 }) }}% {{ $t("DiscountApplied") }}
+            </span>
+            <span class="original-price text-caption text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
+              ({{ $t('OriginalPrice', 'Original') }}: {{ parseFiatCurrency(getOriginalPriceUsd(), "USD") }})
+            </span>
+          </div>
           <div class="row q-gutter-sm text-caption" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
             <span>
-              {{
-                parseFiatCurrency(
-                  purchase.purchase_partial_details.usd_paid,
-                  "USD"
-                )
-              }}
+              {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, "USD") }}
             </span>
             <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
               <span>•</span>
@@ -106,6 +113,29 @@
                 { method: purchase.purchase_more_details.payment_method?.toUpperCase() || 'FIAT' },
                 `Paid using ${purchase.purchase_more_details.payment_method?.toUpperCase() || 'FIAT'}`
               ) }}
+            </div>
+          </div>
+
+          <div class="detail-row q-mb-sm">
+            <div class="detail-label">
+              <q-icon name="mdi-tag-outline" size="16px" class="q-mr-xs" />
+              {{ $t('PricePerToken') }}
+            </div>
+            <div class="detail-value">
+              <span>${{ getPricePerToken() }}/LIFT</span>
+              <span v-if="getPurchaseDiscount() > 0" class="original-price text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
+                (${{ formatWithLocale(getBasePricePerToken(), { min: 2, max: 6 }) }}/LIFT)
+              </span>
+            </div>
+          </div>
+
+          <div v-if="getPurchaseDiscount() > 0" class="detail-row q-mb-sm">
+            <div class="detail-label">
+              <q-icon name="mdi-sale" size="16px" class="q-mr-xs text-positive" />
+              {{ $t('Discount') }}
+            </div>
+            <div class="detail-value text-positive text-weight-medium">
+              {{ formatWithLocale(getPurchaseDiscount(), { max: 2 }) }}%
             </div>
           </div>
 
@@ -267,8 +297,9 @@ import {
 import {
   parseFiatCurrency,
   getAssetDenomination,
+  formatWithLocale,
 } from "src/utils/denomination-utils";
-import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
+import { SaleGroup, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 
 import StatusChip from "src/components/rewards/StatusChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
@@ -288,6 +319,7 @@ export default {
   data() {
     return {
       SaleGroup,
+      SaleGroupPrice,
 
       vestingDetailsList: [],
     };
@@ -311,8 +343,32 @@ export default {
     parseLocaleDate,
     parseFiatCurrency,
     getAssetDenomination,
+    formatWithLocale,
     getExplorerLink,
     getExplorerAddressLink,
+
+    getPurchaseDiscount() {
+      return parseFloat(this.purchase?.purchase_more_details?.discount || 0)
+    },
+    getOriginalPriceUsd() {
+      const discount = this.getPurchaseDiscount()
+      const usdPaid = this.purchase?.purchase_partial_details?.usd_paid || 0
+      if (discount > 0 && usdPaid > 0) {
+        return usdPaid / (1 - discount / 100)
+      }
+      return 0
+    },
+    getPricePerToken() {
+      const tknPaid = this.purchase?.purchase_partial_details?.tkn_paid || 0
+      const usdPaid = this.purchase?.purchase_partial_details?.usd_paid || 0
+      if (tknPaid === 0) return '0'
+      const ppt = (usdPaid * 100) / tknPaid
+      return this.formatWithLocale(ppt, { min: 2, max: 6 })
+    },
+    getBasePricePerToken() {
+      const saleGroup = this.purchase?.purchase_more_details?.sale_group
+      return SaleGroupPrice[saleGroup] || 0
+    },
 
     getThemeColor() {
       const themeColors = {
@@ -416,6 +472,19 @@ export default {
   .dark & {
     color: #ffffff;
   }
+}
+
+.price-per-token {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.discount-info {
+  margin-bottom: 4px;
+}
+
+.original-price {
+  text-decoration: line-through;
 }
 
 .detail-row {

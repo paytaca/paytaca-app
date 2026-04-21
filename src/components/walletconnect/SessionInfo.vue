@@ -412,8 +412,8 @@ async function copyCurrentAddress() {
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgb(253,253,253, .023);
-  border: 1px solid #80808038;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(128, 128, 128, 0.22);
   border-radius: 15px;
   pointer-events: none;
 }
@@ -495,5 +495,13 @@ async function copyCurrentAddress() {
 .expand-btn .q-icon {
   font-size: 28px;
   font-weight: bold;
+}
+</style>
+
+<style lang="scss">
+/* Dark mode overrides for session card backgrounds */
+.wallet-connect-container.dark .session-info-flat:after {
+  background-color: rgba(253, 253, 253, 0.023);
+  border: 1px solid rgba(128, 128, 128, 0.22);
 }
 </style>

@@ -7,13 +7,70 @@
 		</div>
 		
 		<div class="row no-wrap q-pl-lg q-mb-lg no-scrollbar pending-container">
+			<!-- WalletConnect Requests (displayed first) -->
+			<div
+				v-for="(item, index) in walletConnectRequests"
+				:key="'wc-' + item.id"
+				class="pending-card pt-card"
+				:class="darkMode ? 'dark' : 'light'"
+				:style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
+				@click="selectTransaction(item.id, 'walletconnect')"
+			>
+				<q-badge 
+					:color="darkMode ? 'light-blue-4' : 'light-blue-8'"
+					class="q-mb-sm"
+					style="font-size: 9px; padding: 3px 8px;"
+				>
+					WalletConnect
+				</q-badge>
+
+				<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">
+					{{ item.session?.peer?.metadata?.name || $t('dAppRequest', {}, 'dApp Request') }}
+				</div>
+				<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+					{{ formatWcMethod(item.params?.request?.method) }}
+				</div>
+				<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+					{{ $t('AwaitingApproval', {}, 'Awaiting approval') }}
+				</div>
+			</div>
+
+			<!-- WizardConnect Requests -->
+			<div
+				v-for="(item, index) in wizardConnectRequests"
+				:key="'wizard-' + item.connectionId + '-' + item.sequence"
+				class="pending-card pt-card"
+				:class="darkMode ? 'dark' : 'light'"
+				:style="{ 'margin-left': (index === 0 && walletConnectRequests.length === 0) ? '0px' : '12px' }"
+				@click="selectTransaction(item.connectionId, 'wizardconnect')"
+			>
+				<q-badge 
+					:color="darkMode ? 'deep-purple-4' : 'deep-purple-6'"
+					class="q-mb-sm"
+					style="font-size: 9px; padding: 3px 8px;"
+				>
+					WizardConnect
+				</q-badge>
+
+				<div class="order-number" :class="darkMode ? 'text-white' : 'text-black'">
+					{{ wizardConnectConnections[item.connectionId]?.dappName || $t('dAppRequest', {}, 'dApp Request') }}
+				</div>
+				<div class="order-counterparty" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
+					{{ truncateText(item.userPrompt, 25) || $t('SignRequest', {}, 'Sign Request') }}
+				</div>
+				<div class="order-status" :class="darkMode ? 'text-grey-4' : 'text-grey-8'">
+					{{ $t('AwaitingApproval', {}, 'Awaiting approval') }}
+				</div>
+			</div>
+
+			<!-- P2P Ramp Orders -->
 			<div
 				v-if="pending"
 				v-for="(item, index) in pending"
 				:key="item.id"
 				class="pending-card pt-card"
 				:class="darkMode ? 'dark' : 'light'"
-				:style="{ 'margin-left': index === 0 ? '0px' : '12px' }"
+				:style="{ 'margin-left': (index === 0 && walletConnectRequests.length === 0 && wizardConnectRequests.length === 0) ? '0px' : '12px' }"
 				@click="selectTransaction(item.id, 'exchange')"
 			>
 				<q-badge 
@@ -41,13 +98,15 @@
 					{{ item.status.label }}
 				</div>
 			</div>
+
+			<!-- P2P Ramp Appeals -->
 			<div 
 				v-if="pendingAppeals"				
 				v-for="(item, index) in pendingAppeals"
 				:key="item.id"
 				class="pending-card pt-card"
 				:class="darkMode ? 'dark' : 'light'"
-				:style="{ 'margin-left': (index === 0 && pending.length === 0) ? '0px' : '12px' }"
+				:style="{ 'margin-left': (index === 0 && walletConnectRequests.length === 0 && wizardConnectRequests.length === 0 && pending.length === 0) ? '0px' : '12px' }"
 				@click="selectTransaction(item.order.id, 'appeal')"
 			>
 				<q-badge 	
@@ -67,13 +126,15 @@
 					{{ Array.isArray(item.reasons) && item.reasons.length > 0 ? item.reasons[0] : '' }}
 				</div>
 			</div>
+
+			<!-- Marketplace Orders -->
             <div
          			v-if="marketplaceOrders"
          			v-for="(item, index) in marketplaceOrders"
          			:key="item.id"
          			class="pending-card pt-card"
          			:class="darkMode ? 'dark' : 'light'"
-         			:style="{ 'margin-left': (index === 0 && pending.length === 0 && pendingAppeals.length === 0) ? '0px' : '12px' }"
+         			:style="{ 'margin-left': (index === 0 && walletConnectRequests.length === 0 && wizardConnectRequests.length === 0 && pending.length === 0 && pendingAppeals.length === 0) ? '0px' : '12px' }"
    				@click="selectTransaction(item.id, 'marketplace')"
          	>
          		<q-badge
@@ -141,8 +202,24 @@ export default {
 	    userInfo () {
 	      return this.$store.getters['ramp/getUser']
 	    },
+	    // WalletConnect session requests from Vuex store
+	    walletConnectRequests () {
+	      return this.$store.getters['walletconnect/getSessionRequests'] || []
+	    },
+	    // WizardConnect pending requests from Vuex store
+	    wizardConnectRequests () {
+	      return this.$store.getters['wizardconnect/getPendingRequests'] || []
+	    },
+	    // WizardConnect connections for looking up dApp names
+	    wizardConnectConnections () {
+	      return this.$store.getters['wizardconnect/getConnections'] || {}
+	    },
 	    emptyList () {
-	    	return this.pending.length === 0 && this.marketplaceOrders.length === 0 && this.pendingAppeals.length == 0
+	    	return this.pending.length === 0 
+	    		&& this.marketplaceOrders.length === 0 
+	    		&& this.pendingAppeals.length === 0
+	    		&& this.walletConnectRequests.length === 0
+	    		&& this.wizardConnectRequests.length === 0
 	    }
 	},
 	components: {
@@ -251,7 +328,13 @@ export default {
 	      return order?.owner?.name
 	    },
     selectTransaction(transactionID, type) {
-    	if (type === 'exchange') {
+    	if (type === 'walletconnect') {
+    		// Navigate to WalletConnect app page
+    		this.$router.push({ name: 'app-wallet-connect' })
+    	} else if (type === 'wizardconnect') {
+    		// Navigate to WizardConnect app page
+    		this.$router.push({ name: 'app-wizard-connect' })
+    	} else if (type === 'exchange') {
     		const params = {
     			order: transactionID,
     			redirect: true
@@ -262,6 +345,26 @@ export default {
     	} else if (type === 'appeal') {
     		this.$router.push({ name: 'exchange', query: { appeal_id: transactionID }})
     	}
+    },
+    /**
+     * Format WalletConnect method name for display
+     * e.g., 'bch_signTransaction' -> 'Sign Transaction'
+     */
+    formatWcMethod(method) {
+    	if (!method) return this.$t('SignRequest', {}, 'Sign Request')
+    	// Remove 'bch_' prefix and convert camelCase to Title Case
+    	return method
+    		.replace('bch_', '')
+    		.replace(/([A-Z])/g, ' $1')
+    		.replace(/^./, str => str.toUpperCase())
+    		.trim()
+    },
+    /**
+     * Truncate text to specified length with ellipsis
+     */
+    truncateText(text, maxLength) {
+    	if (!text) return ''
+    	return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
     },
 async fetchMarketOrders(opts={limit: 0, offset: 0 }) {    	
     	const vm = this	

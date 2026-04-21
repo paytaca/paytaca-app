@@ -14,7 +14,7 @@
         <q-page-container>
           <q-page class="q-pa-none">
             <div class="row justify-center">
-              <div class="col-xs-12 col-sm-8 q-px-xs q-mb-lg" style="padding-bottom: 100px;">
+              <div class="col-xs-12 col-sm-8 q-px-xs q-mb-lg" :style="{ paddingBottom: customKeyboardState === 'show' ? '320px' : '100px' }">
             <template v-if="wallet">
                 <div class="row">
                   <div class="col-xs-12 flex items-center justify-center text-bold text-h6">
@@ -204,7 +204,7 @@ import Big from 'big.js'
 import HeaderNav from 'components/header-nav'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { parseKey, adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
+import { adjustSplicedAmount } from 'src/utils/custom-keyboard-utils'
 import {
   shortenString,
   MultisigWallet,
@@ -432,6 +432,19 @@ const onAmountFocus = (index) => {
   currentRecipientIndex.value = index
   focusedInputField.value = 'amount'
   customKeyboardState.value = 'show'
+  
+  setTimeout(() => {
+    const inputRef = amountInputRefs.value[index]
+    const inputEl = inputRef?.$el?.querySelector?.('input') || inputRef?.$el
+    if (inputEl) {
+      const keyboardHeight = 300
+      const inputRect = inputEl.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const targetTop = (viewportHeight - keyboardHeight) / 2 - inputEl.offsetHeight
+      const scrollTop = inputRect.top + window.scrollY - targetTop
+      window.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+    }
+  }, 100)
 }
 
 const onAddressFocus = () => {
@@ -450,13 +463,11 @@ const asset = computed(() => {
   }
 })
 
-const setAmount = (key) => {
+const setAmount = (amount) => {
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
-  const currentRef = amountInputRefs.value[currentRecipientIndex.value]
-  const caret = currentRef?.nativeEl?.selectionStart
-  recipient.amount = parseKey(key, recipient.amount, caret, asset.value)
+  recipient.amount = `${recipient.amount}${amount}`
 }
 
 const makeKeyAction = (action) => {
@@ -464,7 +475,6 @@ const makeKeyAction = (action) => {
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
   const currentRef = amountInputRefs.value[currentRecipientIndex.value]
-
   if (action === 'backspace') {
     const caret = (currentRef?.nativeEl?.selectionStart ?? recipient.amount.length) - 1
     recipient.amount = adjustSplicedAmount(recipient.amount, caret)
