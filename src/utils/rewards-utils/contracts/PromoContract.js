@@ -53,7 +53,12 @@ export default class PromoContract {
     this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
   }
 
-  async redeemPoints (userWif, rewardsSwapContractAddress, pointsToRedeem) {
+  async redeemPoints (
+    userWif,
+    rewardsSwapContractAddress,
+    pointsToRedeem,
+    rewardsSwapContractBytecode
+  ) {
     const payload = { txid: '', error: '', fee: 0 }
 
     try {
@@ -100,7 +105,11 @@ export default class PromoContract {
       }
 
       // compute fee
-      const tx = this.contract.functions.easyWithdraw(new SignatureTemplate(userWif), this.promo)
+      const tx = this.contract.functions.send(
+        new SignatureTemplate(userWif),
+        this.promo,
+        rewardsSwapContractBytecode
+      )
       // +1 in outputs length for bch change output
       payload.fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5) + 1000n
 
@@ -115,7 +124,11 @@ export default class PromoContract {
       const txHex = new TransactionBuilder({ provider: this.provider })
         .addInputs(
           inputs,
-          this.contract.unlock.easyWithdraw(new SignatureTemplate(userWif), this.promo)
+          this.contract.unlock.send(
+            new SignatureTemplate(userWif),
+            this.promo,
+            rewardsSwapContractBytecode
+          )
         )
         .addOutputs(outputs)
         .build()
