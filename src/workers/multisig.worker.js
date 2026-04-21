@@ -64,11 +64,11 @@ async function startAddressDiscovery(data) {
       let newLastUsedChangeIndex = -1
       let depositUnusedCount = 0
       let changeUnusedCount = 0
-
+      let reportProgress = false
       for (const result of results) {
         const hasDepositHistory = result.receiving?.has_history
         const hasChangeHistory = result.change?.has_history
-
+        reportProgress = hasDepositHistory || hasChangeHistory
         if (hasDepositHistory) {
           if (result.address_index > newLastUsedDepositIndex) {
             newLastUsedDepositIndex = result.address_index
@@ -97,13 +97,17 @@ async function startAddressDiscovery(data) {
 
       depositAddrGapLimit = Math.max(0, options.gapLimit - depositUnusedCount)
       changeAddrGapLimit = Math.max(0, options.gapLimit - changeUnusedCount)
-      self.postMessage({
-        id,
-        success: true,
-        final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
-        lastUsedDepositAddressIndex,
-        lastUsedChangeAddressIndex
-      })
+
+      if (reportProgress) {
+        self.postMessage({
+          id,
+          success: true,
+          final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+          lastUsedDepositAddressIndex,
+          lastUsedChangeAddressIndex
+        })
+      }
+      
       minimumNumberOfAddresses -= options.gapLimit
     } catch (error) {
       self.postMessage({
