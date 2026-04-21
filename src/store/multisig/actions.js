@@ -2,7 +2,9 @@ import { getMultisigWorker } from 'src/workers/index';
 
 export async function discoverAddresses({ commit, state, rootState, rootGetters }, payload) {
 
-    let workerId = ''
+    // Walleth hash is used as the worker id of the address discovery worker
+    let workerId = payload.multisigWallet.walletHash
+
     try {
         const worker = getMultisigWorker();
         const network = rootState.isChipnet ? 'chipnet': 'mainnet'
@@ -55,8 +57,8 @@ export async function discoverAddresses({ commit, state, rootState, rootGetters 
                 network
             })
             commit('removeWorker', workerResult.id)
-
         }
+
     } catch (error) {
         if (workerId) {
             commit('updateWorkerStatus', { id: workerId, status: 'error', error: error }) 
