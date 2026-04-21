@@ -10,6 +10,7 @@ class PluginViewController: CAPBridgeViewController {
         // Custom plugins (local Swift files)
         bridge?.registerPluginInstance(SaveToGalleryPlugin())
         bridge?.registerPluginInstance(ScreenshotSecurityPlugin())
+        bridge?.registerPluginInstance(AudioModePlugin())
     }
 }
 

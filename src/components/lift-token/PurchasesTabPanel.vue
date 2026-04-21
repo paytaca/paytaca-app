@@ -116,21 +116,34 @@
               </div>
             </div>
 
-            <div class="row col-12 flex-center q-mb-sm">
+            <div class="row col-12 flex-center q-mb-xs">
               <div class="lift-amount text-h6 text-weight-bold">
                 {{ parseLiftToken(purchase.purchase_partial_details.tkn_paid) }}
               </div>
             </div>
 
-            <div class="row col-12 justify-between q-mb-sm">
-              <span class="usd-amount text-subtitle1 text-weight-medium">
-                {{
-                  parseFiatCurrency(
-                    purchase.purchase_partial_details.usd_paid,
-                    "usd"
-                  )
-                }}
+            <div class="row col-12 justify-center q-mb-xs">
+              <span class="price-per-token text-caption" :class="darkMode ? 'text-grey-4' : 'text-grey-7'">
+                @ ${{ getPricePerToken(purchase) }}/LIFT
               </span>
+            </div>
+
+            <div v-if="getPurchaseDiscount(purchase) > 0" class="discount-banner q-mb-sm q-pa-xs text-center">
+              <q-icon name="mdi-sale" size="xs" class="q-mr-xs" />
+<span class="text-caption text-weight-bold">
+                  {{ formatWithLocale(getPurchaseDiscount(purchase), { max: 2 }) }}% {{ $t("DiscountApplied") }}
+                </span>
+            </div>
+
+            <div class="row col-12 justify-between q-mb-sm items-start">
+              <div>
+                <span class="usd-amount text-subtitle1 text-weight-medium">
+                  {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, "USD") }}
+                </span>
+                <span v-if="getPurchaseDiscount(purchase) > 0" class="original-price text-caption text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
+                  {{ parseFiatCurrency(getOriginalPriceUsd(purchase), "USD") }}
+                </span>
+              </div>
               <span class="bch-amount text-subtitle1 text-weight-medium">
                 <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
                   {{
@@ -250,12 +263,13 @@ import {
   parseLiftToken,
   parseLocaleDate,
 } from "src/utils/engagementhub-utils/shared";
-import { SaleGroup } from "src/utils/engagementhub-utils/lift-token";
 import {
   parseFiatCurrency,
   getAssetDenomination,
+  formatWithLocale,
 } from "src/utils/denomination-utils";
 
+import { SaleGroup, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PurchaseInfoDialog from "./dialogs/PurchaseInfoDialog.vue";
@@ -276,6 +290,7 @@ export default {
   data() {
     return {
       SaleGroup,
+      SaleGroupPrice,
 
       finalPurchasesList: [],
 
@@ -301,7 +316,31 @@ export default {
     parseLiftToken,
     parseFiatCurrency,
     getAssetDenomination,
+    formatWithLocale,
     parseLocaleDate,
+
+    getPurchaseDiscount(purchase) {
+      return parseFloat(purchase.purchase_more_details?.discount || 0)
+    },
+    getOriginalPriceUsd(purchase) {
+      const discount = this.getPurchaseDiscount(purchase)
+      const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
+      if (discount > 0 && usdPaid > 0) {
+        return usdPaid / (1 - discount / 100)
+      }
+      return 0
+    },
+    getPricePerToken(purchase) {
+      const tknPaid = purchase.purchase_partial_details?.tkn_paid || 0
+      const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
+      if (tknPaid === 0) return '0'
+      const ppt = (usdPaid * 100) / tknPaid
+      return this.formatWithLocale(ppt, { min: 2, max: 6 })
+    },
+    getBasePricePerToken(purchase) {
+      const saleGroup = purchase.purchase_more_details?.sale_group
+      return this.formatWithLocale(SaleGroupPrice[saleGroup] || 0, { min: 2, max: 6 })
+    },
 
     filterPurchasesList(saleGroup) {
       this.selectedFilter = saleGroup;
@@ -462,6 +501,19 @@ export default {
   .dark & {
     color: #ffffff;
   }
+}
+
+.price-per-token {
+  font-size: 0.8rem;
+}
+
+.discount-banner {
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
+  border-radius: 8px;
+}
+
+.original-price {
+  text-decoration: line-through;
 }
 
 .usd-amount {

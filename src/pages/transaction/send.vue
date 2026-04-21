@@ -827,7 +827,8 @@ export default {
 
           this.recipients[i].fiatAmount = this.convertToFiatAmount(amount)
           this.recipients[i].amount = sendPageUtils.convertFiatToSelectedAsset(
-            this.recipients[i].fiatAmount, this.selectedAssetMarketPrice
+            this.recipients[i].fiatAmount, this.selectedAssetMarketPrice,
+            this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
           )
           this.inputExtras[i].fiatFormatted = formatWithLocale(
             this.recipients[i].fiatAmount, this.decimalObj(true)
@@ -852,6 +853,10 @@ export default {
     'storeAsset.yield' (yieldData) {
       if (yieldData === undefined) return
       this.asset = { ...this.asset, yield: yieldData }
+    },
+    'storeAsset.decimals' (decimals) {
+      if (decimals === undefined) return
+      this.asset = { ...this.asset, decimals }
     },
     // Keep displayed balance in sync with BCH spendable/balance updates
     'asset.spendable' () {
@@ -1510,7 +1515,8 @@ export default {
       if (this.focusedInputField === 'fiat') {
         currentRecipient.fiatAmount = currentAmount
         currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-          currentAmount, this.selectedAssetMarketPrice
+          currentAmount, this.selectedAssetMarketPrice,
+          this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
         )
       } else if (this.focusedInputField === 'bch') {
         currentRecipient.amount = currentAmount
@@ -1561,7 +1567,8 @@ export default {
               currentRecipient.fiatAmount, fiatCaretPosition
             )
             currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-              currentRecipient.fiatAmount, this.selectedAssetMarketPrice
+              currentRecipient.fiatAmount, this.selectedAssetMarketPrice,
+              this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
             )
           } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
             currentRecipient.amount = adjustSplicedAmount(
@@ -1734,7 +1741,12 @@ export default {
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(8)
 
-        if (Number(totalAmount) > vm.asset.balance) {
+        const decimals = vm.assetId === 'bch' ? 8 : (vm.asset?.decimals ?? 0)
+        const comparableBalance = vm.assetId === 'bch'
+          ? vm.asset.balance
+          : (Number(vm.asset?.balance) || 0) / (10 ** decimals)
+
+        if (Number(totalAmount) > comparableBalance) {
           raiseNotifyError(vm.$t('TotalAmountError'))
           return
         }
@@ -1900,7 +1912,8 @@ export default {
             const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
             token = {
               tokenId: tokenId,
-              commitment: vm.commitment || undefined,
+              // empty-string is valid for an NFT commitment so should not be collapsed to undefined
+              commitment: vm.commitment ?? undefined,
               capability: vm.capability || undefined,
               txid: vm.$route.query.txid,
               vout: vm.$route.query.vout
@@ -2194,7 +2207,12 @@ export default {
       this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
     },
     decimalObj (isFiat) {
-      return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
+      if (isFiat) return { min: 0, max: 4 }
+      if (this.assetId === 'bch') {
+        return { min: 0, max: getDenomDecimals(this.selectedDenomination).decimal }
+      }
+      const tokenDecimals = this.asset?.decimals ?? 0
+      return { min: 0, max: tokenDecimals || 8 }
     },
 
     // ========== other wallets methods ==========
@@ -2609,6 +2627,11 @@ export default {
         // Best-effort: load CT metadata so decimals/name/logo are accurate for deep links.
         if (vm.assetId?.startsWith?.('ct/')) {
           vm.$store.dispatch('assets/getAssetMetadata', vm.assetId)
+            .then(metadata => {
+              if (metadata && Number.isFinite(metadata.decimals)) {
+                vm.asset = { ...vm.asset, decimals: metadata.decimals, symbol: metadata.symbol || vm.asset.symbol, name: metadata.name || vm.asset.name, logo: metadata.logo || vm.asset.logo }
+              }
+            })
             .catch(() => {}) // best-effort only
         }
       } catch (e) {

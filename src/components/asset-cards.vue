@@ -145,15 +145,17 @@ export default {
         return this.customList.filter(asset => asset && this.favorites.includes(asset.id))
       } 
       
-      // For CashTokens on BCH network, tokens from API already have favorite field
-      // Use the favorite field directly from tokens instead of separate favorites array
+      // For CashTokens on BCH network, the parent component (transaction/index.vue)
+      // now passes pre-sorted and limited assets (first N tokens with favorites prioritized).
+      // We should display all assets passed to us.
       if (this.assets && this.assets.length > 0) {
-        // Check if tokens have favorite field (from API)
+        // Check if this is coming from the new flow (parent handles sorting/limiting)
+        // by checking if the assets have the favorite field
         const hasFavoriteField = this.assets.some(asset => asset && typeof asset.favorite !== 'undefined')
         
         if (hasFavoriteField) {
-          // Use favorite field from tokens (API provides this)
-          return this.assets.filter(asset => asset && (asset.favorite === 1 || asset.favorite === true))
+          // Parent has already sorted and limited the assets, just return them all
+          return this.assets
         } else {
           // Fall back to legacy favorites array system for SLP compatibility
           if (Array.isArray(this.favorites)) {

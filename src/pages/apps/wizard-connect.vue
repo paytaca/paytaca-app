@@ -13,14 +13,14 @@
       >
         <template v-slot:header>
           <q-item-section>
-            <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+            <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
               {{ $t('InitiateNewWizardConnectSession', {}, 'Initiate New WizardConnect Session') }}
             </div>
           </q-item-section>
         </template>
 
         <div class="q-px-lg q-pb-lg">
-          <div class="text-caption q-mb-md" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+          <div class="text-caption q-mb-md text-bow" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
             {{
               $t(
                 'WizScanOrPasteURL',
@@ -318,6 +318,10 @@ onMounted(() => {
   background-color: #ECF3F3;
   min-height: 100vh;
   padding-bottom: 50px;
+
+  &.dark {
+    background-color: #1a1a1a;
+  }
 }
 
 .paired-icons {
@@ -340,10 +344,18 @@ onMounted(() => {
 
 .scan-option-btn {
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.dark .scan-option-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .scan-option-btn:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
@@ -361,10 +373,15 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgb(253, 253, 253, .023);
-  border: 1px solid #80808038;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(128, 128, 128, 0.22);
   border-radius: 15px;
   pointer-events: none;
+}
+
+.dark .session-info-flat:after {
+  background-color: rgba(253, 253, 253, 0.023);
+  border: 1px solid rgba(128, 128, 128, 0.22);
 }
 
 .session-info-attribute-url {
