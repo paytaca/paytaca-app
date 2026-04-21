@@ -340,7 +340,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
   getLiftConversionRatio,
-  getRewardsSwapContractAddress,
+  getRewardsSwapContractDetails,
   getWalletTokenAddress,
   recordPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
@@ -401,7 +401,8 @@ export default {
       tokenAddress: '',
       quickAmounts: [25, 50, 75, 100],
       wallet: null,
-      rewardsSwapContractAddress: null
+      rewardsSwapContractAddress: null,
+      rewardsSwapContractBytecode: null
     }
   },
 
@@ -478,7 +479,7 @@ export default {
     Promise.allSettled([
       this.initWallet(),
       this.initializeData(),
-      this.fetchRewardsSwapContractAddress()
+      this.fetchRewardsSwapContractDetails()
     ])
   },
 
@@ -521,10 +522,12 @@ export default {
         this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
       }
     },
-    async fetchRewardsSwapContractAddress () {
-      const tokenAddress = await getRewardsSwapContractAddress()
-      if (tokenAddress) this.rewardsSwapContractAddress = tokenAddress
-      else {
+    async fetchRewardsSwapContractDetails () {
+      const resp = await getRewardsSwapContractDetails()
+      if (resp) {
+        this.rewardsSwapContractAddress = resp.token_address
+        this.rewardsSwapContractBytecode = resp.bytecode
+      } else {
         console.error('Error fetching rewards swap contract address.')
         this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
       }
@@ -673,7 +676,10 @@ export default {
         
         // call contract to swap promo tokens to LIFT
         const redeemResp = await this.contract.redeemPoints(
-          wif, this.rewardsSwapContractAddress, this.liftToReceive
+          wif,
+          this.rewardsSwapContractAddress,
+          this.liftToReceive,
+          this.rewardsSwapContractBytecode
         )
         if (redeemResp.error !== '') {
           fee = Number(redeemResp.fee)

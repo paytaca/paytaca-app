@@ -143,8 +143,8 @@ export async function getLiftConversionRatio () {
     : 4
 }
 
-export async function getRewardsSwapContractAddress () {
-  return await getData('userpromo/get_rewards_swap_contract_address/')
+export async function getRewardsSwapContractDetails () {
+  return await getData('userpromo/get_rewards_swap_contract_details/')
 }
 
 // ========== create functions ==========
