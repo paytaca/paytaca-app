@@ -2,12 +2,13 @@ import { getMultisigWorker } from '../../workers/index';
 
 export async function discoverAddresses({ commit, state, rootState, rootGetters }, payload) {
 
+    
     // Walleth hash is used as the worker id of the address discovery worker
     let workerId = payload.multisigWallet.walletHash
 
     try {
         const worker = getMultisigWorker();
-        const network = rootState.isChipnet ? 'chipnet': 'mainnet'
+        const network = rootState.global.isChipnet ? 'chipnet': 'mainnet'
         
         const onProgress = (workerProgress) => {  
             if (!state.workers?.[workerProgress.id]) {
@@ -34,7 +35,7 @@ export async function discoverAddresses({ commit, state, rootState, rootGetters 
         const options = {
             watchtowerBaseUrl: rootGetters['global/getWatchtowerBaseUrl'],
             gapLimit: payload.addressDiscoveryGapLimit || state.settings.addressDiscoveryGapLimit || 20,
-            network: rootState.global.isChipnet ? 'testnet': 'mainnet',
+            network: rootState.global.isChipnet ? 'chipnet': 'mainnet',
             fullScan: payload.fullScan || true
         }
 
