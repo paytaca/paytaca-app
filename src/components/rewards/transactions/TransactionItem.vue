@@ -1,23 +1,35 @@
 <template>
   <q-item class="transaction-item">
     <q-item-section avatar>
-      <q-icon
-        :name="typeConfig.icon"
-        size="24px"
-        color="white"
-        class="q-pa-sm"
-        :class="typeConfig.bgClass"
-        style="border-radius: 50%;"
-      />
+      <template v-if="pendingIndex">
+        <span
+          class="pending-number"
+          :class="darkMode ? 'bg-grey-7' : 'bg-grey-4'"
+        />
+      </template>
+      <template v-else>
+        <q-icon
+          :name="typeConfig.icon"
+          size="24px"
+          color="white"
+          class="q-pa-sm"
+          :class="typeConfig.bgClass"
+          style="border-radius: 50%;"
+        />
+      </template>
     </q-item-section>
-    
+
     <q-item-section>
-      <q-item-label clickable @click="redirect" class="row items-center">
+      <q-item-label
+        :clickable="typeConfig.redirect !== 'none'"
+        @click="redirect"
+        class="row items-center"
+      >
         <span class="text-weight-medium" style="word-break: break-all;">
           {{ labelText }}
         </span>
         <q-icon
-          v-if="data.type !== 'vm'"
+          v-if="data.type !== 'vm' && typeConfig.redirect !== 'none'"
           name="open_in_new"
           size="14px"
           class="q-ml-sm"
@@ -29,14 +41,14 @@
           {{ data.merchant_name }}
         </span>
       </q-item-label>
-      <q-item-label caption>
+      <q-item-label caption v-if="!pendingIndex">
         <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
           {{ formatDateLocaleRelative(data.created_at, false) }}
         </span>
       </q-item-label>
     </q-item-section>
-    
-    <q-item-section side>
+
+    <q-item-section side v-if="!pendingIndex">
       <points-badge
         :complete="true"
         :dark-mode-class="getDarkModeClass(darkMode)"
@@ -66,6 +78,10 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
+    },
+    pendingIndex: {
+      type: Number,
+      default: null
     }
   },
   
@@ -105,6 +121,13 @@ export default {
           bgClass: 'bg-primary',
           label: (data) => `Order ID ${data.order_txn_id}`,
           redirect: 'transaction',
+          showMerchantName: false
+        },
+        pending: {
+          icon: null,
+          bgClass: 'bg-grey-5',
+          label: () => 'Not yet completed',
+          redirect: 'none',
           showMerchantName: false
         }
       }
@@ -155,13 +178,24 @@ export default {
   padding: 12px 16px;
   min-height: 72px;
   transition: background-color 0.2s ease;
-  
+
   &:hover {
     background: rgba(59, 123, 246, 0.05);
   }
-  
+
   .dark &:hover {
     background: rgba(59, 123, 246, 0.1);
   }
+}
+
+.pending-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
 }
 </style>

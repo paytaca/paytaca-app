@@ -285,45 +285,15 @@
       
                   <q-card flat class="achievement-sub-card" :class="getDarkModeClass(darkMode)">
                     <q-card-section>
-                      <q-item
-                        v-for="(item, index) in firstSevenTransactions"
-                        :key="index"
-                        class="task-item q-mb-sm row items-center"
-                      >
-                        <q-item-section avatar>
-                          <span
-                            class="task-number"
-                            :class="[item.ref_id !== '' ? 'completed' : 'pending', getDarkModeClass(darkMode)]"
-                          >
-                            {{ index + 1 }}
-                          </span>
-                        </q-item-section>
-                        <q-item-section v-if="item.ref_id !== '' && item.date != ''">
-                          <q-item-label class="row items-center" @click="redirectToTx(item.tx_id)">
-                            <span class="text-weight-medium">
-                              Ref ID {{ item.ref_id }}
-                            </span>
-                            <q-icon name="open_in_new" size="14px" class="q-ml-sm" color="primary" />
-                          </q-item-label>
-                          <q-item-label caption>
-                            {{ $t(
-                                'LastDate',
-                                { date: formatDateLocaleRelative(item.date, false) },
-                                `last ${formatDateLocaleRelative(item.date, false)}`
-                              ) }}
-                          </q-item-label>
-                        </q-item-section>
-                        <q-item-section v-else :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                          Not yet completed
-                        </q-item-section>
-                        <q-item-section side v-if="item.ref_id !== '' && item.date != ''">
-                          <points-badge
-                            :complete="true"
-                            :dark-mode-class="getDarkModeClass(darkMode)"
-                            :points="item.points_earned"
-                          />
-                        </q-item-section>
-                      </q-item>
+                      <template v-for="(item, index) in transformedFirstSeven" :key="index">
+                        <transaction-item
+                          :data="item"
+                          :dark-mode="darkMode"
+                          :pending-index="item.type === 'pending' ? index + 1 : null"
+                          class="q-mb-sm"
+                        />
+                        <q-separator v-if="index < transformedFirstSeven.length - 1" />
+                      </template>
                     </q-card-section>
                   </q-card>
                 </q-expansion-item>
@@ -501,6 +471,7 @@ import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
 import AchievementCard from 'src/components/rewards/cards/AchievementCard.vue'
 import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
 import RedeemHistoryDialog from 'src/components/rewards/dialogs/RedeemHistoryDialog.vue'
+import TransactionItem from 'src/components/rewards/transactions/TransactionItem.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -515,6 +486,7 @@ export default {
     ErrorCard,
     AchievementIcon,
     AchievementCard,
+    TransactionItem,
   },
 
   props: {
@@ -589,6 +561,31 @@ export default {
       const fromStore = this.$store.getters['global/language']
       const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
       return String(candidate).replace('_', '-')
+    },
+    transformedFirstSeven () {
+      return this.firstSevenTransactions.map(item => {
+        if (item.merchant_tx) {
+          return {
+            type: item.merchant_tx.type,
+            order_id: item.merchant_tx.order_id,
+            ref_id: item.merchant_tx.ref_id,
+            tx_id: item.merchant_tx.tx_id,
+            merchant_name: item.merchant_tx.merchant_name,
+            points_earned: item.points_earned,
+            created_at: item.merchant_tx.created_at
+          }
+        }
+        if (item.eload_tx) {
+          return {
+            type: 'eload',
+            order_txn_id: item.eload_tx.order_txn_id,
+            order_id: item.eload_tx.order_id,
+            points_earned: item.points_earned,
+            created_at: item.eload_tx.created_at
+          }
+        }
+        return { type: 'pending', points_earned: 0 }
+      })
     },
   },
 
