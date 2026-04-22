@@ -284,7 +284,7 @@
                   </template>
       
                   <q-card flat class="achievement-sub-card" :class="getDarkModeClass(darkMode)">
-                    <q-card-section>
+                    <q-card-section class="q-pa-sm">
                       <template v-for="(item, index) in transformedFirstSeven" :key="index">
                         <transaction-item
                           :data="item"
