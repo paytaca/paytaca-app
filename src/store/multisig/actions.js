@@ -36,7 +36,7 @@ export async function discoverAddresses({ commit, state, rootState, rootGetters 
             watchtowerBaseUrl: rootGetters['global/getWatchtowerBaseUrl'],
             gapLimit: payload.addressDiscoveryGapLimit || state.settings.addressDiscoveryGapLimit || 20,
             network: rootState.global.isChipnet ? 'chipnet': 'mainnet',
-            fullScan: payload.fullScan || true
+            fullScan: payload.fullScan !== false ? true : false
         }
 
         const workerResult = await worker.startAddressDiscovery(
