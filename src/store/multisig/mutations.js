@@ -125,7 +125,6 @@ export function deletePsbt(state, unsignedTransactionHash) {
 }
 
 export function addWorker(state, { id, status }) {
-  state.workers = {}
   if (!state.workers) {
     state.workers = {}
   }
