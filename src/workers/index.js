@@ -1,8 +1,12 @@
+const DEFAULT_REQUEST_TIMEOUT = 120000
+
 export class MultisigWorker {
-  constructor() {
+  constructor(options = {}) {
     this.worker = null
     this.pendingRequests = new Map()
     this.requestId = 0
+    this.requestTimeout = options.requestTimeout || DEFAULT_REQUEST_TIMEOUT
+    this.cleanupInterval = null
   }
 
   start() {
@@ -37,9 +41,29 @@ export class MultisigWorker {
         this.pendingRequests.delete(id)
       }
     }
+
+    this.startCleanupTimer()
+  }
+
+  startCleanupTimer() {
+    if (this.cleanupInterval) return
+    
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now()
+      for (const [id, pending] of this.pendingRequests) {
+        if (now - pending.timestamp > this.requestTimeout) {
+          pending.reject(new Error('Request timeout'))
+          this.pendingRequests.delete(id)
+        }
+      }
+    }, 10000)
   }
 
   stop() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
     if (this.worker) {
       this.worker.terminate()
       this.worker = null
@@ -68,7 +92,8 @@ export class MultisigWorker {
       resolve, 
       reject, 
       onProgress, 
-      promise 
+      promise,
+      timestamp: Date.now()
     });
     
     this.worker.postMessage({
@@ -94,11 +119,20 @@ export class MultisigWorker {
 
 let workerInstance = null
 
-export const getMultisigWorker = () => {
+export const getMultisigWorker = (options) => {
   if (!workerInstance) {
-    workerInstance = new MultisigWorker()
+    workerInstance = new MultisigWorker(options)
   }
   return workerInstance
+}
+
+if (typeof window !== 'undefined' && !window.Capacitor?.isNativePlatform) {
+  window.addEventListener('beforeunload', () => {
+    if (workerInstance) {
+      workerInstance.stop()
+      workerInstance = null
+    }
+  })
 }
 
 export default MultisigWorker
