@@ -4,6 +4,7 @@ import { getDepositAddress, getChangeAddress } from "../lib/multisig/wallet-addr
 
 const DEFAULT_TIMEOUT = 30000
 const MINIMUM_NUMBER_OF_ADDRESSES = 200
+const DEFAULT_GAP_LIMIT = 20
 async function startAddressDiscovery(data) {
   const {
     id,
@@ -11,8 +12,8 @@ async function startAddressDiscovery(data) {
     options,
   } = data
 
-  let depositAddrGapLimit = options.gapLimit
-  let changeAddrGapLimit = options.gapLimit
+  let depositAddrGapLimit = Number(options.gapLimit || DEFAULT_GAP_LIMIT) 
+  let changeAddrGapLimit = Number(options.gapLimit || DEFAULT_GAP_LIMIT)
   let lastUsedDepositAddressIndex = multisigWallet.networks[options.network]?.di ?? -1
   let lastUsedChangeAddressIndex = multisigWallet.networks[options.network]?.ci ?? -1
   let depositAddrNextIndex = lastUsedDepositAddressIndex + 1
@@ -99,10 +100,11 @@ async function startAddressDiscovery(data) {
       changeAddrGapLimit = Math.max(0, options.gapLimit - changeUnusedCount)
 
       if (reportProgress) {
+        // Exhaust min number of address even if gaplimit is reached
         self.postMessage({
           id,
           success: true,
-          final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+          final: depositAddrGapLimit === 0 && changeAddrGapLimit === 0 && minimumNumberOfAddresses === 0,
           lastUsedDepositAddressIndex,
           lastUsedChangeAddressIndex
         })
@@ -113,7 +115,7 @@ async function startAddressDiscovery(data) {
       self.postMessage({
         id,
         success: false,
-        final: (depositAddrGapLimit === 0 && changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+        final: depositAddrGapLimit === 0 && changeAddrGapLimit === 0 && minimumNumberOfAddresses === 0,
         lastUsedDepositAddressIndex,
         lastUsedChangeAddressIndex
       })
@@ -128,7 +130,7 @@ async function startAddressDiscovery(data) {
   self.postMessage({
     id,
     success: true,
-    final: (depositAddrGapLimit === 0 && changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+    final: depositAddrGapLimit === 0 && changeAddrGapLimit === 0 && minimumNumberOfAddresses === 0,
     lastUsedDepositAddressIndex,
     lastUsedChangeAddressIndex
   })
