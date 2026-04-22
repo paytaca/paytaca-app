@@ -1,4 +1,4 @@
-import { getMultisigWorker } from 'src/workers/index';
+import { getMultisigWorker } from '../../workers/index';
 
 export async function discoverAddresses({ commit, state, rootState, rootGetters }, payload) {
 
