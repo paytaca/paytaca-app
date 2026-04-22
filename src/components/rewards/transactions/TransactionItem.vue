@@ -13,7 +13,9 @@
     
     <q-item-section>
       <q-item-label clickable @click="redirect" class="row items-center">
-        <span class="text-weight-medium">{{ labelText }}</span>
+        <span class="text-weight-medium" style="word-break: break-all;">
+          {{ labelText }}
+        </span>
         <q-icon
           v-if="data.ref_id || data.order_txn_id"
           name="open_in_new"
