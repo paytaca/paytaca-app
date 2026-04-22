@@ -5,6 +5,20 @@ import { getDepositAddress, getChangeAddress } from "../lib/multisig/wallet-addr
 const DEFAULT_TIMEOUT = 30000
 const MINIMUM_NUMBER_OF_ADDRESSES = 200
 const DEFAULT_GAP_LIMIT = 20
+
+/**
+ * Address discovery worker - discovers used addresses via watchtower
+ * @param {Object} data
+ * @param {string} data.id - Wallet hash
+ * @param {Object} data.multisigWallet - Wallet object with signers and networks
+ * @param {Object} data.options - Discovery options
+ * @param {string} data.options.watchtowerBaseUrl - Watchtower API URL (required)
+ * @param {number} [data.options.gapLimit=20] - Gap limit (> 0)
+ * @param {number} [data.options.minimumNumberOfAddresses=200] - Min addresses to check (>= 0)
+ * @param {string} [data.options.network='mainnet'] - 'mainnet' | 'testnet'
+ * @param {boolean} [data.options.fullScan=false] - Start from index 0
+ * @param {boolean} [data.options.applyRateLimit=true] - Apply 500ms delay between requests
+ */
 async function startAddressDiscovery(data) {
   const {
     id,

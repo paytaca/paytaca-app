@@ -1,9 +1,23 @@
 import { getMultisigWorker } from '../../workers/index';
 
+/**
+ * @param {Object} payload
+ * @param {Object} payload.multisigWallet - The multisig wallet object
+ * @param {string} payload.multisigWallet.walletHash - Wallet hash
+ * @param {number} [payload.addressDiscoveryGapLimit] - Gap limit (positive integer)
+ * @param {Object} [payload.options] - Override options
+ * @param {string} payload.options.watchtowerBaseUrl - Watchtower URL (required)
+ * @param {number} payload.options.gapLimit - Gap limit (> 0)
+ * @param {number} [payload.options.minimumNumberOfAddresses] - Min addresses (>= 0)
+ * @param {string} payload.options.network - 'mainnet' | 'testnet'
+ * @param {boolean} [payload.options.fullScan]
+ * @param {boolean} [payload.options.applyRateLimit]
+ * @param {Function} onProgress - Callback(workerProgress)
+ */
 export async function discoverAddresses({ commit, state, rootState, rootGetters }, payload) {
 
     
-    // Walleth hash is used as the worker id of the address discovery worker
+    // Wallet hash is used as the worker id of the address discovery worker
     let workerId = payload.multisigWallet.walletHash
 
     try {
