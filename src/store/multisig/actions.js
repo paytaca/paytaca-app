@@ -1,5 +1,8 @@
 import { getMultisigWorker } from '../../workers/index';
 
+// No runtime validation - worker is internal API, only store action calls it.
+// Trust callers, validate at boundaries if needed. Prevents code smell.
+
 /**
  * @param {Object} payload
  * @param {Object} payload.multisigWallet - The multisig wallet object

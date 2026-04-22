@@ -8,6 +8,9 @@ const DEFAULT_GAP_LIMIT = 20
 
 /**
  * Address discovery worker - discovers used addresses via watchtower
+ * 
+ * Note: No runtime validation - this is an internal API called by trusted code (store action).
+ * Validation at boundaries, not internally - prevents code smell. See JSDoc for contract.
  * @param {Object} data
  * @param {string} data.id - Wallet hash
  * @param {Object} data.multisigWallet - Wallet object with signers and networks
