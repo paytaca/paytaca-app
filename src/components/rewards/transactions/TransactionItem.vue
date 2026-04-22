@@ -17,7 +17,7 @@
           {{ labelText }}
         </span>
         <q-icon
-          v-if="data.ref_id || data.order_txn_id"
+          v-if="data.type !== 'vm'"
           name="open_in_new"
           size="14px"
           class="q-ml-sm"
