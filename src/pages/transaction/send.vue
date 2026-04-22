@@ -1055,7 +1055,7 @@ export default {
      * Pass state so TransactionDetail can show the tx immediately without waiting for watchtower.
      * @param {string} txid - Transaction id
      * @param {{ timestamp?: number, amount?: number }} [opts] - Optional timestamp and amount overrides
-     * @returns {{ query: object, state: { tx: object, fromWebsocket: true } }}
+     * @returns {{ route: '', query: object, state: { tx: object, fromWebsocket: true } }}
      */
     buildTransactionDetailState (txid, opts = {}) {
       const timestamp = opts.timestamp ?? Date.now()
@@ -1071,22 +1071,64 @@ export default {
        * e.g.
        *  - sending tokens with cauldron spends BCH so wallet history shows sending BCH
        *  - sending BCH using tokens will create wallet histories that says sending tokens.
-       *    sending BCH can possible use multiple tokens, so we will use 1 token only.
-       *    possible improvement could be allowing multiple wallet histories shown using 1 txid
+       *    sending BCH can possibly use multiple tokens.
+       * 
+       * If multiple assets are involved, we use the transaction-summary page to show all of them.
        */
       let effectiveAssetId = this.assetId || 'bch'
+      const involvedAssetIds = [this.assetId || 'bch']
+      
       if (allRecipientsHaveCauldron) {
         if (this.assetId === 'bch') {
           const tokenIds = this.inputExtras
             .map(inputExtra => inputExtra.cauldron?.token?.token_id)
             .filter(Boolean)
+          
+          // Add unique token IDs to involved assets
+          tokenIds.forEach(tokenId => {
+            const ctAssetId = `ct/${tokenId}`
+            if (!involvedAssetIds.includes(ctAssetId)) {
+              involvedAssetIds.push(ctAssetId)
+            }
+          })
 
-          effectiveAssetId = tokenIds[0];
+          effectiveAssetId = tokenIds[0] || 'bch';
         } else if (this.assetId?.startsWith?.('ct/')) {
+          // When sending tokens with Cauldron, BCH is also spent
+          if (!involvedAssetIds.includes('bch')) {
+            involvedAssetIds.push('bch')
+          }
           effectiveAssetId = 'bch'
         }
       }
 
+      // Determine if we need summary page (multiple assets involved)
+      const useSummaryPage = involvedAssetIds.length > 1
+
+      if (useSummaryPage) {
+        // Use transaction-summary page for multiple assets
+        const query = {
+          from: 'send',
+          assetIds: involvedAssetIds.join(','),
+          new: 'true'
+        }
+        // Add recipient address for "Add to Address Book" feature
+        if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
+          query.recipient = this.recipients[0].recipientAddress
+        }
+
+        if (this.commitment) {
+          query.commitment = this.commitment
+        }
+
+        return {
+          route: 'transaction-summary',
+          query,
+          state: { fromWebsocket: true }
+        }
+      }
+
+      // Single asset - use transaction-detail as before
       const asset = sendPageUtils.getAsset(effectiveAssetId, this.symbol) || this.asset;
       const sendTx = {
         txid,
@@ -1111,8 +1153,6 @@ export default {
       }
 
       // Only add category for token assets
-      // When all recipients have cauldron enabled AND we're sending BCH with cauldron,
-      // we skip adding category since we're spending BCH, not tokens
       const shouldAddCategory = effectiveAssetId.startsWith('ct/') || effectiveAssetId.startsWith('slp/')
       if (shouldAddCategory) {
         query.category = effectiveAssetId.split('/')[1]
@@ -1122,6 +1162,7 @@ export default {
         query.commitment = this.commitment
       }
       return {
+        route: 'transaction-detail',
         query,
         state: { tx: sendTx, fromWebsocket: true }
       }
@@ -1451,9 +1492,9 @@ export default {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail with state so it can show tx before watchtower indexes
-        const { query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
+        const { route, query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
         this.$router.push({
-          name: 'transaction-detail',
+          name: route,
           params: { txid },
           query,
           state
@@ -2088,9 +2129,9 @@ export default {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail with state so it can show tx before watchtower indexes
-              const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
+              const { route, query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
               vm.$router.push({
-                name: 'transaction-detail',
+                name: route,
                 params: { txid: txId },
                 query,
                 state
@@ -2388,9 +2429,9 @@ export default {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
-          const { query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+          const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
           vm.$router.push({
-            name: 'transaction-detail',
+            name: route,
             params: { txid: result.txid },
             query,
             state
@@ -2751,6 +2792,17 @@ export default {
 
   async mounted () {
     const vm = this
+    window.test = () => {
+      const txId = Array.from({ length: 64 }).fill('0').join('');
+      const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
+      console.debug(query, state);
+      // vm.$router.push({
+      //   name: 'transaction-detail',
+      //   params: { txid: txId },
+      //   query,
+      //   state
+      // })
+    }
 
     vm.updateNetworkDiff()
     

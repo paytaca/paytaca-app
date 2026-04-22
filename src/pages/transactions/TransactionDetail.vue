@@ -858,6 +858,15 @@ export default {
           query: { asset: this.$route?.query?.asset }
         }
       }
+
+      if (fromParam === 'summary') {
+        return {
+          name: 'transaction-summary',
+          params: { txid: this.txid },
+          query: { assetIds: this.$route?.query?.summaryAssetIds }
+        }
+      }
+
       return '/'
     },
     canAddToAddressBook () {
