@@ -4,7 +4,7 @@
       <template v-if="pendingIndex">
         <span
           class="pending-number"
-          :class="darkMode ? 'bg-grey-7' : 'bg-grey-4'"
+          :class="darkMode ? 'bg-grey-7' : 'bg-grey-5'"
         />
       </template>
       <template v-else>
@@ -189,8 +189,8 @@ export default {
 }
 
 .pending-number {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
