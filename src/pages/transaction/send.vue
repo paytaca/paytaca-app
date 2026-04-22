@@ -453,7 +453,7 @@ import {
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
-import { processMerchantOtcPoints, processOnetimePoints } from 'src/utils/engagementhub-utils/rewards'
+import { processMerchantOtcPoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 
@@ -2166,29 +2166,20 @@ export default {
           })
           
           // Handle points in background (non-blocking) – do not delay success feedback
-          Promise.allSettled([
-            processOnetimePoints({
-              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-              ref_id: hexToRef(result.txid.substring(0, 6)),
-              tx_id: result.txid
-            }),
-            processMerchantOtcPoints({
-              ref_id: hexToRef(result.txid.substring(0, 6)),
-              tx_id: result.txid,
-              customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
-              merchant_address: this.recipients[0].recipientAddress
-            })
-          ]).then(([oneTimeResp, otcResp]) => {
-            const oneTimeVal = oneTimeResp.value
-            const otcVal = otcResp.value
-            if (oneTimeVal !== null || otcVal !== null) {
+          processMerchantOtcPoints({
+            ref_id: hexToRef(result.txid.substring(0, 6)),
+            tx_id: result.txid,
+            customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            merchant_address: this.recipients[0].recipientAddress
+          }).then(resp => {
+            if (resp) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  isFirstSevenTx: !!oneTimeVal,
-                  hasReceivedFirstTxBonus: oneTimeVal?.has_received_first_tx_bonus ?? false,
-                  isMerchantOtcTx: !!otcVal,
-                  merchantName: otcVal?.merchant_name ?? ''
+                  isFirstSevenTx: resp.is_first_seven_tx,
+                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
+                  isMerchantOtcTx: true,
+                  merchantName: resp.merchant_name ?? ''
                 }
               })
             }

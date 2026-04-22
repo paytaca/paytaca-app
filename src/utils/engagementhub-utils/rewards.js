@@ -218,10 +218,6 @@ export async function awardInitialUP (data) {
     .catch(error => { console.error(error) })
 }
 
-export async function processOnetimePoints (data) {
-  return await processPoints('userreward/process_onetime_points/', data)
-}
-
 export async function processMerchantOtcPoints (data) {
   return await processPoints('userreward/process_merchant_otc_points/', data)
 }
