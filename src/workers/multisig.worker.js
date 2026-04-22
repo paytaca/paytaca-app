@@ -113,7 +113,7 @@ async function startAddressDiscovery(data) {
       self.postMessage({
         id,
         success: false,
-        final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+        final: (depositAddrGapLimit === 0 && changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
         lastUsedDepositAddressIndex,
         lastUsedChangeAddressIndex
       })
@@ -128,7 +128,7 @@ async function startAddressDiscovery(data) {
   self.postMessage({
     id,
     success: true,
-    final: (depositAddrGapLimit === 0 || changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
+    final: (depositAddrGapLimit === 0 && changeAddrGapLimit === 0) && minimumNumberOfAddresses === 0,
     lastUsedDepositAddressIndex,
     lastUsedChangeAddressIndex
   })
@@ -142,16 +142,8 @@ self.onmessage = async (event) => {
     return self.postMessage({ error: 'Multisig Wallet Hash Required', success: false })
   }
   try {
-    switch (type) {
-      case 'START_ADDRESS_DISCOVERY':
-        await startAddressDiscovery(data)
-        break
-      case 'DETECT_NEW_DEPOSIT':
-        if (!data.address) return // Ignore if address isn't provided
-        await detectNewDeposit(data.address)
-        break
-      default:
-        throw new Error(`Unknown worker message type: ${type}`)
+    if (type === 'START_ADDRESS_DISCOVERY') {
+      await startAddressDiscovery(data)
     }
   } catch (error) {
     self.postMessage({ error: error.message, success: false })
