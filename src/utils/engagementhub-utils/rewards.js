@@ -230,6 +230,13 @@ export async function processEloadPoints (data) {
   return await processPoints('userreward/process_eload_points/', data)
 }
 
+export async function processPromoTokensSwap (data) {
+  return await REWARDS_URL
+    .post('userpromo/process_promo_points_swap/', data)
+    .then(response => { return response.data })
+    .catch(error => { return error.response.data })
+}
+
 export async function recordPointsRedemption (data) {
   return await REWARDS_URL
     .post('userpromo/record_points_redemption/', data)

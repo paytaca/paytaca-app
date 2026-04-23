@@ -342,6 +342,7 @@ import {
   getLiftConversionRatio,
   getRewardsSwapContractDetails,
   getWalletTokenAddress,
+  processPromoTokensSwap,
   recordPointsRedemption
 } from 'src/utils/engagementhub-utils/rewards'
 
@@ -686,16 +687,24 @@ export default {
           throw new Error(redeemResp.error)
         }
 
+        const swapResp = await processPromoTokensSwap({
+          tx_id: redeemResp.txid,
+          redeemed_points: this.pointsToRedeem,
+          user_ct_address: this.tokenAddress,
+        })
+
+        if (swapResp?.error !== '') throw new Error(recordResp?.error)
+
         // call API for recording points redemption
         const recordResp = await recordPointsRedemption({
             promo_type: this.promoType,
             promo_id: this.promoId,
             redeemed_points: this.pointsToRedeem,
             lift_received: this.liftToReceive,
-            tx_id: redeemResp.txid,
+            tx_id: swapResp.tx_id,
             month_max: this.maxRedeemable
         })
-        if (recordResp?.error !== '') throw new Error (recordResp?.error)
+        if (recordResp?.error !== '') throw new Error(recordResp?.error)
 
         // success call
         this.showSuccessCelebration()
