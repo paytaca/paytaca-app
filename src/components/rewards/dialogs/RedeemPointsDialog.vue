@@ -256,7 +256,14 @@
           <div class="text-center full-width">
             <progress-loader :isTight="true" class="q-mb-md" />
             <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
-              {{ $t('ProcessingRedemption', 'Processing redemption...') }}
+              Processing redemption...
+            </div>
+            <div
+              v-if="displayAdditionalRedeemText"
+              class="text-caption"
+              :class="darkMode ? 'text-grey-6' : 'text-grey-7'"
+            >
+              (A tiny fee will be taken from your wallet for this process.)
             </div>
           </div>
         </template>
@@ -389,6 +396,7 @@ export default {
       isCalculatingQuickAmount: false,
       activeQuickAmount: null,
       liftConversionRate: 0,
+      displayAdditionalRedeemText: false,
       
       // Security
       isSecurityCheckSuccess: false,
@@ -721,7 +729,7 @@ export default {
           if (this.walletBalance < feeBch) {
             notifyMessage = 'Failed to redeem points. Ensure that your wallet has enough BCH balance before trying again.'
           } else {
-            // TODO adjust 'processing redemption' message to reflect sending of BCH balance to contract?
+            this.displayAdditionalRedeemText = true
             // send small balance from user's wallet to PromoContract
             const changeAddress = await getChangeAddress('bch')
             await getWalletByNetwork(this.wallet, 'bch').sendBch(
@@ -751,6 +759,7 @@ export default {
         if (notifyMessage !== '') raiseNotifyError(notifyMessage)
       } finally {
         this.isSending = false
+        this.displayAdditionalRedeemText = false
       }
     },
     
