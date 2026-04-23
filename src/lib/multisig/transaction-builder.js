@@ -7,7 +7,7 @@ import {
   generateTransaction,
   encodeTransactionOutput} from 'bitauth-libauth-v3'
 import Big from 'big.js'
-import { getCompiler } from './wallet.js'
+import { getCompiler } from './template.js'
 
 /**
  * @typedef {object} Recipient

@@ -440,6 +440,12 @@ const routes = [
         name: 'transaction-detail',
         props: route => Object.assign({}, route.params, route.query),
         component: () => import('src/pages/transactions/TransactionDetail.vue')
+      },
+      {
+        path: 'summary',
+        name: 'transaction-summary',
+        props: route => Object.assign({}, route.params, route.query),
+        component: () => import('src/pages/transactions/TransactionSummary.vue')
       }
     ]
   },  

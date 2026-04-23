@@ -309,15 +309,12 @@
                     class="q-expansion-item-recipient"
                     v-model="expandedItems[`R${index + 1}`]"
                     :class="getDarkModeClass(darkMode)"
+                    :label="`${$t('Recipient')} #${index + 1}`"
+                    :header-class="[
+                      inputExtras[index].incorrectAddress ? 'expansion-item-error' : '',
+                      'q-px-none',
+                    ]"
                   >
-                    <template v-slot:header>
-                      <span
-                        :class="inputExtras[index].incorrectAddress ? 'expansion-item-error' : ''"
-                      >
-                        {{ `${$t('Recipient')} #${index + 1}` }}
-                      </span>
-                    </template>
-
                     <SendPageForm
                       :recipient="recipients[index]"
                       :inputExtras="inputExtras[index]"
@@ -325,9 +322,11 @@
                       :index="index"
                       :showQrScanner="showQrScanner"
                       :computingMax="computingMax"
+                      :calculatingCauldronTrade="calculatingCauldronTrade"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
-                      :currentWalletBalance="currentWalletBalance"
+                      :currentWalletBalance="currentWalletBalances[index].balance"
+                      :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
@@ -340,6 +339,7 @@
                       @on-selected-denomination-change="onSelectedDenomination"
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
+                      @on-cauldron-toggle="onCauldronToggle"
                       :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
@@ -362,7 +362,8 @@
                     :computingMax="computingMax"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
-                    :currentWalletBalance="currentWalletBalance"
+                    :currentWalletBalance="currentWalletBalances[index].balance"
+                    :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
@@ -374,6 +375,7 @@
                     @on-selected-denomination-change="onSelectedDenomination"
                     @on-qr-uploader-click="onQRUploaderClick"
                     @on-selected-change-address="onUserSelectedChangeAddress"
+                    @on-cauldron-toggle="onCauldronToggle"
                     :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
@@ -388,6 +390,14 @@
                 </div>
               </div>
             </form>
+          </div>
+
+          <div v-if="isCauldronSend && tradeResults.some(Boolean)" class="q-px-lg">
+            <CauldronSendSummary
+              :recipients="recipients"
+              :inputExtras="inputExtras"
+              :tradeResults="tradeResults"
+            />
           </div>
 
           <CustomKeyboard 
@@ -470,6 +480,10 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
+import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
+import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron } from 'src/wallet/cauldron/send'
+import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -492,7 +506,8 @@ export default {
     LoadingWalletDialog,
     Pin,
     BiometricWarningAttempt,
-    SendSuccessPage
+    SendSuccessPage,
+    CauldronSendSummary,
   },
 
   props: {
@@ -583,6 +598,7 @@ export default {
       recipients: [{
         amount: '',
         fiatAmount: '',
+        cauldronAmount: '',
         fixedAmount: false,
         recipientAddress: '',
         paymentAckMemo: ''
@@ -598,11 +614,21 @@ export default {
         isLegacyAddress: false,
         isWalletAddress: false,
         cashbackData: null,
-        incorrectAddress: false
+        incorrectAddress: false,
+        cauldron: {
+          enable: false,
+          token: null,
+          amountFormatted: '0',
+        }
       }],
       expandedItems: {},
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
+
+      calculatingCauldronTrade: false,
+      poolTracker: new MultiCauldronPoolTracker(),
+      /** @type {(import("@cashlab/cauldron").TradeResult | undefined)[]} */
+      tradeResults: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -629,7 +655,7 @@ export default {
       currentRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
-      currentWalletBalance: 0,
+      currentWalletBalances: [{ balance: 0, assetId: '' }],
       isLegacyAddress: false,
       isWalletAddress: false,
       userSelectedChangeAddress: '',
@@ -668,6 +694,9 @@ export default {
       if (this.isScrolledToBottom) return true
 
       return false
+    },
+    isFungibleCashtoken() {
+      return this.asset?.id?.startsWith?.('ct/') && this.asset?.is_nft;
     },
     isNFT () {
       if (erc721IdRegexp.test(this.assetId)) return true
@@ -720,6 +749,12 @@ export default {
       return currency && currency.symbol
     },
     showSlider () {
+      console.debug('Show slider', {
+        amounts: this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0,
+        exceeded: this.inputExtras.map(a => a.balanceExceeded).findIndex(i => i) < 0,
+        emptyRecipient: this.inputExtras.map(a => a.emptyRecipient).findIndex(i => i) < 0,
+        emptyRecipient2: this.recipients.map(a => !!a.recipientAddress).findIndex(i => !i) < 0,
+      })
       if (this.sliderStatus && this.isNFT && !this.sending) return true
       return (
         !this.sending && this.sliderStatus &&
@@ -805,6 +840,9 @@ export default {
     // Get asset from store reactively to ensure balance updates are reflected
     storeAsset () {
       return sendPageUtils.getAsset(this.assetId, this.symbol)
+    },
+    isCauldronSend() {
+      return this.inputExtras.some(extra => extra?.cauldron?.enable);
     }
   },
 
@@ -1035,12 +1073,57 @@ export default {
      * Pass state so TransactionDetail can show the tx immediately without waiting for watchtower.
      * @param {string} txid - Transaction id
      * @param {{ timestamp?: number, amount?: number }} [opts] - Optional timestamp and amount overrides
-     * @returns {{ query: object, state: { tx: object, fromWebsocket: true } }}
+     * @returns {{ route: '', query: object, state: { tx: object, fromWebsocket: true } }}
      */
     buildTransactionDetailState (txid, opts = {}) {
       const timestamp = opts.timestamp ?? Date.now()
       const amount = opts.amount ?? Math.abs(this.totalAmountSent || 0)
-      const asset = this.asset || sendPageUtils.getAsset(this.assetId, this.symbol)
+
+      // Extract assetIds used to supply the send transaction
+      const assetIds = this.inputExtras
+        .map(extra => {
+          // If not cauldron, the usual send that asset used to send is the asset being sent
+          if (!extra?.cauldron?.enable) return this.assetId;
+
+          // If cauldron enabled, bch is used to send cashtokens
+          if (this.assetId !== 'bch' && this.assetId?.startsWith?.('ct/')) return 'bch'
+
+          // At this point it assumes it is cauldron enabled and bch is being sent
+          if (!extra.cauldron?.token?.token_id) return '';
+          return `ct/${extra.cauldron?.token?.token_id}`;
+        })
+        .filter(Boolean)
+        .filter((assetId, index, list) => list.indexOf(assetId) === index)
+
+      // Determine if we need summary page (multiple assets involved)
+      const useSummaryPage = assetIds.length > 1
+
+      if (useSummaryPage) {
+        // Use transaction-summary page for multiple assets
+        const query = {
+          from: 'send',
+          assetIds: assetIds.join(','),
+          new: 'true'
+        }
+        // Add recipient address for "Add to Address Book" feature
+        if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
+          query.recipient = this.recipients[0].recipientAddress
+        }
+
+        if (this.commitment) {
+          query.commitment = this.commitment
+        }
+
+        return {
+          route: 'transaction-summary',
+          query,
+          state: { fromWebsocket: true }
+        }
+      }
+
+      // Single asset - use transaction-detail as before
+      const effectiveAssetId = assetIds[0];
+      const asset = sendPageUtils.getAsset(effectiveAssetId, this.symbol) || this.asset;
       const sendTx = {
         txid,
         record_type: 'outgoing',
@@ -1055,21 +1138,25 @@ export default {
       }
       const query = {
         from: 'send-page',
-        assetID: this.assetId || 'bch',
+        assetID: effectiveAssetId,
         new: 'true'
       }
       // Add recipient address for "Add to Address Book" feature
       if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
         query.recipient = this.recipients[0].recipientAddress
       }
-      const assetId = this.assetId || ''
-      if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
-        query.category = assetId.split('/')[1]
+
+      // Only add category for token assets
+      const shouldAddCategory = effectiveAssetId.startsWith('ct/') || effectiveAssetId.startsWith('slp/')
+      if (shouldAddCategory) {
+        query.category = effectiveAssetId.split('/')[1]
       }
+
       if (this.commitment) {
         query.commitment = this.commitment
       }
       return {
+        route: 'transaction-detail',
         query,
         state: { tx: sendTx, fromWebsocket: true }
       }
@@ -1399,9 +1486,9 @@ export default {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail with state so it can show tx before watchtower indexes
-        const { query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
+        const { route, query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
         this.$router.push({
-          name: 'transaction-detail',
+          name: route,
           params: { txid },
           query,
           state
@@ -1458,34 +1545,56 @@ export default {
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       currentInputExtras.setMax = true
       
-      if (this.asset.id === 'bch') {
-        currentRecipient.amount = this.asset.spendable
-        currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
-        
-        currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
-        )
-        currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
-        )
+      if (currentInputExtras.cauldron.enable) {
+        const isBch = this.asset.id === 'bch';
+        const assetId = isBch ? `ct/${currentInputExtras.cauldron?.token?.token_id}` : 'bch';
+        const asset = sendPageUtils.getAsset(assetId);
+        console.debug('[SetMax]', { isBch, assetId, asset });
+
+        const tokenId = isBch ? currentInputExtras.cauldron?.token?.token_id : this.asset.id.replace('ct/', '');
+        const pools = this.poolTracker.getPoolsForToken(tokenId);
+        currentRecipient.cauldronAmount = calculateMaxSpendableForCauldron(asset, pools);
+
+        currentInputExtras.cauldron.amountFormatted = currentRecipient.cauldronAmount;
+        console.debug('[SetMax] currentRecipient', {...currentRecipient});
+        console.debug('[SetMax] currentInputExtras.cauldron', { ...currentInputExtras.cauldron });
+
+        currentRecipient.amount = '';
+        currentRecipient.fiatAmount = '';
+        currentInputExtras.amountFormatted = '';
+        currentInputExtras.fiatFormatted = '';
       } else {
-        if (this.asset?.id?.startsWith('ct/')) {
-          currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
+        if (this.asset.id === 'bch') {
+          currentRecipient.amount = this.asset.spendable
+          currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
+          
+          currentInputExtras.amountFormatted = formatWithLocale(
+            currentRecipient.amount, this.decimalObj(false)
+          )
+          currentInputExtras.fiatFormatted = formatWithLocale(
+            currentRecipient.fiatAmount, this.decimalObj(true)
+          )
         } else {
-          currentRecipient.amount = this.asset?.balance || 0
+          if (this.asset?.id?.startsWith('ct/')) {
+            currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
+          } else {
+            currentRecipient.amount = this.asset?.balance || 0
+          }
+          currentInputExtras.amountFormatted = currentRecipient.amount
         }
-        currentInputExtras.amountFormatted = currentRecipient.amount
       }
 
       // remove recipients except for the one where MAX was clicked
       const remainingRecipient = this.recipients.filter((_a, i) => i === this.currentRecipientIndex)
       const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentRecipientIndex)
+      const currentWalletBalances = this.currentWalletBalances.filter((_a, i) => i === this.currentRecipientIndex)
 
       this.recipients = remainingRecipient
       this.inputExtras = remainingInputExtras
+      this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance()
       this.sliderStatus = true
     },
 
@@ -1494,6 +1603,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      currentInputExtras.setMax = false;
 
       let caret = null
       if (this.focusedInputField === 'fiat')
@@ -1539,7 +1650,7 @@ export default {
         )
       }
 
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance();
       sendPageUtils.addRemoveInputFocus(
         this.currentRecipientIndex, this.focusedInputField
       )
@@ -1549,6 +1660,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      currentInputExtras.setMax = false;
 
       let amountCaretPosition = currentRefs.amountInput.nativeEl.selectionStart - 1
       if (amountCaretPosition >= currentRecipient.amount.length)
@@ -1612,8 +1725,18 @@ export default {
         sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
       }
 
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance();
     },
+
+    /**
+     * This function is meant to ensure `this.adjustWalletBalance()` doesnt run on stale data.
+     * In the future, some asynchronous merchanism for updating amounts (like cauldron's trade calculations) might be added,
+     * might want to change names later on if functionality expands
+     */
+    updateCauldronAndRemainingBalance: debounce(function () {
+      this.prepareCauldronTrade();
+      this.adjustWalletBalance();
+    }, 500),
 
     // add/remove recipient
     addAnotherRecipient () {
@@ -1623,6 +1746,7 @@ export default {
         this.recipients.push({
           amount: '',
           fiatAmount: '',
+          cauldronAmount: '',
           fixedAmount: false,
           recipientAddress: '',
           paymentAckMemo: ''
@@ -1637,8 +1761,11 @@ export default {
           isBip21: false,
           isLegacyAddress: false,
           cashbackData: null,
-          incorrectAddress: false
+          incorrectAddress: false,
+          cauldron: { enable: false, token: null, amountFormatted: '' },
         })
+        this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
+        this.adjustWalletBalance();
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
         }
@@ -1729,6 +1856,7 @@ export default {
     },
     async handleSubmit () {
       const vm = this
+      const hasCauldronEnabled = vm.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
       const toSendData = vm.recipients
 
       // check if total amount being sent is greater than current wallet amount
@@ -1744,7 +1872,7 @@ export default {
           ? vm.asset.balance
           : (Number(vm.asset?.balance) || 0) / (10 ** decimals)
 
-        if (Number(totalAmount) > comparableBalance) {
+        if (Number(totalAmount) > comparableBalance && !hasCauldronEnabled) {
           raiseNotifyError(vm.$t('TotalAmountError'))
           return
         }
@@ -1760,6 +1888,39 @@ export default {
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
       } else vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
+
+      // Check if send will require cauldron trade
+      // this condition will trigger early exit of the main function
+      // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
+      // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
+      if (hasCauldronEnabled) {
+        console.debug('[CauldronSend] Executing send', {
+          asset: vm.asset,
+          recipients: vm.recipients,
+          inputExtras: vm.inputExtras,
+          tradeResults: vm.tradeResults,
+          bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+        })
+
+        try {
+          vm.sending = true
+          vm.sliderStatus = false;
+          const broadcastResult = await executeSendWithCauldron({
+            asset: vm.asset,
+            recipients: vm.recipients,
+            inputExtras: vm.inputExtras,
+            tradeResults: vm.tradeResults,
+            bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+          });
+          vm.submitPromiseResponseHandler(broadcastResult, vm.walletType);
+        } catch(error) {
+          vm.handleCaulronError(error);
+        } finally {
+          vm.sending = false;
+          vm.sliderStatus = true;
+        }
+        return;
+      }
 
       let token = null // bch token
       let toSendBchRecipients = []
@@ -1970,9 +2131,9 @@ export default {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail with state so it can show tx before watchtower indexes
-              const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
+              const { route, query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
               vm.$router.push({
-                name: 'transaction-detail',
+                name: route,
                 params: { txid: txId },
                 query,
                 state
@@ -2034,6 +2195,107 @@ export default {
       this.userSelectedChangeAddress = changeAddress
     },
 
+    // ========= cauldron related ==========
+    onCauldronToggle (cauldronData) {
+      this.currentRecipientIndex = cauldronData.index;
+      console.debug(this.currentRecipientIndex, cauldronData)
+      this.inputExtras[this.currentRecipientIndex].cauldron = {
+        enable: cauldronData.enable,
+        token: cauldronData.token,
+        amountFormatted: cauldronData.amountFormatted || '',
+      }
+
+      let tokenId
+      if (this.asset.id === 'bch') tokenId = cauldronData.token?.token_id;
+      else if (this.asset.id.startsWith('ct/') && !this.isNFT) tokenId = this.asset.id.replace('ct/', '');
+
+      if (tokenId) {
+        this.calculatingCauldronTrade = true;
+        this.poolTracker.subscribeToken(tokenId).finally(() => {
+          this.calculatingCauldronTrade = false;
+        });
+
+        // This could be added in `mounted`. But for readability, placed here to be close to related code
+        // this.poolTracker.cleanup() is in `unmounted` since can't find a way to do it here
+        if (!this._poolTrackerUpdateHooked) {
+          this.poolTracker.on('pool-updated', () => this.updateCauldronAndRemainingBalance());
+          this._poolTrackerUpdateHooked = true;
+        }
+      }
+
+      if (this.inputExtras[this.currentRecipientIndex].setMax) {
+        this.setMaximumSendAmount();
+      } else {
+        this.updateCauldronAndRemainingBalance();
+      }
+
+    },
+    prepareCauldronTrade() {
+      const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
+      if (!hasCauldron) return;
+
+      try {
+        this.calculatingCauldronTrade = true;
+        console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
+
+        // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
+        // Since supply mode sets the amount & fiatAmount using cauldronAmount
+        const amountToFiat = (amount) => {
+          const fiatAmount = this.convertToFiatAmount(amount);
+          const fiatFormatted = formatWithLocale(fiatAmount, this.decimalObj(true));
+          return { fiatAmount, fiatFormatted };
+        }
+
+        // This function actually modifies the passed parameters: recipients, inputExtras
+        // And returns it
+        const { recipients, inputExtras, tradeResults } = prepareSendWithCauldron(
+          this.asset,
+          this.recipients,
+          this.inputExtras,
+          this.poolTracker.getTokenPoolsMap(),
+          amountToFiat,
+        );
+  
+        console.debug(recipients, inputExtras, tradeResults);
+        this.recipients = recipients;
+        this.inputExtras = inputExtras;
+        this.tradeResults = tradeResults;
+      } finally {
+        this.calculatingCauldronTrade = false;
+      }
+    },
+    /**
+     * @param {CauldronSendError} error
+     */
+    handleCaulronError(error) {
+      console.debug('CauldronError', error);
+      const isCauldronError = error instanceof CauldronSendError;
+      console.debug('CauldronError', isCauldronError);
+      if (!isCauldronError) throw error;
+
+      const code = error.code;
+      if (code == CauldronSendError.MISSING_RECIPIENT) {
+        // Some recipients have missing address
+        raiseNotifyError(this.$t('EmptyRecipient'));
+      } else if (code == CauldronSendError.INVALID_ADDRESS) {
+        // Some recipients have invalid address
+        raiseNotifyError(this.$t('InvalidAddress'));
+      } else if (code == CauldronSendError.INSUFFICIENT_BALANCE) {
+        // It's either BCH or token that's lacking balance
+        let errorMessage = this.$t('InsufficientBalance');
+        if (error.message) errorMessage += ': ' + error.message;
+        raiseNotifyError(errorMessage);
+      } else if (code == CauldronSendError.INVALID_ASSET) {
+        // Some of the supply or demand asset is not a bch or cashtoken asset
+        // TODO: Add own translation text
+        raiseNotifyError(this.$t('InvalidAssetError'));
+      } else {
+        // A fallback case for unknown errors
+        raiseNotifyError(this.$t('UnknownError'));
+      }
+    },
+
+
     // ========== util methods ==========
     // getters
     currentSendPageCurrency () {
@@ -2043,6 +2305,7 @@ export default {
       const keys = []
       keys.push(...Object.entries(this.recipients[index]))
       keys.push(...Object.entries(this.inputExtras[index]))
+      keys.push(...Object.entries(this.inputExtras[index]?.cauldron))
       return keys
     },
 
@@ -2064,9 +2327,24 @@ export default {
       return sendPageUtils.convertToFiatAmount(amount, this.selectedAssetMarketPrice)
     },
     adjustWalletBalance () {
-      this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
-        this.asset, this.recipients.map(a => Number(a.amount))
+      const amountsData = this.recipients.map((recipient, index) => {
+        const data = {
+          ...recipient,
+          cauldronEnabled: this.inputExtras[index]?.cauldron?.enable,
+          cauldronTokenId: this.inputExtras[index]?.cauldron?.token?.token_id ,
+        }
+        if (!this.inputExtras[index]?.cauldron?.enable) {
+          data.cauldronAmount = '';
+          data.cauldronTokenId = '';
+        }
+        return data
+      })
+      console.debug('Adjusting wallet balances', amountsData);
+      this.currentWalletBalances = sendPageUtils.adjustWalletBalances(
+        this.asset,
+        amountsData,
       )
+      console.debug('Wallet balances', this.currentWalletBalances);
     },
 
     // address checking/validation
@@ -2155,9 +2433,9 @@ export default {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
-          const { query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+          const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
           vm.$router.push({
-            name: 'transaction-detail',
+            name: route,
             params: { txid: result.txid },
             query,
             state
@@ -2703,6 +2981,8 @@ export default {
     if (container) {
       container.removeEventListener('scroll', this.handleScroll)
     }
+
+    this.poolTracker.cleanup();
   },
 
   created () {
