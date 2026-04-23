@@ -1,3 +1,5 @@
+import { importWalletTemplate, walletTemplateToCompilerBch } from 'bitauth-libauth-v3'
+
 /**
  * Util function for grouping every possible cosigner combinations.
  *
@@ -193,4 +195,12 @@ export const createTemplate = ({
   template.scripts = generateScripts({ m, n, signatureAlgorithm })
   template.entities = generateEntities({ n, scripts: template.scripts, signers })
   return template
+}
+
+export const getCompiler = ({ template }) => {
+  const parsedTemplate = importWalletTemplate(template)
+  if (typeof parsedTemplate === 'string') {
+    throw new Error('Failed creating multisig wallet template.')
+  }
+  return walletTemplateToCompilerBch(parsedTemplate)
 }

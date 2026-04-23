@@ -129,6 +129,10 @@ module.exports = defineConfig((ctx) => {
         if (cfg?.output?.publicPath && !cfg?.output?.publicPath.endsWith('/')) {
           cfg.output.publicPath += '/'
         }
+        
+        if (ctx.mode?.capacitor || ctx.mode?.cordova) {
+          cfg.output.publicPath = 'auto'
+        }
 
         cfg.module.rules.push({
           test: /\.cash$/, // Adjust the file extension as needed
