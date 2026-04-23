@@ -392,6 +392,14 @@
             </form>
           </div>
 
+          <div v-if="isCauldronSend && tradeResults.some(Boolean)" class="q-px-lg">
+            <CauldronSendSummary
+              :recipients="recipients"
+              :inputExtras="inputExtras"
+              :tradeResults="tradeResults"
+            />
+          </div>
+
           <CustomKeyboard 
             :custom-keyboard-state="customKeyboardState"
             v-on:addKey="setAmount"
@@ -472,6 +480,7 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
@@ -830,6 +839,9 @@ export default {
     // Get asset from store reactively to ensure balance updates are reflected
     storeAsset () {
       return sendPageUtils.getAsset(this.assetId, this.symbol)
+    },
+    isCauldronSend() {
+      return this.inputExtras.some(extra => extra?.cauldron?.enable);
     }
   },
 
