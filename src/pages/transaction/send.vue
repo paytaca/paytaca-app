@@ -1061,55 +1061,30 @@ export default {
       const timestamp = opts.timestamp ?? Date.now()
       const amount = opts.amount ?? Math.abs(this.totalAmountSent || 0)
 
-      // Check if all recipients have cauldron enabled
-      const allRecipientsHaveCauldron = this.inputExtras?.length > 0 &&
-        this.inputExtras.every(extra => extra?.cauldron?.enable)
+      // Extract assetIds used to supply the send transaction
+      const assetIds = this.inputExtras
+        .map(extra => {
+          // If not cauldron, the usual send that asset used to send is the asset being sent
+          if (!extra?.cauldron?.enable) return this.assetId;
 
-      /**
-       * When enabling cauldron on all recipients, the resulting wallet history(or histories)
-       * generated will have an asset different from this.assetId. 
-       * e.g.
-       *  - sending tokens with cauldron spends BCH so wallet history shows sending BCH
-       *  - sending BCH using tokens will create wallet histories that says sending tokens.
-       *    sending BCH can possibly use multiple tokens.
-       * 
-       * If multiple assets are involved, we use the transaction-summary page to show all of them.
-       */
-      let effectiveAssetId = this.assetId || 'bch'
-      const involvedAssetIds = [this.assetId || 'bch']
-      
-      if (allRecipientsHaveCauldron) {
-        if (this.assetId === 'bch') {
-          const tokenIds = this.inputExtras
-            .map(inputExtra => inputExtra.cauldron?.token?.token_id)
-            .filter(Boolean)
-          
-          // Add unique token IDs to involved assets
-          tokenIds.forEach(tokenId => {
-            const ctAssetId = `ct/${tokenId}`
-            if (!involvedAssetIds.includes(ctAssetId)) {
-              involvedAssetIds.push(ctAssetId)
-            }
-          })
+          // If cauldron enabled, bch is used to send cashtokens
+          if (this.assetId !== 'bch' && this.assetId?.startsWith?.('ct/')) return 'bch'
 
-          effectiveAssetId = tokenIds[0] || 'bch';
-        } else if (this.assetId?.startsWith?.('ct/')) {
-          // When sending tokens with Cauldron, BCH is also spent
-          if (!involvedAssetIds.includes('bch')) {
-            involvedAssetIds.push('bch')
-          }
-          effectiveAssetId = 'bch'
-        }
-      }
+          // At this point it assumes it is cauldron enabled and bch is being sent
+          if (!extra.cauldron?.token?.token_id) return '';
+          return `ct/${extra.cauldron?.token?.token_id}`;
+        })
+        .filter(Boolean)
+        .filter((assetId, index, list) => list.indexOf(assetId) === index)
 
       // Determine if we need summary page (multiple assets involved)
-      const useSummaryPage = involvedAssetIds.length > 1
+      const useSummaryPage = assetIds.length > 1
 
       if (useSummaryPage) {
         // Use transaction-summary page for multiple assets
         const query = {
           from: 'send',
-          assetIds: involvedAssetIds.join(','),
+          assetIds: assetIds.join(','),
           new: 'true'
         }
         // Add recipient address for "Add to Address Book" feature
@@ -1129,6 +1104,7 @@ export default {
       }
 
       // Single asset - use transaction-detail as before
+      const effectiveAssetId = assetIds[0];
       const asset = sendPageUtils.getAsset(effectiveAssetId, this.symbol) || this.asset;
       const sendTx = {
         txid,
@@ -2792,17 +2768,6 @@ export default {
 
   async mounted () {
     const vm = this
-    window.test = () => {
-      const txId = Array.from({ length: 64 }).fill('0').join('');
-      const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
-      console.debug(query, state);
-      // vm.$router.push({
-      //   name: 'transaction-detail',
-      //   params: { txid: txId },
-      //   query,
-      //   state
-      // })
-    }
 
     vm.updateNetworkDiff()
     
