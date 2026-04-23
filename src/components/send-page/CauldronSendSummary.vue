@@ -38,7 +38,7 @@
                 </div>
                 <div class="row items-center justify-between text-caption">
                   <div class="text-grey">{{ $t('ExchangeRate', {}, 'Exchange rate') }}</div>
-                  <div>1 {{ trade.supplySymbol }} ≈ {{ trade.exchangeRate }} {{ trade.demandSymbol }}</div>
+                  <div>1 {{ trade.demandSymbol }} ≈ {{ trade.exchangeRate }} {{ trade.supplySymbol }}</div>
                 </div>
                 <div class="row items-center justify-between text-caption q-mt-xs">
                   <div class="text-grey">{{ $t('PlatformFee', {}, 'Platform fee') }}</div>
@@ -86,6 +86,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { NATIVE_BCH_TOKEN_ID } from '@cashlab/common';
 import { useStore } from "vuex";
 import { computed, ref } from "vue";
+import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker';
 
 const props = defineProps({
   recipients: Array,
@@ -95,11 +96,14 @@ const props = defineProps({
   networkFee: Number,
 })
 
+const cauldronPoolTracker = new MultiCauldronPoolTracker();
+
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus']);
 
 const showSummaryDialog = ref(false);
 
+/** @type {import("vue").ComputedRef<import("@cashlab/cauldron").TradeResult[]>} */
 const uniqueTradeResults = computed(() => {
   return props.tradeResults.filter(Boolean).filter((element, index, list) => list.indexOf(element) === index);
 });
@@ -125,8 +129,9 @@ const tradeResultsData = computed(() => {
     const supplyAmount = Number(tradeResult.summary.supply) / (10 ** supplyDecimals);
     const demandAmount = Number(tradeResult.summary.demand) / (10 ** demandDecimals);
 
-    const rate = tradeResult.summary.rate;
-    const exchangeRate = rate ? (Number(rate.numerator) / Number(rate.denominator)).toFixed(6) : 'N/A';
+    const isBuyingToken = supplyAsset.id === 'bch';
+    const tokenDecimals = isBuyingToken ? demandAsset.decimals : supplyAsset.decimals;
+    const exchangeRate = cauldronPoolTracker.parseRate(tradeResult.summary.rate, tokenDecimals, isBuyingToken);
 
     const feeSats = Number(tradeResult.summary.trade_fee);
     const feeDenomination = props.denomination || $store.getters['global/denomination'];
