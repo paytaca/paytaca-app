@@ -131,6 +131,7 @@ const phrases = {
       AuthenticationCancelled: "Authentication cancelled",
       NoCollectibles: "You don't own any Collectible NFTs yet.",
       NoExistingConversations: "No existing conversations",
+      InvalidAssetError: "Invalid asset",
       InvalidPrivateKey: "Invalid private key!",
       InvalidQRCode: "Invalid QR code. Please scan a WizardConnect QR code.",
       FeatureBlockedInYourCountry: "Sorry. This feature is blocked in your country",

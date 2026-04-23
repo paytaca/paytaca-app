@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "Ongeldig adresformaat",
   InvalidAddressesError: "Een of meer adressen zijn ongeldig.",
   InvalidAmount: "Ongeldig bedrag",
+  InvalidAssetError: "Ongeldig item",
   InvalidData: "Ongeldige gegevens",
   InvalidDuration: "Invalid duration",
   InvalidEmailAddress: "Ongeldig e-mailadres",

@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "Format alamat tidak valid",
   InvalidAddressesError: "Satu atau beberapa alamat tidak valid.",
   InvalidAmount: "Jumlah tidak valid",
+  InvalidAssetError: "Aset tidak valid",
   InvalidData: "Data tidak valid",
   InvalidDuration: "Durasi tidak valid",
   InvalidEmailAddress: "Alamat Email Tidak Valid",

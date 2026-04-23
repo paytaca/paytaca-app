@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "Неверный формат адреса",
   InvalidAddressesError: "Один или несколько адресов недействительны.",
   InvalidAmount: "Неверная сумма",
+  InvalidAssetError: "Неверный актив",
   InvalidData: "Неверные данные",
   InvalidDuration: "Неверная продолжительность",
   InvalidEmailAddress: "Неверный адрес электронной почты",

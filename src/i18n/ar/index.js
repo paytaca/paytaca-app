@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "تنسيق العنوان غير صالح",
   InvalidAddressesError: "عنوان واحد أو أكثر غير صالح.",
   InvalidAmount: "مبلغ غير صالح",
+  InvalidAssetError: "مادة عرض غير صالحة",
   InvalidData: "بيانات غير صالحة",
   InvalidDuration: "المدة غير صالحة",
   InvalidEmailAddress: "عنوان البريد الإلكتروني غير صالح",

@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "Ungültiges Adressformat",
   InvalidAddressesError: "Eine oder mehrere Adressen sind ungültig.",
   InvalidAmount: "Ungültiger Betrag",
+  InvalidAssetError: "Ungültiges Asset",
   InvalidData: "Ungültige Daten",
   InvalidDuration: "Ungültige Dauer",
   InvalidEmailAddress: "Ungültige E-Mail-Adresse",

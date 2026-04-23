@@ -1124,6 +1124,7 @@ export default {
   InvalidAddressFormat: "Formato de dirección no válido",
   InvalidAddressesError: "Una o más direcciones no son válidas.",
   InvalidAmount: "Cantidad no válida",
+  InvalidAssetError: "Activo no válido",
   InvalidData: "Datos no válidos",
   InvalidDuration: "Duración no válida",
   InvalidEmailAddress: "Dirección de correo electrónico no válida",

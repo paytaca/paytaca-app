@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "Di-wastong format ng address",
   InvalidAddressesError: "Ang isa o higit pang mga address ay hindi wasto.",
   InvalidAmount: "Di-wastong halaga",
+  InvalidAssetError: "Di-wastong asset",
   InvalidData: "Di-wastong data",
   InvalidDuration: "Di-wastong tagal",
   InvalidEmailAddress: "Di-wastong Email Address",

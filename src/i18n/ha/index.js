@@ -1123,6 +1123,7 @@ export default {
   InvalidAddressFormat: "Tsarin adireshin mara inganci",
   InvalidAddressesError: "Adireshi ɗaya ko fiye ba su da inganci.",
   InvalidAmount: "Adadin da ba daidai ba",
+  InvalidAssetError: "Kadari mara inganci",
   InvalidData: "Bayanai mara inganci",
   InvalidDuration: "Tsawon lokaci mara inganci",
   InvalidEmailAddress: "Adireshin Imel mara inganci",
