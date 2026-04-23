@@ -104,15 +104,15 @@
       class="row items-center justify-between q-pa-md br-10 q-mb-md manage-auth-generic-toggle"
       :class="$q.dark.isActive ? 'glassmorphic-generic-toggle-dark' : 'glassmorphic-generic-toggle-light'"
     >
-      <div class="text-subtitle2 text-weight-bold text-primary">Generic Auth NFT</div>
+      <div class="text-subtitle2 text-weight-bold text-primary">{{ $t('AllowAllMerchantsDialogTitle') }}</div>
       <q-toggle 
-        v-model="genericAuthEnabled"
+        :model-value="genericAuthEnabled"
         color="primary"
         @update:model-value="onGenericAuthToggle"
       />
     </div>
 
-    <!-- Global Spend Limit Input (shown when Generic Auth NFT is enabled) -->
+    <!-- Global Spend Limit Display (shown when Generic Auth NFT is enabled) -->
     <div 
       v-if="genericAuthEnabled"
       class="q-pa-md br-10 q-mb-md"
@@ -120,29 +120,16 @@
     >
       <div class="row items-center q-mb-sm q-gutter-x-sm">
         <q-icon name="savings" color="primary" size="1.1rem" />
-        <div class="text-subtitle2 text-weight-bold" :class="$q.dark.isActive ? 'text-primary' : 'text-primary'">Global Spend Limit</div>
+        <div class="text-subtitle2 text-weight-bold" :class="$q.dark.isActive ? 'text-primary' : 'text-primary'">{{ $t('GlobalSpendLimit') }}</div>
       </div>
-      <div class="row items-center q-gutter-x-sm">
-        <div class="col">
-          <q-input
-            v-model="genericSpendLimit"
-            type="number"
-            outlined
-            dense
-            :dark="$q.dark.isActive"
-            label="Spend Limit (BCH)"
-            step="0.00000001"
-            min="0"
-          />
+      <div class="row items-center">
+        <div class="text-body2" :class="textColor">
+          <span class="text-weight-bold">{{ formatSpendLimit(GLOBAL_SPEND_LIMIT_BCH) }} BCH</span>
+          <span class="text-caption q-ml-sm" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">(~500 PHP)</span>
         </div>
-        <q-btn 
-          color="primary" 
-          label="Save" 
-          @click="saveGlobalSpendLimit"
-          dense
-          unelevated
-          class="glassmorphic-btn"
-        />
+      </div>
+      <div class="text-caption q-mt-xs" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">
+        {{ $t('GlobalSpendLimitDescription') }}
       </div>
     </div>
 
@@ -170,7 +157,7 @@
             <q-skeleton type="text" width="200px" height="12px" />
           </q-item-section>
           <q-item-section side><q-skeleton type="QToggle" /></q-item-section>
-        </q-item>
+        </q-item>Generic
       </div>
 
       <!-- Empty State - No Location -->
@@ -303,6 +290,31 @@
       {{ genericAuthEnabled ? 'Generic Auth NFT is enabled - all merchants are authorized' : 'Select specific merchants to authorize' }}
     </div>
 
+    <!-- Allow All Merchants Confirmation Dialog -->
+    <q-dialog v-model="showAllowAllMerchantsDialog" persistent>
+      <q-card style="min-width: 320px">
+        <q-card-section>
+          <div class="text-h6" :class="textColor">
+            {{ $t('AllowAllMerchantsDialogTitle') }}
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div :class="textColor">
+            {{ $t('AllowAllMerchantsDialogMessage', { amount: formatSpendLimit(GLOBAL_SPEND_LIMIT_BCH) }) }}
+          </div>
+          <div class="q-mt-md text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">
+            {{ $t('AllowAllMerchantsDialogSubtext') }}
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('AllowAllMerchantsCancel')" color="primary" @click="cancelAllowAllMerchants" />
+          <q-btn flat :label="$t('AllowAllMerchantsEnable')" color="primary" @click="confirmAllowAllMerchants" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Spend Limit Dialog -->
     <q-dialog v-model="showSpendLimitDialog" persistent>
       <q-card style="min-width: 320px">
@@ -364,8 +376,10 @@ export default {
     return {
       search: '',
       genericAuthEnabled: false,
-      genericSpendLimit: '1',
+      // Hardcoded global spend limit: ~500 PHP worth of BCH (approximately 0.0017 BCH)
+      GLOBAL_SPEND_LIMIT_BCH: '0.0017',
       merchants: [],
+      showAllowAllMerchantsDialog: false,
       showSpendLimitDialog: false,
       selectedMerchant: null,
       spendLimitInput: '1',
@@ -435,11 +449,6 @@ export default {
     // Load merchants if location is already set
     if (this.userLocationValid) {
       this.loadMerchantList({ reset: true })
-    }
-    
-    // Load global spend limit from card if available
-    if (this.card && this.card.genericSpendLimit) {
-      this.genericSpendLimit = this.card.genericSpendLimit;
     }
     
     // Load merchant spend limits from card if available
@@ -609,12 +618,11 @@ export default {
 
     onGenericAuthToggle(enabled) {
       if (enabled) {
-        this.merchants.forEach(m => {
-          m.wasEnabledBeforeGeneric = m.isEnabled;
-          m.isEnabled = true;
-        });
-        this.notifySuccess('Generic Auth NFT enabled - all merchants are authorized', { icon: 'check_circle' });
+        // Show confirmation dialog before enabling
+        this.showAllowAllMerchantsDialog = true;
       } else {
+        // Disable "Allow All Merchants"
+        this.genericAuthEnabled = false;
         this.merchants.forEach(m => {
           m.isEnabled = m.wasEnabledBeforeGeneric || false;
         });
@@ -625,6 +633,21 @@ export default {
           timeout: 1500
         });
       }
+    },
+
+    confirmAllowAllMerchants() {
+      this.showAllowAllMerchantsDialog = false;
+      this.genericAuthEnabled = true;
+      this.merchants.forEach(m => {
+        m.wasEnabledBeforeGeneric = m.isEnabled;
+        m.isEnabled = true;
+      });
+      this.notifySuccess('Generic Auth NFT enabled - all merchants are authorized', { icon: 'check_circle' });
+    },
+
+    cancelAllowAllMerchants() {
+      this.showAllowAllMerchantsDialog = false;
+      this.genericAuthEnabled = false;
     },
 
     async onMerchantToggle(merchant, enabled) {
@@ -708,33 +731,6 @@ export default {
       }
 
       this.closeSpendLimitDialog();
-    },
-
-    saveGlobalSpendLimit() {
-      const spendLimit = parseFloat(this.genericSpendLimit);
-
-      if (isNaN(spendLimit) || spendLimit <= 0) {
-        this.$q.notify({
-          message: 'Please enter a valid amount greater than 0',
-          color: 'negative',
-          icon: 'error',
-          timeout: 2000
-        });
-        return;
-      }
-
-      this.genericSpendLimit = spendLimit.toFixed(8);
-      
-      if (this.card && this.card.id) {
-        CardStorage.setCardProperty(this.card.id, 'genericSpendLimit', this.genericSpendLimit);
-      }
-      
-      this.$q.notify({
-        message: `Global spend limit set to ${this.genericSpendLimit} BCH`,
-        color: 'positive',
-        icon: 'check_circle',
-        timeout: 1500
-      });
     },
 
     // Select Multiple Mode Methods
