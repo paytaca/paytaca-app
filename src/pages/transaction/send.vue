@@ -2256,7 +2256,9 @@ export default {
         raiseNotifyError(this.$t('InvalidAddress'));
       } else if (code == CauldronSendError.INSUFFICIENT_BALANCE) {
         // It's either BCH or token that's lacking balance
-        raiseNotifyError(this.$t('InsufficientBalance'));
+        let errorMessage = this.$t('InsufficientBalance');
+        if (error.message) errorMessage += ': ' + error.message;
+        raiseNotifyError(errorMessage);
       } else if (code == CauldronSendError.INVALID_ASSET) {
         // Some of the supply or demand asset is not a bch or cashtoken asset
         // TODO: Add own translation text

@@ -332,10 +332,19 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
       }
     }
 
-    const tokenChange = balancer.tokenChange(tokenId);
+    const tokenChange = balancer.tokenChange(tokenId) - 100_000n;
     if (tokenChange < 0n) {
+      const tokenData = asset.id === `ct/${tokenId}`
+        ? asset
+        : inputExtras.find(extra => extra.cauldron.token?.token_id === tokenId)?.cauldron?.token
+      const _decimals = (tokenData as AssetData)?.decimals || (tokenData as CauldronTokenData)?.bcmr?.token?.decimals
+      const decimals = Number(_decimals) || 0;
+      const tokenSymbol = (tokenData as AssetData)?.symbol || (tokenData as CauldronTokenData)?.bcmr?.token?.symbol;
+      const normalizedTokenChange = Number(tokenChange * -1n) / 10 ** decimals;
+      const formattedTokenChange = normalizedTokenChange.toFixed(decimals) + ' ' + tokenSymbol;
+
       throw new CauldronSendError(
-        `Insufficient token balance: ${tokenId}`,
+        formattedTokenChange,
         CauldronSendError.INSUFFICIENT_BALANCE,
       );
     } else if (tokenChange > 0n) {
@@ -359,6 +368,7 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
 
   const excessSats = balancer.excessSats;
   const returnableSats = excessSats - 34n;
+  console.debug('[SendBuild]', { excessSats, returnableSats });
   if (returnableSats >= 546n) {
     balancer.outputs.push({ to: changeAddress, amount: returnableSats })
   } else if(excessSats < 0n) {
@@ -370,7 +380,8 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
       txSize: balancer.txSize,
     })
 
-    throw new CauldronSendError('Insufficient BCH balance', CauldronSendError.INSUFFICIENT_BALANCE);
+    const lackingBalanceText = (Number(excessSats * -1n) / 10 ** 8).toFixed(8) + ' BCH';
+    throw new CauldronSendError(lackingBalanceText, CauldronSendError.INSUFFICIENT_BALANCE);
   }
 
   /** @ts-ignore */
@@ -432,6 +443,8 @@ async function fetchUtxosForTrade(normalized: NormalizedRecipient[], bchWallet: 
   const uniqueAssetIds = normalized
     .map(normalizedRecord => normalizedRecord.supplyAssetId)
     .filter((value, index, list) => list.indexOf(value) === index) as string[];
+
+  if (!uniqueAssetIds.includes('bch')) uniqueAssetIds.push('bch');
 
   const invalidAssetIds = uniqueAssetIds.filter(assetId => {
     if (!assetId) return false;
