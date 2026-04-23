@@ -403,7 +403,7 @@ function getImageUrl (asset) {
 
 function formatAmount (history) {
   if (!history || !history.asset) return ''
-  const amount = history.amount || 0
+  const amount = Math.abs(history.amount || 0);
   const denomination = $store.getters['global/denomination'] || 'BCH'
   
   return parseAssetDenomination(denomination, {
@@ -414,15 +414,20 @@ function formatAmount (history) {
 
 function getFiatValue (history) {
   if (!history || !history.asset) return null
-  
-  const marketPrice = $store.getters['market/getAssetPrice'](history.asset.id, selectedMarketCurrency.value)
+
+  let marketPrice = history?.market_prices?.[selectedMarketCurrency.value];
+  if (!Number.isFinite(marketPrice)) {
+    marketPrice = $store.getters['market/getAssetPrice'](history.asset.id, selectedMarketCurrency.value)
+  }
   if (!marketPrice) return null
 
-  const amount = parseFloat(history.amount || 0)
+  const amount = Math.abs(parseFloat(history.amount || 0));
   if (!amount) return null
 
-  const fiatValue = amount * marketPrice
-  console.debug({ asset: history.asset, currency: selectedMarketCurrency.value, amount, marketPrice, fiatValue })
+  const decimals = parseInt(history.asset?.decimals) || 0;
+  const normalizedAmount = amount / 10 ** decimals;
+
+  const fiatValue = normalizedAmount * marketPrice
   return parseFiatCurrency(fiatValue, selectedMarketCurrency.value)
 }
 
