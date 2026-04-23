@@ -506,7 +506,8 @@ export default {
     LoadingWalletDialog,
     Pin,
     BiometricWarningAttempt,
-    SendSuccessPage
+    SendSuccessPage,
+    CauldronSendSummary,
   },
 
   props: {
