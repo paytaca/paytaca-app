@@ -15,6 +15,7 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		8C6304BC2F93BFDC00A91097 /* AudioModePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6304BB2F93BFDC00A91097 /* AudioModePlugin.swift */; };
 		8C85C4A32F0A7E930068BF2C /* paytaca_logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */; };
 		8C9498C62EAEFFC9007F1102 /* SaveToGalleryPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */; };
 		8C9498C72EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */; };
@@ -36,6 +37,7 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		8C5E2B91297B8F9C001D535F /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		8C6304BB2F93BFDC00A91097 /* AudioModePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioModePlugin.swift; sourceTree = "<group>"; };
 		8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = paytaca_logo.png; sourceTree = "<group>"; };
 		8C9498C52EAEFFC9007F1102 /* SaveToGalleryPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToGalleryPlugin.swift; sourceTree = "<group>"; };
 		8C9498C82EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSecurityPlugin.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				8C6304BB2F93BFDC00A91097 /* AudioModePlugin.swift */,
 				8C85C4A22F0A7E930068BF2C /* paytaca_logo.png */,
 				8CDF32FA2EC302EB0083F06E /* send-success.mp3 */,
 				8CDA945029AE31FD0089EE1B /* AppRelease.entitlements */,
@@ -237,6 +240,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				40140955F8FC44D08E51EC6B /* App/PluginViewController.swift in Sources */,
 				8C9498C62EAEFFC9007F1102 /* SaveToGalleryPlugin.swift in Sources */,
+				8C6304BC2F93BFDC00A91097 /* AudioModePlugin.swift in Sources */,
 				8C9498C72EAEFFD0007F1103 /* ScreenshotSecurityPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -384,7 +388,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 461;
+				CURRENT_PROJECT_VERSION = 464;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -407,7 +411,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/AppRelease.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 461;
+				CURRENT_PROJECT_VERSION = 464;
 				DEVELOPMENT_TEAM = 89X576BZBF;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;

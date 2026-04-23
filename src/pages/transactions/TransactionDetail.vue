@@ -424,6 +424,7 @@ import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
+import AudioMode from 'src/utils/audio-mode'
 import html2canvas from 'html2canvas'
 import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../assets/paytaca_logo_horizontal.png'
@@ -2765,6 +2766,19 @@ export default {
                                (window.location.search && window.location.search.includes('new=true'))
       console.log('[NativeAudio] isNewTransaction:', isNewTransaction, 'query:', query)
       if (!isNewTransaction) return
+
+      // Respect DND/silent mode on native platforms
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { isSilentOrDnd } = await AudioMode.isSilentOrDnd()
+          if (isSilentOrDnd) {
+            console.log('[NativeAudio] skipping sound - device is in silent/DND mode')
+            return
+          }
+        } catch (e) {
+          console.warn('[NativeAudio] could not check audio mode:', e)
+        }
+      }
       
       try {
         // Ensure audio is preloaded before playing

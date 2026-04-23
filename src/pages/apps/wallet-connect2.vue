@@ -52,7 +52,9 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <WalletConnectV2 ref="walletConnectV2" @request-scanner="openScanner"/>
+    <div class="q-pa-md">
+      <WalletConnectV2 ref="walletConnectV2" @request-scanner="openScanner"/>
+    </div>
   </q-pull-to-refresh>
   </div>
 </template>
@@ -117,6 +119,10 @@ async function refreshPage(done=() => {}) {
   background-color: #ECF3F3;
   min-height: 100vh;
   padding-bottom: 50px;
+
+  &.dark {
+    background-color: #1a1a1a;
+  }
 }
 .q-tab-panels {
   margin-top: 10px;

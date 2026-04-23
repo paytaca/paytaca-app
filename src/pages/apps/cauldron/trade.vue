@@ -361,7 +361,7 @@ import { binToHex } from '@bitauth/libauth';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex'
-import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted } from "vue";
+import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted, nextTick } from "vue";
 import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
@@ -397,6 +397,9 @@ export default defineComponent({
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    
+    // Wallet index for detecting wallet switches
+    const walletIndex = computed(() => $store.getters['global/getWalletIndex']);
 
     // const poolTracker = reactive(getMockPoolTracker());
     const poolTracker = reactive(new MultiCauldronPoolTracker());
@@ -885,6 +888,43 @@ export default defineComponent({
       }
       return Promise.all([bchBalanceFetch, tokenBalanceFetch])
     }
+
+    // Watch for wallet switching - reset all local state when wallet changes
+    watch(walletIndex, async (newIndex, oldIndex) => {
+      if (oldIndex === undefined) return; // Skip initial value
+      
+      // Reset completed trade state
+      completedTradeData.value = {
+        txid: '',
+        tradeType: '',
+        unitsSold: 0n,
+        unitsBought: 0n,
+        tokenData: { category: '', name: '', decimals: 0, symbol: '', imageUrl: '' },
+      };
+      
+      // Reset input state
+      amountInput.value = 0;
+      amountInputString.value = '';
+      tradeResult.value = null;
+      tradeResultError.value = '';
+      
+      // Reset token balance (will be refreshed)
+      selectedTokenBalance.value = 0n;
+      
+      // Reconnect pool tracker if a token is selected
+      if (selectedToken.value?.token_id) {
+        updatingPool.value = true;
+        poolTracker.cleanup();
+        await nextTick();
+        poolTracker.subscribeToken(selectedToken.value.token_id)
+          .finally(() => {
+            updatingPool.value = false;
+          });
+      }
+      
+      // Refresh balances for new wallet
+      updateBalance();
+    });
 
 
     const maxAmount = ref(0n);

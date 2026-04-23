@@ -668,14 +668,40 @@ export default {
     assets () {
       const vm = this
 
-      // Token cards should display favorite tokens only.
+      // Token cards display the first N tokens received in the wallet
+      // (7 for Paytaca Free, 24 for Paytaca Plus) with favorites prioritized.
       // For both CashTokens and SLP, use Watchtower API responses (not Vuex store)
       // because the API includes `favorite` and `favorite_order`.
-      if (vm.isCashToken) {
-        return (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
-      }
-
-      return (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
+      
+      // Get the limit based on subscription tier
+      const limit = this.$store.getters['subscription/getLimit']('favoriteTokens')
+      
+      const allTokens = vm.isCashToken
+        ? (this.allTokensFromAPI || [])
+        : (this.allSlpTokensFromAPI || [])
+      
+      // Sort tokens: favorites first (ordered by favorite_order), then non-favorites
+      const sortedTokens = [...allTokens].sort((a, b) => {
+        const aIsFavorite = a.favorite === 1 || a.favorite === true
+        const bIsFavorite = b.favorite === 1 || b.favorite === true
+        
+        // Favorites come first
+        if (aIsFavorite && !bIsFavorite) return -1
+        if (!aIsFavorite && bIsFavorite) return 1
+        
+        // Both favorites: sort by favorite_order (lower order first)
+        if (aIsFavorite && bIsFavorite) {
+          const aOrder = a.favorite_order ?? Number.MAX_SAFE_INTEGER
+          const bOrder = b.favorite_order ?? Number.MAX_SAFE_INTEGER
+          return aOrder - bOrder
+        }
+        
+        // Neither is a favorite: maintain original order (by receive time from API)
+        return 0
+      })
+      
+      // Return the first N tokens based on subscription limit
+      return sortedTokens.slice(0, limit)
     },
     tokenCardsAssets () {
       // Show temporary dummy tokens ONLY while the tutorial is active
@@ -684,7 +710,6 @@ export default {
       // Only show dummy token cards when the tour is highlighting token cards.
       if (this.homeTour.steps?.[this.homeTour.stepIndex]?.id !== 'token-cards') return this.assets
       if (this.isLoadingAssets) return this.assets
-      if (this.hasTokensButNoFavorites) return this.assets
 
       if (Array.isArray(this.assets) && this.assets.length === 0) {
         // Dummy favorites (uses `favorite` field so `asset-cards` will render them).
@@ -722,35 +747,11 @@ export default {
       return this.assets
     },
     hasTokensButNoFavorites () {
-      // Check if there are tokens (excluding BCH) but no favorites
-      // Only show this message when:
-      // 1. There are tokens available from API (not from Vuex store)
-      // 2. No favorites are set (check allTokensFromAPI directly since favoriteTokens might be empty for SLP)
-      // 3. Balance is loaded (indicates assets have been processed)
-
-      // For CashTokens, use API data exclusively - never use Vuex store
-      let hasTokens = false
-      if (this.isCashToken) {
-        hasTokens = this.allTokensFromAPI && this.allTokensFromAPI.length > 0
-      } else {
-        hasTokens = this.allSlpTokensFromAPI && this.allSlpTokensFromAPI.length > 0
-      }
-
-      // Check if there are favorites in allTokensFromAPI (uses API data exclusively)
-      // For CashTokens, filter favorites from allTokensFromAPI
-      let hasFavorites = false
-      if (this.isCashToken) {
-        const favorites = (this.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
-        hasFavorites = favorites.length > 0
-      } else {
-        const favorites = (this.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
-        hasFavorites = favorites.length > 0
-      }
-
-      const assetsLoaded = this.balanceLoaded // Use balanceLoaded as indicator that assets are ready
-      const result = hasTokens && !hasFavorites && assetsLoaded
-
-      return result
+      // This is no longer used for the "mark as favorites" message since tokens
+      // are now shown regardless of favorite status. The first N tokens (7 for Free, 
+      // 24 for Plus) are displayed with favorites prioritized.
+      // Keeping this computed property for backward compatibility but it will always return false.
+      return false
     },
     selectedAssetMarketPrice () {
       if (!this.selectedAsset || !this.selectedAsset.id) return
@@ -1227,7 +1228,8 @@ export default {
         has_balance: true,
         token_type: 1,
         wallet_hash: walletHash,
-        favorites_only: true,
+        // Fetch all tokens, not just favorites - we display the first N tokens
+        // (7 for Free, 24 for Plus) with favorites prioritized in the sort order
         limit: 100 // Fetch more tokens per page
       }
 
@@ -1472,6 +1474,12 @@ export default {
         
         // Refresh pending transactions
         this.pendingTransactionsKey++
+        
+        // Refresh WalletConnect session requests
+        this.$store.dispatch('walletconnect/loadSessionRequests')
+        
+        // Refresh WizardConnect (re-init to restore connections and receive pending requests)
+        this.$store.dispatch('wizardconnect/init')
         
         // Refresh latest transactions
         if (this.$refs['latest-transactions']) {
@@ -2503,6 +2511,20 @@ export default {
         vm.computeWalletYield()
       } catch (error) {
         console.error('Error computing wallet yield:', error)
+      }
+
+      // Load WalletConnect session requests for pending transactions display
+      try {
+        vm.$store.dispatch('walletconnect/loadSessionRequests')
+      } catch (error) {
+        console.error('Error loading WalletConnect session requests:', error)
+      }
+
+      // Initialize WizardConnect to restore connections and receive pending requests
+      try {
+        vm.$store.dispatch('wizardconnect/init')
+      } catch (error) {
+        console.error('Error initializing WizardConnect:', error)
       }
 
       // Set loading to false after initial mount operations complete

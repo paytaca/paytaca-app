@@ -12,7 +12,7 @@
           <template v-slot:header>
             <div class="send-option-header full-width row items-center justify-between">
               <div class="send-option-title">
-                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
                   {{ $t('InitiateNewSession') }}
                 </div>
               </div>
@@ -26,7 +26,7 @@
           </template>
 
           <div class="q-px-lg q-pb-lg">
-            <div class="text-caption q-mb-md" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+            <div class="text-caption q-mb-md text-bow" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
               {{ $t('WcScanOrPasteURL') }}
             </div>
             <div class="row q-gutter-sm">
@@ -478,12 +478,35 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }) => {
       sessionRequests.value = requests.filter((sessionRequest) => { // Remove whitelisted methods
         return !whitelistedMethods.includes(sessionRequest.params.request.method)
       })
+
+      // Sync to Vuex store for home page pending section display
+      syncSessionRequestsToStore()
     }
   } catch (error) {
     console.log(error)
   } finally {
     loading.value = ''
   }
+}
+
+/**
+ * Sync session requests to Vuex store for display on home page pending section
+ * Serializes the requests to avoid storing non-serializable objects
+ */
+const syncSessionRequestsToStore = () => {
+  const serialized = sessionRequests.value.map(req => ({
+    id: req.id,
+    topic: req.topic,
+    params: req.params,
+    verifyContext: req.verifyContext,
+    // Include session peer metadata for display
+    session: req.session ? {
+      peer: {
+        metadata: req.session.peer?.metadata
+      }
+    } : null
+  }))
+  $store.commit('walletconnect/setSessionRequests', serialized)
 }
 
 /**
@@ -1714,6 +1737,9 @@ watch(
       // show old-wallet sessions as belonging to the new wallet.
       sessionTopicWalletAddressMapping.value = {}
 
+      // Clear session requests from Vuex store (for home page pending section)
+      $store.commit('walletconnect/clearSessionRequests')
+
       // Refresh walletAddresses for the new wallet. The fallback mapper
       // (mapSessionTopicWithAddressLocal) uses walletAddresses to match session
       // accounts; without refreshing, stale addresses from the previous wallet
@@ -1757,6 +1783,9 @@ watch(
 
       // Clear all mappings
       sessionTopicWalletAddressMapping.value = {}
+
+      // Clear session requests from Vuex store (for home page pending section)
+      $store.commit('walletconnect/clearSessionRequests')
 
       // Reload active sessions (should be empty after disconnect)
       await loadActiveSessions({ showLoading: false })
@@ -1845,5 +1874,21 @@ defineExpose({
 }
 .transition-transform {
   transition: transform 0.3s ease;
+}
+.scan-option-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+</style>
+
+<style lang="scss">
+.wallet-connect-container.dark .scan-option-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+.wallet-connect-container.dark .scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 </style>
