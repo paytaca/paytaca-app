@@ -2289,6 +2289,16 @@ const phrases = {
       CreatedDate: 'Created {date}',
       UpdatedDate: 'Updated {date}',
       RemoveAddressIndex: 'Remove address {index}'
+    },
+    // ===== Card Management - Allow All Merchants =====
+    {
+      AllowAllMerchantsDialogTitle: 'Allow all merchants',
+      AllowAllMerchantsDialogMessage: 'If you allow all merchants, please note that you can only spend a maximum amount of {amount} BCH (~500 PHP) per transaction.',
+      AllowAllMerchantsDialogSubtext: 'This limit is fixed and cannot be changed.',
+      AllowAllMerchantsEnable: 'Enable',
+      AllowAllMerchantsCancel: 'Cancel',
+      GlobalSpendLimit: 'Global Spend Limit',
+      GlobalSpendLimitDescription: 'Maximum amount you can spend per transaction when allowing all merchants.',
     }
   ]
 }
