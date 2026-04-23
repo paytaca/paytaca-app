@@ -251,11 +251,11 @@
                     <q-skeleton type="text" width="150px" class="q-mx-auto" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.03%)</div>
+                    <div>{{ $t('TradeFee') }} (0.3%)</div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
@@ -348,7 +348,7 @@
 </template>
 <script>
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
-import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
+import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
 import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand, testTradeResult } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
@@ -402,15 +402,19 @@ export default defineComponent({
     const walletIndex = computed(() => $store.getters['global/getWalletIndex']);
 
     // const poolTracker = reactive(getMockPoolTracker());
-    const poolTracker = reactive(new CauldronPoolTracker());
+    const poolTracker = reactive(new MultiCauldronPoolTracker());
     const useFilteredPools = ref(false);
     const updatingPool = ref(false);
-    poolTracker.on('pool-updated', () => updateTradeResult())
+    poolTracker.on('pool-updated', ({ tokenId }) => {
+      if (tokenId === selectedToken.value?.token_id) {
+        updateTradeResult()
+      }
+    })
     poolTracker.on('error', (error) => console.error('Error from pool tracker:', error))
     
     async function onSelectedTokenUpdate() {
       if (!selectedToken.value?.token_id) return;
-      if (poolTracker.subscribedTokenId === selectedToken.value.token_id) return
+      if (poolTracker.isSubscribed(selectedToken.value.token_id)) return
       updatingPool.value = true;
       return poolTracker.subscribeToken(selectedToken.value.token_id)
         .finally(() => {
@@ -561,8 +565,11 @@ export default defineComponent({
     const tradeResult = ref()
     const tradeResultError = ref('');
     const updateTradeResult = debounce(() => {
-      const poolV0List = useFilteredPools.value ? poolTracker.getFilteredPools() : poolTracker.microPools;
-      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
+      const tokenId = selectedToken.value?.token_id;
+      const poolV0List = useFilteredPools.value 
+        ? poolTracker.getFilteredPools(tokenId) 
+        : poolTracker.getPoolsForToken(tokenId);
+      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === tokenId)
       if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
         isRecomputingTrade.value = false;
@@ -630,7 +637,7 @@ export default defineComponent({
     
     const isLiquidityAvailable = computed(() => {
       if (!selectedToken.value) return false;
-      const poolV0List = poolTracker.microPools;
+      const poolV0List = poolTracker.getPoolsForToken(selectedToken.value.token_id);
       if (!poolV0List || poolV0List.length === 0) return false;
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id);
       return arePoolsCorrect;
@@ -655,6 +662,7 @@ export default defineComponent({
           price = poolTracker.parseRate(tradeResult.value.summary.rate, tokenDecimals, isBuyingToken.value);
         } else {
           price = poolTracker.getPriceFromPools({
+            tokenId: selectedToken.value.token_id,
             isBuyingToken: isBuyingToken.value,
             tokenDecimals: tokenDecimals,
           });
@@ -931,7 +939,7 @@ export default defineComponent({
     })
 
     const updateMaxAmount = debounce(() => {
-      const poolV0List = poolTracker.microPools
+      const poolV0List = poolTracker.getPoolsForToken(selectedToken.value?.token_id)
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
       if (!arePoolsCorrect || !poolV0List.length) {
         maxAmount.value = 0n
@@ -971,7 +979,11 @@ export default defineComponent({
         maxAmount.value = tradeResult.summary.demand - 1n;
       }
     })
-    poolTracker.on('pool-updated', () => updateMaxAmount())
+    poolTracker.on('pool-updated', ({ tokenId }) => {
+      if (tokenId === selectedToken.value?.token_id) {
+        updateMaxAmount()
+      }
+    })
     watch(() => [bchBalanceSats.value, selectedTokenBalance.value, isBuyingToken.value, isSupplyMode.value], () => {
       updateMaxAmount()
     })

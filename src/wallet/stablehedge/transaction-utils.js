@@ -95,6 +95,7 @@ export function cashscriptTxToLibauth(contractAddress, tx) {
 export class TransactionBalancer {
   /**
    * @callback InputSizeCalculator
+   * @param {import("cashscript").UnlockableUtxo} utxo
    * @returns {Number | undefined}
    * 
    * @param {Object} opts
