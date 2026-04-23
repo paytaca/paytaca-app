@@ -100,7 +100,7 @@
         ref="amountInput"
         class="bch-input-field"
         @focus="onInputFocus(index, 'bch')"
-        :label="$t('Amount')"
+        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
         :loading="computingMax"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
@@ -138,7 +138,7 @@
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
         :error="balanceExceeded && !cauldronEnabled"
         :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
-        :label="$t('Amount')"
+        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
         :key="inputExtras.fiatFormatted"
       >
@@ -149,10 +149,20 @@
     </div>
   </div>
 
-  <div class="row items-start no-wrap q-mt-sm">
+  <div v-if="!cauldronEnabled" class="q-mt-sm">
+    <q-btn
+      no-caps
+      :label="asset?.id === 'bch' ? $t('SendUsingTokensWithCauldron') : $t('SendUsingBchWithCauldron')"
+      icon="img:cauldron-logo.svg"
+      color="pt-primary1"
+      padding="sm md"
+      class="full-width q-my-sm"
+      @click="toggleCauldron()"
+    />
+  </div>
+  <div v-else class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
-        v-if="cauldronEnabled"
         ref="cauldronAmountInput"
         type="text"
         inputmode="none"
@@ -160,7 +170,7 @@
         :loading="calculatingCauldronTrade"
         readonly
         v-model="cauldronAmountFormatted"
-        :label="$t('Amount')"
+        :label="$t('SpendAmount')"
         :dark="darkMode"
         :error="balanceExceeded && cauldronEnabled"
         :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
@@ -180,9 +190,10 @@
     </div>
     <q-btn
       flat
-      color="cauldronEnabled ? undefined : 'grey'"
-      icon="img:cauldron-logo.svg"
-      padding="md"
+      size="md"
+      icon="close"
+      class="q-ml-xs q-my-sm"
+      round
       @click="toggleCauldron()"
     />
   </div>
@@ -206,6 +217,7 @@
         no-caps
         v-if="!computingMax || !recipient.sending"
         class="max-button"
+        color="pt-primary1"
         :class="getDarkModeClass(darkMode)"
         :label="$t('MAX')"
         @click="onInputFocus(index, ''), handleMaxClick()"
@@ -570,15 +582,6 @@ export default {
       border-radius: 4px;
       font-size: 12px;
       font-weight: bold;
-      color: #3b7bf6;
-
-      &.light {
-        color: #3b7bf6;
-      }
-
-      &.dark {
-        color: #6fa8ff;
-      }
     }
   }
 </style>
