@@ -251,11 +251,11 @@
                     <q-skeleton type="text" width="150px" class="q-mx-auto" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.03%)</div>
+                    <div>{{ $t('TradeFee') }} (0.3%)</div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">

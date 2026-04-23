@@ -5,7 +5,7 @@
     @click="showSummaryDialog = true"
   >
     <div class="row items-center justify-between text-bow">
-      <div class="text-caption text-grey">Cauldron {{ $t('Fee') }} (0.03%)</div>
+      <div class="text-caption text-grey">Cauldron {{ $t('Fee') }} (0.3%)</div>
       <div class="text-subtitle2">{{ totalPlatformFee }}</div>
     </div>
 
