@@ -1,6 +1,6 @@
 // import { WalletConnectionManager } from '@wizardconnect/wallet'
 import { mnemonicToSeedSync } from 'bip39'
-import { toUint8Array, toBigInt } from '@wizardconnect/core'
+import { toUint8Array } from '@wizardconnect/core'
 import {
   deriveHdPrivateNodeFromSeed,
   deriveHdPrivateNodeChild,
@@ -149,9 +149,9 @@ export function reset() {
   _hdNodes = null
 }
 
-export function connect(uri) {
-  if (!_manager) throw new Error('Manager not initialized')
-  return _manager.connect(uri)
+export async function connect(uri) {
+  const manager = await getManager()
+  return manager.connect(uri)
 }
 
 export function disconnect(connectionId) {
@@ -168,13 +168,13 @@ export function disconnectAll() {
 }
 
 export async function sendSignResponse(connectionId, sequence, signedTxHex) {
-  if (!_manager) throw new Error('Manager not initialized')
-  await _manager.sendSignResponse(connectionId, sequence, signedTxHex)
+  const manager = await getManager()
+  await manager.sendSignResponse(connectionId, sequence, signedTxHex)
 }
 
 export async function sendSignError(connectionId, sequence, errorMessage) {
-  if (!_manager) throw new Error('Manager not initialized')
-  await _manager.sendSignError(connectionId, sequence, errorMessage)
+  const manager = await getManager()
+  await manager.sendSignError(connectionId, sequence, errorMessage)
 }
 
 /**
@@ -182,9 +182,9 @@ export async function sendSignError(connectionId, sequence, errorMessage) {
  *
  * Uint8Array fields may arrive as plain hex strings (emitted by the reference
  * sourceOutputToRelay serializer) or as extended JSON (`<Uint8Array: 0x...>`).
- * BigInts arrive as extended JSON (`<bigint: Xn>`). The toUint8Array /
- * toBigInt helpers from @wizardconnect/core transparently handle every
- * documented format, which is the deserialization path the spec prescribes.
+ * BigInts arrive as extended JSON (`<bigint: Xn>`). The toUint8Array
+ * helper from @wizardconnect/core handles Uint8Array deserialization.
+ * BigInt values are parsed using native BigInt() constructor.
  *
  * Zero-length placeholder unlockingBytecode is dropped — downstream compiler
  * logic treats an absent property as a placeholder.
@@ -198,7 +198,7 @@ function hydrateSourceOutput(so) {
     outpointTransactionHash: toUint8Array(so.outpointTransactionHash),
     outpointIndex: so.outpointIndex,
     sequenceNumber: so.sequenceNumber,
-    valueSatoshis: toBigInt(so.valueSatoshis),
+    valueSatoshis: BigInt(so.valueSatoshis),
     lockingBytecode: toUint8Array(so.lockingBytecode),
     ...(hasUnlocking && { unlockingBytecode: toUint8Array(so.unlockingBytecode) }),
     ...(so.token && { token: hydrateToken(so.token) }),
@@ -208,7 +208,7 @@ function hydrateSourceOutput(so) {
 function hydrateToken(token) {
   return {
     category: toUint8Array(token.category),
-    amount: toBigInt(token.amount),
+    amount: BigInt(token.amount),
     ...(token.nft && { nft: hydrateNft(token.nft) }),
   }
 }

@@ -3,7 +3,7 @@
   <div class="ramp-drag-slide-root">
     <div v-if="!swiped" v-bind="$attrs" class="ramp-drag-slide-container absolute-bottom" :class="{ nudge }">
       <div class="drag-slide-inner">
-        <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: 40px;">
+        <q-slide-item :left-color="themeColor" @left="slide" style="background: transparent; border-radius: clamp(30px, 10vw, 40px); min-width: 200px;">
           <template v-if="!locked" v-slot:left>
             <div style="font-size: 15px" class="text-body1">
               <q-icon class="material-icons q-mr-md" size="lg">task_alt</q-icon>
@@ -197,8 +197,8 @@ export default {
 
 .drag-slide-inner {
   margin-bottom: 16px;
-  margin-left: 10%;
-  margin-right: 10%;
+  margin-left: 5%;
+  margin-right: 5%;
   background: transparent;
   position: relative;
   z-index: 4501;
