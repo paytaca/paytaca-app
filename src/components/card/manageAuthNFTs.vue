@@ -1,6 +1,6 @@
 <template>
   <div class="full-width">
-    <!-- Location Info -->
+    <!-- Location Info - automatically handled by GPS -->
     <div 
       v-if="userLocation"
       class="row items-center q-mb-md q-px-sm"
@@ -10,17 +10,6 @@
       <span class="text-caption ellipsis">
         {{ userLocation.formatted || 'Using current location' }}
       </span>
-      <q-btn
-        flat
-        dense
-        no-caps
-        size="0.75rem"
-        color="primary"
-        class="q-ml-sm"
-        @click="openLocationSelector"
-      >
-        Change
-      </q-btn>
     </div>
     <div 
       v-else
@@ -28,18 +17,18 @@
       :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
     >
       <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
-      <span class="text-caption">Set your location to find nearby merchants</span>
-      <q-btn
-        flat
-        dense
-        no-caps
-        size="0.75rem"
-        color="primary"
-        class="q-ml-sm"
-        @click="openLocationSelector"
-      >
-        Set Location
-      </q-btn>
+      <span class="text-caption">Detecting your location...</span>
+    </div>
+
+    <!-- Distance Filter -->
+    <div 
+      class="row items-center q-mb-md q-px-sm text-caption cursor-pointer"
+      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+      @click="openDistanceDialog"
+    >
+      <span>Search Radius</span>
+      <q-icon name="settings" size="1rem" class="q-mx-xs" color="primary" />
+      <span class="text-weight-medium">{{ radius }} km</span>
     </div>
 
     <!-- Search bar and Select Multiple Toggle -->
@@ -138,8 +127,8 @@
     <!-- Merchants List -->
     <div class="text-subtitle2 q-mb-sm" :class="textColor">
       Nearby Merchants
-      <span v-if="merchantsPagination.count > 0" class="text-caption text-grey">
-        ({{ filteredMerchants.length }} of {{ merchantsPagination.count }})
+      <span v-if="merchants.length > 0" class="text-caption text-grey">
+        ({{ filteredMerchants.length }})
       </span>
     </div>
     
@@ -167,13 +156,10 @@
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
         <q-icon name="location_off" size="48px" class="q-mb-md" />
-        <div>Set your location to find nearby merchants</div>
-        <q-btn
-          color="primary"
-          label="Set Location"
-          class="q-mt-md"
-          @click="openLocationSelector"
-        />
+        <div>Waiting for GPS location...</div>
+        <div class="text-caption q-mt-sm">
+          Please enable location services
+        </div>
       </div>
 
       <!-- Empty State - No Merchants -->
@@ -183,9 +169,9 @@
         :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
       >
         <q-icon name="storefront" size="48px" class="q-mb-md" />
-        <div>No verified merchants found near your location</div>
+        <div>No merchants found in your city</div>
         <div class="text-caption q-mt-sm">
-          Try expanding your search radius or changing your location
+          Try changing your location to find merchants in other areas
         </div>
       </div>
 
@@ -364,7 +350,6 @@
 <script>
 import { createCardLogic, CardStorage } from './createCard.js'
 import { getMerchantList } from 'src/services/card/merchants'
-import PinLocationDialog from 'src/components/PinLocationDialog.vue'
 
 export default {
   name: 'ManageAuthNFTs',
@@ -390,11 +375,11 @@ export default {
       mintedMerchants: new Set(), // Track merchants that just finished minting
       merchantsPagination: {
         count: 0,
-        limit: 10,
+        limit: 50, // Load 50 merchants per request to ensure enough after filtering
         offset: 0,
         hasMore: false
       },
-      radius: 30, // Default search radius in km
+      radius: 10, // Default search radius in km - user can adjust this
       selectMultipleMode: false, // Toggle for select multiple mode
       selectedMerchants: new Set(), // Track selected merchants in batch mode
       batchMinting: false, // Track batch minting state
@@ -435,14 +420,9 @@ export default {
     }
   },
   watch: {
-    userLocation: {
-      handler(newLocation, oldLocation) {
-        // Reload merchants when location changes
-        if (newLocation?.id !== oldLocation?.id) {
-          this.loadMerchantList({ reset: true })
-        }
-      },
-      deep: true
+    // Reload merchants when search radius changes
+    radius() {
+      this.loadMerchantList({ reset: true })
     }
   },
   mounted() {
@@ -473,7 +453,7 @@ export default {
         this.merchants = []
         this.merchantsPagination = {
           count: 0,
-          limit: 10,
+          limit: 50,
           offset: 0,
           hasMore: false
         }
@@ -517,15 +497,15 @@ export default {
           this.merchants = [...this.merchants, ...uniqueNewMerchants]
         }
 
-        // Update pagination
+        // Update pagination - use the filtered count
         this.merchantsPagination = {
           count: response.count,
           limit: response.limit,
-          offset: response.offset + newMerchants.length,
+          offset: response.offset + response.results.length,
           hasMore: response.hasMore
         }
 
-        console.log(`Loaded ${newMerchants.length} merchants. Total: ${this.merchants.length}/${response.count}`)
+        console.log(`Loaded ${newMerchants.length} merchants. Total displayed: ${this.merchants.length}/${response.count}`)
       } catch (error) {
         console.error('Failed to load merchant list:', error);
         this.notifyError('Failed to load merchants near your location');
@@ -545,68 +525,29 @@ export default {
       }
     },
 
-    openLocationSelector() {
-      // Get current coordinates or use defaults
-      const coords = this.userCoordinates
-      const initLocation = {
-        latitude: coords?.latitude || null,
-        longitude: coords?.longitude || null
-      }
-
-      // Open the pin location dialog
+    openDistanceDialog() {
       this.$q.dialog({
-        component: PinLocationDialog,
-        componentProps: {
-          initLocation,
-          headerText: this.$t('Select Location') || 'Select Location'
+        title: 'Search Radius',
+        message: 'Find merchants within this distance from your location',
+        prompt: {
+          model: this.radius,
+          type: 'number',
+          suffix: 'km',
+          isValid: val => val > 0 && val <= 500
         }
-      }).onOk((coordinates) => {
-        // Update the location in the store
-        this.updateStoreLocation(coordinates.lat, coordinates.lng)
       })
-    },
-
-    async updateStoreLocation(lat, lng) {
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
-
-      // Show loading dialog
-      const dialog = this.$q.dialog({
-        title: 'Updating location',
-        message: 'Getting address...',
-        progress: true,
-        ok: false,
-        cancel: false,
-        persistent: true,
-        color: 'brandblue',
-        class: `br-15 pt-card-2 text-bow ${this.$q.dark.isActive ? 'dark' : 'light'}`
+      .onOk(data => {
+        const newRadius = parseFloat(data)
+        if (newRadius > 0 && newRadius <= 500) {
+          this.radius = newRadius
+          this.$q.notify({
+            message: `Search radius set to ${newRadius} km`,
+            color: 'positive',
+            icon: 'check',
+            timeout: 1500
+          })
+        }
       })
-
-      try {
-        // Reverse geocode to get address
-        const { geolocationManager } = await import('src/boot/geolocation')
-        const response = await geolocationManager.reverseGeocode({ lat, lon: lng })
-
-        // Update store location
-        this.$store.commit('marketplace/updateLocationData', response)
-        this.$store.commit('marketplace/setSelectedSessionLocationId')
-
-        dialog.hide()
-
-        // Reload merchant list with new location
-        this.loadMerchantList({ reset: true })
-
-        // Show success notification
-        this.$q.notify({
-          message: `Location updated to ${response?.formatted || 'new location'}`,
-          color: 'positive',
-          icon: 'check',
-          timeout: 2000
-        })
-      } catch (error) {
-        console.error('Failed to update location:', error)
-        dialog.update({ message: 'Unable to get address. Please try again.' })
-        setTimeout(() => dialog.hide(), 1500)
-      }
     },
 
     formatSpendLimit(value) {
