@@ -2,22 +2,22 @@ import { backend } from 'src/marketplace/backend';
 
 /**
  * Fetches verified merchants from commercehub storefronts endpoint
- * Filters by user location if coordinates are provided
+ * Filters by user location and distance radius
  * @param {Object} params - Query parameters
- * @param {number} params.limit - Number of results per page (default: 10)
+ * @param {number} params.limit - Number of results per page (default: 50)
  * @param {number} params.offset - Offset for pagination (default: 0)
  * @param {Object} params.location - User location coordinates
  * @param {number} params.location.latitude - Latitude
  * @param {number} params.location.longitude - Longitude
- * @param {number} params.radius - Search radius in km (default: 30)
+ * @param {number} params.radius - Search radius in km (default: 10)
  * @returns {Promise<Object>} Response with results, count, limit, offset
  */
 export async function getMerchantList(params = {}) {
   const {
-    limit = 10,
+    limit = 50,
     offset = 0,
     location = null,
-    radius = 30
+    radius = 10
   } = params;
 
   const queryParams = {
@@ -49,6 +49,7 @@ export async function getMerchantList(params = {}) {
     isOpen: storefront.is_open,
     inPrelaunch: storefront.in_prelaunch,
     distance: storefront.distance, // Distance in meters from user location
+    shopId: storefront.shop_id, // Shop ID indicates a verified merchant with POS
     // Additional storefront data
     imageUrl: storefront.logo_url,
     currency: storefront.currency?.code,
