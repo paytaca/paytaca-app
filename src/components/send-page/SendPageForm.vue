@@ -157,7 +157,7 @@
       color="pt-primary1"
       padding="sm md"
       class="full-width q-my-sm"
-      @click="toggleCauldron()"
+      @click="toggleCauldron"
     />
   </div>
   <div v-else class="row items-start no-wrap q-mt-sm">
@@ -194,7 +194,7 @@
       icon="close"
       class="q-ml-xs q-my-sm"
       round
-      @click="toggleCauldron()"
+      @click="toggleCauldron"
     />
   </div>
 

@@ -2287,11 +2287,12 @@ export default {
         raiseNotifyError(errorMessage);
       } else if (code == CauldronSendError.INVALID_ASSET) {
         // Some of the supply or demand asset is not a bch or cashtoken asset
-        // TODO: Add own translation text
         raiseNotifyError(this.$t('InvalidAssetError'));
       } else {
         // A fallback case for unknown errors
-        raiseNotifyError(this.$t('UnknownError'));
+        let errorMessage = String(error?.message ?? error);
+        if (errorMessage) errorMessage = ': ' + errorMessage;
+        raiseNotifyError(this.$t('UnknownError') + errorMessage);
       }
     },
 
