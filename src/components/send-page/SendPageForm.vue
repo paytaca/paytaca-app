@@ -157,7 +157,7 @@
       color="pt-primary1"
       padding="sm md"
       class="full-width q-my-sm"
-      @click="toggleCauldron()"
+      @click="toggleCauldron"
     />
   </div>
   <div v-else class="row items-start no-wrap q-mt-sm">
@@ -172,8 +172,8 @@
         v-model="cauldronAmountFormatted"
         :label="$t('SpendAmount')"
         :dark="darkMode"
-        :error="balanceExceeded && cauldronEnabled"
-        :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
+        :error="Boolean(effectiveCauldronErrorMessage)"
+        :error-message="effectiveCauldronErrorMessage"
       >
         <template v-slot:append>
           <q-btn
@@ -194,7 +194,7 @@
       icon="close"
       class="q-ml-xs q-my-sm"
       round
-      @click="toggleCauldron()"
+      @click="toggleCauldron"
     />
   </div>
 
@@ -286,16 +286,17 @@ export default {
     currentWalletBalance: { type: Number },
     currentWalletBalanceAssetId: String,
 
+    cauldronErrorMessage: String,
+
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String },
-    walletType: { type: String }
+    walletType: { type: String },
   },
 
   emits: [
     'on-qr-scanner-click',
     'on-input-focus',
-    'on-balance-exceeded',
     'on-recipient-input',
     'on-empty-recipient',
     'on-selected-denomination-change',
@@ -324,26 +325,7 @@ export default {
   },
 
   beforeMount () {
-    this.amount = this.recipient.amount
-    this.amountFormatted = this.inputExtras.amountFormatted
-    this.cauldronAmount = this.recipient.cauldronAmount;
-    this.fiatFormatted = this.inputExtras.fiatFormatted
-    if (this.inputExtras.isBip21) {
-      this.selectedDenomination = 'BCH'
-    } else {
-      this.selectedDenomination = this.inputExtras.selectedDenomination
-    }
-    this.selectedChangeAddress = this.defaultSelectedFtChangeAddress
-
-    if (this.inputExtras.cauldron) {
-      this.cauldronExpanded = this.inputExtras.cauldron.expanded;
-      this.cauldronEnabled = this.inputExtras.cauldron.enable;
-      this.cauldronAmountFormatted = this.inputExtras.cauldron.amountFormatted || ''
-
-      if (this.inputExtras.cauldron.token) {
-        this.cauldronToken = this.inputExtras.cauldron.token;
-      }
-    }
+    this.syncPropsData();
   },
 
   computed: {
@@ -352,7 +334,7 @@ export default {
         return this.recipient.recipientAddress
       },
       set (value) {
-        this.emptyRecipient = !!value
+        // We'll hope the event handler for this updates the this.recipient.recipientAddress
         this.$emit('on-recipient-input', value)
       }
     },
@@ -428,6 +410,15 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    effectiveCauldronErrorMessage() {
+        // :error="balanceExceeded && cauldronEnabled"
+        // :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
+      if (this.balanceExceeded && this.cauldronEnabled) {
+        return this.$t('BalanceExceeded')
+      }
+
+      return this.cauldronErrorMessage;
     }
   },
 
@@ -465,6 +456,7 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
+      console.debug('onEmptyRecipient', { recipientAddress: this.recipientAddress, emptyRecipient: this.emptyRecipient })
       this.$emit('on-empty-recipient', this.emptyRecipient)
     },
     onQRUploaderClick () {
@@ -517,7 +509,7 @@ export default {
       this.cauldronEnabled = !this.cauldronEnabled;
       this.emitCauldronToggle();
 
-      if (this.cauldronEnabled) this.cauldronTokenDialog = true
+      if (this.cauldronEnabled && !this.cauldronToken) this.cauldronTokenDialog = true
     },
     onCauldronTokenSelect (token) {
       this.cauldronToken = token
@@ -530,27 +522,49 @@ export default {
         token: this.cauldronToken,
         amountFormatted: this.cauldronAmountFormatted,
       })
+    },
+    syncPropsData() {
+      console.debug('Syncing Props data');
+
+      // Syncing this.recipient.recipientAddress is handled somewhere else
+      this.amount = this.recipient.amount
+      this.amountFormatted = this.inputExtras.amountFormatted
+      this.cauldronAmount = this.recipient.cauldronAmount;
+      this.fiatFormatted = this.inputExtras.fiatFormatted
+
+      this.balanceExceeded = this.inputExtras.balanceExceeded;
+      this.emptyRecipient = this.inputExtras.emptyRecipient;
+
+      if (this.inputExtras.isBip21) {
+        this.selectedDenomination = 'BCH'
+      } else {
+        this.selectedDenomination = this.inputExtras.selectedDenomination
+      }
+
+      if (this.inputExtras.cauldron) {
+        this.cauldronEnabled = this.inputExtras.cauldron.enable;
+        this.cauldronAmountFormatted = this.inputExtras.cauldron.amountFormatted || ''
+
+        if (this.inputExtras.cauldron.token) {
+          this.cauldronToken = this.inputExtras.cauldron.token;
+        }
+      }
     }
   },
 
   watch: {
-    amount: function (value) {
-      if (this.cauldronEnabled) return;
-
-      if (this.asset?.id?.startsWith('ct/')) {
-        this.balanceExceeded = value > ((this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0)))
-      } else if (this.asset?.id === 'bch') {
-        this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
-      }
-
-      this.$emit('on-balance-exceeded', this.balanceExceeded)
+    recipient: {
+      deep: true,
+      handler() {
+        this.syncPropsData();
+      },
     },
-    cauldronAmount: function (value) {
-      if (!this.cauldronEnabled) return;
-      if (!this.cauldronAmount) return;
-      this.balanceExceeded = this.currentWalletBalance < 0;
-      this.$emit('on-balance-exceeded', this.balanceExceeded);
-    }
+    inputExtras: {
+      deep: true,
+      handler() {
+        this.syncPropsData();
+      },
+    },
   }
 }
 </script>

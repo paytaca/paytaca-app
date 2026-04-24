@@ -75,6 +75,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
   private _currentRetries: number;
   private _reconnectTimeout: NodeJS.Timeout | null;
   private rpcClient: RpcWebSocketClient;
+  private _rpcClientConnectPromise: Promise<unknown> | undefined;
 
   constructor(opts: TrackerOptions = {}) {
     super();
@@ -110,18 +111,10 @@ export class MultiCauldronPoolTracker extends EventEmitter {
       this.setConnectionState('connected');
       
       // Auto-resubscribe if we have subscribed tokens
-      if (this.subscribedTokenIds.size > 0) {
+      if (this.subscribedTokenIds.size > 0 || this.pendingTokenIds.size > 0) {
         this.resubscribeTokens().catch((error: Error) => {
           this.emit('error', error);
           console.error('MultiCauldronPoolTracker | Failed to resubscribe after reconnection:', error);
-        });
-      } else if (this.pendingTokenIds.size > 0) {
-        // Subscribe to pending tokens if connection was pending
-        const pendingIds = Array.from(this.pendingTokenIds);
-        this.pendingTokenIds.clear();
-        Promise.all(pendingIds.map(id => this.subscribeToken(id))).catch((error: Error) => {
-          this.emit('error', error);
-          console.error('MultiCauldronPoolTracker | Failed to subscribe to pending tokens:', error);
         });
       }
     });
@@ -153,7 +146,9 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     }
     
     // Emit generic state change event
-    this.emit('statechange', { from: oldState, to: newState } as StateChangeEvent);
+    if (oldState !== newState) {
+      this.emit('statechange', { from: oldState, to: newState } as StateChangeEvent);
+    }
   }
 
   getConnectionState(): ConnectionState {
@@ -266,17 +261,20 @@ export class MultiCauldronPoolTracker extends EventEmitter {
   }
 
   /**
-   * Resubscribe to all subscribed tokens after reconnection
+   * Resubscribe to all subscribed & pending tokens after reconnection
    */
   async resubscribeTokens(): Promise<void> {
-    if (this.subscribedTokenIds.size === 0) return;
+    const tokenIds = this.subscribedTokenIds.union(this.pendingTokenIds);
+    if (tokenIds.size === 0) return;
     
     const errors: Array<{ tokenId: string; error: Error }> = [];
     
-    for (const tokenId of this.subscribedTokenIds) {
+    for (const tokenId of tokenIds) {
       try {
         const response = await this.rpcClient.call('cauldron.contract.subscribe', [2, tokenId]);
         this.contractSubscribeUpdate(response as ContractSubscribeData);
+        this.subscribedTokenIds.add(tokenId);
+        this.pendingTokenIds.delete(tokenId);
       } catch (error) {
         console.error(`MultiCauldronPoolTracker | Failed to resubscribe to token ${tokenId}:`, error);
         errors.push({ tokenId, error: error as Error });
@@ -310,10 +308,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     try {
       // Connect if not already connected
       if (this.rpcClient.ws?.readyState !== WebSocket.OPEN) {
-        this.setConnectionState('connecting');
-        this.isConnecting = true;
-        await this.rpcClient.connect(SERVER_URL);
-        this.isConnecting = false;
+        await this.connect();
       }
 
       // Subscribe to new token
@@ -334,6 +329,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
    */
   async connect(): Promise<void> {
     if (this.isConnecting) {
+      await this._rpcClientConnectPromise;
       return;
     }
 
@@ -344,13 +340,16 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     try {
       this.setConnectionState('connecting');
       this.isConnecting = true;
-      await this.rpcClient.connect(SERVER_URL);
+      this._rpcClientConnectPromise = this.rpcClient.connect(SERVER_URL);
+      await this._rpcClientConnectPromise;
       this.isConnecting = false;
     } catch (error) {
       this.isConnecting = false;
       this.setConnectionState('disconnected');
       this.emit('error', error);
       throw error;
+    } finally {
+      this._rpcClientConnectPromise = undefined;
     }
   }
 

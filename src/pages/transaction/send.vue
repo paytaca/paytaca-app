@@ -327,20 +327,19 @@
                       :isNFT="isNFT"
                       :currentWalletBalance="currentWalletBalances[index].balance"
                       :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                      :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
                       :walletType="walletType"
                       @on-qr-scanner-click="onQRScannerClick"
                       @on-input-focus="onInputFocus"
-                      @on-balance-exceeded="onBalanceExceeded"
                       @on-recipient-input="onRecipientInput"
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
                       @on-cauldron-toggle="onCauldronToggle"
-                      :key="generateKeys(index)"
                       ref="sendPageRef"
                     />
 
@@ -364,19 +363,18 @@
                     :isNFT="isNFT"
                     :currentWalletBalance="currentWalletBalances[index].balance"
                     :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                    :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
-                    @on-balance-exceeded="onBalanceExceeded"
                     @on-recipient-input="onRecipientInput"
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
                     @on-qr-uploader-click="onQRUploaderClick"
                     @on-selected-change-address="onUserSelectedChangeAddress"
                     @on-cauldron-toggle="onCauldronToggle"
-                    :key="generateKeys(index)"
                     ref="sendPageRef"
                   />
                 </template>
@@ -482,7 +480,7 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
-import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron } from 'src/wallet/cauldron/send'
+import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -629,6 +627,8 @@ export default {
       poolTracker: new MultiCauldronPoolTracker(),
       /** @type {(import("@cashlab/cauldron").TradeResult | undefined)[]} */
       tradeResults: [],
+      /** @type {(import("src/wallet/cauldron/send").TradePrepErrorCode | undefined)[]} */
+      cauldronTradePrepErrors: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -749,13 +749,12 @@ export default {
       return currency && currency.symbol
     },
     showSlider () {
-      console.debug('Show slider', {
-        amounts: this.recipients.map(a => a.amount > 0).findIndex(i => !i) < 0,
-        exceeded: this.inputExtras.map(a => a.balanceExceeded).findIndex(i => i) < 0,
-        emptyRecipient: this.inputExtras.map(a => a.emptyRecipient).findIndex(i => i) < 0,
-        emptyRecipient2: this.recipients.map(a => !!a.recipientAddress).findIndex(i => !i) < 0,
-      })
       if (this.sliderStatus && this.isNFT && !this.sending) return true
+
+      if (this.calculatingCauldronTrade) {
+        if (this.inputExtras.some(extra => extra?.cauldron?.enable)) return false;
+      }
+
       return (
         !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
@@ -2154,11 +2153,6 @@ export default {
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
-    onBalanceExceeded (value) {
-      try {
-        this.inputExtras[this.currentRecipientIndex].balanceExceeded = value
-      } catch { }
-    },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
@@ -2200,6 +2194,10 @@ export default {
         token: cauldronData.token,
         amountFormatted: cauldronData.amountFormatted || '',
       }
+      if (!cauldronData.enable) {
+        this.inputExtras[this.currentRecipientIndex].cauldron.amountFormatted = '';
+        this.recipients[this.currentRecipientIndex].cauldronAmount = '';
+      }
 
       let tokenId
       if (this.asset.id === 'bch') tokenId = cauldronData.token?.token_id;
@@ -2207,9 +2205,7 @@ export default {
 
       if (tokenId) {
         this.calculatingCauldronTrade = true;
-        this.poolTracker.subscribeToken(tokenId).finally(() => {
-          this.calculatingCauldronTrade = false;
-        });
+        this.poolTracker.subscribeToken(tokenId);
 
         // This could be added in `mounted`. But for readability, placed here to be close to related code
         // this.poolTracker.cleanup() is in `unmounted` since can't find a way to do it here
@@ -2220,6 +2216,7 @@ export default {
       }
 
       if (this.inputExtras[this.currentRecipientIndex].setMax) {
+        // This function calls `updateCauldronAndRemainingBalance` as well
         this.setMaximumSendAmount();
       } else {
         this.updateCauldronAndRemainingBalance();
@@ -2228,37 +2225,73 @@ export default {
     },
     prepareCauldronTrade() {
       const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
-      if (!hasCauldron) return;
-
-      try {
-        this.calculatingCauldronTrade = true;
-        console.debug('prepareCauldronTrade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
-
-        // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
-        // Since supply mode sets the amount & fiatAmount using cauldronAmount
-        const amountToFiat = (amount) => {
-          const fiatAmount = this.convertToFiatAmount(amount);
-          const fiatFormatted = formatWithLocale(fiatAmount, this.decimalObj(true));
-          return { fiatAmount, fiatFormatted };
-        }
-
-        // This function actually modifies the passed parameters: recipients, inputExtras
-        // And returns it
-        const { recipients, inputExtras, tradeResults } = prepareSendWithCauldron(
-          this.asset,
-          this.recipients,
-          this.inputExtras,
-          this.poolTracker.getTokenPoolsMap(),
-          amountToFiat,
-        );
-  
-        console.debug(recipients, inputExtras, tradeResults);
-        this.recipients = recipients;
-        this.inputExtras = inputExtras;
-        this.tradeResults = tradeResults;
-      } finally {
+      if (!hasCauldron) {
+        this.tradeResults = [];
         this.calculatingCauldronTrade = false;
+        return;
       }
+
+      this.calculatingCauldronTrade = true;
+      console.trace('Preparing cauldron trade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
+
+      // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
+      // Since supply mode sets the amount & fiatAmount using cauldronAmount
+      const amountToFiat = (amount) => {
+        const fiatAmount = this.convertToFiatAmount(amount);
+        const fiatFormatted = formatWithLocale(fiatAmount, this.decimalObj(true));
+        return { fiatAmount, fiatFormatted };
+      }
+
+      // This function actually modifies the passed parameters: recipients, inputExtras
+      // And returns it
+      const { recipients, inputExtras, tradeResults, tradeErrors } = prepareSendWithCauldron(
+        this.asset,
+        this.recipients,
+        this.inputExtras,
+        this.poolTracker.getTokenPoolsMap(),
+        amountToFiat,
+      );
+
+      console.debug('[CauldronSendPrepare]', { recipients, inputExtras, tradeResults, tradeErrors });
+      this.tradeResults = tradeResults;
+      this.cauldronTradePrepErrors = tradeErrors;
+      this.calculatingCauldronTrade = !this.inputExtras.every((inputExtra, index) => {
+        if (!inputExtra.cauldron.enable) return true;
+        return Boolean(this.tradeResults[index]);
+      });
+    },
+    resolveCauldronTradePrepErrorMessageFromIndex(index) {
+      const errorCode = this.cauldronTradePrepErrors[index];
+      if (!errorCode) return '';
+
+      if (errorCode === TradePrepErrorCode.InsufficientLiquidity) {
+        return this.$t('InsufficientLiquidity');
+      }
+
+      if (errorCode === TradePrepErrorCode.MissingPools) {
+        const tokenId = this.assetId === 'bch' ? this.inputExtras[index].cauldron?.token?.token_id : this.assetId.replace('ct/', '');
+        if (this.poolTracker.getSubscribedTokenIds().includes(tokenId)) {
+          return this.$t('NoLiquidity');
+        }
+      }
+
+      if (errorCode === TradePrepErrorCode.InvalidAmount) {
+        if (!this.recipients[index].cauldronAmount) {
+          // Assuming no errors to be consistent with this page's behavior where empty amount shows no error
+          return '';
+        }
+        return this.$t('InvalidAmount');
+      }
+
+      if (errorCode === TradePrepErrorCode.InvalidTrade) {
+        return this.$t('InvalidTradeResultForSend')
+      }
+
+      if (errorCode === TradePrepErrorCode.UnknownError) {
+        return this.$t('UnknownError');
+      }
+
+      return '';
     },
     /**
      * @param {CauldronSendError} error
@@ -2283,11 +2316,12 @@ export default {
         raiseNotifyError(errorMessage);
       } else if (code == CauldronSendError.INVALID_ASSET) {
         // Some of the supply or demand asset is not a bch or cashtoken asset
-        // TODO: Add own translation text
         raiseNotifyError(this.$t('InvalidAssetError'));
       } else {
         // A fallback case for unknown errors
-        raiseNotifyError(this.$t('UnknownError'));
+        let errorMessage = String(error?.message ?? error);
+        if (errorMessage) errorMessage = ': ' + errorMessage;
+        raiseNotifyError(this.$t('UnknownError') + errorMessage);
       }
     },
 
@@ -2296,13 +2330,6 @@ export default {
     // getters
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
-    },
-    generateKeys (index) {
-      const keys = []
-      keys.push(...Object.entries(this.recipients[index]))
-      keys.push(...Object.entries(this.inputExtras[index]))
-      keys.push(...Object.entries(this.inputExtras[index]?.cauldron))
-      return keys
     },
 
     // setters
@@ -2340,6 +2367,13 @@ export default {
         this.asset,
         amountsData,
       )
+
+      // Auto check balance exceeded when adjusting wallet balances
+      // Exceeded balances are dependent on remaining balances
+      this.inputExtras.forEach((extra, index) => {
+        extra.balanceExceeded =  this.currentWalletBalances[index].balance < 0;
+      })
+
       console.debug('Wallet balances', this.currentWalletBalances);
     },
 
