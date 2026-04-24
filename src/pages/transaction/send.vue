@@ -750,6 +750,11 @@ export default {
     },
     showSlider () {
       if (this.sliderStatus && this.isNFT && !this.sending) return true
+
+      if (this.calculatingCauldronTrade) {
+        if (this.inputExtras.some(extra => extra?.cauldron?.enable)) return false;
+      }
+
       return (
         !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
