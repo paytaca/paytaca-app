@@ -2,12 +2,12 @@
   <!-- Root must be an actual element so directives on <DragSlide> can attach -->
   <div :class="{ 'absolute-bottom': !disableAbsoluteBottom, 'br-15': true, 'drag-slide-container': true }">
     <q-list v-if="!swiped">
-      <div style="margin-bottom: 20px; margin-left: 10%; margin-right: 10%;">
+      <div style="margin-bottom: 20px; margin-left: 5%; margin-right: 5%;">
         <q-slide-item
           left-color="blue"
           @left="slide"
           :disable="disable"
-          style="background-color: transparent; border-radius: 40px;"
+          style="background-color: transparent; border-radius: clamp(30px, 10vw, 40px); min-width: 200px;"
         >
           <template v-if="!disable" v-slot:left>
             <div style="font-size: 15px" class="text-body1">
@@ -24,7 +24,7 @@
               <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
             </q-item-section>
             <q-item-section class="text-right">
-              <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: large;">{{ sliderText }}</h5>
+              <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>
             </q-item-section>
           </q-item>
         </q-slide-item>
