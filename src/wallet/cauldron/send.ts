@@ -365,7 +365,7 @@ export async function buildCauldronSendTransaction(opts: ExecuteSendParams) {
       }
     }
 
-    const tokenChange = balancer.tokenChange(tokenId) - 100_000n;
+    const tokenChange = balancer.tokenChange(tokenId);
     if (tokenChange < 0n) {
       const tokenData = asset.id === `ct/${tokenId}`
         ? asset
