@@ -137,7 +137,7 @@ export async function pair ({ commit, state, rootGetters }, { uri }) {
   if (!uri) throw new Error('URI is required')
   const normalizedUri = uri.trim()
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
-  const connectionId = wizardConnectService.connect(normalizedUri)
+  const connectionId = await wizardConnectService.connect(normalizedUri)
   addSavedUri(walletHash, normalizedUri)
   return connectionId
 }

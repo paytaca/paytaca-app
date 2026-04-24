@@ -149,9 +149,9 @@ export function reset() {
   _hdNodes = null
 }
 
-export function connect(uri) {
-  if (!_manager) throw new Error('Manager not initialized')
-  return _manager.connect(uri)
+export async function connect(uri) {
+  const manager = await getManager()
+  return manager.connect(uri)
 }
 
 export function disconnect(connectionId) {
@@ -168,13 +168,13 @@ export function disconnectAll() {
 }
 
 export async function sendSignResponse(connectionId, sequence, signedTxHex) {
-  if (!_manager) throw new Error('Manager not initialized')
-  await _manager.sendSignResponse(connectionId, sequence, signedTxHex)
+  const manager = await getManager()
+  await manager.sendSignResponse(connectionId, sequence, signedTxHex)
 }
 
 export async function sendSignError(connectionId, sequence, errorMessage) {
-  if (!_manager) throw new Error('Manager not initialized')
-  await _manager.sendSignError(connectionId, sequence, errorMessage)
+  const manager = await getManager()
+  await manager.sendSignError(connectionId, sequence, errorMessage)
 }
 
 /**
