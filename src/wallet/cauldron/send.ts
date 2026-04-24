@@ -51,10 +51,20 @@ interface NormalizedRecipient {
 type AmountToFiat = (amount: number) => { fiatAmount: number | string, fiatFormatted: number | string };
 type PoolsMap = Map<string, PoolV0[]>;
 
+
+export enum TradePrepErrorCode {
+  MissingPools = 'missing pools',
+  InsufficientLiquidity = 'insufficient liquidity',
+  InvalidAmount = 'invalid amount',
+  InvalidTrade = 'invalid trade',
+  UnknownError = 'unknown error', // The fallback error code
+}
+
 interface SendWithCauldronPrep {
   recipients: RecipientData[];
   inputExtras: InputExtra[];
   tradeResults: (TradeResult | void)[];
+  tradeErrors: (TradePrepErrorCode | void)[];
 }
 
 interface ExecuteSendParams {
@@ -105,11 +115,10 @@ export function prepareSendWithCauldron(
   }
 
   // 2. Group by tokenId for both supply and demand
-  const groupedSupplies: Record<string, bigint> = {};
-  const groupedDemands: Record<string, bigint> = {};
+  const groupedTradeOpts: Record<string, { supply: bigint, demand: bigint }> = {};
 
   const assetType = parseAssetType(asset);
-  if (!assetType.isFT && !assetType.isBch) return { recipients, inputExtras, tradeResults: [] };
+  if (!assetType.isFT && !assetType.isBch) return { recipients, inputExtras, tradeResults: [], tradeErrors: [] };
 
   // Save original cauldron amounts before reset
   const originalCauldronAmounts = recipients.map(r => r.cauldronAmount);
@@ -132,50 +141,42 @@ export function prepareSendWithCauldron(
     const tokenId = assetType.isFT ? assetType.tokenCategory : inputExtra.cauldron.token?.token_id;
     if (!tokenId) continue;
 
-    if (record.supply > 0n) {
-      groupedSupplies[tokenId] = (groupedSupplies[tokenId] || 0n) + record.supply;
-    } else if (record.demand > 0n) {
-      groupedDemands[tokenId] = (groupedDemands[tokenId] || 0n) + record.demand;
-    }
+    const tradeOpts = groupedTradeOpts[tokenId] || { supply: 0n, demand: 0n };
+    tradeOpts.supply += record.supply;
+    tradeOpts.demand += record.demand;
+    groupedTradeOpts[tokenId] = tradeOpts;
   }
 
   // 3. Attempt trades for each token
   const exlab = new ExchangeLab();
   const tradeResults: Map<string, TradeResult> = new Map();
   const tradeResultList: (TradeResult | void)[] = [];
+  const tradeErrors: Map<string, TradePrepErrorCode> = new Map();
+  const tradeErrorsList: (TradePrepErrorCode | void)[] = [];
 
-  // Handle supply-based trades (setMax)
-  for (const [tokenId, supplyAmount] of Object.entries(groupedSupplies)) {
+  for (const [tokenId, tradeOpts] of Object.entries(groupedTradeOpts)) {
     const pools = poolsMap.get(tokenId);
-    console.debug('[CauldronSend]', { tokenId, supplyAmount, pools });
-    if (pools === undefined) continue;
-
-    const tradeResult = attemptTrade({
-      exlab,
-      pools,
-      isBuyingToken: !assetType.isBch,
-      demand: 0n,
-      supply: supplyAmount,
-    });
-    console.debug('[CauldronSend]', { tradeResult });
-    tradeResults.set(tokenId, tradeResult);
-  }
-
-  // Handle demand-based trades (normal)
-  for (const [tokenId, demandAmount] of Object.entries(groupedDemands)) {
-    const pools = poolsMap.get(tokenId);
-    console.debug('[CauldronSend]', { tokenId, demandAmount, pools });
-    if (pools === undefined) continue;
-
-    const tradeResult = attemptTrade({
-      exlab,
-      pools,
-      isBuyingToken: !assetType.isBch,
-      demand: demandAmount,
-      supply: 0n,
-    });
-    console.debug('[CauldronSend]', { tradeResult });
-    tradeResults.set(tokenId, tradeResult);
+    console.debug('[CauldronSend]', { tokenId, tradeOpts, pools });
+    if (pools === undefined) {
+      tradeErrors.set(tokenId, TradePrepErrorCode.MissingPools)
+      continue;
+    }
+    
+    try {
+      const tradeResult = attemptTrade({
+        exlab,
+        pools,
+        isBuyingToken: !assetType.isBch,
+        demand: tradeOpts.demand,
+        supply: tradeOpts.supply,
+      });
+      console.debug('[CauldronSend]', { tradeResult });
+      tradeResults.set(tokenId, tradeResult);
+    } catch(error) {
+      const errorCode = resolveTradeErrorCode(error as Error);
+      tradeErrors.set(tokenId, errorCode);
+      console.error(error);
+    }
   }
 
   // 4. Adjust trades per recipient and calculate amounts
@@ -203,7 +204,10 @@ export function prepareSendWithCauldron(
 
     let tradeResult = tradeResults.get(tokenId);
     console.debug('[CauldronSend]', index, { tradeResult });
-    if (!tradeResult) continue;
+    if (!tradeResult) {
+      tradeErrorsList[index] = tradeErrors.get(tokenId);
+      continue;
+    }
     tradeResultList[index] = tradeResult;
 
     if (record.supply > 0n) {
@@ -235,7 +239,7 @@ export function prepareSendWithCauldron(
     }
   }
 
-  return { recipients, inputExtras, tradeResults: tradeResultList };
+  return { recipients, inputExtras, tradeResults: tradeResultList, tradeErrors: tradeErrorsList };
 }
 
 export async function executeSendWithCauldron(opts: ExecuteSendParams): Promise<WatchtowerBroadcastResponse> {
@@ -561,6 +565,7 @@ function normalizeRecipients(asset:AssetData, recipients: RecipientData[], input
 }
 
 function calculateProportionalShare(sourceTotal: bigint, targetTotal: bigint, sourceAmount: bigint): bigint {
+  if (sourceTotal === sourceAmount) return targetTotal;
   const precision = 1_00_000n;
   const pctg = sourceAmount * precision / sourceTotal;
   const targetAmount = targetTotal * pctg / precision;
@@ -637,6 +642,22 @@ export function calculateMaxSpendableForCauldron(asset: AssetData, pools: PoolV0
   return cauldronCalculatedSpendable / 10 ** 8;
 }
 
+function resolveTradeErrorCode(error: Error): TradePrepErrorCode {
+  if (error.name === 'ValueError' && error.message.includes('amount should be greater than zero') ) {
+    return TradePrepErrorCode.InvalidAmount
+  }
+
+  if (error.name === 'InsufficientCapitalInPools') {
+    return TradePrepErrorCode.InsufficientLiquidity;
+  }
+
+  if (error.name === 'InvalidProgramState' && error.message.includes('summary == null')) {
+    return TradePrepErrorCode.InvalidTrade;
+  }
+
+  // Fallback code
+  return TradePrepErrorCode.UnknownError;
+}
 
 export class CauldronSendError extends Error {
   static MISSING_RECIPIENT: string = 'missing_recipient';

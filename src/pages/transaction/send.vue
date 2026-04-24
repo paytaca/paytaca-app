@@ -327,6 +327,7 @@
                       :isNFT="isNFT"
                       :currentWalletBalance="currentWalletBalances[index].balance"
                       :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                      :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
@@ -362,6 +363,7 @@
                     :isNFT="isNFT"
                     :currentWalletBalance="currentWalletBalances[index].balance"
                     :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                    :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
@@ -478,7 +480,7 @@ import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
 import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
-import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron } from 'src/wallet/cauldron/send'
+import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
 import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
@@ -625,6 +627,8 @@ export default {
       poolTracker: new MultiCauldronPoolTracker(),
       /** @type {(import("@cashlab/cauldron").TradeResult | undefined)[]} */
       tradeResults: [],
+      /** @type {(import("src/wallet/cauldron/send").TradePrepErrorCode | undefined)[]} */
+      cauldronTradePrepErrors: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -2239,7 +2243,7 @@ export default {
 
       // This function actually modifies the passed parameters: recipients, inputExtras
       // And returns it
-      const { recipients, inputExtras, tradeResults } = prepareSendWithCauldron(
+      const { recipients, inputExtras, tradeResults, tradeErrors } = prepareSendWithCauldron(
         this.asset,
         this.recipients,
         this.inputExtras,
@@ -2247,12 +2251,43 @@ export default {
         amountToFiat,
       );
 
-      console.debug('[CauldronSendPrepare]', recipients, inputExtras, tradeResults);
+      console.debug('[CauldronSendPrepare]', { recipients, inputExtras, tradeResults, tradeErrors });
       this.tradeResults = tradeResults;
+      this.cauldronTradePrepErrors = tradeErrors;
       this.calculatingCauldronTrade = !this.inputExtras.every((inputExtra, index) => {
-        if (!inputExtra.enable) return true;
+        if (!inputExtra.cauldron.enable) return true;
         return Boolean(this.tradeResults[index]);
       });
+    },
+    resolveCauldronTradePrepErrorMessageFromIndex(index) {
+      const errorCode = this.cauldronTradePrepErrors[index];
+      if (!errorCode) return '';
+
+      if (errorCode === TradePrepErrorCode.InsufficientLiquidity) {
+        return this.$t('InsufficientLiquidity');
+      }
+
+      if (errorCode === TradePrepErrorCode.MissingPools) {
+        const tokenId = this.assetId === 'bch' ? this.inputExtras[index].cauldron?.token?.token_id : this.assetId.replace('ct/', '');
+        if (this.poolTracker.getSubscribedTokenIds().includes(tokenId)) {
+          return this.$t('NoLiquidity');
+        }
+      }
+
+      if (errorCode === TradePrepErrorCode.InvalidAmount) {
+        // Assuming no errors to be consistent with this page's behavior where empty amount shows no error
+        return '';
+      }
+
+      if (errorCode === TradePrepErrorCode.InvalidTrade) {
+        return this.$t('InvalidTrade')
+      }
+
+      if (errorCode === TradePrepErrorCode.UnknownError) {
+        return this.$t('UnknownError');
+      }
+
+      return '';
     },
     /**
      * @param {CauldronSendError} error

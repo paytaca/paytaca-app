@@ -172,8 +172,8 @@
         v-model="cauldronAmountFormatted"
         :label="$t('SpendAmount')"
         :dark="darkMode"
-        :error="balanceExceeded && cauldronEnabled"
-        :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
+        :error="Boolean(effectiveCauldronErrorMessage)"
+        :error-message="effectiveCauldronErrorMessage"
       >
         <template v-slot:append>
           <q-btn
@@ -286,10 +286,12 @@ export default {
     currentWalletBalance: { type: Number },
     currentWalletBalanceAssetId: String,
 
+    cauldronErrorMessage: String,
+
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String },
-    walletType: { type: String }
+    walletType: { type: String },
   },
 
   emits: [
@@ -408,6 +410,15 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    effectiveCauldronErrorMessage() {
+        // :error="balanceExceeded && cauldronEnabled"
+        // :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
+      if (this.balanceExceeded && this.cauldronEnabled) {
+        return this.$t('BalanceExceeded')
+      }
+
+      return this.cauldronErrorMessage;
     }
   },
 
@@ -531,7 +542,6 @@ export default {
       }
 
       if (this.inputExtras.cauldron) {
-        this.cauldronExpanded = this.inputExtras.cauldron.expanded;
         this.cauldronEnabled = this.inputExtras.cauldron.enable;
         this.cauldronAmountFormatted = this.inputExtras.cauldron.amountFormatted || ''
 
