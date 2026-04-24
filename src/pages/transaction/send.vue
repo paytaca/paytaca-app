@@ -862,10 +862,6 @@ export default {
           if (!amount || amount <= 0) return
 
           this.recipients[i].fiatAmount = this.convertToFiatAmount(amount)
-          this.recipients[i].amount = sendPageUtils.convertFiatToSelectedAsset(
-            this.recipients[i].fiatAmount, this.selectedAssetMarketPrice,
-            this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
-          )
           this.inputExtras[i].fiatFormatted = formatWithLocale(
             this.recipients[i].fiatAmount, this.decimalObj(true)
           )
