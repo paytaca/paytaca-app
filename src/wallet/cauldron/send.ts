@@ -180,7 +180,38 @@ export function prepareSendWithCauldron(
     }
   }
 
-  // 4. Adjust trades per recipient and calculate amounts
+  // 5. Allocate trade amounts proportionately, we are doing it this way to ensure displayed amounts
+  //    exactly sum up to the trade result amounts. However a simple calculation below is used as fallback
+  const proportionateAmounts: Record<string, { supplyAmounts: bigint[], demandAmounts: bigint[] }> = {};
+  for (const [tokenId, tradeResult] of tradeResults.entries()) {
+    const assetId = `ct/${tokenId}`;
+    const _demandAmounts = normalized.map(record => {
+      if (record.demandAssetId === assetId || record.supplyAssetId === assetId) return record.demand;
+      return 0n;
+    })
+    const allocatedSupplyAmounts = allocateProportionally(
+      tradeResult.summary.demand,
+      tradeResult.summary.supply,
+      _demandAmounts,
+    )
+
+    const _supplyAmounts = normalized.map(record => {
+      if (record.demandAssetId === assetId || record.supplyAssetId === assetId) return record.demand; 
+      return 0n;
+    })
+    const allocatedDemandAmounts = allocateProportionally(
+      tradeResult.summary.supply,
+      tradeResult.summary.demand,
+      _supplyAmounts,
+    )
+
+    proportionateAmounts[tokenId] = {
+      supplyAmounts: allocatedSupplyAmounts,
+      demandAmounts: allocatedDemandAmounts,
+    }
+  }
+
+  // 6. Adjust trades per recipient and calculate amounts
   for (let index = 0; index < normalized.length; index++) {
     const record = normalized[index]!;
     const inputExtra = inputExtras[index]!;
@@ -213,7 +244,7 @@ export function prepareSendWithCauldron(
 
     if (record.supply > 0n) {
       // Calculate the demand share (what user receives) from trade result based on their supply proportion
-      const demandAmount = calculateProportionalShare(
+      const demandAmount = proportionateAmounts[tokenId]?.demandAmounts[index] || calculateProportionalShare(
         tradeResult.summary.supply,
         tradeResult.summary.demand,
         record.supply,
@@ -225,11 +256,8 @@ export function prepareSendWithCauldron(
       const { fiatAmount, fiatFormatted } = amountToFiat(Number(demandFormatted));
       recipient.fiatAmount = String(fiatAmount);
       inputExtra.fiatFormatted = String(fiatFormatted);
-
     } else if (record.demand > 0n) {
-      // Demand mode: Original logic - calculate cauldron amounts from trade supply
-      // Calculate the supply share (what user pays in cauldron token) from trade result
-      const supplyAmount = calculateProportionalShare(
+      const supplyAmount = proportionateAmounts[tokenId]?.supplyAmounts[index] || calculateProportionalShare(
         tradeResult.summary.demand,
         tradeResult.summary.supply,
         record.demand,
@@ -565,8 +593,61 @@ function normalizeRecipients(asset:AssetData, recipients: RecipientData[], input
   return normalized;
 }
 
+function allocateProportionally(
+  sourceTotal: bigint,
+  targetTotal: bigint,
+  sourceAmounts: bigint[]
+): bigint[] {
+  const n = sourceAmounts.length;
+
+  if (sourceTotal === 0n) {
+    // nothing to proportionally distribute
+    return sourceAmounts.map(() => 0n);
+  }
+
+  const result: bigint[] = new Array(n);
+  const remainders: { idx: number; rem: bigint }[] = [];
+
+  let used = 0n;
+
+  for (let i = 0; i < n; i++) {
+    const amount = sourceAmounts[i]!;
+
+    // proportional allocation
+    const exact = targetTotal * amount;
+
+    const base = exact / sourceTotal;
+    const rem = exact % sourceTotal;
+
+    result[i] = base;
+    used += base;
+
+    remainders.push({ idx: i, rem });
+  }
+
+  // distribute leftover to ensure exact sum = targetTotal
+  let leftover = targetTotal - used;
+
+  remainders.sort((a, b) =>
+    a.rem > b.rem ? -1 : a.rem < b.rem ? 1 : 0
+  );
+
+  let i = 0;
+  while (leftover > 0n) {
+    result[remainders[i]!.idx]! += 1n;
+    leftover -= 1n;
+    i = (i + 1) % remainders.length;
+  }
+
+  return result;
+}
+
 function calculateProportionalShare(sourceTotal: bigint, targetTotal: bigint, sourceAmount: bigint): bigint {
-  if (sourceTotal === sourceAmount) return targetTotal;
+  console.debug('calculateProportionalShare', { sourceTotal, sourceAmount, targetTotal });
+  if (sourceTotal === sourceAmount) {
+    console.debug('calculateProportionalShare', 'returning target total', targetTotal)
+    return targetTotal;
+  }
   const precision = 1_00_000n;
   const pctg = sourceAmount * precision / sourceTotal;
   const targetAmount = targetTotal * pctg / precision;
