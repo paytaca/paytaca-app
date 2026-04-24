@@ -2275,12 +2275,15 @@ export default {
       }
 
       if (errorCode === TradePrepErrorCode.InvalidAmount) {
-        // Assuming no errors to be consistent with this page's behavior where empty amount shows no error
-        return '';
+        if (!this.recipients[index].cauldronAmount) {
+          // Assuming no errors to be consistent with this page's behavior where empty amount shows no error
+          return '';
+        }
+        return this.$t('InvalidAmount');
       }
 
       if (errorCode === TradePrepErrorCode.InvalidTrade) {
-        return this.$t('InvalidTrade')
+        return this.$t('InvalidTradeResultForSend')
       }
 
       if (errorCode === TradePrepErrorCode.UnknownError) {

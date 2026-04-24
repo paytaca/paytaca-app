@@ -55,6 +55,7 @@ type PoolsMap = Map<string, PoolV0[]>;
 export enum TradePrepErrorCode {
   MissingPools = 'missing pools',
   InsufficientLiquidity = 'insufficient liquidity',
+  AmountEmpty = 'empty amount',
   InvalidAmount = 'invalid amount',
   InvalidTrade = 'invalid trade',
   UnknownError = 'unknown error', // The fallback error code
@@ -647,12 +648,12 @@ function resolveTradeErrorCode(error: Error): TradePrepErrorCode {
     return TradePrepErrorCode.InvalidAmount
   }
 
-  if (error.name === 'InsufficientCapitalInPools') {
-    return TradePrepErrorCode.InsufficientLiquidity;
+  if (error.name === 'InvalidProgramState') {
+    return TradePrepErrorCode.InvalidTrade;
   }
 
-  if (error.name === 'InvalidProgramState' && error.message.includes('summary == null')) {
-    return TradePrepErrorCode.InvalidTrade;
+  if (error.name === 'InsufficientCapitalInPools') {
+    return TradePrepErrorCode.InsufficientLiquidity;
   }
 
   // Fallback code
