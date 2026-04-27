@@ -68,7 +68,7 @@
 
       <div class="row">
         <div class="col-xs-12">
-          <div v-if="connectionList.length > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-md">
+          <div v-if="connectionList.length > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-md text-bow" :class="getDarkModeClass(darkMode)">
             <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
             <q-badge color="green" class="q-ml-sm">
               {{ connectionList.length }}
@@ -94,10 +94,10 @@
                   </q-item-section>
                   <q-item-section>
                     <q-item-label>
-                      <span class="text-bold">{{ conn.dappName || 'Connecting...' }}</span>
+                      <span class="text-bold text-bow" :class="getDarkModeClass(darkMode)">{{ conn.dappName || 'Connecting...' }}</span>
                     </q-item-label>
                     <q-item-label caption>
-                      <div class="text-light session-info-attribute-url" style="word-break: break-all">{{ conn.dappUrl
+                      <div class="session-info-attribute-url text-bow" :class="getDarkModeClass(darkMode)" style="word-break: break-all">{{ conn.dappUrl
                         }}
                       </div>
                       <div class="q-mt-xs">
