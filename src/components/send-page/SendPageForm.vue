@@ -172,7 +172,7 @@
         v-model="cauldronAmountFormatted"
         :label="$t('SpendAmount')"
         :dark="darkMode"
-        :hint="cauldronStatusMessage";
+        :hint="cauldronStatusMessage"
         :error="Boolean(effectiveCauldronErrorMessage)"
         :error-message="effectiveCauldronErrorMessage"
       >
