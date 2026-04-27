@@ -624,7 +624,9 @@ export default {
       warningAttemptsStatus: 'dismiss',
 
       calculatingCauldronTrade: false,
-      poolTracker: new MultiCauldronPoolTracker(),
+      poolTracker: new MultiCauldronPoolTracker({
+        reconnectionOpts: { enable: true, baseInterval: 3000, exponentialBackoff: 1.25, maxAttempts: 10 },
+      }),
       /** @type {(import("@cashlab/cauldron").TradeResult | undefined)[]} */
       tradeResults: [],
       /** @type {(import("src/wallet/cauldron/send").TradePrepErrorCode | undefined)[]} */
