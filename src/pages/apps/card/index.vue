@@ -48,6 +48,7 @@ export default {
 
   beforeUnmount () {
     clearCardUserCache()
+    this.clearCards()
   },
 
   methods: {
@@ -68,6 +69,10 @@ export default {
             return null
         })   
         console.log('Card user after loading:', this.user)
+    },
+
+    clearCards () {
+      this.$store.commit('card/clearCards')
     },
 
     goToHome () {

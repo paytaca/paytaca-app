@@ -1054,6 +1054,7 @@ export default {
   },
 
   async mounted () {
+    console.log('Mounted card.vue')
     // Load card replacement status if available
     this.loadCardReplacementStatus()
     
@@ -1078,7 +1079,6 @@ export default {
   },
 
   methods: {
-
     capitalizeFirst (str) {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
@@ -1145,7 +1145,7 @@ export default {
       this.loading = true
       
       try {
-        // First try to get card from localStorage (UI testing mode)
+        // // First try to get card from localStorage (UI testing mode)
         let found = this.CardStorage.getCardById(cardId)
         
         if (found) {

@@ -55,7 +55,7 @@
           </q-item>
         </div>
       -->
-      <div v-if="filteredTransactions.length > 0">
+      <div v-if="isLoaded && filteredTransactions.length > 0">
         <q-list separator :dark="$q.dark.isActive">
           <q-item v-for="t in filteredTransactions" :key="t.id" class="q-px-none">
             <!-- SKELETON LOADER for transaction icon: <q-item-section avatar><q-skeleton type="QAvatar" size="24px" /></q-item-section> -->
@@ -105,24 +105,29 @@ export default {
       // loading: false, // SKELETON LOADER: Set to true when fetching backend data
       // Mock data - in a real app, you'd fetch this using this.card.id
       // SKELETON LOADER: Replace with backend fetch in mounted() or a method
-      transactions: [
-        { id: 1, name: 'Main Street Coffee', amount: -0.0012, date: '2026-02-28' },
-        { id: 2, name: 'Refund: Tech Store', amount: 0.05, date: '2026-02-27' },
-        { id: 3, name: 'Gas Station', amount: -0.0085, date: '2026-02-26' }
-      ]
+      // transactions: [
+      //   { id: 1, name: 'Main Street Coffee', amount: -0.0012, date: '2026-02-28' },
+      //   { id: 2, name: 'Refund: Tech Store', amount: 0.05, date: '2026-02-27' },
+      //   { id: 3, name: 'Gas Station', amount: -0.0085, date: '2026-02-26' }
+      // ],
+      isLoaded: false,
     }
   },
   computed: {
+    transactions() {
+      return this.$store.getters['card/transactions'](this.card?.id) || []
+    },
     filteredTransactions() {
       let list = [...this.transactions];
+      console.log('Original transactions:', list);
       if (this.search) {
         const s = this.search.toLowerCase();
-        list = list.filter(t => t.name.toLowerCase().includes(s));
+        list = list.filter(t => t.merchant?.name?.toLowerCase().includes(s));
       }
       list.sort((a, b) => {
         let mod = this.sortOrder === 'asc' ? 1 : -1;
         if (this.sortKey === 'amount') return (a.amount - b.amount) * mod;
-        return (new Date(a.date) - new Date(b.date)) * mod;
+        return (new Date(a.created_at) - new Date(b.created_at)) * mod;
       });
       return list;
     },
@@ -130,7 +135,24 @@ export default {
       return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
     }
   },
+  async mounted() {
+    await this.fetchTransactions()
+    this.isLoaded = true
+    console.log('>>>>Transactions loaded:', this.transactions)
+  },
   methods: {
+
+    async fetchTransactions () {
+      console.log('Fetching transactions for card:', this.card?.id)
+      return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card?.id })
+        .then(transactions => {
+          console.log('----Fetched transactions:', transactions)
+        })
+        .catch(error => {
+          console.error('Failed to fetch transactions:', error)
+        })
+    },
+
     toggleSort(key) {
       if (this.sortKey === key) {
         this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';

@@ -190,11 +190,18 @@ export class CardUser {
      * Fetches cards linked to the authenticated user.
      * @returns {Promise<Array<Card>>}
      */
-    async fetchCards() {
+    async fetchCards({page = 1, page_size = 10, filters = {}} = {}) {
         try {
-            const response = await backend.get('/cards/');
+            const response = await backend.get('/cards/', {
+                params: {
+                    page,
+                    page_size,
+                    ...filters
+                }
+            });
+            const { results } = response.data;
             const cards = await Promise.all(
-                response.data.results.map(cardData => (
+                results.map(cardData => (
                     cardData?.contract_id
                         ? Card.createInitialized(cardData)
                         : Card.createWithWallet(cardData)
@@ -202,7 +209,7 @@ export class CardUser {
             );
             return cards;
         } catch (error) {
-            console.error('Error fetching card info:', error);
+            console.error('Error fetching cards:', error);
             throw error;
         }
     }

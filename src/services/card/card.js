@@ -126,31 +126,31 @@ export class Card {
    */
   async create(alias, callbackOnProgress=null) {
     console.log('Creating card ', alias);
-    this.notifyCallbackFn(callbackOnProgress, 'Starting card creation workflow');
+    this._notifyCallbackFn(callbackOnProgress, 'Starting card creation workflow');
 
     try {
       const cardData = await this._createCardEntry(alias);
-      this.notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
+      this._notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
       
-      this.notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
+      this._notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
       const genesisResult = await this._mintGenesisToken();
-      this.notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
+      this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
       
       await this._ensureCardUserAuthenticated();
-      this.notifyCallbackFn(callbackOnProgress, 'Card user authenticated');
+      this._notifyCallbackFn(callbackOnProgress, 'Card user authenticated');
 
       this.raw = await this._saveGenesis(cardData.id, genesisResult);
-      this.notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
+      this._notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
 
       // Reinitialize contract now that we have contract_id
       this._initializeContract();
-      this.notifyCallbackFn(callbackOnProgress, 'Contract initialized');
+      this._notifyCallbackFn(callbackOnProgress, 'Contract initialized');
 
       await this._issueGlobalAuthToken();
-      this.notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
+      this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
 
       console.log('Card creation completed successfully');
-      this.notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
+      this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
 
       return this;
     } catch (error) {
@@ -166,7 +166,7 @@ export class Card {
    * @param {Function} callback
    * @param {string} message
    */
-  notifyCallbackFn(callback, message) {
+  _notifyCallbackFn(callback, message) {
     if (callback && typeof callback === 'function') {
       callback(message);
     }
@@ -216,6 +216,15 @@ export class Card {
     return response.data;
   }
 
+  /**
+   * Gets transactions associated with the card
+   * @returns {Promise<Array>}
+   */
+  async getTransactions() {
+    const response = await backend.get(`/cards/${this.id}/transactions/`);
+    return response.data?.results || [];
+  }
+  
   /**
    * Gets auth NFTs associated with the card
    * @returns {Promise<Object>}

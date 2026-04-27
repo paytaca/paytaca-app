@@ -18,6 +18,7 @@ import stablehedge from './stablehedge'
 import multisig from './multisig'
 import subscription from './subscription'
 import wizardconnect from './wizardconnect'
+import card from './card'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -205,6 +206,10 @@ function reducer(state) {
           // Skip wizardconnect - connections are persisted separately via localStorage
           // in actions.js (paytaca:wizardConnectUris), and runtime state doesn't need persistence
           continue
+        } else if (moduleName === 'card') {
+          // Skip card - Card instances contain non-serializable objects (wallet, authNftService)
+          // Cards are always fetched fresh from the backend on each session
+          continue
         } else {
           // For other modules, serialize normally
           serialized[moduleName] = serializeState(state[moduleName])
@@ -246,6 +251,7 @@ export const Store = createStore({
           const value = window.localStorage.getItem(key)
           if (!value) return null
           const parsed = JSON.parse(value)
+          console.log('Parsed persisted state:', parsed)
           // Filter out undefined module states to prevent overwriting defaults
           if (parsed && typeof parsed === 'object') {
             for (const moduleName in parsed) {
@@ -253,6 +259,8 @@ export const Store = createStore({
                 delete parsed[moduleName]
               }
             }
+            // Always exclude card — Card instances aren't serializable, fetch fresh each session
+            delete parsed.card
           }
           return parsed
         } catch (err) {
@@ -285,7 +293,8 @@ export const Store = createStore({
     stablehedge,
     multisig,
     subscription,
-    wizardconnect
+    wizardconnect,
+    card
   },
 
   // enable strict mode (adds overhead!)

@@ -111,62 +111,64 @@ import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import { loadCardUser } from 'src/services/card/user';
 
 export default {
-    // mixins: [createCardLogic],
-    components: {
-        CreateCardForm,
-    },
+  // mixins: [createCardLogic],
+  components: {
+    CreateCardForm,
+  },
 
-    data () {
-        return {
-        user: null,
-        isloaded: false,
-        showCreateCardForm: false,
-        newCardName: ''
-        }
-    },
-
-    computed: {
-        textColor () {
-        return this.$q.dark.isActive ? 'text-white' : 'text-dark'
-        },
-        textColorGrey () {
-        return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'
-        }
-    },
-
-    watch: {
-        showCreateCardForm(newVal) {
-            console.log('showCreateCardForm changed:', newVal)
-        }
-    },
-
-    async mounted () {
-        await this.loadCardUser()
-        this.isloaded = true
-    },
-    methods: {
-        async loadCardUser() {
-            try {
-                const user = await loadCardUser();
-                console.log('Loaded card user:', user);
-                this.user = user;
-            } catch (err) {
-                console.error('Error loading card user:', err);
-                this.user = null;
-            }   
-        },
-        checkExistingCards () {
-            // if user has existing cards and we are at the cards home page, redirect to cards list page
-            if (this.user.cardCount > 0 && this.$route.name === 'app-card'){
-                this.$router.push({ name: 'card-list' })
-            } 
-        },
-
-        goToCardsList () {
-            console.log('Going to cards list page')
-            this.$router.push({ name: 'card-list' })
-        }
+  data () {
+    return {
+    user: null,
+    isloaded: false,
+    showCreateCardForm: false,
+    newCardName: ''
     }
+  },
+
+  computed: {
+    textColor () {
+    return this.$q.dark.isActive ? 'text-white' : 'text-dark'
+    },
+    textColorGrey () {
+    return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'
+    }
+  },
+
+  watch: {
+    showCreateCardForm(newVal) {
+      console.log('showCreateCardForm changed:', newVal)
+    }
+  },
+
+  async mounted () {
+    await this.loadCardUser()
+    this.checkExistingCards()
+    this.isloaded = true
+  },
+
+  methods: {
+    async loadCardUser() {
+      try {
+        const user = await loadCardUser();
+        console.log('Loaded card user:', user);
+        this.user = user;
+      } catch (err) {
+        console.error('Error loading card user:', err);
+        this.user = null;
+      }   
+    },
+    checkExistingCards () {
+      // if user has existing cards and we are at the cards home page, redirect to cards list page
+      if (this.user.cardCount > 0 && this.$route.name === 'app-card'){
+        this.goToCardsList()
+      } 
+    },
+
+    goToCardsList () {
+      console.log('Going to cards list page')
+      this.$router.push({ name: 'card-list' })
+    }
+  }
 }
 </script>
 

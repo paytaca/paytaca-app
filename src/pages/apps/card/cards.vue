@@ -11,6 +11,7 @@
       <div class="flex flex-center full-width">
         <div class="wallet-container">
           <div
+            v-if="isLoaded"
             v-for="(card, index) in displayedCards"
             :key="card.id"
             class="stacked-card"
@@ -106,12 +107,12 @@
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import { createCardLogic } from 'src/components/card/createCard.js';
+// import { createCardLogic } from 'src/components/card/createCard.js';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 
 export default {
-  mixins: [createCardLogic],
+  // mixins: [createCardLogic],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
@@ -131,68 +132,28 @@ export default {
       // Backend data fetching disabled
       // loadingCards: true,
       // backendDataMap: {} // Map of cardId -> backend data
-      cardBalances: []
+      cardBalances: [],
+      isLoaded: false
     }
   },
 
   computed: {
-    displayedCards () {
-      const sorted = [...this.subCards].sort((a, b) => b.id - a.id)
-      return sorted.slice(0, 3)
-    },
-
     hiddenCount () {
       return this.subCards.length - 3
-    }
+    },
+
+    subCards () {
+      return this.$store.getters['card/cards'] || []
+    },
+
+    displayedCards () {
+      return ([...this.subCards].sort((a, b) => b.id - a.id)).slice(0, 3)
+    },
   },
 
   async mounted () {
     await this.loadData()
-    
-    // If no cards exist, redirect to card homepage
-    if (this.subCards.length === 0) {
-      this.$router.push({ name: 'app-card' })
-    }
-    
-    // Fetch backend data for all cards - DISABLED
-    // this.fetchCardsBackendData()
-    
-    /* NEW: Fetch real balances from backend using Card class
-     * Uncomment to enable real balance fetching:
-     * 
-     * async fetchCardBalances () {
-     *   if (this.subCards.length === 0) return
-     *   
-     *   try {
-     *     const { Card } = await import('src/services/card/card')
-     *     
-     *     for (const card of this.subCards) {
-     *       try {
-     *         const cardInstance = await Card.createInitialized(card)
-     *         
-     *         // Get BCH balance from server
-     *         const bchBalance = cardInstance.getBchBalance()
-     *         card.balance = bchBalance.toString()
-     *         
-     *         // Get Token balance
-     *         const tokenBalance = cardInstance.getTokenBalance()
-     *         console.log(`Card ${card.id} Token balance:`, tokenBalance)
-     *         
-     *         // Optionally get real-time balance from blockchain
-     *         // const contractBalance = await cardInstance.getContractBalance()
-     *         // console.log(`Card ${card.id} Contract balance:`, contractBalance)
-     *       } catch (error) {
-     *         console.error(`Error fetching balance for card ${card.id}:`, error)
-     *       }
-     *     }
-     *   } catch (error) {
-     *     console.error('Error fetching card balances:', error)
-     *   }
-     * }
-     * 
-     * // Call the method
-     * this.fetchCardBalances()
-     */
+    this.isLoaded = true
   },
 
   methods: {
@@ -213,12 +174,7 @@ export default {
     },
 
     async fetchCards () {
-      await this.user?.fetchCards().then(cards => {
-        this.subCards = cards
-      }).catch(err => {
-        console.error('Error fetching cards:', err)
-        this.subCards = []
-      })
+      return this.$store.dispatch('card/fetchCards')
     },
 
     async fetchCardsBalance () {
