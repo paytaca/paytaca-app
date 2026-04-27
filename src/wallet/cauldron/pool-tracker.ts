@@ -5,6 +5,7 @@ import { binToHex } from "@bitauth/libauth";
 import { attemptTrade } from "./transact";
 import type { PoolV0 } from "@cashlab/cauldron";
 import type { Fraction } from "@cashlab/common";
+import { cauldronApiAxios } from "./api";
 
 // const SERVER_URL = 'wss://rostrum.cauldron.quest:50002'
 const SERVER_URL = 'wss://rostrum.riften.net:443'
@@ -67,11 +68,13 @@ interface PriceOptions {
  */
 export class MultiCauldronPoolTracker extends EventEmitter {
   private tokenPools: Map<string, PoolV0[]>;
+  private apiFetchPromises: Map<string, Promise<PoolV0[]>>;
   private subscribedTokenIds: Set<string>;
   private pendingTokenIds: Set<string>;
   private _connectionState: ConnectionState;
   private isConnecting: boolean;
   private reconnectionOpts: Required<ReconnectionOptions>;
+  private _reconnectTimestamp: number | undefined;
   private _currentRetries: number;
   private _reconnectTimeout: NodeJS.Timeout | null;
   private rpcClient: RpcWebSocketClient;
@@ -81,6 +84,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     super();
     
     this.tokenPools = new Map();
+    this.apiFetchPromises = new Map();
     this.subscribedTokenIds = new Set();
     this.pendingTokenIds = new Set();
     this._connectionState = 'disconnected';
@@ -105,6 +109,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
       if (this._reconnectTimeout) {
         clearTimeout(this._reconnectTimeout);
         this._reconnectTimeout = null;
+        this._reconnectTimestamp = undefined;
       }
       this.isConnecting = false;
       
@@ -167,6 +172,21 @@ export class MultiCauldronPoolTracker extends EventEmitter {
    */
   isSubscribed(tokenId: string): boolean {
     return this.subscribedTokenIds.has(tokenId);
+  }
+
+  /**
+   * Check if a specific token is currently pending
+   */
+  isPending(tokenId: string): boolean {
+    return this.pendingTokenIds.has(tokenId)
+  }
+
+  getReconnectAge(): number | undefined {
+    if (this._reconnectTimestamp === undefined || this._reconnectTimestamp === null) {
+      return;
+    }
+
+    return Date.now() - this._reconnectTimestamp;
   }
 
   /**
@@ -234,30 +254,14 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     if (this._reconnectTimeout) {
       clearTimeout(this._reconnectTimeout);
     }
-    
+
+    if (this._currentRetries === 1) this._reconnectTimestamp = Date.now();
     this._reconnectTimeout = setTimeout(() => {
-      this.reconnect().catch((error: Error) => {
+      this.connect().catch((error: Error) => {
         this.emit('error', error);
         console.error('MultiCauldronPoolTracker | Reconnection attempt failed:', error);
       });
     }, timeout);
-  }
-
-  /**
-   * Attempt to reconnect to the server
-   */
-  async reconnect(): Promise<void> {
-    if (this.isConnecting) {
-      return;
-    }
-
-    try {
-      this.isConnecting = true;
-      await this.rpcClient.connect(SERVER_URL);
-    } catch (error) {
-      this.isConnecting = false;
-      throw error;
-    }
   }
 
   /**
@@ -466,7 +470,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
   /**
    * Process contract subscription updates
    */
-  private contractSubscribeUpdate(data: ContractSubscribeData): void {
+  private contractSubscribeUpdate(data: ContractSubscribeData): PoolV0[] {
     console.log('MultiCauldronPoolTracker | contractSubscribeUpdate', data);
     // Store pools per token (extract token_id from first utxo if available)
     const tokenId = data.utxos?.[0]?.token_id;
@@ -481,6 +485,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     }
     
     this.emit('pool-updated', { tokenId, type: data.type } as PoolUpdatedEvent);
+    return pools;
   }
 
   /**
@@ -566,6 +571,36 @@ export class MultiCauldronPoolTracker extends EventEmitter {
   setMockPools(tokenId: string, pools: PoolV0[]): void {
     this.tokenPools.set(tokenId, pools);
     this.subscribedTokenIds.add(tokenId);
+  }
+
+  /**
+   * Updates the pool map through API requests.
+   * The implementation is designed such that there will be at most 1 api call happening for
+   * fetching 1 token even if calls for fetching 1 token is spammed.
+   * 
+   * @fires MultiCauldronPoolTracker#"pool-updated"
+   */
+  async updatePoolsViaAPI(tokenId: string): Promise<PoolV0[]> {
+    try {
+      const existing = this.apiFetchPromises.get(tokenId);
+      if (existing) return existing;
+
+      const promise = this._updatePoolsViaAPI(tokenId);
+      this.apiFetchPromises.set(tokenId, promise);
+      return promise;
+    } finally {
+      this.apiFetchPromises.delete(tokenId);
+    }
+  }
+
+  private async _updatePoolsViaAPI(tokenId: string): Promise<PoolV0[]> {
+    const params = { token: tokenId };
+    const path = 'cauldron/pool/active';
+    const response = await cauldronApiAxios.get(path, { params });
+
+    const activePools = response.data?.active;
+    if (!Array.isArray(activePools)) return Promise.reject({ response });
+    return this.contractSubscribeUpdate({ type: 'initial', utxos: activePools });
   }
 }
 
