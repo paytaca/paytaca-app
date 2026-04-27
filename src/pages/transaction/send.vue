@@ -328,6 +328,7 @@
                       :currentWalletBalance="currentWalletBalances[index].balance"
                       :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
                       :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                      :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
@@ -364,6 +365,7 @@
                     :currentWalletBalance="currentWalletBalances[index].balance"
                     :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
                     :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                    :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
@@ -2326,7 +2328,8 @@ export default {
 
       const isSubscribed = this.poolTracker.isSubscribed(tokenId);
       const isPending = this.poolTracker.isPending(tokenId);
-      const status = this.poolTracker.getConnectionState();
+      const isFetchingFromApi = this.poolTracker.isFetchingPoolsFromApi(tokenId);
+      let status = this.poolTracker.getConnectionState();
 
       const shouldSubscribe = !isSubscribed && !isPending;
       let shouldFallback = false;
@@ -2335,7 +2338,14 @@ export default {
       if (status === 'disconnected') shouldFallback = true
       if (status === 'reconnecting') shouldFallback = this.poolTracker.getReconnectAge() > 15_000;
 
-      return { status, shouldFallback, shouldSubscribe, tokenId };
+      let statusMessage = '';
+      
+      if (isFetchingFromApi) statusMessage = this.$t('FetchingLiquidityPools');
+      if (status === 'connected' && isPending) statusMessage = this.$t('SubscribingToPoolUpdates');
+      if (status === 'reconnecting') statusMessage = this.$t('PoolTrackerReconnecting');
+      if (status === 'disconnected') statusMessage = this.$t('PoolTrackerDisconnected');
+
+      return { status, shouldFallback, shouldSubscribe, tokenId, statusMessage };
     },
     resolveCauldronTradePrepErrorMessageFromIndex(index) {
       const errorCode = this.cauldronTradePrepErrors[index];
@@ -2877,6 +2887,10 @@ export default {
 
   async mounted () {
     const vm = this
+
+    window.t = (data='bitcoincash:qqkzg7kfg35zqzrg5qkg6l3wfzp9xyl9fumc77gnx6?amount=0.001') => {
+      vm.onScannerDecode(data);
+    }
 
     vm.updateNetworkDiff()
     
