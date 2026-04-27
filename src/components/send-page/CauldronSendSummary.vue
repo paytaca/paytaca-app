@@ -167,7 +167,7 @@ function resolveAssetData(cauldronTokenId) {
 
   const tokenData = props.inputExtras
     .map(inputExtra => inputExtra?.cauldron?.token)
-    .find(tokenData => tokenData?.cauldron?.token?.token_id === cauldronTokenId);
+    .find(tokenData => tokenData?.token_id === cauldronTokenId);
 
   if (!tokenData) return;
 

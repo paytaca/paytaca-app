@@ -19,9 +19,27 @@ export function cauldronManageArtifactWithPkh(pkhHex, ){
   return constructedArtifact
 }
 
+/**
+ * @param {import('./pool-tracker').ApiPool}
+ * @returns {MicroPool}
+ */
+export function apiPoolToMicroPool(pool) {
+  return {
+    pool_id: pool.pool_id,
+    pkh: pool.owner_pkh,
+    is_withdrawn: false,
+    spent_utxo_hash: '',
+    new_utxo_hash: pool.txid,
+    new_utxo_txid: pool.txid,
+    new_utxo_n: pool.tx_pos,
+    token_id: pool.token_id,
+    sats: pool.sats,
+    token_amount: pool.tokens,
+  }
+}
 
 /**
- * @param {import('./pool').MicroPool} pool
+ * @param {import('./pool-tracker').MicroPool} pool
  */
 export function microPoolToPoolV0(pool) {
  const pool0_params = { withdraw_pubkey_hash: hexToBin(pool.pkh) };  
