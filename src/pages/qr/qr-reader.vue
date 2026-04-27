@@ -11,7 +11,8 @@
     <template v-else>
       <qrcode-stream
         v-if="!isMobile && !decode"
-        :camera="frontCamera ? 'front': 'auto'"
+        :constraints="cameraConstraints"
+        :formats="['qr_code']"
         :paused="paused"
         @detect="onQRDecode"
         @camera-on="onScannerInit"
@@ -128,6 +129,13 @@ export default {
     },
     isMobile () {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    cameraConstraints () {
+      return {
+        facingMode: this.frontCamera ? 'user' : 'environment',
+        width: { min: 640, ideal: 1920, max: 3840 },
+        height: { min: 480, ideal: 1080, max: 2160 }
+      }
     },
     progressLabel () {
       return (Math.floor(this.progress * 100)) + '% of Data Fragments Received'

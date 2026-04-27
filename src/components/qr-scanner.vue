@@ -31,7 +31,8 @@
       <template v-else>
         <qrcode-stream
           v-if="val"
-          :camera="frontCamera ? 'front': 'auto'"
+          :constraints="cameraConstraints"
+          :formats="['qr_code']"
           @detect="onScannerDecode"
           @camera-on="onScannerInit"
           @error="onCameraError"
@@ -73,6 +74,13 @@ export default {
   computed: {
     isMobile() {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    cameraConstraints () {
+      return {
+        facingMode: this.frontCamera ? 'user' : 'environment',
+        width: { min: 640, ideal: 1920, max: 3840 },
+        height: { min: 480, ideal: 1080, max: 2160 }
+      }
     }
   },
   watch: {
@@ -103,7 +111,7 @@ export default {
     async prepareScanner () {
       const status = await this.checkPermission()
       if (status) {
-        BarcodeScanner.prepare()
+        await BarcodeScanner.prepare()
         this.scanBarcode()
       } else {
         this.$emit('input', false)
