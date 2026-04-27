@@ -1,4 +1,5 @@
 import * as wizardConnectService from 'src/wallet/wizardconnect/service'
+import Watchtower from 'watchtower-cash-js'
 import { Notify } from 'quasar'
 
 function getStorageKey(walletHash) {
@@ -184,12 +185,20 @@ export async function handleSignRequest ({ commit, state }, pending) {
   })
 }
 
-export async function approveRequestWithData ({ commit }, { connectionId, sequence, transactionJson }) {
+export async function approveRequestWithData ({ commit, rootGetters }, { connectionId, sequence, transactionJson }) {
   commit('removePendingRequest', { connectionId, sequence })
   commit('addProcessedKey', `${connectionId}:${sequence}`)
   try {
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
+
+    // Fire-and-forget broadcast via watchtower (redundant to dApp broadcast)
+    const isChipnet = rootGetters['global/isChipnet'] || false
+    const watchtower = new Watchtower(isChipnet)
+    watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
+      console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
+    })
+
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
