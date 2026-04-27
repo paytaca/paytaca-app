@@ -1,6 +1,6 @@
 import { RpcWebSocketClient } from "rpc-websocket-client";
 import EventEmitter from "events";
-import { microPoolToPoolV0 } from "./utils";
+import { apiPoolToMicroPool, microPoolToPoolV0 } from "./utils";
 import { binToHex } from "@bitauth/libauth";
 import { attemptTrade } from "./transact";
 import type { PoolV0 } from "@cashlab/cauldron";
@@ -12,7 +12,19 @@ const SERVER_URL = 'wss://rostrum.riften.net:443'
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
-interface MicroPool {
+
+export interface ApiPool {
+  owner_p2pkh_addr: string;
+  owner_pkh: string;
+  pool_id: string;
+  sats: number;
+  token_id: string;
+  tokens: number;
+  tx_pos: number;
+  txid: string;
+}
+
+export interface MicroPool {
   pool_id: string;
   pkh: string;
   is_withdrawn: boolean;
@@ -598,9 +610,10 @@ export class MultiCauldronPoolTracker extends EventEmitter {
     const path = 'cauldron/pool/active';
     const response = await cauldronApiAxios.get(path, { params });
 
-    const activePools = response.data?.active;
-    if (!Array.isArray(activePools)) return Promise.reject({ response });
-    return this.contractSubscribeUpdate({ type: 'initial', utxos: activePools });
+    const apiPools = response.data?.active;
+    if (!Array.isArray(apiPools)) return Promise.reject({ response });
+    const microPools = apiPools.map(pool => apiPoolToMicroPool(pool));
+    return this.contractSubscribeUpdate({ type: 'initial', utxos: microPools });
   }
 }
 

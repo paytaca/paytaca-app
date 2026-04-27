@@ -593,6 +593,8 @@ export default {
         error: '',
         decodedContent: ''
       },
+
+      currentRecipientIndex: 0,
       recipients: [{
         amount: '',
         fiatAmount: '',
@@ -619,6 +621,7 @@ export default {
           amountFormatted: '0',
         }
       }],
+      currentWalletBalances: [{ balance: 0, assetId: '' }],
       expandedItems: {},
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
@@ -649,15 +652,12 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       showQrScanner: false,
-      balanceExceeded: false,
       computingMax: false,
       paymentCurrency: null,
       selectedDenomination: 'BCH',
       payloadAmount: 0,
-      currentRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
-      currentWalletBalances: [{ balance: 0, assetId: '' }],
       isLegacyAddress: false,
       isWalletAddress: false,
       userSelectedChangeAddress: '',
@@ -2208,6 +2208,7 @@ export default {
       if (tokenId) {
         this.calculatingCauldronTrade = true;
         this.poolTracker.subscribeToken(tokenId);
+        setTimeout(() => this.checkCauldronPoolsForFallback(), 15_000);
 
         // This could be added in `mounted`. But for readability, placed here to be close to related code
         // this.poolTracker.cleanup() is in `unmounted` since can't find a way to do it here
@@ -2223,9 +2224,27 @@ export default {
       } else {
         this.updateCauldronAndRemainingBalance();
       }
+    },
+    checkCauldronPoolsForFallback() {
+      console.debug('[CauldronFallback] Checking');
+      for (var index = 0; index < this.inputExtras.length; index++) {
+        const status = this.getPoolTrackerStatus(index);
+        if (!status) continue;
+        console.debug('[CauldronFallback]', { ...status, index });
 
+        if (status.shouldSubscribe) {
+          this.poolTracker.subscribeToken(status.tokenId);
+        }
+
+        if (status.shouldFallback) {
+          if (!this.poolTracker.getPoolsForToken(status.tokenId).length) {
+            this.poolTracker.updatePoolsViaAPI(status.tokenId);
+          }
+        }
+      }
     },
     prepareCauldronTrade() {
+      this.checkCauldronPoolsForFallback();
       const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
       if (!hasCauldron) {
         this.tradeResults = [];
@@ -2262,6 +2281,62 @@ export default {
         return Boolean(this.tradeResults[index]);
       });
     },
+    /**
+     * @param {CauldronSendError} error
+     */
+    handleCaulronError(error) {
+      console.debug('CauldronError', error);
+      const isCauldronError = error instanceof CauldronSendError;
+      console.debug('CauldronError', isCauldronError);
+      if (!isCauldronError) throw error;
+
+      const code = error.code;
+      if (code == CauldronSendError.MISSING_RECIPIENT) {
+        // Some recipients have missing address
+        raiseNotifyError(this.$t('EmptyRecipient'));
+      } else if (code == CauldronSendError.INVALID_ADDRESS) {
+        // Some recipients have invalid address
+        raiseNotifyError(this.$t('InvalidAddress'));
+      } else if (code == CauldronSendError.INSUFFICIENT_BALANCE) {
+        // It's either BCH or token that's lacking balance
+        let errorMessage = this.$t('InsufficientBalance');
+        if (error.message) errorMessage += ': ' + error.message;
+        raiseNotifyError(errorMessage);
+      } else if (code == CauldronSendError.INVALID_ASSET) {
+        // Some of the supply or demand asset is not a bch or cashtoken asset
+        raiseNotifyError(this.$t('InvalidAssetError'));
+      } else {
+        // A fallback case for unknown errors
+        let errorMessage = String(error?.message ?? error);
+        if (errorMessage) errorMessage = ': ' + errorMessage;
+        raiseNotifyError(this.$t('UnknownError') + errorMessage);
+      }
+    },
+    getPoolTrackerStatus(index) {
+      if (!this.inputExtras[index]?.cauldron?.enable) return;
+
+      let tokenId = '';
+      if (this.assetId === 'bch') {
+        tokenId = this.inputExtras[index]?.cauldron?.token?.token_id;
+      } else if (this.assetId.startsWith('ct/')) {
+        tokenId = this.assetId.replace('ct/', '');
+      }
+
+      if (!tokenId) return;
+
+      const isSubscribed = this.poolTracker.isSubscribed(tokenId);
+      const isPending = this.poolTracker.isPending(tokenId);
+      const status = this.poolTracker.getConnectionState();
+
+      const shouldSubscribe = !isSubscribed && !isPending;
+      let shouldFallback = false;
+
+      // Fallback trigger conditions:
+      if (status === 'disconnected') shouldFallback = true
+      if (status === 'reconnecting') shouldFallback = this.poolTracker.getReconnectAge() > 15_000;
+
+      return { status, shouldFallback, shouldSubscribe, tokenId };
+    },
     resolveCauldronTradePrepErrorMessageFromIndex(index) {
       const errorCode = this.cauldronTradePrepErrors[index];
       if (!errorCode) return '';
@@ -2294,37 +2369,6 @@ export default {
       }
 
       return '';
-    },
-    /**
-     * @param {CauldronSendError} error
-     */
-    handleCaulronError(error) {
-      console.debug('CauldronError', error);
-      const isCauldronError = error instanceof CauldronSendError;
-      console.debug('CauldronError', isCauldronError);
-      if (!isCauldronError) throw error;
-
-      const code = error.code;
-      if (code == CauldronSendError.MISSING_RECIPIENT) {
-        // Some recipients have missing address
-        raiseNotifyError(this.$t('EmptyRecipient'));
-      } else if (code == CauldronSendError.INVALID_ADDRESS) {
-        // Some recipients have invalid address
-        raiseNotifyError(this.$t('InvalidAddress'));
-      } else if (code == CauldronSendError.INSUFFICIENT_BALANCE) {
-        // It's either BCH or token that's lacking balance
-        let errorMessage = this.$t('InsufficientBalance');
-        if (error.message) errorMessage += ': ' + error.message;
-        raiseNotifyError(errorMessage);
-      } else if (code == CauldronSendError.INVALID_ASSET) {
-        // Some of the supply or demand asset is not a bch or cashtoken asset
-        raiseNotifyError(this.$t('InvalidAssetError'));
-      } else {
-        // A fallback case for unknown errors
-        let errorMessage = String(error?.message ?? error);
-        if (errorMessage) errorMessage = ': ' + errorMessage;
-        raiseNotifyError(this.$t('UnknownError') + errorMessage);
-      }
     },
 
 
