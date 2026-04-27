@@ -1911,7 +1911,7 @@ export default {
           });
           vm.submitPromiseResponseHandler(broadcastResult, vm.walletType);
         } catch(error) {
-          vm.handleCaulronError(error);
+          vm.handleCauldronError(error);
         } finally {
           vm.sending = false;
           vm.sliderStatus = true;
@@ -2284,7 +2284,7 @@ export default {
     /**
      * @param {CauldronSendError} error
      */
-    handleCaulronError(error) {
+    handleCauldronError(error) {
       console.debug('CauldronError', error);
       const isCauldronError = error instanceof CauldronSendError;
       console.debug('CauldronError', isCauldronError);

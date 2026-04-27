@@ -599,7 +599,7 @@ export class MultiCauldronPoolTracker extends EventEmitter {
 
       const promise = this._updatePoolsViaAPI(tokenId);
       this.apiFetchPromises.set(tokenId, promise);
-      return promise;
+      return await promise;
     } finally {
       this.apiFetchPromises.delete(tokenId);
     }
