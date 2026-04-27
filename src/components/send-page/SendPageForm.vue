@@ -172,6 +172,7 @@
         v-model="cauldronAmountFormatted"
         :label="$t('SpendAmount')"
         :dark="darkMode"
+        :hint="cauldronStatusMessage"
         :error="Boolean(effectiveCauldronErrorMessage)"
         :error-message="effectiveCauldronErrorMessage"
       >
@@ -287,6 +288,7 @@ export default {
     currentWalletBalanceAssetId: String,
 
     cauldronErrorMessage: String,
+    cauldronStatusMessage: String,
 
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
@@ -509,7 +511,7 @@ export default {
       this.cauldronEnabled = !this.cauldronEnabled;
       this.emitCauldronToggle();
 
-      if (this.cauldronEnabled && !this.cauldronToken) this.cauldronTokenDialog = true
+      if (this.cauldronEnabled && !this.cauldronToken && this.assetIsBch) this.cauldronTokenDialog = true
     },
     onCauldronTokenSelect (token) {
       this.cauldronToken = token

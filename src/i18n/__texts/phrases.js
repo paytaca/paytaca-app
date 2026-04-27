@@ -2436,7 +2436,11 @@ const phrases = {
       YesProceed: 'Yes, proceed',
       DustAmountError: 'Amount is below the network allowed minimum (0.00000546 BCH)',
       MissingTokenMetadataWarning: 'Token details not found. We can’t verify the correct decimal format for this token. Raw token value is displayed. If you think it\'s correct you may proceed',
-      Change: 'Change'
+      Change: 'Change',
+      FetchingLiquidityPools: 'Fetching liquidity pools...',
+      SubscribingToPoolUpdates: 'Subscribing to pool updates...',
+      PoolTrackerReconnecting: 'Reconnecting pool tracker...',
+      PoolTrackerDisconnected: 'Pool tracker disconnected.',
     }
   ]
 }

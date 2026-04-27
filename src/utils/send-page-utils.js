@@ -69,6 +69,9 @@ export function getAsset (id, symbol) {
 
   if (id?.startsWith?.('ct/') && asset) {
     asset.decimals = parseInt(asset.decimals) || 0
+  } else if (id === 'bch' && asset) {
+    // Asset data from store for bch doesn't have decimals
+    asset = { ...asset, decimals: 8 };
   }
 
   return asset
