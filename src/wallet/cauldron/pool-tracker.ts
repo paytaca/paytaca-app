@@ -586,6 +586,13 @@ export class MultiCauldronPoolTracker extends EventEmitter {
   }
 
   /**
+   * Checks if there is on going fetching of pools for a token via api
+   */
+  isFetchingPoolsFromApi(tokenId: string): boolean {
+    return this.apiFetchPromises.has(tokenId)
+  }
+
+  /**
    * Updates the pool map through API requests.
    * The implementation is designed such that there will be at most 1 api call happening for
    * fetching 1 token even if calls for fetching 1 token is spammed.

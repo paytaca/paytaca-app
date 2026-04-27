@@ -2887,11 +2887,6 @@ export default {
 
   async mounted () {
     const vm = this
-
-    window.t = (data='bitcoincash:qqkzg7kfg35zqzrg5qkg6l3wfzp9xyl9fumc77gnx6?amount=0.001') => {
-      vm.onScannerDecode(data);
-    }
-
     vm.updateNetworkDiff()
     
     // Check if asset data was passed from select-asset page
