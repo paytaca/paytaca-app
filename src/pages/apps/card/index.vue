@@ -54,10 +54,15 @@ export default {
   methods: {
     async loadData () {
       await this.loadUser()
-      // Only redirect to home if on the root card path without a specific child route
-      if (this.$route.path === '/apps/card' || this.$route.path === '/apps/card/') {
-        this.goToHome()
-      }
+      this.goToHome()
+    //   if (this.user?.cardCount > 0) {
+    //     console.log('User has existing cards, redirecting to cards list')
+    //     this.goToCardsList()
+    //   } else {
+    //     console.log('No existing cards for user')
+    //     this.goToHome()
+    //   }
+      clearCardUserCache() // temporary only
     },
 
     async loadUser () {

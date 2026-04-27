@@ -102,35 +102,41 @@
     </q-page>
     
     <!-- Create Card Dialog -->
-    <CreateCardForm v-if="showCreateCardForm" @onClose="showCreateCardForm=false"/>
+    <CreateCardForm v-if="showCreateCardForm" @onClose="showCreateCardForm=false" :idempotencyKey="idempotencyKey" />
+    <ResumeCreateCardDialog v-if="showResumeCreateCardDialog" @resumeAttempt="onResumeCardAttempt" @deleteAttempt="onDeleteCardAttempt"/>
 
 </template>
 <script>
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
+import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
 // import { createCardLogic } from 'src/components/card/createCard.js';
 import { loadCardUser } from 'src/services/card/user';
+import { clearCreateCardAttempt, getCreateCardAttempt } from 'src/services/card/storage';
 
 export default {
   // mixins: [createCardLogic],
   components: {
     CreateCardForm,
+    ResumeCreateCardDialog
   },
 
   data () {
     return {
-    user: null,
-    isloaded: false,
-    showCreateCardForm: false,
-    newCardName: ''
+      user: null,
+      isloaded: false,
+      showCreateCardForm: false,
+      showResumeCreateCardDialog: false,
+      newCardName: '',
+      idempotencyKey: ''
     }
   },
 
   computed: {
     textColor () {
-    return this.$q.dark.isActive ? 'text-white' : 'text-dark'
+      return this.$q.dark.isActive ? 'text-white' : 'text-dark'
     },
     textColorGrey () {
-    return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'
+      return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'
     }
   },
 
@@ -140,6 +146,33 @@ export default {
     }
   },
 
+  async mounted () {
+    await this.loadCardUser(true)
+    this.isloaded = true
+    const attempt = await getCreateCardAttempt();
+    console.log('Existing create card attempt:', attempt)
+    if (attempt) {
+      this.showResumeCreateCardDialog = true
+      this.idempotencyKey = attempt.idempotencyKey || ''
+    }
+  },
+  methods: {
+    async loadCardUser(forceLogin = false) {
+      try {
+        const user = await loadCardUser(forceLogin);
+        console.log('Loaded card user:', user);
+        this.user = user;
+      } catch (err) {
+        console.error('Error loading card user:', err);
+        this.user = null;
+      }   
+    },
+    checkExistingCards () {
+      // if user has existing cards and we are at the cards home page, redirect to cards list page
+      if (this.user.cardCount > 0 && this.$route.name === 'app-card'){
+        this.$router.push({ name: 'card-list' })
+      } 
+    },
   async mounted () {
     await this.loadCardUser()
     this.checkExistingCards()
@@ -167,6 +200,17 @@ export default {
     goToCardsList () {
       console.log('Going to cards list page')
       this.$router.push({ name: 'card-list' })
+    },
+    onResumeCardAttempt() {
+      console.log('User chose to resume card creation')
+      this.showResumeCreateCardDialog = false;
+      this.showCreateCardForm = true;
+    },
+    onDeleteCardAttempt() {
+      console.log('User chose to delete existing card creation attempt')
+      this.showResumeCreateCardDialog = false;
+      // Clear the existing attempt from local storage
+      clearCreateCardAttempt();
     }
   }
 }

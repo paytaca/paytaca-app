@@ -371,15 +371,15 @@ let _cachedUser = null;
  * Loads CardUser for active wallet and ensures authenticated session.
  * @returns {Promise<CardUser>}
  */
-export async function loadCardUser() {
-    if (_cachedUser) return _cachedUser;
+export async function loadCardUser(forceLogin = false) {
+    if (_cachedUser && !forceLogin) return _cachedUser;
 
     console.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
         const user = await fetchCardUser(wallet);
         
-        if (!user.is_authenticated) {
+        if (forceLogin || !user.is_authenticated) {
             await user.login();
         }
         
@@ -391,6 +391,7 @@ export async function loadCardUser() {
         if (error.response && error.response.status === 404) {
             console.error('Card User not found for this wallet.');
             await clearAuthToken();
+            clearCardUserCache();
         }
         throw error;
     }
