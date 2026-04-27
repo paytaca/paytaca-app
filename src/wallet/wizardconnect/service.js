@@ -1,6 +1,6 @@
 // import { WalletConnectionManager } from '@wizardconnect/wallet'
 import { mnemonicToSeedSync } from 'bip39'
-import { toUint8Array } from '@wizardconnect/core'
+import { toUint8Array, toBigInt } from '@wizardconnect/core'
 import {
   deriveHdPrivateNodeFromSeed,
   deriveHdPrivateNodeChild,
@@ -184,7 +184,7 @@ export async function sendSignError(connectionId, sequence, errorMessage) {
  * sourceOutputToRelay serializer) or as extended JSON (`<Uint8Array: 0x...>`).
  * BigInts arrive as extended JSON (`<bigint: Xn>`). The toUint8Array
  * helper from @wizardconnect/core handles Uint8Array deserialization.
- * BigInt values are parsed using native BigInt() constructor.
+ * BigInt values are parsed using toBigInt from @wizardconnect/core.
  *
  * Zero-length placeholder unlockingBytecode is dropped — downstream compiler
  * logic treats an absent property as a placeholder.
@@ -198,7 +198,7 @@ function hydrateSourceOutput(so) {
     outpointTransactionHash: toUint8Array(so.outpointTransactionHash),
     outpointIndex: so.outpointIndex,
     sequenceNumber: so.sequenceNumber,
-    valueSatoshis: BigInt(so.valueSatoshis),
+    valueSatoshis: toBigInt(so.valueSatoshis),
     lockingBytecode: toUint8Array(so.lockingBytecode),
     ...(hasUnlocking && { unlockingBytecode: toUint8Array(so.unlockingBytecode) }),
     ...(so.token && { token: hydrateToken(so.token) }),
@@ -208,7 +208,7 @@ function hydrateSourceOutput(so) {
 function hydrateToken(token) {
   return {
     category: toUint8Array(token.category),
-    amount: BigInt(token.amount),
+    amount: toBigInt(token.amount),
     ...(token.nft && { nft: hydrateNft(token.nft) }),
   }
 }
