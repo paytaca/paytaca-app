@@ -41,6 +41,44 @@
       <span class="scanner-text text-center full-width">{{ $t('ScanQrCode') }}</span>
     </div>
 
+    <!-- Mobile scanner overlay controls -->
+    <template v-if="isMobile && !decode && !error">
+      <div class="scanner-bottom-controls">
+        <!-- Zoom controls — horizontal -->
+        <div class="scanner-zoom-controls">
+          <q-btn
+            icon="remove"
+            round
+            dense
+            color="white"
+            text-color="black"
+            @click="zoomOut"
+          />
+          <q-btn
+            icon="add"
+            round
+            dense
+            color="white"
+            text-color="black"
+            class="q-ml-sm"
+            @click="zoomIn"
+          />
+        </div>
+
+        <!-- Torch control -->
+        <div class="scanner-torch-control q-ml-md">
+          <q-btn
+            :icon="torchOn ? 'flash_on' : 'flash_off'"
+            round
+            dense
+            :color="torchOn ? 'yellow' : 'white'"
+            text-color="black"
+            @click="toggleTorch"
+          />
+        </div>
+      </div>
+    </template>
+
     <div v-if="progress" class="q-mt-xl row items-center justify-center q-px-lg">
       <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mt-sm q-mx-xl" >
         <div class="absolute-full flex flex-center items-center">
@@ -74,7 +112,7 @@
         <span class="q-mt-sm">{{ $t('UploadQR') }}</span>
       </div>
     </div>
-    <footer-menu v-if="!hideFooter" />
+    <footer-menu v-if="!hideFooter && !(isMobile && !decode && !error)" />
   </div>
 </template>
 
@@ -119,7 +157,10 @@ export default {
       progress: 0,
       hideFooter: false,
       hideGenerateQR: false,
-      hideUploadQR: false
+      hideUploadQR: false,
+      zoomLevel: 0,
+      zoomStep: 5,
+      torchOn: false
     }
   },
 
@@ -302,6 +343,37 @@ export default {
     stopScan () {
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
+      this.zoomLevel = 0
+      this.torchOn = false
+    },
+    async zoomIn () {
+      this.zoomLevel += this.zoomStep
+      try {
+        await BarcodeScanner.setZoom({ zoom: this.zoomLevel })
+      } catch (err) {
+        console.error('Zoom in failed:', err)
+      }
+    },
+    async zoomOut () {
+      this.zoomLevel = Math.max(0, this.zoomLevel - this.zoomStep)
+      try {
+        await BarcodeScanner.setZoom({ zoom: this.zoomLevel })
+      } catch (err) {
+        console.error('Zoom out failed:', err)
+      }
+    },
+    async toggleTorch () {
+      try {
+        this.torchOn = !this.torchOn
+        if (this.torchOn) {
+          await BarcodeScanner.enableTorch()
+        } else {
+          await BarcodeScanner.disableTorch()
+        }
+      } catch (err) {
+        console.error('Toggle torch failed:', err)
+        this.torchOn = false
+      }
     },
 
     async onQRDecode (content) {
@@ -691,6 +763,31 @@ export default {
     bottom: 0px;
     border: 3px solid var(--scanner-border, #3b7bf6);
     border-radius: 15%;
+  }
+  .scanner-bottom-controls {
+    position: fixed;
+    bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    z-index: 2022;
+  }
+  .scanner-zoom-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 6px 10px;
+  }
+  .scanner-torch-control {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 24px;
+    padding: 6px 10px;
   }
 
 </style>

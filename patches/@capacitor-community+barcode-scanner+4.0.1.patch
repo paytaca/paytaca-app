@@ -1,0 +1,177 @@
+diff --git a/node_modules/@capacitor-community/barcode-scanner/android/src/main/java/com/getcapacitor/community/barcodescanner/BarcodeScanner.java b/node_modules/@capacitor-community/barcode-scanner/android/src/main/java/com/getcapacitor/community/barcodescanner/BarcodeScanner.java
+index 6baaa67..258880c 100644
+--- a/node_modules/@capacitor-community/barcode-scanner/android/src/main/java/com/getcapacitor/community/barcodescanner/BarcodeScanner.java
++++ b/node_modules/@capacitor-community/barcode-scanner/android/src/main/java/com/getcapacitor/community/barcodescanner/BarcodeScanner.java
+@@ -27,6 +27,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
+ import com.getcapacitor.annotation.Permission;
+ import com.getcapacitor.annotation.PermissionCallback;
+ import com.google.zxing.BarcodeFormat;
++import com.google.zxing.DecodeHintType;
+ import com.google.zxing.ResultPoint;
+ import com.google.zxing.client.android.Intents;
+ import com.journeyapps.barcodescanner.BarcodeCallback;
+@@ -36,6 +37,7 @@ import com.journeyapps.barcodescanner.DefaultDecoderFactory;
+ import com.journeyapps.barcodescanner.camera.CameraSettings;
+ import java.util.ArrayList;
+ import java.util.Collections;
++import java.util.EnumMap;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -110,7 +112,11 @@ public class BarcodeScanner extends Plugin implements BarcodeCallback {
+                     settings.setRequestedCameraId(
+                         "front".equals(cameraDirection) ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK
+                     );
++                    settings.setAutoFocusEnabled(true);
+                     settings.setContinuousFocusEnabled(true);
++                    settings.setBarcodeSceneModeEnabled(true);
++                    settings.setExposureEnabled(true);
++                    settings.setMeteringEnabled(true);
+                     mBarcodeView.setCameraSettings(settings);
+ 
+                     FrameLayout.LayoutParams cameraPreviewParams = new FrameLayout.LayoutParams(
+@@ -190,7 +196,9 @@ public class BarcodeScanner extends Plugin implements BarcodeCallback {
+                         return;
+                     }
+ 
+-                    DefaultDecoderFactory defaultDecoderFactory = new DefaultDecoderFactory(null, null, null, Intents.Scan.MIXED_SCAN);
++                    Map<DecodeHintType, Object> hints = new EnumMap<>(DecodeHintType.class);
++                    hints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
++                    DefaultDecoderFactory defaultDecoderFactory = new DefaultDecoderFactory(null, hints, null, Intents.Scan.MIXED_SCAN);
+ 
+                     if (call.hasOption("targetedFormats")) {
+                         JSArray targetedFormats = call.getArray("targetedFormats");
+@@ -573,4 +581,29 @@ public class BarcodeScanner extends Plugin implements BarcodeCallback {
+ 
+         call.resolve(result);
+     }
++
++    @PluginMethod
++    public void setZoom(PluginCall call) {
++        Integer zoom = call.getInt("zoom", 0);
++        getActivity()
++            .runOnUiThread(
++                () -> {
++                    if (mBarcodeView != null) {
++                        try {
++                            mBarcodeView.getCameraInstance().changeCameraParameters(parameters -> {
++                                if (parameters.isZoomSupported()) {
++                                    int maxZoom = parameters.getMaxZoom();
++                                    int newZoom = Math.max(0, Math.min(zoom, maxZoom));
++                                    parameters.setZoom(newZoom);
++                                }
++                                return parameters;
++                            });
++                        } catch (Exception e) {
++                            Log.e("scanner", "Failed to set zoom", e);
++                        }
++                    }
++                }
++            );
++        call.resolve();
++    }
+ }
+diff --git a/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts b/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts
+index b8a89f1..9ffcdf2 100644
+--- a/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts
++++ b/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts
+@@ -14,6 +14,21 @@ export interface BarcodeScannerPlugin {
+     disableTorch(): Promise<void>;
+     toggleTorch(): Promise<void>;
+     getTorchState(): Promise<TorchStateResult>;
++    /**
++     * Set the camera zoom level.
++     *
++     * @since 4.0.2
++     */
++    setZoom(options: ZoomOptions): Promise<void>;
++}
++export interface ZoomOptions {
++    /**
++     * The zoom level to set. 0 is no zoom.
++     * The maximum value depends on the device camera.
++     *
++     * @since 4.0.2
++     */
++    zoom: number;
+ }
+ declare const _SupportedFormat: {
+     /**
+diff --git a/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.d.ts b/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.d.ts
+index fb467b5..8fc0b7f 100644
+--- a/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.d.ts
++++ b/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.d.ts
+@@ -1,5 +1,5 @@
+ import { WebPlugin } from '@capacitor/core';
+-import { BarcodeScannerPlugin, ScanOptions, ScanResult, CheckPermissionOptions, CheckPermissionResult, StopScanOptions, TorchStateResult } from './definitions';
++import { BarcodeScannerPlugin, ScanOptions, ScanResult, CheckPermissionOptions, CheckPermissionResult, StopScanOptions, TorchStateResult, ZoomOptions } from './definitions';
+ export declare class BarcodeScannerWeb extends WebPlugin implements BarcodeScannerPlugin {
+     private _formats;
+     private _controls;
+@@ -21,6 +21,7 @@ export declare class BarcodeScannerWeb extends WebPlugin implements BarcodeScann
+     enableTorch(): Promise<void>;
+     toggleTorch(): Promise<void>;
+     getTorchState(): Promise<TorchStateResult>;
++    setZoom(_options: ZoomOptions): Promise<void>;
+     private _getVideoElement;
+     private _getFirstResultFromReader;
+     private _startVideo;
+diff --git a/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.js b/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.js
+index 75e5291..c20d4b9 100644
+--- a/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.js
++++ b/node_modules/@capacitor-community/barcode-scanner/dist/esm/web.js
+@@ -122,6 +122,10 @@ export class BarcodeScannerWeb extends WebPlugin {
+     async getTorchState() {
+         return { isEnabled: this._torchState };
+     }
++    async setZoom(_options) {
++        // Not implemented on web
++        return;
++    }
+     async _getVideoElement() {
+         if (!this._video) {
+             await this._startVideo();
+diff --git a/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.m b/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.m
+index 8ae396d..a74acfd 100644
+--- a/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.m
++++ b/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.m
+@@ -16,4 +16,5 @@ CAP_PLUGIN(BarcodeScanner, "BarcodeScanner",
+     CAP_PLUGIN_METHOD(disableTorch, CAPPluginReturnPromise);
+     CAP_PLUGIN_METHOD(toggleTorch, CAPPluginReturnPromise);
+     CAP_PLUGIN_METHOD(getTorchState, CAPPluginReturnPromise);
++    CAP_PLUGIN_METHOD(setZoom, CAPPluginReturnPromise);
+ )
+diff --git a/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.swift b/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.swift
+index acd47a7..e91bbbb 100644
+--- a/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.swift
++++ b/node_modules/@capacitor-community/barcode-scanner/ios/Plugin/Plugin.swift
+@@ -587,4 +587,29 @@ public class BarcodeScanner: CAPPlugin, AVCaptureMetadataOutputObjectsDelegate {
+         call.resolve(result)
+     }
+ 
++    @objc func setZoom(_ call: CAPPluginCall) {
++        let zoom = call.getInt("zoom") ?? 0
++
++        guard let device = AVCaptureDevice.default(for: AVMediaType.video) else {
++            call.resolve()
++            return
++        }
++
++        do {
++            try device.lockForConfiguration()
++
++            let minZoom: CGFloat = 1.0
++            let maxZoom = min(device.activeFormat.videoMaxZoomFactor, CGFloat(5.0))
++            let zoomFactor = min(max(CGFloat(1.0) + (CGFloat(zoom) * CGFloat(0.1)), minZoom), maxZoom)
++
++            device.videoZoomFactor = zoomFactor
++
++            device.unlockForConfiguration()
++        } catch {
++            print(error)
++        }
++
++        call.resolve()
++    }
++
+ }
