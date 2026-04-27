@@ -9,12 +9,12 @@
       <q-item-section>
         <q-item-label>
           <slot name="name">
-            <span class="text-bold">{{ metadata?.name}}</span>
+            <span class="text-bold text-bow" :class="getDarkModeClass(darkMode)">{{ metadata?.name}}</span>
           </slot>
         </q-item-label>
         <q-item-label caption>
           <slot name="url">
-            <div class="session-info-attribute-url" :class="getDarkModeClass(darkMode)" style="word-break: break-all">{{ metadata?.url  }}</div>
+            <div class="session-info-attribute-url text-bow" :class="getDarkModeClass(darkMode)" style="word-break: break-all">{{ metadata?.url  }}</div>
             <div v-if="sessionId" class="session-info-attribute" :class="getDarkModeClass(darkMode)">Sid: {{ sessionId  }}</div>
             <div v-if="sessionTopic" class="session-info-attribute" :class="getDarkModeClass(darkMode)">Topic: {{ sessionTopic?.replace(sessionTopic.slice(3, sessionTopic.length - 6), '...')  }}</div>
           </slot>

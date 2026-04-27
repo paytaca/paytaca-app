@@ -151,7 +151,7 @@
           </div>
         </div>
         <div class="row">
-          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm">
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm text-bow" :class="getDarkModeClass(darkMode)">
             <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
             <q-badge v-if="activeSessionsCount > 0" color="green" class="q-ml-sm">
               {{ activeSessionsCount }}
