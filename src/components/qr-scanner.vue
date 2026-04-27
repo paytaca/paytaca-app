@@ -138,12 +138,20 @@ export default {
     }
   },
   methods: {
-    stopScan () {
+    async stopScan () {
       this.$emit('input', false)
       this.$emit('update:model-value', false)
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
       this.adjustComponentsClasslist(false)
+      if (this.torchOn) {
+        try { await BarcodeScanner.disableTorch() } catch (e) {}
+      }
+      if (this.zoomLevel > 0) {
+        try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+      }
+      this.zoomLevel = 0
+      this.torchOn = false
 
       if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
@@ -165,11 +173,23 @@ export default {
       if (res.content) {
         BarcodeScanner.showBackground()
         this.adjustComponentsClasslist(false)
+        if (this.torchOn) {
+          try { await BarcodeScanner.disableTorch() } catch (e) {}
+        }
+        if (this.zoomLevel > 0) {
+          try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+        }
         this.zoomLevel = 0
         this.torchOn = false
         this.$emit('decode', res.content)
       } else {
         this.adjustComponentsClasslist(false)
+        if (this.torchOn) {
+          try { await BarcodeScanner.disableTorch() } catch (e) {}
+        }
+        if (this.zoomLevel > 0) {
+          try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+        }
         this.zoomLevel = 0
         this.torchOn = false
         this.$emit('input', false)

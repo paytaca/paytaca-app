@@ -72,7 +72,7 @@ index 6baaa67..258880c 100644
 +    }
  }
 diff --git a/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts b/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts
-index b8a89f1..9ffcdf2 100644
+index b8a89f1..468d1ee 100644
 --- a/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts
 +++ b/node_modules/@capacitor-community/barcode-scanner/dist/esm/definitions.d.ts
 @@ -14,6 +14,21 @@ export interface BarcodeScannerPlugin {
@@ -82,7 +82,7 @@ index b8a89f1..9ffcdf2 100644
 +    /**
 +     * Set the camera zoom level.
 +     *
-+     * @since 4.0.2
++     * @since 4.0.1
 +     */
 +    setZoom(options: ZoomOptions): Promise<void>;
 +}
@@ -91,7 +91,7 @@ index b8a89f1..9ffcdf2 100644
 +     * The zoom level to set. 0 is no zoom.
 +     * The maximum value depends on the device camera.
 +     *
-+     * @since 4.0.2
++     * @since 4.0.1
 +     */
 +    zoom: number;
  }

@@ -340,9 +340,15 @@ export default {
         }
       );
     },
-    stopScan () {
+    async stopScan () {
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
+      if (this.torchOn) {
+        try { await BarcodeScanner.disableTorch() } catch (e) {}
+      }
+      if (this.zoomLevel > 0) {
+        try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+      }
       this.zoomLevel = 0
       this.torchOn = false
     },
