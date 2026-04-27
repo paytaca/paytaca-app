@@ -173,30 +173,6 @@ export default {
         this.$router.push({ name: 'card-list' })
       } 
     },
-  async mounted () {
-    await this.loadCardUser()
-    this.checkExistingCards()
-    this.isloaded = true
-  },
-
-  methods: {
-    async loadCardUser() {
-      try {
-        const user = await loadCardUser();
-        console.log('Loaded card user:', user);
-        this.user = user;
-      } catch (err) {
-        console.error('Error loading card user:', err);
-        this.user = null;
-      }   
-    },
-    checkExistingCards () {
-      // if user has existing cards and we are at the cards home page, redirect to cards list page
-      if (this.user.cardCount > 0 && this.$route.name === 'app-card'){
-        this.goToCardsList()
-      } 
-    },
-
     goToCardsList () {
       console.log('Going to cards list page')
       this.$router.push({ name: 'card-list' })
