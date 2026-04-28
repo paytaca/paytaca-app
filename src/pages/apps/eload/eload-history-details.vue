@@ -161,7 +161,8 @@ export default {
 			order: null,
 			loading: true,
 			promoSnapshot: null,
-			loadError: ''
+			loadError: '',
+			pollTimer: null
 		}
 	},
 	computed: {
@@ -190,6 +191,10 @@ export default {
 	},
 	async mounted () {
 		await this.fetchOrder()
+		this.startPolling()
+	},
+	beforeUnmount () {
+		this.stopPolling()
 	},
 	methods: {	
 		getStatusLabel (order) {
@@ -210,11 +215,28 @@ export default {
 			await this.fetchOrder()
 			done()
 		},
-		async fetchOrder () {
-			this.loading = true
-			this.loadError = ''
-			this.order = null
-			this.promoSnapshot = null
+		isTerminalStatus (status) {
+			return ['success', 'failed'].includes(status)
+		},
+		startPolling () {
+			if (this.pollTimer) return
+			this.pollTimer = setInterval(() => {
+				this.fetchOrder(true)
+			}, 10000)
+		},
+		stopPolling () {
+			if (this.pollTimer) {
+				clearInterval(this.pollTimer)
+				this.pollTimer = null
+			}
+		},
+		async fetchOrder (isPoll = false) {
+			if (!isPoll) {
+				this.loading = true
+				this.loadError = ''
+				this.order = null
+				this.promoSnapshot = null
+			}
 			const orderID = this.$route.params.orderId
 
 			try {
@@ -223,14 +245,21 @@ export default {
 				if (result?.success) {
 					this.order = result.data || {}
 					this.promoSnapshot = (result.data && result.data.promo_snapshot) ? result.data.promo_snapshot : {}
-				} else {
+					if (this.isTerminalStatus(this.order?.status)) {
+						this.stopPolling()
+					}
+				} else if (!isPoll) {
 					this.loadError = result?.error?.message || result?.error || this.$t?.('UnableToLoad') || 'Request failed'
 				}
 			} catch (e) {
 				console.error('[Eload] fetchOrderDetails failed:', e)
-				this.loadError = this.$t?.('UnableToLoad') || 'Request failed'
+				if (!isPoll) {
+					this.loadError = this.$t?.('UnableToLoad') || 'Request failed'
+				}
 			} finally {
-				this.loading = false
+				if (!isPoll) {
+					this.loading = false
+				}
 			}
 		},
 		copyToClipboard (value) {
