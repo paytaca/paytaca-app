@@ -1,5 +1,5 @@
 <template>         
-    <q-page class="flex flex-center q-pa-md">
+    <q-page v-if="!checkingCards" class="flex flex-center q-pa-md">
         <div class="column items-center full-width" style="max-width: 650px;">
           
           <!-- Hero Section -->
@@ -127,7 +127,8 @@ export default {
       showCreateCardForm: false,
       showResumeCreateCardDialog: false,
       newCardName: '',
-      idempotencyKey: ''
+      idempotencyKey: '',
+      checkingCards: true  // Start true, only show content if no cards
     }
   },
 
@@ -149,6 +150,17 @@ export default {
   async mounted () {
     await this.loadCardUser(true)
     this.isloaded = true
+    
+    // Check if user has existing cards
+    if (this.user?.cardCount > 0) {
+      // Has cards - redirect immediately without showing this page
+      this.$router.replace({ name: 'card-list' })
+      return  // Don't continue, don't show content
+    }
+    
+    // No cards - safe to show the home page content
+    this.checkingCards = false
+    
     const attempt = await getCreateCardAttempt();
     console.log('Existing create card attempt:', attempt)
     if (attempt) {

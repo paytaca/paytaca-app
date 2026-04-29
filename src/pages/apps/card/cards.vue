@@ -2,95 +2,111 @@
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
 
-      <div class="q-px-md q-mt-md">
-        <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
-        <div style="font-size: 16px; font-weight: bold; color: #000000;">My Cards</div>
-        <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
+      <!-- Skeleton loading state - shows everything at once -->
+      <div v-if="!isLoaded" class="full-width">
+        <div class="q-px-md q-mt-md">
+          <q-skeleton type="text" width="100px" height="20px" />
+          <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
+        </div>
+        <div class="flex flex-center full-width">
+          <div class="wallet-container" style="position: relative; height: 520px;">
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="stacked-card"
+              :style="getSkeletonCardStyle(n-1)"
+            >
+              <div class="card-handle">
+                <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
+              </div>
+              <div class="card-info row justify-between items-center no-wrap">
+                <q-skeleton type="text" width="80px" height="16px" />
+                <q-skeleton type="text" width="60px" height="16px" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="flex flex-center full-width">
-        <div class="wallet-container">
-          <div
-            v-if="isLoaded"
-            v-for="(card, index) in displayedCards"
-            :key="card.id"
-            class="stacked-card"
-            :class="{ 'swipe-hint': index === 0, 'is-dragging': currentCardId === card.id }"
-            :style="getCardStyle(index)"
-            @mousedown="startDrag($event, card)"
-            @touchstart="startDrag($event, card)"
-            @mousemove="onDrag($event, card)"
-            @touchmove="onDrag($event, card)"
-            @mouseup="endDrag(card)"
-            @touchend="endDrag(card)"
-            @mouseleave="endDrag(card)"
-            @keyup.right="goToCardDetails(card)"
-            tabindex="0"
-          >
-            <!-- Grabbable handle at top with info -->
-            <div class="card-handle" :class="$q.dark.isActive ? 'bg-dark' : ''">
-              <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
-            </div>
-            <!-- Card info positioned right below handle -->
-            <div class="card-info row justify-between items-center no-wrap">
-              <!-- 
-                SKELETON LOADER for card stack items when loading backend data:
-                <div v-if="loadingCards" class="full-width row justify-between">
-                  <q-skeleton type="text" width="80px" />
-                  <q-skeleton type="text" width="60px" />
-                </div>
-              -->
-              <div 
-                class="text-weight-bold text-subtitle2 ellipsis" 
-                style="max-width: 120px; font-size: 13px; color: inherit;"
-              >
-                <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
-                {{ capitalizeFirst(card.alias) }}
-              </div>
-              <div 
-                class="text-weight-bold text-subtitle2" 
-                style="font-size: 13px; color: inherit;"
-              >
-                <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
-                {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
-                <!-- NEW: Use Card class getBchBalance() method -->
-                <!-- {{ formatBalance(card?.getBchBalance ? card.getBchBalance() : card?.balance) }} BCH -->
-              </div>
-            </div>
-          </div>
+      <!-- Loaded state - everything shows at once -->
+      <div v-else class="full-width">
+        <div class="q-px-md q-mt-md">
+          <div style="font-size: 16px; font-weight: bold; color: #000000;">My Cards</div>
+          <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
+        </div>
 
-          <div
-            class="front-wallet-card flex flex-center cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-dark' : ''"
-            @click="showCreateCardDialog = true"
-          >
-            <q-card-section class="text-center slot-content">
-              <div 
-                class="text-h6 q-mb-sm"
-                :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }"
-              >
-                Add a new card
-              </div>
-              <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
-            </q-card-section>
-          </div>
-
-          <div 
-            v-if="subCards.length > 3"
-            class="see-all-container text-center q-mt-lg"
-          >
-            <q-btn
-              flat
-              no-caps
-              class="see-all-btn full-width"
-              @click="showAllCards"
+        <div class="flex flex-center full-width">
+          <div class="wallet-container">
+            <div
+              v-for="(card, index) in displayedCards"
+              :key="card.id"
+              class="stacked-card"
+              :class="{ 'swipe-hint': index === 0, 'is-dragging': currentCardId === card.id }"
+              :style="getCardStyle(index)"
+              @mousedown="startDrag($event, card)"
+              @touchstart="startDrag($event, card)"
+              @mousemove="onDrag($event, card)"
+              @touchmove="onDrag($event, card)"
+              @mouseup="endDrag(card)"
+              @touchend="endDrag(card)"
+              @mouseleave="endDrag(card)"
+              @keyup.right="goToCardDetails(card)"
+              tabindex="0"
             >
-              <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
-                <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
-                <q-icon name="expand_more" size="20px" class="q-ml-xs" />
+              <!-- Grabbable handle at top with info -->
+              <div class="card-handle" :class="$q.dark.isActive ? 'bg-dark' : ''">
+                <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
               </div>
-            </q-btn>
-          </div>  
+              <!-- Card info positioned right below handle -->
+              <div class="card-info row justify-between items-center no-wrap">
+                <div 
+                  class="text-weight-bold text-subtitle2 ellipsis" 
+                  style="max-width: 120px; font-size: 13px; color: inherit;"
+                >
+                  {{ capitalizeFirst(card.alias) }}
+                </div>
+                <div 
+                  class="text-weight-bold text-subtitle2" 
+                  style="font-size: 13px; color: inherit;"
+                >
+                  {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="front-wallet-card flex flex-center cursor-pointer"
+              :class="$q.dark.isActive ? 'bg-dark' : ''"
+              @click="showCreateCardDialog = true"
+            >
+              <q-card-section class="text-center slot-content">
+                <div 
+                  class="text-h6 q-mb-sm"
+                  :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }"
+                >
+                  Add a new card
+                </div>
+                <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
+              </q-card-section>
+            </div>
+
+            <div 
+              v-if="subCards.length > 3"
+              class="see-all-container text-center q-mt-lg"
+            >
+              <q-btn
+                flat
+                no-caps
+                class="see-all-btn full-width"
+                @click="showAllCards"
+              >
+                <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
+                  <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
+                  <q-icon name="expand_more" size="20px" class="q-ml-xs" />
+                </div>
+              </q-btn>
+            </div>  
+          </div>
         </div>
       </div>
       
@@ -299,6 +315,29 @@ export default {
           : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
 
         filter: `brightness(${1 - index * 0.1})`
+      }
+    },
+
+    getSkeletonCardStyle (index) {
+      const cardSpacing = 70
+      const buttonHeight = 280
+      const cardHeight = 180
+      const visibleArea = 70
+      const hiddenArea = cardHeight - visibleArea
+      const baseOffset = buttonHeight - hiddenArea
+      const bottomOffset = baseOffset + index * cardSpacing
+
+      return {
+        bottom: `${bottomOffset}px`,
+        zIndex: 10 - index,
+        position: 'absolute',
+        width: '90%',
+        left: '5%',
+        background: this.$q.dark.isActive ? '#2d2d2d' : '#f0f0f0',
+        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid #e0e0e0',
+        borderRadius: '15px',
+        height: '180px',
+        pointerEvents: 'none'
       }
     },
 

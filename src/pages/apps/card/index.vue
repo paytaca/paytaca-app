@@ -1,7 +1,16 @@
 <template>
   <q-layout view="lHh Lpr lFf">
     <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
-        <CardPageHeader />
+        <!-- Show skeleton header while loading -->
+        <div v-if="!isloaded" class="row items-center q-pa-md" style="min-height: 60px;">
+          <q-btn flat round dense icon="arrow_back" color="primary" style="opacity: 0.3" />
+          <div class="col">
+            <q-skeleton type="text" width="150px" height="30px" class="q-mx-auto" />
+          </div>
+          <div style="width: 40px;"></div>
+        </div>
+        <!-- Show actual header when loaded -->
+        <CardPageHeader v-else />
         <router-view v-if="isloaded" :key="$route.path"></router-view>
     </q-page-container>
 
