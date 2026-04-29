@@ -5,7 +5,7 @@ import { getOutputSize } from "cashscript/dist/utils";
 import { hexToBin } from "bitauth-libauth-v3";
 import { binToHex, lockingBytecodeToCashAddress } from "@bitauth/libauth";
 import { calculateInputSize } from "src/utils/cashscript-utils";
-import { cauldronManageArtifactWithPkh } from "./utils";
+import { apiPoolToMicroPool, cauldronManageArtifactWithPkh } from "./utils";
 import { cauldronApiAxios } from "./api";
 
 const exlab = new ExchangeLab()
@@ -30,21 +30,8 @@ export async function fetchWalletPools(address, tokenId) {
   const response = await cauldronApiAxios.get(path, { params })
   const activePools = response.data?.active
   if (!Array.isArray(activePools)) return Promise.reject({ response })
-  
-  return activePools.map(pool => {
-    return {
-      pool_id: pool.pool_id,
-      pkh: pool.owner_pkh,
-      is_withdrawn: false,
-      spent_utxo_hash: '',
-      new_utxo_hash: pool.txid,
-      new_utxo_txid: pool.txid,
-      new_utxo_n: pool.tx_pos,
-      token_id: pool.token_id,
-      sats: pool.sats,
-      token_amount: pool.tokens,
-    }
-  })
+
+  return activePools.map(pool => apiPoolToMicroPool(pool))
 }
 
 

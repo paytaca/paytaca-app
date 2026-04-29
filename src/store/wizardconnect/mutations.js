@@ -54,3 +54,21 @@ export function removeCancelledKey (state, key) {
   if (!state) return
   state.cancelledKeys = (state.cancelledKeys || []).filter(k => k !== key)
 }
+
+export function addProcessedKey (state, key) {
+  if (!state) return
+  if (!state.processedKeys.includes(key)) {
+    state.processedKeys = [...(state.processedKeys || []), key]
+  }
+}
+
+export function removeProcessedKeysForConnection (state, connectionId) {
+  if (!state) return
+  const prefix = `${connectionId}:`
+  state.processedKeys = (state.processedKeys || []).filter(k => !k.startsWith(prefix))
+}
+
+export function clearProcessedKeys (state) {
+  if (!state) return
+  state.processedKeys = []
+}

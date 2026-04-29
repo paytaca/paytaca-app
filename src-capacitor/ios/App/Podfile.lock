@@ -36,12 +36,12 @@ DEPENDENCIES:
   - "CapacitorCommunityNativeAudio (from `../../node_modules/@capacitor-community/native-audio`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
   - "CapacitorDevice (from `../../node_modules/@capacitor/device`)"
-  - "CapacitorFilesystem (from `../../../node_modules/@capacitor/filesystem`)"
+  - "CapacitorFilesystem (from `../../node_modules/@capacitor/filesystem`)"
   - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
   - "CapacitorKeyboard (from `../../node_modules/@capacitor/keyboard`)"
   - CapacitorNativeBiometric (from `../../node_modules/capacitor-native-biometric`)
   - "CapacitorPushNotifications (from `../../node_modules/@capacitor/push-notifications`)"
-  - "CapacitorShare (from `../../../node_modules/@capacitor/share`)"
+  - "CapacitorShare (from `../../node_modules/@capacitor/share`)"
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -61,7 +61,7 @@ EXTERNAL SOURCES:
   CapacitorDevice:
     :path: "../../node_modules/@capacitor/device"
   CapacitorFilesystem:
-    :path: "../../../node_modules/@capacitor/filesystem"
+    :path: "../../node_modules/@capacitor/filesystem"
   CapacitorGeolocation:
     :path: "../../node_modules/@capacitor/geolocation"
   CapacitorKeyboard:
@@ -71,7 +71,7 @@ EXTERNAL SOURCES:
   CapacitorPushNotifications:
     :path: "../../node_modules/@capacitor/push-notifications"
   CapacitorShare:
-    :path: "../../../node_modules/@capacitor/share"
+    :path: "../../node_modules/@capacitor/share"
 
 SPEC CHECKSUMS:
   Capacitor: 7d42085cb786b2d3ea9ac8a17ebd7e3305be7b72
@@ -89,6 +89,6 @@ SPEC CHECKSUMS:
   CapacitorPushNotifications: 2327900bc002f5ff49ee6d2231796d0635b4a1b0
   CapacitorShare: abef1f7be4e10b448693b0b83b540cb4b92dc849
 
-PODFILE CHECKSUM: 14794330b978cabe4220a83df8625ea099e3382c
+PODFILE CHECKSUM: 904e7a9b38aa313fd9a514d469080acd25f7185a
 
 COCOAPODS: 1.16.2

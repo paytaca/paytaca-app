@@ -20,6 +20,9 @@ body.theme-glassmorphic-blue {
   $theme_primary2: $text_blue_9;
   $bg_card_light: $color_4;
 
+  $bg_dark_page: #273746;
+  $bg_light_page: #ecf3f3;
+
   /* ----- CSS CUSTOM PROPERTIES ----- */
   --scanner-primary: #{$color_6};
   --scanner-border: #{$color_6};
@@ -109,6 +112,8 @@ body.theme-glassmorphic-blue {
   @include shared.gen-color-classes($theme_primary2, 'pt-primary2');
   @include shared.gen-color-classes($bg_card_dark, 'pt-dark');
   @include shared.gen-color-classes($bg_card_light, 'pt-light');
+  @include shared.gen-color-classes($bg_dark_page, 'pt-dark-page');
+  @include shared.gen-color-classes($bg_light_page, 'pt-light-page');
 
   .bg-grad,
   .bg-grad.button {

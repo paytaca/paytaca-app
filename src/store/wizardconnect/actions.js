@@ -1,4 +1,5 @@
 import * as wizardConnectService from 'src/wallet/wizardconnect/service'
+import Watchtower from 'watchtower-cash-js'
 import { Notify } from 'quasar'
 
 function getStorageKey(walletHash) {
@@ -59,11 +60,11 @@ function serializeConnection (id, conn) {
   }
 }
 
-export async function init ({ commit, dispatch, rootGetters }) {
+export async function init ({ commit, dispatch, rootGetters, state }) {
   const walletIndex = rootGetters['global/getWalletIndex'] || 0
   const isChipnet = rootGetters['global/isChipnet'] || false
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
-  
+
   wizardConnectService.setWalletConfig(walletIndex, isChipnet, walletHash)
 
   let manager
@@ -108,8 +109,14 @@ export async function init ({ commit, dispatch, rootGetters }) {
     dispatch('handleRemoteDisconnect', { connectionId, reason, message })
   })
 
-  // Clear stale pending requests from previous session
-  commit('clearPendingRequests')
+  // Only clear stale state on a true fresh session (app start / no existing
+  // connections). Re-inits triggered by pull-to-refresh or page navigation
+  // must NOT wipe active pending requests / processed keys.
+  const isFreshSession = Object.keys(state.connections || {}).length === 0
+  if (isFreshSession) {
+    commit('clearPendingRequests')
+    commit('clearProcessedKeys')
+  }
 
   // Restore saved connections for this wallet
   const savedUris = loadSavedUris(walletHash)
@@ -130,6 +137,7 @@ export async function init ({ commit, dispatch, rootGetters }) {
 export function reset ({ commit }) {
   wizardConnectService.reset()
   commit('clearPendingRequests')
+  commit('clearProcessedKeys')
   commit('setConnections', {})
 }
 
@@ -137,7 +145,7 @@ export async function pair ({ commit, state, rootGetters }, { uri }) {
   if (!uri) throw new Error('URI is required')
   const normalizedUri = uri.trim()
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
-  const connectionId = wizardConnectService.connect(normalizedUri)
+  const connectionId = await wizardConnectService.connect(normalizedUri)
   addSavedUri(walletHash, normalizedUri)
   return connectionId
 }
@@ -150,15 +158,21 @@ export async function disconnect ({ commit, state, rootGetters }, { connectionId
   }
   wizardConnectService.disconnect(connectionId)
   commit('removeConnection', connectionId)
+  commit('removeProcessedKeysForConnection', connectionId)
 }
 
 export async function handleSignRequest ({ commit, state }, pending) {
   const sequence = pending.request?.sequence
-  const cancelledKey = `${pending.connectionId}:${sequence}`
+  const key = `${pending.connectionId}:${sequence}`
 
   // Check if this request was already cancelled (race condition)
-  if (state.cancelledKeys.includes(cancelledKey)) {
-    commit('removeCancelledKey', cancelledKey)
+  if (state.cancelledKeys.includes(key)) {
+    commit('removeCancelledKey', key)
+    return
+  }
+
+  // Ignore if already approved/rejected so reconnects don't re-prompt
+  if (state.processedKeys.includes(key)) {
     return
   }
 
@@ -171,11 +185,20 @@ export async function handleSignRequest ({ commit, state }, pending) {
   })
 }
 
-export async function approveRequestWithData ({ commit }, { connectionId, sequence, transactionJson }) {
+export async function approveRequestWithData ({ commit, rootGetters }, { connectionId, sequence, transactionJson }) {
   commit('removePendingRequest', { connectionId, sequence })
+  commit('addProcessedKey', `${connectionId}:${sequence}`)
   try {
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
+
+    // Fire-and-forget broadcast via watchtower (redundant to dApp broadcast)
+    const isChipnet = rootGetters['global/isChipnet'] || false
+    const watchtower = new Watchtower(isChipnet)
+    watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
+      console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
+    })
+
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
@@ -189,6 +212,7 @@ export async function approveRequestWithData ({ commit }, { connectionId, sequen
 
 export async function rejectRequest ({ commit }, { connectionId, sequence }) {
   commit('removePendingRequest', { connectionId, sequence })
+  commit('addProcessedKey', `${connectionId}:${sequence}`)
   try {
     await wizardConnectService.sendSignError(connectionId, sequence, 'User rejected')
   } catch {
@@ -203,6 +227,7 @@ export function handleSignCancelled ({ commit, state }, { connectionId, sequence
   )
   if (exists) {
     commit('removePendingRequest', { connectionId, sequence })
+    commit('addProcessedKey', key)
   } else {
     commit('addCancelledKey', key)
   }
@@ -215,6 +240,7 @@ export function handleRemoteDisconnect ({ commit, state, rootGetters }, { connec
     removeSavedUri(walletHash, connection.uri)
   }
   commit('removeConnection', connectionId)
+  commit('removeProcessedKeysForConnection', connectionId)
 
   // Remove any pending requests for this connection
   const pending = state.pendingRequests.filter(r => r.connectionId === connectionId)

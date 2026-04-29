@@ -123,3 +123,23 @@ export function deletePsbt(state, unsignedTransactionHash) {
   if (i === -1) return
   state.psbts.splice(i, 1)
 }
+
+export function addWorker(state, { id, status }) {
+  if (!state.workers) {
+    state.workers = {}
+  }
+  state.workers[id] = { id, status }
+}
+
+export function updateWorkerStatus(state, { id, status, error }) {
+  if (state.workers?.[id]) {
+    state.workers[id].status = status 
+    if (error) {
+      state.workers[id].error = error
+    }
+  }
+}
+
+export function removeWorker(state, id) {
+  delete state.workers[id]
+}

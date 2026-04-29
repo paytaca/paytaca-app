@@ -100,13 +100,13 @@
         ref="amountInput"
         class="bch-input-field"
         @focus="onInputFocus(index, 'bch')"
-        :label="$t('Amount')"
+        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
         :loading="computingMax"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
-        :error="balanceExceeded"
-        :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
+        :error="balanceExceeded && !cauldronEnabled"
+        :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
         :key="inputExtras.amountFormatted"
       >
         <template v-slot:append>
@@ -136,9 +136,9 @@
         @focus="onInputFocus(index, 'fiat')"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
-        :error="balanceExceeded"
-        :error-message="balanceExceeded ? $t('BalanceExceeded') : ''"
-        :label="$t('Amount')"
+        :error="balanceExceeded && !cauldronEnabled"
+        :error-message="balanceExceeded && !cauldronEnabled ? $t('BalanceExceeded') : ''"
+        :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
         :key="inputExtras.fiatFormatted"
       >
@@ -149,24 +149,68 @@
     </div>
   </div>
 
+  <div v-if="!cauldronEnabled" class="q-mt-sm">
+    <q-btn
+      no-caps
+      :label="asset?.id === 'bch' ? $t('SendUsingTokensWithCauldron') : $t('SendUsingBchWithCauldron')"
+      icon="img:cauldron-logo.svg"
+      color="pt-primary1"
+      padding="sm md"
+      class="full-width q-my-sm"
+      @click="toggleCauldron"
+    />
+  </div>
+  <div v-else class="row items-start no-wrap q-mt-sm">
+    <div class="full-width">
+      <q-input
+        ref="cauldronAmountInput"
+        type="text"
+        inputmode="none"
+        filled
+        :loading="calculatingCauldronTrade"
+        readonly
+        v-model="cauldronAmountFormatted"
+        :label="$t('SpendAmount')"
+        :dark="darkMode"
+        :hint="cauldronStatusMessage"
+        :error="Boolean(effectiveCauldronErrorMessage)"
+        :error-message="effectiveCauldronErrorMessage"
+      >
+        <template v-slot:append>
+          <q-btn
+            size="lg"
+            padding="none"
+            flat
+            no-caps
+            :color="cauldronEnabled ? undefined : 'grey'"
+            :label="assetIsBch ? (cauldronToken?.bcmr?.token?.symbol || $t('SelectToken')) : 'BCH'"
+            @click="cauldronTokenDialog = assetIsBch"
+          />
+        </template>
+      </q-input>
+    </div>
+    <q-btn
+      flat
+      size="md"
+      icon="close"
+      class="q-ml-xs q-my-sm"
+      round
+      @click="toggleCauldron"
+    />
+  </div>
+
   <div class="row" v-if="!isNFT && !recipient.fixedAmount" style="padding-bottom: 15px">
     <div class="col q-mt-md balance-max-container" :class="getDarkModeClass(darkMode)">
-      <template v-if="asset?.id === 'bch'">
+      <template v-if="currentWalletBalanceAsAsset?.id === 'bch' && asset?.id === 'bch'">
         <span>
-        {{ parseAssetDenomination(selectedDenomination, {
-          ...asset,
-          balance: currentWalletBalance
-        }) }}
+        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
       </span>
         {{ ` = ${parseFiatCurrency(
           convertToFiatAmount(currentWalletBalance, selectedAssetMarketPrice), currentSendPageCurrency())
         }` }}
       </template>
       <span v-else>
-        {{ parseAssetDenomination(selectedDenomination, {
-          ...asset,
-          balance: currentWalletBalance * (10 ** (asset?.decimals || 0))
-        }) }}
+        {{ parseAssetDenomination(selectedDenomination, currentWalletBalanceAsAsset) }}
       </span>
       <q-btn
         flat
@@ -174,6 +218,7 @@
         no-caps
         v-if="!computingMax || !recipient.sending"
         class="max-button"
+        color="pt-primary1"
         :class="getDarkModeClass(darkMode)"
         :label="$t('MAX')"
         @click="onInputFocus(index, ''), handleMaxClick()"
@@ -187,12 +232,17 @@
   >
     <span v-html="cashbackAmountText()"></span>
   </q-card>
+  <TokenSelectDialog
+    v-model="cauldronTokenDialog"
+    @select-token="onCauldronTokenSelect"
+  />
 </template>
 
 <script>
 
 import DenominatorTextDropdown from 'src/components/DenominatorTextDropdown.vue'
 import ConfirmSetMax from 'src/pages/transaction/dialog/ConfirmSetMax.vue'
+import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue'
 import { convertTokenAmount, convertCashAddress } from 'src/wallet/chipnet'
 import {
   parseAssetDenomination,
@@ -209,7 +259,8 @@ import SelectChangeAddress from 'src/components/SelectChangeAddress.vue'
 
 export default {
   components: {
-    DenominatorTextDropdown
+    DenominatorTextDropdown,
+    TokenSelectDialog
   },
 
   props: {
@@ -228,25 +279,32 @@ export default {
     index: { type: Number },
     showQrScanner: { type: Boolean },
     computingMax: { type: Boolean },
+    calculatingCauldronTrade: Boolean,
     selectedAssetMarketPrice: { type: Number },
     isNFT: { type: Boolean },
+
+    // Wallet balance is normalized (not in it's base units)
     currentWalletBalance: { type: Number },
+    currentWalletBalanceAssetId: String,
+
+    cauldronErrorMessage: String,
+    cauldronStatusMessage: String,
 
     currentSendPageCurrency: { type: Function },
     setMaximumSendAmount: { type: Function },
     defaultSelectedFtChangeAddress: { type: String },
-    walletType: { type: String }
+    walletType: { type: String },
   },
 
   emits: [
     'on-qr-scanner-click',
     'on-input-focus',
-    'on-balance-exceeded',
     'on-recipient-input',
     'on-empty-recipient',
     'on-selected-denomination-change',
     'on-qr-uploader-click',
-    'on-selected-change-address'
+    'on-selected-change-address',
+    'on-cauldron-toggle'
   ],
 
   data () {
@@ -259,20 +317,17 @@ export default {
       emptyRecipient: false,
       selectedDenomination: 'BCH',
       changeAddresses: [],
-      selectedChangeAddress: ''
+      selectedChangeAddress: '',
+      cauldronTokenDialog: false,
+      cauldronToken: null,
+      cauldronEnabled: false,
+      cauldronAmount: '',
+      cauldronAmountFormatted: '',
     }
   },
 
-  mounted () {
-    this.amount = this.recipient.amount
-    this.amountFormatted = this.inputExtras.amountFormatted
-    this.fiatFormatted = this.inputExtras.fiatFormatted
-    if (this.inputExtras.isBip21) {
-      this.selectedDenomination = 'BCH'
-    } else {
-      this.selectedDenomination = this.inputExtras.selectedDenomination
-    }
-    this.selectedChangeAddress = this.defaultSelectedFtChangeAddress
+  beforeMount () {
+    this.syncPropsData();
   },
 
   computed: {
@@ -281,7 +336,7 @@ export default {
         return this.recipient.recipientAddress
       },
       set (value) {
-        this.emptyRecipient = !!value
+        // We'll hope the event handler for this updates the this.recipient.recipientAddress
         this.$emit('on-recipient-input', value)
       }
     },
@@ -309,6 +364,28 @@ export default {
 
       return computedBalance.toFixed(2)
     },
+    currentWalletBalanceAsAsset() {
+      let asset = { ...this.asset };
+      if (this.currentWalletBalanceAssetId || this.currentWalletBalanceAssetId !== this.asset?.id) {
+        asset = { ...this.$store.getters['assets/getAsset'](this.currentWalletBalanceAssetId)[0] }
+      }
+
+      if (asset.id === 'bch') {
+        asset.balance = this.currentWalletBalance;
+      } else {
+        // Although currentWalletBalance is assumed to always be in normalized version
+        // In the codebase, asset balances are normalized for BCH and base units in non BCH assets
+        // So we have to convert to base units here
+        const decimals = parseInt(asset?.decimals) || 0;
+        const balanceUnits = Number((this.currentWalletBalance * 10 ** decimals).toFixed(decimals));
+        asset.balance = balanceUnits;
+      }
+
+      return asset;
+    },
+    assetIsBch () {
+      return this.$props.asset?.id === 'bch';
+    },
     assetIsFT () {
       return this.$props.asset?.id?.startsWith('ct/') && this.$props.asset?.balance > 0
     },
@@ -335,6 +412,15 @@ export default {
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
+    },
+    effectiveCauldronErrorMessage() {
+        // :error="balanceExceeded && cauldronEnabled"
+        // :error-message="balanceExceeded && cauldronEnabled ? $t('BalanceExceeded') : ''"
+      if (this.balanceExceeded && this.cauldronEnabled) {
+        return this.$t('BalanceExceeded')
+      }
+
+      return this.cauldronErrorMessage;
     }
   },
 
@@ -372,6 +458,7 @@ export default {
     },
     onEmptyRecipient () {
       this.emptyRecipient = this.recipientAddress === ''
+      console.debug('onEmptyRecipient', { recipientAddress: this.recipientAddress, emptyRecipient: this.emptyRecipient })
       this.$emit('on-empty-recipient', this.emptyRecipient)
     },
     onQRUploaderClick () {
@@ -419,19 +506,67 @@ export default {
           class: `button q-mr-md ${this.getDarkModeClass(this.darkMode)}`
         }
       })
+    },
+    toggleCauldron() {
+      this.cauldronEnabled = !this.cauldronEnabled;
+      this.emitCauldronToggle();
+
+      if (this.cauldronEnabled && !this.cauldronToken && this.assetIsBch) this.cauldronTokenDialog = true
+    },
+    onCauldronTokenSelect (token) {
+      this.cauldronToken = token
+      this.emitCauldronToggle();
+    },
+    emitCauldronToggle() {
+      this.$emit('on-cauldron-toggle', {
+        index: this.index,
+        enable: this.cauldronEnabled,
+        token: this.cauldronToken,
+        amountFormatted: this.cauldronAmountFormatted,
+      })
+    },
+    syncPropsData() {
+      console.debug('Syncing Props data');
+
+      // Syncing this.recipient.recipientAddress is handled somewhere else
+      this.amount = this.recipient.amount
+      this.amountFormatted = this.inputExtras.amountFormatted
+      this.cauldronAmount = this.recipient.cauldronAmount;
+      this.fiatFormatted = this.inputExtras.fiatFormatted
+
+      this.balanceExceeded = this.inputExtras.balanceExceeded;
+      this.emptyRecipient = this.inputExtras.emptyRecipient;
+
+      if (this.inputExtras.isBip21) {
+        this.selectedDenomination = 'BCH'
+      } else {
+        this.selectedDenomination = this.inputExtras.selectedDenomination
+      }
+
+      if (this.inputExtras.cauldron) {
+        this.cauldronEnabled = this.inputExtras.cauldron.enable;
+        this.cauldronAmountFormatted = this.inputExtras.cauldron.amountFormatted || ''
+
+        if (this.inputExtras.cauldron.token) {
+          this.cauldronToken = this.inputExtras.cauldron.token;
+        }
+      }
     }
   },
 
   watch: {
-    amount: function (value) {
-      if (this.asset?.id?.startsWith('ct/')) {
-        this.balanceExceeded = value > ((this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0)))
-      } else if (this.asset?.id === 'bch') {
-        this.balanceExceeded = parseFloat(this.currentWalletBalance) < 0
-      }
-
-      this.$emit('on-balance-exceeded', this.balanceExceeded)
-    }
+    recipient: {
+      deep: true,
+      handler() {
+        this.syncPropsData();
+      },
+    },
+    inputExtras: {
+      deep: true,
+      handler() {
+        this.syncPropsData();
+      },
+    },
   }
 }
 </script>
@@ -463,15 +598,6 @@ export default {
       border-radius: 4px;
       font-size: 12px;
       font-weight: bold;
-      color: #3b7bf6;
-
-      &.light {
-        color: #3b7bf6;
-      }
-
-      &.dark {
-        color: #6fa8ff;
-      }
     }
   }
 </style>

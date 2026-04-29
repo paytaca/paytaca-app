@@ -204,122 +204,89 @@ import { getChangeAddress, getExplorerLink } from 'src/utils/send-page-utils'
 import { processEloadPoints } from 'src/utils/engagementhub-utils/rewards';
 
 export default {
-  data () {
-  	return {
-  		darkMode: this.$store.getters['darkmode/getStatus'],
-  		order: null,
-  		loading: true,
-  		promoSnapshot: null,
-  		loadError: '',
-  		
-  		// API Call Status Tracking
-  		apiCallStatus: {
-  			triggered: false,      // Whether API was successfully called
-  			loading: false,        // Whether API call is in progress
-  			error: null,           // Any error from API call
-  			lastOrderStatus: null // Track previous status for transition detection
-  		},
-  		
-  		// Polling
-  		pollingInterval: null,   // Store interval ID for cleanup
-  		POLLING_DELAY: 10000,   // 10 seconds
-  		
-  		// Rewards Section Display
-  		showRewardsSection: false,
-  		pointsEarned: 0
-  	}
-  },
-  computed: {
-  	getTxnID () {
-  		const bchTxid = this.order?.bch_txid
-  		if (!bchTxid || bchTxid.includes('-')) {
-  			return this.order?.settlement_txid
-  		}
-  		return bchTxid
-  	},
-  	getSettleDate () {
-  		return this.order?.settled_at || this.order?.completed_at
-  	},
-  	paymentCardTitle () {
-  		if (this.order?.status === 'success') {
-  			return 'Payment Details'
-  		} else if (this.order?.status === 'failed') {
-  			if (this.order?.settlement_txid) {
-  				return 'Refund Details'
-  			} else {
-  				return 'Pending Refund'
-  			}
-  		}
-  		return ''
-  	},
-  	
-  	// Rewards computed properties
-  	shouldShowRewardsSection() {
-  		// Show rewards section when:
-  		// 1. Order status is 'success'
-  		// 2. API has been triggered (meaning we detected the transition)
-  		return this.order?.status === 'success' && this.apiCallStatus.triggered
-  	},
-  	
-  	calculatedPoints() {
-  		const fee = Number.parseFloat(this.promoSnapshot?.convenience_fee_php || 0)
-  		return fee * 2
-  	}
-  },
-  async mounted () {
-  	// Initialize lastOrderStatus before first fetch
-  	this.apiCallStatus.lastOrderStatus = null
-  	await this.fetchOrder()
-  },
-  
-  beforeUnmount() {
-  	this.stopStatusPolling() // Clean up interval
-  },
-  
-  methods: {	
-  	getStatusLabel (order) {
-  		if (order?.status === 'failed') {
-  			if (order?.settlement_txid) {
-  				return 'Refunded'
-  			} else {
-  				return 'Pending Refund'
-  			}
-  		}
-  		return order?.status
-  	},
-  	
-  	// Polling methods
-  	/**
-  	 * Start polling when order is pending
-  	 */
-  	startStatusPolling() {
-  		if (this.pollingInterval) return // Already polling
-  		
-  		console.log('[Eload] Starting status polling...')
-  		this.pollingInterval = setInterval(() => {
-  			this.fetchOrder()
-  		}, this.POLLING_DELAY)
-  	},
-  	
-  	/**
-  	 * Stop polling
-  	 */
-  	stopStatusPolling() {
-  		if (this.pollingInterval) {
-  			console.log('[Eload] Stopping status polling...')
-  			clearInterval(this.pollingInterval)
-  			this.pollingInterval = null
-  		}
-  	},
-  	
-  	/**
-  	 * Trigger API call when order succeeds
-  	 */
-  	async triggerSuccessApiCall(order) {
-  		// Prevent duplicate calls
-  		if (this.apiCallStatus.triggered || this.apiCallStatus.loading) {
-  			return
-  		}
+	data () {
+		return {
+			darkMode: this.$store.getters['darkmode/getStatus'],
+			order: null,
+			loading: true,
+			promoSnapshot: null,
+			loadError: '',
+			pollTimer: null
+		}
+	},
+	computed: {
+		getTxnID () {
+			const bchTxid = this.order?.bch_txid
+			if (!bchTxid || bchTxid.includes('-')) {
+				return this.order?.settlement_txid
+			}
+			return bchTxid
+		},
+		getSettleDate () {
+			return this.order?.settled_at || this.order?.completed_at
+		},
+		paymentCardTitle () {
+		if (this.order?.status === 'success') {
+			return 'Payment Details'
+		} else if (this.order?.status === 'failed') {
+			if (this.order?.settlement_txid) {
+				return 'Refund Details'
+				} else {
+					return 'Pending Refund'
+				}
+			}
+			return ''
+		}
+	},
+	async mounted () {
+		await this.fetchOrder()
+		this.startPolling()
+	},
+	beforeUnmount () {
+		this.stopPolling()
+	},
+	methods: {	
+		getStatusLabel (order) {
+		if (order?.status === 'failed') {
+			if (order?.settlement_txid) {
+				return 'Refunded'
+				} else {
+					return 'Pending Refund'
+				}
+			}
+			return order?.status
+		},
+		explorerLink (txid) {
+		  return getExplorerLink(txid || '')
+		},
+		getDarkModeClass,
+		async onRefresh(done) {
+			await this.fetchOrder()
+			done()
+		},
+		isTerminalStatus (status) {
+			return ['success', 'failed'].includes(status)
+		},
+		startPolling () {
+			if (this.pollTimer) return
+			this.pollTimer = setInterval(() => {
+				this.fetchOrder(true)
+			}, 10000)
+		},
+		stopPolling () {
+			if (this.pollTimer) {
+				clearInterval(this.pollTimer)
+				this.pollTimer = null
+			}
+		},
+		async fetchOrder (isPoll = false) {
+			if (!isPoll) {
+				this.loading = true
+				this.loadError = ''
+				this.order = null
+				this.promoSnapshot = null
+			}
+			const orderID = this.$route.params.orderId
 
   		this.apiCallStatus.loading = true
   		
@@ -332,99 +299,30 @@ export default {
   				points_earned: this.calculatedPoints
   			}
 
-				const eloadResp = await processEloadPoints(payload)
-
-				if (eloadResp) {
-					this.apiCallStatus.triggered = true
-					this.pointsEarned = this.calculatedPoints
-					this.showRewardsSection = true
-					
-					this.$q?.notify?.({ 
-						type: 'positive', 
-						icon: 'mdi-party-popper',
-						message: `Congratulations! You have earned ${this.pointsEarned} points!`,
-						timeout: 3000
-					})
-				} else {
-					throw new Error('Unable to process eload points for rewards.')
+				if (result?.success) {
+					this.order = result.data || {}
+					this.promoSnapshot = (result.data && result.data.promo_snapshot) ? result.data.promo_snapshot : {}
+					if (this.isTerminalStatus(this.order?.status)) {
+						this.stopPolling()
+					}
+				} else if (!isPoll) {
+					this.loadError = result?.error?.message || result?.error || this.$t?.('UnableToLoad') || 'Request failed'
 				}
-  			
-  			
-  		} catch (error) {
-  			console.error('[Eload] API call failed:', error)
-  			this.apiCallStatus.error = error.message
-  			// Don't mark as triggered so it won't retry (per requirements)
-  		} finally {
-  			this.apiCallStatus.loading = false
-  		}
-  	},
-  	
-  	/**
-  	 * Navigate to Rewards app
-  	 */
-  	openRewardsApp() {
-  		this.$router.push({ name: 'app-rewards' })
-  	},
-  	
-  	explorerLink (txid) {
-  	  return getExplorerLink(txid || '')
-  	},
-  	getDarkModeClass,
-  	async onRefresh(done) {
-  		await this.fetchOrder()
-  		done()
-  	},
-  	async fetchOrder () {
-  		this.loading = true
-  		this.loadError = ''
-  		// Don't clear order here to avoid UI flicker
-  		
-  		const orderID = this.$route.params.orderId
-
-  		try {
-  			const result = await eloadServiceAPI.fetchOrderDetails(orderID)
-
-  			if (result?.success) {
-  				const newOrder = result.data || {}
-  				const previousStatus = this.apiCallStatus.lastOrderStatus
-  				const currentStatus = newOrder.status
-  				
-  				// Update order data
-  				this.order = newOrder
-  				this.promoSnapshot = newOrder.promo_snapshot || {}
-
-					// Detect transition: pending → success
-  				if (previousStatus === 'pending' && currentStatus === 'success') {
-  					console.log('[Eload] Order transitioned from pending to success!')
-  					await this.triggerSuccessApiCall(newOrder)
-  				}
-  				
-  				// Update last known status
-  				this.apiCallStatus.lastOrderStatus = currentStatus
-  				
-  				// Manage polling based on status
-  				if (currentStatus === 'pending') {
-  					if (!this.pollingInterval) {
-  						this.startStatusPolling()
-  					}
-  				} else {
-  					this.stopStatusPolling()
-  				}
-  				
-  			} else {
-  				this.loadError = result?.error?.message || result?.error || 'Request failed'
-  			}
-  		} catch (e) {
-  			console.error('[Eload] fetchOrderDetails failed:', e)
-  			this.loadError = 'Request failed'
-  		} finally {
-  			this.loading = false
-  		}
-  	},
-  	copyToClipboard (value) {
-      this.$copyText(value)
-      this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
-    },
+			} catch (e) {
+				console.error('[Eload] fetchOrderDetails failed:', e)
+				if (!isPoll) {
+					this.loadError = this.$t?.('UnableToLoad') || 'Request failed'
+				}
+			} finally {
+				if (!isPoll) {
+					this.loading = false
+				}
+			}
+		},
+		copyToClipboard (value) {
+	      this.$copyText(value)
+	      this.$q.notify({ color: 'blue-9', message: this.$t('CopiedToClipboard'), icon: 'mdi-clipboard-check', timeout: 200 })
+	    },
     formatDate (date) {
       const dateObj = new Date(date)
       const langs = [this.$store.getters['global/language'], 'en-US']

@@ -102,6 +102,17 @@ export default boot(async (obj) => {
         parsedState.wizardconnect = wizardconnectDefaultState()
       }
 
+      // Ensure merchantActivity state is initialized (added after v0.24.0)
+      if (!parsedState.global) {
+        parsedState.global = {}
+      }
+      if (!parsedState.global.merchantActivity) {
+        parsedState.global.merchantActivity = {
+          active: false,
+          verified: false
+        }
+      }
+
       store.replaceState(parsedState)
     }
 

@@ -1,9 +1,12 @@
 {
   "name": "paytaca",
-  "version": "v0.24.1",
+  "version": "v0.24.2",
   "description": "Secure and convenient Bitcoin Cash wallet app",
   "author": "joemar@paytaca.com",
   "private": true,
+  "scripts": {
+    "postinstall": "patch-package"
+  },
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^4.0.1",
     "@capacitor-community/native-audio": "^5.0.1",
@@ -22,6 +25,7 @@
     "capacitor-native-biometric": "^4.2.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^5.0.0"
+    "@capacitor/cli": "^5.0.0",
+    "patch-package": "^8.0.1"
   }
 }
