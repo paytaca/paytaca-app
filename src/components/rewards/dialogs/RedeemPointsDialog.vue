@@ -699,7 +699,8 @@ export default {
           tx_id: redeemResp.txid,
           redeemed_points: this.pointsToRedeem,
           user_ct_address: this.tokenAddress,
-          promo_contract_address: this.contract.contract.address
+          promo_contract_address: this.contract.contract.tokenAddress,
+          promo_contract_bytecode: this.contract.contract.bytecode
         })
 
         if (swapResp?.error !== '') throw new Error(recordResp?.error)
