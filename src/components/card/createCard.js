@@ -143,7 +143,7 @@ export const createCardLogic = {
 
     // Dark mode computed properties for UI classes
     textColor() {
-      return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
+      return this.$q.dark.isActive ? 'text-white' : 'text-black'
     },
     
     textColorGrey() {
@@ -244,7 +244,7 @@ export const createCardLogic = {
       // In production, this checks backend. For now, uses localStorage as cache
       const cards = CardStorage.getCards();
 
-      // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
+      // if user has existing cards and we are at the cards home page, redirect to card list
       if (cards.length > 0 && this.$route.name === 'app-card'){
         this.$router.push({ name: 'card-list' })
       }

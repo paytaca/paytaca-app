@@ -208,9 +208,9 @@ export const createCardLogic = {
     checkExistingCards () {
       const cards = CardStorage.getCards();
 
-      // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
+      // if user has existing cards and we are at the cards home page, redirect to card list
       if (cards.length > 0 && this.$route.name === 'app-card'){
-        this.$router.push({ name: 'stacked-cards'})
+        this.$router.push({ name: 'card-list'})
       } 
     },
 
@@ -311,7 +311,7 @@ export const createCardLogic = {
         // reset UI state and redirect
         this.createCardDialog = false
         this.newCardName = ''
-        this.$router.push({name: 'stacked-cards'})
+        this.$router.push({name: 'card-list'})
         
       } catch (error) {
         console.error('Card creation failed:', error)

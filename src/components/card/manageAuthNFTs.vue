@@ -23,12 +23,12 @@
     <!-- Distance Filter -->
     <div 
       class="row items-center q-mb-md q-px-sm text-caption cursor-pointer"
-      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+      :class="$q.dark.isActive ? 'text-grey-4' : 'text-black'"
       @click="openDistanceDialog"
     >
-      <span>Search Radius</span>
+      <span class="text-weight-medium">Search Radius</span>
       <q-icon name="settings" size="1rem" class="q-mx-xs" color="primary" />
-      <span class="text-weight-medium">{{ radius }} km</span>
+      <span class="text-weight-bold">{{ radius }} km</span>
     </div>
 
     <!-- Search bar and Select Multiple Toggle -->
@@ -529,6 +529,7 @@ export default {
       this.$q.dialog({
         title: 'Search Radius',
         message: 'Find merchants within this distance from your location',
+        class: this.$q.dark.isActive ? '' : 'bg-white text-black',
         prompt: {
           model: this.radius,
           type: 'number',
