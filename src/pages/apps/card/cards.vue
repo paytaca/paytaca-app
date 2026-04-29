@@ -4,7 +4,7 @@
 
       <div class="q-px-md q-mt-md">
         <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
-        <div class="text-subtitle1 text-weight-bold" :class="textColor">My Cards</div>
+        <div style="font-size: 16px; font-weight: bold; color: #000000;">My Cards</div>
         <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
       </div>
 
@@ -42,16 +42,14 @@
               -->
               <div 
                 class="text-weight-bold text-subtitle2 ellipsis" 
-                style="max-width: 120px; font-size: 13px;"
-                :class="textColor"
+                style="max-width: 120px; font-size: 13px; color: inherit;"
               >
                 <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
                 {{ capitalizeFirst(card.alias) }}
               </div>
               <div 
                 class="text-weight-bold text-subtitle2" 
-                style="font-size: 13px;"
-                :class="textColor"
+                style="font-size: 13px; color: inherit;"
               >
                 <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
                 {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
@@ -69,7 +67,7 @@
             <q-card-section class="text-center slot-content">
               <div 
                 class="text-h6 q-mb-sm"
-                :class="textColor"
+                :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }"
               >
                 Add a new card
               </div>
@@ -87,7 +85,7 @@
               class="see-all-btn full-width"
               @click="showAllCards"
             >
-              <div class="row items-center no-wrap">
+              <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
                 <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
                 <q-icon name="expand_more" size="20px" class="q-ml-xs" />
               </div>
@@ -149,6 +147,10 @@ export default {
     displayedCards () {
       return ([...this.subCards].sort((a, b) => b.id - a.id)).slice(0, 3)
     },
+
+    textColor () {
+      return this.$q.dark.isActive ? 'text-white' : 'text-black'
+    }
   },
 
   async mounted () {
