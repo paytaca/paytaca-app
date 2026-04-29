@@ -175,6 +175,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const props = defineProps({
   txid: String,
   from: String,
+  backNavQueryData: String,
 })
 
 const walletHash = computed(() => {
@@ -213,6 +214,18 @@ const transactionContentData = computed(() => {
 
 const backNavPath = computed(() => {
   if (props.from === 'send' || props.from === 'send-page') return '/send'
+  if (props.from === 'detail') {
+    let query;
+    try {
+      if (props.backNavQueryData) {
+        const queryString = atob(props.backNavQueryData);
+        query = JSON.parse(queryString);
+      }
+    } catch(error) {
+      console.error(error);
+    }
+    return { name: 'transaction-detail', query }
+  }
   return '/transaction/list'
 })
 

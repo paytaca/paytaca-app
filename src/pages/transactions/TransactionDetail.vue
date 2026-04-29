@@ -1196,10 +1196,18 @@ export default {
       const txid = this.txid || this.$route?.params?.txid
       if (!txid) return
 
+
+      let backNavQueryData;
+      try {
+        backNavQueryData = btoa(JSON.stringify(this.$route.query));
+      } catch (error) {
+        console.error(error);
+      }
+
       this.$router.push({
         name: 'transaction-summary',
         params: { txid },
-        query: { from: 'detail' }
+        query: { from: 'detail', backNavQueryData },
       })
     },
     async fetchAndShow (retryAttempt = 0) {
