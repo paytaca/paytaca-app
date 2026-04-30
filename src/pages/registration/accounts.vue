@@ -404,7 +404,7 @@
                     @click="useTextArea = true, seedPhraseBackup = ''"
                   />
                 </div>
-                <SeedPhraseContainer :isImport="true" @on-input-enter="onInputEnter" />
+                <SeedPhraseContainer :isImport="true" :invalidWords="invalidWordIndices" @on-input-enter="onInputEnter" />
             </div>
               </template>
         </div>
@@ -588,6 +588,8 @@
 import { Wallet, storeMnemonic, generateMnemonic, computeWalletHash } from '../../wallet'
 import { getMnemonic } from '../../wallet'
 import { utils } from 'ethers'
+import { wordlists } from 'bip39'
+const EN_WORDLIST = wordlists.EN
 import { Device } from '@capacitor/device'
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass, isHongKong } from 'src/utils/theme-darkmode-utils'
@@ -656,6 +658,7 @@ export default {
       serverOnline: null,
       importSeedPhrase: false,
       seedPhraseBackup: null,
+      invalidWordIndices: [],
       mnemonic: '',
       newWalletHash: '',
       newWalletSnapshot: {
@@ -871,6 +874,16 @@ export default {
       } else {
         return false
       }
+    },
+    getInvalidWordIndices (inputArray) {
+      const invalidIndices = []
+      for (let i = 0; i < inputArray.length; i++) {
+        const word = inputArray[i]?.toLowerCase().trim()
+        if (word && !EN_WORDLIST.includes(word)) {
+          invalidIndices.push(i)
+        }
+      }
+      return invalidIndices
     },
     cleanUpSeedPhrase (seedPhrase) {
       return seedPhrase.toLowerCase().trim()
@@ -2234,6 +2247,7 @@ export default {
       if (inputArray.indexOf('') === -1) {
         this.seedPhraseBackup = inputArray.join(' ')
       }
+      this.invalidWordIndices = this.getInvalidWordIndices(inputArray)
     },
     async promptEnablePushNotification() {
       await this.$pushNotifications.isPushNotificationEnabled().catch(console.log)
