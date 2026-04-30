@@ -1659,6 +1659,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+      // window.ae = currentRefs.amountInput.nativeEl;
+      // window.fe = currentRefs.fiatInput.nativeEl;
 
       currentInputExtras.setMax = false;
 
@@ -1695,12 +1697,6 @@ export default {
             currentRecipient.amount,
             { ...this.decimalObj(false), preserveTrailingDecimals: true },
           )
-
-          if (
-            this.focusedInputField === 'fiat' &&
-            String(currentRecipient.fiatAmount).split('.').length === 2 &&
-            String(currentRecipient.fiatAmount).split('.')[1] === ''
-          ) currentInputExtras.fiatFormatted += getLocaleSeparators().decimal
         } catch {
           currentRecipient.fiatAmount = ''
           currentRecipient.amount = ''
