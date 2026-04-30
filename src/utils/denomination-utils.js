@@ -86,12 +86,29 @@ function escapeRegExp (s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-export function formatWithLocale (value, { min, max } = {}) {
+export function formatWithLocale (value, { min, max, preserveTrailingDecimals } = {}) {
   const currentLocale = getLocale()
 
   const options = {}
   if (typeof min === 'number') options.minimumFractionDigits = min
   if (typeof max === 'number') options.maximumFractionDigits = max
+
+  // This preserves trailing zeroes in decimals
+  // Without this, "4123.0000" would give "4,123", instead of "4,123.000" or
+  // "1234.3200" => "1,234.3200"
+  if (preserveTrailingDecimals) {
+    let fractionLength = 0;
+    if (typeof value === 'string') {
+      const decimalPart = value.split('.')[1];
+      fractionLength = decimalPart ? decimalPart.length : 0
+    }
+    if (typeof options.minimumFractionDigits !== 'number' || options.minimumFractionDigits < fractionLength) {
+      options.minimumFractionDigits = fractionLength;
+      if (options.maximumFractionDigits < options.minimumFractionDigits) {
+        options.minimumFractionDigits = options.maximumFractionDigits;
+      }
+    }
+  }
   
   return Number(value).toLocaleString(currentLocale, options)
 }

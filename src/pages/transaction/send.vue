@@ -1688,10 +1688,12 @@ export default {
           }
   
           currentInputExtras.fiatFormatted = formatWithLocale(
-            currentRecipient.fiatAmount, this.decimalObj(true)
+            currentRecipient.fiatAmount,
+            { ...this.decimalObj(true), preserveTrailingDecimals: true },
           )
           currentInputExtras.amountFormatted = formatWithLocale(
-            currentRecipient.amount, this.decimalObj(false)
+            currentRecipient.amount,
+            { ...this.decimalObj(false), preserveTrailingDecimals: true },
           )
 
           if (
