@@ -1642,10 +1642,12 @@ export default {
         )
       } else {
         currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
+          currentRecipient.fiatAmount,
+          { ...this.decimalObj(true), preserveTrailingDecimals: true },
         )
         currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
+          currentRecipient.amount,
+          { ...this.decimalObj(false), preserveTrailingDecimals: true },
         )
       }
 
@@ -1659,8 +1661,6 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
-      // window.ae = currentRefs.amountInput.nativeEl;
-      // window.fe = currentRefs.fiatInput.nativeEl;
 
       currentInputExtras.setMax = false;
 
