@@ -1642,10 +1642,12 @@ export default {
         )
       } else {
         currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
+          currentRecipient.fiatAmount,
+          { ...this.decimalObj(true), preserveTrailingDecimals: true },
         )
         currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
+          currentRecipient.amount,
+          { ...this.decimalObj(false), preserveTrailingDecimals: true },
         )
       }
 
@@ -1688,17 +1690,13 @@ export default {
           }
   
           currentInputExtras.fiatFormatted = formatWithLocale(
-            currentRecipient.fiatAmount, this.decimalObj(true)
+            currentRecipient.fiatAmount,
+            { ...this.decimalObj(true), preserveTrailingDecimals: true },
           )
           currentInputExtras.amountFormatted = formatWithLocale(
-            currentRecipient.amount, this.decimalObj(false)
+            currentRecipient.amount,
+            { ...this.decimalObj(false), preserveTrailingDecimals: true },
           )
-
-          if (
-            this.focusedInputField === 'fiat' &&
-            String(currentRecipient.fiatAmount).split('.').length === 2 &&
-            String(currentRecipient.fiatAmount).split('.')[1] === ''
-          ) currentInputExtras.fiatFormatted += getLocaleSeparators().decimal
         } catch {
           currentRecipient.fiatAmount = ''
           currentRecipient.amount = ''

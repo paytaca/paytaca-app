@@ -34,7 +34,7 @@ import {
   formatWithLocaleSelective,
   parseKey
 } from 'src/utils/custom-keyboard-utils';
-import { formatWithLocale, getLocaleSeparators } from 'src/utils/denomination-utils';
+import { formatWithLocale } from 'src/utils/denomination-utils';
 
 import CustomKeyboard from './CustomKeyboard.vue';
 
@@ -104,14 +104,12 @@ export default {
         this.valFormatted = formatWithLocaleSelective(
           this.val, this.valFormatted, this.keyPressed, this.decimalObj
         )
-      } else this.valFormatted = formatWithLocale(this.val, this.decimalObj)
-      
-      if (
-        this.keyPressed === 'backspace' && 
-        String(value).split('.').length === 2 && 
-        String(value).split('.')[1] === ''
-      )
-        this.valFormatted += getLocaleSeparators().decimal
+      } else {
+        this.valFormatted = formatWithLocale(
+          this.val,
+          {...this.decimalObj, preserveTrailingDecimals: true }
+        )
+      }
     }
   },
 
