@@ -39,9 +39,12 @@
             <q-input
               dense
               class="q-mt-sm bg-grey-3 q-px-md q-py-xs"
+              :class="{ 'word-invalid': isWordInvalid(index - 1) }"
+              :input-style="isWordInvalid(index - 1) ? 'color: #ffffff !important' : ''"
               style="border-radius: 10px;"
               v-model="inputArray[index - 1]"
-              @update:model-value="onInputEnter(index)"
+              @update:model-value="onInputChange(index)"
+              @blur="onInputBlur(index)"
               :dark="darkMode"
             />
           </div>
@@ -65,6 +68,10 @@ export default {
     isImport: {
       type: Boolean,
       default: false
+    },
+    invalidWords: {
+      type: Array,
+      default: () => []
     }
   },
 
@@ -77,7 +84,8 @@ export default {
       inputArray: Array(12).fill(''),
       animationStarted: false,
       showReplayButton: false,
-      animationTimeout: null
+      animationTimeout: null,
+      validationDebounce: null
     }
   },
 
@@ -89,8 +97,22 @@ export default {
 
   methods: {
     getDarkModeClass,
-    onInputEnter (index) {
+    isWordInvalid (index) {
+      return this.invalidWords.includes(index) && this.inputArray[index]
+    },
+    onInputChange (index) {
       this.inputArray[index - 1] = this.cleanUpSeedPhrase(this.inputArray[index - 1])
+      const wordIndex = index - 1
+      // Debounce validation for last word or when correcting an invalid word
+      if (index === 12 || this.invalidWords.includes(wordIndex)) {
+        if (this.validationDebounce) clearTimeout(this.validationDebounce)
+        this.validationDebounce = setTimeout(() => {
+          this.$emit('on-input-enter', this.inputArray)
+        }, 400)
+      }
+    },
+    onInputBlur (index) {
+      if (this.validationDebounce) clearTimeout(this.validationDebounce)
       this.$emit('on-input-enter', this.inputArray)
     },
     cleanUpSeedPhrase (seedPhrase) {
@@ -178,6 +200,9 @@ export default {
     // Clean up timeout when component is destroyed
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout)
+    }
+    if (this.validationDebounce) {
+      clearTimeout(this.validationDebounce)
     }
   }
 }
@@ -308,5 +333,10 @@ export default {
     pre {
       margin: 10px 0;
     }
+  }
+
+  :deep(.word-invalid) {
+    background: rgba(255, 0, 0, 0.15) !important;
+    border: 1px solid #ff4444 !important;
   }
 </style>
