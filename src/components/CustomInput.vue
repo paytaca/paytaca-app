@@ -34,7 +34,7 @@ import {
   formatWithLocaleSelective,
   parseKey
 } from 'src/utils/custom-keyboard-utils';
-import { formatWithLocale, getLocaleSeparators } from 'src/utils/denomination-utils';
+import { formatWithLocale } from 'src/utils/denomination-utils';
 
 import CustomKeyboard from './CustomKeyboard.vue';
 
