@@ -480,6 +480,7 @@ export default {
       keypair: null,
       usingWebsocketData: false, // Track if we're using websocket data as fallback
       backgroundFetchActive: false, // Track if background fetch is active
+      newTxEffectsPlayed: false, // Track if confetti/audio has been played for this new tx
       displayRawAttributes: false,
       favorites: [],
       addingToFavorites: false,
@@ -1007,6 +1008,9 @@ export default {
           this.waitForRenderAndLaunchConfetti()
         }
       })
+      // Fetch complete transaction data from API in background
+      // to populate fields missing from the preloaded object (e.g. tx_fee)
+      this.startBackgroundFetch()
       return
     }
 
@@ -2902,6 +2906,10 @@ export default {
       })
     },
     async launchConfetti () {
+      // Only play confetti and audio once per transaction
+      if (this.newTxEffectsPlayed) return
+      this.newTxEffectsPlayed = true
+
       // Play sound for new transaction (non-blocking - don't wait for it)
       // Ensure audio is ready by waiting for next frame (allows preload to complete)
       requestAnimationFrame(() => {
