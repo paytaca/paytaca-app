@@ -74,45 +74,45 @@
               </div>
             </div>
 
-            <div
-              class="front-wallet-card flex flex-center cursor-pointer"
-              :class="$q.dark.isActive ? 'bg-dark' : ''"
-              @click="showCreateCardDialog = true"
-            >
-              <q-card-section class="text-center slot-content">
-                <div 
-                  class="text-h6 q-mb-sm"
-                  :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }"
-                >
-                  Add a new card
-                </div>
-                <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
-              </q-card-section>
-            </div>
-
-            <div 
-              v-if="subCards.length > 3"
-              class="see-all-container text-center q-mt-lg"
-            >
-              <q-btn
-                flat
-                no-caps
-                class="see-all-btn full-width"
-                @click="showAllCards"
-              >
-                <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
-                  <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
-                  <q-icon name="expand_more" size="20px" class="q-ml-xs" />
-                </div>
-              </q-btn>
-            </div>  
+          <div
+            class="front-wallet-card flex flex-center cursor-pointer"
+            :class="$q.dark.isActive ? 'bg-dark' : ''"
+            @click="onOpenCreateCardForm()">
+            <q-card-section class="text-center slot-content">
+              <div 
+                class="text-h6 q-mb-sm"
+                :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
+                Add a new card
+              </div>
+              <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
+            </q-card-section>
           </div>
+
+          <div 
+            v-if="subCards.length > 3"
+            class="see-all-container text-center q-mt-lg">
+            <q-btn
+              flat
+              no-caps
+              class="see-all-btn full-width"
+              @click="showAllCards">
+              <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
+                <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
+                <q-icon name="expand_more" size="20px" class="q-ml-xs" />
+              </div>
+            </q-btn>
+          </div>  
         </div>
       </div>
       
       <!-- Create Card Dialog -->
-      <CreateCardForm v-if="showCreateCardDialog" @onClose="showCreateCardDialog=false"/>
-
+      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" :idempotencyKey="idempotencyKey"/>
+      <ResumeCreateCardDialog 
+        v-if="showResumeCreateCardDialog" 
+        @resumeAttempt="onResumeCardAttempt" 
+        @deleteAttempt="onDeleteCardAttempt" 
+        @cancelAttempt="onCancelCardAttempt"
+        />
     </q-page-container>
   </q-layout>
 </template>
@@ -121,16 +121,18 @@
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-// import { createCardLogic } from 'src/components/card/createCard.js';
+import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
+import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 
 export default {
-  // mixins: [createCardLogic],
+  mixins: [CreateCardAttemptMixin],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
     CreateCardForm,
+    ResumeCreateCardDialog
   },
 
   data () {
@@ -140,7 +142,7 @@ export default {
       currentCardId: null,
       startX: 0,
       currentX: 0,
-      showCreateCardDialog: false,
+      // showCreateCardDialog: false,
       newCardName: '',
       isMinting: false,
       // Backend data fetching disabled
@@ -178,6 +180,7 @@ export default {
     satoshiToBch,
     async loadData () {
       await this.loadCardUser()
+      await this.checkExistingCreateCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
     },

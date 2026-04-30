@@ -58,6 +58,17 @@ export class Card {
     return card;
   }
 
+  /**
+   * Deletes a card creation attempt
+   * @param {string} idempotencyKey 
+   */
+  static async deleteCardAttempt(idempotencyKey) {
+    if (!idempotencyKey) {
+      throw new Error('Idempotency key is required to delete card creation attempt');
+    }
+    await backend.delete(`cards/create-attempts/${idempotencyKey}/`);
+  }
+
   // ==================== ASSERTIONS ====================
 
   /**
@@ -135,7 +146,9 @@ export class Card {
 
     try {
 
-      let currentStatus = lastAttempt?.status || CardCreateAttemptStatus.CARD_INITIATED;
+      console.log('===== lastAttempt:', lastAttempt);
+      let currentStatus = lastAttempt ? lastAttempt.status : CardCreateAttemptStatus.CARD_INITIATED;
+      console.log('==== Current status:', currentStatus);
       let cardId = lastAttempt?.cardId || null;
 
       if (currentStatus < CardCreateAttemptStatus.CARD_SAVED) {
@@ -143,10 +156,10 @@ export class Card {
         cardId = newCardId;
         this._notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
         currentStatus = CardCreateAttemptStatus.CARD_SAVED;
-        updateCreateCardAttempt({ cardId, status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { cardId, status: currentStatus });
       } else {
         console.log('Resuming card creation with:', lastAttempt);
-        this.notifyCallbackFn(callbackOnProgress, 'Resuming card creation workflow');
+        this._notifyCallbackFn(callbackOnProgress, 'Resuming card creation workflow');
       }
       
       let category
@@ -158,7 +171,7 @@ export class Card {
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
         
         currentStatus = CardCreateAttemptStatus.GENESIS_MINTED;
-        updateCreateCardAttempt({ category: category, status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { category: category, status: currentStatus });
       }
 
       await this._ensureCardUserAuthenticated();
@@ -168,7 +181,7 @@ export class Card {
         let savedAttempt = lastAttempt
         
         if (!category) {
-          savedAttempt = getCreateCardAttempt();
+          savedAttempt = getCreateCardAttempt(this.wallet.walletHash);
           console.log('Re-fetching last attempt for category:', savedAttempt);
           category = savedAttempt?.category;
         }
@@ -177,7 +190,7 @@ export class Card {
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
         
         currentStatus = CardCreateAttemptStatus.GENESIS_SAVED;
-        updateCreateCardAttempt({ status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
       } 
       
       this.raw = (await backend.get(`/cards/${cardId}/`)).data;
@@ -190,14 +203,14 @@ export class Card {
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
 
         currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
-        updateCreateCardAttempt({ status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
       }
 
       console.log('Card creation completed successfully');
       this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
 
       // Clear the create card attempt from local storage since workflow is complete
-      clearCreateCardAttempt();
+      clearCreateCardAttempt(this.wallet.walletHash);
 
       return this;
     } catch (error) {
@@ -229,7 +242,7 @@ export class Card {
   async _createCardEntry(alias) {
     console.log('Creating card entry...');
     this._assertWallet();
-    const idempotencyKey = crypto.randomUUID();
+    const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
     const data = {
       alias: alias || "",
@@ -238,7 +251,7 @@ export class Card {
       address_path: this.wallet.addressPath()
     };
 
-    saveCreateCardAttempt({
+    saveCreateCardAttempt(this.wallet.walletHash, {
       idempotencyKey,
       alias: alias || "",
       walletHash: this.wallet.walletHash,
@@ -246,12 +259,12 @@ export class Card {
     });
     
     const response = await backend.post('/cards/', data,
-      { headers: { 'Idempotency-Key': `create-card-${this.wallet.pubkey()}-${idempotencyKey}` } }
+      { headers: { 'Idempotency-Key': idempotencyKey } }
     );
     
     const cardEntry = response.data;
     console.log('Card entry created:', cardEntry);
-    updateCreateCardAttempt({ cardId: cardEntry.id, status: CardCreateAttemptStatus.CARD_SAVED });
+    updateCreateCardAttempt(this.wallet.walletHash, { cardId: cardEntry.id, status: CardCreateAttemptStatus.CARD_SAVED });
 
     return cardEntry;
   }
@@ -266,7 +279,7 @@ export class Card {
   async _saveGenesis(cardId, category, idempotencyKey = null) {
     const data = { category };
     const response = await backend.patch(`/cards/${cardId}/`, data, 
-      { headers: { 'Idempotency-Key': `create-card-${this.wallet.pubkey()}-${idempotencyKey}` } }
+      { headers: { 'Idempotency-Key': idempotencyKey } }
     );
 
     return response.data;

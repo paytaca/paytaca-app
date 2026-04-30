@@ -60,8 +60,8 @@
           <q-item v-for="t in filteredTransactions" :key="t.id" class="q-px-none">
             <!-- SKELETON LOADER for transaction icon: <q-item-section avatar><q-skeleton type="QAvatar" size="24px" /></q-item-section> -->
             <q-item-section avatar>
-               <q-icon :name="t.amount > 0 ? 'south_west' : 'north_east'" 
-                       :color="t.amount > 0 ? 'positive' : 'negative'" 
+               <q-icon :name="t.amount > 0 ? 'north_east' : 'south_west'" 
+                       :color="t.amount > 0 ? 'negative' : 'positive'" 
                        size="xs" />
             </q-item-section>
             <q-item-section>
@@ -70,15 +70,15 @@
                 :class="textColor"
               >
                 <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
-                {{ t.name }}
+                {{ t.merchant?.name }}
               </div>
                <!-- SKELETON LOADER for date: <q-skeleton v-if="loading" type="text" width="80px" height="12px" /> -->
                <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ t.date }}</div>
             </q-item-section>
             <q-item-section side>
               <!-- SKELETON LOADER for amount: <q-skeleton v-if="loading" type="text" width="70px" /> -->
-              <div class="text-weight-bold" :class="t.amount > 0 ? 'text-positive' : 'text-negative'">
-                {{ t.amount > 0 ? '+' : '' }}{{ t.amount }} BCH
+              <div class="text-weight-bold" :class="t.amount > 0 ? 'text-negative' : 'text-positive'">
+                {{ t.amount > 0 ? '-' : '' }}{{ t.amount }} BCH
               </div>
             </q-item-section>
           </q-item>

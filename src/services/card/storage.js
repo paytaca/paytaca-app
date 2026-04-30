@@ -1,3 +1,6 @@
+import { loadCardUser } from "./user"
+import Card from "./card"
+
 export const CardCreateAttemptStatus = {
   CARD_INITIATED: -1,
   CARD_SAVED: 0,
@@ -8,9 +11,17 @@ export const CardCreateAttemptStatus = {
 
 const CREATE_CARD_ATTEMPT_STORAGE_KEY = 'card:create-attempt'
 
-export function saveCreateCardAttempt(attempt) {
+export async function saveCreateCardAttempt(walletHash, attempt) {
+  if (!walletHash) {
+    const user = await loadCardUser()
+    walletHash = user?.wallet?.walletHash
+    if (!walletHash) {
+      throw new Error('Wallet hash is required to save create card attempt')
+    }
+  }
+  const storageKey = `${CREATE_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
   localStorage.setItem(
-    CREATE_CARD_ATTEMPT_STORAGE_KEY,
+    storageKey,
     JSON.stringify({
       idempotencyKey: attempt.idempotencyKey,
       alias: attempt.alias || '',
@@ -24,20 +35,28 @@ export function saveCreateCardAttempt(attempt) {
   )
 }
 
-export function getCreateCardAttempt() {
-  const raw = localStorage.getItem(CREATE_CARD_ATTEMPT_STORAGE_KEY)
+export async function getCreateCardAttempt(walletHash) {
+  if (!walletHash) {
+    const user = await loadCardUser()
+    walletHash = user?.wallet?.walletHash
+    if (!walletHash) {
+      throw new Error('Wallet hash is required to get create card attempt')
+    }
+  }
+  const storageKey = `${CREATE_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
+  const raw = localStorage.getItem(storageKey)
   if (!raw) return null
 
   try {
     return JSON.parse(raw)
   } catch {
-    localStorage.removeItem(CREATE_CARD_ATTEMPT_STORAGE_KEY)
+    localStorage.removeItem(storageKey)
     return null
   }
 }
 
-export function updateCreateCardAttempt(patch) {
-  const current = getCreateCardAttempt()
+export async function updateCreateCardAttempt(walletHash, patch) {
+  const current = await getCreateCardAttempt(walletHash)
   if (!current) return null
 
   const nextValue = {
@@ -46,10 +65,21 @@ export function updateCreateCardAttempt(patch) {
     updatedAt: Date.now(),
   }
 
-  saveCreateCardAttempt(nextValue)
+  await saveCreateCardAttempt(walletHash, nextValue)
   return nextValue
 }
 
-export function clearCreateCardAttempt() {
-  localStorage.removeItem(CREATE_CARD_ATTEMPT_STORAGE_KEY)
+export async function clearCreateCardAttempt(walletHash) {
+  if (!walletHash) {
+    const user = await loadCardUser()
+    walletHash = user?.wallet?.walletHash
+    if (!walletHash) {
+      throw new Error('Wallet hash is required to clear create card attempt')
+    }
+  }
+  await Card.deleteCardAttempt(walletHash).catch(err => {
+    console.warn(`Failed to delete card attempt from server: ${err.response?.data?.message || err.message}`)
+  })
+  const storageKey = `${CREATE_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
+  localStorage.removeItem(storageKey)
 }

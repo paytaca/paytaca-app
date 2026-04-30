@@ -20,7 +20,7 @@
           val => !!val || 'Card name is required',
           val => val.length <= 10 || 'Maximum 10 characters'
           ]"
-          @keyup.enter="createCard"
+          @keyup.enter="createCard()"
           autofocus
           outlined
           maxlength="10"
@@ -99,7 +99,7 @@
           label="Done" 
           color="primary" 
           :disable="!newCardName || !newCardName.trim() || newCardName.length > 10"
-          @click="createCard"/>
+          @click="createCard()"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -136,7 +136,7 @@ export default {
     }
   },
 
-  mounted() {
+  async mounted() {
     // Reset state when dialog is opened
     this.newCardName = '';
     this.mintingMessage = '';
@@ -144,10 +144,12 @@ export default {
 
     if (this.idempotencyKey) {
       console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
-      const attempt = getCreateCardAttempt()
+      const attempt = await getCreateCardAttempt();
       console.log('attempt from storage:', attempt)
-      this.newCardName = attempt?.alias || '';
-      this.createCard(attempt); // Start the card creation process immediately if resuming
+      if (attempt) {
+        this.newCardName = attempt?.alias || '';
+        this.createCard(attempt); // Start the card creation process immediately if resuming
+      }
     }
   },
 
