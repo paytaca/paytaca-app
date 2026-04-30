@@ -62,7 +62,7 @@ function getHdChainForIndex(nodes, childIndex) {
 function createAdapter(nodes) {
   return {
     walletName: 'Paytaca',
-    walletIcon: 'https://www.paytaca.com/paytaca-icon.png',
+    walletIcon: 'https://www.paytaca.com/favicon.png',
 
     getRelayPrivateKey(uri) {
       const cacheKey = uri
