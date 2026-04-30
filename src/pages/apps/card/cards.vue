@@ -74,34 +74,35 @@
               </div>
             </div>
 
-          <div
-            class="front-wallet-card flex flex-center cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-dark' : ''"
-            @click="onOpenCreateCardForm()">
-            <q-card-section class="text-center slot-content">
-              <div 
-                class="text-h6 q-mb-sm"
-                :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
-                Add a new card
-              </div>
-              <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
-            </q-card-section>
-          </div>
+            <div
+              class="front-wallet-card flex flex-center cursor-pointer"
+              :class="$q.dark.isActive ? 'bg-dark' : ''"
+              @click="onOpenCreateCardForm()">
+              <q-card-section class="text-center slot-content">
+                <div 
+                  class="text-h6 q-mb-sm"
+                  :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
+                  Add a new card
+                </div>
+                <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
+              </q-card-section>
+            </div>
 
-          <div 
-            v-if="subCards.length > 3"
-            class="see-all-container text-center q-mt-lg">
-            <q-btn
-              flat
-              no-caps
-              class="see-all-btn full-width"
-              @click="showAllCards">
-              <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
-                <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
-                <q-icon name="expand_more" size="20px" class="q-ml-xs" />
-              </div>
-            </q-btn>
-          </div>  
+            <div 
+              v-if="subCards.length > 3"
+              class="see-all-container text-center q-mt-lg">
+              <q-btn
+                flat
+                no-caps
+                class="see-all-btn full-width"
+                @click="showAllCards">
+                <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
+                  <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
+                  <q-icon name="expand_more" size="20px" class="q-ml-xs" />
+                </div>
+              </q-btn>
+            </div>  
+          </div>
         </div>
       </div>
       
