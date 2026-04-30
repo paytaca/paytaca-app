@@ -174,17 +174,13 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const props = defineProps({
   txid: String,
-  assetIds: String,
   from: String,
+  backNavQueryData: String,
 })
 
 const walletHash = computed(() => {
   if ($route.params.walletHash) return $route.params.walletHash
   return $store.getters['global/getWallet']('bch')?.walletHash
-})
-const parsedAssetIds = computed(() => {
-  if (typeof props.assetIds !== 'string') return ['bch'];
-  return props.assetIds.split(',');
 })
 
 const loadError = ref('')
@@ -218,6 +214,18 @@ const transactionContentData = computed(() => {
 
 const backNavPath = computed(() => {
   if (props.from === 'send' || props.from === 'send-page') return '/send'
+  if (props.from === 'detail') {
+    let query;
+    try {
+      if (props.backNavQueryData) {
+        const queryString = atob(props.backNavQueryData);
+        query = JSON.parse(queryString);
+      }
+    } catch(error) {
+      console.error(error);
+    }
+    return { name: 'transaction-detail', query }
+  }
   return '/transaction/list'
 })
 
@@ -299,43 +307,24 @@ async function fetchAllHistories () {
     return
   }
 
-  if (!parsedAssetIds.value || parsedAssetIds.value.length === 0) {
-    loadError.value = 'No asset IDs provided'
-    isLoading.value = false
-    return
-  }
-
   isLoading.value = true
   loadError.value = ''
 
   try {
     const baseUrl = getWatchtowerApiUrl()
-    const fetchPromises = parsedAssetIds.value.map(async (assetId) => {
-      const category = extractCategoryFromAssetId(assetId)
-      const categoryPath = category ? `/${category}` : ''
-      const url = `${baseUrl}/history/wallet/${encodeURIComponent(walletHash.value)}${categoryPath}/`
-      const response = await axios.get(url, { params: { txids: props.txid } })
-      
-      const data = response?.data?.history || response?.data || []
-      if (Array.isArray(data)) {
-        return data.map(item => ({
-          ...item,
-          _assetId: assetId
-        }))
-      }
-      return []
-    })
-
-    const results = await Promise.all(fetchPromises)
-    const allHistories = results.flat()
-    
+    const params = { all: true, txids: props.txid };
+    const url = `${baseUrl}/history/wallet/${encodeURIComponent(walletHash.value)}/`
+    const response = await axios.get(url, { params });
+    const data = response?.data?.history || response?.data || []
     const enrichedHistories = await Promise.all(
-      allHistories.map(async (history) => {
-        await attachAssetToHistory(history)
+      data.map(async (history) => {
+        let assetId = history?.token?.asset_id;
+        if (assetId === 'ct/1') assetId = 'bch';
+        history._assetId = assetId
+        await attachAssetToHistory(history);
         return history
       })
     )
-
     histories.value = enrichedHistories
     isLoading.value = false
     retryCount.value = 0
@@ -435,7 +424,7 @@ function viewAssetDetail (history) {
   const assetId = history.asset?.id || ''
   const txid = transactionId.value
 
-  let query = { from: 'summary', summaryAssetIds: props.assetIds }
+  let query = { from: 'summary' }
 
   
   if (assetId && assetId !== 'bch') {
