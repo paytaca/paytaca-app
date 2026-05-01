@@ -107,6 +107,19 @@
           </div>
         </div>
 
+        <div v-if="walletHistoryCount > 1" class="q-mt-md q-mb-lg text-center">
+          <q-btn
+            no-caps
+            rounded
+            outline
+            color="pt-primary1"
+            :label="$t('ViewAllAssets', {}, 'View All Assets')"
+            icon="list"
+            @click="goToTransactionSummary"
+            class="view-all-assets-btn"
+          />
+        </div>
+
         <!-- NFT Image Display -->
         <div v-if="isNft && tx && tx.asset" class="q-mt-md q-mb-lg text-center">
           <div v-if="fetchingNftMetadata" class="nft-image-skeleton-container">
@@ -452,6 +465,7 @@ export default {
       denominationTabSelected: 'BCH',
       loadError: '',
       tx: null,
+      walletHistoryCount: 0,
       isLoading: false,
       retryCount: 0,
       maxRetries: 7,
@@ -466,6 +480,7 @@ export default {
       keypair: null,
       usingWebsocketData: false, // Track if we're using websocket data as fallback
       backgroundFetchActive: false, // Track if background fetch is active
+      newTxEffectsPlayed: false, // Track if confetti/audio has been played for this new tx
       displayRawAttributes: false,
       favorites: [],
       addingToFavorites: false,
@@ -989,12 +1004,16 @@ export default {
         this.loadMemo()
         this.loadFavorites()
         this.fetchTokenPrice()
+        this.fetchWalletHistoryCount()
         // Launch confetti if this is a new transaction
         // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction) {
           this.waitForRenderAndLaunchConfetti()
         }
       })
+      // Fetch complete transaction data from API in background
+      // to populate fields missing from the preloaded object (e.g. tx_fee)
+      this.startBackgroundFetch()
       return
     }
 
@@ -1052,6 +1071,7 @@ export default {
       if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
         this.$nextTick(() => {
           this.loadMemo()
+          this.fetchWalletHistoryCount()
         })
       }
       // Fetch NFT metadata when transaction changes and it's an NFT
@@ -1161,6 +1181,42 @@ export default {
     hexToRef (hex6) {
       return hexToRefUtil(hex6)
     },
+    async fetchWalletHistoryCount() {
+      /**
+       * Checks from backend if the current txid has more than one wallet histories,
+       * this is an indicator to show a button that redirects to transaction summary
+       */
+      const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
+      const effectiveTxid = this.txid || this.$route?.params?.txid
+      if (!effectiveWalletHash || !effectiveTxid) {
+        this.walletHistoryCount = -1;
+        return;
+      }
+
+      const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet']);
+      const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}/`
+      const params = { txids: effectiveTxid, all: true, page_size: 1 };
+      const { data } = await axios.get(url, { params });
+      this.walletHistoryCount = data.num_pages;
+    },
+    async goToTransactionSummary () {
+      const txid = this.txid || this.$route?.params?.txid
+      if (!txid) return
+
+
+      let backNavQueryData;
+      try {
+        backNavQueryData = btoa(JSON.stringify(this.$route.query));
+      } catch (error) {
+        console.error(error);
+      }
+
+      this.$router.push({
+        name: 'transaction-summary',
+        params: { txid },
+        query: { from: 'detail', backNavQueryData },
+      })
+    },
     async fetchAndShow (retryAttempt = 0) {
       this.isLoading = true
       this.loadError = ''
@@ -1236,6 +1292,7 @@ export default {
             }
             this.loadFavorites()
             this.fetchTokenPrice()
+            this.fetchWalletHistoryCount();
             // Launch confetti if this is a new transaction
             // Wait for DOM to be fully rendered before triggering
             if (isNewTransaction) {
@@ -1266,6 +1323,7 @@ export default {
               this.loadMemo()
               this.loadFavorites()
               this.fetchTokenPrice()
+              this.fetchWalletHistoryCount()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -1300,6 +1358,7 @@ export default {
               
               this.$nextTick(() => {
                 this.loadMemo()
+                this.fetchWalletHistoryCount()
                 if (isNewTransaction) {
                   this.waitForRenderAndLaunchConfetti()
                 }
@@ -1338,6 +1397,7 @@ export default {
             this.loadMemo()
             this.loadFavorites()
             this.fetchTokenPrice()
+            this.fetchWalletHistoryCount()
             if (isNewTransaction) {
               this.waitForRenderAndLaunchConfetti()
             }
@@ -1376,6 +1436,7 @@ export default {
             
             this.$nextTick(() => {
               this.loadMemo()
+              this.fetchWalletHistoryCount()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -1460,6 +1521,7 @@ export default {
               this.loadMemo()
               this.loadFavorites()
               this.fetchTokenPrice()
+              this.fetchWalletHistoryCount()
             })
           } else {
             // Not found yet, retry with exponential backoff
@@ -2847,6 +2909,10 @@ export default {
       })
     },
     async launchConfetti () {
+      // Only play confetti and audio once per transaction
+      if (this.newTxEffectsPlayed) return
+      this.newTxEffectsPlayed = true
+
       // Play sound for new transaction (non-blocking - don't wait for it)
       // Ensure audio is ready by waiting for next frame (allows preload to complete)
       requestAnimationFrame(() => {
