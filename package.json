@@ -89,6 +89,7 @@
     "mqtt": "^4.3.7",
     "net": "^1.0.2",
     "node-fetch": "^2.7.0",
+    "nostr-tools": "^2.23.3",
     "qrcode": "^1.5.1",
     "qrcode-svg": "^1.1.0",
     "quasar": "^2.18.1",

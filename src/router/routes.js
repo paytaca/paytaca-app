@@ -428,6 +428,22 @@ const routes = [
             component: () => import('src/pages/apps/address-book/add-record.vue')
           }
         ]
+      },
+      {
+        path: 'chat',
+        children: [
+          {
+            path: '',
+            name: 'app-chat',
+            component: () => import('src/pages/apps/chat/index.vue')
+          },
+          {
+            path: ':roomId',
+            name: 'app-chat-conversation',
+            props: true,
+            component: () => import('src/pages/apps/chat/conversation.vue')
+          }
+        ]
       }
     ]
   },

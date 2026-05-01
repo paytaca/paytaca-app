@@ -213,6 +213,17 @@ export default {
           smartBCHOnly: false
         },
         {
+          id: 'chat',
+          name: this.$t('Chat'),
+          description: this.$t('Apps.Chat.Description', {}, 'Private and group messaging over Nostr.'),
+          iconName: 'chat',
+          path: '/apps/chat',
+          iconStyle: 'font-size: 4em',
+          active: true,
+          beta: true,
+          betaMessage: this.$t('ChatBetaMessage', {}, 'Chat is currently in beta. This feature uses Nostr NIP-17 for encrypted private messaging. Please note that this is an experimental feature.')
+        },
+        {
           id: 'gifts',
           name: this.$t('Gifts'),
           description: this.$t('Apps.Gifts.Description', {}, 'Create and redeem BCH gifts.'),
