@@ -4,11 +4,7 @@ import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
 
 const DISCOVERY_RELAYS = [
-  'wss://relay.damus.io',
-  'wss://nos.lol',
-  'wss://relay.snort.social',
-  'wss://relay.nostr.bg',
-  'wss://nostr.mom',
+  'wss://relay.paytaca.com',
 ]
 
 export async function initialize ({ commit, dispatch, state, rootGetters }) {

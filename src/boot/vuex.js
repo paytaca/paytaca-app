@@ -108,7 +108,7 @@ export default boot(async (obj) => {
         parsedState.nostrChat = nostrChatDefaultState()
       } else {
         // Reset relays to defaults if persisted list contains known-broken relays
-        const brokenRelays = ['wss://relay.nostr.band', 'wss://inbox.nostr.wine', 'wss://relay.snort.social']
+        const brokenRelays = ['wss://relay.nostr.band', 'wss://inbox.nostr.wine', 'wss://relay.snort.social', 'wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.nostr.bg']
         const currentRelays = parsedState.nostrChat.relays || []
         const hasBroken = brokenRelays.some(r => currentRelays.includes(r))
         if (hasBroken || currentRelays.length === 0) {

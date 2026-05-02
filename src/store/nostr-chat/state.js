@@ -7,9 +7,7 @@ export default function () {
       privKeyHex: null,
     },
     relays: [
-      'wss://relay.damus.io',
-      'wss://nos.lol',
-      'wss://relay.nostr.bg',
+      'wss://relay.paytaca.com',
     ],
     contacts: [],
     rooms: [],
