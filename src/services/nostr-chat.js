@@ -67,34 +67,37 @@ export function disconnect() {
 }
 
 /**
- * Get current connection status for all known relays.
- * @returns {Object.<string, 'connected'|'disconnected'>}
+ * Actively probe connection status for each relay.
+ * Uses pool.ensureRelay() so we don't depend on prior subscriptions.
+ * @param {string[]} relays
+ * @returns {Promise<Object.<string, 'connected'|'disconnected'>>}
  */
-export function getConnectionStatus() {
+export async function getConnectionStatus(relays) {
   if (!_pool) return {}
   const status = {}
-  try {
-    const map = _pool.listConnectionStatus()
-    map.forEach((connected, url) => {
-      status[url] = connected ? 'connected' : 'disconnected'
-    })
-  } catch (_) {
-    // Fallback: if listConnectionStatus is not available, return empty
+  for (const url of relays) {
+    try {
+      const relay = await _pool.ensureRelay(url, { connectionTimeout: 5000 })
+      status[url] = relay.connected ? 'connected' : 'disconnected'
+    } catch (_) {
+      status[url] = 'disconnected'
+    }
   }
   return status
 }
 
 /**
  * Start polling relay connection status.
+ * @param {string[]} relays
  * @param {Function} callback - Receives status object every interval
  * @param {number} [intervalMs=5000] - Polling interval
  */
-export function startStatusPolling(callback, intervalMs = 5000) {
+export function startStatusPolling(relays, callback, intervalMs = 5000) {
   if (_statusInterval) clearInterval(_statusInterval)
   // Immediate first call
-  callback(getConnectionStatus())
+  getConnectionStatus(relays).then(callback)
   _statusInterval = setInterval(() => {
-    callback(getConnectionStatus())
+    getConnectionStatus(relays).then(callback)
   }, intervalMs)
 }
 

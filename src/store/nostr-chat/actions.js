@@ -229,7 +229,7 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   })
 
   // Start polling relay connection status every 5s
-  relayService.startStatusPolling((status) => {
+  relayService.startStatusPolling(state.relays, (status) => {
     for (const url of state.relays) {
       const s = status[url] || 'disconnected'
       commit('SET_RELAY_STATUS', { url, status: s })
