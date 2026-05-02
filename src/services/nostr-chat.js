@@ -120,6 +120,16 @@ export function stopStatusPolling() {
  * @returns {{ close(): void }}
  */
 export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
+  // Close any stale subscriptions before creating new ones
+  for (const sub of _subs) {
+    try { sub.close() } catch (_) {}
+  }
+  _subs = []
+  if (_pollInterval) {
+    clearInterval(_pollInterval)
+    _pollInterval = null
+  }
+
   const pool = getPool()
   const filters = [{ kinds: [1059], '#p': [myPubKey] }]
 
@@ -142,7 +152,6 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
   // Polling fallback: query all relays every 5 seconds for gift-wraps.
   // We do NOT use `since` because NIP-17 randomizes created_at up to 2 days in the past.
   // Instead we track seen event IDs and only process new ones.
-  if (_pollInterval) clearInterval(_pollInterval)
   const seenEventIds = new Set()
   _pollInterval = setInterval(async () => {
     try {

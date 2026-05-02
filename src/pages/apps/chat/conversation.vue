@@ -110,11 +110,11 @@ export default {
   mounted () {
     this.scrollToBottom()
     this.markAsRead()
-    if (!this.$store.getters['nostrChat/isInitialized']) {
-      this.$store.dispatch('nostrChat/initialize').then(() => {
-        this.$store.dispatch('nostrChat/subscribeToRelays')
-      })
-    }
+    this.ensureSubscribed()
+    document.addEventListener('visibilitychange', this.onVisibilityChange)
+  },
+  beforeUnmount () {
+    document.removeEventListener('visibilitychange', this.onVisibilityChange)
   },
   methods: {
     getDarkModeClass,
@@ -129,6 +129,22 @@ export default {
     markAsRead () {
       if (this.roomId) {
         this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
+      }
+    },
+    ensureSubscribed () {
+      // Always ensure we have an active subscription,
+      // especially after the tab has been backgrounded.
+      if (!this.$store.getters['nostrChat/isInitialized']) {
+        this.$store.dispatch('nostrChat/initialize').then(() => {
+          this.$store.dispatch('nostrChat/subscribeToRelays')
+        })
+      } else {
+        this.$store.dispatch('nostrChat/subscribeToRelays')
+      }
+    },
+    onVisibilityChange () {
+      if (document.visibilityState === 'visible') {
+        this.ensureSubscribed()
       }
     },
     showDateSeparator (index) {
