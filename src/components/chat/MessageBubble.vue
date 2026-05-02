@@ -1,26 +1,25 @@
 <template>
-  <div class="message-bubble q-my-xs" :class="bubbleClass">
-    <div
-      class="bubble-content q-pa-sm rounded-borders"
-      :class="[isMine ? 'bg-primary text-white' : 'bg-grey-3 text-dark', getDarkModeClass(darkMode)]"
-      :style="isMine ? 'border-bottom-right-radius: 2px;' : 'border-bottom-left-radius: 2px;'"
-    >
-      <div v-if="showSenderName && !isMine" class="text-caption text-weight-bold q-mb-xs" :class="getDarkModeClass(darkMode)">
+  <div class="message-row" :class="isMine ? 'mine' : 'theirs'">
+    <div class="message-bubble">
+      <div v-if="showSenderName && !isMine" class="sender-name">
         {{ senderName }}
       </div>
-      <div class="text-body2" style="white-space: pre-wrap; word-break: break-word;">{{ message.content }}</div>
-      <div class="row justify-end items-center q-mt-xs" style="gap: 4px;">
-        <span class="text-caption" :class="isMine ? 'text-white' : 'text-grey-7'">
-          {{ formatTime(message.created_at) }}
-        </span>
+      <div class="message-text">{{ message.content }}</div>
+      <div class="message-meta">
+        <span class="message-time">{{ formatTime(message.created_at) }}</span>
+        <q-icon
+          v-if="isMine"
+          name="done_all"
+          size="14px"
+          class="read-receipt"
+          :class="isRead ? 'read' : ''"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-
 export default {
   name: 'MessageBubble',
   props: {
@@ -28,16 +27,11 @@ export default {
     myPubKey: { type: String, default: '' },
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
+    isRead: { type: Boolean, default: true },
   },
   computed: {
-    darkMode () {
-      return this.$store.getters['darkmode/getStatus']
-    },
     isMine () {
       return this.message.sender === this.myPubKey
-    },
-    bubbleClass () {
-      return this.isMine ? 'row justify-end' : 'row justify-start'
     },
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
@@ -45,7 +39,6 @@ export default {
     },
   },
   methods: {
-    getDarkModeClass,
     formatTime (ts) {
       if (!ts) return ''
       const d = new Date(ts * 1000)
@@ -56,11 +49,92 @@ export default {
 </script>
 
 <style scoped>
-.message-bubble {
-  max-width: 85%;
+.message-row {
+  display: flex;
+  width: 100%;
+  margin-bottom: 8px;
 }
-.bubble-content {
-  display: inline-block;
-  min-width: 80px;
+
+.message-row.mine {
+  justify-content: flex-end;
+}
+
+.message-row.theirs {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  position: relative;
+  word-wrap: break-word;
+  line-height: 1.45;
+}
+
+.message-row.mine .message-bubble {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.message-row.theirs .message-bubble {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.sender-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 4px;
+}
+
+.message-text {
+  font-size: 15px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.message-time {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.read-receipt {
+  opacity: 0.6;
+}
+
+.read-receipt.read {
+  opacity: 1;
+  color: #a7f3d0;
+}
+
+/* Dark mode overrides */
+.dark .message-row.theirs .message-bubble {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark .sender-name {
+  color: #60a5fa;
+}
+
+.dark .read-receipt.read {
+  color: #6ee7b7;
 }
 </style>

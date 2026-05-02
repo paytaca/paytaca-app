@@ -1,39 +1,45 @@
 <template>
-  <div class="room-list q-py-sm">
+  <div class="room-list">
     <div
       v-for="room in rooms"
       :key="room.id"
-      class="room-item row items-center q-pa-md cursor-pointer"
+      class="room-item"
       :class="getDarkModeClass(darkMode)"
       @click="$emit('select-room', room.id)"
     >
-      <div class="col-auto q-mr-md">
-        <q-avatar color="primary" text-color="white" size="48px">
-          <q-icon v-if="room.type === 'group'" name="group" />
-          <span v-else>{{ roomInitial(room) }}</span>
+      <div class="room-avatar">
+        <q-avatar size="52px" class="avatar-bg">
+          <q-icon v-if="room.type === 'group'" name="group" size="24px" />
+          <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
         </q-avatar>
       </div>
-      <div class="col">
-        <div class="row items-center justify-between">
-          <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="room-content">
+        <div class="room-header">
+          <div class="room-name" :class="getDarkModeClass(darkMode)">
             {{ roomName(room) }}
           </div>
-          <div v-if="room.updatedAt" class="text-caption text-grey">
+          <div v-if="room.updatedAt" class="room-time">
             {{ formatTime(room.updatedAt) }}
           </div>
         </div>
-        <div class="row items-center justify-between">
-          <div class="text-body2 text-grey ellipsis" style="max-width: 70%;">
+        <div class="room-preview-row">
+          <div class="room-preview" :class="getDarkModeClass(darkMode)">
             {{ lastMessagePreview(room.id) }}
           </div>
-          <q-badge v-if="room.type === 'group'" color="accent" label="group" outline />
+          <q-badge
+            v-if="room.type === 'group'"
+            color="accent"
+            label="group"
+            outline
+            class="room-badge"
+          />
         </div>
       </div>
     </div>
-    <div v-if="rooms.length === 0" class="text-center text-grey q-pa-lg">
-      <q-icon name="chat_bubble_outline" size="48px" class="q-mb-sm" />
-      <div>{{ $t('NoChatsYet', {}, 'No chats yet') }}</div>
-      <div class="text-caption">{{ $t('StartNewChatPrompt', {}, 'Start a new chat to begin messaging') }}</div>
+    <div v-if="rooms.length === 0" class="empty-state">
+      <q-icon name="chat_bubble_outline" size="56px" class="empty-icon" />
+      <div class="empty-title">{{ $t('NoChatsYet', {}, 'No chats yet') }}</div>
+      <div class="empty-subtitle">{{ $t('StartNewChatPrompt', {}, 'Start a new chat to begin messaging') }}</div>
     </div>
   </div>
 </template>
@@ -71,7 +77,19 @@ export default {
     },
     formatTime (ts) {
       try {
-        return formatDistanceToNow(new Date(ts * 1000), { addSuffix: true })
+        return formatDistanceToNow(new Date(ts * 1000), { addSuffix: false })
+          .replace('about ', '')
+          .replace('less than a minute ago', 'now')
+          .replace('minute ago', 'm')
+          .replace('minutes ago', 'm')
+          .replace('hour ago', 'h')
+          .replace('hours ago', 'h')
+          .replace('day ago', 'd')
+          .replace('days ago', 'd')
+          .replace('week ago', 'w')
+          .replace('weeks ago', 'w')
+          .replace('month ago', 'mo')
+          .replace('months ago', 'mo')
       } catch {
         return ''
       }
@@ -81,10 +99,150 @@ export default {
 </script>
 
 <style scoped>
-.room-item {
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+.room-list {
+  padding: 4px 0;
 }
+
+.room-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
 .room-item:last-child {
   border-bottom: none;
+}
+
+.room-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.room-item:active {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.room-avatar {
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.avatar-bg {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.avatar-initial {
+  line-height: 1;
+}
+
+.room-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.room-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-time {
+  font-size: 12px;
+  color: #9ca3af;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.room-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-preview {
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 85%;
+}
+
+.room-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.empty-subtitle {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Dark mode */
+.dark.room-item {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark.room-item:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.dark.room-item:active {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark .room-name {
+  color: #f1f5f9;
+}
+
+.dark .room-preview {
+  color: #94a3b8;
+}
+
+.dark .room-time {
+  color: #64748b;
+}
+
+.dark .empty-title {
+  color: #94a3b8;
 }
 </style>
