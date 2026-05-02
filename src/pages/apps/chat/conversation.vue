@@ -160,8 +160,9 @@ export default {
 
 .messages-scroll-area {
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 16px 24px;
   -webkit-overflow-scrolling: touch;
+  min-height: 0;
 }
 
 .messages-list {

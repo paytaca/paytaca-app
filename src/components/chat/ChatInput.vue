@@ -1,6 +1,6 @@
 <template>
   <div class="chat-input-wrapper" :class="getDarkModeClass(darkMode)">
-    <div class="chat-input-container row items-center q-gutter-sm">
+    <div class="chat-input-container">
       <q-input
         v-model="text"
         dense
@@ -54,21 +54,25 @@ export default {
 
 <style scoped>
 .chat-input-wrapper {
-  background: #ffffff;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  padding: 10px 16px;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.03);
+  background: transparent;
+  padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
 }
 
 .chat-input-container {
-  background: #f3f4f6;
-  border-radius: 24px;
-  padding: 4px 4px 4px 16px;
-  transition: box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .chat-input-container:focus-within {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.15), 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .chat-text-field :deep(.q-field__control) {
@@ -94,13 +98,18 @@ export default {
 
 /* Dark mode */
 .dark.chat-input-wrapper {
-  background: #0f172a;
-  border-top-color: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
+  background: transparent;
+  padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
 }
 
 .dark .chat-input-container {
   background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dark .chat-input-container:focus-within {
+  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.2), 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
 .dark .chat-text-field :deep(.q-field__native) {
