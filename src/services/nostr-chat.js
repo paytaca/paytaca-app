@@ -116,7 +116,7 @@ export function stopStatusPolling() {
 
 /**
  * Subscribe to kind:1059 gift-wraps addressed to our pubkey.
- * Also sets up a polling fallback every 15 seconds.
+ * Also sets up a polling fallback every 30 seconds.
  * @param {string[]} relays
  * @param {string} myPubKey - Hex pubkey
  * @param {{ onEvent(event): void }} callbacks
@@ -143,15 +143,10 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
         onevent(event) {
           if (_seenEventIds.has(event.id)) return
           _seenEventIds.add(event.id)
-          console.debug('[Nostr] WebSocket event received:', event.id.slice(0, 16))
           if (callbacks.onEvent) callbacks.onEvent(event)
         },
-        oneose() {
-          console.debug('[Nostr] EOSE from', relayUrl)
-        },
-        onclose(reasons) {
-          console.warn('[Nostr] Subscription closed on', relayUrl, reasons)
-        },
+        oneose() {},
+        onclose(reasons) {},
       })
       _subs.push(sub)
     } catch (err) {
@@ -159,7 +154,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
     }
   }
 
-  // Polling fallback: query all relays every 5 seconds for gift-wraps.
+  // Polling fallback: query all relays every 30 seconds for gift-wraps.
   // We do NOT use `since` because NIP-17 randomizes created_at up to 2 days in the past.
   // Instead we track seen event IDs and only process new ones.
   // Use module-level _seenEventIds so dedup survives across re-subscriptions.
@@ -173,7 +168,6 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
       if (!events || !events.length) return
       const newEvents = events.filter(e => !_seenEventIds.has(e.id))
       if (!newEvents.length) return
-      console.debug('[Nostr] Polling found', newEvents.length, 'new event(s)')
       for (const event of newEvents) {
         _seenEventIds.add(event.id)
         if (callbacks.onEvent) callbacks.onEvent(event)
@@ -186,7 +180,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
     } catch (err) {
       // Silently ignore poll errors
     }
-  }, 5000)
+  }, 30000)
 
   return {
     close() {
