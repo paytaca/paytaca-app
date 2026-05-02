@@ -11,6 +11,7 @@ let _pool = null
 let _subs = []
 let _authSigner = null
 let _pollInterval = null
+let _statusInterval = null
 
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2)
@@ -58,6 +59,52 @@ export function disconnect() {
   if (_pollInterval) {
     clearInterval(_pollInterval)
     _pollInterval = null
+  }
+  if (_statusInterval) {
+    clearInterval(_statusInterval)
+    _statusInterval = null
+  }
+}
+
+/**
+ * Get current connection status for all known relays.
+ * @returns {Object.<string, 'connected'|'disconnected'>}
+ */
+export function getConnectionStatus() {
+  if (!_pool) return {}
+  const status = {}
+  try {
+    const map = _pool.listConnectionStatus()
+    map.forEach((connected, url) => {
+      status[url] = connected ? 'connected' : 'disconnected'
+    })
+  } catch (_) {
+    // Fallback: if listConnectionStatus is not available, return empty
+  }
+  return status
+}
+
+/**
+ * Start polling relay connection status.
+ * @param {Function} callback - Receives status object every interval
+ * @param {number} [intervalMs=5000] - Polling interval
+ */
+export function startStatusPolling(callback, intervalMs = 5000) {
+  if (_statusInterval) clearInterval(_statusInterval)
+  // Immediate first call
+  callback(getConnectionStatus())
+  _statusInterval = setInterval(() => {
+    callback(getConnectionStatus())
+  }, intervalMs)
+}
+
+/**
+ * Stop polling relay connection status.
+ */
+export function stopStatusPolling() {
+  if (_statusInterval) {
+    clearInterval(_statusInterval)
+    _statusInterval = null
   }
 }
 

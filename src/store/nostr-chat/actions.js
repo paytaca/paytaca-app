@@ -212,7 +212,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   commit('ADD_MESSAGE', { roomId, message })
 }
 
-export function subscribeToRelays ({ state, dispatch }) {
+export function subscribeToRelays ({ state, dispatch, commit }) {
   const myPubKey = state.keys.pubKeyHex
   if (!myPubKey) return
 
@@ -228,9 +228,18 @@ export function subscribeToRelays ({ state, dispatch }) {
     },
   })
 
+  // Start polling relay connection status every 5s
+  relayService.startStatusPolling((status) => {
+    for (const url of state.relays) {
+      const s = status[url] || 'disconnected'
+      commit('SET_RELAY_STATUS', { url, status: s })
+    }
+  }, 5000)
+
   return sub
 }
 
 export function disconnectRelays () {
+  relayService.stopStatusPolling()
   relayService.disconnect()
 }
