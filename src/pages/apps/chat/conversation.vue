@@ -39,7 +39,7 @@
             :my-pub-key="myPubKey"
             :show-sender-name="room?.type === 'group'"
             :contacts="contacts"
-            :is-read="isMessageRead(msg)"
+            :is-read="messageReadMap[msg.id] || false"
           />
         </div>
       </div>
@@ -81,6 +81,17 @@ export default {
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
     },
+    messageReadMap () {
+      // Pre-compute read status for all messages so Vue tracks reactivity
+      const map = {}
+      const isReadGetter = this.$store.getters['nostrChat/isMessageRead']
+      for (const msg of this.messages) {
+        if (msg.sender === this.myPubKey) {
+          map[msg.id] = isReadGetter(this.roomId, msg)
+        }
+      }
+      return map
+    },
   },
   watch: {
     messages: {
@@ -119,9 +130,6 @@ export default {
       if (this.roomId) {
         this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
       }
-    },
-    isMessageRead (msg) {
-      return this.$store.getters['nostrChat/isMessageRead'](this.roomId, msg)
     },
     showDateSeparator (index) {
       if (index === 0) return true
