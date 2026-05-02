@@ -72,6 +72,11 @@ export default {
       },
       deep: true,
     },
+    room (val) {
+      if (!val) {
+        this.$router.replace('/apps/chat')
+      }
+    },
   },
   mounted () {
     this.scrollToBottom()

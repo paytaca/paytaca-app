@@ -459,6 +459,11 @@ export async function switchWallet (context, walletHashOrIndex) {
           // context.dispatch('wizardconnect/init', null, { root: true }).catch(err => {
           //   console.warn('WizardConnect init failed during wallet switch:', err.message)
           // })
+
+          // Reinitialize nostr chat keys and subscriptions for the new wallet
+          context.dispatch('nostrChat/reinitialize', null, { root: true }).catch(err => {
+            console.warn('Nostr chat reinit failed during wallet switch:', err.message)
+          })
           
           // Trigger migration if needed (try to migrate, but don't fail if it doesn't work)
           // Import migration dynamically to avoid circular dependencies

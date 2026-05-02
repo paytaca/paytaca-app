@@ -28,11 +28,17 @@ export function getContactPubKey (state) {
 }
 
 export function getRooms (state) {
-  return state.rooms.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return []
+  return state.rooms
+    .filter(r => r.members?.includes(myPubKey))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
 }
 
 export function getRoom (state) {
-  return (roomId) => state.rooms.find(r => r.id === roomId)
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return () => undefined
+  return (roomId) => state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
 }
 
 export function getRoomByContact (state, getters) {
@@ -42,16 +48,26 @@ export function getRoomByContact (state, getters) {
     const myPubKey = state.keys?.pubKeyHex
     if (!myPubKey) return undefined
     const roomId = getters.computeRoomId([myPubKey, contact.pubKeyHex])
-    return state.rooms.find(r => r.id === roomId)
+    return state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
   }
 }
 
 export function getMessages (state) {
-  return (roomId) => state.messages[roomId] || []
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return () => []
+  return (roomId) => {
+    const room = state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
+    if (!room) return []
+    return state.messages[roomId] || []
+  }
 }
 
 export function getLastMessage (state) {
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return () => null
   return (roomId) => {
+    const room = state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
+    if (!room) return null
     const msgs = state.messages[roomId] || []
     return msgs.length ? msgs[msgs.length - 1] : null
   }

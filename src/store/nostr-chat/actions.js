@@ -7,6 +7,23 @@ const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
 ]
 
+export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
+  const walletIndex = rootGetters['global/getWalletIndex']
+  const mnemonic = await getMnemonic(walletIndex)
+  if (!mnemonic) return
+
+  const keys = deriveNostrKeys(mnemonic)
+  if (state.keys.pubKeyHex === keys.pubKeyHex) return
+
+  commit('SET_KEYS', keys)
+  relayService.setAuthKey(keys.privKeyHex)
+
+  // Restart relay subscription for the new identity
+  relayService.stopStatusPolling()
+  relayService.disconnect()
+  dispatch('subscribeToRelays')
+}
+
 export async function initialize ({ commit, dispatch, state, rootGetters }) {
   const walletIndex = rootGetters['global/getWalletIndex']
   const mnemonic = await getMnemonic(walletIndex)
