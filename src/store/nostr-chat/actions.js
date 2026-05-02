@@ -228,12 +228,13 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
   commit('ADD_MESSAGE', { roomId, message })
 
-  // Update sender's read receipt: if they sent us a message, they were active
-  // and likely read our previous messages
+  // Update sender's read receipt timestamp to when they sent this message.
+  // This indicates they were last active at rumor.created_at, so any messages
+  // we sent BEFORE that time can be considered read.
   commit('SET_READ_RECEIPT', {
     roomId,
     pubKey: rumor.pubkey,
-    timestamp: Math.floor(Date.now() / 1000),
+    timestamp: rumor.created_at,
   })
 }
 

@@ -86,21 +86,39 @@ export default {
       return this.$store.getters['nostrChat/getContacts']
     },
     messageReadMap () {
-      // Compute read status directly from reactive state
+      // Compute read status for messages I sent: a message is "read" if ANY
+      // other participant (not me) has sent a message with a timestamp >= my message.
+      // This indicates they were active and likely saw my message.
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
       if (!room || !myPubKey) return map
+      
       const receipts = this.$store.state.nostrChat.readReceipts?.[this.roomId] || {}
+      
       for (const msg of this.messages) {
-        if (msg.sender === myPubKey) {
-          map[msg.id] = room.members.some(memberPubKey => {
-            if (memberPubKey === myPubKey) return false
-            const readAt = receipts[memberPubKey]
-            return readAt && readAt >= msg.created_at
-          })
+        // Only check read status for messages I sent
+        if (msg.sender !== myPubKey) continue
+        
+        // Check if any OTHER room member has read this message
+        let isRead = false
+        for (const memberPubKey of room.members) {
+          // Skip my own pubkey
+          if (memberPubKey === myPubKey) continue
+          
+          // Get their last activity timestamp (when they last sent a message)
+          const theirLastActivity = receipts[memberPubKey]
+          
+          // If they were active after I sent this message, they likely read it
+          if (theirLastActivity && theirLastActivity >= msg.created_at) {
+            isRead = true
+            break
+          }
         }
+        
+        map[msg.id] = isRead
       }
+      
       return map
     },
   },
