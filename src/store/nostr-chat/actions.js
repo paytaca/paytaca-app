@@ -227,6 +227,24 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   }
 
   commit('ADD_MESSAGE', { roomId, message })
+
+  // Update sender's read receipt: if they sent us a message, they were active
+  // and likely read our previous messages
+  commit('SET_READ_RECEIPT', {
+    roomId,
+    pubKey: rumor.pubkey,
+    timestamp: Math.floor(Date.now() / 1000),
+  })
+}
+
+export function markRoomAsRead ({ commit, state }, roomId) {
+  const myPubKey = state.keys.pubKeyHex
+  if (!myPubKey) return
+  commit('SET_READ_RECEIPT', {
+    roomId,
+    pubKey: myPubKey,
+    timestamp: Math.floor(Date.now() / 1000),
+  })
 }
 
 export function subscribeToRelays ({ state, dispatch, commit }) {

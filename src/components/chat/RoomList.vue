@@ -26,13 +26,18 @@
           <div class="room-preview" :class="getDarkModeClass(darkMode)">
             {{ lastMessagePreview(room.id) }}
           </div>
-          <q-badge
-            v-if="room.type === 'group'"
-            color="accent"
-            label="group"
-            outline
-            class="room-badge"
-          />
+          <div class="room-badges">
+            <div v-if="unreadCount(room.id) > 0" class="unread-badge">
+              {{ unreadCount(room.id) }}
+            </div>
+            <q-badge
+              v-if="room.type === 'group'"
+              color="accent"
+              label="group"
+              outline
+              class="room-badge"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -93,6 +98,9 @@ export default {
       } catch {
         return ''
       }
+    },
+    unreadCount (roomId) {
+      return this.$store.getters['nostrChat/getUnreadCount'](roomId)
     },
   },
 }
@@ -188,6 +196,28 @@ export default {
   max-width: 85%;
 }
 
+.room-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
 .room-badge {
   font-size: 10px;
   padding: 2px 6px;
@@ -240,6 +270,11 @@ export default {
 
 .dark .room-time {
   color: #64748b;
+}
+
+.dark .unread-badge {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 }
 
 .dark .empty-title {

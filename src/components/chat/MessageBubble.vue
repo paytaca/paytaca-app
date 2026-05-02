@@ -114,12 +114,13 @@ export default {
 }
 
 .read-receipt {
-  opacity: 0.6;
+  opacity: 0.5;
+  color: #e5e7eb;
 }
 
 .read-receipt.read {
   opacity: 1;
-  color: #a7f3d0;
+  color: #34d399;
 }
 
 /* Dark mode overrides */
@@ -134,7 +135,11 @@ export default {
   color: #60a5fa;
 }
 
+.dark .read-receipt {
+  color: #94a3b8;
+}
+
 .dark .read-receipt.read {
-  color: #6ee7b7;
+  color: #34d399;
 }
 </style>

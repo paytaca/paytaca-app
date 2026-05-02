@@ -76,6 +76,13 @@ export function SET_MESSAGES_FOR_ROOM (state, { roomId, messages }) {
   state.messages[roomId] = messages.slice().sort((a, b) => a.created_at - b.created_at)
 }
 
+export function SET_READ_RECEIPT (state, { roomId, pubKey, timestamp }) {
+  if (!state.readReceipts[roomId]) {
+    state.readReceipts[roomId] = {}
+  }
+  state.readReceipts[roomId][pubKey] = timestamp
+}
+
 export function SET_RELAYS (state, relays) {
   state.relays = relays
 }

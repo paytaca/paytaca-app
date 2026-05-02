@@ -12,6 +12,7 @@ export default function () {
     contacts: [],
     rooms: [],
     messages: {},
+    readReceipts: {}, // { roomId: { pubKeyHex: timestamp } }
     isReady: false,
     initialized: false,
     relayStatus: {},

@@ -39,6 +39,7 @@
             :my-pub-key="myPubKey"
             :show-sender-name="room?.type === 'group'"
             :contacts="contacts"
+            :is-read="isMessageRead(msg)"
           />
         </div>
       </div>
@@ -85,6 +86,7 @@ export default {
     messages: {
       handler () {
         this.scrollToBottom()
+        this.markAsRead()
       },
       deep: true,
     },
@@ -96,6 +98,7 @@ export default {
   },
   mounted () {
     this.scrollToBottom()
+    this.markAsRead()
     if (!this.$store.getters['nostrChat/isInitialized']) {
       this.$store.dispatch('nostrChat/initialize').then(() => {
         this.$store.dispatch('nostrChat/subscribeToRelays')
@@ -111,6 +114,14 @@ export default {
           container.scrollTop = container.scrollHeight
         }
       })
+    },
+    markAsRead () {
+      if (this.roomId) {
+        this.$store.dispatch('nostrChat/markRoomAsRead', this.roomId)
+      }
+    },
+    isMessageRead (msg) {
+      return this.$store.getters['nostrChat/isMessageRead'](this.roomId, msg)
     },
     showDateSeparator (index) {
       if (index === 0) return true
