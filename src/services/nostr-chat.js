@@ -26,6 +26,8 @@ function getPool() {
   if (!_pool) {
     _pool = new SimplePool({
       maxWaitForConnection: 15000,
+      enableReconnect: true,
+      enablePing: true,
       automaticallyAuth: (relayURL) => {
         if (!_authSigner) return null
         return _authSigner
@@ -141,10 +143,15 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
         onevent(event) {
           if (_seenEventIds.has(event.id)) return
           _seenEventIds.add(event.id)
+          console.debug('[Nostr] WebSocket event received:', event.id.slice(0, 16))
           if (callbacks.onEvent) callbacks.onEvent(event)
         },
-        oneose() {},
-        onclose(reasons) {},
+        oneose() {
+          console.debug('[Nostr] EOSE from', relayUrl)
+        },
+        onclose(reasons) {
+          console.warn('[Nostr] Subscription closed on', relayUrl, reasons)
+        },
       })
       _subs.push(sub)
     } catch (err) {
@@ -166,6 +173,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
       if (!events || !events.length) return
       const newEvents = events.filter(e => !_seenEventIds.has(e.id))
       if (!newEvents.length) return
+      console.debug('[Nostr] Polling found', newEvents.length, 'new event(s)')
       for (const event of newEvents) {
         _seenEventIds.add(event.id)
         if (callbacks.onEvent) callbacks.onEvent(event)
