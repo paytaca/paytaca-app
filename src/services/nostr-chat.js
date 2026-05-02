@@ -134,12 +134,12 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
   }
 
   const pool = getPool()
-  const filters = [{ kinds: [1059], '#p': [myPubKey] }]
+  const filter = { kinds: [1059], '#p': [myPubKey] }
 
   // Subscribe to each relay individually so we can track which ones work
   for (const relayUrl of relays) {
     try {
-      const sub = pool.subscribeMany([relayUrl], filters, {
+      const sub = pool.subscribeMany([relayUrl], filter, {
         onevent(event) {
           if (_seenEventIds.has(event.id)) return
           _seenEventIds.add(event.id)
