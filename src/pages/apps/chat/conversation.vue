@@ -73,7 +73,11 @@ export default {
       return this.room?.name || this.$t('Chat', {}, 'Chat')
     },
     messages () {
-      return this.$store.getters['nostrChat/getMessages'](this.roomId)
+      // Access state directly for full reactivity — getter factories don't
+      // track nested state mutations, so new messages never trigger updates.
+      const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
+      if (!room) return []
+      return this.$store.state.nostrChat.messages[this.roomId] || []
     },
     myPubKey () {
       return this.$store.getters['nostrChat/myPubKey']
@@ -82,12 +86,19 @@ export default {
       return this.$store.getters['nostrChat/getContacts']
     },
     messageReadMap () {
-      // Pre-compute read status for all messages so Vue tracks reactivity
+      // Compute read status directly from reactive state
       const map = {}
-      const isReadGetter = this.$store.getters['nostrChat/isMessageRead']
+      const myPubKey = this.myPubKey
+      const room = this.room
+      if (!room || !myPubKey) return map
+      const receipts = this.$store.state.nostrChat.readReceipts?.[this.roomId] || {}
       for (const msg of this.messages) {
-        if (msg.sender === this.myPubKey) {
-          map[msg.id] = isReadGetter(this.roomId, msg)
+        if (msg.sender === myPubKey) {
+          map[msg.id] = room.members.some(memberPubKey => {
+            if (memberPubKey === myPubKey) return false
+            const readAt = receipts[memberPubKey]
+            return readAt && readAt >= msg.created_at
+          })
         }
       }
       return map

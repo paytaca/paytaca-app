@@ -64,6 +64,25 @@ export default {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    myPubKey () {
+      return this.$store.getters['nostrChat/myPubKey']
+    },
+    unreadCountMap () {
+      // Compute unread counts directly from reactive state
+      const map = {}
+      const myPubKey = this.myPubKey
+      if (!myPubKey) return map
+      for (const room of this.rooms) {
+        const msgs = this.$store.state.nostrChat.messages[room.id] || []
+        const myReadAt = this.$store.state.nostrChat.readReceipts?.[room.id]?.[myPubKey]
+        if (!myReadAt) {
+          map[room.id] = msgs.filter(m => m.sender !== myPubKey).length
+        } else {
+          map[room.id] = msgs.filter(m => m.sender !== myPubKey && m.created_at > myReadAt).length
+        }
+      }
+      return map
+    },
   },
   methods: {
     getDarkModeClass,
@@ -100,7 +119,7 @@ export default {
       }
     },
     unreadCount (roomId) {
-      return this.$store.getters['nostrChat/getUnreadCount'](roomId)
+      return this.unreadCountMap[roomId] || 0
     },
   },
 }

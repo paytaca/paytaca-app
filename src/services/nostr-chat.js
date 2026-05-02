@@ -12,6 +12,7 @@ let _subs = []
 let _authSigner = null
 let _pollInterval = null
 let _statusInterval = null
+let _seenEventIds = new Set()
 
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2)
@@ -138,6 +139,8 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
     try {
       const sub = pool.subscribeMany([relayUrl], filters, {
         onevent(event) {
+          if (_seenEventIds.has(event.id)) return
+          _seenEventIds.add(event.id)
           if (callbacks.onEvent) callbacks.onEvent(event)
         },
         oneose() {},
@@ -152,25 +155,25 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}) {
   // Polling fallback: query all relays every 5 seconds for gift-wraps.
   // We do NOT use `since` because NIP-17 randomizes created_at up to 2 days in the past.
   // Instead we track seen event IDs and only process new ones.
-  const seenEventIds = new Set()
+  // Use module-level _seenEventIds so dedup survives across re-subscriptions.
   _pollInterval = setInterval(async () => {
     try {
       const events = await pool.querySync(relays, {
         kinds: [1059],
         '#p': [myPubKey],
-        limit: 20,
+        limit: 100,
       })
       if (!events || !events.length) return
-      const newEvents = events.filter(e => !seenEventIds.has(e.id))
+      const newEvents = events.filter(e => !_seenEventIds.has(e.id))
       if (!newEvents.length) return
       for (const event of newEvents) {
-        seenEventIds.add(event.id)
+        _seenEventIds.add(event.id)
         if (callbacks.onEvent) callbacks.onEvent(event)
       }
       // Prevent unbounded growth
-      if (seenEventIds.size > 500) {
-        const toDelete = Array.from(seenEventIds).slice(0, seenEventIds.size - 500)
-        toDelete.forEach(id => seenEventIds.delete(id))
+      if (_seenEventIds.size > 1000) {
+        const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 1000)
+        toDelete.forEach(id => _seenEventIds.delete(id))
       }
     } catch (err) {
       // Silently ignore poll errors
