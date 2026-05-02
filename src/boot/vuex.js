@@ -114,6 +114,10 @@ export default boot(async (obj) => {
         if (hasBroken || currentRelays.length === 0) {
           parsedState.nostrChat.relays = nostrChatDefaultState().relays
         }
+        // Ensure new properties exist in persisted state
+        if (!parsedState.nostrChat.readReceipts) {
+          parsedState.nostrChat.readReceipts = {}
+        }
       }
 
       // Ensure merchantActivity state is initialized (added after v0.24.0)

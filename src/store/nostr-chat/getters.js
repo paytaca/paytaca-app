@@ -87,7 +87,7 @@ export function getReadReceipt (state) {
   return (roomId, pubKey) => {
     const room = state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return null
-    return state.readReceipts[roomId]?.[pubKey] || null
+    return state.readReceipts?.[roomId]?.[pubKey] || null
   }
 }
 
@@ -100,7 +100,7 @@ export function isMessageRead (state, getters) {
     if (message.sender !== myPubKey) return false // only track read status for our own messages
 
     // Check if any other member has a read receipt timestamp >= message.created_at
-    const receipts = state.readReceipts[roomId] || {}
+    const receipts = state.readReceipts?.[roomId] || {}
     return room.members.some(memberPubKey => {
       if (memberPubKey === myPubKey) return false
       const readAt = receipts[memberPubKey]
@@ -116,7 +116,7 @@ export function getUnreadCount (state) {
     const room = state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return 0
     const msgs = state.messages[roomId] || []
-    const myReadAt = state.readReceipts[roomId]?.[myPubKey]
+    const myReadAt = state.readReceipts?.[roomId]?.[myPubKey]
     if (!myReadAt) return msgs.filter(m => m.sender !== myPubKey).length
     return msgs.filter(m => m.sender !== myPubKey && m.created_at > myReadAt).length
   }
