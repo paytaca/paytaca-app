@@ -188,10 +188,19 @@
                     dense
                     icon="qr_code_scanner"
                     color="primary"
-                    @click="scanNpubForContact"
+                    @click="showInlineScanner = !showInlineScanner"
                   />
                 </template>
               </q-input>
+
+              <!-- Inline QR scanner for npub -->
+              <div v-if="showInlineScanner" class="inline-scanner-box q-mb-md">
+                <QRScanner
+                  v-model="showInlineScanner"
+                  @decode="onInlineScan"
+                />
+              </div>
+
               <q-btn
                 :label="$t('AddContact', {}, 'Add Contact')"
                 color="primary"
@@ -218,15 +227,17 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
 import RelayStatusChip from 'src/components/chat/RelayStatusChip.vue'
+import QRScanner from 'src/components/qr-scanner.vue'
 import { copyToClipboard } from 'quasar'
 
 export default {
   name: 'ChatApp',
-  components: { HeaderNav, RoomList, RelayStatusChip },
+  components: { HeaderNav, RoomList, RelayStatusChip, QRScanner },
   data () {
     return {
       showNewChatDialog: false,
       showQrDialog: false,
+      showInlineScanner: false,
       dialogTab: 'contacts',
       newContactName: '',
       newContactNpub: '',
@@ -339,15 +350,15 @@ export default {
     openRoom (roomId) {
       this.$router.push(`/apps/chat/${roomId}`)
     },
-    scanNpubForContact () {
-      // Close dialog and open QR scanner.
-      // When an npub is detected, the scanner redirects to /apps/chat?npub=...
-      // which re-opens this dialog with the npub prefilled.
-      this.showNewChatDialog = false
-      this.$router.push({
-        name: 'qr-reader',
-        query: { backnavpath: '/apps/chat' }
-      })
+    onInlineScan (value) {
+      const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
+      if (nostrMatch) {
+        this.newContactNpub = nostrMatch[2]
+        this.npubError = ''
+        this.showInlineScanner = false
+      } else {
+        this.npubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+      }
     },
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
@@ -672,5 +683,14 @@ export default {
 
 .dark .npub-full-text {
   color: #94a3b8;
+}
+
+/* Inline QR scanner for Add Contact */
+.inline-scanner-box {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  height: 240px;
+  position: relative;
 }
 </style>
