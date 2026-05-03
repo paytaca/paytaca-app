@@ -889,6 +889,10 @@ export default {
               ]
             })
           }
+          // Ensure Nostr chat subscription is active when a chat message push arrives
+          if (notification?.data?.type === 'nostr_chat_message') {
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
         })
 
         this.subscribePushNotifications()

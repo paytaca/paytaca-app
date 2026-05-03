@@ -2,6 +2,8 @@ import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoo
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
+import Watchtower from 'watchtower-cash-js'
+import { Capacitor } from '@capacitor/core'
 
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
@@ -17,6 +19,10 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
 
   commit('SET_KEYS', keys)
   relayService.setAuthKey(keys.privKeyHex)
+
+  // Register this wallet's Nostr pubkey for push notifications
+  // (additive — other devices with the same wallet keep receiving pushes)
+  await dispatch('registerForPushNotifications')
 
   // Restart relay subscription for the new identity
   relayService.stopStatusPolling()
@@ -43,6 +49,47 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Fetch historical gift-wraps that might have been published before our subscription started
   await dispatch('fetchHistoricalMessages')
+
+  // Register this wallet's Nostr pubkey for push notifications
+  await dispatch('registerForPushNotifications')
+}
+
+export async function registerForPushNotifications ({ state, rootGetters }) {
+  if (!state.keys.pubKeyHex) return
+
+  // Only register on mobile (push notifications are not available on web/PWA)
+  const platform = Capacitor.getPlatform()
+  if (platform !== 'ios' && platform !== 'android') return
+
+  // Use the existing push notification manager's token and device ID
+  const pushManager = this._vm?.$pushNotifications
+  if (!pushManager?.registrationToken || !pushManager?.deviceId) {
+    // Token not ready yet — retry after a delay
+    setTimeout(() => {
+      this.dispatch('nostrChat/registerForPushNotifications')
+    }, 5000)
+    return
+  }
+
+  const walletIndex = rootGetters['global/getWalletIndex']
+  const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
+  if (!walletHash) return
+
+  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
+  const data = {
+    pubkey: state.keys.pubKeyHex,
+    wallet_hash: walletHash,
+    multi_wallet_index: walletIndex,
+    device_id: pushManager.deviceId,
+    registration_id: pushManager.registrationToken,
+    platform,
+  }
+
+  try {
+    await watchtower.BCH._api.post('/push-notifications/nostr-register/', data)
+  } catch (err) {
+    console.warn('[Nostr] Failed to register for push notifications:', err?.message || err)
+  }
 }
 
 export async function publishKind10050 ({ state }) {
@@ -332,6 +379,18 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   }, 5000)
 
   return sub
+}
+
+export function ensureSubscribed ({ dispatch, getters }) {
+  // Ensure we have an active relay subscription,
+  // especially after the app has been backgrounded or a push arrives.
+  if (!getters['isInitialized']) {
+    dispatch('initialize').then(() => {
+      dispatch('subscribeToRelays')
+    })
+  } else {
+    dispatch('subscribeToRelays')
+  }
 }
 
 export function disconnectRelays () {
