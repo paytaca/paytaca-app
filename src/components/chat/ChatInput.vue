@@ -9,6 +9,7 @@
         :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
         @keydown.enter.prevent="send"
         @focus="$emit('focus')"
+        @blur="$emit('blur')"
       />
       <q-btn
         round
@@ -29,7 +30,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'ChatInput',
-  emits: ['send', 'focus'],
+  emits: ['send', 'focus', 'blur'],
   data () {
     return {
       text: '',

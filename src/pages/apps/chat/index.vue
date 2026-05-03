@@ -1,9 +1,14 @@
 <template>
-  <div
-    id="app-container"
-    class="sticky-header-container text-bow"
-    :class="getDarkModeClass(darkMode)"
-  >
+  <div class="static-container">
+    <QrScanner
+      v-model="showQrScanner"
+      @decode="onScannerDecode"
+    />
+    <div
+      id="app-container"
+      class="sticky-header-container text-bow"
+      :class="getDarkModeClass(darkMode)"
+    >
     <header-nav
       class="apps-header"
       backnavpath="/apps"
@@ -188,18 +193,10 @@
                     dense
                     icon="qr_code_scanner"
                     color="primary"
-                    @click="showInlineScanner = !showInlineScanner"
+                    @click="openScannerFromDialog"
                   />
                 </template>
               </q-input>
-
-              <!-- Inline QR scanner for npub -->
-              <div v-if="showInlineScanner" class="inline-scanner-box q-mb-md">
-                <QrScanner
-                  v-model="showInlineScanner"
-                  @decode="onInlineScan"
-                />
-              </div>
 
               <q-btn
                 :label="$t('AddContact', {}, 'Add Contact')"
@@ -219,6 +216,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    </div>
   </div>
 </template>
 
@@ -237,7 +235,8 @@ export default {
     return {
       showNewChatDialog: false,
       showQrDialog: false,
-      showInlineScanner: false,
+      showQrScanner: false,
+      reopenDialogAfterScan: false,
       dialogTab: 'contacts',
       newContactName: '',
       newContactNpub: '',
@@ -281,6 +280,15 @@ export default {
       if (theme === 'glassmorphic-green') return '#4caf50'
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
+    },
+  },
+  watch: {
+    showQrScanner (val) {
+      if (!val && this.reopenDialogAfterScan) {
+        this.reopenDialogAfterScan = false
+        this.dialogTab = 'add'
+        this.showNewChatDialog = true
+      }
     },
   },
   async mounted () {
@@ -350,16 +358,24 @@ export default {
     openRoom (roomId) {
       this.$router.push(`/apps/chat/${roomId}`)
     },
-    onInlineScan (value) {
-      const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
-      if (nostrMatch) {
-        this.newContactNpub = nostrMatch[2]
-        this.npubError = ''
-        this.showInlineScanner = false
-      } else {
-        this.npubError = this.$t('InvalidNpub', {}, 'Invalid npub')
-      }
-    },
+openScannerFromDialog () {
+        this.showNewChatDialog = false
+        this.reopenDialogAfterScan = true
+        this.showQrScanner = true
+      },
+      onScannerDecode (value) {
+        const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
+        if (nostrMatch) {
+          this.newContactNpub = nostrMatch[2]
+          this.npubError = ''
+        } else {
+          this.npubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+        }
+        this.showQrScanner = false
+        this.reopenDialogAfterScan = false
+        this.dialogTab = 'add'
+        this.showNewChatDialog = true
+      },
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
     },
@@ -685,12 +701,5 @@ export default {
   color: #94a3b8;
 }
 
-/* Inline QR scanner for Add Contact */
-.inline-scanner-box {
-  border-radius: 12px;
-  overflow: hidden;
-  background: #000;
-  height: 240px;
-  position: relative;
-}
+
 </style>

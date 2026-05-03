@@ -105,7 +105,7 @@
     </div>
 
     <!-- Input area -->
-    <chat-input @send="onSend" @focus="scrollToBottom" />
+    <chat-input @send="onSend" @focus="onInputFocus" @blur="onInputBlur" />
   </div>
 </template>
 
@@ -128,6 +128,7 @@ export default {
       previousMessageCount: 0,
       showSaveContactDialog: false,
       saveContactName: '',
+      inputFocused: false,
     }
   },
   computed: {
@@ -251,18 +252,51 @@ export default {
     this.markAsRead()
     this.ensureSubscribed()
     document.addEventListener('visibilitychange', this.onVisibilityChange)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', this.onViewportResize)
+      window.visualViewport.addEventListener('scroll', this.onViewportResize)
+    } else {
+      window.addEventListener('resize', this.onViewportResize)
+    }
   },
   beforeUnmount () {
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', this.onViewportResize)
+      window.visualViewport.removeEventListener('scroll', this.onViewportResize)
+    } else {
+      window.removeEventListener('resize', this.onViewportResize)
+    }
   },
   methods: {
     getDarkModeClass,
+    onInputFocus () {
+      this.inputFocused = true
+      this.scrollToBottom()
+    },
+    onInputBlur () {
+      this.inputFocused = false
+    },
     scrollToBottom () {
       this.$nextTick(() => {
         const container = this.$refs.messagesContainer
         if (container) {
           container.scrollTop = container.scrollHeight
         }
+        // On mobile, the keyboard animates open after focus —
+        // scroll again after the keyboard has finished pushing the viewport
+        setTimeout(() => {
+          const c = this.$refs.messagesContainer
+          if (c) {
+            c.scrollTop = c.scrollHeight
+          }
+        }, 300)
+        setTimeout(() => {
+          const c = this.$refs.messagesContainer
+          if (c) {
+            c.scrollTop = c.scrollHeight
+          }
+        }, 600)
       })
     },
     markAsRead () {
@@ -284,6 +318,16 @@ export default {
     onVisibilityChange () {
       if (document.visibilityState === 'visible') {
         this.ensureSubscribed()
+      }
+    },
+    onViewportResize () {
+      if (this.inputFocused) {
+        this.$nextTick(() => {
+          const container = this.$refs.messagesContainer
+          if (container) {
+            container.scrollTop = container.scrollHeight
+          }
+        })
       }
     },
     showDateSeparator (index) {
