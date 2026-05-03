@@ -12,8 +12,16 @@
 
     <div class="chat-body">
       <!-- User identity header -->
-      <div class="identity-section" :class="getDarkModeClass(darkMode)">
-        <q-avatar size="48px" class="identity-avatar">
+      <div
+        class="identity-section"
+        :class="getDarkModeClass(darkMode)"
+        :style="{ background: `linear-gradient(135deg, ${themeColor}14, ${themeColor}0a)` }"
+      >
+        <q-avatar
+          size="48px"
+          class="identity-avatar"
+          :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
+        >
           <q-icon name="account_circle" size="40px" />
         </q-avatar>
         <div class="identity-info">
@@ -232,6 +240,13 @@ export default {
     canAddContact () {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
     },
+    themeColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return '#f54270'
+      if (theme === 'glassmorphic-green') return '#4caf50'
+      if (theme === 'glassmorphic-gold') return '#ffa726'
+      return '#3b82f6'
+    },
   },
   async mounted () {
     const scannedNpub = this.$route.query.npub
@@ -360,12 +375,10 @@ export default {
   align-items: center;
   gap: 14px;
   padding: 20px 20px 16px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(37, 99, 235, 0.04));
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .identity-avatar {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #ffffff;
 }
 

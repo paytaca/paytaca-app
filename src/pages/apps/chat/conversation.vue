@@ -15,13 +15,14 @@
       v-if="isUnknownContact"
       class="unknown-contact-banner"
       :class="getDarkModeClass(darkMode)"
+      :style="{ background: `linear-gradient(135deg, ${themeColor}14, ${themeColor}0a)`, borderBottomColor: `${themeColor}26` }"
       @click="showSaveContactDialog = true"
     >
-      <q-icon name="person_add" size="18px" class="banner-icon" />
-      <span class="banner-text">
+      <q-icon name="person_add" size="18px" class="banner-icon" :style="{ color: themeColor }" />
+      <span class="banner-text" :style="{ color: `${themeColor}cc` }">
         {{ $t('UnknownContactSavePrompt', {}, 'Save this contact to keep their name') }}
       </span>
-      <q-icon name="chevron_right" size="18px" class="banner-chevron" />
+      <q-icon name="chevron_right" size="18px" class="banner-chevron" :style="{ color: themeColor }" />
     </div>
 
     <!-- Save contact dialog -->
@@ -186,6 +187,13 @@ export default {
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
+    },
+    themeColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return '#f54270'
+      if (theme === 'glassmorphic-green') return '#4caf50'
+      if (theme === 'glassmorphic-gold') return '#ffa726'
+      return '#3b82f6'
     },
     messageReadMap () {
       // Compute read status for messages I sent.
@@ -458,19 +466,13 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  border-bottom: 1px solid;
   cursor: pointer;
   transition: background-color 0.2s ease;
   flex-shrink: 0;
 }
 
-.unknown-contact-banner:active {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-}
-
 .banner-icon {
-  color: #3b82f6;
   flex-shrink: 0;
 }
 
@@ -478,37 +480,13 @@ export default {
   flex: 1;
   font-size: 13px;
   font-weight: 500;
-  color: #1d4ed8;
 }
 
 .banner-chevron {
-  color: #3b82f6;
   flex-shrink: 0;
 }
 
 .dialog-header {
   padding-bottom: 8px;
-}
-
-/* Dark mode: unknown contact banner */
-.dark.unknown-contact-banner {
-  background: linear-gradient(135deg, #1e3a5f, #1a3655);
-  border-bottom-color: rgba(59, 130, 246, 0.2);
-}
-
-.dark.unknown-contact-banner:active {
-  background: linear-gradient(135deg, #1a3655, #172554);
-}
-
-.dark .banner-icon {
-  color: #60a5fa;
-}
-
-.dark .banner-text {
-  color: #93c5fd;
-}
-
-.dark .banner-chevron {
-  color: #60a5fa;
 }
 </style>

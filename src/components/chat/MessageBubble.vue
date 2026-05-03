@@ -1,7 +1,15 @@
 <template>
   <div class="message-row" :class="isMine ? 'mine' : 'theirs'">
-    <div class="message-bubble" :class="{ 'new-message': isNew }">
-      <div v-if="showSenderName && !isMine" class="sender-name">
+    <div
+      class="message-bubble"
+      :class="{ 'new-message': isNew }"
+      :style="isMine ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
+    >
+      <div
+        v-if="showSenderName && !isMine"
+        class="sender-name"
+        :style="{ color: themeColor }"
+      >
         {{ senderName }}
       </div>
       <div class="message-text">{{ message.content }}</div>
@@ -37,6 +45,13 @@ export default {
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
       return contact?.name || this.message.sender?.slice(0, 12) + '...'
+    },
+    themeColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return '#f54270'
+      if (theme === 'glassmorphic-green') return '#4caf50'
+      if (theme === 'glassmorphic-gold') return '#ffa726'
+      return '#3b82f6'
     },
   },
   methods: {
@@ -74,10 +89,9 @@ export default {
 }
 
 .message-row.mine .message-bubble {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #ffffff;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .message-row.theirs .message-bubble {
@@ -91,7 +105,6 @@ export default {
 .sender-name {
   font-size: 12px;
   font-weight: 600;
-  color: #3b82f6;
   margin-bottom: 4px;
 }
 
@@ -147,10 +160,6 @@ export default {
   color: #e2e8f0;
   border-color: rgba(255, 255, 255, 0.06);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-}
-
-.dark .sender-name {
-  color: #60a5fa;
 }
 
 .dark .read-receipt {

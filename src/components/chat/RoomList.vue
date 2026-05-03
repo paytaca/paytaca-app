@@ -8,10 +8,14 @@
       @click="$emit('select-room', room.id)"
     >
       <div class="room-avatar">
-        <q-avatar size="52px" class="avatar-bg">
-          <q-icon v-if="room.type === 'group'" name="group" size="24px" />
-          <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
-        </q-avatar>
+          <q-avatar
+              size="52px"
+              class="avatar-bg"
+              :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
+            >
+              <q-icon v-if="room.type === 'group'" name="group" size="24px" />
+              <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
+            </q-avatar>
       </div>
       <div class="room-content">
         <div class="room-header">
@@ -70,6 +74,13 @@ export default {
     },
     contacts () {
       return this.$store.getters['nostrChat/getContacts']
+    },
+    themeColor () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return '#f54270'
+      if (theme === 'glassmorphic-green') return '#4caf50'
+      if (theme === 'glassmorphic-gold') return '#ffa726'
+      return '#3b82f6'
     },
     unreadCountMap () {
       // Compute unread counts by message ID.
@@ -183,7 +194,6 @@ export default {
 }
 
 .avatar-bg {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #ffffff;
   font-weight: 600;
   font-size: 20px;
