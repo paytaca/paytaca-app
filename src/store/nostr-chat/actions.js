@@ -193,16 +193,25 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
   const myPubKey = state.keys.pubKeyHex
 
+  console.log('[Debug] receiveMessage: kind=' + rumor.kind + ', content=' + JSON.stringify(rumor.content).slice(0, 30) + ', tags=' + rumor.tags.length)
+
   // Handle Kind 7 read receipts (👀 reactions)
   if (rumor.kind === 7 && rumor.content === '👀') {
+    console.log('[Debug] Received Kind 7 👀 read receipt')
     const eTag = rumor.tags.find(t => t[0] === 'e')
-    if (!eTag) return
+    if (!eTag) {
+      console.log('[Debug] Kind 7 has no e-tag, ignoring')
+      return
+    }
 
     const messageId = eTag[1]
     const originalSender = eTag[3] // pubkey hint in e tag
 
+    console.log('[Debug] Kind 7 eTag:', { messageId, originalSender })
+
     if (messageId && originalSender) {
       const roomId = computeRoomId([myPubKey, originalSender])
+      console.log('[Debug] Storing read receipt: roomId=' + roomId + ', msgId=' + messageId)
       commit('SET_MESSAGE_READ_BY', {
         roomId,
         messageId,
@@ -269,6 +278,8 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
     m => m.sender !== myPubKey && !readIds[m.id]
   )
 
+  console.log('[Debug] markRoomAsRead: roomId=' + roomId + ', unreadCount=' + unreadMessages.length + ', totalMsgs=' + messages.length)
+
   // Mark them as read locally
   if (unreadMessages.length) {
     commit('MARK_MESSAGES_AS_READ', {
@@ -291,6 +302,7 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
   for (const [senderPubKey, messageIds] of senderMap) {
     for (const messageId of messageIds) {
       try {
+        console.log('[Debug] Sending 👀 read receipt for msg', messageId)
         const giftWrap = await createReadReceiptGiftWrap({
           messageId,
           senderPubKey,
@@ -298,6 +310,7 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
           receiverPrivKey: myPrivKey,
         })
         await relayService.publishEvent(state.relays, giftWrap)
+        console.log('[Debug] 👀 read receipt published successfully')
       } catch (err) {
         console.warn('[Nostr] Failed to send read receipt:', err)
       }
