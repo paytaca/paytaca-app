@@ -4,6 +4,7 @@ import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
 import Watchtower from 'watchtower-cash-js'
 import { Capacitor } from '@capacitor/core'
+import { getAuthHeaders } from 'src/utils/watchtower-oauth'
 
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
@@ -86,7 +87,8 @@ export async function registerForPushNotifications ({ state, rootGetters }) {
   }
 
   try {
-    await watchtower.BCH._api.post('/api/nostr/push/register/', data)
+    const headers = await getAuthHeaders()
+    await watchtower.BCH._api.post('/api/nostr/push/register/', data, { headers })
   } catch (err) {
     console.warn('[Nostr] Failed to register for push notifications:', err?.message || err)
   }
