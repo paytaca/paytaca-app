@@ -241,10 +241,17 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 export function markRoomAsRead ({ commit, state }, roomId) {
   const myPubKey = state.keys.pubKeyHex
   if (!myPubKey) return
+  
+  // Find the latest message timestamp in this room to mark as read.
+  // We can't use Date.now() because NIP-17 randomizes created_at up to 2 days in the past.
+  const messages = state.messages[roomId] || []
+  const latestMessage = messages[messages.length - 1]
+  const timestamp = latestMessage ? latestMessage.created_at : Math.floor(Date.now() / 1000)
+  
   commit('SET_READ_RECEIPT', {
     roomId,
     pubKey: myPubKey,
-    timestamp: Math.floor(Date.now() / 1000),
+    timestamp,
   })
 }
 

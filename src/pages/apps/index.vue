@@ -220,8 +220,7 @@ export default {
           path: '/apps/chat',
           iconStyle: 'font-size: 4em',
           active: true,
-          beta: true,
-          betaMessage: this.$t('ChatBetaMessage', {}, 'Chat is currently in beta. This feature uses Nostr NIP-17 for encrypted private messaging. Please note that this is an experimental feature.')
+          beta: true
         },
         {
           id: 'gifts',
@@ -249,8 +248,7 @@ export default {
           path: '/apps/multisig',
           active: true,
           iconStyle: 'font-size: 4em',
-          beta: true,
-          betaMessage: this.$t('MultisigWalletsBetaMessage', {}, 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.')
+          beta: true
         },
         {
           id: 'cauldron',
@@ -609,8 +607,8 @@ export default {
         return
       }
       
-      // If app is beta, show dialog first
-      if (app.beta) {
+      // If app has a beta message, show warning dialog first
+      if (app.beta && app.betaMessage) {
         this.$q.dialog({
           component: BetaAppDialog,
           componentProps: {
@@ -622,7 +620,7 @@ export default {
           this.$router.push(app.path)
         })
       } else {
-        // Non-beta apps open directly
+        // Apps without beta message open directly
         this.$router.push(app.path)
       }
     },

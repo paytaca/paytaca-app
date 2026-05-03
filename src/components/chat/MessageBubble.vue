@@ -1,6 +1,6 @@
 <template>
   <div class="message-row" :class="isMine ? 'mine' : 'theirs'">
-    <div class="message-bubble">
+    <div class="message-bubble" :class="{ 'new-message': isNew }">
       <div v-if="showSenderName && !isMine" class="sender-name">
         {{ senderName }}
       </div>
@@ -28,6 +28,7 @@ export default {
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
     isRead: { type: Boolean, default: true },
+    isNew: { type: Boolean, default: false },
   },
   computed: {
     isMine () {
@@ -123,6 +124,23 @@ export default {
   color: #34d399;
 }
 
+/* New message highlight — elegant background fade */
+/* Only applies to received messages (not sent by me) */
+.message-row.theirs .message-bubble.new-message {
+  animation: newMessageFade 4s ease-out forwards;
+}
+
+@keyframes newMessageFade {
+  0%, 20% {
+    background-color: #dbeafe;
+    box-shadow: 0 2px 16px rgba(59, 130, 246, 0.12);
+  }
+  100% {
+    background-color: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+}
+
 /* Dark mode overrides */
 .dark .message-row.theirs .message-bubble {
   background: #1e293b;
@@ -141,5 +159,21 @@ export default {
 
 .dark .read-receipt.read {
   color: #34d399;
+}
+
+/* Dark mode: new message highlight */
+.dark .message-row.theirs .message-bubble.new-message {
+  animation: newMessageFadeDark 4s ease-out forwards;
+}
+
+@keyframes newMessageFadeDark {
+  0%, 20% {
+    background-color: #1a3655;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.12);
+  }
+  100% {
+    background-color: #1e293b;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
 }
 </style>

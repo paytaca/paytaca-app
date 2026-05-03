@@ -40,13 +40,14 @@
             :show-sender-name="room?.type === 'group'"
             :contacts="contacts"
             :is-read="messageReadMap[msg.id] || false"
+            :is-new="newMessageIds.has(msg.id)"
           />
         </div>
       </div>
     </div>
 
     <!-- Input area -->
-    <chat-input @send="onSend" />
+    <chat-input @send="onSend" @focus="scrollToBottom" />
   </div>
 </template>
 
@@ -61,6 +62,12 @@ export default {
   components: { HeaderNav, MessageBubble, ChatInput },
   props: {
     roomId: { type: String, required: true },
+  },
+  data () {
+    return {
+      newMessageIds: new Set(),
+      previousMessageCount: 0,
+    }
   },
   computed: {
     darkMode () {
@@ -124,9 +131,26 @@ export default {
   },
   watch: {
     messages: {
-      handler () {
+      handler (newMessages) {
         this.scrollToBottom()
         this.markAsRead()
+
+        // Track newly received messages for highlight effect
+        const currentCount = newMessages.length
+        if (currentCount > this.previousMessageCount) {
+          const newMsgs = newMessages.slice(this.previousMessageCount)
+          newMsgs.forEach(msg => {
+            // Only highlight messages from others (not my own)
+            if (msg.sender !== this.myPubKey) {
+              this.newMessageIds.add(msg.id)
+              // Remove highlight class after animation completes (4s + buffer)
+              setTimeout(() => {
+                this.newMessageIds.delete(msg.id)
+              }, 5000)
+            }
+          })
+        }
+        this.previousMessageCount = currentCount
       },
       deep: true,
     },
@@ -220,6 +244,7 @@ export default {
   display: flex;
   flex-direction: column;
   background: #f5f7fa;
+  padding-bottom: 25px !important;
 }
 
 .messages-scroll-area {

@@ -17,17 +17,25 @@
           <q-icon name="account_circle" size="40px" />
         </q-avatar>
         <div class="identity-info">
-          <div class="identity-label">{{ $t('YourNpub', {}, 'Your Nostr ID') }}</div>
+          <div class="identity-label">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
           <div class="identity-npub" @click="copyNpub">
             <span class="npub-text">{{ displayNpub }}</span>
             <q-icon name="content_copy" size="14px" class="copy-icon" />
           </div>
         </div>
+        <q-btn
+          flat
+          round
+          dense
+          icon="qr_code"
+          class="qr-btn"
+          @click="showQrDialog = true"
+        />
       </div>
 
       <!-- Relay status -->
       <div class="relay-section">
-        <div class="relay-label">{{ $t('RelayStatus', {}, 'Relays') }}</div>
+          <div class="relay-label">{{ $t('RelayServer', {}, 'Relay Server') }}</div>
         <relay-status-chip :relay-urls="relays" :relay-status="relayStatus" />
       </div>
 
@@ -53,6 +61,38 @@
       class="fab-btn"
       @click="showNewChatDialog = true"
     />
+
+    <!-- QR code display dialog -->
+    <q-dialog v-model="showQrDialog">
+      <q-card style="min-width: 300px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="row items-center justify-between">
+          <div class="text-h6">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section class="flex flex-center q-pt-none">
+          <div class="qr-display-box">
+            <qr-code
+              :text="`nostr:${myNpub}`"
+              border-width="3px"
+              border-color="#3b82f6"
+              :size="240"
+            />
+          </div>
+        </q-card-section>
+        <q-card-section class="q-pt-none text-center">
+          <div class="npub-full-text">{{ myNpub }}</div>
+          <q-btn
+            flat
+            dense
+            icon="content_copy"
+            :label="$t('Copy', {}, 'Copy')"
+            color="primary"
+            class="q-mt-sm"
+            @click="copyNpub"
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
 
     <!-- New chat / add contact dialog -->
     <q-dialog v-model="showNewChatDialog" persistent>
@@ -154,6 +194,7 @@ export default {
   data () {
     return {
       showNewChatDialog: false,
+      showQrDialog: false,
       dialogTab: 'contacts',
       newContactName: '',
       newContactNpub: '',
@@ -193,10 +234,40 @@ export default {
     },
   },
   async mounted () {
+    const scannedNpub = this.$route.query.npub
+
+    // If we have a scanned npub, handle it immediately where possible
+    // to avoid waiting for the full relay initialization
+    if (scannedNpub) {
+      const contact = this.$store.getters['nostrChat/getContactByNpub'](scannedNpub)
+
+      if (!contact) {
+        // New contact — show Add Contact dialog immediately.
+        // The dialog doesn't need initialization; room creation happens
+        // on button click, by which time init will have finished.
+        this.$router.replace({ path: '/apps/chat', query: {} })
+        this.newContactNpub = scannedNpub
+        this.newContactName = ''
+        this.npubError = ''
+        this.dialogTab = 'add'
+        this.showNewChatDialog = true
+      } else if (this.$store.state.nostrChat.initialized) {
+        // Existing contact + store already initialized — open chat immediately
+        this.startChatWith(contact)
+      }
+      // If existing contact but store not init'd yet, it will be handled below
+    }
+
     try {
+      // Initialize (skips if already initialized for this wallet)
       await this.$store.dispatch('nostrChat/initialize')
-      await this.$store.dispatch('nostrChat/publishKind10050')
       this.$store.dispatch('nostrChat/subscribeToRelays')
+
+      // Handle any scanned npub that we deferred because the store
+      // wasn't initialized yet (existing contact case).
+      if (scannedNpub && this.$route.query.npub) {
+        this.handleScannedNpub(scannedNpub)
+      }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
       this.$q.notify({
@@ -255,6 +326,24 @@ export default {
       }
       this.showNewChatDialog = false
       this.$router.push(`/apps/chat/${room.id}`)
+    },
+    async handleScannedNpub (npub) {
+      // Clean up query param so dialog doesn't reopen on refresh
+      this.$router.replace({ path: '/apps/chat', query: {} })
+
+      // Check if contact already exists
+      const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
+      if (contact) {
+        // Contact exists — open conversation directly
+        await this.startChatWith(contact)
+      } else {
+        // Contact does not exist — open Add Contact tab with npub prefilled
+        this.newContactNpub = npub
+        this.newContactName = ''
+        this.npubError = ''
+        this.dialogTab = 'add'
+        this.showNewChatDialog = true
+      }
     },
   },
 }
@@ -323,6 +412,32 @@ export default {
 
 .identity-npub:hover .copy-icon {
   color: #3b82f6;
+}
+
+.qr-btn {
+  color: #6b7280;
+  transition: color 0.15s ease;
+}
+
+.qr-btn:hover {
+  color: #3b82f6;
+}
+
+.qr-display-box {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.npub-full-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+  line-height: 1.5;
+  max-width: 240px;
+  margin: 0 auto;
 }
 
 /* Relay section */
@@ -443,5 +558,21 @@ export default {
 
 .dark .contact-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .qr-btn {
+  color: #94a3b8;
+}
+
+.dark .qr-btn:hover {
+  color: #60a5fa;
+}
+
+.dark .qr-display-box {
+  background: #1e293b;
+}
+
+.dark .npub-full-text {
+  color: #94a3b8;
 }
 </style>

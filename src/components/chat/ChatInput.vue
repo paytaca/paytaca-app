@@ -8,7 +8,7 @@
         class="col chat-text-field"
         :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
         @keydown.enter.prevent="send"
-        autofocus
+        @focus="$emit('focus')"
       />
       <q-btn
         round
@@ -29,7 +29,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'ChatInput',
-  emits: ['send'],
+  emits: ['send', 'focus'],
   data () {
     return {
       text: '',
@@ -55,7 +55,7 @@ export default {
 <style scoped>
 .chat-input-wrapper {
   background: transparent;
-  padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 16px;
   flex-shrink: 0;
 }
 
@@ -99,7 +99,7 @@ export default {
 /* Dark mode */
 .dark.chat-input-wrapper {
   background: transparent;
-  padding: 0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 16px;
 }
 
 .dark .chat-input-container {
