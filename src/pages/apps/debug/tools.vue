@@ -487,31 +487,39 @@ export default {
 
         this.$q.notify({
           type: 'info',
-          message: 'Checking device registration status...',
+          message: 'Sending test push notification...',
           timeout: 2000
         })
 
-        // Check device registration status
+        // Send test push notification
         const watchtower = new (await import('watchtower-cash-js')).default(this.$store.getters['global/isChipnet'])
-        const response = await watchtower.BCH._api.get('/push-notifications/devices/', {
-          params: { wallet_hash: walletHash }
+        const response = await watchtower.BCH._api.post('/push-notifications/test-send/', {
+          wallet_hash: walletHash,
+          message: 'This is a test push notification',
+          title: 'Test'
         })
 
-        console.log('Device status:', response)
-        const devices = response?.data
-        const gcmCount = devices?.gcm_devices?.length || 0
-        const apnsCount = devices?.apns_devices?.length || 0
+        console.log('Test push response:', response)
+        const result = response?.data
 
-        this.$q.notify({
-          type: apnsCount > 0 || gcmCount > 0 ? 'positive' : 'warning',
-          message: `Found ${gcmCount} GCM and ${apnsCount} APNS devices registered`,
-          timeout: 3000
-        })
+        if (result?.success) {
+          this.$q.notify({
+            type: 'positive',
+            message: `Test push sent! GCM: ${result.gcm_response || 'none'}, APNS: ${result.apns_response || 'none'}`,
+            timeout: 5000
+          })
+        } else {
+          this.$q.notify({
+            type: 'warning',
+            message: 'Test push failed: ' + (result?.error || 'Unknown error'),
+            timeout: 5000
+          })
+        }
       } catch (error) {
-        console.error('Device check failed:', error)
+        console.error('Test push failed:', error)
         this.$q.notify({
           type: 'negative',
-          message: 'Device check failed: ' + (error?.response?.data?.detail || error?.message || error),
+          message: 'Test push failed: ' + (error?.response?.data?.error || error?.message || error),
           timeout: 5000
         })
       } finally {
