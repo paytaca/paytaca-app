@@ -66,7 +66,7 @@
     <q-dialog v-model="showQrDialog">
       <q-card style="min-width: 300px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center justify-between">
-          <div class="text-h6">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
+          <div class="text-h6" :class="getDarkModeClass(darkMode)">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-card-section class="flex flex-center q-pt-none">
