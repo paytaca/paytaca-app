@@ -196,20 +196,12 @@ export default {
       if (!room || !myPubKey) return map
 
       const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
-      const readByKeys = Object.keys(readBy)
-      if (readByKeys.length > 0) {
-        console.log('[Debug] messageReadMap: roomId=' + this.roomId + ', readBy has ' + readByKeys.length + ' messages')
-      }
 
       for (const msg of this.messages) {
         // Only check read status for messages I sent
         if (msg.sender !== myPubKey) continue
         // Read if ANY other room member sent a 👀 reaction for this message
-        const isRead = Object.keys(readBy[msg.id] || {}).length > 0
-        if (isRead) {
-          console.log('[Debug] messageReadMap: msg ' + msg.id.slice(0, 12) + ' is READ')
-        }
-        map[msg.id] = isRead
+        map[msg.id] = Object.keys(readBy[msg.id] || {}).length > 0
       }
 
       return map

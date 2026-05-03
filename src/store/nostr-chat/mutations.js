@@ -117,7 +117,6 @@ export function SET_MESSAGE_READ_BY (state, { roomId, messageId, readerPubKey })
     state.messageReadBy[roomId][messageId] = {}
   }
   state.messageReadBy[roomId][messageId][readerPubKey] = true
-  console.log('[Debug] SET_MESSAGE_READ_BY: roomId=' + roomId + ', msgId=' + messageId + ', reader=' + readerPubKey.slice(0, 12))
 }
 
 export function SET_RELAYS (state, relays) {
