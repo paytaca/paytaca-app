@@ -2171,6 +2171,9 @@ const phrases = {
       CreateNewContact: 'Create new contact',
       CreateContactSuccess: 'New contact created successfully.',
       CreateContactError: 'Failed to add new contact. Try again later.',
+      RelayServer: 'Relay Server',
+      Conversations: 'Conversations',
+      YourChatID: 'Your Chat ID',
     },
   ],
   dynamic: [

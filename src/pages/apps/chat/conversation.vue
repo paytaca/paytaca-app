@@ -10,6 +10,63 @@
       :title="roomName"
     />
 
+    <!-- Unknown contact prompt -->
+    <div
+      v-if="isUnknownContact"
+      class="unknown-contact-banner"
+      :class="getDarkModeClass(darkMode)"
+      @click="showSaveContactDialog = true"
+    >
+      <q-icon name="person_add" size="18px" class="banner-icon" />
+      <span class="banner-text">
+        {{ $t('UnknownContactSavePrompt', {}, 'Save this contact to keep their name') }}
+      </span>
+      <q-icon name="chevron_right" size="18px" class="banner-chevron" />
+    </div>
+
+    <!-- Save contact dialog -->
+    <q-dialog v-model="showSaveContactDialog" persistent>
+      <q-card style="min-width: 320px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="dialog-header">
+          <div class="text-h6">{{ $t('AddContact', {}, 'Add Contact') }}</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input
+            v-model="saveContactName"
+            :label="$t('Name', {}, 'Name')"
+            outlined
+            dense
+            rounded
+            class="q-mb-md"
+            autofocus
+          />
+          <q-input
+            :model-value="otherMemberNpub"
+            :label="$t('Npub', {}, 'npub')"
+            outlined
+            dense
+            rounded
+            readonly
+            class="q-mb-md"
+          />
+          <q-btn
+            :label="$t('AddContact', {}, 'Add Contact')"
+            color="primary"
+            rounded
+            unelevated
+            class="full-width"
+            :disable="!saveContactName.trim()"
+            @click="saveContact"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('Cancel', {}, 'Cancel')" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Messages area -->
     <div ref="messagesContainer" class="messages-scroll-area col scroll">
       <div v-if="messages.length === 0" class="empty-conversation">
@@ -56,6 +113,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
+import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
   name: 'ChatConversation',
@@ -67,6 +125,8 @@ export default {
     return {
       newMessageIds: new Set(),
       previousMessageCount: 0,
+      showSaveContactDialog: false,
+      saveContactName: '',
     }
   },
   computed: {
@@ -76,8 +136,43 @@ export default {
     room () {
       return this.$store.getters['nostrChat/getRoom'](this.roomId)
     },
+    otherMemberPubKey () {
+      const room = this.room
+      const myPubKey = this.myPubKey
+      if (!room || !myPubKey) return null
+      return room.members.find(m => m !== myPubKey) || null
+    },
+    otherMemberNpub () {
+      const pk = this.otherMemberPubKey
+      if (!pk) return null
+      try {
+        return npubEncode(pk)
+      } catch {
+        return null
+      }
+    },
+    otherMemberContact () {
+      const npub = this.otherMemberNpub
+      if (!npub) return null
+      return this.$store.getters['nostrChat/getContactByNpub'](npub)
+    },
+    isUnknownContact () {
+      return this.otherMemberPubKey && !this.otherMemberContact
+    },
+    displayNpub () {
+      const npub = this.otherMemberNpub
+      if (!npub) return ''
+      return npub.slice(0, 12) + '...' + npub.slice(-8)
+    },
     roomName () {
-      return this.room?.name || this.$t('Chat', {}, 'Chat')
+      const room = this.room
+      if (!room) return this.$t('Chat', {}, 'Chat')
+      // If contact exists, use the room name (which is the contact name)
+      if (this.otherMemberContact) {
+        return room.name || this.$t('Chat', {}, 'Chat')
+      }
+      // Unknown contact: show npub in header
+      return this.displayNpub || room.name || this.$t('Chat', {}, 'Chat')
     },
     messages () {
       // Access state directly for full reactivity — getter factories don't
@@ -93,39 +188,22 @@ export default {
       return this.$store.getters['nostrChat/getContacts']
     },
     messageReadMap () {
-      // Compute read status for messages I sent: a message is "read" if ANY
-      // other participant (not me) has sent a message with a timestamp >= my message.
-      // This indicates they were active and likely saw my message.
+      // Compute read status for messages I sent.
+      // Uses Kind 7 "👀" reactions received via NIP-17 gift-wraps.
       const map = {}
       const myPubKey = this.myPubKey
       const room = this.room
       if (!room || !myPubKey) return map
-      
-      const receipts = this.$store.state.nostrChat.readReceipts?.[this.roomId] || {}
-      
+
+      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+
       for (const msg of this.messages) {
         // Only check read status for messages I sent
         if (msg.sender !== myPubKey) continue
-        
-        // Check if any OTHER room member has read this message
-        let isRead = false
-        for (const memberPubKey of room.members) {
-          // Skip my own pubkey
-          if (memberPubKey === myPubKey) continue
-          
-          // Get their last activity timestamp (when they last sent a message)
-          const theirLastActivity = receipts[memberPubKey]
-          
-          // If they were active after I sent this message, they likely read it
-          if (theirLastActivity && theirLastActivity >= msg.created_at) {
-            isRead = true
-            break
-          }
-        }
-        
-        map[msg.id] = isRead
+        // Read if ANY other room member sent a 👀 reaction for this message
+        map[msg.id] = Object.keys(readBy[msg.id] || {}).length > 0
       }
-      
+
       return map
     },
   },
@@ -231,6 +309,37 @@ export default {
         this.$q.notify({
           type: 'negative',
           message: this.$t('SendMessageFailed', {}, 'Failed to send message') + ': ' + err.message,
+        })
+      }
+    },
+    async saveContact () {
+      try {
+        const name = this.saveContactName.trim()
+        const npub = this.otherMemberNpub
+        if (!name || !npub) return
+
+        await this.$store.dispatch('nostrChat/addContact', { name, npub })
+
+        // Update room name to the new contact name
+        const contact = this.$store.getters['nostrChat/getContactByNpub'](npub)
+        if (contact && this.room) {
+          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
+            roomId: this.roomId,
+            name: contact.name,
+          })
+        }
+
+        this.saveContactName = ''
+        this.showSaveContactDialog = false
+
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('ContactSaved', {}, 'Contact saved'),
+        })
+      } catch (err) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('ContactSaveFailed', {}, 'Failed to save contact') + ': ' + err.message,
         })
       }
     },
@@ -341,5 +450,65 @@ export default {
 
 .dark .empty-subtitle {
   color: #64748b;
+}
+
+/* Unknown contact banner */
+.unknown-contact-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.unknown-contact-banner:active {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+}
+
+.banner-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1d4ed8;
+}
+
+.banner-chevron {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.dialog-header {
+  padding-bottom: 8px;
+}
+
+/* Dark mode: unknown contact banner */
+.dark.unknown-contact-banner {
+  background: linear-gradient(135deg, #1e3a5f, #1a3655);
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.dark.unknown-contact-banner:active {
+  background: linear-gradient(135deg, #1a3655, #172554);
+}
+
+.dark .banner-icon {
+  color: #60a5fa;
+}
+
+.dark .banner-text {
+  color: #93c5fd;
+}
+
+.dark .banner-chevron {
+  color: #60a5fa;
 }
 </style>

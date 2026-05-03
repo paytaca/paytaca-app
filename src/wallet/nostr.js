@@ -115,6 +115,36 @@ export function unwrapGiftWrap(giftWrap, receiverPrivKey) {
 }
 
 /**
+ * Create a Kind 7 "seen" reaction (read receipt) and gift-wrap it to the original sender.
+ * Uses NIP-59 gift-wrap for privacy.
+ * @param {Object} opts
+ * @param {string} opts.messageId - Event ID of the message being read
+ * @param {string} opts.senderPubKey - Hex pubkey of the original message sender
+ * @param {string} opts.receiverPubKey - Hex pubkey of the reader (us)
+ * @param {string} opts.receiverPrivKey - Hex private key of the reader (us)
+ * @param {string} [opts.relayHint] - Optional relay hint
+ * @returns {Promise<import('nostr-tools').NostrEvent>} - Gift-wrapped Kind 7 event
+ */
+export async function createReadReceiptGiftWrap({ messageId, senderPubKey, receiverPubKey, receiverPrivKey, relayHint = '' }) {
+  const kind7 = {
+    kind: 7,
+    pubkey: receiverPubKey,
+    created_at: Math.floor(Date.now() / 1000),
+    content: '👀',
+    tags: [
+      ['e', messageId, relayHint, senderPubKey],
+      ['p', senderPubKey, relayHint],
+      ['k', '14'],
+    ],
+  }
+  kind7.id = getEventHash(kind7)
+
+  const receiverPrivKeyBytes = hexToBytes(receiverPrivKey)
+  const giftWrap = nip59.wrapEvent(kind7, receiverPrivKeyBytes, senderPubKey)
+  return giftWrap
+}
+
+/**
  * Create and sign a kind:10050 relay preference event.
  * @param {string[]} relays - Array of relay URLs
  * @param {string} privKey - Hex private key

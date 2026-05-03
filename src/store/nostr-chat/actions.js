@@ -1,4 +1,4 @@
-import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050 } from 'src/wallet/nostr'
+import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap } from 'src/wallet/nostr'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -155,6 +155,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo }) {
     created_at: unsignedKind14.created_at,
     kind14Id: unsignedKind14.id,
     replyTo,
+    localSentAt: Date.now(), // Exact local send time — used for read receipts
   }
 
   return { giftWraps, message, roomId }
@@ -191,6 +192,29 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   }
 
   const myPubKey = state.keys.pubKeyHex
+
+  // Handle Kind 7 read receipts (👀 reactions)
+  if (rumor.kind === 7 && rumor.content === '👀') {
+    const eTag = rumor.tags.find(t => t[0] === 'e')
+    if (!eTag) return
+
+    const messageId = eTag[1]
+    const originalSender = eTag[3] // pubkey hint in e tag
+
+    if (messageId && originalSender) {
+      const roomId = computeRoomId([myPubKey, originalSender])
+      commit('SET_MESSAGE_READ_BY', {
+        roomId,
+        messageId,
+        readerPubKey: rumor.pubkey,
+      })
+    }
+    return
+  }
+
+  // Only process Kind 14 chat messages
+  if (rumor.kind !== 14) return
+
   const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
   const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
   const roomId = computeRoomId(roomMembers)
@@ -224,35 +248,61 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     created_at: rumor.created_at,
     kind14Id: rumor.id,
     replyTo,
+    localReceivedAt: Date.now(),
   }
 
   commit('ADD_MESSAGE', { roomId, message })
-
-  // Update sender's read receipt timestamp to when they sent this message.
-  // This indicates they were last active at rumor.created_at, so any messages
-  // we sent BEFORE that time can be considered read.
-  commit('SET_READ_RECEIPT', {
-    roomId,
-    pubKey: rumor.pubkey,
-    timestamp: rumor.created_at,
-  })
 }
 
-export function markRoomAsRead ({ commit, state }, roomId) {
+export async function markRoomAsRead ({ commit, state }, roomId) {
   const myPubKey = state.keys.pubKeyHex
-  if (!myPubKey) return
-  
-  // Find the latest message timestamp in this room to mark as read.
-  // We can't use Date.now() because NIP-17 randomizes created_at up to 2 days in the past.
+  const myPrivKey = state.keys.privKeyHex
+  if (!myPubKey || !myPrivKey) return
+
   const messages = state.messages[roomId] || []
-  const latestMessage = messages[messages.length - 1]
-  const timestamp = latestMessage ? latestMessage.created_at : Math.floor(Date.now() / 1000)
-  
-  commit('SET_READ_RECEIPT', {
-    roomId,
-    pubKey: myPubKey,
-    timestamp,
-  })
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) return
+
+  // Find messages sent by the OTHER person that we haven't read yet
+  const readIds = state.readMessageIds?.[roomId] || {}
+  const unreadMessages = messages.filter(
+    m => m.sender !== myPubKey && !readIds[m.id]
+  )
+
+  // Mark them as read locally
+  if (unreadMessages.length) {
+    commit('MARK_MESSAGES_AS_READ', {
+      roomId,
+      messageIds: unreadMessages.map(m => m.id),
+    })
+  }
+
+  // Send Kind 7 "👀" read receipt gift-wraps back to each sender.
+  // This lets the sender's client know we've read their messages.
+  const senderMap = new Map()
+  for (const msg of unreadMessages) {
+    if (!senderMap.has(msg.sender)) {
+      senderMap.set(msg.sender, [msg.id])
+    } else {
+      senderMap.get(msg.sender).push(msg.id)
+    }
+  }
+
+  for (const [senderPubKey, messageIds] of senderMap) {
+    for (const messageId of messageIds) {
+      try {
+        const giftWrap = await createReadReceiptGiftWrap({
+          messageId,
+          senderPubKey,
+          receiverPubKey: myPubKey,
+          receiverPrivKey: myPrivKey,
+        })
+        await relayService.publishEvent(state.relays, giftWrap)
+      } catch (err) {
+        console.warn('[Nostr] Failed to send read receipt:', err)
+      }
+    }
+  }
 }
 
 export function subscribeToRelays ({ state, dispatch, commit }) {

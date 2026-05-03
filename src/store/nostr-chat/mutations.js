@@ -52,6 +52,14 @@ export function UPDATE_ROOM_SUBJECT (state, { roomId, subject }) {
   }
 }
 
+export function UPDATE_ROOM_NAME (state, { roomId, name }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (room) {
+    room.name = name
+    room.updatedAt = Math.floor(Date.now() / 1000)
+  }
+}
+
 export function REMOVE_ROOM (state, roomId) {
   state.rooms = state.rooms.filter(r => r.id !== roomId)
   delete state.messages[roomId]
@@ -84,6 +92,31 @@ export function SET_READ_RECEIPT (state, { roomId, pubKey, timestamp }) {
     state.readReceipts[roomId] = {}
   }
   state.readReceipts[roomId][pubKey] = timestamp
+}
+
+export function MARK_MESSAGES_AS_READ (state, { roomId, messageIds }) {
+  if (!state.readMessageIds) {
+    state.readMessageIds = {}
+  }
+  if (!state.readMessageIds[roomId]) {
+    state.readMessageIds[roomId] = {}
+  }
+  for (const id of messageIds) {
+    state.readMessageIds[roomId][id] = true
+  }
+}
+
+export function SET_MESSAGE_READ_BY (state, { roomId, messageId, readerPubKey }) {
+  if (!state.messageReadBy) {
+    state.messageReadBy = {}
+  }
+  if (!state.messageReadBy[roomId]) {
+    state.messageReadBy[roomId] = {}
+  }
+  if (!state.messageReadBy[roomId][messageId]) {
+    state.messageReadBy[roomId][messageId] = {}
+  }
+  state.messageReadBy[roomId][messageId][readerPubKey] = true
 }
 
 export function SET_RELAYS (state, relays) {

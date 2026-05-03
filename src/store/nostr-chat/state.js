@@ -13,6 +13,8 @@ export default function () {
     rooms: [],
     messages: {},
     readReceipts: {}, // { roomId: { pubKeyHex: timestamp } }
+    readMessageIds: {}, // { roomId: { msgId: true, ... } }
+    messageReadBy: {}, // { roomId: { msgId: { [readerPubKey]: true } } }
     isReady: false,
     initialized: false,
     relayStatus: {},

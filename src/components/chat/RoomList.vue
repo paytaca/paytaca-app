@@ -52,6 +52,7 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatDistanceToNow } from 'date-fns'
+import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
   name: 'RoomList',
@@ -67,19 +68,19 @@ export default {
     myPubKey () {
       return this.$store.getters['nostrChat/myPubKey']
     },
+    contacts () {
+      return this.$store.getters['nostrChat/getContacts']
+    },
     unreadCountMap () {
-      // Compute unread counts directly from reactive state
+      // Compute unread counts by message ID.
+      // NIP-17 randomizes created_at, so timestamp-based counting is unreliable.
       const map = {}
       const myPubKey = this.myPubKey
       if (!myPubKey) return map
       for (const room of this.rooms) {
         const msgs = this.$store.state.nostrChat.messages[room.id] || []
-        const myReadAt = this.$store.state.nostrChat.readReceipts?.[room.id]?.[myPubKey]
-        if (!myReadAt) {
-          map[room.id] = msgs.filter(m => m.sender !== myPubKey).length
-        } else {
-          map[room.id] = msgs.filter(m => m.sender !== myPubKey && m.created_at > myReadAt).length
-        }
+        const readIds = this.$store.state.nostrChat.readMessageIds?.[room.id] || {}
+        map[room.id] = msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
       }
       return map
     },
@@ -87,11 +88,36 @@ export default {
   methods: {
     getDarkModeClass,
     roomInitial (room) {
+      const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+      if (otherPubKey) {
+        const contact = this.contacts.find(c => c.pubKeyHex === otherPubKey)
+        if (contact) {
+          return contact.name.charAt(0).toUpperCase()
+        }
+        // Unknown contact — use '?' as avatar initial
+        return '?'
+      }
       const name = room.name || ''
       return name.charAt(0).toUpperCase()
     },
     roomName (room) {
-      return room.name || room.id.slice(0, 12) + '...'
+      // Check if this room has a known contact
+      const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+      if (!otherPubKey) return room.name || room.id.slice(0, 12) + '...'
+
+      const contact = this.contacts.find(c => c.pubKeyHex === otherPubKey)
+      if (contact) {
+        // Known contact — show their name
+        return contact.name
+      }
+
+      // Unknown contact — show truncated npub
+      try {
+        const npub = npubEncode(otherPubKey)
+        return npub.slice(0, 12) + '...' + npub.slice(-8)
+      } catch {
+        return room.name || room.id.slice(0, 12) + '...'
+      }
     },
     lastMessagePreview (roomId) {
       const msgs = this.messages[roomId] || []

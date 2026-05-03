@@ -116,9 +116,8 @@ export function getUnreadCount (state) {
     const room = state.rooms.find(r => r.id === roomId && r.members?.includes(myPubKey))
     if (!room) return 0
     const msgs = state.messages[roomId] || []
-    const myReadAt = state.readReceipts?.[roomId]?.[myPubKey]
-    if (!myReadAt) return msgs.filter(m => m.sender !== myPubKey).length
-    return msgs.filter(m => m.sender !== myPubKey && m.created_at > myReadAt).length
+    const readIds = state.readMessageIds?.[roomId] || {}
+    return msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
   }
 }
 
