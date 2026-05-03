@@ -876,6 +876,16 @@ export default {
 
       if (this.$q.platform.is.mobile) {
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+        })
+
+        this.subscribePushNotifications()
+      } else {
+        // On web/PWA, show in-app notification since system push is not available
+        this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
           if (notification?.title || notification?.body) {
             this.$q.notify({
               color: 'brandblue',
@@ -894,8 +904,6 @@ export default {
             this.$store.dispatch('nostrChat/ensureSubscribed')
           }
         })
-
-        this.subscribePushNotifications()
       }
       this.resubscribeAddresses(mnemonic)
     }
