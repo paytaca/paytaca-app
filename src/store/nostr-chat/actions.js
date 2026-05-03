@@ -4,8 +4,7 @@ import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
 import Watchtower from 'watchtower-cash-js'
 import { Capacitor } from '@capacitor/core'
-import { getAuthHeaders, clearToken } from 'src/utils/watchtower-oauth'
-import { pushNotificationsManager } from 'src/boot/push-notifications'
+import { getAuthHeaders } from 'src/utils/watchtower-oauth'
 
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
@@ -64,7 +63,7 @@ export async function registerForPushNotifications ({ state, rootGetters }) {
   if (platform !== 'ios' && platform !== 'android') return
 
   // Use the existing push notification manager's token and device ID
-  const pushManager = pushNotificationsManager
+  const pushManager = this._vm?.$pushNotifications
   if (!pushManager?.registrationToken || !pushManager?.deviceId) {
     // Token not ready yet — retry after a delay
     setTimeout(() => {
@@ -88,35 +87,11 @@ export async function registerForPushNotifications ({ state, rootGetters }) {
   }
 
   try {
-    // Clear any stale token to force fresh authentication
-    await clearToken()
-    console.log('[Nostr] Cleared cached token, fetching fresh auth...')
-    
-    let headers
-    try {
-      headers = await getAuthHeaders()
-      console.log('[Nostr] Auth successful, token obtained')
-    } catch (authErr) {
-      console.warn('[Nostr] Auth failed:', authErr?.statusCode || authErr?.status, authErr?.message)
-      throw authErr
-    }
-    
-    console.log('[Nostr] Registering with auth token...')
+    const headers = await getAuthHeaders()
     const response = await watchtower.BCH._api.post('/nostr/push/register/', data, { headers })
     console.log('[Nostr] Push registration successful:', response.data)
   } catch (err) {
     console.warn('[Nostr] Failed to register for push notifications:', err?.response?.status, err?.response?.data, err?.message || err)
-    
-    // Fallback: try without auth (original behavior)
-    if (err?.response?.status === 401) {
-      console.log('[Nostr] Trying without authentication...')
-      try {
-        const response = await watchtower.BCH._api.post('/nostr/push/register/', data)
-        console.log('[Nostr] Push registration successful without auth:', response.data)
-      } catch (fallbackErr) {
-        console.warn('[Nostr] Fallback also failed:', fallbackErr?.response?.status, fallbackErr?.message)
-      }
-    }
   }
 }
 
