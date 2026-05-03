@@ -70,6 +70,19 @@
       @click="showNewChatDialog = true"
     />
 
+    <!-- Nostr footer -->
+    <div class="nostr-footer" :class="getDarkModeClass(darkMode)">
+      <span class="footer-text">
+        {{ $t('PoweredBy', {}, 'Powered by') }}
+        <a
+          href="https://nostr.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="nostr-link"
+        >Nostr</a>
+      </span>
+    </div>
+
     <!-- QR code display dialog -->
     <q-dialog v-model="showQrDialog">
       <q-card style="min-width: 300px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
@@ -516,6 +529,56 @@ export default {
 
 .fab-btn:active {
   transform: scale(0.94);
+}
+
+/* Nostr footer */
+.nostr-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(245, 247, 250, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  text-align: center;
+  z-index: 50;
+}
+
+.footer-text {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.nostr-link {
+  color: #3b82f6;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.nostr-link:hover {
+  opacity: 0.8;
+}
+
+.nostr-link:active {
+  opacity: 0.6;
+}
+
+/* Dark mode: nostr footer */
+.dark.nostr-footer {
+  background: rgba(15, 23, 42, 0.95);
+  border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .footer-text {
+  color: #64748b;
+}
+
+.dark .nostr-link {
+  color: #60a5fa;
 }
 
 /* Dialog */
