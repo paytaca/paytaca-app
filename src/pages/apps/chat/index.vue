@@ -195,7 +195,7 @@
 
               <!-- Inline QR scanner for npub -->
               <div v-if="showInlineScanner" class="inline-scanner-box q-mb-md">
-                <QRScanner
+                <QrScanner
                   v-model="showInlineScanner"
                   @decode="onInlineScan"
                 />
@@ -227,12 +227,12 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
 import RelayStatusChip from 'src/components/chat/RelayStatusChip.vue'
-import QRScanner from 'src/components/qr-scanner.vue'
+import QrScanner from 'src/components/qr-scanner.vue'
 import { copyToClipboard } from 'quasar'
 
 export default {
   name: 'ChatApp',
-  components: { HeaderNav, RoomList, RelayStatusChip, QRScanner },
+  components: { HeaderNav, RoomList, RelayStatusChip, QrScanner },
   data () {
     return {
       showNewChatDialog: false,
