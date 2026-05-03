@@ -180,7 +180,18 @@
                 class="q-mb-md"
                 :error="!!npubError"
                 :error-message="npubError"
-              />
+              >
+                <template #append>
+                  <q-btn
+                    flat
+                    round
+                    dense
+                    icon="qr_code_scanner"
+                    color="primary"
+                    @click="scanNpubForContact"
+                  />
+                </template>
+              </q-input>
               <q-btn
                 :label="$t('AddContact', {}, 'Add Contact')"
                 color="primary"
@@ -327,6 +338,16 @@ export default {
     },
     openRoom (roomId) {
       this.$router.push(`/apps/chat/${roomId}`)
+    },
+    scanNpubForContact () {
+      // Close dialog and open QR scanner.
+      // When an npub is detected, the scanner redirects to /apps/chat?npub=...
+      // which re-opens this dialog with the npub prefilled.
+      this.showNewChatDialog = false
+      this.$router.push({
+        name: 'qr-reader',
+        query: { backnavpath: '/apps/chat' }
+      })
     },
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
@@ -537,7 +558,8 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 16px;
+  padding-bottom: max(4px, env(safe-area-inset-bottom, 4px));
   background: rgba(245, 247, 250, 0.95);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);

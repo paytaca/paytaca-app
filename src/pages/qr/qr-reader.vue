@@ -508,8 +508,9 @@ export default {
           const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
           if (nostrMatch) {
             const npub = nostrMatch[2]
+            const backPath = vm.$route.query.backnavpath || '/apps/chat'
             vm.$router.push({
-              path: '/apps/chat',
+              path: backPath,
               query: { npub }
             })
           } else {
