@@ -86,7 +86,7 @@ export async function registerForPushNotifications ({ state, rootGetters }) {
   }
 
   try {
-    await watchtower.BCH._api.post('/push-notifications/nostr-register/', data)
+    await watchtower.BCH._api.post('/api/nostr/push/register/', data)
   } catch (err) {
     console.warn('[Nostr] Failed to register for push notifications:', err?.message || err)
   }

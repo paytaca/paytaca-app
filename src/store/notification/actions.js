@@ -96,7 +96,7 @@ export function getOpenedNotificationRoute(context) {
         }
       }
       break
-    case(NotificationTypes.NOSTR_CHAT_MESSAGE):
+    case(NotificationTypes.NOSTR_EVENT):
       route = { name: 'app-chat' }
       break
     case(NotificationTypes.PAYMENT_REQUEST):
