@@ -205,17 +205,19 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     }
 
     const messageId = eTag[1]
-    const originalSender = eTag[3] // pubkey hint in e tag
+    // The Kind 7 was created by the reader (rumor.pubkey) and sent to
+    // the original message sender.  The room is between those two.
+    const readerPubKey = rumor.pubkey
 
-    console.log('[Debug] Kind 7 eTag:', { messageId, originalSender })
+    console.log('[Debug] Kind 7 eTag:', { messageId, readerPubKey })
 
-    if (messageId && originalSender) {
-      const roomId = computeRoomId([myPubKey, originalSender])
+    if (messageId && readerPubKey) {
+      const roomId = computeRoomId([myPubKey, readerPubKey])
       console.log('[Debug] Storing read receipt: roomId=' + roomId + ', msgId=' + messageId)
       commit('SET_MESSAGE_READ_BY', {
         roomId,
         messageId,
-        readerPubKey: rumor.pubkey,
+        readerPubKey,
       })
     }
     return
