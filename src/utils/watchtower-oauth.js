@@ -124,73 +124,69 @@ export async function getAuthHeaders() {
 
   const storedToken = await getStoredToken()
   if (storedToken) {
+    console.log('[Watchtower OAuth] Using stored token')
     return { 'Authorization': `Bearer ${storedToken}` }
   }
 
   const credentials = await deriveOAuthCredentials()
+  console.log('[Watchtower OAuth] Derived credentials for address:', credentials.address)
+  
   const client = new BitcoinCashOAuthClient({
     serverUrl: getWatchtowerUrl(),
     network: 'mainnet',
+    authBasePath: '/bch-auth',
     fetch: axiosFetch
   })
 
   const domain = getOAuthDomain()
   const timestamp = Math.floor(Date.now() / 1000)
-  const message = client.createAuthMessage(walletHash, timestamp, domain)
-  const signature = await client.signAuthMessage(message, credentials.privateKey)
 
-  // Try to authenticate first
-  let authResponse = await axiosFetch(`${getWatchtowerUrl()}/auth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user_id: walletHash,
-      timestamp,
-      domain,
-      public_key: credentials.publicKey,
-      signature
-    })
-  })
-
-  // If user not found, register first
-  if (authResponse.status === 404) {
-    await client.register(
-      credentials.address,
+  try {
+    // Try to authenticate first
+    console.log('[Watchtower OAuth] Attempting authentication...')
+    const auth = await client.authenticate(
+      walletHash,
       credentials.privateKey,
       credentials.publicKey,
-      walletHash,
       timestamp,
       domain
     )
-
-    // Retry authentication
-    const newTimestamp = Math.floor(Date.now() / 1000)
-    const newMessage = client.createAuthMessage(walletHash, newTimestamp, domain)
-    const newSignature = await client.signAuthMessage(newMessage, credentials.privateKey)
-
-    authResponse = await axiosFetch(`${getWatchtowerUrl()}/auth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: walletHash,
-        timestamp: newTimestamp,
-        domain,
-        public_key: credentials.publicKey,
-        signature: newSignature
-      })
-    })
-  }
-
-  if (!authResponse.ok) {
-    const errorText = await authResponse.text()
-    throw new Error(`Authentication failed: ${authResponse.status} - ${errorText}`)
-  }
-
-  const auth = await authResponse.json()
-  if (auth.access_token) {
+    
+    console.log('[Watchtower OAuth] Authentication successful')
     await saveToken(auth.access_token)
     return { 'Authorization': `Bearer ${auth.access_token}` }
+  } catch (err) {
+    console.log('[Watchtower OAuth] Authentication error:', err?.statusCode || err?.status, err?.message)
+    
+    // If user not found (404), register first then authenticate
+    const statusCode = err?.statusCode || err?.status
+    if (statusCode === 404) {
+      console.log('[Watchtower OAuth] User not found, registering...')
+      await client.register(
+        credentials.address,
+        credentials.privateKey,
+        credentials.publicKey,
+        walletHash,
+        timestamp,
+        domain
+      )
+      
+      // Retry authentication after registration
+      console.log('[Watchtower OAuth] Retrying authentication after registration...')
+      const newTimestamp = Math.floor(Date.now() / 1000)
+      const auth = await client.authenticate(
+        walletHash,
+        credentials.privateKey,
+        credentials.publicKey,
+        newTimestamp,
+        domain
+      )
+      
+      console.log('[Watchtower OAuth] Authentication successful after registration')
+      await saveToken(auth.access_token)
+      return { 'Authorization': `Bearer ${auth.access_token}` }
+    }
+    
+    throw err
   }
-
-  throw new Error('No access token in authentication response')
 }
