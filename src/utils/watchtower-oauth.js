@@ -124,12 +124,10 @@ export async function getAuthHeaders() {
 
   const storedToken = await getStoredToken()
   if (storedToken) {
-    console.log('[Watchtower OAuth] Using stored token')
     return { 'Authorization': `Bearer ${storedToken}` }
   }
 
   const credentials = await deriveOAuthCredentials()
-  console.log('[Watchtower OAuth] Derived credentials for address:', credentials.address)
   
   const client = new BitcoinCashOAuthClient({
     serverUrl: getWatchtowerUrl(),
@@ -143,7 +141,6 @@ export async function getAuthHeaders() {
 
   try {
     // Try to authenticate first
-    console.log('[Watchtower OAuth] Attempting authentication...')
     const auth = await client.authenticate(
       walletHash,
       credentials.privateKey,
@@ -152,16 +149,12 @@ export async function getAuthHeaders() {
       domain
     )
     
-    console.log('[Watchtower OAuth] Authentication successful')
     await saveToken(auth.access_token)
     return { 'Authorization': `Bearer ${auth.access_token}` }
   } catch (err) {
-    console.log('[Watchtower OAuth] Authentication error:', err?.statusCode || err?.status, err?.message)
-    
     // If user not found (404), register first then authenticate
     const statusCode = err?.statusCode || err?.status
     if (statusCode === 404) {
-      console.log('[Watchtower OAuth] User not found, registering...')
       await client.register(
         credentials.address,
         credentials.privateKey,
@@ -172,7 +165,6 @@ export async function getAuthHeaders() {
       )
       
       // Retry authentication after registration
-      console.log('[Watchtower OAuth] Retrying authentication after registration...')
       const newTimestamp = Math.floor(Date.now() / 1000)
       const auth = await client.authenticate(
         walletHash,
@@ -182,7 +174,6 @@ export async function getAuthHeaders() {
         domain
       )
       
-      console.log('[Watchtower OAuth] Authentication successful after registration')
       await saveToken(auth.access_token)
       return { 'Authorization': `Bearer ${auth.access_token}` }
     }

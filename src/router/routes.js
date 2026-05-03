@@ -152,6 +152,7 @@ const routes = [
       { path: 'debug', component: () => import('src/pages/apps/debug/index.vue'), name: 'app-debug' },
       { path: 'debug/address-key-viewer', component: () => import('src/pages/apps/debug/tools.vue'), name: 'app-debug-address-key-viewer' },
       { path: 'debug/console', component: () => import('src/pages/apps/debug/console.vue'), name: 'app-debug-console' },
+      { path: 'debug/push-notifications-reset', component: () => import('src/pages/apps/debug/push-notifications-reset.vue'), name: 'app-debug-push-notifications-reset' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
