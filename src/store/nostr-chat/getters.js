@@ -31,8 +31,24 @@ export function getRooms (state) {
   const myPubKey = state.keys?.pubKeyHex
   if (!myPubKey) return []
   return state.rooms
-    .filter(r => r.members?.includes(myPubKey))
+    .filter(r => r.members?.includes(myPubKey) && !r.archived)
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+}
+
+export function getArchivedRooms (state) {
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return []
+  return state.rooms
+    .filter(r => r.members?.includes(myPubKey) && r.archived)
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+}
+
+export function isContactBlocked (state) {
+  return (pubKeyHex) => state.blockedContacts?.includes(pubKeyHex) || false
+}
+
+export function getBlockedContacts (state) {
+  return state.blockedContacts || []
 }
 
 export function getRoom (state) {
@@ -127,6 +143,10 @@ export function isReady (state) {
 
 export function isInitialized (state) {
   return state.initialized
+}
+
+export function isSubscribed (state) {
+  return state.isSubscribed
 }
 
 export function computeRoomId (state, getters) {

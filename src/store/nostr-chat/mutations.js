@@ -14,6 +14,10 @@ export function SET_RELAY_STATUS (state, { url, status }) {
   state.relayStatus = { ...state.relayStatus, [url]: status }
 }
 
+export function SET_SUBSCRIBED (state, val) {
+  state.isSubscribed = val
+}
+
 export function ADD_CONTACT (state, contact) {
   if (!state.contacts.find(c => c.npub === contact.npub)) {
     state.contacts.push(contact)
@@ -63,6 +67,32 @@ export function UPDATE_ROOM_NAME (state, { roomId, name }) {
 export function REMOVE_ROOM (state, roomId) {
   state.rooms = state.rooms.filter(r => r.id !== roomId)
   delete state.messages[roomId]
+}
+
+export function ARCHIVE_ROOM (state, roomId) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (room) {
+    room.archived = true
+    room.updatedAt = Math.floor(Date.now() / 1000)
+  }
+}
+
+export function UNARCHIVE_ROOM (state, roomId) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (room) {
+    room.archived = false
+    room.updatedAt = Math.floor(Date.now() / 1000)
+  }
+}
+
+export function BLOCK_CONTACT (state, pubKeyHex) {
+  if (!state.blockedContacts.includes(pubKeyHex)) {
+    state.blockedContacts.push(pubKeyHex)
+  }
+}
+
+export function UNBLOCK_CONTACT (state, pubKeyHex) {
+  state.blockedContacts = state.blockedContacts.filter(k => k !== pubKeyHex)
 }
 
 export function ADD_MESSAGE (state, { roomId, message }) {

@@ -28,6 +28,7 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   // Restart relay subscription for the new identity
   relayService.stopStatusPolling()
   relayService.disconnect()
+  commit('SET_SUBSCRIBED', false)
   dispatch('subscribeToRelays')
 }
 
@@ -273,6 +274,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
   let room = state.rooms.find(r => r.id === roomId)
   if (!room) {
+    // Skip auto-creation if the sender is blocked
+    if (state.blockedContacts?.includes(rumor.pubkey)) return
+
     const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
     room = {
       id: roomId,
@@ -373,18 +377,34 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
     },
   })
 
-  // Start polling relay connection status every 5s
-  relayService.startStatusPolling(state.relays, (status) => {
-    for (const url of state.relays) {
-      const s = status[url] || 'disconnected'
-      commit('SET_RELAY_STATUS', { url, status: s })
-    }
-  }, 5000)
+  commit('SET_SUBSCRIBED', relayService.isSubscribed())
+
+  // Only start status polling if not already running
+  if (!relayService.isSubscribed()) {
+    relayService.startStatusPolling(state.relays, (status) => {
+      for (const url of state.relays) {
+        const s = status[url] || 'disconnected'
+        commit('SET_RELAY_STATUS', { url, status: s })
+      }
+    }, 15000)
+  }
 
   return sub
 }
 
+let _lastEnsureTime = 0
+const ENSURE_COOLDOWN_MS = 2000
+
 export function ensureSubscribed ({ dispatch, getters }) {
+  const now = Date.now()
+
+  // Debounce: skip if we ensured recently
+  if ((now - _lastEnsureTime) < ENSURE_COOLDOWN_MS) return
+  _lastEnsureTime = now
+
+  // Skip if already subscribed and not stale
+  if (relayService.isSubscribed() && getters['isInitialized']) return
+
   // Ensure we have an active relay subscription,
   // especially after the app has been backgrounded or a push arrives.
   if (!getters['isInitialized']) {
@@ -396,7 +416,8 @@ export function ensureSubscribed ({ dispatch, getters }) {
   }
 }
 
-export function disconnectRelays () {
+export function disconnectRelays ({ commit }) {
   relayService.stopStatusPolling()
   relayService.disconnect()
+  commit('SET_SUBSCRIBED', false)
 }
