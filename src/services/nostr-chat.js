@@ -389,12 +389,17 @@ export async function fetchKind10050(relays, pubKey) {
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
   try {
+    console.log('[Nostr] Querying relays for BCH address:', relays, 'pubkey:', pubKey?.slice(0, 12) + '...')
     const events = await pool.querySync(relays, {
       kinds: [30078],
       authors: [pubKey],
       '#d': ['paytaca:bch-address'],
       limit: 1,
     })
+    console.log('[Nostr] BCH address query returned:', events?.length || 0, 'events')
+    if (events?.length) {
+      console.log('[Nostr] First event:', JSON.stringify(events[0]).slice(0, 200))
+    }
     return events?.[0] || null
   } catch (err) {
     console.warn('[Nostr] Failed to fetch BCH address:', err)
