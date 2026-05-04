@@ -138,7 +138,7 @@ export default {
           timeout: 2000
         })
 
-        const nostrResponse = await this.$store.dispatch('nostrChat/registerForPushNotifications')
+        const nostrResponse = await this.$store.dispatch('nostrChat/registerNostrPubkey')
         console.log('Nostr register response:', nostrResponse)
 
         this.$q.notify({

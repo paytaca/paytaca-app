@@ -3,8 +3,7 @@ import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
 import Watchtower from 'watchtower-cash-js'
-import { Capacitor } from '@capacitor/core'
-import { getAuthHeaders } from 'src/utils/watchtower-oauth'
+import { getAuthHeaders, clearToken } from 'src/utils/watchtower-oauth'
 
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
@@ -21,9 +20,8 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   commit('SET_KEYS', keys)
   relayService.setAuthKey(keys.privKeyHex)
 
-  // Register this wallet's Nostr pubkey for push notifications
-  // (additive — other devices with the same wallet keep receiving pushes)
-  await dispatch('registerForPushNotifications')
+  // Register this wallet's Nostr pubkey in Watchtower
+  await dispatch('registerNostrPubkey')
 
   // Restart relay subscription for the new identity
   relayService.stopStatusPolling()
@@ -52,47 +50,66 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
   // Fetch historical gift-wraps that might have been published before our subscription started
   await dispatch('fetchHistoricalMessages')
 
-  // Register this wallet's Nostr pubkey for push notifications
-  await dispatch('registerForPushNotifications')
+  // Register this wallet's Nostr pubkey in Watchtower
+  dispatch('registerNostrPubkey')
 }
 
-export async function registerForPushNotifications ({ state, rootGetters }) {
-  if (!state.keys.pubKeyHex) return
-
-  // Only register on mobile (push notifications are not available on web/PWA)
-  const platform = Capacitor.getPlatform()
-  if (platform !== 'ios' && platform !== 'android') return
-
-  // Use the existing push notification manager's token and device ID
-  const pushManager = this._vm?.$pushNotifications
-  if (!pushManager?.registrationToken || !pushManager?.deviceId) {
-    // Token not ready yet — retry after a delay
-    setTimeout(() => {
-      this.dispatch('nostrChat/registerForPushNotifications')
-    }, 5000)
+export async function registerNostrPubkey ({ state, rootGetters }) {
+  if (!state.keys.pubKeyHex) {
+    console.log('[Nostr] Skip pubkey registration: no pubkey')
     return
   }
 
   const walletIndex = rootGetters['global/getWalletIndex']
   const walletHash = rootGetters['global/getWalletHashByIndex']?.(walletIndex)
-  if (!walletHash) return
+  if (!walletHash) {
+    console.log('[Nostr] Skip pubkey registration: no wallet hash')
+    return
+  }
 
   const watchtower = new Watchtower(rootGetters['global/isChipnet'])
+
+  // Check if already registered
+  try {
+    const checkResponse = await watchtower.BCH._api.get(`/nostr/check/${state.keys.pubKeyHex}/`)
+    if (checkResponse?.data?.registered) {
+      console.log('[Nostr] Pubkey already registered')
+      return
+    }
+  } catch {
+    // Check failed, proceed with registration attempt
+  }
+
   const data = {
     pubkey: state.keys.pubKeyHex,
     wallet_hash: walletHash,
-    multi_wallet_index: walletIndex,
-    device_id: pushManager.deviceId,
-    registration_id: pushManager.registrationToken,
-    platform,
   }
+
+  console.log('[Nostr] Registering pubkey...', data)
 
   try {
     const headers = await getAuthHeaders()
-    const response = await watchtower.BCH._api.post('/nostr/push/register/', data, { headers })
-    console.log('[Nostr] Push registration successful:', response.data)
+    const response = await watchtower.BCH._api.post('/nostr/register/', data, { headers })
+    console.log('[Nostr] Pubkey registration successful:', response.data)
   } catch (err) {
-    console.warn('[Nostr] Failed to register for push notifications:', err?.response?.status, err?.response?.data, err?.message || err)
+    const status = err?.response?.status
+    
+    // If token expired (401), clear it and retry once
+    if (status === 401) {
+      console.log('[Nostr] Token expired, clearing and retrying...')
+      await clearToken()
+      try {
+        const headers = await getAuthHeaders()
+        const response = await watchtower.BCH._api.post('/nostr/register/', data, { headers })
+        console.log('[Nostr] Pubkey registration successful (retry):', response.data)
+        return
+      } catch (retryErr) {
+        console.warn('[Nostr] Retry failed:', retryErr?.response?.status, retryErr?.response?.data, retryErr?.message || retryErr)
+        return
+      }
+    }
+    
+    console.warn('[Nostr] Failed to register pubkey:', status, err?.response?.data, err?.message || err)
   }
 }
 
@@ -401,6 +418,10 @@ export function ensureSubscribed ({ dispatch, getters }) {
   // Debounce: skip if we ensured recently
   if ((now - _lastEnsureTime) < ENSURE_COOLDOWN_MS) return
   _lastEnsureTime = now
+
+  // Always re-register pubkey-to-wallet mapping when chat opens
+  // This ensures the pubkey stays registered in Watchtower
+  dispatch('registerNostrPubkey')
 
   // Skip if already subscribed and not stale
   if (relayService.isSubscribed() && getters['isInitialized']) return
