@@ -110,7 +110,7 @@
             v-else-if="activeTab === 'Order Card' && activeCard"
             class="full-width"
           >
-            <div v-if="!showOrderPhysicalCardForm" class="order-physical-card-intro text-center q-pa-lg">
+            <div class="order-physical-card-intro text-center q-pa-lg">
               <div 
                 class="text-h5 text-weight-bold q-mb-sm"
                 :class="textColor"
@@ -134,115 +134,14 @@
                 <strong>International shipping:</strong> May take longer depending on destination
               </div>
               <q-btn 
-                :label="'Get Started'" 
+                :label="'Order Your Card'" 
                 color="primary" 
                 class="q-px-xl q-mt-lg text-bold"
                 unelevated
                 rounded
-                @click="activateOrderPhysicalCardForm"
+                icon="open_in_new"
+                @click="openOrderCardWebsite"
               />
-            </div>
-
-            <div v-else class="order-physical-card-form">
-              <div 
-                class="row items-center justify-between q-mb-md"
-                :class="bgColor"
-                style="border-radius: 12px; padding: 16px;"
-              >
-                <div 
-                  class="text-subtitle1 text-bold text-primary"
-                >
-                  Shipping Details
-                </div>
-                <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="closeOrderPhysicalCardForm" />
-              </div>
-
-              <q-form @submit="handleOrderPhysicalCard" class="q-col-gutter-md">
-                <div class="col-12">
-                  <q-input 
-                    outlined 
-                    dense 
-                    v-model="orderPhysicalCardData.fullName" 
-                    label="Full Name *" 
-                    :dark="$q.dark.isActive"
-                    :rules="[val => !!val || 'Full name is required']"
-                    lazy-rules
-                  />
-                </div>
-                  
-                <div class="row q-col-gutter-md">
-                  <div class="col-6">
-                    <q-input 
-                      outlined 
-                      dense 
-                      v-model="orderPhysicalCardData.city" 
-                      label="City *" 
-                      :dark="$q.dark.isActive"
-                      :rules="[val => !!val || 'City is required']"
-                      lazy-rules
-                    />
-                  </div>
-                  <div class="col-6">
-                    <q-input 
-                      outlined 
-                      dense 
-                      v-model="orderPhysicalCardData.state" 
-                      label="State *" 
-                      :dark="$q.dark.isActive"
-                      :rules="[val => !!val || 'State is required']"
-                      lazy-rules
-                    />
-                  </div>
-                  <div class="col-6">
-                    <q-input 
-                      outlined 
-                      dense 
-                      v-model="orderPhysicalCardData.zip" 
-                      label="Zip *" 
-                      :dark="$q.dark.isActive"
-                      :rules="[val => !!val || 'Zip code is required']"
-                      lazy-rules
-                    />
-                  </div>
-                  <div class="col-6">
-                    <q-input 
-                      outlined 
-                      dense 
-                      v-model="orderPhysicalCardData.country" 
-                      label="Country *" 
-                      :dark="$q.dark.isActive"
-                      :rules="[val => !!val || 'Country is required']"
-                      lazy-rules
-                    />
-                  </div>
-                </div>
-                
-                <div 
-                  class="text-caption q-mt-sm"
-                  :class="textColorGrey"
-                >
-                  <q-icon name="place" color="primary"/>
-                  Click or drag the marker to your location to auto-fill address fields.
-                </div>  
-
-                <div 
-                  ref="orderFormMapContainer" 
-                  class="q-mt-md order-form-map"
-                  style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid;"
-                  :style="$q.dark.isActive ? 'border-color: #424242;' : 'border-color: #ddd;'"
-                ></div>
-
-                <div class="row justify-center q-mt-lg">
-                  <q-btn 
-                    label="Confirm Order" 
-                    color="primary" 
-                    type="submit" 
-                    class="q-px-xl"
-                    unelevated 
-                    rounded
-                  />
-                </div>
-              </q-form>
             </div>
           </div>
 
@@ -1270,6 +1169,25 @@ export default {
       this.cashInCurrency = this.selectedCurrency?.symbol || 'USD'
       this.cashInAmount = ''
       this.showCashInDialog = true
+    },
+
+    openOrderCardWebsite () {
+      // Local development URL - change this to your production URL when ready
+      const orderCardUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:9000/order-card.html'
+        : `${window.location.origin}/order-card.html`
+      
+      // Open in external browser
+      if (window.cordova && window.cordova.InAppBrowser) {
+        // Mobile: use InAppBrowser
+        window.cordova.InAppBrowser.open(orderCardUrl, '_system')
+      } else if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+        // Capacitor
+        window.Capacitor.Plugins.Browser.open({ url: orderCardUrl })
+      } else {
+        // Web: use window.open
+        window.open(orderCardUrl, '_blank')
+      }
     },
 
     handleCashIn () {
