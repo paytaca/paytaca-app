@@ -46,23 +46,51 @@
         />
       </div>
 
-      <!-- Relay status -->
-      <div class="relay-section">
-          <div class="relay-label">{{ $t('RelayServer', {}, 'Relay Server') }}</div>
-        <relay-status-chip :relay-urls="relays" :relay-status="relayStatus" />
-      </div>
-
       <!-- Rooms list -->
       <div class="rooms-section" :class="getDarkModeClass(darkMode)">
-        <div class="section-header">
-          <span class="section-title">{{ $t('Conversations', {}, 'Conversations') }}</span>
-          <span v-if="rooms.length" class="section-count">{{ rooms.length }}</span>
-        </div>
-        <room-list
-          :rooms="rooms"
-          :messages="messages"
-          @select-room="openRoom"
-        />
+        <q-tabs
+          v-model="chatTab"
+          dense
+          class="text-grey-7 tabs-header"
+          active-color="primary"
+          indicator-color="primary"
+          align="left"
+          narrow-indicator
+        >
+          <q-tab name="active" :label="$t('Active', {}, 'Active')" />
+          <q-tab name="archived" :label="$t('Archived', {}, 'Archived')" />
+        </q-tabs>
+
+        <q-tab-panels v-model="chatTab" animated>
+          <q-tab-panel name="active" class="q-pa-none">
+            <div class="section-header">
+              <span class="section-title">{{ $t('Conversations', {}, 'Conversations') }}</span>
+              <span v-if="rooms.length" class="section-count">{{ rooms.length }}</span>
+            </div>
+            <room-list
+              :rooms="rooms"
+              :messages="messages"
+              @select-room="openRoom"
+              @archive-room="confirmArchiveRoom"
+              @block-room="confirmBlockRoom"
+              @unblock-room="confirmUnblockRoom"
+            />
+          </q-tab-panel>
+          <q-tab-panel name="archived" class="q-pa-none">
+            <div class="section-header">
+              <span class="section-title">{{ $t('ArchivedConversations', {}, 'Archived Conversations') }}</span>
+              <span v-if="archivedRooms.length" class="section-count">{{ archivedRooms.length }}</span>
+            </div>
+            <room-list
+              :rooms="archivedRooms"
+              :messages="messages"
+              archived
+              @select-room="openRoom"
+              @unarchive-room="unarchiveRoom"
+              @delete-room="confirmDeleteRoom"
+            />
+          </q-tab-panel>
+        </q-tab-panels>
       </div>
     </div>
 
@@ -224,15 +252,16 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
-import RelayStatusChip from 'src/components/chat/RelayStatusChip.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { copyToClipboard } from 'quasar'
+import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
   name: 'ChatApp',
-  components: { HeaderNav, RoomList, RelayStatusChip, QrScanner },
+  components: { HeaderNav, RoomList, QrScanner },
   data () {
     return {
+      chatTab: 'active',
       showNewChatDialog: false,
       showQrDialog: false,
       showQrScanner: false,
@@ -256,14 +285,11 @@ export default {
       if (npub.length <= 24) return npub
       return npub.slice(0, 12) + '...' + npub.slice(-8)
     },
-    relays () {
-      return this.$store.state.nostrChat.relays
-    },
-    relayStatus () {
-      return this.$store.getters['nostrChat/getRelayStatus']
-    },
     rooms () {
       return this.$store.getters['nostrChat/getRooms']
+    },
+    archivedRooms () {
+      return this.$store.getters['nostrChat/getArchivedRooms']
     },
     messages () {
       return this.$store.state.nostrChat.messages
@@ -358,6 +384,176 @@ export default {
     openRoom (roomId) {
       this.$router.push(`/apps/chat/${roomId}`)
     },
+    confirmArchiveRoom (roomId) {
+      const room = this.rooms.find(r => r.id === roomId)
+      if (!room) return
+
+      const roomName = this.getRoomDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('ArchiveConversation', {}, 'Archive Conversation'),
+        message: this.$t('ArchiveConversationConfirm', { name: roomName }, `Archive conversation with ${roomName}?`),
+        cancel: {
+          label: this.$t('Cancel', {}, 'Cancel'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('Archive', {}, 'Archive'),
+          color: 'primary',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.commit('nostrChat/ARCHIVE_ROOM', roomId)
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ConversationArchived', {}, 'Conversation archived'),
+        })
+      })
+    },
+    confirmBlockRoom (roomId) {
+      const room = this.rooms.find(r => r.id === roomId)
+      if (!room) return
+
+      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
+      if (!otherPubKey) return
+
+      const roomName = this.getRoomDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('BlockContact', {}, 'Block Contact'),
+        message: this.$t('BlockContactConfirm', { name: roomName }, `Block ${roomName}? They won't be able to start new conversations with you, and you won't receive their messages.`),
+        cancel: {
+          label: this.$t('Cancel', {}, 'Cancel'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('Block', {}, 'Block'),
+          color: 'negative',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ContactBlocked', {}, 'Contact blocked'),
+        })
+      })
+    },
+    confirmUnblockRoom (roomId) {
+      const room = this.rooms.find(r => r.id === roomId)
+      if (!room) return
+
+      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
+      if (!otherPubKey) return
+
+      const roomName = this.getRoomDisplayName(room)
+      this.$q.dialog({
+        title: this.$t('UnblockContact', {}, 'Unblock Contact'),
+        message: this.$t('UnblockContactConfirm', { name: roomName }, `Unblock ${roomName}? They will be able to send you messages again.`),
+        cancel: {
+          label: this.$t('Cancel', {}, 'Cancel'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('Unblock', {}, 'Unblock'),
+          color: 'primary',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('ContactUnblocked', {}, 'Contact unblocked'),
+        })
+      })
+    },
+    unarchiveRoom (roomId) {
+      this.$store.commit('nostrChat/UNARCHIVE_ROOM', roomId)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('ConversationUnarchived', {}, 'Conversation unarchived'),
+      })
+    },
+    confirmDeleteRoom (roomId) {
+      const room = this.archivedRooms.find(r => r.id === roomId)
+      if (!room) return
+
+      const otherPubKey = room.members?.find(m => m !== this.$store.getters['nostrChat/myPubKey'])
+      const roomName = this.getRoomDisplayName(room)
+      const isBlocked = otherPubKey && this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
+
+      // If already blocked, just offer delete
+      if (isBlocked) {
+        this.$q.dialog({
+          title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete conversation with ${roomName}?`),
+          cancel: {
+            label: this.$t('Cancel', {}, 'Cancel'),
+            flat: true,
+            color: 'grey',
+          },
+          ok: {
+            label: this.$t('Delete', {}, 'Delete'),
+            color: 'negative',
+            flat: true,
+          },
+          persistent: true,
+        }).onOk(() => {
+          this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+          this.$q.notify({
+            type: 'info',
+            message: this.$t('ConversationDeleted', {}, 'Conversation deleted'),
+          })
+        })
+        return
+      }
+
+      // Not blocked — offer both options
+      this.$q.dialog({
+        title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+        message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+        options: {
+          type: 'radio',
+          model: 'delete',
+          items: [
+            {
+              label: this.$t('DeleteOnly', {}, 'Delete only'),
+              value: 'delete',
+              description: this.$t('DeleteOnlyDesc', {}, 'Remove this conversation. You may receive new messages from this contact.'),
+            },
+            {
+              label: this.$t('BlockAndDelete', {}, 'Block and delete'),
+              value: 'block_delete',
+              description: this.$t('BlockAndDeleteDesc', {}, 'Block this contact and remove the conversation. You won\'t receive messages from them.'),
+            },
+          ],
+        },
+        cancel: {
+          label: this.$t('Cancel', {}, 'Cancel'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('Confirm', {}, 'Confirm'),
+          color: 'negative',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk((option) => {
+        if (option === 'block_delete' && otherPubKey) {
+          this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+        }
+        this.$store.commit('nostrChat/REMOVE_ROOM', roomId)
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ConversationDeleted', {}, 'Conversation deleted'),
+        })
+      })
+    },
 openScannerFromDialog () {
         this.showNewChatDialog = false
         this.reopenDialogAfterScan = true
@@ -378,6 +574,25 @@ openScannerFromDialog () {
       },
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
+    },
+    getRoomDisplayName (room) {
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      if (!myPubKey) return room.name || 'Chat'
+
+      const otherPubKey = room.members?.find(m => m !== myPubKey)
+      if (!otherPubKey) return room.name || 'Chat'
+
+      let otherNpub = null
+      try {
+        otherNpub = npubEncode(otherPubKey)
+      } catch {
+        return room.name || 'Chat'
+      }
+
+      const contact = this.$store.getters['nostrChat/getContactByNpub'](otherNpub)
+      if (contact) return contact.name
+
+      return otherNpub.slice(0, 12) + '...' + otherNpub.slice(-8)
     },
     async addContactAndChat () {
       try {
@@ -514,26 +729,6 @@ openScannerFromDialog () {
   margin: 0 auto;
 }
 
-/* Relay section */
-.relay-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  background: rgba(0, 0, 0, 0.01);
-}
-
-.relay-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  margin-right: 12px;
-}
-
 /* Rooms section */
 .rooms-section {
   padding-bottom: 80px;
@@ -645,6 +840,35 @@ openScannerFromDialog () {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
+/* Tabs */
+.tabs-header {
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.tabs-header :deep(.q-tab) {
+  text-transform: none;
+  font-weight: 600;
+  font-size: 13px;
+  min-height: 40px;
+}
+
+.tabs-header :deep(.q-tab__content) {
+  padding: 0 12px;
+}
+
+.tabs-header :deep(.q-tab--active) {
+  color: var(--q-primary);
+}
+
+.tabs-header :deep(.q-tab-panels) {
+  background: transparent;
+}
+
+.tabs-header :deep(.q-tab-panel) {
+  padding: 0;
+}
+
 .npub-caption {
   font-family: 'Courier New', monospace;
   font-size: 12px;
@@ -668,11 +892,6 @@ openScannerFromDialog () {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-.dark .relay-section {
-  background: rgba(255, 255, 255, 0.01);
-  border-bottom-color: rgba(255, 255, 255, 0.04);
-}
-
 .dark .section-title {
   color: #64748b;
 }
@@ -683,6 +902,10 @@ openScannerFromDialog () {
 
 .dark .contact-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .tabs-header {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
 }
 
 .dark .qr-btn {

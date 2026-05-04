@@ -1,54 +1,86 @@
 <template>
   <div class="room-list">
-    <div
+    <q-slide-item
       v-for="room in rooms"
       :key="room.id"
-      class="room-item"
-      :class="getDarkModeClass(darkMode)"
-      @click="$emit('select-room', room.id)"
+      :left-color="archived ? 'blue' : 'red'"
+      :right-color="archived ? 'red' : 'blue'"
+      @left="(evt) => onSwipeLeft(room, evt)"
+      @right="(evt) => onSwipeRight(room, evt)"
     >
-      <div class="room-avatar">
-          <q-avatar
-              size="52px"
-              class="avatar-bg"
-              :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
-            >
-              <q-icon v-if="room.type === 'group'" name="group" size="24px" />
-              <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
-            </q-avatar>
-      </div>
-      <div class="room-content">
-        <div class="room-header">
-          <div class="room-name" :class="getDarkModeClass(darkMode)">
-            {{ roomName(room) }}
-          </div>
-          <div v-if="room.updatedAt" class="room-time">
-            {{ formatTime(room.updatedAt) }}
-          </div>
+      <template v-slot:left>
+        <div class="row items-center q-gutter-sm">
+          <q-icon :name="archived ? 'unarchive' : (isRoomBlocked(room) ? 'lock_open' : 'block')" size="20px" color="white" />
+          <span class="text-white text-weight-medium" style="font-size: 13px;">
+            {{ archived ? $t('Unarchive', {}, 'Unarchive') : (isRoomBlocked(room) ? $t('Unblock', {}, 'Unblock') : $t('Block', {}, 'Block')) }}
+          </span>
         </div>
-        <div class="room-preview-row">
-          <div class="room-preview" :class="getDarkModeClass(darkMode)">
-            {{ lastMessagePreview(room.id) }}
-          </div>
-          <div class="room-badges">
-            <div v-if="unreadCount(room.id) > 0" class="unread-badge">
-              {{ unreadCount(room.id) }}
+      </template>
+      <template v-slot:right>
+        <div class="row items-center q-gutter-sm">
+          <q-icon :name="archived ? 'delete' : 'archive'" size="20px" color="white" />
+          <span class="text-white text-weight-medium" style="font-size: 13px;">
+            {{ archived ? $t('Delete', {}, 'Delete') : $t('Archive', {}, 'Archive') }}
+          </span>
+        </div>
+      </template>
+
+      <div
+        class="room-item"
+        :class="getDarkModeClass(darkMode)"
+        @click="$emit('select-room', room.id)"
+      >
+        <div class="room-avatar">
+            <q-avatar
+                size="52px"
+                class="avatar-bg"
+                :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
+              >
+                <q-icon v-if="room.type === 'group'" name="group" size="24px" />
+                <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
+              </q-avatar>
+        </div>
+        <div class="room-content">
+          <div class="room-header">
+            <div class="room-name" :class="getDarkModeClass(darkMode)">
+              {{ roomName(room) }}
             </div>
-            <q-badge
-              v-if="room.type === 'group'"
-              color="accent"
-              label="group"
-              outline
-              class="room-badge"
-            />
+            <div v-if="room.updatedAt" class="room-time">
+              {{ formatTime(room.updatedAt) }}
+            </div>
+          </div>
+          <div class="room-preview-row">
+            <div class="room-preview" :class="getDarkModeClass(darkMode)">
+              {{ lastMessagePreview(room.id) }}
+            </div>
+            <div class="room-badges">
+              <div v-if="unreadCount(room.id) > 0" class="unread-badge">
+                {{ unreadCount(room.id) }}
+              </div>
+              <q-badge
+                v-if="isRoomBlocked(room)"
+                color="red"
+                label="blocked"
+                outline
+                class="room-badge"
+              />
+              <q-badge
+                v-if="room.type === 'group'"
+                color="accent"
+                label="group"
+                outline
+                class="room-badge"
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </q-slide-item>
     <div v-if="rooms.length === 0" class="empty-state">
-      <q-icon name="chat_bubble_outline" size="56px" class="empty-icon" />
-      <div class="empty-title">{{ $t('NoChatsYet', {}, 'No chats yet') }}</div>
-      <div class="empty-subtitle">{{ $t('StartNewChatPrompt', {}, 'Start a new chat to begin messaging') }}</div>
+      <q-icon :name="archived ? 'archive' : 'chat_bubble_outline'" size="56px" class="empty-icon" />
+      <div v-if="archived" class="empty-title">{{ $t('NoArchivedChats', {}, 'No archived chats') }}</div>
+      <div v-else class="empty-title">{{ $t('NoChatsYet', {}, 'No chats yet') }}</div>
+      <div v-if="!archived" class="empty-subtitle">{{ $t('StartNewChatPrompt', {}, 'Start a new chat to begin messaging') }}</div>
     </div>
   </div>
 </template>
@@ -63,8 +95,9 @@ export default {
   props: {
     rooms: { type: Array, default: () => [] },
     messages: { type: Object, default: () => ({}) },
+    archived: { type: Boolean, default: false },
   },
-  emits: ['select-room'],
+  emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room'],
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -98,6 +131,29 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    isRoomBlocked (room) {
+      const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+      if (!otherPubKey) return false
+      return this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
+    },
+    onSwipeLeft (room, { reset }) {
+      reset()
+      if (this.archived) {
+        this.$emit('unarchive-room', room.id)
+      } else if (this.isRoomBlocked(room)) {
+        this.$emit('unblock-room', room.id)
+      } else {
+        this.$emit('block-room', room.id)
+      }
+    },
+    onSwipeRight (room, { reset }) {
+      reset()
+      if (this.archived) {
+        this.$emit('delete-room', room.id)
+      } else {
+        this.$emit('archive-room', room.id)
+      }
+    },
     roomInitial (room) {
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (otherPubKey) {
