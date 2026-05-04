@@ -128,13 +128,16 @@ export async function publishBchAddress ({ state, commit }, { address }) {
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
+      ['p', state.keys.pubKeyHex],
     ],
     content: address,
   }, privKeyBytes)
 
-  const accepted = await relayService.publishEvent(state.relays, event)
+  const { accepted, errors } = await relayService.publishEvent(state.relays, event)
   if (accepted.length === 0) {
-    throw new Error('No relay accepted the BCH address event')
+    const errorDetails = errors.map(e => `${e.relay}: ${e.reason}`).join('; ')
+    console.warn('[Nostr] Publish failed:', errorDetails)
+    throw new Error(`No relay accepted the event. ${errorDetails || 'Check console for details.'}`)
   }
 
   commit('SET_PROFILE_BCH_ADDRESS', {
@@ -157,13 +160,16 @@ export async function removeBchAddress ({ state, commit }) {
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
+      ['p', state.keys.pubKeyHex],
     ],
     content: '',
   }, privKeyBytes)
 
-  const accepted = await relayService.publishEvent(state.relays, event)
+  const { accepted, errors } = await relayService.publishEvent(state.relays, event)
   if (accepted.length === 0) {
-    throw new Error('No relay accepted the removal event')
+    const errorDetails = errors.map(e => `${e.relay}: ${e.reason}`).join('; ')
+    console.warn('[Nostr] Removal publish failed:', errorDetails)
+    throw new Error(`No relay accepted the removal event. ${errorDetails || 'Check console for details.'}`)
   }
 
   commit('CLEAR_PROFILE_BCH_ADDRESS')

@@ -154,11 +154,13 @@ export function SET_RELAYS (state, relays) {
 }
 
 export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {
+  if (!state.profile) state.profile = {}
   state.profile.bchAddress = address
   state.profile.publishedAt = publishedAt
 }
 
 export function CLEAR_PROFILE_BCH_ADDRESS (state) {
+  if (!state.profile) state.profile = {}
   state.profile.bchAddress = null
   state.profile.publishedAt = null
 }

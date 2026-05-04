@@ -344,6 +344,7 @@ export async function publish(relays, events) {
 export async function publishEvent(relays, event) {
   const pool = getPool()
   const accepted = []
+  const errors = []
   try {
     const promises = pool.publish(relays, event, { maxWait: 15000 })
     const results = await Promise.allSettled(promises)
@@ -351,13 +352,15 @@ export async function publishEvent(relays, event) {
       if (result.status === 'fulfilled') {
         accepted.push(relays[i])
       } else {
-        console.warn(`[Nostr] Failed to publish event ${event.kind} to ${relays[i]}:`, result.reason?.message || result.reason)
+        const reason = result.reason?.message || result.reason
+        errors.push({ relay: relays[i], reason })
+        console.warn(`[Nostr] Failed to publish event ${event.kind} to ${relays[i]}:`, reason)
       }
     })
   } catch (err) {
     console.warn('[Nostr] Failed to publish event:', err)
   }
-  return accepted
+  return { accepted, errors }
 }
 
 /**
