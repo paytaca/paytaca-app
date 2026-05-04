@@ -130,7 +130,7 @@ export async function publishBchAddress ({ state, commit }, { address }) {
       ['d', 'paytaca:bch-address'],
       ['p', state.keys.pubKeyHex],
     ],
-    content: JSON.stringify({ name: 'Paytaca BCH Address', address }),
+    content: JSON.stringify({ name: 'Paytaca BCH Address', data: { address } }),
   }, privKeyBytes)
 
   const { accepted, errors } = await relayService.publishEvent(state.relays, event)
@@ -162,7 +162,7 @@ export async function removeBchAddress ({ state, commit }) {
       ['d', 'paytaca:bch-address'],
       ['p', state.keys.pubKeyHex],
     ],
-    content: JSON.stringify({ name: 'Paytaca BCH Address' }),
+    content: JSON.stringify({ name: 'Paytaca BCH Address', data: {} }),
   }, privKeyBytes)
 
   const { accepted, errors } = await relayService.publishEvent(state.relays, event)
@@ -207,7 +207,7 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
     return null
   }
 
-  const address = parsed?.address?.trim()
+  const address = parsed?.data?.address?.trim()
   if (!address) {
     console.log('[Nostr] BCH address event has no address — was removed or empty')
     return null
