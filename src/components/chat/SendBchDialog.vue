@@ -35,6 +35,12 @@
           <div class="published-value">{{ publishedAddress }}</div>
         </div>
 
+        <!-- No published address found -->
+        <div v-if="addressLookupDone && !publishedAddress && !fetchingAddress" class="no-address q-mt-md">
+          <q-icon name="info" size="16px" color="grey-5" />
+          <span>{{ $t('NoPublishedAddress', {}, 'This user has not published a BCH address. Paste their address below.') }}</span>
+        </div>
+
         <!-- Address Input -->
         <div class="address-input-section q-mt-md">
           <div class="address-label">{{ $t('RecipientAddress', {}, 'Recipient BCH Address') }}</div>
@@ -94,6 +100,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
+import { Address } from 'src/wallet'
 import { getChangeAddress } from 'src/utils/send-page-utils'
 import { npubEncode } from 'nostr-tools/nip19'
 
@@ -115,6 +122,7 @@ export default {
       validatedAddress: '',
       publishedAddress: '',
       fetchingAddress: false,
+      addressLookupDone: false,
     }
   },
   computed: {
@@ -149,17 +157,16 @@ export default {
         const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
           pubKeyHex: this.recipientPubKey,
         })
-        console.log('[SendBchDialog] Fetched address:', address)
         if (address) {
           this.publishedAddress = address
           this.editableAddress = address
-          await this.$nextTick()
-          this.onAddressChange()
+          this.$nextTick(() => this.onAddressChange())
         }
       } catch (err) {
         console.warn('[SendBchDialog] Failed to fetch recipient address:', err)
       } finally {
         this.fetchingAddress = false
+        this.addressLookupDone = true
       }
     },
     onAddressChange () {
@@ -169,7 +176,7 @@ export default {
         return
       }
       const result = validateAddress(this.editableAddress, 'bch', false)
-      this.addressValid = result.valid
+      this.addressValid = result.valid && !!result.address
       this.validatedAddress = result.address || ''
     },
     onCancel () {
@@ -197,8 +204,9 @@ export default {
           throw new Error('Could not get change address')
         }
 
+        const recipientAddress = new Address(this.validatedAddress).toCashAddress()
         const recipients = [{
-          address: this.validatedAddress,
+          address: recipientAddress,
           amount: this.amount,
         }]
 
@@ -333,6 +341,18 @@ export default {
   word-break: break-all;
 }
 
+.no-address {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(156, 163, 175, 0.08);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
 .address-input-section {
   margin-top: 8px;
 }
@@ -377,5 +397,9 @@ export default {
 
 .dark .published-value {
   color: #e2e8f0;
+}
+
+.dark .no-address {
+  color: #9ca3af;
 }
 </style>

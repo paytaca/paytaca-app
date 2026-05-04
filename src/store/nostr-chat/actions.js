@@ -185,11 +185,10 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
     throw new Error('pubKeyHex is required')
   }
 
-  console.log('[Nostr] Fetching BCH address for pubkey:', pubKeyHex)
   const event = await relayService.fetchBchAddress(state.relays, pubKeyHex)
 
   if (!event) {
-    console.log('[Nostr] No BCH address found for pubkey:', pubKeyHex)
+    console.log('[Nostr] No BCH address event found on relay')
     return null
   }
 

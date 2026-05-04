@@ -388,48 +388,13 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  const filter = { kinds: [30078], authors: [pubKey], limit: 1 }
-  const _fetch = () => new Promise((resolve) => {
-    let settled = false
-    let events = []
-
-    const timeout = setTimeout(() => {
-      if (settled) return
-      settled = true
-      sub.close()
-      console.log('[Nostr] BCH address fetch timed out, got:', events.length, 'events')
-      resolve(events[0] || null)
-    }, 10000)
-
-    const sub = pool.subscribeMany(relays, filter, {
-      onevent(event) {
-        if (settled) return
-        const dTag = event.tags.find(t => t[0] === 'd')
-        if (!dTag || dTag[1] !== 'paytaca:bch-address') return
-        events.push(event)
-      },
-      oneose() {
-        if (settled) return
-        settled = true
-        clearTimeout(timeout)
-        sub.close()
-        console.log('[Nostr] BCH address fetch EOSE, events:', events.length)
-        resolve(events[0] || null)
-      },
-      onclose(reasons) {
-        if (settled) return
-        settled = true
-        clearTimeout(timeout)
-        console.log('[Nostr] BCH address fetch closed:', reasons)
-        resolve(events[0] || null)
-      },
-    })
-  })
-
   try {
-    console.log('[Nostr] Fetching BCH address for pubkey:', pubKey?.slice(0, 16) + '...')
-    const event = await _fetch()
-    return event
+    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
+    const match = events?.find(e => {
+      const dTag = e.tags?.find(t => t[0] === 'd')
+      return dTag && dTag[1] === 'paytaca:bch-address'
+    })
+    return match || null
   } catch (err) {
     console.warn('[Nostr] Failed to fetch BCH address:', err)
     return null
