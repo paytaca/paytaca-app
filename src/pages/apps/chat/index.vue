@@ -44,6 +44,14 @@
           class="qr-btn"
           @click="showQrDialog = true"
         />
+        <q-btn
+          flat
+          round
+          dense
+          icon="settings"
+          class="profile-btn"
+          @click="$router.push('/apps/chat/profile')"
+        />
       </div>
 
       <!-- Rooms list -->

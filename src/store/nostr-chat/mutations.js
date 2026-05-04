@@ -152,3 +152,13 @@ export function SET_MESSAGE_READ_BY (state, { roomId, messageId, readerPubKey })
 export function SET_RELAYS (state, relays) {
   state.relays = relays
 }
+
+export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {
+  state.profile.bchAddress = address
+  state.profile.publishedAt = publishedAt
+}
+
+export function CLEAR_PROFILE_BCH_ADDRESS (state) {
+  state.profile.bchAddress = null
+  state.profile.publishedAt = null
+}

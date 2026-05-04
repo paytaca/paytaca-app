@@ -1,4 +1,5 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap } from 'src/wallet/nostr'
+import { finalizeEvent, verifyEvent } from 'nostr-tools'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -111,6 +112,94 @@ export async function registerNostrPubkey ({ state, rootGetters }) {
     
     console.warn('[Nostr] Failed to register pubkey:', status, err?.response?.data, err?.message || err)
   }
+}
+
+/**
+ * Publish the user's BCH address as a NIP-78 replaceable event (kind:30078).
+ * Signed by the user's Nostr key so any client can verify authenticity.
+ */
+export async function publishBchAddress ({ state, commit }, { address }) {
+  if (!state.keys.privKeyHex) {
+    throw new Error('No Nostr private key available')
+  }
+  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', 'paytaca:bch-address'],
+    ],
+    content: address,
+  }, privKeyBytes)
+
+  const accepted = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    throw new Error('No relay accepted the BCH address event')
+  }
+
+  commit('SET_PROFILE_BCH_ADDRESS', {
+    address,
+    publishedAt: event.created_at,
+  })
+  console.log('[Nostr] Published BCH address:', address)
+}
+
+/**
+ * Remove the published BCH address by publishing an empty kind:30078 event.
+ */
+export async function removeBchAddress ({ state, commit }) {
+  if (!state.keys.privKeyHex) {
+    throw new Error('No Nostr private key available')
+  }
+  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', 'paytaca:bch-address'],
+    ],
+    content: '',
+  }, privKeyBytes)
+
+  const accepted = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    throw new Error('No relay accepted the removal event')
+  }
+
+  commit('CLEAR_PROFILE_BCH_ADDRESS')
+  console.log('[Nostr] Removed published BCH address')
+}
+
+/**
+ * Fetch a user's published BCH address from relays.
+ * Returns the address string or null if not found.
+ */
+export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
+  if (!pubKeyHex) {
+    throw new Error('pubKeyHex is required')
+  }
+
+  console.log('[Nostr] Fetching BCH address for pubkey:', pubKeyHex)
+  const event = await relayService.fetchBchAddress(state.relays, pubKeyHex)
+
+  if (!event) {
+    console.log('[Nostr] No BCH address found for pubkey:', pubKeyHex)
+    return null
+  }
+
+  if (!verifyEvent(event)) {
+    console.warn('[Nostr] BCH address event failed signature verification')
+    return null
+  }
+
+  const address = event.content?.trim()
+  if (!address) {
+    console.log('[Nostr] BCH address event is empty — address was removed')
+    return null
+  }
+
+  console.log('[Nostr] Found BCH address:', address)
+  return address
 }
 
 export async function publishKind10050 ({ state }) {

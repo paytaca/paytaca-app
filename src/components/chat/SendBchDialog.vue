@@ -26,6 +26,15 @@
           </div>
         </div>
 
+        <!-- Published address (from Nostr profile) -->
+        <div v-if="publishedAddress && !fetchingAddress" class="published-address q-mt-md">
+          <div class="published-label">
+            <q-icon name="verified" size="16px" color="positive" />
+            <span>{{ $t('PublishedAddress', {}, 'Published Address') }}</span>
+          </div>
+          <div class="published-value">{{ publishedAddress }}</div>
+        </div>
+
         <!-- Address Input -->
         <div class="address-input-section q-mt-md">
           <div class="address-label">{{ $t('RecipientAddress', {}, 'Recipient BCH Address') }}</div>
@@ -51,6 +60,12 @@
               />
             </template>
           </q-input>
+        </div>
+
+        <!-- Loading state -->
+        <div v-if="fetchingAddress" class="fetching-status q-mt-sm">
+          <q-spinner size="16px" />
+          <span>{{ $t('LookingUpAddress', {}, 'Looking up address from Nostr profile...') }}</span>
         </div>
       </q-card-section>
 
@@ -98,6 +113,8 @@ export default {
       editableAddress: '',
       addressValid: false,
       validatedAddress: '',
+      publishedAddress: '',
+      fetchingAddress: false,
     }
   },
   computed: {
@@ -118,12 +135,30 @@ export default {
   },
   async mounted () {
     await this.loadWallet()
+    await this.fetchRecipientAddress()
   },
   methods: {
     getDarkModeClass,
     async loadWallet () {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       this.wallet = await cachedLoadWallet('BCH', walletIndex)
+    },
+    async fetchRecipientAddress () {
+      this.fetchingAddress = true
+      try {
+        const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
+          pubKeyHex: this.recipientPubKey,
+        })
+        if (address) {
+          this.publishedAddress = address
+          this.editableAddress = address
+          this.onAddressChange()
+        }
+      } catch (err) {
+        console.warn('[SendBchDialog] Failed to fetch recipient address:', err)
+      } finally {
+        this.fetchingAddress = false
+      }
     },
     onAddressChange () {
       if (!this.editableAddress) {
@@ -270,6 +305,32 @@ export default {
   font-family: 'Courier New', monospace;
 }
 
+.published-address {
+  padding: 10px 12px;
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 10px;
+  border-left: 3px solid #22c55e;
+}
+
+.published-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.published-value {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #1f2937;
+  word-break: break-all;
+}
+
 .address-input-section {
   margin-top: 8px;
 }
@@ -287,6 +348,14 @@ export default {
   border-radius: 10px;
 }
 
+.fetching-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
 /* Dark mode */
 .dark .amount-value {
   color: #86efac;
@@ -302,5 +371,9 @@ export default {
 
 .dark .recipient-npub {
   color: #64748b;
+}
+
+.dark .published-value {
+  color: #e2e8f0;
 }
 </style>

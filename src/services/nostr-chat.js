@@ -378,6 +378,28 @@ export async function fetchKind10050(relays, pubKey) {
 }
 
 /**
+ * Fetch a user's published BCH address from relays (NIP-78 kind:30078).
+ * @param {string[]} relays
+ * @param {string} pubKey - Hex pubkey
+ * @returns {Promise<import('nostr-tools').Event|null>}
+ */
+export async function fetchBchAddress(relays, pubKey) {
+  const pool = getPool()
+  try {
+    const events = await pool.querySync(relays, {
+      kinds: [30078],
+      authors: [pubKey],
+      '#d': ['paytaca:bch-address'],
+      limit: 1,
+    })
+    return events?.[0] || null
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch BCH address:', err)
+    return null
+  }
+}
+
+/**
  * Query for historical kind:1059 gift-wraps addressed to our pubkey.
  * This catches messages that were published before our subscription was active.
  * @param {string[]} relays

@@ -20,5 +20,9 @@ export default function () {
     initialized: false,
     isSubscribed: false,
     relayStatus: {},
+    profile: {
+      bchAddress: null,
+      publishedAt: null,
+    },
   }
 }
