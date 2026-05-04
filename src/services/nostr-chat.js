@@ -389,18 +389,33 @@ export async function fetchKind10050(relays, pubKey) {
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
   try {
-    console.log('[Nostr] Querying relays for BCH address:', relays, 'pubkey:', pubKey?.slice(0, 12) + '...')
+    console.log('[Nostr] Querying BCH address on relays:', relays, 'pubkey:', pubKey?.slice(0, 16) + '...')
+    // First try with the specific filter
     const events = await pool.querySync(relays, {
       kinds: [30078],
       authors: [pubKey],
       '#d': ['paytaca:bch-address'],
       limit: 1,
     })
-    console.log('[Nostr] BCH address query returned:', events?.length || 0, 'events')
+    console.log('[Nostr] BCH address query (with #d filter):', events?.length || 0, 'events')
     if (events?.length) {
-      console.log('[Nostr] First event:', JSON.stringify(events[0]).slice(0, 200))
+      console.log('[Nostr] Event content:', events[0].content?.slice(0, 100))
+      return events[0]
     }
-    return events?.[0] || null
+
+    // Fallback: query without #d filter to see if any kind:30078 events exist
+    console.log('[Nostr] No event with #d filter, trying broader query...')
+    const allKinds = await pool.querySync(relays, {
+      kinds: [30078],
+      authors: [pubKey],
+      limit: 5,
+    })
+    console.log('[Nostr] Broader query returned:', allKinds?.length || 0, 'events')
+    if (allKinds?.length) {
+      console.log('[Nostr] Event tags:', JSON.stringify(allKinds[0].tags))
+      console.log('[Nostr] Event content:', allKinds[0].content?.slice(0, 200))
+    }
+    return null
   } catch (err) {
     console.warn('[Nostr] Failed to fetch BCH address:', err)
     return null
