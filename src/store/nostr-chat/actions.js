@@ -128,7 +128,7 @@ export async function publishBchAddress ({ state, commit }, { address }) {
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
-      ['p', state.keys.pubKeyHex],
+      ['name', 'Paytaca BCH Address'],
     ],
     content: JSON.stringify({ address }),
   }, privKeyBytes)
@@ -160,7 +160,7 @@ export async function removeBchAddress ({ state, commit }) {
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
-      ['p', state.keys.pubKeyHex],
+      ['name', 'Paytaca BCH Address'],
     ],
     content: JSON.stringify({}),
   }, privKeyBytes)
