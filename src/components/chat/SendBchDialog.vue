@@ -41,8 +41,8 @@
           <span>{{ $t('NoPublishedAddress', {}, 'This user has not published a BCH address. Paste their address below.') }}</span>
         </div>
 
-        <!-- Address Input -->
-        <div class="address-input-section q-mt-md">
+        <!-- Address Input (only shown when no published address) -->
+        <div v-if="!publishedAddress" class="address-input-section q-mt-md">
           <div class="address-label">{{ $t('RecipientAddress', {}, 'Recipient BCH Address') }}</div>
           <q-input
             v-model="editableAddress"
@@ -87,7 +87,7 @@
           :label="$t('SendBCH', {}, 'Send BCH')"
           color="positive"
           :loading="sending"
-          :disable="sending || !addressValid"
+          :disable="sending || !canSend"
           @click="send"
         />
       </q-card-actions>
@@ -140,6 +140,9 @@ export default {
     },
     recipientInitial () {
       return this.recipientName?.charAt(0)?.toUpperCase() || '?'
+    },
+    canSend () {
+      return !!this.publishedAddress || (this.addressValid && !!this.validatedAddress)
     },
   },
   async mounted () {
@@ -194,10 +197,20 @@ export default {
       this.$emit('cancel')
     },
     async send () {
-      if (!this.addressValid || !this.validatedAddress) {
+      if (!this.canSend) {
         this.$q.notify({
           type: 'negative',
           message: this.$t('InvalidAddress', {}, 'Please enter a valid BCH address'),
+        })
+        return
+      }
+
+      // Use published address if available, otherwise use manually validated address
+      const addressToSend = this.publishedAddress || this.validatedAddress
+      if (!addressToSend) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('InvalidAddress', {}, 'No recipient address available'),
         })
         return
       }
@@ -214,7 +227,7 @@ export default {
           throw new Error('Could not get change address')
         }
 
-        const recipientAddress = new Address(this.validatedAddress).toCashAddress()
+        const recipientAddress = new Address(addressToSend).toCashAddress()
         const recipients = [{
           address: recipientAddress,
           amount: this.amount,
@@ -237,7 +250,7 @@ export default {
         this.$emit('ok', {
           txid: sendResult.txid,
           amount: this.amount,
-          recipient: this.validatedAddress,
+          recipient: recipientAddress,
         })
       } catch (err) {
         console.error('[SendBchDialog] Send failed:', err)
