@@ -149,9 +149,11 @@ export default {
         const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
           pubKeyHex: this.recipientPubKey,
         })
+        console.log('[SendBchDialog] Fetched address:', address)
         if (address) {
           this.publishedAddress = address
           this.editableAddress = address
+          await this.$nextTick()
           this.onAddressChange()
         }
       } catch (err) {
