@@ -156,6 +156,7 @@
             :contacts="contacts"
             :is-read="messageReadMap[msg.id] || false"
             :is-new="newMessageIds.has(msg.id)"
+            @send-bch="openSendBchDialog"
           />
         </div>
       </div>
@@ -163,6 +164,16 @@
 
     <!-- Input area -->
     <chat-input @send="onSend" @focus="onInputFocus" @blur="onInputBlur" />
+
+    <!-- Send BCH Dialog -->
+    <send-bch-dialog
+      v-if="showSendBchDialog"
+      :amount="sendBchAmount"
+      :recipient-pub-key="sendBchRecipientPubKey"
+      :recipient-name="getSendBchRecipientName()"
+      @ok="onSendBchSuccess"
+      @cancel="onSendBchCancel"
+    />
   </div>
 </template>
 
@@ -171,11 +182,12 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
+import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
   name: 'ChatConversation',
-  components: { HeaderNav, MessageBubble, ChatInput },
+  components: { HeaderNav, MessageBubble, ChatInput, SendBchDialog },
   props: {
     roomId: { type: String, required: true },
   },
@@ -187,6 +199,9 @@ export default {
       saveContactName: '',
       showRenameDialog: false,
       renameContactName: '',
+      showSendBchDialog: false,
+      sendBchAmount: 0,
+      sendBchRecipientPubKey: '',
       inputFocused: false,
     }
   },
@@ -497,6 +512,25 @@ export default {
           message: this.$t('ContactRenameFailed', {}, 'Failed to rename contact') + ': ' + err.message,
         })
       }
+    },
+    openSendBchDialog ({ amount, recipientPubKey }) {
+      this.sendBchAmount = amount
+      this.sendBchRecipientPubKey = recipientPubKey
+      this.showSendBchDialog = true
+    },
+    onSendBchCancel () {
+      this.showSendBchDialog = false
+    },
+    getSendBchRecipientName () {
+      const contact = this.contacts.find(c => c.pubKeyHex === this.sendBchRecipientPubKey)
+      return contact?.name || ''
+    },
+    onSendBchSuccess ({ txid, amount, recipient }) {
+      this.showSendBchDialog = false
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} BCH`),
+      })
     },
   },
 }
