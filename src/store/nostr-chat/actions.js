@@ -128,10 +128,9 @@ export async function publishBchAddress ({ state, commit }, { address }) {
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
-      ['name', 'Paytaca BCH Address'],
       ['p', state.keys.pubKeyHex],
     ],
-    content: JSON.stringify({ address }),
+    content: JSON.stringify({ name: 'Paytaca BCH Address', address }),
   }, privKeyBytes)
 
   const { accepted, errors } = await relayService.publishEvent(state.relays, event)
@@ -161,10 +160,9 @@ export async function removeBchAddress ({ state, commit }) {
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['d', 'paytaca:bch-address'],
-      ['name', 'Paytaca BCH Address'],
       ['p', state.keys.pubKeyHex],
     ],
-    content: JSON.stringify({}),
+    content: JSON.stringify({ name: 'Paytaca BCH Address' }),
   }, privKeyBytes)
 
   const { accepted, errors } = await relayService.publishEvent(state.relays, event)

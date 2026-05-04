@@ -393,7 +393,6 @@ export async function fetchBchAddress(relays, pubKey) {
       kinds: [30078],
       authors: [pubKey],
       '#d': ['paytaca:bch-address'],
-      '#name': ['Paytaca BCH Address'],
       limit: 1,
     })
     return events?.[0] || null
