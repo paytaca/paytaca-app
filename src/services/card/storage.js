@@ -25,6 +25,7 @@ export async function saveCreateCardAttempt(walletHash, attempt) {
     JSON.stringify({
       idempotencyKey: attempt.idempotencyKey,
       alias: attempt.alias || '',
+      uid: attempt.uid || '',
       walletHash: attempt.walletHash,
       cardId: attempt.cardId || null,
       category: attempt.category || null,

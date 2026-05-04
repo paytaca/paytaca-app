@@ -21,6 +21,7 @@
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
 import { createCardLogic } from 'src/components/card/createCard.js';
 import { clearCardUserCache, loadCardUser } from 'src/services/card/user';
+import { bus } from 'src/wallet/event-bus';
 
 export default {
   mixins: [createCardLogic],
@@ -50,6 +51,10 @@ export default {
     }
   },
 
+  created() {
+    bus.on('sessionExpired', this.handleSessionExpiredEvent)
+  },
+
   async mounted () {
     await this.loadData()
     this.isloaded = true
@@ -61,28 +66,38 @@ export default {
   },
 
   methods: {
+    handleSessionExpiredEvent() {
+      this.loadUser(true) // Force login to refresh session
+    },
+
     async loadData () {
       await this.loadUser()
-      this.goToHome()
-    //   if (this.user?.cardCount > 0) {
-    //     console.log('User has existing cards, redirecting to cards list')
-    //     this.goToCardsList()
-    //   } else {
-    //     console.log('No existing cards for user')
-    //     this.goToHome()
-    //   }
+      console.log('USER:', this.user)
+      if (this.user?.cardCount > 0) {
+        console.log('User has existing cards, redirecting to cards list')
+        this.goToCardsList()
+      } else {
+        console.log('No existing cards for user')
+        this.goToHome()
+      }
       clearCardUserCache() // temporary only
     },
 
-    async loadUser () {
-        this.user = await loadCardUser().then(user => {
-            console.log('Loaded card user:', user)
-            return user
-        }).catch(err => {
-            console.error('Error loading card user:', err)
-            return null
-        })   
-        console.log('Card user after loading:', this.user)
+    async loadUser (forceLogin = false) {
+      if (forceLogin) {
+        clearCardUserCache() // Clear cache to force fresh load
+        this.showLoading(this.$t('Refreshing session...'))
+      }
+      this.user = await loadCardUser(forceLogin).then(user => {
+        console.log('Loaded card user:', user)
+        return user
+      }).catch(err => {
+        console.error('Error loading card user:', err)
+        return null
+      }).finally(() => {
+        this.hideLoading()
+      })
+      console.log('Card user after loading:', this.user)
     },
 
     clearCards () {
@@ -95,8 +110,18 @@ export default {
     },
 
     goToCardsList () {
-        console.log('Going to cards list page')
-        this.$router.push({ name: 'card-list' })
+      console.log('Going to cards list page')
+      this.$router.push({ name: 'card-list' })
+    },
+    
+    showLoading(message) {
+      this.$q.loading.show({
+        message: message || this.$t('Loading...')
+      });
+    },
+
+    hideLoading() {
+      this.$q.loading.hide();
     }
   }
 }

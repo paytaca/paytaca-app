@@ -11,16 +11,37 @@
       <q-separator :dark="$q.dark.isActive" />
 
       <!-- Normal Content -->
-      <q-card-section v-if="state === 'form'">
+      <q-card-section class="q-ma-md" v-if="state === 'form'">
+        <div class="row justify-center q-mb-md">
+          <div>Enter the UID of your card</div>
+        </div>
+        <div class="row items-center justify-around q-mb-md">
+          <q-btn flat dense icon="qr_code" label="Scan QR"/>
+          <q-btn flat dense icon="nfc" label="NFC"/>
+          <q-btn :flat="!inputCardUid" dense icon="keyboard" label="Input" :color="inputCardUid ? 'primary' : ''" @click="inputCardUid = !inputCardUid"/>
+        </div>
         <q-input
-          v-model="newCardName"
-          label="Card Name *"
+          v-model="newCard.uid"
+          label="Card UID"
+          class="q-mb-md"
+          :error="!!formError"
+          :error-message="formError"
+          :dark="$q.dark.isActive"
+          :rules="[
+          val => !!val || 'Card UID is required',
+          ]"
+          autofocus
+          outlined
+          hint="Enter the UID of the card">
+        </q-input>
+        <q-input
+          v-model="newCard.name"
+          label="Card Name"
           :dark="$q.dark.isActive"
           :rules="[
           val => !!val || 'Card name is required',
           val => val.length <= 10 || 'Maximum 10 characters'
           ]"
-          @keyup.enter="createCard()"
           autofocus
           outlined
           maxlength="10"
@@ -98,8 +119,9 @@
         <q-btn 
           label="Done" 
           color="primary" 
-          :disable="!newCardName || !newCardName.trim() || newCardName.length > 10"
-          @click="createCard()"/>
+          :disable="!inputValidation"
+          :loading="validatingUid"
+          @click="onSubmitForm()"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -124,6 +146,13 @@ export default {
       newCardName: '',
       mintingMessage: '',
       state: 'form', // 'form' | 'minting' | 'success' | 'error'
+      inputCardUid: true,
+      validatingUid: false,
+      formError: '',
+      newCard: {
+        uid: '',
+        name: ''
+      }
     }
   },
 
@@ -133,6 +162,9 @@ export default {
     },
     textColorGrey () {
       return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-7';
+    },
+    inputValidation() {
+      return this.newCard.name && this.newCard.name.trim() && this.newCard.name.length <= 10 && this.newCard.uid;
     }
   },
 
@@ -164,8 +196,24 @@ export default {
       this.mintingMessage = message;
     },
 
+    async onSubmitForm() {
+      this.validatingUid = true;
+      const { valid, message } = await Card.validateUid(this.newCard.uid);
+      this.validatingUid = false;
+      console.log('valid?', valid)
+      console.log('validation message:', message)
+      if (!valid) {
+        this.formError = message || 'Invalid Card UID';
+        return;
+      }
+      console.log("valid:", valid)
+      if (this.inputValidation && valid) {
+        this.createCard();
+      }
+    },
+
     async createCard (lastAttempt = null) {
-      console.log('Creating card with name:', this.newCardName);
+      console.log('Creating card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
       this.state = 'minting';
       const card = await Card.createInitialized()
       const opts = {
@@ -173,7 +221,7 @@ export default {
         cardId: card.id
       }
       console.log('Calling Card.create with opts:', opts)
-      card.create(this.newCardName, this.onCardMintingProgress, lastAttempt)
+      card.create(this.newCard, this.onCardMintingProgress, lastAttempt)
         .then(card => {
           console.log('Card created successfully:', card);
           this.state = 'success';

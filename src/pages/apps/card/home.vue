@@ -1,5 +1,5 @@
 <template>         
-    <q-page v-if="!checkingCards" class="flex flex-center q-pa-md">
+    <q-page class="flex flex-center q-pa-md">
       <div v-if="isloaded" class="column items-center full-width" style="max-width: 650px;">
         
         <!-- Hero Section -->
@@ -135,7 +135,6 @@ export default {
       // showResumeCreateCardDialog: false,
       newCardName: '',
       // idempotencyKey: '',
-      checkingCards: true  // Start true, only show content if no cards
     }
   },
 
@@ -168,7 +167,7 @@ export default {
       } catch (err) {
         console.error('Error loading card user:', err);
         this.user = null;
-      }   
+      }
     },
     checkExistingCards () {
       // if user has existing cards and we are at the cards home page, redirect to cards list page

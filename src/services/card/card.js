@@ -141,33 +141,41 @@ export class Card {
    * Complete card creation workflow
    * @returns {Promise<Card>}
    */
-  async create(alias, callbackOnProgress=null, lastAttempt = null) {
+  async create(newCard, callbackOnProgress=null, lastAttempt = null) {
     this._notifyCallbackFn(callbackOnProgress, 'Starting card creation workflow');
+
+    const alias = newCard?.name
+    const uid = newCard?.uid
 
     try {
 
-      console.log('===== lastAttempt:', lastAttempt);
       let currentStatus = lastAttempt ? lastAttempt.status : CardCreateAttemptStatus.CARD_INITIATED;
-      console.log('==== Current status:', currentStatus);
       let cardId = lastAttempt?.cardId || null;
 
       if (currentStatus < CardCreateAttemptStatus.CARD_SAVED) {
-        const { id: newCardId } = await this._createCardEntry(alias);
+        const { id: newCardId } = await this._createCardEntry(alias, uid);
         cardId = newCardId;
+
         this._notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
+        
         currentStatus = CardCreateAttemptStatus.CARD_SAVED;
         updateCreateCardAttempt(this.wallet.walletHash, { cardId, status: currentStatus });
       } else {
         console.log('Resuming card creation with:', lastAttempt);
+        
         this._notifyCallbackFn(callbackOnProgress, 'Resuming card creation workflow');
       }
       
+      // Mints the genesis token for the card
       let category
       if (currentStatus <= CardCreateAttemptStatus.CARD_SAVED) {
         console.log('Minting genesis token for card ID:', cardId);
+        
         this._notifyCallbackFn(callbackOnProgress, 'Minting genesis token. This may take a minute...');
+        
         const genesisResult = await this._mintGenesisToken();
         category = genesisResult.tokenId
+        
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
         
         currentStatus = CardCreateAttemptStatus.GENESIS_MINTED;
@@ -175,8 +183,11 @@ export class Card {
       }
 
       await this._ensureCardUserAuthenticated();
+      
       this._notifyCallbackFn(callbackOnProgress, 'Card user authenticated');
 
+      // Saves the genesis token id (category) to the server 
+      // which triggers server-side contract initialization
       if (currentStatus <= CardCreateAttemptStatus.GENESIS_MINTED) {
         let savedAttempt = lastAttempt
         
@@ -187,6 +198,7 @@ export class Card {
         }
 
         this.raw = await this._saveGenesis(cardId, category, savedAttempt?.idempotencyKey);
+        
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
         
         currentStatus = CardCreateAttemptStatus.GENESIS_SAVED;
@@ -200,6 +212,7 @@ export class Card {
 
       if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
         await this._issueGlobalAuthToken();
+        
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
 
         currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
@@ -207,6 +220,7 @@ export class Card {
       }
 
       console.log('Card creation completed successfully');
+      
       this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
 
       // Clear the create card attempt from local storage since workflow is complete
@@ -239,13 +253,18 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _createCardEntry(alias) {
+  async _createCardEntry(alias, uid) {
+    if (!alias || !uid) {
+      throw new Error('Alias and UID are required to create card entry');
+    }
+
     console.log('Creating card entry...');
     this._assertWallet();
     const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
     const data = {
       alias: alias || "",
+      uid: uid || "",
       wallet_hash: this.wallet.walletHash,
       public_key: this.wallet.pubkey(),
       address_path: this.wallet.addressPath()
@@ -254,13 +273,19 @@ export class Card {
     saveCreateCardAttempt(this.wallet.walletHash, {
       idempotencyKey,
       alias: alias || "",
+      uid: uid || "",
       walletHash: this.wallet.walletHash,
       createdAt: Date.now(),
     });
     
     const response = await backend.post('/cards/', data,
       { headers: { 'Idempotency-Key': idempotencyKey } }
-    );
+    ).catch(error => {
+      console.error('Error creating card entry:', error.response || error.message);
+      if (error.response && error.response.status === 403) {
+        bus.emit('sessionExpired') // Emit sessionExpired event for testing
+      }
+    });
     
     const cardEntry = response.data;
     console.log('Card entry created:', cardEntry);
@@ -286,11 +311,28 @@ export class Card {
   }
 
   /**
+   * Checks if given UID exists in the server
+   * @param {string} uid - The UID to validate
+   * @returns {Promise<boolean>}
+   */
+  static async validateUid(uid) {
+    const response = await backend.get(`/cards/validate-uid/${uid}/`);
+    return { valid: response.data?.valid, message: response.data?.message };
+  }
+
+  /**
    * Gets transactions associated with the card
    * @returns {Promise<Array>}
    */
   async getTransactions() {
-    const response = await backend.get(`/cards/${this.id}/transactions/`);
+    const response = await backend.get(`/cards/${this.id}/transactions/`)
+      .catch(error => {
+        console.error('Error fetching transactions:', error.response || error.message);
+        if (error.response && error.response.status === 401) {
+          bus.emit('sessionExpired') // Emit sessionExpired event for testing
+        }
+        throw error;
+      });
     return response.data?.results || [];
   }
   
@@ -299,7 +341,14 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async getAuthNfts() {
-    const response = await backend.get(`/auth-nfts/${this.raw.token_address}`);
+    const response = await backend.get(`/auth-nfts/${this.raw.token_address}`)
+      .catch(error => {
+        console.error('Error fetching auth NFTs:', error.response || error.message);
+        if (error.response && error.response.status === 401) {
+          bus.emit('sessionExpired') // Emit sessionExpired event for testing
+        }
+        throw error;
+      });
     return response.data
   }
 

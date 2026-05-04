@@ -126,6 +126,7 @@ import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
 import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
+import { bus } from 'src/wallet/event-bus';
 
 export default {
   mixins: [CreateCardAttemptMixin],
