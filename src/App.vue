@@ -875,7 +875,7 @@ export default {
       this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
 
       if (this.$q.platform.is.mobile) {
-        this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+        this.$pushNotifications?.events?.addEventListener('pushNotificationReceived', notification => {
           // Ensure Nostr chat subscription is active when a Nostr event push arrives
           if (notification?.data?.type === 'nostr_event') {
             this.$store.dispatch('nostrChat/ensureSubscribed')
@@ -883,7 +883,7 @@ export default {
         })
 
         this.subscribePushNotifications()
-      } else {
+      } else if (this.$pushNotifications?.events) {
         // On web/PWA, show in-app notification since system push is not available
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
           if (notification?.title || notification?.body) {
