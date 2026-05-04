@@ -142,6 +142,8 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import { validateAddress } from 'src/utils/send-page-utils'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
+import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
@@ -174,7 +176,7 @@ export default {
       return npub.slice(0, 12) + '...' + npub.slice(-8)
     },
     profileAddress () {
-      return this.$store.state.nostrChat.profile.bchAddress
+      return this.$store.state.nostrChat.profile?.bchAddress || null
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -204,9 +206,35 @@ export default {
         timeout: 1500,
       })
     },
-    startEditAddress () {
-      this.editAddressValue = this.profileAddress || ''
+    async startEditAddress () {
       this.editingAddress = true
+      // Pre-fill with currently published address if available
+      if (this.profileAddress) {
+        this.editAddressValue = this.profileAddress
+        this.validateInput()
+        return
+      }
+      // Otherwise fetch the latest receiving address from the wallet
+      try {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const wallet = await cachedLoadWallet('BCH', walletIndex)
+        const bchWallet = getWalletByNetwork(wallet, 'bch')
+        if (bchWallet?.getAddressSetAt) {
+          const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+          const addressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0
+            ? lastAddressIndex
+            : 0
+          const addressSet = await bchWallet.getAddressSetAt(addressIndex)
+          if (addressSet?.receiving) {
+            this.editAddressValue = addressSet.receiving
+            this.validateInput()
+            return
+          }
+        }
+      } catch (err) {
+        console.warn('[Profile] Failed to load wallet address:', err)
+      }
+      this.editAddressValue = ''
       this.validateInput()
     },
     cancelEdit () {
