@@ -202,6 +202,7 @@ function hydrateSourceOutput(so) {
     lockingBytecode: toUint8Array(so.lockingBytecode),
     ...(hasUnlocking && { unlockingBytecode: toUint8Array(so.unlockingBytecode) }),
     ...(so.token && { token: hydrateToken(so.token) }),
+    ...(so.contract && { contract: hydrateContract(so.contract) }),
   }
 }
 
@@ -217,6 +218,15 @@ function hydrateNft(nft) {
   return {
     ...(nft.capability !== undefined && { capability: nft.capability }),
     ...(nft.commitment !== undefined && { commitment: toUint8Array(nft.commitment) }),
+  }
+}
+
+function hydrateContract(contract) {
+  if (!contract) return undefined
+  return {
+    ...(contract.abiFunction && { abiFunction: contract.abiFunction }),
+    ...(contract.redeemScript !== undefined && { redeemScript: toUint8Array(contract.redeemScript) }),
+    ...(contract.artifact && { artifact: contract.artifact }),
   }
 }
 
