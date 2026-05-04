@@ -28,9 +28,11 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
+const SEND_COMMAND_PATTERN = /^\/send\s+([\d.]+)\s+([A-Za-z0-9]+)\s*$/i
+
 export default {
   name: 'ChatInput',
-  emits: ['send', 'focus', 'blur'],
+  emits: ['send', 'command', 'focus', 'blur'],
   data () {
     return {
       text: '',
@@ -46,6 +48,22 @@ export default {
     send () {
       const trimmed = this.text.trim()
       if (!trimmed) return
+
+      // Detect /send command
+      const commandMatch = trimmed.match(SEND_COMMAND_PATTERN)
+      if (commandMatch) {
+        const amount = parseFloat(commandMatch[1])
+        if (!isNaN(amount) && amount > 0) {
+          this.$emit('command', {
+            type: 'send',
+            amount,
+            currency: (commandMatch[2] || 'BCH').toUpperCase(),
+          })
+          this.text = ''
+          return
+        }
+      }
+
       this.$emit('send', trimmed)
       this.text = ''
     },

@@ -14,37 +14,6 @@
       </div>
       <div class="message-text">{{ message.content }}</div>
 
-      <!-- Send BCH action card -->
-      <div v-if="sendCommand && !isMine" class="send-action-card">
-        <div class="send-action-header">
-          <q-icon name="payments" size="18px" color="positive" />
-          <span class="send-action-label">{{ sendCommand.amount }} BCH</span>
-        </div>
-        <div v-if="recipientCheckLoading" class="send-action-status">
-          <q-spinner size="14px" />
-          <span>Checking wallet...</span>
-        </div>
-        <div v-else-if="recipientRegistered" class="send-action-status registered">
-          <q-icon name="check_circle" size="14px" color="positive" />
-          <span>Paytaca wallet detected</span>
-        </div>
-        <div v-else class="send-action-status unregistered">
-          <q-icon name="warning" size="14px" color="orange" />
-          <span>Not a Paytaca wallet</span>
-        </div>
-        <q-btn
-          v-if="!recipientCheckLoading"
-          color="positive"
-          unelevated
-          dense
-          no-caps
-          icon="send"
-          :label="$t('SendBCH', {}, 'Send BCH')"
-          class="send-action-btn"
-          @click="$emit('send-bch', { amount: sendCommand.amount, recipientPubKey: message.sender })"
-        />
-      </div>
-
       <div class="message-meta">
         <span class="message-time">{{ formatTime(message.created_at) }}</span>
         <q-icon
@@ -60,8 +29,6 @@
 </template>
 
 <script>
-import { parseSendCommand, isNostrPubkeyRegistered } from 'src/utils/chat-send-utils'
-
 export default {
   name: 'MessageBubble',
   props: {
@@ -71,13 +38,6 @@ export default {
     contacts: { type: Array, default: () => [] },
     isRead: { type: Boolean, default: true },
     isNew: { type: Boolean, default: false },
-  },
-  emits: ['send-bch'],
-  data () {
-    return {
-      recipientRegistered: false,
-      recipientCheckLoading: false,
-    }
   },
   computed: {
     isMine () {
@@ -94,39 +54,12 @@ export default {
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
     },
-    sendCommand () {
-      if (this.isMine) return null
-      return parseSendCommand(this.message.content)
-    },
-  },
-  watch: {
-    sendCommand: {
-      immediate: true,
-      handler (val) {
-        if (val && !this.isMine) {
-          this.checkRecipientRegistered()
-        }
-      },
-    },
   },
   methods: {
     formatTime (ts) {
       if (!ts) return ''
       const d = new Date(ts * 1000)
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    },
-    async checkRecipientRegistered () {
-      if (!this.message.sender) return
-      console.log('[SendBCH] Checking pubkey:', this.message.sender)
-      this.recipientCheckLoading = true
-      try {
-        this.recipientRegistered = await isNostrPubkeyRegistered(this.message.sender)
-        console.log('[SendBCH] Registered:', this.recipientRegistered)
-      } catch {
-        this.recipientRegistered = false
-      } finally {
-        this.recipientCheckLoading = false
-      }
     },
   },
 }

@@ -110,6 +110,7 @@ export default {
     amount: { type: Number, required: true },
     recipientPubKey: { type: String, required: true },
     recipientName: { type: String, default: '' },
+    preFilledAddress: { type: String, default: '' },
   },
   emits: ['ok', 'cancel'],
   data () {
@@ -152,6 +153,15 @@ export default {
       this.wallet = await cachedLoadWallet('BCH', walletIndex)
     },
     async fetchRecipientAddress () {
+      // If pre-filled address was provided from /send command, use it directly
+      if (this.preFilledAddress) {
+        this.publishedAddress = this.preFilledAddress
+        this.editableAddress = this.preFilledAddress
+        this.addressLookupDone = true
+        this.$nextTick(() => this.onAddressChange())
+        return
+      }
+
       this.fetchingAddress = true
       try {
         const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {

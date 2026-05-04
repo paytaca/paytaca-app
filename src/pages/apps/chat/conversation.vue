@@ -156,23 +156,24 @@
             :contacts="contacts"
             :is-read="messageReadMap[msg.id] || false"
             :is-new="newMessageIds.has(msg.id)"
-            @send-bch="openSendBchDialog"
+
           />
         </div>
       </div>
     </div>
 
     <!-- Input area -->
-    <chat-input @send="onSend" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Send BCH Dialog -->
     <send-bch-dialog
-      v-if="showSendBchDialog"
-      :amount="sendBchAmount"
-      :recipient-pub-key="sendBchRecipientPubKey"
-      :recipient-name="getSendBchRecipientName()"
-      @ok="onSendBchSuccess"
-      @cancel="onSendBchCancel"
+      v-if="showSendDialog"
+      :amount="sendAmount"
+      :recipient-pub-key="sendRecipientPubKey"
+      :recipient-name="getSendRecipientName()"
+      :pre-filled-address="sendPreFilledAddress"
+      @ok="onSendSuccess"
+      @cancel="onSendCancel"
     />
   </div>
 </template>
@@ -183,6 +184,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
+import { getExplorerLink } from 'src/utils/send-page-utils'
 import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
@@ -199,9 +201,10 @@ export default {
       saveContactName: '',
       showRenameDialog: false,
       renameContactName: '',
-      showSendBchDialog: false,
-      sendBchAmount: 0,
-      sendBchRecipientPubKey: '',
+      showSendDialog: false,
+      sendAmount: 0,
+      sendRecipientPubKey: '',
+      sendPreFilledAddress: '',
       inputFocused: false,
     }
   },
@@ -513,24 +516,95 @@ export default {
         })
       }
     },
-    openSendBchDialog ({ amount, recipientPubKey }) {
-      this.sendBchAmount = amount
-      this.sendBchRecipientPubKey = recipientPubKey
-      this.showSendBchDialog = true
+    openSendDialog ({ amount, recipientPubKey }) {
+      this.sendAmount = amount
+      this.sendRecipientPubKey = recipientPubKey
+      this.showSendDialog = true
     },
-    onSendBchCancel () {
-      this.showSendBchDialog = false
+    onSendCancel () {
+      this.showSendDialog = false
     },
-    getSendBchRecipientName () {
-      const contact = this.contacts.find(c => c.pubKeyHex === this.sendBchRecipientPubKey)
+    getSendRecipientName () {
+      const contact = this.contacts.find(c => c.pubKeyHex === this.sendRecipientPubKey)
       return contact?.name || ''
     },
-    onSendBchSuccess ({ txid, amount, recipient }) {
-      this.showSendBchDialog = false
+    async onCommand ({ type, amount, currency }) {
+      if (type !== 'send') return
+      if (!this.room) {
+        this.$q.notify({ type: 'negative', message: 'No active room' })
+        return
+      }
+
+      const currencyUpper = (currency || 'BCH').toUpperCase()
+
+      if (currencyUpper === 'BCH') {
+        await this.handleBchSend(amount)
+      } else {
+        // Token send — not yet implemented
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('TokenSendNotSupported', { currency: currencyUpper }, `Sending ${currencyUpper} is not yet supported.`),
+        })
+      }
+    },
+    async handleBchSend (amount) {
+      const recipientPubKey = this.otherMemberPubKey
+      if (!recipientPubKey) {
+        this.$q.notify({ type: 'negative', message: 'No recipient found' })
+        return
+      }
+
+      this.$q.loading.show({ message: 'Fetching recipient address...' })
+      try {
+        const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
+          pubKeyHex: recipientPubKey,
+        })
+        this.$q.loading.hide()
+
+        if (!address) {
+          this.$q.notify({
+            type: 'negative',
+            message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address'),
+          })
+          return
+        }
+
+        this.sendAmount = amount
+        this.sendRecipientPubKey = recipientPubKey
+        this.sendPreFilledAddress = address
+        this.showSendDialog = true
+      } catch (err) {
+        this.$q.loading.hide()
+        console.error('[Conversation] Failed to handle BCH send:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('FetchAddressFailed', {}, 'Failed to fetch recipient address'),
+        })
+      }
+    },
+    async onSendSuccess ({ txid, amount, recipient }) {
+      this.showSendDialog = false
+      this.sendPreFilledAddress = ''
       this.$q.notify({
         type: 'positive',
         message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} BCH`),
       })
+
+      // Send confirmation message in chat
+      if (this.room && txid) {
+        try {
+          const explorerLink = getExplorerLink(txid)
+          const text = `Sent ${amount} BCH to ${recipient}\n\nView transaction: ${explorerLink}`
+          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+            roomId: this.roomId,
+            text,
+          })
+          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        } catch (err) {
+          console.error('[Conversation] Failed to send confirmation message:', err)
+        }
+      }
     },
   },
 }
