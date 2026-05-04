@@ -388,34 +388,49 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  try {
-    console.log('[Nostr] Querying BCH address on relays:', relays, 'pubkey:', pubKey?.slice(0, 16) + '...')
-    // First try with the specific filter
-    const events = await pool.querySync(relays, {
-      kinds: [30078],
-      authors: [pubKey],
-      '#d': ['paytaca:bch-address'],
-      limit: 1,
-    })
-    console.log('[Nostr] BCH address query (with #d filter):', events?.length || 0, 'events')
-    if (events?.length) {
-      console.log('[Nostr] Event content:', events[0].content?.slice(0, 100))
-      return events[0]
-    }
+  const _fetch = () => new Promise((resolve, reject) => {
+    let settled = false
+    let events = []
 
-    // Fallback: query without #d filter to see if any kind:30078 events exist
-    console.log('[Nostr] No event with #d filter, trying broader query...')
-    const allKinds = await pool.querySync(relays, {
-      kinds: [30078],
-      authors: [pubKey],
-      limit: 5,
+    const timeout = setTimeout(() => {
+      if (settled) return
+      settled = true
+      sub.close()
+      console.log('[Nostr] BCH address fetch timed out, got:', events.length, 'events')
+      resolve(events[0] || null)
+    }, 10000)
+
+    const sub = pool.subscribeMany(relays, {}, {
+      onevent(event) {
+        if (settled) return
+        // We receive ALL events from the relay, filter manually
+        if (event.kind !== 30078 || event.pubkey !== pubKey) return
+        const dTag = event.tags.find(t => t[0] === 'd')
+        if (!dTag || dTag[1] !== 'paytaca:bch-address') return
+        events.push(event)
+      },
+      oneose() {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        sub.close()
+        console.log('[Nostr] BCH address fetch EOSE, events:', events.length)
+        resolve(events[0] || null)
+      },
+      onclose(reasons) {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        console.log('[Nostr] BCH address fetch closed:', reasons)
+        resolve(events[0] || null)
+      },
     })
-    console.log('[Nostr] Broader query returned:', allKinds?.length || 0, 'events')
-    if (allKinds?.length) {
-      console.log('[Nostr] Event tags:', JSON.stringify(allKinds[0].tags))
-      console.log('[Nostr] Event content:', allKinds[0].content?.slice(0, 200))
-    }
-    return null
+  })
+
+  try {
+    console.log('[Nostr] Fetching BCH address for pubkey:', pubKey?.slice(0, 16) + '...')
+    const event = await _fetch()
+    return event
   } catch (err) {
     console.warn('[Nostr] Failed to fetch BCH address:', err)
     return null
