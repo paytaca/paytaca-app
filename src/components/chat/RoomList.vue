@@ -89,6 +89,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { formatDistanceToNow } from 'date-fns'
 import { npubEncode } from 'nostr-tools/nip19'
+import { parseMessageMarkup } from 'src/utils/chat-markup'
 
 export default {
   name: 'RoomList',
@@ -190,7 +191,8 @@ export default {
       const msgs = this.messages[roomId] || []
       if (!msgs.length) return this.$t('NoMessagesYet', {}, 'No messages yet')
       const last = msgs[msgs.length - 1]
-      return last.content
+      const { text } = parseMessageMarkup(last.content)
+      return text
     },
     formatTime (ts) {
       try {

@@ -184,7 +184,6 @@ import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
-import { getExplorerLink } from 'src/utils/send-page-utils'
 import { npubEncode } from 'nostr-tools/nip19'
 
 export default {
@@ -590,11 +589,10 @@ export default {
         message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} BCH`),
       })
 
-      // Send confirmation message in chat
+      // Send confirmation message in chat with embedded markup
       if (this.room && txid) {
         try {
-          const explorerLink = getExplorerLink(txid)
-          const text = `Sent ${amount} BCH to ${recipient}\n\nView transaction: ${explorerLink}`
+          const text = `Sent ${amount} BCH [/*t:payment,a:${amount},x:${txid}*/]`
           const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
             roomId: this.roomId,
             text,

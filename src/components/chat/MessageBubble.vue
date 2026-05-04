@@ -12,7 +12,26 @@
       >
         {{ senderName }}
       </div>
-      <div class="message-text">{{ message.content }}</div>
+
+      <!-- Plain text content -->
+      <div class="message-text">{{ displayText }}</div>
+
+      <!-- Rich markup card: payment -->
+      <div
+        v-if="markup?.type === 'payment'"
+        class="payment-card q-mt-sm"
+        @click="openTransactionDetail"
+      >
+        <div class="payment-amount-row">
+          <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
+          <span class="payment-amount">{{ markup.amount }} BCH</span>
+        </div>
+        <div v-if="markup.txid" class="payment-txid">
+          <span class="txid-label">TXID</span>
+          <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
+          <q-icon name="chevron_right" size="16px" class="payment-chevron" />
+        </div>
+      </div>
 
       <div class="message-meta">
         <span class="message-time">{{ formatTime(message.created_at) }}</span>
@@ -29,6 +48,8 @@
 </template>
 
 <script>
+import { parseMessageMarkup } from 'src/utils/chat-markup'
+
 export default {
   name: 'MessageBubble',
   props: {
@@ -54,12 +75,34 @@ export default {
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
     },
+    parsed () {
+      return parseMessageMarkup(this.message.content)
+    },
+    displayText () {
+      return this.parsed.text
+    },
+    markup () {
+      return this.parsed.markup
+    },
   },
   methods: {
     formatTime (ts) {
       if (!ts) return ''
       const d = new Date(ts * 1000)
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    },
+    formatTxid (txid) {
+      if (!txid || txid.length < 16) return txid
+      return txid.slice(0, 8) + '...' + txid.slice(-8)
+    },
+    openTransactionDetail () {
+      if (!this.markup?.txid) return
+      const roomId = this.$route?.params?.roomId
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid: this.markup.txid },
+        query: { from: 'chat', roomId },
+      })
     },
   },
 }
@@ -115,50 +158,80 @@ export default {
   word-break: break-word;
 }
 
-/* Send BCH action card */
-.send-action-card {
-  margin-top: 8px;
-  padding: 10px 12px;
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.read-receipt {
+  font-size: 14px;
+}
+
+.read-receipt.read {
+  color: #34d399;
+}
+
+/* Payment card */
+.payment-card {
+  padding: 12px 14px;
+  margin-bottom: 6px;
   background: linear-gradient(135deg, #f0fdf4, #dcfce7);
   border: 1px solid #bbf7d0;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.send-action-header {
+.payment-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
+.payment-card:active {
+  transform: translateY(0);
+}
+
+.payment-amount-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.send-action-label {
-  font-size: 16px;
+.payment-amount {
+  font-size: 18px;
   font-weight: 700;
   color: #166534;
 }
 
-.send-action-status {
+.payment-txid {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 6px;
+}
+
+.txid-label {
+  font-size: 10px;
+  font-weight: 700;
   color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.send-action-status.registered {
-  color: #166534;
+.txid-value {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #374151;
+  flex: 1;
 }
 
-.send-action-status.unregistered {
-  color: #9a3412;
-}
-
-.send-action-btn {
-  align-self: flex-start;
-  border-radius: 8px;
-  font-weight: 600;
+.payment-chevron {
+  color: #9ca3af;
+  margin-left: auto;
 }
 
 /* Dark mode overrides */
@@ -169,25 +242,29 @@ export default {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-.dark .send-action-card {
+.dark .payment-card {
   background: linear-gradient(135deg, #14532d, #166534);
   border-color: #166534;
 }
 
-.dark .send-action-label {
+.dark .payment-amount {
   color: #86efac;
 }
 
-.dark .send-action-status {
-  color: #94a3b8;
+.dark .txid-label {
+  color: #9ca3af;
 }
 
-.dark .send-action-status.registered {
-  color: #86efac;
+.dark .txid-value {
+  color: #d1d5db;
 }
 
-.dark .send-action-status.unregistered {
-  color: #fdba74;
+.dark .payment-chevron {
+  color: #6b7280;
+}
+
+.dark .payment-card:hover {
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
 }
 
 .dark .read-receipt {

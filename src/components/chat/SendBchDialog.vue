@@ -75,22 +75,13 @@
         </div>
       </q-card-section>
 
-      <q-card-actions align="right" class="q-pa-md">
-        <q-btn
-          flat
-          :label="$t('Cancel', {}, 'Cancel')"
-          color="grey"
-          @click="onCancel"
-        />
-        <q-btn
-          unelevated
-          :label="$t('SendBCH', {}, 'Send BCH')"
-          color="positive"
-          :loading="sending"
+      <div class="swipe-container q-px-md q-pb-md">
+        <DragSlide
           :disable="sending || !canSend"
-          @click="send"
+          disable-absolute-bottom
+          @swiped="onSwiped"
         />
-      </q-card-actions>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -103,9 +94,11 @@ import { cachedLoadWallet } from 'src/wallet'
 import { Address } from 'src/wallet'
 import { getChangeAddress } from 'src/utils/send-page-utils'
 import { npubEncode } from 'nostr-tools/nip19'
+import DragSlide from 'src/components/drag-slide.vue'
 
 export default {
   name: 'SendBchDialog',
+  components: { DragSlide },
   props: {
     amount: { type: Number, required: true },
     recipientPubKey: { type: String, required: true },
@@ -196,23 +189,22 @@ export default {
       this.showDialog = false
       this.$emit('cancel')
     },
+    onSwiped (reset) {
+      this.send().then(() => {
+        // Dialog closes on success, no need to reset
+      }).catch(() => {
+        // On error, reset the slider so user can try again
+        if (typeof reset === 'function') reset()
+      })
+    },
     async send () {
       if (!this.canSend) {
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('InvalidAddress', {}, 'Please enter a valid BCH address'),
-        })
-        return
+        throw new Error(this.$t('InvalidAddress', {}, 'No recipient address available'))
       }
 
-      // Use published address if available, otherwise use manually validated address
       const addressToSend = this.publishedAddress || this.validatedAddress
       if (!addressToSend) {
-        this.$q.notify({
-          type: 'negative',
-          message: this.$t('InvalidAddress', {}, 'No recipient address available'),
-        })
-        return
+        throw new Error(this.$t('InvalidAddress', {}, 'No recipient address available'))
       }
 
       this.sending = true
@@ -258,6 +250,7 @@ export default {
           type: 'negative',
           message: err.message || 'Failed to send BCH',
         })
+        throw err
       } finally {
         this.sending = false
       }
@@ -424,5 +417,14 @@ export default {
 
 .dark .no-address {
   color: #9ca3af;
+}
+
+.swipe-container {
+  margin-top: -8px;
+}
+
+.swipe-container :deep(.drag-slide-container) {
+  position: relative !important;
+  z-index: 1;
 }
 </style>
