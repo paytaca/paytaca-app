@@ -400,11 +400,9 @@ export async function fetchBchAddress(relays, pubKey) {
       resolve(events[0] || null)
     }, 10000)
 
-    const sub = pool.subscribeMany(relays, {}, {
+    const sub = pool.subscribeMany(relays, [{ kinds: [30078], authors: [pubKey], limit: 1 }], {
       onevent(event) {
         if (settled) return
-        // We receive ALL events from the relay, filter manually
-        if (event.kind !== 30078 || event.pubkey !== pubKey) return
         const dTag = event.tags.find(t => t[0] === 'd')
         if (!dTag || dTag[1] !== 'paytaca:bch-address') return
         events.push(event)
