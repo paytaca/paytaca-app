@@ -8,7 +8,64 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
-    />
+    >
+      <template v-if="otherMemberContact" v-slot:top-right-menu>
+        <q-btn
+          flat
+          round
+          dense
+          icon="more_vert"
+          size="sm"
+          class="q-mr-xs"
+        >
+          <q-menu anchor="bottom right" self="top right">
+            <q-item clickable v-close-popup @click="openRenameDialog">
+              <q-item-section side>
+                <q-icon name="edit" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('RenameContact', {}, 'Rename Contact') }}
+              </q-item-section>
+            </q-item>
+          </q-menu>
+        </q-btn>
+      </template>
+    </header-nav>
+
+    <!-- Rename contact dialog -->
+    <q-dialog v-model="showRenameDialog" persistent>
+      <q-card style="min-width: 320px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="dialog-header">
+          <div class="text-h6">{{ $t('RenameContact', {}, 'Rename Contact') }}</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input
+            v-model="renameContactName"
+            :label="$t('Name', {}, 'Name')"
+            outlined
+            dense
+            rounded
+            class="q-mb-md"
+            autofocus
+            @keyup.enter="renameContact"
+          />
+          <q-btn
+            :label="$t('Save', {}, 'Save')"
+            color="primary"
+            rounded
+            unelevated
+            class="full-width"
+            :disable="!renameContactName.trim()"
+            @click="renameContact"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('Cancel', {}, 'Cancel')" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Unknown contact prompt -->
     <div
@@ -128,6 +185,8 @@ export default {
       previousMessageCount: 0,
       showSaveContactDialog: false,
       saveContactName: '',
+      showRenameDialog: false,
+      renameContactName: '',
       inputFocused: false,
     }
   },
@@ -317,6 +376,13 @@ export default {
     },
     onVisibilityChange () {
       if (document.visibilityState === 'visible') {
+        // Debounce: skip if we just re-subscribed (within last 2s).
+        // The action layer also debounces, but this avoids unnecessary dispatches.
+        if (this._lastVisibilitySubscribe) {
+          const elapsed = Date.now() - this._lastVisibilitySubscribe
+          if (elapsed < 2000) return
+        }
+        this._lastVisibilitySubscribe = Date.now()
         this.ensureSubscribed()
       }
     },
@@ -392,6 +458,43 @@ export default {
         this.$q.notify({
           type: 'negative',
           message: this.$t('ContactSaveFailed', {}, 'Failed to save contact') + ': ' + err.message,
+        })
+      }
+    },
+    openRenameDialog () {
+      this.renameContactName = this.otherMemberContact?.name || ''
+      this.showRenameDialog = true
+    },
+    async renameContact () {
+      try {
+        const name = this.renameContactName.trim()
+        const contact = this.otherMemberContact
+        if (!name || !contact) return
+
+        await this.$store.dispatch('nostrChat/updateContact', {
+          npub: contact.npub,
+          name,
+        })
+
+        // Update room name to match
+        if (this.room) {
+          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
+            roomId: this.roomId,
+            name,
+          })
+        }
+
+        this.renameContactName = ''
+        this.showRenameDialog = false
+
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('ContactRenamed', {}, 'Contact renamed'),
+        })
+      } catch (err) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('ContactRenameFailed', {}, 'Failed to rename contact') + ': ' + err.message,
         })
       }
     },
