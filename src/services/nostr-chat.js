@@ -388,7 +388,8 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  const _fetch = () => new Promise((resolve, reject) => {
+  const filter = { kinds: [30078], authors: [pubKey], limit: 1 }
+  const _fetch = () => new Promise((resolve) => {
     let settled = false
     let events = []
 
@@ -400,7 +401,7 @@ export async function fetchBchAddress(relays, pubKey) {
       resolve(events[0] || null)
     }, 10000)
 
-    const sub = pool.subscribeMany(relays, [{ kinds: [30078], authors: [pubKey], limit: 1 }], {
+    const sub = pool.subscribeMany(relays, filter, {
       onevent(event) {
         if (settled) return
         const dTag = event.tags.find(t => t[0] === 'd')
