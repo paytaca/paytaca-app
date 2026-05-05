@@ -372,7 +372,8 @@ export function testTradeResult(opts) {
     type: 'CHANGE',
     locking_bytecode: lockingBytecode,
     allow_mixing_native_and_token: false,
-    allow_mixing_native_and_token_when_bch_change_is_dust: true,
+    allow_mixing_native_and_token_when_bch_change_is_dust: false,
+    add_change_to_txfee_when_bch_change_is_dust: true,
   })
 
   const tradeTx = exlab.createTradeTx(tradeResult.entries, coins, payoutRules, null, 1n)
