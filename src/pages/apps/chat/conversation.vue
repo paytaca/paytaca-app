@@ -811,20 +811,26 @@ export default {
 
 .messages-scroll-area {
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 16px 24px;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
+  max-width: 100%;
 }
 
 .messages-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .message-group {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Date separator */
@@ -944,6 +950,8 @@ export default {
   background: #f0f4ff;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .reply-bar-indicator {

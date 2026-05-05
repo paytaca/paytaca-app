@@ -270,6 +270,7 @@ export default {
   width: 100%;
   margin-bottom: 8px;
   touch-action: manipulation;
+  min-width: 0;
 }
 
 .message-row.mine {
@@ -290,6 +291,8 @@ export default {
   touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .message-row.mine .message-bubble {
