@@ -860,7 +860,7 @@ export default defineComponent({
     const bchBalanceSats = computed(() => {
       const assets = $store.getters['assets/getAssets'];
       const bchAsset = assets?.find(asset => asset?.id === 'bch');
-      const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
+      const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.spendable || 0) * 10 ** 8));
       return bchBalanceSats;
     })
 
@@ -868,7 +868,7 @@ export default defineComponent({
     async function updateBalance() {
       const { bchWallet } = await loadWalletForTrade();
       const bchBalanceFetch = bchWallet.getBalance().then(response => {
-        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance })
+        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance, spendable: response.spendable })
       })
 
       const tokenId = selectedToken.value?.token_id
