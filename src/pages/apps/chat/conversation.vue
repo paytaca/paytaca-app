@@ -180,7 +180,7 @@
 
     <!-- Messages area -->
     <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
-      <div v-if="messages.length === 0" class="empty-conversation">
+      <div v-if="displayedMessages.length === 0" class="empty-conversation">
         <div class="empty-illustration">
           <q-icon name="chat_bubble_outline" size="64px" />
         </div>
@@ -190,7 +190,7 @@
 
       <div v-else class="messages-list">
         <div
-          v-for="(msg, index) in messages"
+          v-for="(msg, index) in displayedMessages"
           :key="msg.id"
           :id="'msg-' + msg.id"
           class="message-group"
@@ -316,6 +316,9 @@ export default {
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
       isContextMenuOpen: false,
+      displayLimit: 15,
+      isLoadingMore: false,
+      _allMessagesLoaded: false,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
     }
@@ -372,12 +375,16 @@ export default {
       // Unknown contact: show npub in header
       return this.displayNpub || room.name || this.$t('Chat', {}, 'Chat')
     },
-    messages () {
-      // Access state directly for full reactivity — getter factories don't
-      // track nested state mutations, so new messages never trigger updates.
+    allMessages () {
       const room = this.$store.getters['nostrChat/getRoom'](this.roomId)
       if (!room) return []
       return this.$store.state.nostrChat.messages[this.roomId] || []
+    },
+    displayedMessages () {
+      const total = this.allMessages.length
+      const limit = this.displayLimit
+      if (total <= limit) return this.allMessages
+      return this.allMessages.slice(total - limit)
     },
     myPubKey () {
       return this.$store.getters['nostrChat/myPubKey']
@@ -412,7 +419,7 @@ export default {
 
       const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
 
-      for (const msg of this.messages) {
+      for (const msg of this.allMessages) {
         // Only check read status for messages I sent
         if (msg.sender !== myPubKey) continue
         // Read if ANY other room member sent a 👀 reaction for this message
@@ -423,7 +430,7 @@ export default {
     },
   },
   watch: {
-    messages: {
+    allMessages: {
       handler (newMessages) {
         this.scrollToBottom()
         this.markAsRead()
@@ -549,8 +556,8 @@ export default {
     },
     showDateSeparator (index) {
       if (index === 0) return true
-      const curr = new Date(this.messages[index].created_at * 1000)
-      const prev = new Date(this.messages[index - 1].created_at * 1000)
+      const curr = new Date(this.allMessages[index].created_at * 1000)
+      const prev = new Date(this.allMessages[index - 1].created_at * 1000)
       return curr.toDateString() !== prev.toDateString()
     },
     formatDate (ts) {
@@ -566,7 +573,7 @@ export default {
     },
     getMessageById (id) {
       if (!id) return null
-      return this.messages.find(m => m.id === id) || null
+      return this.allMessages.find(m => m.id === id) || null
     },
     getMessageReactions (messageId) {
       return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)
@@ -652,6 +659,34 @@ export default {
       if (!container) return
       const threshold = 80
       this.showScrollToBottom = container.scrollTop + container.clientHeight < container.scrollHeight - threshold
+
+      if (container.scrollTop < 50 && !this.isLoadingMore && !this._allMessagesLoaded) {
+        this.loadMoreMessages()
+      }
+    },
+    loadMoreMessages () {
+      if (this.allMessages.length <= this.displayLimit) {
+        this._allMessagesLoaded = true
+        return
+      }
+      this.isLoadingMore = true
+      const container = this.$refs.messagesContainer
+      const prevScrollHeight = container.scrollHeight
+      const prevScrollTop = container.scrollTop
+
+      this.displayLimit += 10
+
+      this.$nextTick(() => {
+        if (container) {
+          const newScrollHeight = container.scrollHeight
+          container.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight)
+        }
+        this.isLoadingMore = false
+
+        if (this.allMessages.length <= this.displayLimit) {
+          this._allMessagesLoaded = true
+        }
+      })
     },
     onScrollToBottom () {
       const container = this.$refs.messagesContainer
