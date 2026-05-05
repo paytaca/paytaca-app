@@ -10,7 +10,7 @@
       backnavpath="/apps/chat"
       :title="roomName"
     >
-      <template v-if="otherMemberContact" v-slot:top-right-menu>
+      <template v-if="room && room.members?.length > 1" v-slot:top-right-menu>
         <q-btn
           flat
           round
@@ -20,12 +20,64 @@
           class="q-mr-xs"
         >
           <q-menu anchor="bottom right" self="top right">
-            <q-item clickable v-close-popup @click="openRenameDialog">
+            <q-item v-if="otherMemberContact" clickable v-close-popup @click="openRenameDialog">
               <q-item-section side>
                 <q-icon name="edit" size="18px" />
               </q-item-section>
               <q-item-section>
                 {{ $t('RenameContact', {}, 'Rename Contact') }}
+              </q-item-section>
+            </q-item>
+            <q-separator v-if="otherMemberContact" />
+            <q-item v-if="!isRoomArchived" clickable v-close-popup @click="confirmArchiveRoom">
+              <q-item-section side>
+                <q-icon name="archive" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('ArchiveConversation', {}, 'Archive Conversation') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-else clickable v-close-popup @click="unarchiveRoom">
+              <q-item-section side>
+                <q-icon name="unarchive" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('UnarchiveConversation', {}, 'Unarchive Conversation') }}
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="confirmDeleteRoom">
+              <q-item-section side>
+                <q-icon name="delete" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('DeleteConversation', {}, 'Delete Conversation') }}
+              </q-item-section>
+            </q-item>
+            <q-separator />
+            <q-item
+              v-if="!isContactBlocked"
+              clickable
+              v-close-popup
+              @click="confirmBlockRoom"
+            >
+              <q-item-section side>
+                <q-icon name="block" size="18px" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <span class="text-negative">{{ $t('BlockContact', {}, 'Block Contact') }}</span>
+              </q-item-section>
+            </q-item>
+            <q-item
+              v-else
+              clickable
+              v-close-popup
+              @click="confirmUnblockRoom"
+            >
+              <q-item-section side>
+                <q-icon name="block" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('UnblockContact', {}, 'Unblock Contact') }}
               </q-item-section>
             </q-item>
           </q-menu>
@@ -297,6 +349,13 @@ export default {
     },
     isUnknownContact () {
       return this.otherMemberPubKey && !this.otherMemberContact
+    },
+    isContactBlocked () {
+      if (!this.otherMemberPubKey) return false
+      return this.$store.getters['nostrChat/isContactBlocked'](this.otherMemberPubKey)
+    },
+    isRoomArchived () {
+      return this.room?.archived === true
     },
     displayNpub () {
       const npub = this.otherMemberNpub
@@ -693,6 +752,125 @@ export default {
         this.$q.notify({
           type: 'negative',
           message: this.$t('ContactRenameFailed', {}, 'Failed to rename contact') + ': ' + err.message,
+        })
+      }
+    },
+    confirmArchiveRoom () {
+      const roomName = this.roomName
+      this.$q.dialog({
+        title: this.$t('ArchiveConversation', {}, 'Archive Conversation'),
+        message: this.$t('ArchiveConversationConfirm', { name: roomName }, `Archive conversation with ${roomName}?`),
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Archive', {}, 'Archive'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        this.$store.commit('nostrChat/ARCHIVE_ROOM', this.roomId)
+        this.$router.replace('/apps/chat')
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ConversationArchived', {}, 'Conversation archived'),
+        })
+      })
+    },
+    unarchiveRoom () {
+      this.$store.commit('nostrChat/UNARCHIVE_ROOM', this.roomId)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('ConversationUnarchived', {}, 'Conversation unarchived'),
+      })
+    },
+    confirmBlockRoom () {
+      const roomName = this.roomName
+      const otherPubKey = this.otherMemberPubKey
+      this.$q.dialog({
+        title: this.$t('BlockContact', {}, 'Block Contact'),
+        message: this.$t('BlockContactConfirm', { name: roomName }, `Block ${roomName}? You will no longer receive messages from them.`),
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Block', {}, 'Block'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        if (otherPubKey) {
+          this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+        }
+        this.$router.replace('/apps/chat')
+        this.$q.notify({
+          type: 'info',
+          message: this.$t('ContactBlocked', {}, 'Contact blocked'),
+        })
+      })
+    },
+    confirmUnblockRoom () {
+      const roomName = this.roomName
+      const otherPubKey = this.otherMemberPubKey
+      this.$q.dialog({
+        title: this.$t('UnblockContact', {}, 'Unblock Contact'),
+        message: this.$t('UnblockContactConfirm', { name: roomName }, `Unblock ${roomName}? They will be able to message you again.`),
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Unblock', {}, 'Unblock'), color: 'primary', flat: true },
+        persistent: true,
+      }).onOk(() => {
+        if (otherPubKey) {
+          this.$store.commit('nostrChat/UNBLOCK_CONTACT', otherPubKey)
+        }
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('ContactUnblocked', {}, 'Contact unblocked'),
+        })
+      })
+    },
+    confirmDeleteRoom () {
+      const roomName = this.roomName
+      const otherPubKey = this.otherMemberPubKey
+      const isBlocked = this.isContactBlocked
+
+      if (isBlocked) {
+        this.$q.dialog({
+          title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+          message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete conversation with ${roomName}? This cannot be undone.`),
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk(() => {
+          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$router.replace('/apps/chat')
+          this.$q.notify({
+            type: 'info',
+            message: this.$t('ConversationDeleted', {}, 'Conversation deleted'),
+          })
+        })
+      } else {
+        this.$q.dialog({
+          title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
+          message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+          options: {
+            type: 'radio',
+            model: 'delete',
+            items: [
+              {
+                label: this.$t('DeleteOnly', {}, 'Delete only'),
+                value: 'delete',
+                description: this.$t('DeleteOnlyDesc', {}, 'Remove the conversation'),
+              },
+              {
+                label: this.$t('BlockAndDelete', {}, 'Block and delete'),
+                value: 'block_delete',
+                description: this.$t('BlockAndDeleteDesc', {}, 'Remove the conversation and block the contact'),
+              },
+            ],
+          },
+          cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+          ok: { label: this.$t('Confirm', {}, 'Confirm'), color: 'negative', flat: true },
+          persistent: true,
+        }).onOk((option) => {
+          if (option === 'block_delete' && otherPubKey) {
+            this.$store.commit('nostrChat/BLOCK_CONTACT', otherPubKey)
+          }
+          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$router.replace('/apps/chat')
+          this.$q.notify({
+            type: 'info',
+            message: this.$t('ConversationDeleted', {}, 'Conversation deleted'),
+          })
         })
       }
     },
