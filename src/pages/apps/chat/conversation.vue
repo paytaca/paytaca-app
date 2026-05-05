@@ -158,7 +158,7 @@
             :is-new="newMessageIds.has(msg.id)"
             :reply-to-message="getMessageById(msg.replyTo)"
             :is-replying="replyToMessage?.id === msg.id"
-            @reply="setReply"
+            @context-menu="openMessageMenu"
           />
         </div>
       </div>
@@ -178,6 +178,23 @@
 
     <!-- Input area -->
     <chat-input ref="chatInput" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
+
+    <!-- Message context menu -->
+    <q-dialog v-model="showContextMenu" position="bottom">
+      <q-card class="context-menu-card" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="context-menu-handle-row">
+          <div class="context-menu-handle"></div>
+        </q-card-section>
+        <q-item clickable v-close-popup @click="setReply(contextMessage)">
+          <q-item-section avatar>
+            <q-icon name="reply" size="20px" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+          </q-item-section>
+        </q-item>
+      </q-card>
+    </q-dialog>
 
     <!-- Send BCH Dialog -->
     <send-bch-dialog
@@ -220,6 +237,8 @@ export default {
       sendPreFilledAddress: '',
       inputFocused: false,
       replyToMessage: null,
+      showContextMenu: false,
+      contextMessage: null,
     }
   },
   computed: {
@@ -459,9 +478,16 @@ export default {
       if (!id) return null
       return this.messages.find(m => m.id === id) || null
     },
+    openMessageMenu (message) {
+      this.contextMessage = message
+      this.showContextMenu = true
+    },
     setReply (message) {
+      this.showContextMenu = false
       this.replyToMessage = message
-      this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+      this.$nextTick(() => {
+        this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+      })
     },
     cancelReply () {
       this.replyToMessage = null
@@ -840,5 +866,28 @@ export default {
 
 .dark .reply-bar-snippet {
   color: #94a3b8;
+}
+
+/* Context menu */
+.context-menu-card {
+  border-radius: 16px 16px 0 0;
+  padding-bottom: 16px;
+}
+
+.context-menu-handle-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.context-menu-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: #d1d5db;
+}
+
+.dark .context-menu-handle {
+  background: #4b5563;
 }
 </style>

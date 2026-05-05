@@ -5,7 +5,7 @@
     @touchstart.passive="onTouchStart"
     @touchend="onTouchEnd"
     @touchmove="onTouchMove"
-    @contextmenu.prevent="$emit('reply', message)"
+    @contextmenu.prevent="$emit('context-menu', message)"
   >
     <div
       class="message-bubble"
@@ -78,7 +78,7 @@ export default {
     replyToMessage: { type: Object, default: null },
     isReplying: { type: Boolean, default: false },
   },
-  emits: ['reply'],
+  emits: ['context-menu'],
   data () {
     return {
       longPressTimer: null,
@@ -140,7 +140,7 @@ export default {
     },
     onTouchStart () {
       this.longPressTimer = setTimeout(() => {
-        this.$emit('reply', this.message)
+        this.$emit('context-menu', this.message)
       }, 500)
     },
     onTouchEnd () {
