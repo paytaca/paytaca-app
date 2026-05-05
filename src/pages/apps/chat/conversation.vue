@@ -126,7 +126,7 @@
     </q-dialog>
 
     <!-- Messages area -->
-    <div ref="messagesContainer" class="messages-scroll-area col scroll">
+    <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu">
       <div v-if="messages.length === 0" class="empty-conversation">
         <div class="empty-illustration">
           <q-icon name="chat_bubble_outline" size="64px" />
@@ -180,7 +180,7 @@
     <chat-input ref="chatInput" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
-    <q-menu ref="contextMenu" touch-position class="text-bow" :class="getDarkModeClass(darkMode)">
+    <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-list style="min-width: 150px">
         <q-item clickable v-close-popup @click="setReply(contextMessage)">
           <q-item-section avatar>
@@ -188,6 +188,14 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
+        <q-item class="q-px-sm q-py-xs">
+          <q-item-section>
+            <div class="react-emoji-row">
+              <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" @click="onReact(contextMessage, emoji)">{{ emoji }}</span>
+            </div>
           </q-item-section>
         </q-item>
       </q-list>
@@ -235,6 +243,7 @@ export default {
       inputFocused: false,
       replyToMessage: null,
       contextMessage: null,
+      quickReactions: ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉', '👎'],
     }
   },
   computed: {
@@ -478,6 +487,22 @@ export default {
       this.contextMessage = message
       this.$nextTick(() => {
         this.$refs.contextMenu?.show(event)
+      })
+    },
+    hideContextMenu () {
+      this.$refs.contextMenu?.hide()
+    },
+    onReact (message, emoji) {
+      this.$refs.contextMenu?.hide()
+      if (!message || !emoji) return
+      this.$store.dispatch('nostrChat/sendMessage', {
+        roomId: this.roomId,
+        text: emoji,
+      }).then(({ giftWraps, message: sentMessage, roomId }) => {
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message: sentMessage })
+        this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+      }).catch(err => {
+        console.error('[Conversation] Failed to send reaction:', err)
       })
     },
     setReply (message) {
@@ -865,4 +890,33 @@ export default {
   color: #94a3b8;
 }
 
+/* Reaction emoji row */
+.react-emoji-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  justify-items: center;
+}
+
+.react-emoji {
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.react-emoji:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  transform: scale(1.15);
+}
+
+.react-emoji:active {
+  transform: scale(0.95);
+}
+
+.dark .react-emoji:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
 </style>

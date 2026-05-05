@@ -2,11 +2,7 @@
   <div
     class="message-row"
     :class="[isMine ? 'mine' : 'theirs', { 'is-replying': isReplying }]"
-    @touchstart.passive="onTouchStart"
-    @touchend="onTouchEnd"
-    @touchmove="onTouchMove"
-    @touchcancel="onTouchCancel"
-    @contextmenu.prevent="($event) => $emit('context-menu', message, $event)"
+    @contextmenu.prevent="onContextMenu"
   >
     <div
       class="message-bubble"
@@ -81,9 +77,7 @@ export default {
   },
   emits: ['context-menu'],
   data () {
-    return {
-      touchStartTime: 0,
-    }
+    return {}
   },
   computed: {
     isMine () {
@@ -139,19 +133,8 @@ export default {
         query: { from: 'chat', roomId },
       })
     },
-    onTouchStart (event) {
-      this.touchStartTime = Date.now()
-    },
-    onTouchEnd (event) {
-      if (Date.now() - this.touchStartTime >= 500) {
-        this.$emit('context-menu', this.message, event)
-      }
-    },
-    onTouchMove () {
-      this.touchStartTime = 0
-    },
-    onTouchCancel () {
-      this.touchStartTime = 0
+    onContextMenu ($event) {
+      this.$emit('context-menu', this.message, $event)
     },
   },
 }
