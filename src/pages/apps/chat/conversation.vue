@@ -126,7 +126,7 @@
     </q-dialog>
 
     <!-- Messages area -->
-    <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu">
+    <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
       <div v-if="messages.length === 0" class="empty-conversation">
         <div class="empty-illustration">
           <q-icon name="chat_bubble_outline" size="64px" />
@@ -139,6 +139,7 @@
         <div
           v-for="(msg, index) in messages"
           :key="msg.id"
+          :id="'msg-' + msg.id"
           class="message-group"
         >
           <!-- Date separator (if day changes) -->
@@ -161,10 +162,23 @@
             :reactions="getMessageReactions(msg.id)"
             @context-menu="openMessageMenu"
             @remove-reaction="onRemoveReaction"
+            @scroll-to-message="scrollToMessage"
           />
         </div>
       </div>
     </div>
+
+    <!-- Scroll to bottom button -->
+    <transition name="scroll-btn-fade">
+      <button
+        v-if="showScrollToBottom"
+        class="scroll-to-bottom-btn"
+        :class="getDarkModeClass(darkMode)"
+        @click="onScrollToBottom"
+      >
+        <q-icon name="keyboard_arrow_down" size="24px" />
+      </button>
+    </transition>
 
     <!-- Reply bar -->
     <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
@@ -218,6 +232,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { parseMessageMarkup } from 'src/utils/chat-markup'
 import HeaderNav from 'src/components/header-nav.vue'
 import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
@@ -246,6 +261,7 @@ export default {
       replyToMessage: null,
       contextMessage: null,
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
+      showScrollToBottom: false,
     }
   },
   computed: {
@@ -320,7 +336,7 @@ export default {
     },
     replyToSnippet () {
       if (!this.replyToMessage) return ''
-      const text = this.replyToMessage.content || ''
+      const { text } = parseMessageMarkup(this.replyToMessage.content || '')
       return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     messageReadMap () {
@@ -517,6 +533,25 @@ export default {
       }).catch(err => {
         console.error('[Conversation] Failed to remove reaction:', err)
       })
+    },
+    scrollToMessage (messageId) {
+      const el = document.getElementById('msg-' + messageId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('highlight-message')
+        setTimeout(() => el.classList.remove('highlight-message'), 2000)
+      }
+    },
+    onMessagesScroll () {
+      const container = this.$refs.messagesContainer
+      if (!container) return
+      const threshold = 80
+      this.showScrollToBottom = container.scrollTop + container.clientHeight < container.scrollHeight - threshold
+    },
+    onScrollToBottom () {
+      const container = this.$refs.messagesContainer
+      if (!container) return
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
     },
     setReply (message) {
       this.replyToMessage = message
@@ -725,6 +760,7 @@ export default {
   flex-direction: column;
   background: #f5f7fa;
   padding-bottom: 25px !important;
+  position: relative;
 }
 
 .messages-scroll-area {
@@ -931,5 +967,81 @@ export default {
 
 .dark .react-emoji:hover {
   background-color: rgba(255, 255, 255, 0.08);
+}
+
+.message-group.highlight-message {
+  animation: highlightFade 2s ease-out forwards;
+}
+
+@keyframes highlightFade {
+  0%, 15% {
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.dark .message-group.highlight-message {
+  animation: highlightFadeDark 2s ease-out forwards;
+}
+
+@keyframes highlightFadeDark {
+  0%, 15% {
+    background-color: rgba(59, 130, 246, 0.25);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.scroll-to-bottom-btn {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.scroll-to-bottom-btn:hover {
+  background: #f3f4f6;
+  transform: translateX(-50%) scale(1.08);
+}
+
+.scroll-to-bottom-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+.scroll-to-bottom-btn.dark {
+  background: #334155;
+  color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.scroll-to-bottom-btn.dark:hover {
+  background: #475569;
+}
+
+.scroll-btn-fade-enter-active,
+.scroll-btn-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.scroll-btn-fade-enter-from,
+.scroll-btn-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) scale(0.7);
 }
 </style>

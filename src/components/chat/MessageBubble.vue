@@ -18,7 +18,7 @@
       </div>
 
       <!-- Reply preview -->
-      <div v-if="replyToMessage" class="reply-preview">
+      <div v-if="replyToMessage" class="reply-preview" @click="$emit('scroll-to-message', replyToMessage.id)">
         <div class="reply-preview-indicator" :style="{ background: themeColor }"></div>
         <div class="reply-preview-body">
           <div class="reply-preview-sender">{{ replySenderName }}</div>
@@ -105,7 +105,7 @@ export default {
     isReplying: { type: Boolean, default: false },
     reactions: { type: Array, default: () => [] },
   },
-  emits: ['context-menu', 'remove-reaction'],
+  emits: ['context-menu', 'remove-reaction', 'scroll-to-message'],
   data () {
     return {
       expandedReaction: null,
@@ -133,7 +133,7 @@ export default {
     },
     replySnippet () {
       if (!this.replyToMessage) return ''
-      const text = this.replyToMessage.content || ''
+      const { text } = parseMessageMarkup(this.replyToMessage.content || '')
       return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     themeColor () {
@@ -263,6 +263,12 @@ export default {
   padding: 6px 10px;
   background: rgba(0, 0, 0, 0.04);
   border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.reply-preview:hover {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .reply-preview-indicator {
@@ -294,6 +300,10 @@ export default {
 /* Dark mode reply preview */
 .dark .reply-preview {
   background: rgba(255, 255, 255, 0.06);
+}
+
+.dark .reply-preview:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dark .reaction-badge {
