@@ -108,7 +108,33 @@ export const CardStorage = {
    * @returns {Object|null} Updated card or null if not found
    */
   setCardProperty(cardId, property, value) {
-    return this.updateCard(cardId, { [property]: value });
+    const cards = this.getCards();
+    const index = cards.findIndex(c => String(c.id) === String(cardId));
+    
+    if (index === -1) {
+      // Card doesn't exist - create it
+      const newCard = { id: cardId, [property]: value };
+      cards.push(newCard);
+      this.saveCards(cards);
+      return newCard;
+    }
+    
+    // Card exists - update it
+    cards[index][property] = value;
+    this.saveCards(cards);
+    return cards[index];
+  },
+
+  /**
+   * Get a specific property of a card
+   * @param {string|number} cardId - Card ID
+   * @param {string} property - Property name
+   * @returns {*} Property value or null if not found
+   */
+  getCardProperty(cardId, property) {
+    const card = this.getCardById(cardId);
+    if (!card) return null;
+    return card[property] !== undefined ? card[property] : null;
   },
 };
 

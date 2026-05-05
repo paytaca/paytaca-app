@@ -1,23 +1,29 @@
 <template>
   <div class="full-width">
-    <!-- Location Info - automatically handled by GPS -->
+    <!-- Location Info - clickable to open map popup -->
     <div 
-      v-if="userLocation"
-      class="row items-center q-mb-md q-px-sm"
+      v-if="displayLocation || userLocation"
+      class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
       :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+      @click="openLocationMapDialog"
     >
       <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
       <span class="text-caption ellipsis">
-        {{ userLocation.formatted || 'Using current location' }}
+        {{ displayLocation?.formatted || userLocation?.formatted || 'Using current location' }}
       </span>
+      <q-icon name="edit" size="0.9rem" class="q-ml-xs" color="primary" />
+      <q-tooltip>Click to update your location</q-tooltip>
     </div>
     <div 
       v-else
-      class="row items-center q-mb-md q-px-sm"
+      class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
       :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+      @click="openLocationMapDialog"
     >
       <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
-      <span class="text-caption">Detecting your location...</span>
+      <span class="text-caption">Detecting your location... (click to set manually)</span>
+      <q-icon name="edit" size="0.9rem" class="q-ml-xs" />
+      <q-tooltip>Click to set your location</q-tooltip>
     </div>
 
     <!-- Distance Filter -->
@@ -344,6 +350,56 @@
       </q-card>
     </q-dialog>
 
+    <!-- Location Map Dialog -->
+    <q-dialog v-model="showLocationMapDialog" persistent maximized>
+      <q-card :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+        <q-card-section class="row items-center justify-between q-pa-sm">
+          <div class="text-h6" :class="textColor">
+            <q-icon name="location_on" color="primary" class="q-mr-sm" />
+            Update Your Location
+          </div>
+          <q-btn icon="close" flat round dense v-close-popup :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" />
+        </q-card-section>
+
+        <q-card-section class="q-pa-none" style="height: calc(100vh - 140px);">
+          <div ref="locationMap" class="full-width full-height"></div>
+          
+          <!-- Location Search Input -->
+          <div class="absolute-top q-pa-md" style="z-index: 1000;">
+            <q-input
+              v-model="locationSearchQuery"
+              filled
+              :dark="$q.dark.isActive"
+              placeholder="Search location..."
+              class="location-search"
+              @keyup.enter="searchLocation"
+            >
+              <template v-slot:append>
+                <q-btn round dense flat icon="search" color="primary" @click="searchLocation" />
+              </template>
+            </q-input>
+          </div>
+        </q-card-section>
+
+        <q-card-section class="q-pa-md">
+          <div class="row items-center justify-between">
+            <div :class="textColorGrey" class="text-caption">
+              <q-icon name="info" size="1rem" class="q-mr-xs" />
+              Drag the marker or click on the map to set your location
+            </div>
+            <q-btn 
+              color="primary" 
+              icon="check" 
+              label="Confirm Location" 
+              unelevated
+              rounded
+              @click="confirmLocationUpdate"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
   </div>
 </template>
 
@@ -366,6 +422,7 @@ export default {
       merchants: [],
       showAllowAllMerchantsDialog: false,
       showSpendLimitDialog: false,
+      showLocationMapDialog: false,
       selectedMerchant: null,
       spendLimitInput: '1',
       spendLimitError: '',
@@ -383,6 +440,17 @@ export default {
       selectMultipleMode: false, // Toggle for select multiple mode
       selectedMerchants: new Set(), // Track selected merchants in batch mode
       batchMinting: false, // Track batch minting state
+      // Location map
+      locationMap: null,
+      locationMarker: null,
+      tempLocation: null, // Temporary location while user is selecting
+      locationSearchQuery: '',
+      // Local display location - updates immediately when user changes location
+      displayLocation: null,
+      // Debounce timer for saving merchants
+      saveDebounceTimer: null,
+      // Flag to prevent saving during initialization
+      isInitializing: false,
     }
   },
   computed: {
@@ -419,30 +487,100 @@ export default {
       }
     }
   },
-  watch: {
-    // Reload merchants when search radius changes
-    radius() {
-      this.loadMerchantList({ reset: true })
-    }
-  },
   mounted() {
-    // Load merchants if location is already set
-    if (this.userLocationValid) {
-      this.loadMerchantList({ reset: true })
-    }
-    
-    // Load merchant spend limits from card if available
-    if (this.card && this.card.merchantSpendLimits) {
-      this.merchants.forEach(merchant => {
-        if (this.card.merchantSpendLimits[merchant.id]) {
-          merchant.spendLimit = this.card.merchantSpendLimits[merchant.id];
-        }
-      });
-    }
+    console.log('ManageAuthNFTs MOUNTED, card:', this.card?.id, 'card object:', this.card)
+    this.initializeComponent()
   },
+
   methods: {
+    // Initialize component - called on mount and when card changes
+    async initializeComponent() {
+      this.isInitializing = true
+      console.log('Initializing manageAuthNFTs for card:', this.card?.id)
+      
+      // Wait for card to have an ID - longer wait for refresh scenarios
+      let attempts = 0
+      while (!this.card?.id && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 50))
+        attempts++
+        if (attempts % 10 === 0) {
+          console.log(`Waiting for card ID... attempt ${attempts}, card:`, this.card)
+        }
+      }
+      
+      if (!this.card?.id) {
+        console.error('Card ID not available after waiting 2.5 seconds')
+        console.error('Card object:', this.card)
+        this.isInitializing = false
+        return
+      }
+      
+      const cardId = String(this.card.id)
+      console.log('Card ID confirmed:', cardId, '- About to load saved data')
+      
+      // Check what's in CardStorage for this card
+      const allCards = CardStorage.getCards()
+      const thisCard = allCards.find(c => String(c.id) === cardId)
+      console.log('Card from storage:', thisCard ? 'FOUND' : 'NOT FOUND', 'Properties:', thisCard ? Object.keys(thisCard) : 'N/A')
+      
+      // Reset state first
+      this.merchants = []
+      this.displayLocation = null
+      
+      // Load saved data for this card
+      console.log('Loading saved location...')
+      this.loadSavedLocation()
+      console.log('After loadSavedLocation, displayLocation:', this.displayLocation)
+      
+      console.log('Loading saved radius...')
+      const oldRadius = this.radius
+      this.loadSavedRadius()
+      console.log('After loadSavedRadius, radius changed from', oldRadius, 'to', this.radius)
+      
+      // Initialize display location from store if no saved location
+      if (!this.displayLocation) {
+        const storeLocation = this.$store.getters['marketplace/sessionLocation']
+        console.log('Store location:', storeLocation)
+        if (storeLocation) {
+          this.displayLocation = { ...storeLocation }
+          console.log('Set displayLocation from store')
+        }
+      }
+      
+      // Load saved merchants from card storage
+      console.log('Loading saved merchants...')
+      this.loadSavedMerchants()
+      console.log('After loadSavedMerchants, merchants count:', this.merchants.length)
+      
+      // Load merchants if we have no saved merchants or they're expired
+      if (this.merchants.length === 0) {
+        console.log('No saved merchants, loading from API...')
+        await this.loadMerchantList({ reset: true })
+        // Save merchants after loading
+        this.saveMerchantsToCard()
+      }
+      
+      // Load merchant spend limits from card if available
+      if (this.card && this.card.merchantSpendLimits) {
+        this.merchants.forEach(merchant => {
+          if (this.card.merchantSpendLimits[merchant.id]) {
+            merchant.spendLimit = this.card.merchantSpendLimits[merchant.id];
+          }
+        });
+      }
+      
+      // Mark initialization complete
+      this.$nextTick(() => {
+        this.isInitializing = false
+        console.log('Initialization complete. Location:', this.displayLocation?.formatted?.substring(0, 50), 'Radius:', this.radius, 'Merchants:', this.merchants.length)
+      })
+    },
+
     async loadMerchantList(opts = {}) {
-      if (!this.userLocationValid) {
+      // Use provided coordinates or fall back to store
+      const locationCoords = opts.location || this.userCoordinates
+      
+      if (!locationCoords || !Number.isFinite(locationCoords.latitude) || !Number.isFinite(locationCoords.longitude)) {
         this.loading = false
         return
       }
@@ -473,7 +611,7 @@ export default {
         const params = {
           limit: this.merchantsPagination.limit,
           offset: this.merchantsPagination.offset,
-          location: this.userCoordinates,
+          location: locationCoords,
           radius: this.radius
         }
 
@@ -541,6 +679,8 @@ export default {
         const newRadius = parseFloat(data)
         if (newRadius > 0 && newRadius <= 500) {
           this.radius = newRadius
+          // Save radius to card storage
+          this.saveRadius()
           this.$q.notify({
             message: `Search radius set to ${newRadius} km`,
             color: 'positive',
@@ -803,6 +943,445 @@ export default {
       
       // Exit select mode after batch minting
       this.selectMultipleMode = false;
+    },
+
+    // Location Map Methods
+    openLocationMapDialog() {
+      this.showLocationMapDialog = true;
+      // Initialize temporary location with current location
+      const currentCoords = this.$store.getters['marketplace/customerCoordinates'];
+      if (currentCoords && currentCoords.latitude && currentCoords.longitude) {
+        this.tempLocation = { ...currentCoords };
+      }
+    },
+
+    async initLocationMap() {
+      if (!this.$refs.locationMap) return;
+
+      // Dynamically import Leaflet
+      const L = await import('leaflet');
+
+      // Get current coordinates or use default (Philippines)
+      const currentCoords = this.$store.getters['marketplace/customerCoordinates'];
+      const lat = this.tempLocation?.latitude || currentCoords?.latitude || 7.123;
+      const lng = this.tempLocation?.longitude || currentCoords?.longitude || 124.845;
+
+      this.locationMap = L.map(this.$refs.locationMap).setView([lat, lng], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.locationMap);
+
+      this.locationMarker = L.marker([lat, lng], { draggable: true }).addTo(this.locationMap);
+
+      // Update temp location when marker is dragged
+      this.locationMarker.on('dragend', (event) => {
+        const { lat, lng } = event.target.getLatLng();
+        this.tempLocation = { latitude: lat, longitude: lng };
+        this.reverseGeocodeLocation(lat, lng);
+      });
+
+      // Update temp location when map is clicked
+      this.locationMap.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        this.locationMarker.setLatLng([lat, lng]);
+        this.tempLocation = { latitude: lat, longitude: lng };
+        this.reverseGeocodeLocation(lat, lng);
+      });
+    },
+
+    destroyLocationMap() {
+      if (this.locationMap) {
+        this.locationMap.remove();
+        this.locationMap = null;
+        this.locationMarker = null;
+      }
+    },
+
+    async reverseGeocodeLocation(lat, lng) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+        );
+        const data = await response.json();
+        if (data.display_name) {
+          this.tempLocation = {
+            ...this.tempLocation,
+            formatted: data.display_name,
+            address: data.address
+          };
+          this.$q.notify({
+            message: `Location set: ${data.display_name.substring(0, 50)}...`,
+            color: 'positive',
+            icon: 'check',
+            timeout: 2000
+          });
+        }
+      } catch (error) {
+        console.error('Reverse geocoding failed:', error);
+      }
+    },
+
+    async searchLocation() {
+      if (!this.locationSearchQuery.trim()) return;
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(this.locationSearchQuery)}`
+        );
+        const results = await response.json();
+
+        if (results && results.length > 0) {
+          const result = results[0];
+          const lat = parseFloat(result.lat);
+          const lng = parseFloat(result.lon);
+
+          // Update map and marker
+          this.locationMap.setView([lat, lng], 16);
+          this.locationMarker.setLatLng([lat, lng]);
+
+          // Update temp location
+          this.tempLocation = {
+            latitude: lat,
+            longitude: lng,
+            formatted: result.display_name,
+            address: result.address
+          };
+
+          this.$q.notify({
+            message: `Found: ${result.display_name.substring(0, 50)}...`,
+            color: 'positive',
+            icon: 'check',
+            timeout: 2000
+          });
+        } else {
+          this.$q.notify({
+            message: 'Location not found. Try a different search term.',
+            color: 'warning',
+            icon: 'warning',
+            timeout: 3000
+          });
+        }
+      } catch (error) {
+        console.error('Location search failed:', error);
+        this.$q.notify({
+          message: 'Search failed. Please try again.',
+          color: 'negative',
+          icon: 'error',
+          timeout: 3000
+        });
+      }
+    },
+
+    async confirmLocationUpdate() {
+      if (!this.tempLocation || !this.tempLocation.latitude || !this.tempLocation.longitude) {
+        this.$q.notify({
+          message: 'Please select a location first',
+          color: 'warning',
+          icon: 'warning',
+          timeout: 2000
+        });
+        return;
+      }
+
+      this.showLocationMapDialog = false;
+
+      // Clear existing merchants immediately to show loading state
+      this.merchants = [];
+      this.merchantsPagination = {
+        count: 0,
+        limit: 50,
+        offset: 0,
+        hasMore: false
+      };
+
+      // Update display location immediately (for UI feedback)
+      this.displayLocation = {
+        formatted: this.tempLocation.formatted || 'Custom location',
+        latitude: this.tempLocation.latitude,
+        longitude: this.tempLocation.longitude
+      };
+
+      // Save location to card storage
+      this.saveLocationToCard();
+
+      // Update the store with new location
+      this.$store.dispatch('marketplace/setSessionLocation', {
+        formatted: this.tempLocation.formatted || 'Custom location',
+        latitude: this.tempLocation.latitude,
+        longitude: this.tempLocation.longitude
+      });
+
+      // Reload merchants with new location - pass coordinates directly to ensure new location is used
+      await this.loadMerchantList({ 
+        reset: true, 
+        location: {
+          latitude: this.tempLocation.latitude,
+          longitude: this.tempLocation.longitude
+        }
+      });
+
+      // Save the new merchant list after loading
+      this.saveMerchantsToCard();
+      
+      // Also save current radius with the new location data
+      this.saveRadius();
+      
+      this.$q.notify({
+        message: 'Location updated successfully. Reloading nearby merchants...',
+        color: 'positive',
+        icon: 'location_on',
+        timeout: 3000
+      });
+    },
+
+    // Save location to card storage
+    saveLocationToCard() {
+      console.log('saveLocationToCard called, card:', this.card?.id, 'displayLocation:', this.displayLocation?.formatted?.substring(0, 50));
+      
+      if (!this.card || !this.card.id) {
+        console.warn('Cannot save location - card or card.id not available')
+        return;
+      }
+      
+      const locationData = {
+        displayLocation: this.displayLocation,
+        timestamp: new Date().toISOString()
+      };
+      
+      const cardId = String(this.card.id);
+      console.log('About to save location to CardStorage for card:', cardId, 'formatted:', locationData.displayLocation?.formatted?.substring(0, 50));
+      
+      CardStorage.setCardProperty(cardId, 'merchantLocation', locationData);
+      
+      // Verify it was saved
+      const verify = CardStorage.getCardProperty(cardId, 'merchantLocation');
+      console.log('Verification - location saved:', verify ? 'YES' : 'NO');
+    },
+
+    // Load saved location from card storage
+    loadSavedLocation() {
+      if (!this.card || !this.card.id) {
+        console.warn('Cannot load location - card or card.id not available')
+        return;
+      }
+      
+      const cardId = String(this.card.id);
+      
+      // Debug: Check localStorage directly
+      const rawStorage = localStorage.getItem('mock_subcards');
+      const allCards = rawStorage ? JSON.parse(rawStorage) : [];
+      console.log('DEBUG: All cards in localStorage:', allCards.length);
+      const thisCard = allCards.find(c => String(c.id) === cardId);
+      console.log('DEBUG: This card in localStorage:', thisCard ? 'YES' : 'NO');
+      if (thisCard) {
+        console.log('DEBUG: Card properties:', Object.keys(thisCard));
+        console.log('DEBUG: merchantLocation:', thisCard.merchantLocation ? 'EXISTS' : 'NOT FOUND');
+      }
+      
+      const savedLocation = CardStorage.getCardProperty(cardId, 'merchantLocation');
+      console.log('Loading saved location for card:', cardId, 'Found:', savedLocation ? 'YES' : 'NO', 'Value:', savedLocation);
+      
+      if (savedLocation && savedLocation.displayLocation) {
+        // Check if saved location is not too old (e.g., 7 days)
+        const savedTime = new Date(savedLocation.timestamp);
+        const now = new Date();
+        const daysDiff = (now - savedTime) / (1000 * 60 * 60 * 24);
+        
+        if (daysDiff < 7) {
+          this.displayLocation = savedLocation.displayLocation;
+          console.log('Loaded saved location for card:', cardId, 'Location:', this.displayLocation.formatted?.substring(0, 50));
+        } else {
+          console.log('Saved location is older than 7 days, using current location');
+        }
+      }
+    },
+
+    // Save radius to card storage
+    saveRadius() {
+      const rawCardId = this.card?.id;
+      console.log('saveRadius called, raw card.id:', rawCardId, 'type:', typeof rawCardId, 'radius:', this.radius);
+      
+      if (!this.card || !this.card.id) {
+        console.warn('Cannot save radius - card or card.id not available')
+        return;
+      }
+      
+      const cardId = String(this.card.id);
+      console.log('Converting card ID to string:', cardId);
+      console.log('About to save radius:', this.radius, 'to card:', cardId);
+      
+      const result = CardStorage.setCardProperty(cardId, 'merchantRadius', this.radius);
+      console.log('setCardProperty returned:', result ? 'SUCCESS' : 'FAILED');
+      
+      // Verify it was saved
+      const verify = CardStorage.getCardProperty(cardId, 'merchantRadius');
+      console.log('Verification - radius saved:', verify !== undefined && verify !== null ? 'YES' : 'NO', 'Value:', verify, 'Type:', typeof verify);
+      
+      // Also check raw localStorage
+      const rawStorage = localStorage.getItem('mock_subcards');
+      if (rawStorage) {
+        const allCards = JSON.parse(rawStorage);
+        const thisCard = allCards.find(c => String(c.id) === cardId);
+        console.log('Direct localStorage check - merchantRadius:', thisCard?.merchantRadius);
+      }
+      
+      console.log('Radius save operation complete for card:', cardId);
+    },
+
+    // Load saved radius from card storage
+    loadSavedRadius() {
+      console.log('loadSavedRadius called, card:', this.card?.id, 'card type:', typeof this.card?.id);
+      
+      if (!this.card || !this.card.id) {
+        console.warn('Cannot load radius - card or card.id not available, card:', this.card)
+        return;
+      }
+      
+      const cardId = String(this.card.id);
+      console.log('Looking for radius with cardId:', cardId, '(string)');
+      
+      // Debug: Check localStorage directly
+      const rawStorage = localStorage.getItem('mock_subcards');
+      console.log('Raw localStorage mock_subcards exists:', !!rawStorage);
+      
+      if (!rawStorage) {
+        console.log('No cards in localStorage yet');
+        return;
+      }
+      
+      const allCards = JSON.parse(rawStorage);
+      console.log('Total cards in storage:', allCards.length);
+      console.log('Card IDs in storage:', allCards.map(c => ({ id: c.id, type: typeof c.id })));
+      
+      const thisCard = allCards.find(c => String(c.id) === cardId);
+      console.log('Found card in storage:', thisCard ? 'YES' : 'NO');
+      
+      if (thisCard) {
+        console.log('Card properties:', Object.keys(thisCard));
+        console.log('merchantRadius exists:', thisCard.hasOwnProperty('merchantRadius'), 'Value:', thisCard.merchantRadius, 'Type:', typeof thisCard.merchantRadius);
+      }
+      
+      const savedRadius = CardStorage.getCardProperty(cardId, 'merchantRadius');
+      console.log('CardStorage.getCardProperty result:', savedRadius, 'Type:', typeof savedRadius);
+      
+      if (savedRadius !== null && savedRadius !== undefined && typeof savedRadius === 'number') {
+        this.radius = savedRadius;
+        console.log('SUCCESS: Loaded saved radius for card:', cardId, '- Radius:', this.radius);
+      } else {
+        console.log('FAILED: No saved radius found or invalid type. savedRadius:', savedRadius, 'this.radius remains:', this.radius);
+      }
+    },
+
+    // Save merchants to card storage
+    saveMerchantsToCard() {
+      if (!this.card || !this.card.id || this.merchants.length === 0) {
+        console.warn('Cannot save merchants - card not available or no merchants')
+        return;
+      }
+      
+      // Save only essential merchant data (not UI state)
+      const merchantsToSave = this.merchants.map(m => ({
+        id: m.id,
+        name: m.name,
+        // Add other essential fields you want to persist
+      }));
+      
+      const merchantData = {
+        merchants: merchantsToSave,
+        pagination: this.merchantsPagination,
+        timestamp: new Date().toISOString()
+      };
+      
+      const cardId = String(this.card.id);
+      CardStorage.setCardProperty(cardId, 'merchantList', merchantData);
+      console.log('Merchants saved to card:', cardId, '- Count:', merchantsToSave.length);
+    },
+
+    // Load saved merchants from card storage
+    loadSavedMerchants() {
+      if (!this.card || !this.card.id) {
+        console.warn('Cannot load merchants - card or card.id not available')
+        return;
+      }
+      
+      const cardId = String(this.card.id);
+      const savedData = CardStorage.getCardProperty(cardId, 'merchantList');
+      console.log('Loading saved merchants for card:', cardId, 'Found:', savedData ? 'YES' : 'NO');
+      
+      if (savedData && savedData.merchants && savedData.merchants.length > 0) {
+        // Check if saved merchants are not too old (e.g., 1 day)
+        const savedTime = new Date(savedData.timestamp);
+        const now = new Date();
+        const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+        
+        if (hoursDiff < 24) {
+          // Restore merchants with UI state
+          this.merchants = savedData.merchants.map(m => ({
+            ...m,
+            isEnabled: false,
+            wasEnabledBeforeGeneric: false,
+            spendLimit: null
+          }));
+          
+          if (savedData.pagination) {
+            this.merchantsPagination = savedData.pagination;
+          }
+          
+          console.log('Loaded saved merchants for card:', cardId, '- Count:', this.merchants.length);
+        } else {
+          console.log('Saved merchants are older than 24 hours, will reload');
+        }
+      }
+    },
+
+    // Watch for merchant changes and save them
+    saveMerchantsOnChange() {
+      // Debounce the save to avoid excessive writes
+      if (this.saveDebounceTimer) {
+        clearTimeout(this.saveDebounceTimer);
+      }
+      
+      this.saveDebounceTimer = setTimeout(() => {
+        this.saveMerchantsToCard();
+      }, 2000); // Save 2 seconds after last change
+    }
+  },
+  
+  watch: {
+    // Reload merchants when search radius changes and save to card
+    radius(newRadius, oldRadius) {
+      console.log('Radius watcher triggered:', oldRadius, '->', newRadius, 'isInitializing:', this.isInitializing);
+      
+      // Skip during initialization to prevent overwriting saved values
+      if (this.isInitializing) {
+        console.log('Skipping radius save during initialization');
+        return;
+      }
+      
+      // Save radius when it changes
+      this.saveRadius();
+      this.loadMerchantList({ reset: true }).then(() => {
+        this.saveMerchantsToCard();
+      });
+    },
+    // Initialize map when dialog opens
+    showLocationMapDialog(val) {
+      if (val) {
+        this.$nextTick(() => {
+          this.initLocationMap()
+        })
+      } else {
+        this.destroyLocationMap()
+      }
+    },
+    // Save merchants when they change
+    merchants: {
+      deep: true,
+      handler() {
+        this.saveMerchantsOnChange();
+      }
     }
   }
 }
@@ -810,4 +1389,31 @@ export default {
 
 <style lang="scss" scoped>
   @import "src/css/app-card.scss";
+  @import "~leaflet/dist/leaflet.css";
+
+  .location-info {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 4px 8px;
+
+    &:hover {
+      background: rgba(25, 118, 210, 0.1);
+    }
+  }
+
+  .location-search {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+    :deep(.q-field__control) {
+      border-radius: 12px;
+    }
+  }
+
+  .body--dark {
+    .location-search {
+      background: #1d1d1d;
+    }
+  }
 </style>

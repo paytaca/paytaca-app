@@ -105,6 +105,7 @@
           <ManageAuthNFTs 
             v-else-if="activeTab === 'Manage Merchants' && activeCard" 
             :card="activeCard"
+            :key="activeCard.id"
           />
           <div 
             v-else-if="activeTab === 'Order Card' && activeCard"
@@ -889,6 +890,28 @@ export default {
 
   watch: {
     activeTab (newTab) {
+      // Save active tab to card storage
+      if (this.activeCard?.id) {
+        this.CardStorage.setCardProperty(this.activeCard.id, 'activeTab', newTab)
+      }
+      
+      // Update URL query param without navigation
+      if (newTab !== this.$route.query.tab) {
+        const tabMap = {
+          'Transactions': 'transactions',
+          'Manage Merchants': 'manage-merchants',
+          'Card Replacement': 'card-replacement',
+          'Order Card': 'order-card',
+          'Card Security': 'other-settings'
+        }
+        this.$router.replace({ 
+          query: { 
+            ...this.$route.query, 
+            tab: tabMap[newTab] 
+          } 
+        }).catch(() => {})
+      }
+      
       if (newTab === 'Card Replacement') {
         // Only reset flow if no active replacement request
         if (this.cardReplacementStatus === 'none') {
@@ -953,11 +976,64 @@ export default {
   },
 
   async mounted () {
-    console.log('Mounted card.vue')
+    console.log('Mounted card.vue', 'Route path:', this.$route.path, 'Route params.id:', this.$route.params?.id, 'Route query.id:', this.$route.query?.id)
+    
+    // Wait for router to be ready
+    await this.$router.isReady()
+    
+    // Try multiple times to get route params (they might not be immediately available)
+    let attempts = 0
+    const maxAttempts = 10
+    
+    while ((!this.$route.params.id && !this.$route.query.id && !localStorage.getItem('lastActiveCardId')) && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      attempts++
+      console.log(`Waiting for route params... attempt ${attempts}, params.id:`, this.$route.params?.id, 'query.id:', this.$route.query?.id)
+    }
+    
+    console.log('Final route check - params.id:', this.$route.params?.id, 'query.id:', this.$route.query?.id, 'localStorage:', localStorage.getItem('lastActiveCardId'))
+    
+    // Load the specific card (from localStorage or backend)
+    await this.loadSpecificCard()
+    
+    // Only proceed with tab logic if we have a valid card
+    if (!this.activeCard) {
+      console.error('No active card loaded, redirecting to card list')
+      return
+    }
+    
     // Load card replacement status if available
     this.loadCardReplacementStatus()
     
-    // Check if a specific tab is requested in query params
+    // Wait for computed properties to be ready
+    await this.$nextTick()
+    
+    // Debug: Check localStorage directly
+    const rawCards = localStorage.getItem('mock_subcards')
+    const allCards = rawCards ? JSON.parse(rawCards) : []
+    const thisCard = allCards.find(c => String(c.id) === String(this.activeCard.id))
+    console.log('DEBUG TAB: Card in localStorage:', thisCard ? 'YES' : 'NO')
+    console.log('DEBUG TAB: Card properties:', thisCard ? Object.keys(thisCard) : 'N/A')
+    console.log('DEBUG TAB: activeTab property:', thisCard?.activeTab)
+    
+    // Load saved active tab for this card
+    const savedTab = this.CardStorage.getCardProperty(this.activeCard.id, 'activeTab')
+    console.log('Saved tab from CardStorage for card', this.activeCard.id, ':', savedTab)
+    
+    // Force tabs to recompute by accessing it
+    const availableTabs = this.tabs
+    console.log('Available tabs:', availableTabs)
+    
+    if (savedTab && availableTabs && availableTabs.includes(savedTab)) {
+      this.activeTab = savedTab
+      console.log('SUCCESS: Restored saved tab:', savedTab)
+    } else if (savedTab) {
+      console.log('FAILED: Saved tab not in available tabs. Saved:', savedTab, 'Available:', availableTabs)
+    } else {
+      console.log('No saved tab found for card:', this.activeCard.id)
+    }
+    
+    // Check if a specific tab is requested in query params (query param takes priority)
     const requestedTab = this.$route.query.tab
     if (requestedTab) {
       // Map query param to tab names
@@ -968,13 +1044,11 @@ export default {
         'order-card': 'Order Card',
         'other-settings': 'Card Security'
       }
-      if (tabMap[requestedTab]) {
+      if (tabMap[requestedTab] && this.tabs.includes(tabMap[requestedTab])) {
         this.activeTab = tabMap[requestedTab]
+        console.log('Using query param tab:', this.activeTab)
       }
     }
-    
-    // Load the specific card (from localStorage or backend)
-    await this.loadSpecificCard()
   },
 
   methods: {
@@ -1032,14 +1106,69 @@ export default {
      */
 
     async loadSpecificCard () {
-      const cardId = this.$route.params.id || this.$route.query.id
-      console.log('Loading specific card with ID:', cardId, 'from route:', this.$route.path)
+      // Try multiple ways to get the card ID
+      let cardId = null
+      
+      // Method 1: Route params (from /details/:id)
+      if (this.$route.params && this.$route.params.id) {
+        cardId = this.$route.params.id
+        console.log('Found card ID in route.params:', cardId, 'type:', typeof cardId)
+      }
+      
+      // Method 2: Query params
+      if (!cardId && this.$route.query && this.$route.query.id) {
+        cardId = this.$route.query.id
+        console.log('Found card ID in route.query:', cardId, 'type:', typeof cardId)
+      }
+      
+      // Method 3: localStorage backup
+      if (!cardId) {
+        const savedId = localStorage.getItem('lastActiveCardId')
+        console.log('Checking localStorage lastActiveCardId:', savedId)
+        if (savedId) {
+          cardId = savedId
+          console.log('Found card ID in localStorage:', cardId)
+        }
+      }
+      
+      // Method 4: Parse from URL hash directly (fallback for hash mode)
+      if (!cardId && window.location.hash) {
+        const hash = window.location.hash
+        console.log('Parsing hash:', hash)
+        // Match patterns like #/apps/card/details/123 or #/card/details/123
+        const match = hash.match(/\/details\/(\d+)/)
+        if (match) {
+          cardId = match[1]
+          console.log('Found card ID in URL hash:', cardId)
+        }
+        // Also try matching #/card/123 or #/apps/card/123
+        const simpleMatch = hash.match(/#\/?(?:apps\/)?card\/(\d+)/)
+        if (simpleMatch) {
+          cardId = simpleMatch[1]
+          console.log('Found card ID in URL hash (simple):', cardId)
+        }
+      }
+      
+      console.log('Final card ID:', cardId, 'All route info:', {
+        'route.path': this.$route.path,
+        'route.params': this.$route.params,
+        'route.query': this.$route.query,
+        'route.name': this.$route.name,
+        'window.location.hash': window.location.hash,
+        'localStorage.lastActiveCardId': localStorage.getItem('lastActiveCardId')
+      })
       
       if (!cardId) {
-        console.error('No card ID found in route params or query')
+        console.error('No card ID found in route params, query, or localStorage')
+        console.error('Current URL:', window.location.href)
+        console.error('Route info:', { path: this.$route.path, name: this.$route.name, params: this.$route.params, query: this.$route.query })
         this.$router.push({ name: 'card-list' })
         return
       }
+      
+      // Save the card ID to localStorage for persistence across refreshes
+      localStorage.setItem('lastActiveCardId', cardId)
+      console.log('Saved card ID to localStorage:', cardId)
       
       this.loading = true
       
@@ -1070,15 +1199,21 @@ export default {
         if (backendCard) {
           console.log('Card found in backend:', backendCard.alias || backendCard.name)
           // Convert backend card format to match localStorage format
-          this.activeCard = {
+          const cardForStorage = {
             id: backendCard.id,
             name: backendCard.alias || backendCard.name,
             balance: backendCard.bch_balance || '0',
             isLocked: backendCard.isLocked || false,
             transactionAlerts: backendCard.transactionAlerts || false,
-            // Add other properties as needed
+            // Preserve any existing saved data from localStorage
             ...backendCard
           }
+          
+          // Save to localStorage for persistence
+          console.log('Saving backend card to localStorage:', cardForStorage.id)
+          this.CardStorage.updateCard(cardForStorage.id, cardForStorage)
+          
+          this.activeCard = cardForStorage
           this.newCardName = this.activeCard.name || ''
           this.loading = false
           return
