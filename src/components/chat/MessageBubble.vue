@@ -51,6 +51,7 @@
       </div>
 
       <div class="message-meta">
+        <span v-if="message.edited" class="edited-label">{{ $t('Edited', {}, 'edited') }}</span>
         <span class="message-time">{{ formatTime(message.created_at) }}</span>
         <q-icon
           v-if="isMine"
@@ -503,6 +504,20 @@ export default {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+}
+
+.edited-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.message-row.theirs .edited-label {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.dark .message-row.theirs .edited-label {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .read-receipt {

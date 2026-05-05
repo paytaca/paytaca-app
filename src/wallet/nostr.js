@@ -59,9 +59,10 @@ export function deriveNostrKeys(mnemonic) {
  * @param {string[]} opts.members - All room member pubkeys (including sender)
  * @param {string} [opts.subject] - Optional conversation subject
  * @param {string} [opts.replyTo] - Optional kind:14 id being replied to
+ * @param {string} [opts.editOf] - Optional kind:14 id being edited
  * @returns {import('nostr-tools').Rumor}
  */
-export function createUnsignedKind14({ content, senderPubKey, members, subject, replyTo }) {
+export function createUnsignedKind14({ content, senderPubKey, members, subject, replyTo, editOf }) {
   const tags = []
   for (const member of members) {
     if (member !== senderPubKey) {
@@ -70,6 +71,7 @@ export function createUnsignedKind14({ content, senderPubKey, members, subject, 
   }
   if (subject) tags.push(['subject', subject])
   if (replyTo) tags.push(['e', replyTo])
+  if (editOf) tags.push(['edit', editOf])
 
   const event = {
     kind: 14,

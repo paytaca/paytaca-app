@@ -114,6 +114,16 @@ export function SET_MESSAGES_FOR_ROOM (state, { roomId, messages }) {
   state.messages[roomId] = messages.slice().sort((a, b) => a.created_at - b.created_at)
 }
 
+export function UPDATE_MESSAGE (state, { roomId, messageId, newContent }) {
+  const messages = state.messages[roomId]
+  if (!messages) return
+  const msg = messages.find(m => m.id === messageId)
+  if (msg) {
+    msg.content = newContent
+    msg.edited = true
+  }
+}
+
 export function SET_READ_RECEIPT (state, { roomId, pubKey, timestamp }) {
   if (!state.readReceipts) {
     state.readReceipts = {}

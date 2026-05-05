@@ -245,6 +245,18 @@
       <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
     </div>
 
+    <!-- Edit bar -->
+    <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
+      <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
+      <div class="edit-bar-body">
+        <div class="edit-bar-label" :style="{ color: themeColor }">
+          {{ $t('EditingMessage', {}, 'Editing message') }}
+        </div>
+        <div class="edit-bar-snippet">{{ editSnippet }}</div>
+      </div>
+      <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
+    </div>
+
     <!-- Input area -->
     <chat-input ref="chatInput" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
@@ -257,6 +269,20 @@
           </q-item-section>
           <q-item-section>
             <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
+          v-if="contextMessage?.sender === myPubKey && canEditMessage(contextMessage)"
+          clickable
+          v-close-popup
+          @click.stop="setEdit(contextMessage)"
+          @pointerdown.stop.prevent="menuPointerDown('edit', $event)"
+        >
+          <q-item-section avatar>
+            <q-icon name="edit" size="20px" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
           </q-item-section>
         </q-item>
         <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
@@ -312,6 +338,7 @@ export default {
       sendPreFilledAddress: '',
       inputFocused: false,
       replyToMessage: null,
+      editingMessage: null,
       contextMessage: null,
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
@@ -407,6 +434,11 @@ export default {
     replyToSnippet () {
       if (!this.replyToMessage) return ''
       const { text } = parseMessageMarkup(this.replyToMessage.content || '')
+      return text.length > 80 ? text.slice(0, 80) + '...' : text
+    },
+    editSnippet () {
+      if (!this.editingMessage) return ''
+      const { text } = parseMessageMarkup(this.editingMessage.content || '')
       return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     messageReadMap () {
@@ -702,18 +734,50 @@ export default {
     cancelReply () {
       this.replyToMessage = null
     },
+    canEditMessage (message) {
+      if (!message || message.sender !== this.myPubKey) return false
+      const elapsed = Date.now() / 1000 - message.created_at
+      return elapsed <= 60
+    },
+    setEdit (message) {
+      if (!this.canEditMessage(message)) return
+      if (this.replyToMessage) this.replyToMessage = null
+      this.editingMessage = message
+      this.$nextTick(() => {
+        this.$refs.chatInput?.setText(message.content)
+        this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+      })
+    },
+    cancelEdit () {
+      this.editingMessage = null
+    },
     async onSend (text) {
       if (!this.room) return
       try {
-        const replyTo = this.replyToMessage?.id
-        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
-          roomId: this.roomId,
-          text,
-          replyTo,
-        })
-        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
-        this.replyToMessage = null
+        if (this.editingMessage) {
+          const { giftWraps, roomId } = await this.$store.dispatch('nostrChat/sendEditMessage', {
+            roomId: this.roomId,
+            text,
+            editOf: this.editingMessage.id,
+          })
+          this.$store.commit('nostrChat/UPDATE_MESSAGE', {
+            roomId,
+            messageId: this.editingMessage.id,
+            newContent: text,
+          })
+          this.editingMessage = null
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        } else {
+          const replyTo = this.replyToMessage?.id
+          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+            roomId: this.roomId,
+            text,
+            replyTo,
+          })
+          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+          this.replyToMessage = null
+        }
       } catch (err) {
         console.error('Failed to send message:', err)
         this.$q.notify({
@@ -1203,6 +1267,58 @@ export default {
 }
 
 .dark .reply-bar-snippet {
+  color: #94a3b8;
+}
+
+/* Edit bar */
+.edit-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f0f4ff;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.edit-bar-indicator {
+  width: 3px;
+  height: 32px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.edit-bar-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-bar-label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 1px;
+}
+
+.edit-bar-snippet {
+  font-size: 13px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-bar-close {
+  flex-shrink: 0;
+}
+
+.dark .edit-bar {
+  background: #1a2332;
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .edit-bar-snippet {
   color: #94a3b8;
 }
 

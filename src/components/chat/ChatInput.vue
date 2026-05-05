@@ -7,9 +7,10 @@
         borderless
         class="col chat-text-field"
         :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
+        :maxlength="MAX_CHARS"
         @keydown.enter.prevent="send"
-        @focus="$emit('focus')"
-        @blur="$emit('blur')"
+        @focus="onFocus"
+        @blur="onBlur"
       />
       <q-btn
         round
@@ -18,9 +19,12 @@
         icon="send"
         size="sm"
         class="send-btn"
-        :disable="!text.trim()"
+        :disable="!text.trim() || remainingChars <= 0"
         @click="send"
       />
+    </div>
+    <div v-if="focused" class="char-counter" :class="{ 'counter-warning': remainingChars <= 50, 'counter-danger': remainingChars <= 10 }">
+      {{ remainingChars }}
     </div>
   </div>
 </template>
@@ -29,6 +33,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const SEND_COMMAND_PATTERN = /^\/send\s+([\d.]+)\s+([A-Za-z0-9]+)\s*$/i
+const MAX_CHARS = 1000
 
 export default {
   name: 'ChatInput',
@@ -36,15 +41,28 @@ export default {
   data () {
     return {
       text: '',
+      focused: false,
+      MAX_CHARS,
     }
   },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
+    remainingChars () {
+      return MAX_CHARS - this.text.length
+    },
   },
   methods: {
     getDarkModeClass,
+    onFocus () {
+      this.focused = true
+      this.$emit('focus')
+    },
+    onBlur () {
+      this.focused = false
+      this.$emit('blur')
+    },
     setText (val) {
       this.text = val
     },
@@ -125,6 +143,22 @@ export default {
 
 .send-btn:not(:disabled):active {
   transform: scale(0.92);
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+  transition: color 0.2s ease;
+}
+
+.char-counter.counter-warning {
+  color: #f59e0b;
+}
+
+.char-counter.counter-danger {
+  color: #ef4444;
 }
 
 /* Dark mode */

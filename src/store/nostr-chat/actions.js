@@ -332,6 +332,35 @@ export async function sendMessage ({ state }, { roomId, text, replyTo }) {
   return { giftWraps, message, roomId }
 }
 
+export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const senderPrivKey = state.keys.privKeyHex
+  const senderPubKey = state.keys.pubKeyHex
+
+  const unsignedKind14 = createUnsignedKind14({
+    content: text,
+    senderPubKey,
+    members: room.members,
+    editOf,
+  })
+
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, room.members)
+
+  const message = {
+    id: unsignedKind14.id,
+    content: text,
+    sender: senderPubKey,
+    created_at: unsignedKind14.created_at,
+    kind14Id: unsignedKind14.id,
+    editOf,
+    localSentAt: Date.now(),
+  }
+
+  return { giftWraps, message, roomId }
+}
+
 export async function sendReaction ({ state, commit }, { roomId, messageId, emoji }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
@@ -496,10 +525,19 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   }
 
   const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
+  const editOf = rumor.tags.find(t => t[0] === 'edit')?.[1] || null
   const subject = rumor.tags.find(t => t[0] === 'subject')?.[1] || null
 
   if (subject && room.subject !== subject) {
     commit('UPDATE_ROOM_SUBJECT', { roomId, subject })
+  }
+
+  if (editOf) {
+    const originalMsg = (state.messages[roomId] || []).find(m => m.id === editOf)
+    if (originalMsg) {
+      commit('UPDATE_MESSAGE', { roomId, messageId: editOf, newContent: rumor.content })
+      return
+    }
   }
 
   const message = {
@@ -509,6 +547,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     created_at: rumor.created_at,
     kind14Id: rumor.id,
     replyTo,
+    editOf,
     localReceivedAt: Date.now(),
   }
 
