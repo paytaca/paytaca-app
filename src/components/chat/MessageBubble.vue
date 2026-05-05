@@ -5,6 +5,7 @@
     @touchstart.passive="onTouchStart"
     @touchend="onTouchEnd"
     @touchmove="onTouchMove"
+    @touchcancel="onTouchEnd"
     @contextmenu.prevent="($event) => $emit('context-menu', message, $event)"
   >
     <div
