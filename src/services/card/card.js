@@ -378,6 +378,20 @@ export class Card {
     return merchant_auth_nft
   }
 
+  /**
+   * Updates the card's alias
+   * @param {Object} param0
+   * @param {string} param0.alias - The new alias for the card
+   * @returns {Promise<Object>} - The updated card data
+   */
+  async update({ alias }) {
+    const data = {
+      alias: alias || this.alias,
+    };
+    const response = await backend.patch(`/cards/${this.id}/`, data);
+    return response.data;
+  }
+
   // ==================== AUTH NFT OPERATIONS ====================
 
   /**

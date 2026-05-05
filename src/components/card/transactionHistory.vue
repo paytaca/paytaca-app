@@ -138,16 +138,12 @@ export default {
   async mounted() {
     await this.fetchTransactions()
     this.isLoaded = true
-    console.log('>>>>Transactions loaded:', this.transactions)
   },
   methods: {
 
     async fetchTransactions () {
       console.log('Fetching transactions for card:', this.card?.id)
       return this.$store.dispatch('card/fetchCardTransactions', { cardId: this.card?.id })
-        .then(transactions => {
-          console.log('----Fetched transactions:', transactions)
-        })
         .catch(error => {
           console.error('Failed to fetch transactions:', error)
         })

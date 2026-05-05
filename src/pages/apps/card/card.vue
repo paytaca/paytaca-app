@@ -15,7 +15,7 @@
               class="text-subtitle1 q-mr-sm"
               :class="textColor"
             >
-              {{ getCardName(activeCard) }}
+              {{ activeCard?.alias }}
             </div>
             <q-badge 
               rounded 
@@ -40,7 +40,7 @@
                   <!-- Card name in chip - uses localStorage
                        Backend option: <q-skeleton v-if="loading" type="text" width="80px" height="16px" /> -->
                   <div class="text-caption text-weight-bold ellipsis" style="max-width: 100px; color: inherit; font-family: 'Courier New', monospace; letter-spacing: 0.5px;">
-                    {{ getCardName(activeCard) || 'My Card' }}
+                    {{ activeCard?.alias }}
                   </div>
                 </div>
                 <q-img
@@ -52,7 +52,7 @@
               
               <!-- Contract Address (Card Number) -->
               <div class="virtual-card-address text-caption text-weight-medium q-mt-sm">
-              {{ formatContractAddress(activeCard?.cashAddress) || 'bitcoincash:qz6zv...efvjw' }}
+              {{ formatContractAddress(activeCard?.cashAddress) }}
               <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
             </div>
               
@@ -779,6 +779,7 @@ import ManageAuthNFTs from 'src/components/card/manageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import L from 'leaflet'
 import { satoshiToBch } from 'src/exchange'
+import { loadCardUser } from 'src/services/card/user'
 
 export default {
   mixins: [createCardLogic],
@@ -1047,7 +1048,7 @@ export default {
      * },
      */
 
-    async loadSpecificCard () {
+    async loadSpecificCard (fetchFreshCard = false) {
       // Try multiple ways to get the card ID
       let cardId = null
       
@@ -1117,6 +1118,11 @@ export default {
       try {
         // Using Vuex getter for localStorage access
         let card = this.$store.getters['card/getCardById'](cardId)
+        
+        if (fetchFreshCard) {
+          const user = await loadCardUser()
+          card = await user.fetchCardByIdentifier(cardId)
+        }
 
         if (card) {
           console.log('Card:', card)
@@ -1189,17 +1195,27 @@ export default {
     },
     */
 
-    saveCardName () {
+    async saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
         const trimmedName = this.newCardName.trim()
         const capitalizedName = this.capitalizeFirst(trimmedName)
         
         // Update the name directly
-        this.activeCard.name = capitalizedName
+        // this.activeCard.name = capitalizedName
         this.newCardName = capitalizedName
         
-        // Save to localStorage - use setCardProperty to ensure card exists
-        this.CardStorage.setCardProperty(this.activeCard.id, 'name', capitalizedName)
+        // Save the edit to the server
+        await this.activeCard.update({ alias: capitalizedName })
+          .then(response => {
+            this.notifySuccess('Card name updated successfully')
+          })
+          .catch(error => {
+            console.error('Failed to update card name on server:', error)
+            this.notifyError('Failed to update card name. Please try again.')
+          })
+
+        // // Save to localStorage - use setCardProperty to ensure card exists
+        // this.CardStorage.setCardProperty(this.activeCard.id, 'name', capitalizedName)
         
         // Also save other important properties
         if (this.activeCard.balance !== undefined) {
@@ -1217,6 +1233,7 @@ export default {
         // Show success notification
         this.notifySuccess('Card name updated successfully')
       }
+      this.loadSpecificCard(true)
       this.showEditNameDialog = false
     },
 
