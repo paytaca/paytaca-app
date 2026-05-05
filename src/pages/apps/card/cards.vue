@@ -63,7 +63,7 @@
                   class="text-weight-bold text-subtitle2 ellipsis" 
                   style="max-width: 120px; font-size: 13px; color: inherit;"
                 >
-                  {{ capitalizeFirst(card.alias) }}
+                  {{ getCardDisplayName(card) }}
                 </div>
                 <div 
                   class="text-weight-bold text-subtitle2" 
@@ -127,6 +127,7 @@ import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.v
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 import { bus } from 'src/wallet/event-bus';
+import { CardStorage } from 'src/components/card/createCard.js';
 
 export default {
   mixins: [CreateCardAttemptMixin],
@@ -260,6 +261,22 @@ export default {
     capitalizeFirst (str) {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
+    },
+
+    /* Get card display name - checks localStorage first for saved name, then falls back to backend alias
+     * This ensures edited names persist across the app
+     */
+    getCardDisplayName (card) {
+      if (!card || !card.id) return 'Card'
+      
+      // Check localStorage for saved name first
+      const savedName = CardStorage.getCardProperty(card.id, 'name')
+      if (savedName) {
+        return this.capitalizeFirst(savedName)
+      }
+      
+      // Fall back to backend alias or name
+      return this.capitalizeFirst(card.alias || card.name || 'Card')
     },
 
     /* NEW: Helper method to get card BCH balance using Card class

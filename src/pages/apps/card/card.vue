@@ -1177,15 +1177,22 @@ export default {
         let found = this.CardStorage.getCardById(cardId)
         
         if (found) {
-          console.log('Card found in localStorage:', found.name)
+          console.log('Card found in localStorage:', found.name, 'ID:', found.id)
+          
+          // Check if there's a more recent saved name
+          const savedName = this.CardStorage.getCardProperty(found.id, 'name')
+          const cardName = savedName || found.name || 'Card'
+          
           // Ensure all reactive properties exist with defaults
           const cardWithDefaults = {
             isLocked: false,
             transactionAlerts: false,
-            ...found
+            ...found,
+            name: cardName
           }
           this.activeCard = cardWithDefaults
-          this.newCardName = found.name || ''
+          this.newCardName = cardName
+          console.log('Card name set to:', cardName)
           this.loading = false
           return
         }
@@ -1198,10 +1205,18 @@ export default {
         
         if (backendCard) {
           console.log('Card found in backend:', backendCard.alias || backendCard.name)
+          
+          // Check if there's a saved name in localStorage
+          const savedName = this.CardStorage.getCardProperty(backendCard.id, 'name')
+          console.log('Checking for saved name in localStorage:', savedName)
+          
+          // Use saved name if available, otherwise use backend name
+          const cardName = savedName || backendCard.alias || backendCard.name || 'Card'
+          
           // Convert backend card format to match localStorage format
           const cardForStorage = {
             id: backendCard.id,
-            name: backendCard.alias || backendCard.name,
+            name: cardName,
             balance: backendCard.bch_balance || '0',
             isLocked: backendCard.isLocked || false,
             transactionAlerts: backendCard.transactionAlerts || false,
@@ -1210,11 +1225,14 @@ export default {
           }
           
           // Save to localStorage for persistence
-          console.log('Saving backend card to localStorage:', cardForStorage.id)
-          this.CardStorage.updateCard(cardForStorage.id, cardForStorage)
+          console.log('Saving backend card to localStorage:', cardForStorage.id, 'with name:', cardName)
+          this.CardStorage.setCardProperty(cardForStorage.id, 'name', cardName)
+          this.CardStorage.setCardProperty(cardForStorage.id, 'balance', cardForStorage.balance)
+          this.CardStorage.setCardProperty(cardForStorage.id, 'isLocked', cardForStorage.isLocked)
+          this.CardStorage.setCardProperty(cardForStorage.id, 'transactionAlerts', cardForStorage.transactionAlerts)
           
           this.activeCard = cardForStorage
-          this.newCardName = this.activeCard.name || ''
+          this.newCardName = cardName
           this.loading = false
           return
         }
@@ -1268,16 +1286,27 @@ export default {
     saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
         const trimmedName = this.newCardName.trim()
+        const capitalizedName = this.capitalizeFirst(trimmedName)
         
         // Update the name directly
-        this.activeCard.name = this.capitalizeFirst(trimmedName)
-        this.newCardName = this.capitalizeFirst(trimmedName)
+        this.activeCard.name = capitalizedName
+        this.newCardName = capitalizedName
         
-        // Save to localStorage
-        const updatedCard = this.CardStorage.updateCard(this.activeCard.id, this.activeCard)
-        if (updatedCard) {
-          this.activeCard = updatedCard
+        // Save to localStorage - use setCardProperty to ensure card exists
+        this.CardStorage.setCardProperty(this.activeCard.id, 'name', capitalizedName)
+        
+        // Also save other important properties
+        if (this.activeCard.balance !== undefined) {
+          this.CardStorage.setCardProperty(this.activeCard.id, 'balance', this.activeCard.balance)
         }
+        if (this.activeCard.isLocked !== undefined) {
+          this.CardStorage.setCardProperty(this.activeCard.id, 'isLocked', this.activeCard.isLocked)
+        }
+        if (this.activeCard.transactionAlerts !== undefined) {
+          this.CardStorage.setCardProperty(this.activeCard.id, 'transactionAlerts', this.activeCard.transactionAlerts)
+        }
+        
+        console.log('Card name saved:', capitalizedName, 'for card:', this.activeCard.id)
         
         // Show success notification
         this.notifySuccess('Card name updated successfully')
