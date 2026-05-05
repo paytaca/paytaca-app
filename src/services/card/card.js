@@ -33,6 +33,14 @@ export class Card {
     return this.raw?.id;
   }
 
+  get cashAddress() {
+    return this.raw?.cash_address;
+  }
+
+  get tokenAddress() {
+    return this.raw?.token_address;
+  }
+
   // ==================== FACTORIES ====================
 
   /**
@@ -608,8 +616,16 @@ export class Card {
    * Fetches from server data, server queries blockchain.
    * @returns {number}
    */
-  getBchBalance() {
-    return this.raw?.bch_balance || 0;
+  async getBchBalance() {
+    const response = await backend.get(`/cards/${this.id}/bch-balance/`)
+    .catch(error => {
+      console.error('Error fetching BCH balance:', error.response || error.message);
+      if (error.response && error.response.status === 401) {
+        bus.emit('sessionExpired') // Emit sessionExpired event for testing
+      }
+      throw error;
+    });
+    return response.data?.bch_balance || 0;
   }
 
   /**

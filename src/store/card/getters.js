@@ -4,7 +4,9 @@ export function getUser (state) {
 
 export function getCardById (state) {
   return function (id) {
-    return state.cards.find(card => card.id === id)
+    return state.cards.find(card => {
+      return card.id === parseInt(id)
+    })
   }
 }
 

@@ -52,7 +52,7 @@
               
               <!-- Contract Address (Card Number) -->
               <div class="virtual-card-address text-caption text-weight-medium q-mt-sm">
-              {{ formatContractAddress(activeCard?.contractAddress) || 'bitcoincash:qz6zv...efvjw' }}
+              {{ formatContractAddress(activeCard?.cashAddress) || 'bitcoincash:qz6zv...efvjw' }}
               <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
             </div>
               
@@ -71,7 +71,7 @@
                 class="q-mr-sm"
                 :class="textColor"
               >
-                {{ formatBalance(activeCard?.balance) }} BCH
+                {{ bchBalance }} BCH
                 <!-- NEW: Use Card class getBchBalance() method -->
                 <!-- {{ formatBalance(activeCard?.getBchBalance ? activeCard.getBchBalance() : activeCard?.balance) }} BCH -->
               </div>
@@ -711,75 +711,6 @@
         </q-card>
       </q-dialog>
 
-      <q-dialog v-model="showCashInDialog">
-        <q-card class="cash-in-dialog" :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'">
-          <q-card-section class="row justify-between items-center q-pb-none">
-            <div class="text-h6 q-mb-md" :class="textColor">Cash In</div>
-            <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="showCashInDialog = false" />
-          </q-card-section>
-
-          <q-card-section class="text-center q-pt-sm">
-            
-            <div class="qr-container q-mb-md">
-              <qr-code 
-                :text="getContractAddress(activeCard)"
-                :size="180"
-              />
-            </div>
-
-            <div class="row items-center justify-center q-gutter-sm q-mb-lg">
-              <div 
-                class="contract-address" 
-                :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-8'"
-              >
-                {{ formatContractAddress(getContractAddress(activeCard)) }}
-                <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
-              </div>
-              <q-btn 
-                flat 
-                round 
-                dense 
-                icon="content_copy" 
-                size="sm"
-                :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                @click="copyContractAddress"
-              />
-            </div>
-
-            <div class="row justify-center q-gutter-md q-mb-lg">
-              <q-input
-                v-model="cashInAmount"
-                type="number"
-                filled
-                :dark="$q.dark.isActive"
-                placeholder="Amount"
-                class="amount-input"
-                :rules="[val => (val && parseFloat(val) > 0) || 'Amount must be greater than 0']"
-                lazy-rules
-              />
-              <q-select
-                v-model="cashInCurrency"
-                :options="currencyOptions"
-                filled
-                :dark="$q.dark.isActive"
-                emit-value
-                map-options
-                class="currency-select"
-                popup-content-class="text-dark"
-              />
-            </div>
-
-            <q-btn
-              color="primary"
-              label="Cash In"
-              class="full-width"
-              unelevated
-              @click="handleCashIn"
-            />
-          </q-card-section>
-        </q-card>
-      </q-dialog>
-
       <q-dialog v-model="showSweepFundsDialog" persistent>
         <q-card style="min-width: 320px">
           <q-card-section>
@@ -836,6 +767,8 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <cash-in-dialog v-model="showCashInDialog" :card="activeCard" @close="onCloseCashInDialog"/>
   </div>
 </template>
 
@@ -843,13 +776,16 @@
 import {createCardLogic} from 'src/components/card/createCard.js'
 import TransactionHistory from 'src/components/card/transactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/manageAuthNFTs.vue'
+import CashInDialog from 'src/components/card/CashInDialog.vue'
 import L from 'leaflet'
+import { satoshiToBch } from 'src/exchange'
 
 export default {
   mixins: [createCardLogic],
   components: {
     TransactionHistory,
     ManageAuthNFTs,
+    CashInDialog,
   },
 
   data () {
@@ -885,6 +821,8 @@ export default {
       // loading: true,
       // backendData: null,
       // dataError: null,
+      hasOrderedPhysicalCard: false,
+      bchBalance: 0,
     }
   },
 
@@ -936,27 +874,27 @@ export default {
       return this.$store.getters['market/selectedCurrency']
     },
 
-    currencyOptions () {
-      const options = this.$store.getters['market/currencyOptions']
-      let symbols = []
-      if (Array.isArray(options) && options.length > 0) {
-        symbols = options.map(c => c.symbol)
-      }
-      // Always ensure USD, PHP, and BCH are available
-      const requiredCurrencies = ['USD', 'PHP', 'BCH']
-      requiredCurrencies.forEach(currency => {
-        if (!symbols.includes(currency)) {
-          symbols.push(currency)
-        }
-      })
-      return symbols
-    },
+    // currencyOptions () {
+    //   const options = this.$store.getters['market/currencyOptions']
+    //   let symbols = []
+    //   if (Array.isArray(options) && options.length > 0) {
+    //     symbols = options.map(c => c.symbol)
+    //   }
+    //   // Always ensure USD, PHP, and BCH are available
+    //   const requiredCurrencies = ['USD', 'PHP', 'BCH']
+    //   requiredCurrencies.forEach(currency => {
+    //     if (!symbols.includes(currency)) {
+    //       symbols.push(currency)
+    //     }
+    //   })
+    //   return symbols
+    // },
 
-    bchPriceInSelectedCurrency () {
-      const currencySymbol = this.selectedCurrency?.symbol || 'USD'
-      const price = this.$store.getters['market/getAssetPrice']('bch', currencySymbol)
-      return price || null
-    },
+    // bchPriceInSelectedCurrency () {
+    //   const currencySymbol = this.selectedCurrency?.symbol || 'USD'
+    //   const price = this.$store.getters['market/getAssetPrice']('bch', currencySymbol)
+    //   return price || null
+    // },
 
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
@@ -1049,6 +987,10 @@ export default {
         console.log('Using query param tab:', this.activeTab)
       }
     }
+    
+    // Load the specific card (from localStorage or backend)
+    await this.loadSpecificCard()
+    this.getCardBchBalance()
   },
 
   methods: {
@@ -1173,66 +1115,19 @@ export default {
       this.loading = true
       
       try {
-        // // First try to get card from localStorage (UI testing mode)
-        let found = this.CardStorage.getCardById(cardId)
-        
-        if (found) {
-          console.log('Card found in localStorage:', found.name, 'ID:', found.id)
-          
-          // Check if there's a more recent saved name
-          const savedName = this.CardStorage.getCardProperty(found.id, 'name')
-          const cardName = savedName || found.name || 'Card'
-          
-          // Ensure all reactive properties exist with defaults
-          const cardWithDefaults = {
-            isLocked: false,
-            transactionAlerts: false,
-            ...found,
-            name: cardName
-          }
-          this.activeCard = cardWithDefaults
-          this.newCardName = cardName
-          console.log('Card name set to:', cardName)
-          this.loading = false
-          return
-        }
-        
-        // If not in localStorage, try to fetch from backend
-        console.log('Card not in localStorage, fetching from backend...')
-        const cardUser = await this.loadCardUser()
-        const cards = await cardUser.fetchCards()
-        const backendCard = cards.find(c => String(c.id) === String(cardId))
-        
-        if (backendCard) {
-          console.log('Card found in backend:', backendCard.alias || backendCard.name)
-          
-          // Check if there's a saved name in localStorage
-          const savedName = this.CardStorage.getCardProperty(backendCard.id, 'name')
-          console.log('Checking for saved name in localStorage:', savedName)
-          
-          // Use saved name if available, otherwise use backend name
-          const cardName = savedName || backendCard.alias || backendCard.name || 'Card'
-          
-          // Convert backend card format to match localStorage format
-          const cardForStorage = {
-            id: backendCard.id,
-            name: cardName,
-            balance: backendCard.bch_balance || '0',
-            isLocked: backendCard.isLocked || false,
-            transactionAlerts: backendCard.transactionAlerts || false,
-            // Preserve any existing saved data from localStorage
-            ...backendCard
-          }
-          
-          // Save to localStorage for persistence
-          console.log('Saving backend card to localStorage:', cardForStorage.id, 'with name:', cardName)
-          this.CardStorage.setCardProperty(cardForStorage.id, 'name', cardName)
-          this.CardStorage.setCardProperty(cardForStorage.id, 'balance', cardForStorage.balance)
-          this.CardStorage.setCardProperty(cardForStorage.id, 'isLocked', cardForStorage.isLocked)
-          this.CardStorage.setCardProperty(cardForStorage.id, 'transactionAlerts', cardForStorage.transactionAlerts)
-          
-          this.activeCard = cardForStorage
-          this.newCardName = cardName
+        // Using Vuex getter for localStorage access
+        let card = this.$store.getters['card/getCardById'](cardId)
+
+        if (card) {
+          console.log('Card:', card)
+          // // Ensure all reactive properties exist with defaults
+          // const cardWithDefaults = {
+          //   isLocked: false,
+          //   transactionAlerts: false,
+          //   ...card
+          // }
+          this.activeCard = card
+          this.newCardName = card.name || ''
           this.loading = false
           return
         }
@@ -1245,6 +1140,17 @@ export default {
         this.loading = false
         this.$router.push({ name: 'card-list' });
       }
+    },
+
+    onCloseCashInDialog () {
+      this.showCashInDialog = false
+      this.getCardBchBalance() // Refresh balance after cash-in
+    },
+
+    async getCardBchBalance() {
+      const balanceSats = await this.activeCard?.getBchBalance()
+      const bchBalance = satoshiToBch(balanceSats)
+      this.bchBalance = bchBalance ? bchBalance : 0
     },
 
     /*
@@ -1316,17 +1222,17 @@ export default {
 
 
 
-    copyContractAddress () {
-      const address = this.getContractAddress(this.activeCard)
-      if (address) {
-        navigator.clipboard.writeText(address)
-        this.notifySuccess('Contract address copied!')
-      }
-    },
+    // copyContractAddress () {
+    //   const address = this.getContractAddress(this.activeCard)
+    //   if (address) {
+    //     navigator.clipboard.writeText(address)
+    //     this.notifySuccess('Contract address copied!')
+    //   }
+    // },
 
-    getContractAddress (card) {
-      return card?.contractAddress || this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw'
-    },
+    // getContractAddress (card) {
+    //   return card?.contractAddress || this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw'
+    // },
 
     openCashInDialog () {
       // Set default currency to the currently selected currency
@@ -1354,49 +1260,49 @@ export default {
       }
     },
 
-    handleCashIn () {
-      if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
-        this.notifyError('Please enter a valid amount greater than 0')
-        return
-      }
+    // handleCashIn () {
+    //   if (!this.cashInAmount || parseFloat(this.cashInAmount) <= 0) {
+    //     this.notifyError('Please enter a valid amount greater than 0')
+    //     return
+    //   }
 
-      // Convert to BCH based on selected currency using real market data
-      let amountInBCH
+    //   // Convert to BCH based on selected currency using real market data
+    //   let amountInBCH
       
-      if (this.cashInCurrency === 'BCH') {
-        amountInBCH = parseFloat(this.cashInAmount)
-      } else if (this.cashInCurrency === 'sats' || this.cashInCurrency === 'Satoshis') {
-        // 1 BCH = 100,000,000 satoshis
-        amountInBCH = parseFloat(this.cashInAmount) / 100000000
-      } else {
-        // Use real market price from store
-        const bchPrice = this.bchPriceInSelectedCurrency
-        if (!bchPrice) {
-          this.notifyError('Unable to fetch current BCH price. Please try again.')
-          return
-        }
-        // Convert fiat to BCH: amount / price = BCH
-        amountInBCH = parseFloat(this.cashInAmount) / bchPrice
-      }
+    //   if (this.cashInCurrency === 'BCH') {
+    //     amountInBCH = parseFloat(this.cashInAmount)
+    //   } else if (this.cashInCurrency === 'sats' || this.cashInCurrency === 'Satoshis') {
+    //     // 1 BCH = 100,000,000 satoshis
+    //     amountInBCH = parseFloat(this.cashInAmount) / 100000000
+    //   } else {
+    //     // Use real market price from store
+    //     const bchPrice = this.bchPriceInSelectedCurrency
+    //     if (!bchPrice) {
+    //       this.notifyError('Unable to fetch current BCH price. Please try again.')
+    //       return
+    //     }
+    //     // Convert fiat to BCH: amount / price = BCH
+    //     amountInBCH = parseFloat(this.cashInAmount) / bchPrice
+    //   }
 
-      // Update card balance in localStorage
-      if (this.activeCard) {
-        const updatedCard = this.CardStorage.incrementCardProperty(this.activeCard.id, 'balance', amountInBCH)
-        if (updatedCard) {
-          this.activeCard.balance = updatedCard.balance
-        }
-      }
+    //   // Update card balance in localStorage
+    //   if (this.activeCard) {
+    //     const updatedCard = this.CardStorage.incrementCardProperty(this.activeCard.id, 'balance', amountInBCH)
+    //     if (updatedCard) {
+    //       this.activeCard.balance = updatedCard.balance
+    //     }
+    //   }
 
-      this.$q.notify({
-        message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(4)} BCH) to your card!`,
-        color: 'positive',
-        position: 'top',
-        timeout: 2000
-      })
+    //   this.$q.notify({
+    //     message: `Successfully added ${this.cashInAmount} ${this.cashInCurrency} (~${amountInBCH.toFixed(4)} BCH) to your card!`,
+    //     color: 'positive',
+    //     position: 'top',
+    //     timeout: 2000
+    //   })
       
-      this.showCashInDialog = false
-      this.cashInAmount = ''
-    },
+    //   this.showCashInDialog = false
+    //   this.cashInAmount = ''
+    // },
 
     handleOrderPhysicalCard () {
       if (!this.orderPhysicalCardData.fullName || !this.orderPhysicalCardData.city || 
