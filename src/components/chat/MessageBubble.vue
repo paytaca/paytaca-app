@@ -5,7 +5,7 @@
     @touchstart.passive="onTouchStart"
     @touchend="onTouchEnd"
     @touchmove="onTouchMove"
-    @touchcancel="onTouchEnd"
+    @touchcancel="onTouchCancel"
     @contextmenu.prevent="($event) => $emit('context-menu', message, $event)"
   >
     <div
@@ -82,7 +82,7 @@ export default {
   emits: ['context-menu'],
   data () {
     return {
-      longPressTimer: null,
+      touchStartTime: 0,
     }
   },
   computed: {
@@ -140,15 +140,18 @@ export default {
       })
     },
     onTouchStart (event) {
-      this.longPressTimer = setTimeout(() => {
-        this.$emit('context-menu', this.message, event)
-      }, 500)
+      this.touchStartTime = Date.now()
     },
-    onTouchEnd () {
-      clearTimeout(this.longPressTimer)
+    onTouchEnd (event) {
+      if (Date.now() - this.touchStartTime >= 500) {
+        this.$emit('context-menu', this.message, event)
+      }
     },
     onTouchMove () {
-      clearTimeout(this.longPressTimer)
+      this.touchStartTime = 0
+    },
+    onTouchCancel () {
+      this.touchStartTime = 0
     },
   },
 }
