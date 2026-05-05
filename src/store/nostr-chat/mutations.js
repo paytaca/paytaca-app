@@ -149,6 +149,28 @@ export function SET_MESSAGE_READ_BY (state, { roomId, messageId, readerPubKey })
   state.messageReadBy[roomId][messageId][readerPubKey] = true
 }
 
+export function ADD_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji }) {
+  if (!state.reactions) state.reactions = {}
+  if (!state.reactions[roomId]) state.reactions[roomId] = {}
+  if (!state.reactions[roomId][messageId]) state.reactions[roomId][messageId] = []
+
+  const reactions = state.reactions[roomId][messageId]
+  const existing = reactions.findIndex(r => r.reactorPubKey === reactorPubKey && r.emoji === emoji)
+  if (existing >= 0) {
+    reactions.splice(existing, 1)
+  }
+  reactions.push({ emoji, reactorPubKey })
+}
+
+export function REMOVE_MESSAGE_REACTION (state, { roomId, messageId, reactorPubKey, emoji }) {
+  const reactions = state.reactions?.[roomId]?.[messageId]
+  if (!reactions) return
+  const existing = reactions.findIndex(r => r.reactorPubKey === reactorPubKey && r.emoji === emoji)
+  if (existing >= 0) {
+    reactions.splice(existing, 1)
+  }
+}
+
 export function SET_RELAYS (state, relays) {
   state.relays = relays
 }

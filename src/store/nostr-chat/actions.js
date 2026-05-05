@@ -1,4 +1,4 @@
-import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap } from 'src/wallet/nostr'
+import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWrap } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent } from 'nostr-tools'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
@@ -332,6 +332,58 @@ export async function sendMessage ({ state }, { roomId, text, replyTo }) {
   return { giftWraps, message, roomId }
 }
 
+export async function sendReaction ({ state, commit }, { roomId, messageId, emoji }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const reactorPrivKey = state.keys.privKeyHex
+  const reactorPubKey = state.keys.pubKeyHex
+  const senderPubKey = room.members.find(m => m !== reactorPubKey) || reactorPubKey
+
+  const giftWrap = await createReactionGiftWrap({
+    messageId,
+    senderPubKey,
+    emoji,
+    reactorPubKey,
+    reactorPrivKey,
+  })
+
+  commit('ADD_MESSAGE_REACTION', {
+    roomId,
+    messageId,
+    reactorPubKey,
+    emoji,
+  })
+
+  await relayService.publishEvent(state.relays, giftWrap)
+}
+
+export async function removeReaction ({ state, commit }, { roomId, messageId, emoji }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const reactorPrivKey = state.keys.privKeyHex
+  const reactorPubKey = state.keys.pubKeyHex
+  const senderPubKey = room.members.find(m => m !== reactorPubKey) || reactorPubKey
+
+  commit('REMOVE_MESSAGE_REACTION', {
+    roomId,
+    messageId,
+    reactorPubKey,
+    emoji,
+  })
+
+  const giftWrap = await createReactionGiftWrap({
+    messageId,
+    senderPubKey,
+    emoji: `-${emoji}`,
+    reactorPubKey,
+    reactorPrivKey,
+  })
+
+  await relayService.publishEvent(state.relays, giftWrap)
+}
+
 export async function publishGiftWraps ({ state }, { giftWraps }) {
   // Start with our own relays as fallback
   let targetRelays = new Set(state.relays)
@@ -370,8 +422,6 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     if (!eTag) return
 
     const messageId = eTag[1]
-    // The Kind 7 was created by the reader (rumor.pubkey) and sent to
-    // the original message sender.  The room is between those two.
     const readerPubKey = rumor.pubkey
 
     if (messageId && readerPubKey) {
@@ -381,6 +431,39 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         messageId,
         readerPubKey,
       })
+    }
+    return
+  }
+
+  // Handle Kind 7 emoji reactions (NIP-25)
+  if (rumor.kind === 7 && rumor.content !== '👀') {
+    const eTag = rumor.tags.find(t => t[0] === 'e')
+    if (!eTag) return
+
+    const messageId = eTag[1]
+    const reactorPubKey = rumor.pubkey
+    const content = rumor.content
+    const isDeletion = content.startsWith('-')
+
+    if (messageId && reactorPubKey && content) {
+      const roomId = computeRoomId([myPubKey, reactorPubKey])
+
+      if (isDeletion) {
+        const emoji = content.slice(1)
+        commit('REMOVE_MESSAGE_REACTION', {
+          roomId,
+          messageId,
+          reactorPubKey,
+          emoji,
+        })
+      } else {
+        commit('ADD_MESSAGE_REACTION', {
+          roomId,
+          messageId,
+          reactorPubKey,
+          emoji: content,
+        })
+      }
     }
     return
   }

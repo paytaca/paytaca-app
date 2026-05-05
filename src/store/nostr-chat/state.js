@@ -16,6 +16,7 @@ export default function () {
     readReceipts: {}, // { roomId: { pubKeyHex: timestamp } }
     readMessageIds: {}, // { roomId: { msgId: true, ... } }
     messageReadBy: {}, // { roomId: { msgId: { [readerPubKey]: true } } }
+    reactions: {}, // { roomId: { messageId: [ { emoji, reactorPubKey } ] } }
     isReady: false,
     initialized: false,
     isSubscribed: false,

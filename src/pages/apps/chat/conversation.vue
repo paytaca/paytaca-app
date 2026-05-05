@@ -158,7 +158,9 @@
             :is-new="newMessageIds.has(msg.id)"
             :reply-to-message="getMessageById(msg.replyTo)"
             :is-replying="replyToMessage?.id === msg.id"
+            :reactions="getMessageReactions(msg.id)"
             @context-menu="openMessageMenu"
+            @remove-reaction="onRemoveReaction"
           />
         </div>
       </div>
@@ -483,6 +485,9 @@ export default {
       if (!id) return null
       return this.messages.find(m => m.id === id) || null
     },
+    getMessageReactions (messageId) {
+      return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)
+    },
     openMessageMenu (message, event) {
       this.contextMessage = message
       this.$nextTick(() => {
@@ -495,14 +500,22 @@ export default {
     onReact (message, emoji) {
       this.$refs.contextMenu?.hide()
       if (!message || !emoji) return
-      this.$store.dispatch('nostrChat/sendMessage', {
+      this.$store.dispatch('nostrChat/sendReaction', {
         roomId: this.roomId,
-        text: emoji,
-      }).then(({ giftWraps, message: sentMessage, roomId }) => {
-        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message: sentMessage })
-        this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        messageId: message.id || message.kind14Id,
+        emoji,
       }).catch(err => {
         console.error('[Conversation] Failed to send reaction:', err)
+      })
+    },
+    onRemoveReaction ({ messageId, emoji }) {
+      if (!messageId || !emoji) return
+      this.$store.dispatch('nostrChat/removeReaction', {
+        roomId: this.roomId,
+        messageId,
+        emoji,
+      }).catch(err => {
+        console.error('[Conversation] Failed to remove reaction:', err)
       })
     },
     setReply (message) {

@@ -125,6 +125,14 @@ export function isMessageRead (state, getters) {
   }
 }
 
+export function getMessageReactions (state) {
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return () => []
+  return (roomId, messageId) => {
+    return state.reactions?.[roomId]?.[messageId] || []
+  }
+}
+
 export function getUnreadCount (state) {
   const myPubKey = state.keys?.pubKeyHex
   if (!myPubKey) return () => 0

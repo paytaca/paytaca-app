@@ -56,6 +56,34 @@
           :class="isRead ? 'read' : ''"
         />
       </div>
+      <div v-if="groupedReactions.length" class="message-reactions">
+        <span
+          v-for="group in groupedReactions"
+          :key="group.emoji"
+          class="reaction-badge"
+          @click.stop="expandedReaction = (expandedReaction === group.emoji ? null : group.emoji)"
+        >
+          {{ group.emoji }} {{ group.count }}
+        </span>
+      </div>
+      <div v-if="expandedReaction" class="reaction-detail" @click.stop>
+        <div class="reaction-detail-header">
+          <span class="reaction-detail-emoji">{{ expandedReaction }}</span>
+          <span class="reaction-detail-count">{{ expandedGroup.count }}</span>
+        </div>
+        <div class="reaction-detail-list">
+          <div
+            v-for="reactor in expandedGroup.reactors"
+            :key="reactor"
+            class="reaction-detail-item"
+            :class="{ 'is-mine': reactor === myPubKey }"
+            @click="onReactionClick(reactor, expandedReaction)"
+          >
+            <span class="reaction-detail-name">{{ reactorName(reactor) }}</span>
+            <q-icon v-if="reactor === myPubKey" name="close" size="14px" class="reaction-remove-icon" />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -74,10 +102,13 @@ export default {
     isNew: { type: Boolean, default: false },
     replyToMessage: { type: Object, default: null },
     isReplying: { type: Boolean, default: false },
+    reactions: { type: Array, default: () => [] },
   },
-  emits: ['context-menu'],
+  emits: ['context-menu', 'remove-reaction'],
   data () {
-    return {}
+    return {
+      expandedReaction: null,
+    }
   },
   computed: {
     isMine () {
@@ -113,6 +144,19 @@ export default {
     markup () {
       return this.parsed.markup
     },
+    groupedReactions () {
+      const groups = {}
+      for (const r of this.reactions) {
+        if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [] }
+        groups[r.emoji].count++
+        groups[r.emoji].reactors.push(r.reactorPubKey)
+      }
+      return Object.values(groups)
+    },
+    expandedGroup () {
+      if (!this.expandedReaction) return null
+      return this.groupedReactions.find(g => g.emoji === this.expandedReaction)
+    },
   },
   methods: {
     formatTime (ts) {
@@ -135,6 +179,17 @@ export default {
     },
     onContextMenu ($event) {
       this.$emit('context-menu', this.message, $event)
+    },
+    reactorName (pubKey) {
+      if (pubKey === this.myPubKey) return this.$t('You', {}, 'You')
+      const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
+      return contact?.name || pubKey.slice(0, 12) + '...'
+    },
+    onReactionClick (reactor, emoji) {
+      if (reactor === this.myPubKey) {
+        this.$emit('remove-reaction', { messageId: this.message.id || this.message.kind14Id, emoji })
+        this.expandedReaction = null
+      }
     },
   },
 }
@@ -226,6 +281,18 @@ export default {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.dark .reaction-badge {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .reaction-detail {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dark .reaction-detail-item.is-mine:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Replying indicator */
 .message-row.is-replying .message-bubble {
   box-shadow: 0 0 0 2px var(--replying-color, #3b82f6) !important;
@@ -235,6 +302,102 @@ export default {
   font-size: 15px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.reaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+
+.reaction-badge:hover {
+  transform: scale(1.08);
+}
+
+.reaction-badge:active {
+  transform: scale(0.95);
+}
+
+.message-row.mine .reaction-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.reaction-detail {
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+.reaction-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.reaction-detail-emoji {
+  font-size: 16px;
+}
+
+.reaction-detail-count {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.reaction-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reaction-detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.reaction-detail-item.is-mine {
+  cursor: pointer;
+}
+
+.reaction-detail-item.is-mine:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.reaction-detail-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reaction-remove-icon {
+  opacity: 0.5;
+  flex-shrink: 0;
+  margin-left: 6px;
 }
 
 .message-meta {
