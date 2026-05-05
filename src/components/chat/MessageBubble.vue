@@ -1,5 +1,12 @@
 <template>
-  <div class="message-row" :class="isMine ? 'mine' : 'theirs'">
+  <div
+    class="message-row"
+    :class="[isMine ? 'mine' : 'theirs', { 'is-replying': isReplying }]"
+    @touchstart.passive="onTouchStart"
+    @touchend="onTouchEnd"
+    @touchmove="onTouchMove"
+    @contextmenu.prevent="$emit('reply', message)"
+  >
     <div
       class="message-bubble"
       :class="{ 'new-message': isNew }"
@@ -11,6 +18,15 @@
         :style="{ color: themeColor }"
       >
         {{ senderName }}
+      </div>
+
+      <!-- Reply preview -->
+      <div v-if="replyToMessage" class="reply-preview">
+        <div class="reply-preview-indicator" :style="{ background: themeColor }"></div>
+        <div class="reply-preview-body">
+          <div class="reply-preview-sender">{{ replySenderName }}</div>
+          <div class="reply-preview-text">{{ replySnippet }}</div>
+        </div>
       </div>
 
       <!-- Plain text content -->
@@ -59,6 +75,14 @@ export default {
     contacts: { type: Array, default: () => [] },
     isRead: { type: Boolean, default: true },
     isNew: { type: Boolean, default: false },
+    replyToMessage: { type: Object, default: null },
+    isReplying: { type: Boolean, default: false },
+  },
+  emits: ['reply'],
+  data () {
+    return {
+      longPressTimer: null,
+    }
   },
   computed: {
     isMine () {
@@ -67,6 +91,16 @@ export default {
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
       return contact?.name || this.message.sender?.slice(0, 12) + '...'
+    },
+    replySenderName () {
+      if (!this.replyToMessage) return ''
+      const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
+      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+    },
+    replySnippet () {
+      if (!this.replyToMessage) return ''
+      const text = this.replyToMessage.content || ''
+      return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -103,6 +137,17 @@ export default {
         params: { txid: this.markup.txid },
         query: { from: 'chat', roomId },
       })
+    },
+    onTouchStart () {
+      this.longPressTimer = setTimeout(() => {
+        this.$emit('reply', this.message)
+      }, 500)
+    },
+    onTouchEnd () {
+      clearTimeout(this.longPressTimer)
+    },
+    onTouchMove () {
+      clearTimeout(this.longPressTimer)
     },
   },
 }
@@ -150,6 +195,53 @@ export default {
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+/* Reply preview */
+.reply-preview {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+.reply-preview-indicator {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.reply-preview-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-preview-sender {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  opacity: 0.8;
+}
+
+.reply-preview-text {
+  font-size: 13px;
+  opacity: 0.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dark mode reply preview */
+.dark .reply-preview {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Replying indicator */
+.message-row.is-replying .message-bubble {
+  box-shadow: 0 0 0 2px var(--replying-color, #3b82f6) !important;
 }
 
 .message-text {

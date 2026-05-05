@@ -156,10 +156,24 @@
             :contacts="contacts"
             :is-read="messageReadMap[msg.id] || false"
             :is-new="newMessageIds.has(msg.id)"
-
+            :reply-to-message="getMessageById(msg.replyTo)"
+            :is-replying="replyToMessage?.id === msg.id"
+            @reply="setReply"
           />
         </div>
       </div>
+    </div>
+
+    <!-- Reply bar -->
+    <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
+      <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
+      <div class="reply-bar-body">
+        <div class="reply-bar-label" :style="{ color: themeColor }">
+          {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
+        </div>
+        <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
+      </div>
+      <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
     </div>
 
     <!-- Input area -->
@@ -205,6 +219,7 @@ export default {
       sendRecipientPubKey: '',
       sendPreFilledAddress: '',
       inputFocused: false,
+      replyToMessage: null,
     }
   },
   computed: {
@@ -271,6 +286,16 @@ export default {
       if (theme === 'glassmorphic-green') return '#4caf50'
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
+    },
+    replySenderName () {
+      if (!this.replyToMessage) return ''
+      const contact = this.contacts.find(c => c.pubKeyHex === this.replyToMessage.sender)
+      return contact?.name || this.replyToMessage.sender?.slice(0, 12) + '...'
+    },
+    replyToSnippet () {
+      if (!this.replyToMessage) return ''
+      const text = this.replyToMessage.content || ''
+      return text.length > 80 ? text.slice(0, 80) + '...' : text
     },
     messageReadMap () {
       // Compute read status for messages I sent.
@@ -430,15 +455,29 @@ export default {
       if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
       return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
     },
+    getMessageById (id) {
+      if (!id) return null
+      return this.messages.find(m => m.id === id) || null
+    },
+    setReply (message) {
+      this.replyToMessage = message
+      this.$refs.chatInput?.$el?.querySelector('input')?.focus()
+    },
+    cancelReply () {
+      this.replyToMessage = null
+    },
     async onSend (text) {
       if (!this.room) return
       try {
+        const replyTo = this.replyToMessage?.id
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
           text,
+          replyTo,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        this.replyToMessage = null
       } catch (err) {
         console.error('Failed to send message:', err)
         this.$q.notify({
@@ -751,5 +790,55 @@ export default {
 
 .dialog-header {
   padding-bottom: 8px;
+}
+
+/* Reply bar */
+.reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f0f4ff;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.reply-bar-indicator {
+  width: 3px;
+  height: 32px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.reply-bar-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-bar-label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 1px;
+}
+
+.reply-bar-snippet {
+  font-size: 13px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-bar-close {
+  flex-shrink: 0;
+}
+
+.dark .reply-bar {
+  background: #1a2332;
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .reply-bar-snippet {
+  color: #94a3b8;
 }
 </style>
