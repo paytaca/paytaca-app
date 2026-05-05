@@ -397,6 +397,8 @@ export default defineComponent({
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    const exlab = new ExchangeLab();
+    exlab.setDefaultPreferredTokenOutputBCHAmount(1000n);
     
     // Wallet index for detecting wallet switches
     const walletIndex = computed(() => $store.getters['global/getWalletIndex']);
@@ -583,6 +585,7 @@ export default defineComponent({
           return;
         }
         let result = attemptTrade({
+          exlab,
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
           demand: isSupplyMode.value ? 0n : amountInUnits.value,
@@ -591,11 +594,11 @@ export default defineComponent({
 
         if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
           const adjustAmount = amountInUnits.value - result.summary.demand;
-          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount });
+          const adjustedTradeResult = adjustDemand({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
           const adjustAmount = amountInUnits.value - result.summary.supply;
-          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
+          const adjustedTradeResult = adjustSupply({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
 
@@ -968,6 +971,7 @@ export default defineComponent({
       }
 
       const tradeResult = attemptTrade({
+        exlab,
         pools: poolV0List,
         isBuyingToken: isBuyingToken.value,
         supply: baseSupply,
@@ -1076,7 +1080,6 @@ export default defineComponent({
           platformFee: _platformFee
         })
 
-        const exlab = new ExchangeLab()
         const txFeePerByte = 1n;
         const tradeTxBuildResult = exlab.createTradeTx(
           _tradeResult.entries,
