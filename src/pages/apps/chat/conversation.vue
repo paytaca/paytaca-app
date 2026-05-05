@@ -180,11 +180,8 @@
     <chat-input ref="chatInput" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
-    <q-dialog v-model="showContextMenu" position="bottom">
-      <q-card class="context-menu-card" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="context-menu-handle-row">
-          <div class="context-menu-handle"></div>
-        </q-card-section>
+    <q-menu ref="contextMenu" touch-position>
+      <q-list style="min-width: 150px">
         <q-item clickable v-close-popup @click="setReply(contextMessage)">
           <q-item-section avatar>
             <q-icon name="reply" size="20px" />
@@ -193,8 +190,8 @@
             <q-item-label>{{ $t('Reply', {}, 'Reply') }}</q-item-label>
           </q-item-section>
         </q-item>
-      </q-card>
-    </q-dialog>
+      </q-list>
+    </q-menu>
 
     <!-- Send BCH Dialog -->
     <send-bch-dialog
@@ -237,7 +234,6 @@ export default {
       sendPreFilledAddress: '',
       inputFocused: false,
       replyToMessage: null,
-      showContextMenu: false,
       contextMessage: null,
     }
   },
@@ -478,12 +474,13 @@ export default {
       if (!id) return null
       return this.messages.find(m => m.id === id) || null
     },
-    openMessageMenu (message) {
+    openMessageMenu (message, event) {
       this.contextMessage = message
-      this.showContextMenu = true
+      this.$nextTick(() => {
+        this.$refs.contextMenu?.show(event)
+      })
     },
     setReply (message) {
-      this.showContextMenu = false
       this.replyToMessage = message
       this.$nextTick(() => {
         this.$refs.chatInput?.$el?.querySelector('input')?.focus()
@@ -868,26 +865,4 @@ export default {
   color: #94a3b8;
 }
 
-/* Context menu */
-.context-menu-card {
-  border-radius: 16px 16px 0 0;
-  padding-bottom: 16px;
-}
-
-.context-menu-handle-row {
-  display: flex;
-  justify-content: center;
-  padding: 8px 0 4px;
-}
-
-.context-menu-handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: #d1d5db;
-}
-
-.dark .context-menu-handle {
-  background: #4b5563;
-}
 </style>

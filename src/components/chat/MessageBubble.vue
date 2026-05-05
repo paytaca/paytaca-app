@@ -5,7 +5,7 @@
     @touchstart.passive="onTouchStart"
     @touchend="onTouchEnd"
     @touchmove="onTouchMove"
-    @contextmenu.prevent="$emit('context-menu', message)"
+    @contextmenu.prevent="($event) => $emit('context-menu', message, $event)"
   >
     <div
       class="message-bubble"
@@ -138,9 +138,9 @@ export default {
         query: { from: 'chat', roomId },
       })
     },
-    onTouchStart () {
+    onTouchStart (event) {
       this.longPressTimer = setTimeout(() => {
-        this.$emit('context-menu', this.message)
+        this.$emit('context-menu', this.message, event)
       }, 500)
     },
     onTouchEnd () {
