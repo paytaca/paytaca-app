@@ -180,7 +180,7 @@
     <chat-input ref="chatInput" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
-    <q-menu ref="contextMenu" touch-position>
+    <q-menu ref="contextMenu" touch-position class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-list style="min-width: 150px">
         <q-item clickable v-close-popup @click="setReply(contextMessage)">
           <q-item-section avatar>
