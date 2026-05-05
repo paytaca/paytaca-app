@@ -149,7 +149,7 @@
     </div>
   </div>
 
-  <div v-if="!cauldronEnabled" class="q-mt-sm">
+  <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
     <q-btn
       no-caps
       :label="asset?.id === 'bch' ? $t('SendUsingTokensWithCauldron') : $t('SendUsingBchWithCauldron')"
@@ -160,7 +160,7 @@
       @click="toggleCauldron"
     />
   </div>
-  <div v-else class="row items-start no-wrap q-mt-sm">
+  <div v-else-if="!isNFT && cauldronEnabled" class="row items-start no-wrap q-mt-sm">
     <div class="full-width">
       <q-input
         ref="cauldronAmountInput"
