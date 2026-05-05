@@ -221,13 +221,43 @@ function hydrateNft(nft) {
   }
 }
 
+/**
+ * Hydrate a raw contract field from a sign request source output.
+ *
+ * Part of WcSignTransactionRequest (@bch-wc2/interfaces), carried inside the
+ * WizardConnect sign_transaction_request message.
+ * Protocol: https://gitlab.com/riftenlabs/lib/wizardconnect/-/blob/master/docs/protocol.md
+ *
+ * Present on source outputs that are contract UTXOs (e.g. a Cauldron pool) rather
+ * than plain P2PKH outputs. The libauth transaction compiler needs all three fields
+ * to reconstruct and sign contract input, a partial or invalid object throws.
+ * Returns undefined when absent so callers can spread the result conditionally.
+ *
+ * abiFunction: { name: string, inputs: AbiInput[] } is passed through as-is.
+ * redeemScript: hex string or Uint8Array (extended JSON `<Uint8Array: 0x...>` also accepted).
+ * artifact: plain object is passed through as-is.
+ */
 function hydrateContract(contract) {
   if (!contract) return undefined
-  return {
-    ...(contract.abiFunction && { abiFunction: contract.abiFunction }),
-    ...(contract.redeemScript !== undefined && { redeemScript: toUint8Array(contract.redeemScript) }),
-    ...(contract.artifact && { artifact: contract.artifact }),
+  if (typeof contract !== 'object' || Array.isArray(contract)) {
+    throw new Error(`hydrateContract: expected plain object, got ${Array.isArray(contract) ? 'array' : typeof contract}`)
   }
+
+  const { abiFunction, redeemScript, artifact } = contract
+
+  if (typeof abiFunction !== 'object' || Array.isArray(abiFunction) || abiFunction === null || typeof abiFunction.name !== 'string' || !abiFunction.name.trim()) {
+    throw new Error(`hydrateContract: abiFunction must be an object with a non-empty name string`)
+  }
+  if ((typeof redeemScript !== 'string' && !(redeemScript instanceof Uint8Array)) || redeemScript.length === 0) {
+    throw new Error(`hydrateContract: redeemScript must be a non-empty string or Uint8Array, got ${
+      typeof redeemScript === 'string' || redeemScript instanceof Uint8Array ? 'empty' : typeof redeemScript
+    }`)
+  }
+  if (typeof artifact !== 'object' || Array.isArray(artifact) || artifact === null) {
+    throw new Error(`hydrateContract: artifact must be a plain object`)
+  }
+
+  return { abiFunction, redeemScript: toUint8Array(redeemScript), artifact }
 }
 
 /**
