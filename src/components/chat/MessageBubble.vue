@@ -2,16 +2,16 @@
   <div
     class="message-row"
     :class="[isMine ? 'mine' : 'theirs', { 'is-replying': isReplying }]"
-    @contextmenu.prevent="onContextMenu"
+    @contextmenu.prevent="message.deleted ? null : onContextMenu"
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew }"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted }"
       :style="isMine ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
-      @pointermove="onPointerMove"
-      @pointercancel="onPointerCancel"
+      @pointerdown="message.deleted ? null : onPointerDown"
+      @pointerup="message.deleted ? null : onPointerUp"
+      @pointermove="message.deleted ? null : onPointerMove"
+      @pointercancel="message.deleted ? null : onPointerCancel"
     >
       <div
         v-if="showSenderName && !isMine"
@@ -31,14 +31,19 @@
       </div>
 
       <!-- Plain text content -->
-      <div class="message-text">{{ displayText }}</div>
+      <div v-if="message.deleted" class="deleted-message">
+        <q-icon name="delete_outline" size="14px" class="deleted-icon" />
+        <span>{{ $t('MessageDeleted', {}, 'Message deleted') }}</span>
+      </div>
+      <template v-else>
+        <div class="message-text">{{ displayText }}</div>
 
-      <!-- Rich markup card: payment -->
-      <div
-        v-if="markup?.type === 'payment'"
-        class="payment-card q-mt-sm"
-        @click="openTransactionDetail"
-      >
+        <!-- Rich markup card: payment -->
+        <div
+          v-if="markup?.type === 'payment'"
+          class="payment-card q-mt-sm"
+          @click="openTransactionDetail"
+        >
         <div class="payment-amount-row">
           <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
           <span class="payment-amount">{{ markup.amount }} BCH</span>
@@ -49,6 +54,7 @@
           <q-icon name="chevron_right" size="16px" class="payment-chevron" />
         </div>
       </div>
+      </template>
 
       <div class="message-meta">
         <span v-if="message.edited" class="edited-label">{{ $t('Edited', {}, 'edited') }}</span>
@@ -310,6 +316,14 @@ export default {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
+.message-bubble.is-deleted {
+  opacity: 0.5;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  padding: 6px 14px;
+}
+
 .sender-name {
   font-size: 12px;
   font-weight: 600;
@@ -518,6 +532,19 @@ export default {
 
 .dark .message-row.theirs .edited-label {
   color: rgba(255, 255, 255, 0.3);
+}
+
+.deleted-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.deleted-icon {
+  opacity: 0.6;
 }
 
 .read-receipt {

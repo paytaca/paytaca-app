@@ -166,6 +166,33 @@ export async function createReadReceiptGiftWrap({ messageId, senderPubKey, recei
 }
 
 /**
+ * Create a kind:5 deletion event and gift-wrap it to all room members.
+ * @param {Object} opts
+ * @param {string} opts.messageId - Event ID of the message being deleted
+ * @param {string} opts.senderPubKey - Hex pubkey of the original message sender
+ * @param {string[]} opts.members - All room member pubkeys to send the deletion to
+ * @param {string} opts.senderPrivKey - Hex private key of the deleter
+ * @returns {Promise<import('nostr-tools').NostrEvent[]>} - Gift-wrapped kind:5 events
+ */
+export async function createKind5DeletionGiftWraps({ messageId, senderPubKey, members, senderPrivKey }) {
+  const kind5 = {
+    kind: 5,
+    pubkey: senderPubKey,
+    created_at: Math.floor(Date.now() / 1000),
+    content: '',
+    tags: [
+      ['e', messageId],
+      ['k', '14'],
+    ],
+  }
+  kind5.id = getEventHash(kind5)
+
+  const senderPrivKeyBytes = hexToBytes(senderPrivKey)
+  const giftWraps = nip59.wrapManyEvents(kind5, senderPrivKeyBytes, members)
+  return giftWraps
+}
+
+/**
  * Create and sign a kind:10050 relay preference event.
  * @param {string[]} relays - Array of relay URLs
  * @param {string} privKey - Hex private key

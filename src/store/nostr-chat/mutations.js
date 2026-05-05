@@ -124,6 +124,16 @@ export function UPDATE_MESSAGE (state, { roomId, messageId, newContent }) {
   }
 }
 
+export function DELETE_MESSAGE (state, { roomId, messageId }) {
+  const messages = state.messages[roomId]
+  if (!messages) return
+  const msg = messages.find(m => m.id === messageId)
+  if (msg) {
+    msg.deleted = true
+    msg.content = ''
+  }
+}
+
 export function SET_READ_RECEIPT (state, { roomId, pubKey, timestamp }) {
   if (!state.readReceipts) {
     state.readReceipts = {}

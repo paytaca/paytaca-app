@@ -1,4 +1,4 @@
-import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWrap } from 'src/wallet/nostr'
+import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWrap, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent } from 'nostr-tools'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
@@ -361,6 +361,23 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
   return { giftWraps, message, roomId }
 }
 
+export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const senderPrivKey = state.keys.privKeyHex
+  const senderPubKey = state.keys.pubKeyHex
+
+  const giftWraps = await createKind5DeletionGiftWraps({
+    messageId,
+    senderPubKey,
+    members: room.members,
+    senderPrivKey,
+  })
+
+  return { giftWraps, messageId, roomId }
+}
+
 export async function sendReaction ({ state, commit }, { roomId, messageId, emoji }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
@@ -496,6 +513,19 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         })
       }
     }
+    return
+  }
+
+  // Handle Kind 5 deletion events
+  if (rumor.kind === 5) {
+    const eTag = rumor.tags.find(t => t[0] === 'e')
+    if (!eTag) return
+    const messageId = eTag[1]
+    const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
+    const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
+    const roomId = computeRoomId(roomMembers)
+
+    commit('DELETE_MESSAGE', { roomId, messageId })
     return
   }
 

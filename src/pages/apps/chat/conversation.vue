@@ -285,6 +285,20 @@
             <q-item-label>{{ $t('Edit', {}, 'Edit') }}</q-item-label>
           </q-item-section>
         </q-item>
+        <q-item
+          v-if="contextMessage?.sender === myPubKey && canDeleteMessage(contextMessage)"
+          clickable
+          v-close-popup
+          @click.stop="confirmDeleteMessage(contextMessage)"
+          @pointerdown.stop.prevent="menuPointerDown('delete', $event)"
+        >
+          <q-item-section avatar>
+            <q-icon name="delete" size="20px" color="negative" />
+          </q-item-section>
+          <q-item-section>
+            <span class="text-negative">{{ $t('Delete', {}, 'Delete') }}</span>
+          </q-item-section>
+        </q-item>
         <q-item-label header class="q-px-md q-pt-sm q-pb-none">{{ $t('React', {}, 'React') }}</q-item-label>
         <q-item class="q-px-sm q-py-xs">
           <q-item-section>
@@ -739,6 +753,11 @@ export default {
       const elapsed = Date.now() / 1000 - message.created_at
       return elapsed <= 60
     },
+    canDeleteMessage (message) {
+      if (!message || message.sender !== this.myPubKey) return false
+      const elapsed = Date.now() / 1000 - message.created_at
+      return elapsed <= 60
+    },
     setEdit (message) {
       if (!this.canEditMessage(message)) return
       if (this.replyToMessage) this.replyToMessage = null
@@ -750,6 +769,30 @@ export default {
     },
     cancelEdit () {
       this.editingMessage = null
+    },
+    confirmDeleteMessage (message) {
+      this.$q.dialog({
+        title: this.$t('DeleteMessage', {}, 'Delete Message'),
+        message: this.$t('DeleteMessageConfirm', {}, 'Delete this message? This cannot be undone.'),
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        try {
+          const { giftWraps, roomId, messageId } = await this.$store.dispatch('nostrChat/sendDeleteMessage', {
+            roomId: this.roomId,
+            messageId: message.id,
+          })
+          this.$store.commit('nostrChat/DELETE_MESSAGE', { roomId, messageId })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        } catch (err) {
+          console.error('Failed to delete message:', err)
+          this.$q.notify({
+            type: 'negative',
+            message: this.$t('DeleteMessageFailed', {}, 'Failed to delete message') + ': ' + err.message,
+          })
+        }
+      })
     },
     async onSend (text) {
       if (!this.room) return
