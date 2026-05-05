@@ -61,6 +61,7 @@
           v-for="group in groupedReactions"
           :key="group.emoji"
           class="reaction-badge"
+          :class="{ 'reaction-removable': group.isRemovable }"
           @click.stop="expandedReaction = (expandedReaction === group.emoji ? null : group.emoji)"
         >
           {{ group.emoji }} {{ group.count }}
@@ -74,13 +75,13 @@
         <div class="reaction-detail-list">
           <div
             v-for="reactor in expandedGroup.reactors"
-            :key="reactor"
+            :key="reactor.pubKey"
             class="reaction-detail-item"
-            :class="{ 'is-mine': reactor === myPubKey }"
-            @click="onReactionClick(reactor, expandedReaction)"
+            :class="{ 'is-mine': reactor.pubKey === myPubKey && canRemoveReaction(reactor) }"
+            @click="onReactionClick(reactor)"
           >
-            <span class="reaction-detail-name">{{ reactorName(reactor) }}</span>
-            <q-icon v-if="reactor === myPubKey" name="close" size="14px" class="reaction-remove-icon" />
+            <span class="reaction-detail-name">{{ reactorName(reactor.pubKey) }}</span>
+            <q-icon v-if="reactor.pubKey === myPubKey && canRemoveReaction(reactor)" name="close" size="14px" class="reaction-remove-icon" />
           </div>
         </div>
       </div>
@@ -108,7 +109,14 @@ export default {
   data () {
     return {
       expandedReaction: null,
+      now: Date.now(),
     }
+  },
+  mounted () {
+    this._timer = setInterval(() => { this.now = Date.now() }, 1000)
+  },
+  beforeUnmount () {
+    clearInterval(this._timer)
   },
   computed: {
     isMine () {
@@ -147,9 +155,12 @@ export default {
     groupedReactions () {
       const groups = {}
       for (const r of this.reactions) {
-        if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [] }
+        if (!groups[r.emoji]) groups[r.emoji] = { emoji: r.emoji, count: 0, reactors: [], isRemovable: false }
         groups[r.emoji].count++
-        groups[r.emoji].reactors.push(r.reactorPubKey)
+        groups[r.emoji].reactors.push({ pubKey: r.reactorPubKey, createdAt: r.createdAt })
+        if (r.reactorPubKey === this.myPubKey && this.now - (r.createdAt || 0) < 30000) {
+          groups[r.emoji].isRemovable = true
+        }
       }
       return Object.values(groups)
     },
@@ -185,9 +196,13 @@ export default {
       const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
       return contact?.name || pubKey.slice(0, 12) + '...'
     },
-    onReactionClick (reactor, emoji) {
-      if (reactor === this.myPubKey) {
-        this.$emit('remove-reaction', { messageId: this.message.id || this.message.kind14Id, emoji })
+    canRemoveReaction (reactor) {
+      if (reactor.pubKey !== this.myPubKey) return false
+      return this.now - (reactor.createdAt || 0) < 30000
+    },
+    onReactionClick (reactor) {
+      if (reactor.pubKey === this.myPubKey && this.canRemoveReaction(reactor)) {
+        this.$emit('remove-reaction', { messageId: this.message.id || this.message.kind14Id, emoji: this.expandedReaction })
         this.expandedReaction = null
       }
     },
@@ -331,6 +346,15 @@ export default {
 
 .reaction-badge:active {
   transform: scale(0.95);
+}
+
+.reaction-badge.reaction-removable {
+  animation: reactionPulse 2s ease-in-out infinite;
+}
+
+@keyframes reactionPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 .message-row.mine .reaction-badge {

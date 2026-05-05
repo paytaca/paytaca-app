@@ -245,7 +245,7 @@ export default {
       inputFocused: false,
       replyToMessage: null,
       contextMessage: null,
-      quickReactions: ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉', '👎'],
+      quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
     }
   },
   computed: {

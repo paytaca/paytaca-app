@@ -353,6 +353,7 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
     messageId,
     reactorPubKey,
     emoji,
+    createdAt: Date.now(),
   })
 
   await relayService.publishEvent(state.relays, giftWrap)
@@ -462,6 +463,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
           messageId,
           reactorPubKey,
           emoji: content,
+          createdAt: rumor.created_at * 1000,
         })
       }
     }
