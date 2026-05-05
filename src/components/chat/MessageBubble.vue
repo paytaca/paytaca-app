@@ -8,6 +8,10 @@
       class="message-bubble"
       :class="{ 'new-message': isNew }"
       :style="isMine ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
+      @pointerdown="onPointerDown"
+      @pointerup="onPointerUp"
+      @pointermove="onPointerMove"
+      @pointercancel="onPointerCancel"
     >
       <div
         v-if="showSenderName && !isMine"
@@ -106,15 +110,20 @@ export default {
     reactions: { type: Array, default: () => [] },
   },
   emits: ['context-menu', 'remove-reaction', 'scroll-to-message'],
-  data () {
-    return {
-      expandedReaction: null,
-      now: Date.now(),
-    }
-  },
-  mounted () {
-    this._timer = setInterval(() => { this.now = Date.now() }, 1000)
-  },
+    data () {
+      return {
+        expandedReaction: null,
+        now: Date.now(),
+        // pointer long-press state
+        _pressTimer: null,
+        _pressStartX: 0,
+        _pressStartY: 0,
+        _pressPointerId: null,
+      }
+    },
+    mounted () {
+      this._timer = setInterval(() => { this.now = Date.now() }, 1000)
+    },
   beforeUnmount () {
     clearInterval(this._timer)
   },
@@ -191,6 +200,51 @@ export default {
     onContextMenu ($event) {
       this.$emit('context-menu', this.message, $event)
     },
+    // Pointer-based long-press detection. Uses pointer events to unify mouse/touch input
+    onPointerDown (e) {
+      // Only start long-press for primary button/touch
+      if (e.button && e.button !== 0) return
+      // Remember pointer id to ignore unrelated pointers
+      this._pressPointerId = e.pointerId
+      this._pressStartX = e.clientX
+      this._pressStartY = e.clientY
+
+      // Start timer (600ms) to detect long-press
+      this._pressTimer = setTimeout(() => {
+        // Prevent default only when long-press triggers to avoid interfering with scroll
+        try { e.preventDefault() } catch (_) {}
+        
+        this.$emit('context-menu', this.message, { clientX: e.clientX, clientY: e.clientY })
+        // Clear state
+        this._clearPress()
+      }, 600)
+    },
+    onPointerMove (e) {
+      if (!this._pressTimer || e.pointerId !== this._pressPointerId) return
+      const dx = Math.abs(e.clientX - this._pressStartX)
+      const dy = Math.abs(e.clientY - this._pressStartY)
+      if (dx > 10 || dy > 10) {
+        this._clearPress()
+      }
+    },
+    onPointerUp (e) {
+      // If timer still pending, cancel it. Do NOT treat as long-press.
+      if (e.pointerId && this._pressPointerId && e.pointerId !== this._pressPointerId) return
+      this._clearPress()
+    },
+    onPointerCancel (e) {
+      if (e.pointerId && this._pressPointerId && e.pointerId !== this._pressPointerId) return
+      this._clearPress()
+    },
+    _clearPress () {
+      if (this._pressTimer) {
+        clearTimeout(this._pressTimer)
+        this._pressTimer = null
+      }
+      this._pressPointerId = null
+      this._pressStartX = 0
+      this._pressStartY = 0
+    },
     reactorName (pubKey) {
       if (pubKey === this.myPubKey) return this.$t('You', {}, 'You')
       const contact = this.contacts.find(c => c.pubKeyHex === pubKey)
@@ -215,6 +269,7 @@ export default {
   display: flex;
   width: 100%;
   margin-bottom: 8px;
+  touch-action: manipulation;
 }
 
 .message-row.mine {
@@ -232,6 +287,9 @@ export default {
   position: relative;
   word-wrap: break-word;
   line-height: 1.45;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .message-row.mine .message-bubble {
@@ -327,6 +385,9 @@ export default {
   font-size: 15px;
   white-space: pre-wrap;
   word-break: break-word;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .message-reactions {

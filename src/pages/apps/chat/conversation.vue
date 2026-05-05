@@ -3,6 +3,7 @@
     id="app-container"
     class="sticky-header-container text-bow column"
     :class="getDarkModeClass(darkMode)"
+    @click="hideContextMenu"
   >
     <header-nav
       class="apps-header"
@@ -198,7 +199,7 @@
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
       <q-list style="min-width: 150px">
-        <q-item clickable v-close-popup @click="setReply(contextMessage)">
+        <q-item clickable v-close-popup @click.stop="setReply(contextMessage)" @pointerdown.stop.prevent="menuPointerDown('reply', $event)">
           <q-item-section avatar>
             <q-icon name="reply" size="20px" />
           </q-item-section>
@@ -210,7 +211,7 @@
         <q-item class="q-px-sm q-py-xs">
           <q-item-section>
             <div class="react-emoji-row">
-              <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" @click="onReact(contextMessage, emoji)">{{ emoji }}</span>
+              <span v-for="emoji in quickReactions" :key="emoji" class="react-emoji" v-close-popup @click.stop="onReact(contextMessage, emoji)" @pointerdown.stop.prevent="menuPointerDown('emoji-'+emoji, $event)">{{ emoji }}</span>
             </div>
           </q-item-section>
         </q-item>
@@ -262,6 +263,9 @@ export default {
       contextMessage: null,
       quickReactions: ['😂', '🎉', '❤️', '😊', '👍', '💯', '🔥', '🙏', '🤔', '😮', '😢', '👎'],
       showScrollToBottom: false,
+      isContextMenuOpen: false,
+      // Guard to ignore the next pointerdown which may be the finger lifting
+      _ignoreNextPointerDown: false,
     }
   },
   computed: {
@@ -395,6 +399,9 @@ export default {
     this.markAsRead()
     this.ensureSubscribed()
     document.addEventListener('visibilitychange', this.onVisibilityChange)
+    // Use pointerdown to reliably detect outside interactions across devices
+    // Attach in bubble phase (no capture) so menu item handlers can stop propagation
+    document.addEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
@@ -404,6 +411,7 @@ export default {
   },
   beforeUnmount () {
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {
       window.visualViewport.removeEventListener('resize', this.onViewportResize)
       window.visualViewport.removeEventListener('scroll', this.onViewportResize)
@@ -505,17 +513,50 @@ export default {
       return this.$store.getters['nostrChat/getMessageReactions'](this.roomId, messageId)
     },
     openMessageMenu (message, event) {
+      // Debugging: log when menu opens and what message is bound
       this.contextMessage = message
       this.$nextTick(() => {
         this.$refs.contextMenu?.show(event)
+        this.isContextMenuOpen = true
+        // Ignore the next pointerdown to avoid immediate dismissal on touch
+        this._ignoreNextPointerDown = true
+        // Also clear the guard after a short window to avoid permanently blocking interactions
+        setTimeout(() => { this._ignoreNextPointerDown = false }, 350)
       })
     },
     hideContextMenu () {
+      // If we're within the ignore window, don't immediately hide (prevents the opening gesture from closing it)
+      if (this._ignoreNextPointerDown) return
       this.$refs.contextMenu?.hide()
+      this.isContextMenuOpen = false
+    },
+    onDocumentPointerDown (e) {
+      // Ignore pointerdown immediately following opening the menu (same interaction)
+      if (this._ignoreNextPointerDown) {
+        this._ignoreNextPointerDown = false
+        return
+      }
+
+      if (!this.isContextMenuOpen) return
+      const menuEl = this.$refs.contextMenu?.$el
+      const target = e.target
+      // Use composedPath if available to accurately detect clicks inside teleported popups
+      const path = (typeof e.composedPath === 'function') ? e.composedPath() : (e.path || [])
+      const pathContainsMenu = path && menuEl && path.indexOf(menuEl) !== -1
+      const pathHasQClose = path && path.some && path.some(n => n && n.__qclosepopup)
+      if (menuEl && (menuEl.contains && menuEl.contains(target))) return
+      if (pathContainsMenu) return
+      if (pathHasQClose) return
+      // As a last resort, check for the special Quasar close marker on the target
+      if (target && target.__qclosepopup) return
+      
+      this.hideContextMenu()
     },
     onReact (message, emoji) {
       this.$refs.contextMenu?.hide()
       if (!message || !emoji) return
+      // Visible debug feedback so we can see handlers firing without remote console
+      
       this.$store.dispatch('nostrChat/sendReaction', {
         roomId: this.roomId,
         messageId: message.id || message.kind14Id,
@@ -523,6 +564,11 @@ export default {
       }).catch(err => {
         console.error('[Conversation] Failed to send reaction:', err)
       })
+    },
+    menuPointerDown (tag, e) {
+      // Log pointerdown inside menu items to check event flow
+      
+      
     },
     onRemoveReaction ({ messageId, emoji }) {
       if (!messageId || !emoji) return
