@@ -206,14 +206,6 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     try { sub.close() } catch (_) {}
   }
   _subs = []
-  if (_pollInterval) {
-    clearInterval(_pollInterval)
-    _pollInterval = null
-  }
-  if (_keepaliveInterval) {
-    clearInterval(_keepaliveInterval)
-    _keepaliveInterval = null
-  }
 
   const pool = getPool()
   const filter = { kinds: [1059], '#p': [myPubKey] }
@@ -230,6 +222,9 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
         oneose() {},
         onclose(reasons) {
           console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
+          if (!reasons.includes('closed by caller')) {
+            _isSubscribed = false
+          }
         },
       })
       _subs.push(sub)
@@ -242,38 +237,42 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   // We do NOT use `since` because NIP-17 randomizes created_at up to 2 days in the past.
   // Instead we track seen event IDs and only process new ones.
   // Use module-level _seenEventIds so dedup survives across re-subscriptions.
-  _pollInterval = setInterval(async () => {
-    try {
-      const events = await pool.querySync(relays, {
-        kinds: [1059],
-        '#p': [myPubKey],
-        limit: 100,
-      })
-      if (!events || !events.length) return
-      const newEvents = events.filter(e => !_seenEventIds.has(e.id))
-      if (!newEvents.length) return
-      for (const event of newEvents) {
-        _seenEventIds.add(event.id)
-        if (callbacks.onEvent) callbacks.onEvent(event)
+  if (!_pollInterval) {
+    _pollInterval = setInterval(async () => {
+      try {
+        const events = await pool.querySync(relays, {
+          kinds: [1059],
+          '#p': [myPubKey],
+          limit: 100,
+        })
+        if (!events || !events.length) return
+        const newEvents = events.filter(e => !_seenEventIds.has(e.id))
+        if (!newEvents.length) return
+        for (const event of newEvents) {
+          _seenEventIds.add(event.id)
+          if (callbacks.onEvent) callbacks.onEvent(event)
+        }
+        // Prevent unbounded growth
+        if (_seenEventIds.size > 1000) {
+          const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 1000)
+          toDelete.forEach(id => _seenEventIds.delete(id))
+        }
+      } catch (err) {
+        // Silently ignore poll errors
       }
-      // Prevent unbounded growth
-      if (_seenEventIds.size > 1000) {
-        const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 1000)
-        toDelete.forEach(id => _seenEventIds.delete(id))
-      }
-    } catch (err) {
-      // Silently ignore poll errors
-    }
-  }, 30000)
+    }, 30000)
+  }
 
   // Keepalive: periodically verify subscription is alive by checking pool connections.
   // If all subscriptions have closed (e.g., relay dropped), trigger a re-subscribe
   // by setting _isSubscribed = false so the next ensureSubscribed call can recreate them.
-  _keepaliveInterval = setInterval(() => {
-    if (_subs.length === 0) {
-      _isSubscribed = false
-    }
-  }, KEEPALIVE_INTERVAL_MS)
+  if (!_keepaliveInterval) {
+    _keepaliveInterval = setInterval(() => {
+      if (_subs.length === 0) {
+        _isSubscribed = false
+      }
+    }, KEEPALIVE_INTERVAL_MS)
+  }
 
   _isSubscribed = true
   _lastSubscribeTime = now
