@@ -14,10 +14,8 @@
         <q-btn
           flat
           round
-          dense
           icon="more_vert"
-          size="sm"
-          class="q-mr-xs"
+          class="header-menu-btn"
         >
           <q-menu anchor="bottom right" self="top right">
             <q-item v-if="otherMemberContact" clickable v-close-popup @click="openRenameDialog">
@@ -216,6 +214,7 @@
             @context-menu="openMessageMenu"
             @remove-reaction="onRemoveReaction"
             @scroll-to-message="scrollToMessage"
+            @open-transaction="onOpenTransaction"
           />
         </div>
       </div>
@@ -360,6 +359,7 @@ export default {
       displayLimit: 15,
       isLoadingMore: false,
       _allMessagesLoaded: false,
+      _scrollToMessageId: null,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
     }
@@ -476,29 +476,22 @@ export default {
     },
   },
   watch: {
-    allMessages: {
-      handler (newMessages) {
-        this.scrollToBottom()
-        this.markAsRead()
+    'allMessages.length' (newLen, oldLen) {
+      this.markAsRead()
 
-        // Track newly received messages for highlight effect
-        const currentCount = newMessages.length
-        if (currentCount > this.previousMessageCount) {
-          const newMsgs = newMessages.slice(this.previousMessageCount)
-          newMsgs.forEach(msg => {
-            // Only highlight messages from others (not my own)
-            if (msg.sender !== this.myPubKey) {
-              this.newMessageIds.add(msg.id)
-              // Remove highlight class after animation completes (4s + buffer)
-              setTimeout(() => {
-                this.newMessageIds.delete(msg.id)
-              }, 5000)
-            }
-          })
-        }
-        this.previousMessageCount = currentCount
-      },
-      deep: true,
+      // Track newly received messages for highlight effect
+      if (newLen > oldLen) {
+        const newMsgs = this.allMessages.slice(oldLen)
+        newMsgs.forEach(msg => {
+          if (msg.sender !== this.myPubKey) {
+            this.newMessageIds.add(msg.id)
+            setTimeout(() => {
+              this.newMessageIds.delete(msg.id)
+            }, 5000)
+          }
+        })
+      }
+      this.previousMessageCount = newLen
     },
     room (val) {
       if (!val) {
@@ -507,18 +500,70 @@ export default {
     },
   },
   mounted () {
-    this.scrollToBottom()
+    const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
+    const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
+    const savedScrollTop = sessionStorage.getItem('chat_scroll_top')
+    if (savedMessageId) {
+      this._scrollToMessageId = savedMessageId
+      sessionStorage.removeItem('chat_scroll_message_id')
+    }
+    if (savedDisplayLimit) {
+      this.displayLimit = parseInt(savedDisplayLimit, 10)
+      sessionStorage.removeItem('chat_scroll_display_limit')
+    }
     this.markAsRead()
     this.ensureSubscribed()
     document.addEventListener('visibilitychange', this.onVisibilityChange)
-    // Use pointerdown to reliably detect outside interactions across devices
-    // Attach in bubble phase (no capture) so menu item handlers can stop propagation
     document.addEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', this.onViewportResize)
       window.visualViewport.addEventListener('scroll', this.onViewportResize)
     } else {
       window.addEventListener('resize', this.onViewportResize)
+    }
+
+    if (this._scrollToMessageId) {
+      this.$nextTick(() => {
+        if (savedScrollTop) {
+          const container = this.$refs.messagesContainer
+          if (container) {
+            container.scrollTop = parseInt(savedScrollTop, 10)
+          }
+          sessionStorage.removeItem('chat_scroll_top')
+        } else {
+          this.scrollToMessage(this._scrollToMessageId)
+        }
+        this._scrollToMessageId = null
+      })
+    } else {
+      this.scrollToBottom()
+    }
+  },
+  activated () {
+    const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
+    const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
+    const savedScrollTop = sessionStorage.getItem('chat_scroll_top')
+    if (savedMessageId) {
+      this._scrollToMessageId = savedMessageId
+      sessionStorage.removeItem('chat_scroll_message_id')
+    }
+    if (savedDisplayLimit) {
+      this.displayLimit = parseInt(savedDisplayLimit, 10)
+      sessionStorage.removeItem('chat_scroll_display_limit')
+    }
+    if (this._scrollToMessageId) {
+      this.$nextTick(() => {
+        if (savedScrollTop) {
+          const container = this.$refs.messagesContainer
+          if (container) {
+            container.scrollTop = parseInt(savedScrollTop, 10)
+          }
+          sessionStorage.removeItem('chat_scroll_top')
+        } else {
+          this.scrollToMessage(this._scrollToMessageId)
+        }
+        this._scrollToMessageId = null
+      })
     }
   },
   beforeUnmount () {
@@ -693,12 +738,32 @@ export default {
       })
     },
     scrollToMessage (messageId) {
+      const container = this.$refs.messagesContainer
       const el = document.getElementById('msg-' + messageId)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        el.classList.add('highlight-message')
-        setTimeout(() => el.classList.remove('highlight-message'), 2000)
+      if (!container || !el) return
+      const containerRect = container.getBoundingClientRect()
+      const elRect = el.getBoundingClientRect()
+      const offset = elRect.top - containerRect.top + container.scrollTop - container.clientHeight / 2 + el.clientHeight / 2
+      container.scrollTop = offset
+      el.classList.add('highlight-message')
+      setTimeout(() => el.classList.remove('highlight-message'), 2000)
+    },
+    onOpenTransaction (messageId) {
+      const msg = this.getMessageById(messageId)
+      if (!msg) return
+      const { markup } = parseMessageMarkup(msg.content)
+      if (!markup?.txid) return
+      const container = this.$refs.messagesContainer
+      sessionStorage.setItem('chat_scroll_message_id', messageId)
+      sessionStorage.setItem('chat_scroll_display_limit', this.displayLimit)
+      if (container) {
+        sessionStorage.setItem('chat_scroll_top', container.scrollTop)
       }
+      this.$router.push({
+        name: 'transaction-detail',
+        params: { txid: markup.txid },
+        query: { from: 'chat', roomId: this.roomId },
+      })
     },
     onMessagesScroll () {
       const container = this.$refs.messagesContainer
@@ -818,8 +883,8 @@ export default {
             replyTo,
           })
           this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
-          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
           this.replyToMessage = null
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         }
       } catch (err) {
         console.error('Failed to send message:', err)
@@ -1127,6 +1192,11 @@ export default {
   background: #f5f7fa;
   padding-bottom: 25px !important;
   position: relative;
+}
+
+.header-menu-btn {
+  height: 53px;
+  width: 53px;
 }
 
 .messages-scroll-area {

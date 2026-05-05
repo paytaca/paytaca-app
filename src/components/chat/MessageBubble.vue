@@ -2,16 +2,16 @@
   <div
     class="message-row"
     :class="[isMine ? 'mine' : 'theirs', { 'is-replying': isReplying }]"
-    @contextmenu.prevent="message.deleted ? null : onContextMenu"
+    @contextmenu.prevent="onContextMenu"
   >
     <div
       class="message-bubble"
       :class="{ 'new-message': isNew, 'is-deleted': message.deleted }"
       :style="isMine ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
-      @pointerdown="message.deleted ? null : onPointerDown"
-      @pointerup="message.deleted ? null : onPointerUp"
-      @pointermove="message.deleted ? null : onPointerMove"
-      @pointercancel="message.deleted ? null : onPointerCancel"
+      @pointerdown="onPointerDown"
+      @pointerup="onPointerUp"
+      @pointermove="onPointerMove"
+      @pointercancel="onPointerCancel"
     >
       <div
         v-if="showSenderName && !isMine"
@@ -197,18 +197,15 @@ export default {
     },
     openTransactionDetail () {
       if (!this.markup?.txid) return
-      const roomId = this.$route?.params?.roomId
-      this.$router.push({
-        name: 'transaction-detail',
-        params: { txid: this.markup.txid },
-        query: { from: 'chat', roomId },
-      })
+      this.$emit('open-transaction', this.message.id)
     },
     onContextMenu ($event) {
+      if (this.message.deleted) return
       this.$emit('context-menu', this.message, $event)
     },
     // Pointer-based long-press detection. Uses pointer events to unify mouse/touch input
     onPointerDown (e) {
+      if (this.message.deleted) return
       // Only start long-press for primary button/touch
       if (e.button && e.button !== 0) return
       // Remember pointer id to ignore unrelated pointers
@@ -518,6 +515,19 @@ export default {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+}
+
+.message-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.message-row.theirs .message-time {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.dark .message-row.theirs .message-time {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .edited-label {
