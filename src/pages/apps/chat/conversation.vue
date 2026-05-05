@@ -163,7 +163,7 @@
     </div>
 
     <!-- Input area -->
-    <chat-input @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Send BCH Dialog -->
     <send-bch-dialog
@@ -527,29 +527,33 @@ export default {
       const contact = this.contacts.find(c => c.pubKeyHex === this.sendRecipientPubKey)
       return contact?.name || ''
     },
-    async onCommand ({ type, amount, currency }) {
+    async onCommand ({ type, amount, currency, originalText }) {
       if (type !== 'send') return
       if (!this.room) {
-        this.$q.notify({ type: 'negative', message: 'No active room' })
+        this.$q.notify({ type: 'negative', message: 'No active room', timeout: 5000, closeBtn: true })
+        this.$refs.chatInput?.setText(originalText)
         return
       }
 
       const currencyUpper = (currency || 'BCH').toUpperCase()
 
       if (currencyUpper === 'BCH') {
-        await this.handleBchSend(amount)
+        await this.handleBchSend(amount, originalText)
       } else {
-        // Token send — not yet implemented
         this.$q.notify({
           type: 'info',
           message: this.$t('TokenSendNotSupported', { currency: currencyUpper }, `Sending ${currencyUpper} is not yet supported.`),
+          timeout: 5000,
+          closeBtn: true,
         })
+        this.$refs.chatInput?.setText(originalText)
       }
     },
-    async handleBchSend (amount) {
+    async handleBchSend (amount, originalText) {
       const recipientPubKey = this.otherMemberPubKey
       if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: 'No recipient found' })
+        this.$q.notify({ type: 'negative', message: 'No recipient found', timeout: 5000, closeBtn: true })
+        this.$refs.chatInput?.setText(originalText)
         return
       }
 
@@ -564,7 +568,10 @@ export default {
           this.$q.notify({
             type: 'negative',
             message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address'),
+            timeout: 5000,
+            closeBtn: true,
           })
+          this.$refs.chatInput?.setText(originalText)
           return
         }
 
@@ -578,7 +585,10 @@ export default {
         this.$q.notify({
           type: 'negative',
           message: this.$t('FetchAddressFailed', {}, 'Failed to fetch recipient address'),
+          timeout: 5000,
+          closeBtn: true,
         })
+        this.$refs.chatInput?.setText(originalText)
       }
     },
     async onSendSuccess ({ txid, amount, recipient }) {

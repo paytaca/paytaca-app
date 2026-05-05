@@ -45,23 +45,35 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    setText (val) {
+      this.text = val
+    },
     send () {
       const trimmed = this.text.trim()
       if (!trimmed) return
 
-      // Detect /send command
-      const commandMatch = trimmed.match(SEND_COMMAND_PATTERN)
-      if (commandMatch) {
-        const amount = parseFloat(commandMatch[1])
-        if (!isNaN(amount) && amount > 0) {
-          this.$emit('command', {
-            type: 'send',
-            amount,
-            currency: (commandMatch[2] || 'BCH').toUpperCase(),
-          })
-          this.text = ''
-          return
+      if (trimmed.startsWith('/send')) {
+        const commandMatch = trimmed.match(SEND_COMMAND_PATTERN)
+        if (commandMatch) {
+          const amount = parseFloat(commandMatch[1])
+          if (!isNaN(amount) && amount > 0) {
+            this.$emit('command', {
+              type: 'send',
+              amount,
+              currency: (commandMatch[2] || 'BCH').toUpperCase(),
+              originalText: trimmed,
+            })
+            this.text = ''
+            return
+          }
         }
+        this.$q.notify({
+          type: 'warning',
+          message: this.$t('InvalidSendCommand', {}, 'Invalid /send command. Usage: /send <amount> <currency>'),
+          timeout: 5000,
+          closeBtn: true,
+        })
+        return
       }
 
       this.$emit('send', trimmed)
