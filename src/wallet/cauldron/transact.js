@@ -282,12 +282,11 @@ export function createInputAndOutput(opts) {
     remainingSats -= spendableCoin.output.amount;
   }
 
-  if (remainingSats < 0n || remainingTokens < 0n) {
+  if (remainingSats < -546n || remainingTokens < 0n) {
     payouts.push({
       type: PayoutAmountRuleType.CHANGE,
       locking_bytecode: lockingBytecode,
       allow_mixing_native_and_token: false,
-      allow_mixing_native_and_token_when_bch_change_is_dust: true,
     })
   }
 
