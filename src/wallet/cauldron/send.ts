@@ -7,6 +7,7 @@ import { attemptTrade } from "./transact";
 import { type CauldronTokenData } from "./tokens";
 import { TransactionBalancer } from "../stablehedge/transaction-utils";
 import BchWallet from "../bch";
+import { poolTradeToCashscriptOutput } from "./utils";
 import { getInputSize, getOutputSize } from "cashscript/dist/utils";
 import { LibauthHDWallet } from "../bch-libauth";
 import { getChangeAddress } from "src/utils/send-page-utils";
@@ -542,24 +543,6 @@ function poolTradeToCashscriptUtxoAndOutput(poolTrade: PoolTrade) {
   const output = poolTradeToCashscriptOutput(poolTrade);
 
   return { utxo, output };
-}
-
-function poolTradeToCashscriptOutput(poolTrade: PoolTrade): Output {
-  // Calculate how much satoshis or token is added or deducted
-  const isSupplyingBch = poolTrade.supply_token_id == NATIVE_BCH_TOKEN_ID;
-  const satoshisDelta = isSupplyingBch ? poolTrade.supply : poolTrade.demand * -1n;
-  const tokenDelta = isSupplyingBch ? poolTrade.demand * -1n : poolTrade.supply;
-
-  const poolOutput = poolTrade.pool.output;
-  return {
-    to: poolOutput.locking_bytecode,
-    amount: poolOutput.amount + satoshisDelta,
-    token: {
-      amount: poolOutput.token.amount + tokenDelta,
-      category: poolOutput.token.token_id,
-    }
-  };
-
 }
 
 function normalizeRecipients(asset:AssetData, recipients: RecipientData[], inputExtras: InputExtra[]): NormalizedRecipient[] {
