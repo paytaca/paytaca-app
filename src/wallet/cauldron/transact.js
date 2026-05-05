@@ -280,15 +280,16 @@ export function createInputAndOutput(opts) {
     if (remainingSats <= 0n) break
     inputCoins.push(spendableCoin)
     remainingSats -= spendableCoin.output.amount;
+    remainingSats += P2PKH_INPUT_SIZE;
   }
 
-  if (remainingSats < -546n || remainingTokens < 0n) {
-    payouts.push({
-      type: PayoutAmountRuleType.CHANGE,
-      locking_bytecode: lockingBytecode,
-      allow_mixing_native_and_token: false,
-    })
-  }
+  payouts.push({
+    type: PayoutAmountRuleType.CHANGE,
+    locking_bytecode: lockingBytecode,
+    allow_mixing_native_and_token: false,
+    allow_mixing_native_and_token_when_bch_change_is_dust: false,
+    add_change_to_txfee_when_bch_change_is_dust: true,
+  })
 
   return { inputCoins, payouts }
 }
