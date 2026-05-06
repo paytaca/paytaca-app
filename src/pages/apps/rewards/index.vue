@@ -313,6 +313,9 @@ export default {
       liftUsdPriceValue: null,
       cauldronPriceIntervalId: null,
 
+      // Unmount flag to prevent memory leaks
+      isUnmounted: false,
+
       // Collapsible section state
       isSummaryExpanded: false,
 
@@ -450,8 +453,10 @@ export default {
   },
 
   beforeUnmount () {
+    // Set flag to prevent interval creation after unmount
+    this.isUnmounted = true
     // Cleanup Cauldron price polling interval
-    if (this.cauldronPriceIntervalId) {
+    if (this.cauldronPriceIntervalId != null) {
       clearInterval(this.cauldronPriceIntervalId)
     }
   },
@@ -499,11 +504,14 @@ export default {
     },
 
     startCauldronPricePolling () {
+      // Prevent creating interval if component is unmounting/unmounted
+      if (this.isUnmounted) return
+
       // Clear any existing interval
-      if (this.cauldronPriceIntervalId) {
+      if (this.cauldronPriceIntervalId != null) {
         clearInterval(this.cauldronPriceIntervalId)
       }
-      
+
       // Poll every 60 seconds
       this.cauldronPriceIntervalId = setInterval(() => {
         this.fetchLiftPriceFromCauldron()
