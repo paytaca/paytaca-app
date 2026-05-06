@@ -703,7 +703,7 @@ export default {
           promo_contract_bytecode: this.contract.contract.bytecode
         })
 
-        if (swapResp?.error !== '') throw new Error(recordResp?.error)
+        if (swapResp?.error !== '') throw new Error(swapResp?.error)
 
         // call API for recording points redemption
         const recordResp = await recordPointsRedemption({
