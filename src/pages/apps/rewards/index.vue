@@ -42,6 +42,12 @@
                   <q-skeleton type="text" width="150px" height="16px" />
                 </div>
               </template>
+
+              <template v-else-if="priceError && !isSummaryExpanded">
+                <div class="text-caption text-negative">
+                  <q-icon name="error" size="xs" /> Price unavailable
+                </div>
+              </template>
               
               <!-- Loaded State -->
               <template v-else>
