@@ -463,7 +463,6 @@ import {
 import i18n from 'src/i18n'
 
 import HeaderNav from 'src/components/header-nav.vue'
-import StatusChip from 'src/components/rewards/StatusChip.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -480,7 +479,6 @@ export default {
 
   components: {
     HeaderNav,
-    StatusChip,
     PointsBadge,
     HelpCard,
     ErrorCard,
