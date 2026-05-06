@@ -1259,11 +1259,9 @@ export default {
     },
 
     openOrderCardWebsite () {
-      // Local development URL - change this to your production URL when ready
-      const orderCardUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:9000/order-card.html'
-        : `${window.location.origin}/order-card.html`
-      
+      // Official Paytaca website for ordering cards
+      const orderCardUrl = 'https://paytaca.com'
+
       // Open in external browser
       if (window.cordova && window.cordova.InAppBrowser) {
         // Mobile: use InAppBrowser
