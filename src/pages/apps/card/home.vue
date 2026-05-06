@@ -2,14 +2,6 @@
     <q-page class="flex flex-center q-pa-md">
       <div v-if="isloaded" class="column items-center full-width" style="max-width: 650px;">
         
-        <!-- Hero Section -->
-        <div 
-          class="text-center q-mb-lg"
-          :class="$q.dark.isActive ? 'text-white' : 'text-dark'">
-          <div class="text-subtitle1 text-grey-6">
-            {{ $t('Manage your Paytaca cards') }}
-          </div>
-        </div>
         
         <!-- Main Create Card Button - Large Card Style -->
         <q-card
@@ -20,10 +12,6 @@
         >
           <div class="text-h4 text-weight-bold q-mb-sm" :class="textColor">
             {{ $t('Create New Card') }}
-          </div>
-          
-          <div class="text-body1 text-grey-6 q-mb-lg" style="max-width: 300px; margin: 0 auto;">
-            {{ $t('Start using secure blockchain payments') }}
           </div>
           
           <div class="create-card-icon q-mb-md">
@@ -55,8 +43,8 @@
         
         <!-- Features Section - Modern Design -->
         <div class="features-container q-mt-xl full-width">
-          <div class="text-caption text-grey-6 text-uppercase text-center q-mb-md">
-            {{ $t('Features') }}
+          <div class="text-h6 text-grey-8 text-uppercase text-center q-mb-md">
+            {{ $t('How to Activate your new Paytaca Card') }}
           </div>
           
           <div class="row q-col-gutter-md">
@@ -69,7 +57,7 @@
                   <q-icon name="security" color="positive" size="28px" />
                 </div>
                 <div class="text-subtitle2 text-weight-bold">{{ $t('Secure') }}</div>
-                <div class="text-caption text-grey-6 q-mt-xs">{{ $t('Blockchain protected') }}</div>
+                <div class="text-caption text-grey-6 q-mt-xs">{{ $t('Step 1: The Initial Tap') }}</div>
               </div>
             </div>
             <div class="col-12 col-sm-4">
@@ -81,7 +69,7 @@
                   <q-icon name="bolt" color="warning" size="28px" />
                 </div>
                 <div class="text-subtitle2 text-weight-bold">{{ $t('Fast') }}</div>
-                <div class="text-caption text-grey-6 q-mt-xs">{{ $t('Instant payments') }}</div>
+                <div class="text-caption text-grey-6 q-mt-xs">{{ $t('Step 2: Link your Wallet') }}</div>
               </div>
             </div>
             <div class="col-12 col-sm-4">
@@ -92,7 +80,7 @@
                   <q-icon name="language" color="info" size="28px" />
                 </div>
                 <div class="text-subtitle2 text-weight-bold">{{ $t('Global') }}</div>
-                <div class="text-caption text-grey-6 q-mt-xs">{{ $t('Worldwide access') }}</div>
+                <div class="text-caption text-grey-6 q-mt-xs">{{ $t('Step 3: Secure and Confirm') }}</div>
               </div>
             </div>
           </div>
