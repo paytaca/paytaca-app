@@ -165,6 +165,7 @@ export default {
       isLoadingMore: false,
       hasMoreData: true,
       limit: 10,
+      offset: 0,
       redemptions: []
     }
   },
