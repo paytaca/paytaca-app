@@ -490,7 +490,7 @@ export default {
             titleKey: 'RewardsHelpRFP31',
             titleDefault: 'RFP Points Limit',
             content: [
-              { key: 'RewardsHelpRFP32', default: "You can only redeen a certain number of points each month. But don't worry; the limit resets at the start of each month." },
+              { key: 'RewardsHelpRFP32', default: "You can only redeem a certain number of points each month. But don't worry; the limit resets at the start of each month." },
             ],
             hasBack: true,
             primaryBtn: 'Next',
