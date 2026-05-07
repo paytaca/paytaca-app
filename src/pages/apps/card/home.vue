@@ -130,7 +130,7 @@
     </q-page>
     
     <!-- Create Card Dialog -->
-    <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" :idempotencyKey="idempotencyKey" />
+    <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
     <ResumeCreateCardDialog 
       v-if="showResumeCreateCardDialog" 
       @resumeAttempt="onResumeCardAttempt" 
@@ -205,6 +205,10 @@ export default {
     },
     goToCardsList () {
       console.log('Going to cards list page')
+      this.$router.push({ name: 'card-list' })
+    },
+    onCardCreated () {
+      console.log('Card created successfully, redirecting to cards list')
       this.$router.push({ name: 'card-list' })
     },
     showLoading(message) {

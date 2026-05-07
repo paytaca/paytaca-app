@@ -312,7 +312,7 @@ import QrScanner from 'src/components/qr-scanner.vue';
 
 export default {
   name: 'CreateCardDialog',
-  emits: ['onClose'],
+  emits: ['onClose', 'card-created'],
   components: {
     QrScanner
   },
@@ -439,7 +439,7 @@ export default {
           console.log('Card created successfully:', card);
           this.state = 'success';
           setTimeout(() => {
-            this.$emit('handleCreateCard', card);
+            this.$emit('card-created', card);
             this.closeDialog();
           }, 1500); // Show success message for 1.5 seconds before closing
         })
