@@ -68,8 +68,9 @@
         icon="send"
         size="sm"
         class="send-btn"
-        :disable="!text.trim() || remainingChars <= 0"
-        @click="send"
+        :disable="!text.trim() || remainingChars <= 0 || isSending"
+        @touchend.prevent="onSendTouch"
+        @click="onSendClick"
       />
     </div>
     
@@ -100,6 +101,7 @@ export default {
       selectedFile: null,
       uploadProgress: 0,
       isUploading: false,
+      isSending: false,
       imageThumbnail: null,
       uploadAbortController: null,
       MAX_CHARS,
@@ -236,9 +238,21 @@ export default {
       this.uploadAbortController = null
       this.clearFileSelection()
     },
+    onSendTouch () {
+      this._touchSent = true
+      this.send()
+      setTimeout(() => { this._touchSent = false }, 400)
+    },
+    onSendClick () {
+      if (this._touchSent) return
+      this.send()
+    },
     send () {
       const trimmed = this.text.trim()
-      if (!trimmed) return
+      if (!trimmed || this.isSending) return
+
+      this.text = ''
+      this.isSending = true
 
       if (trimmed.startsWith('/send')) {
         const commandMatch = trimmed.match(SEND_COMMAND_PATTERN)
@@ -251,10 +265,12 @@ export default {
               currency: (commandMatch[2] || 'BCH').toUpperCase(),
               originalText: trimmed,
             })
-            this.text = ''
+            this.dismissKeyboard()
+            this.$nextTick(() => { this.isSending = false })
             return
           }
         }
+        this.isSending = false
         this.$q.notify({
           type: 'warning',
           message: this.$t('InvalidSendCommand', {}, 'Invalid /send command. Usage: /send <amount> <currency>'),
@@ -265,7 +281,12 @@ export default {
       }
 
       this.$emit('send', trimmed)
-      this.text = ''
+      this.dismissKeyboard()
+      this.$nextTick(() => { this.isSending = false })
+    },
+    dismissKeyboard () {
+      const input = this.$el?.querySelector('.q-field__native')
+      if (input) input.blur()
     },
   },
 }

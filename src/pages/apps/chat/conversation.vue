@@ -235,6 +235,13 @@
     <!-- Reply bar -->
     <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
       <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
+      <q-icon
+        v-if="replyToMessage.isFile"
+        :name="replyToFileIcon"
+        size="18px"
+        class="reply-bar-file-icon"
+        :style="{ color: themeColor }"
+      />
       <div class="reply-bar-body">
         <div class="reply-bar-label" :style="{ color: themeColor }">
           {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
@@ -447,8 +454,18 @@ export default {
     },
     replyToSnippet () {
       if (!this.replyToMessage) return ''
+      if (this.replyToMessage.isFile) {
+        return this.replyToMessage.fileName || this.$t('File', {}, 'File')
+      }
       const { text } = parseMessageMarkup(this.replyToMessage.content || '')
       return text.length > 80 ? text.slice(0, 80) + '...' : text
+    },
+    replyToFileIcon () {
+      if (!this.replyToMessage?.isFile) return 'description'
+      if (this.replyToMessage.fileType?.startsWith('image/')) return 'image'
+      if (this.replyToMessage.fileType?.startsWith('video/')) return 'videocam'
+      if (this.replyToMessage.fileType?.startsWith('audio/')) return 'audiotrack'
+      return 'description'
     },
     editSnippet () {
       if (!this.editingMessage) return ''
@@ -479,9 +496,9 @@ export default {
     'allMessages.length' (newLen, oldLen) {
       this.markAsRead()
 
-      // Track newly received messages for highlight effect
       if (newLen > oldLen) {
         const newMsgs = this.allMessages.slice(oldLen)
+        const sentByMe = newMsgs.some(msg => msg.sender === this.myPubKey)
         newMsgs.forEach(msg => {
           if (msg.sender !== this.myPubKey) {
             this.newMessageIds.add(msg.id)
@@ -490,6 +507,9 @@ export default {
             }, 5000)
           }
         })
+        if (sentByMe) {
+          this.scrollToBottom()
+        }
       }
       this.previousMessageCount = newLen
     },
@@ -500,14 +520,16 @@ export default {
     },
   },
   mounted () {
+    const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
     const savedScrollTop = sessionStorage.getItem('chat_scroll_top')
-    if (savedMessageId) {
+    const canRestoreScroll = savedRoomId && savedRoomId === this.roomId && (savedMessageId || savedScrollTop)
+    if (canRestoreScroll && savedMessageId) {
       this._scrollToMessageId = savedMessageId
       sessionStorage.removeItem('chat_scroll_message_id')
     }
-    if (savedDisplayLimit) {
+    if (canRestoreScroll && savedDisplayLimit) {
       this.displayLimit = parseInt(savedDisplayLimit, 10)
       sessionStorage.removeItem('chat_scroll_display_limit')
     }
@@ -522,7 +544,7 @@ export default {
       window.addEventListener('resize', this.onViewportResize)
     }
 
-    if (this._scrollToMessageId) {
+    if (canRestoreScroll && this._scrollToMessageId) {
       this.$nextTick(() => {
         if (savedScrollTop) {
           const container = this.$refs.messagesContainer
@@ -530,28 +552,37 @@ export default {
             container.scrollTop = parseInt(savedScrollTop, 10)
           }
           sessionStorage.removeItem('chat_scroll_top')
+          sessionStorage.removeItem('chat_scroll_room_id')
         } else {
           this.scrollToMessage(this._scrollToMessageId)
         }
         this._scrollToMessageId = null
       })
     } else {
+      sessionStorage.removeItem('chat_scroll_room_id')
+      sessionStorage.removeItem('chat_scroll_message_id')
+      sessionStorage.removeItem('chat_scroll_display_limit')
+      sessionStorage.removeItem('chat_scroll_top')
       this.scrollToBottom()
+      requestAnimationFrame(() => this.scrollToBottom())
+      setTimeout(() => this.scrollToBottom(), 160)
     }
   },
   activated () {
+    const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
     const savedScrollTop = sessionStorage.getItem('chat_scroll_top')
-    if (savedMessageId) {
+    const canRestoreScroll = savedRoomId && savedRoomId === this.roomId && (savedMessageId || savedScrollTop)
+    if (canRestoreScroll && savedMessageId) {
       this._scrollToMessageId = savedMessageId
       sessionStorage.removeItem('chat_scroll_message_id')
     }
-    if (savedDisplayLimit) {
+    if (canRestoreScroll && savedDisplayLimit) {
       this.displayLimit = parseInt(savedDisplayLimit, 10)
       sessionStorage.removeItem('chat_scroll_display_limit')
     }
-    if (this._scrollToMessageId) {
+    if (canRestoreScroll && this._scrollToMessageId) {
       this.$nextTick(() => {
         if (savedScrollTop) {
           const container = this.$refs.messagesContainer
@@ -559,11 +590,20 @@ export default {
             container.scrollTop = parseInt(savedScrollTop, 10)
           }
           sessionStorage.removeItem('chat_scroll_top')
+          sessionStorage.removeItem('chat_scroll_room_id')
         } else {
           this.scrollToMessage(this._scrollToMessageId)
         }
         this._scrollToMessageId = null
       })
+    } else {
+      sessionStorage.removeItem('chat_scroll_room_id')
+      sessionStorage.removeItem('chat_scroll_message_id')
+      sessionStorage.removeItem('chat_scroll_display_limit')
+      sessionStorage.removeItem('chat_scroll_top')
+      this.scrollToBottom()
+      requestAnimationFrame(() => this.scrollToBottom())
+      setTimeout(() => this.scrollToBottom(), 160)
     }
   },
   beforeUnmount () {
@@ -590,21 +630,8 @@ export default {
         const container = this.$refs.messagesContainer
         if (container) {
           container.scrollTop = container.scrollHeight
+          container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
         }
-        // On mobile, the keyboard animates open after focus —
-        // scroll again after the keyboard has finished pushing the viewport
-        setTimeout(() => {
-          const c = this.$refs.messagesContainer
-          if (c) {
-            c.scrollTop = c.scrollHeight
-          }
-        }, 300)
-        setTimeout(() => {
-          const c = this.$refs.messagesContainer
-          if (c) {
-            c.scrollTop = c.scrollHeight
-          }
-        }, 600)
       })
     },
     markAsRead () {
@@ -754,6 +781,7 @@ export default {
       const { markup } = parseMessageMarkup(msg.content)
       if (!markup?.txid) return
       const container = this.$refs.messagesContainer
+      sessionStorage.setItem('chat_scroll_room_id', this.roomId)
       sessionStorage.setItem('chat_scroll_message_id', messageId)
       sessionStorage.setItem('chat_scroll_display_limit', this.displayLimit)
       if (container) {
@@ -874,6 +902,7 @@ export default {
             newContent: text,
           })
           this.editingMessage = null
+          this.scrollToBottom()
           await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         } else {
           const replyTo = this.replyToMessage?.id
@@ -884,6 +913,7 @@ export default {
           })
           this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
           this.replyToMessage = null
+          this.scrollToBottom()
           await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         }
       } catch (err) {
@@ -1348,6 +1378,10 @@ export default {
   width: 3px;
   height: 32px;
   border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.reply-bar-file-icon {
   flex-shrink: 0;
 }
 

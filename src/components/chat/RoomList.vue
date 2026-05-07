@@ -191,6 +191,13 @@ export default {
       const msgs = this.messages[roomId] || []
       if (!msgs.length) return this.$t('NoMessagesYet', {}, 'No messages yet')
       const last = msgs[msgs.length - 1]
+      if (last.isFile) {
+        const icon = last.fileType?.startsWith('image/') ? '🖼'
+          : last.fileType?.startsWith('video/') ? '🎥'
+          : last.fileType?.startsWith('audio/') ? '🎵'
+          : '📎'
+        return icon + ' ' + (last.fileName || this.$t('File', {}, 'File'))
+      }
       const { text } = parseMessageMarkup(last.content)
       return text
     },

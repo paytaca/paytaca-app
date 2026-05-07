@@ -25,8 +25,8 @@
       <div v-if="replyToMessage" class="reply-preview" @click="$emit('scroll-to-message', replyToMessage.id)">
         <div class="reply-preview-indicator" :style="{ background: themeColor }"></div>
         <img
-          v-if="replyToMessage.isFile && replyToMessage.fileType?.startsWith('image/') && replyToMessage.aesKeyHex"
-          :src="replyToImageThumbnail"
+          v-if="replyToMessage.isFile && replyToMessage.fileType?.startsWith('image/') && replyImageThumbnail"
+          :src="replyImageThumbnail"
           class="reply-preview-thumb"
           :style="replyToImageThumbStyle"
         />
@@ -50,10 +50,10 @@
       </div>
       
       <!-- Image message (no bubble styling, just the image) -->
-      <div v-else-if="isImageFile" class="image-message" @click="imageBlobUrl && (showImageDialog = true)" @touchstart="onImageTouchStart" @touchmove="onImageTouchMove" @touchend="onImageTouchEnd">
+      <div v-else-if="isImageFile" class="image-message" @click="onImageClick" @touchstart="onImageTouchStart" @touchmove="onImageTouchMove" @touchend="onImageTouchEnd">
         <div class="image-frame" :style="imageFrameStyle">
-          <q-skeleton v-if="!imageBlobUrl" type="rect" animation="wave" class="image-fill" />
-          <img v-else :src="imageBlobUrl" class="image-fill" draggable="false" @contextmenu.prevent />
+          <q-skeleton v-if="!imageThumbnailUrl" type="rect" animation="wave" class="image-fill" />
+          <img v-else :src="imageThumbnailUrl" class="image-fill" draggable="false" @contextmenu.prevent />
         </div>
       </div>
 
@@ -153,7 +153,11 @@
           <q-btn flat round icon="download" size="lg" color="white" :loading="isDownloadSaving" @click="downloadFile" />
         </div>
         <div class="image-viewer-body">
-          <img v-if="imageBlobUrl" :src="imageBlobUrl" class="fullscreen-image" />
+          <img v-if="imageFullUrl" :src="imageFullUrl" class="fullscreen-image" />
+          <div v-else class="fullscreen-loading">
+            <q-spinner color="white" size="48px" />
+            <div class="loading-text">{{ $t('LoadingFullImage', {}, 'Loading full image...') }}</div>
+          </div>
         </div>
       </div>
     </q-dialog>
@@ -166,6 +170,21 @@ import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 const _replyThumbnailCache = new Map()
+
+// Module-level cache for image thumbnails (LRU with max 100 entries)
+const _imageThumbnailCache = new Map()
+const MAX_THUMBNAIL_CACHE_SIZE = 100
+
+function evictOldestThumbnail() {
+  if (_imageThumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
+    const firstKey = _imageThumbnailCache.keys().next().value
+    const url = _imageThumbnailCache.get(firstKey)
+    if (url && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url)
+    }
+    _imageThumbnailCache.delete(firstKey)
+  }
+}
 
 function bytesToHex(bytes) {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -196,21 +215,30 @@ export default {
         _pressPointerId: null,
         isDownloading: false,
         isDownloadSaving: false,
-        imageBlobUrl: null,
+        imageThumbnailUrl: null, // Small preview for fast browsing
+        imageFullUrl: null,      // Full resolution (loaded on click)
         showImageDialog: false,
+        replyImageThumbnail: null, // Reply preview thumbnail (reactive)
       }
     },
     mounted () {
       this._timer = setInterval(() => { this.now = Date.now() }, 1000)
       if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
-        this._imgObserver = new IntersectionObserver((entries) => {
-          if (entries[0].isIntersecting) {
-            this._imgObserver.disconnect()
-            this._imgObserver = null
-            this.loadImage()
-          }
-        }, { rootMargin: '200px' })
-        this._imgObserver.observe(this.$el)
+        // Check if thumbnail is already cached
+        const cacheKey = this.message.id || this.message.content
+        if (_imageThumbnailCache.has(cacheKey)) {
+          this.imageThumbnailUrl = _imageThumbnailCache.get(cacheKey)
+        } else {
+          // Load thumbnail when image enters viewport
+          this._imgObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+              this._imgObserver.disconnect()
+              this._imgObserver = null
+              this.loadThumbnail()
+            }
+          }, { rootMargin: '200px' })
+          this._imgObserver.observe(this.$el)
+        }
       }
     },
    beforeUnmount () {
@@ -219,8 +247,9 @@ export default {
        this._imgObserver.disconnect()
        this._imgObserver = null
      }
-     if (this.imageBlobUrl) {
-       URL.revokeObjectURL(this.imageBlobUrl)
+     // Only revoke full image URL (thumbnails are cached globally)
+     if (this.imageFullUrl) {
+       URL.revokeObjectURL(this.imageFullUrl)
      }
    },
   computed: {
@@ -253,9 +282,6 @@ export default {
       if (this.replyToMessage.fileType?.startsWith('video/')) return 'videocam'
       if (this.replyToMessage.fileType?.startsWith('audio/')) return 'audiotrack'
       return 'description'
-    },
-    replyToImageThumbnail () {
-      return this.replyToMessage ? (_replyThumbnailCache.get(this.replyToMessage.id) || '') : ''
     },
     replyToImageThumbStyle () {
       const w = this.replyToMessage?.imageWidth || 120
@@ -312,15 +338,20 @@ export default {
       const w = this.message.imageWidth
       const h = this.message.imageHeight
       if (!w || !h) {
-        return { width: '240px', paddingBottom: '75%' }
+        return { width: '360px', paddingBottom: '75%' }
       }
-      // Cap width at 360px (reasonable chat image size), preserve aspect ratio
-      const displayWidth = Math.min(w, 360)
-      const ratio = h / w
-      const displayHeight = displayWidth * ratio
-      // Also cap height to prevent extremely tall images
-      const cappedHeight = Math.min(displayHeight, 480)
-      const finalWidth = cappedHeight < displayHeight ? cappedHeight / ratio : displayWidth
+      
+      const aspectRatio = h / w
+      const isLandscape = w >= h
+      
+      // Landscape images get more width, portrait images are narrower for proportional appearance
+      const maxThumbWidth = isLandscape ? 640 : 200
+      const maxThumbHeight = isLandscape ? 480 : 480
+      
+      const displayWidth = Math.min(w, maxThumbWidth)
+      const displayHeight = displayWidth * aspectRatio
+      const cappedHeight = Math.min(displayHeight, maxThumbHeight)
+      const finalWidth = cappedHeight < displayHeight ? cappedHeight / aspectRatio : displayWidth
       
       return { 
         width: `${finalWidth}px`,
@@ -329,15 +360,32 @@ export default {
     },
   },
   watch: {
-    replyToMessage (msg) {
-      if (!msg || !msg.isFile || !msg.fileType?.startsWith('image/') || !msg.aesKeyHex) return
-      if (_replyThumbnailCache.has(msg.id)) return
-      this.loadReplyThumbnail(msg)
+    replyToMessage: {
+      handler (msg) {
+        if (!msg || !msg.isFile || !msg.fileType?.startsWith('image/') || !msg.aesKeyHex) {
+          this.replyImageThumbnail = null
+          return
+        }
+        const msgId = msg.id || msg.content
+        // Check both caches first
+        if (_imageThumbnailCache.has(msgId)) {
+          this.replyImageThumbnail = _imageThumbnailCache.get(msgId)
+          return
+        }
+        if (_replyThumbnailCache.has(msgId)) {
+          this.replyImageThumbnail = _replyThumbnailCache.get(msgId)
+          return
+        }
+        // Load if not cached
+        this.loadReplyThumbnail(msg)
+      },
+      immediate: true, // Trigger on mount if replyToMessage already exists
     },
   },
   methods: {
     getDarkModeClass,
     loadReplyThumbnail (msg) {
+      const msgId = msg.id || msg.content
       const blossomServer = 'https://blossom.paytaca.com'
       downloadFromBlossom(msg.content, blossomServer)
         .then(encryptedData => decryptFile(encryptedData, msg.aesKeyHex, msg.nonceHex))
@@ -355,7 +403,10 @@ export default {
             const x = (size - img.width * scale) / 2
             const y = (size - img.height * scale) / 2
             ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
-            _replyThumbnailCache.set(msg.id, canvas.toDataURL('image/jpeg', 0.6))
+            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.6)
+            _replyThumbnailCache.set(msgId, thumbnailUrl)
+            // Set reactive property to trigger re-render
+            this.replyImageThumbnail = thumbnailUrl
             URL.revokeObjectURL(url)
           }
           img.onerror = () => URL.revokeObjectURL(url)
@@ -463,8 +514,16 @@ export default {
       if (this.message.fileType?.includes('audio')) return '.mp3'
       return ''
     },
-    async loadImage () {
-      if (this.imageBlobUrl || this.isDownloading) return
+    async loadThumbnail () {
+      const cacheKey = this.message.id || this.message.content
+      
+      // Check cache first
+      if (_imageThumbnailCache.has(cacheKey)) {
+        this.imageThumbnailUrl = _imageThumbnailCache.get(cacheKey)
+        return
+      }
+
+      if (this.isDownloading) return
 
       const aesKeyHex = this.message.aesKeyHex
       const nonceHex = this.message.nonceHex
@@ -480,15 +539,89 @@ export default {
 
         const mimeType = this.message.fileType || 'image/jpeg'
         const blob = new Blob([decryptedData], { type: mimeType })
-        if (this.imageBlobUrl) URL.revokeObjectURL(this.imageBlobUrl)
-        this.imageBlobUrl = URL.createObjectURL(blob)
+        
+        // Generate thumbnail with aspect ratio preservation
+        const img = new Image()
+        const blobUrl = URL.createObjectURL(blob)
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          
+          // Use different max dimensions based on orientation
+          const isLandscape = img.width >= img.height
+          const maxWidth = isLandscape ? 640 : 200
+          const maxHeight = isLandscape ? 480 : 480
+          
+          const aspectRatio = img.height / img.width
+          let thumbWidth = Math.min(img.width, maxWidth)
+          let thumbHeight = thumbWidth * aspectRatio
+          
+          // Cap height and recalculate width if needed
+          if (thumbHeight > maxHeight) {
+            thumbHeight = maxHeight
+            thumbWidth = thumbHeight / aspectRatio
+          }
+          
+          canvas.width = thumbWidth
+          canvas.height = thumbHeight
+          
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight)
+          
+          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85)
+          
+          // Cache the thumbnail
+          evictOldestThumbnail()
+          _imageThumbnailCache.set(cacheKey, thumbnailUrl)
+          
+          this.imageThumbnailUrl = thumbnailUrl
+          URL.revokeObjectURL(blobUrl)
+        }
+        
+        img.onerror = () => {
+          URL.revokeObjectURL(blobUrl)
+        }
+        
+        img.src = blobUrl
       } catch (err) {
-        console.error('Image load error:', err)
+        console.error('Thumbnail load error:', err)
       } finally {
         this.isDownloading = false
       }
     },
-    openImageFullscreen () {},
+    async loadFullImage () {
+      if (this.imageFullUrl || this.isDownloading) return
+
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+
+      if (!aesKeyHex || !nonceHex || !fileUrl) return
+
+      this.isDownloading = true
+      try {
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+
+        const mimeType = this.message.fileType || 'image/jpeg'
+        const blob = new Blob([decryptedData], { type: mimeType })
+        if (this.imageFullUrl) URL.revokeObjectURL(this.imageFullUrl)
+        this.imageFullUrl = URL.createObjectURL(blob)
+      } catch (err) {
+        console.error('Full image load error:', err)
+      } finally {
+        this.isDownloading = false
+      }
+    },
+    onImageClick () {
+      if (!this.imageThumbnailUrl) return
+      this.showImageDialog = true
+      // Load full resolution image when dialog opens
+      if (!this.imageFullUrl) {
+        this.loadFullImage()
+      }
+    },
     onImageTouchStart (e) {
       this._imgTouchTimer = setTimeout(() => {
         e.preventDefault()
@@ -654,6 +787,9 @@ export default {
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .reply-preview-file-icon {
@@ -1008,6 +1144,19 @@ export default {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+.fullscreen-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .dark .message-row.mine .message-bubble.is-image-bubble .message-time,
