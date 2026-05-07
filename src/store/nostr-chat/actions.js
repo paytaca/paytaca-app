@@ -5,6 +5,15 @@ import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
 import Watchtower from 'watchtower-cash-js'
 import { getAuthHeaders, clearToken } from 'src/utils/watchtower-oauth'
+import {
+  encryptFile,
+  decryptFile,
+  createKind15FileMessage,
+  wrapKind15FileMessage,
+  uploadToBlossom,
+  downloadFromBlossom,
+  parseKind15FileMessage,
+} from 'src/wallet/nostr-media'
 
 const DISCOVERY_RELAYS = [
   'wss://relay.paytaca.com',
@@ -378,6 +387,84 @@ export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
   return { giftWraps, messageId, roomId }
 }
 
+/**
+ * Send an encrypted file (image, video, document) to a chat room.
+ * Implements NIP-17 kind:15 file message with Blossom upload.
+ * @param {Object} context
+ * @param {Object} payload
+ * @param {string} payload.roomId - Room ID
+ * @param {File} payload.file - File to upload
+ * @param {string} [payload.replyTo] - Optional message ID being replied to
+ * @returns {Promise<{ giftWraps: any[], message: any, roomId: string }>}
+ */
+export async function sendFileMessage ({ state }, { roomId, file, replyTo, onProgress, signal }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const senderPrivKey = state.keys.privKeyHex
+  const senderPubKey = state.keys.pubKeyHex
+
+  if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
+
+  if (onProgress) onProgress(0.05)
+  const { encrypted, aesKeyHex, nonceHex, hash, originalHash, mimeType, size: encryptedSize, imageWidth, imageHeight } = await encryptFile(file)
+
+  if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
+
+  if (onProgress) onProgress(0.1)
+  const blossomServer = 'https://blossom.paytaca.com'
+  const { url: fileUrl } = await uploadToBlossom(encrypted, blossomServer, senderPrivKey, senderPubKey, {
+    onProgress: (p) => {
+      if (onProgress) onProgress(0.1 + p * 0.8)
+    },
+    signal,
+  })
+
+  if (onProgress) onProgress(0.9)
+  const kind15Event = createKind15FileMessage({
+    senderPubKey,
+    members: room.members,
+    fileUrl,
+    mimeType,
+    aesKeyHex,
+    nonceHex,
+    hash,
+    originalHash,
+    size: encryptedSize,
+    fileName: file.name,
+    imageWidth,
+    imageHeight,
+    replyTo,
+  })
+
+  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, room.members)
+
+  if (onProgress) onProgress(0.95)
+  const message = {
+    id: kind15Event.id,
+    content: fileUrl,
+    sender: senderPubKey,
+    created_at: kind15Event.created_at,
+    kind15Id: kind15Event.id,
+    fileType: mimeType,
+    fileName: file.name,
+    fileSize: file.size,
+    encryptedSize,
+    hash,
+    originalHash,
+    aesKeyHex,
+    nonceHex,
+    imageWidth,
+    imageHeight,
+    replyTo,
+    localSentAt: Date.now(),
+    isFile: true,
+  }
+
+  if (onProgress) onProgress(1)
+  return { giftWraps, message, roomId }
+}
+
 export async function sendReaction ({ state, commit }, { roomId, messageId, emoji }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
@@ -526,6 +613,58 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const roomId = computeRoomId(roomMembers)
 
     commit('DELETE_MESSAGE', { roomId, messageId })
+    return
+  }
+
+  // Handle Kind 15 file messages
+  if (rumor.kind === 15) {
+    const parsed = parseKind15FileMessage(rumor)
+    if (!parsed) return
+
+    const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
+    const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
+    const roomId = computeRoomId(roomMembers)
+
+    let room = state.rooms.find(r => r.id === roomId)
+    if (!room) {
+      if (state.blockedContacts?.includes(rumor.pubkey)) return
+      const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
+      room = {
+        id: roomId,
+        type: 'private',
+        name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
+        members: roomMembers,
+        subject: null,
+        createdAt: rumor.created_at,
+        updatedAt: rumor.created_at,
+      }
+      commit('ADD_ROOM', room)
+    }
+
+    const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
+
+    const message = {
+      id: rumor.id,
+      content: parsed.fileUrl,
+      sender: rumor.pubkey,
+      created_at: rumor.created_at,
+      kind15Id: rumor.id,
+      fileType: parsed.mimeType,
+      fileName: parsed.fileName,
+      fileSize: parsed.size,
+      encryptedSize: parsed.size,
+      hash: parsed.hash,
+      originalHash: parsed.originalHash,
+      aesKeyHex: parsed.aesKeyHex,
+      nonceHex: parsed.nonceHex,
+      imageWidth: parsed.imageWidth,
+      imageHeight: parsed.imageHeight,
+      replyTo,
+      localReceivedAt: Date.now(),
+      isFile: true,
+    }
+
+    commit('ADD_MESSAGE', { roomId, message })
     return
   }
 

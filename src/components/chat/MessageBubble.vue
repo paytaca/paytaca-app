@@ -6,8 +6,8 @@
   >
     <div
       class="message-bubble"
-      :class="{ 'new-message': isNew, 'is-deleted': message.deleted }"
-      :style="isMine ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
+      :class="{ 'new-message': isNew, 'is-deleted': message.deleted, 'is-image-bubble': isImageFile }"
+      :style="isMine && !isImageFile ? { background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` } : {}"
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
       @pointermove="onPointerMove"
@@ -35,6 +35,43 @@
         <q-icon name="delete_outline" size="14px" class="deleted-icon" />
         <span>{{ $t('MessageDeleted', {}, 'Message deleted') }}</span>
       </div>
+      
+      <!-- Image message (no bubble styling, just the image) -->
+      <div v-else-if="isImageFile" class="image-message" @click="imageBlobUrl && (showImageDialog = true)" @touchstart="onImageTouchStart" @touchmove="onImageTouchMove" @touchend="onImageTouchEnd">
+        <q-skeleton
+          v-if="!imageBlobUrl"
+          type="rect"
+          :style="skeletonStyle"
+          animation="wave"
+          class="image-skeleton"
+        />
+        <img v-else :src="imageBlobUrl" class="chat-image" :style="imageStyle" draggable="false" @contextmenu.prevent />
+      </div>
+
+      <!-- Non-image file card -->
+      <div v-else-if="message.isFile || parsed.markup?.type === 'file'" class="file-card" @click="downloadFile">
+        <div class="file-card-header">
+          <q-icon :name="fileIcon" size="28px" class="file-icon" :style="{ color: themeColor }" />
+          <div class="file-info">
+            <div class="file-name">{{ message.fileName || getFileName(message.content) }}</div>
+            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || 'File' }}</div>
+          </div>
+        </div>
+        <div class="file-card-actions">
+          <q-btn
+            flat
+            dense
+            round
+            icon="download"
+            size="sm"
+            :loading="isDownloading"
+            @click.stop="downloadFile"
+          >
+            <q-tooltip>Download</q-tooltip>
+          </q-btn>
+        </div>
+      </div>
+      
       <template v-else>
         <div class="message-text">{{ displayText }}</div>
 
@@ -44,16 +81,16 @@
           class="payment-card q-mt-sm"
           @click="openTransactionDetail"
         >
-        <div class="payment-amount-row">
-          <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
-          <span class="payment-amount">{{ markup.amount }} BCH</span>
+          <div class="payment-amount-row">
+            <q-icon name="img:bitcoin-cash-circle.svg" size="22px" />
+            <span class="payment-amount">{{ markup.amount }} BCH</span>
+          </div>
+          <div v-if="markup.txid" class="payment-txid">
+            <span class="txid-label">TXID</span>
+            <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
+            <q-icon name="chevron_right" size="16px" class="payment-chevron" />
+          </div>
         </div>
-        <div v-if="markup.txid" class="payment-txid">
-          <span class="txid-label">TXID</span>
-          <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
-          <q-icon name="chevron_right" size="16px" class="payment-chevron" />
-        </div>
-      </div>
       </template>
 
       <div class="message-meta">
@@ -97,11 +134,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Fullscreen image viewer dialog -->
+    <q-dialog v-model="showImageDialog" maximized transition-show="fade" transition-hide="fade">
+      <div class="image-viewer" :class="getDarkModeClass(darkMode)">
+        <div class="image-viewer-header">
+          <q-btn flat round icon="close" size="lg" color="white" @click="showImageDialog = false" />
+          <div class="image-viewer-filename">{{ message.fileName || getFileName(message.content) }}</div>
+          <q-btn flat round icon="download" size="lg" color="white" :loading="isDownloadSaving" @click="downloadFile" />
+        </div>
+        <div class="image-viewer-body">
+          <img v-if="imageBlobUrl" :src="imageBlobUrl" class="fullscreen-image" />
+        </div>
+      </div>
+    </q-dialog>
   </div>
 </template>
 
 <script>
 import { parseMessageMarkup } from 'src/utils/chat-markup'
+import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
 export default {
   name: 'MessageBubble',
@@ -126,17 +179,30 @@ export default {
         _pressStartX: 0,
         _pressStartY: 0,
         _pressPointerId: null,
+        isDownloading: false,
+        isDownloadSaving: false,
+        imageBlobUrl: null,
+        showImageDialog: false,
       }
     },
     mounted () {
       this._timer = setInterval(() => { this.now = Date.now() }, 1000)
+      if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
+        this.loadImage()
+      }
     },
-  beforeUnmount () {
-    clearInterval(this._timer)
-  },
+   beforeUnmount () {
+     clearInterval(this._timer)
+     if (this.imageBlobUrl) {
+       URL.revokeObjectURL(this.imageBlobUrl)
+     }
+   },
   computed: {
     isMine () {
       return this.message.sender === this.myPubKey
+    },
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
     },
     senderName () {
       const contact = this.contacts.find(c => c.pubKeyHex === this.message.sender)
@@ -184,8 +250,39 @@ export default {
       if (!this.expandedReaction) return null
       return this.groupedReactions.find(g => g.emoji === this.expandedReaction)
     },
+    fileIcon () {
+      if (this.message.fileType?.startsWith('image/')) return 'image'
+      if (this.message.fileType?.startsWith('video/')) return 'videocam'
+      if (this.message.fileType?.startsWith('audio/')) return 'audiotrack'
+      return 'description'
+    },
+    isImageFile () {
+      return this.message.fileType?.startsWith('image/')
+    },
+    displayImageWidth () {
+      if (!this.message.imageWidth) return 260
+      return Math.min(this.message.imageWidth, 260)
+    },
+    displayImageHeight () {
+      if (!this.message.imageWidth || !this.message.imageHeight) return 200
+      const ratio = this.displayImageWidth / this.message.imageWidth
+      return Math.round(this.message.imageHeight * ratio)
+    },
+    skeletonStyle () {
+      return {
+        width: this.displayImageWidth + 'px',
+        height: this.displayImageHeight + 'px',
+      }
+    },
+    imageStyle () {
+      return {
+        maxWidth: this.displayImageWidth + 'px',
+        maxHeight: this.displayImageHeight + 'px',
+      }
+    },
   },
   methods: {
+    getDarkModeClass,
     formatTime (ts) {
       if (!ts) return ''
       const d = new Date(ts * 1000)
@@ -262,6 +359,127 @@ export default {
       if (reactor.pubKey === this.myPubKey && this.canRemoveReaction(reactor)) {
         this.$emit('remove-reaction', { messageId: this.message.id || this.message.kind14Id, emoji: this.expandedReaction })
         this.expandedReaction = null
+      }
+    },
+    getFileName (url) {
+      if (!url) return 'Unknown file'
+      const parts = url.split('/')
+      const lastPart = parts[parts.length - 1]
+      // If it's a hash, add extension based on type
+      if (lastPart.length === 64) {
+        const ext = this.getFileExtension()
+        return `file${ext}`
+      }
+      return lastPart || 'Unknown file'
+    },
+    formatFileSize (bytes) {
+      if (!bytes || bytes < 1024) return (bytes || 0) + ' B'
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    },
+    getFileExtension () {
+      if (this.message.fileType?.includes('image')) return '.jpg'
+      if (this.message.fileType?.includes('video')) return '.mp4'
+      if (this.message.fileType?.includes('audio')) return '.mp3'
+      return ''
+    },
+    async loadImage () {
+      if (this.imageBlobUrl || this.isDownloading) return
+
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+
+      if (!aesKeyHex || !nonceHex || !fileUrl) return
+
+      this.isDownloading = true
+      try {
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+
+        const mimeType = this.message.fileType || 'image/jpeg'
+        const blob = new Blob([decryptedData], { type: mimeType })
+        if (this.imageBlobUrl) URL.revokeObjectURL(this.imageBlobUrl)
+        this.imageBlobUrl = URL.createObjectURL(blob)
+      } catch (err) {
+        console.error('Image load error:', err)
+      } finally {
+        this.isDownloading = false
+      }
+    },
+    openImageFullscreen () {},
+    onImageTouchStart (e) {
+      this._imgTouchTimer = setTimeout(() => {
+        e.preventDefault()
+        this.onContextMenu(e)
+        this._imgTouchFired = true
+      }, 600)
+      this._imgTouchX = e.touches[0].clientX
+      this._imgTouchY = e.touches[0].clientY
+      this._imgTouchFired = false
+    },
+    onImageTouchMove (e) {
+      const dx = Math.abs(e.touches[0].clientX - this._imgTouchX)
+      const dy = Math.abs(e.touches[0].clientY - this._imgTouchY)
+      if (dx > 10 || dy > 10) {
+        clearTimeout(this._imgTouchTimer)
+      }
+    },
+    onImageTouchEnd () {
+      clearTimeout(this._imgTouchTimer)
+      if (this._imgTouchFired) {
+        this._imgTouchFired = false
+      }
+    },
+    async downloadFile () {
+      const aesKeyHex = this.message.aesKeyHex
+      const nonceHex = this.message.nonceHex
+      const fileUrl = this.message.content
+
+      if (!aesKeyHex || !nonceHex || !fileUrl) {
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('FileDecryptKeyMissing', {}, 'Decryption key not available'),
+          timeout: 3000,
+        })
+        return
+      }
+
+      this.isDownloadSaving = true
+      try {
+        const blossomServer = 'https://blossom.paytaca.com'
+        const encryptedData = await downloadFromBlossom(fileUrl, blossomServer)
+        const decryptedData = await decryptFile(encryptedData, aesKeyHex, nonceHex)
+
+        const mimeType = this.message.fileType || 'application/octet-stream'
+        const blob = new Blob([decryptedData], { type: mimeType })
+        const blobUrl = URL.createObjectURL(blob)
+
+        const fileName = this.message.fileName || this.getFileName(fileUrl)
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('FileDownloaded', {}, 'File downloaded'),
+          timeout: 2000,
+        })
+      } catch (err) {
+        console.error('Download/decrypt error:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: this.$t('FileDownloadFailed', {}, 'Download failed') + ': ' + err.message,
+          timeout: 5000,
+        })
+      } finally {
+        this.isDownloadSaving = false
       }
     },
   },
@@ -443,6 +661,10 @@ export default {
   50% { opacity: 0.45; }
 }
 
+.message-row.mine .message-bubble.is-image-bubble .reaction-badge {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .message-row.mine .reaction-badge {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -586,6 +808,194 @@ export default {
 
 .payment-card:active {
   transform: translateY(0);
+}
+
+.message-row.mine .message-bubble.is-image-bubble {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.message-row.mine .message-bubble.is-image-bubble .message-time {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.message-row.mine .message-bubble.is-image-bubble .edited-label {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.message-row.mine .message-bubble.is-image-bubble .read-receipt {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.message-row.mine .message-bubble.is-image-bubble .read-receipt.read {
+  color: #34d399;
+}
+
+.message-row.theirs .message-bubble.is-image-bubble {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+/* Image message (no bubble) */
+.image-message {
+  cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chat-image {
+  display: block;
+  border-radius: 12px;
+  object-fit: cover;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+.image-skeleton {
+  border-radius: 12px;
+}
+
+/* Fullscreen image viewer */
+.image-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #000000;
+}
+
+.image-viewer-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  color: #ffffff;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.image-viewer-header .q-btn {
+  color: #ffffff;
+}
+
+.image-viewer-filename {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.image-viewer-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  min-height: 0;
+}
+
+.fullscreen-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.dark .message-row.mine .message-bubble.is-image-bubble .message-time,
+.dark .message-row.mine .message-bubble.is-image-bubble .edited-label,
+.dark .message-row.mine .message-bubble.is-image-bubble .read-receipt {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .message-row.mine .message-bubble.is-image-bubble .read-receipt.read {
+  color: #34d399;
+}
+
+/* File card */
+.file-card {
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-width: 200px;
+}
+
+.file-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.file-card:active {
+  transform: translateY(0);
+}
+
+.file-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-icon {
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.file-card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.dark .file-card {
+  background: linear-gradient(135deg, #1e3a5f, #1e40af);
+  border-color: #1e40af;
+}
+
+.dark .file-name {
+  color: #93c5fd;
+}
+
+.dark .file-meta {
+  color: #94a3b8;
+}
+
+.dark .file-card:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
 .payment-amount-row {

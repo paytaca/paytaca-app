@@ -40,7 +40,7 @@ function hexToBytes(hex) {
 function getPool() {
   if (!_pool) {
     _pool = new SimplePool({
-      maxWaitForConnection: 15000,
+      maxWaitForConnection: 30000,
       enableReconnect: true,
       enablePing: true,
       automaticallyAuth: (relayURL) => {
@@ -321,7 +321,7 @@ export async function publish(relays, events) {
   const pool = getPool()
   for (const event of events) {
     try {
-      const promises = pool.publish(relays, event, { maxWait: 15000 })
+      const promises = pool.publish(relays, event, { maxWait: 30000 })
       const results = await Promise.allSettled(promises)
       results.forEach((result, i) => {
         if (result.status === 'rejected') {
@@ -345,7 +345,7 @@ export async function publishEvent(relays, event) {
   const accepted = []
   const errors = []
   try {
-    const promises = pool.publish(relays, event, { maxWait: 15000 })
+    const promises = pool.publish(relays, event, { maxWait: 30000 })
     const results = await Promise.allSettled(promises)
     results.forEach((result, i) => {
       if (result.status === 'fulfilled') {
