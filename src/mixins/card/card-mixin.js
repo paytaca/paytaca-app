@@ -1,4 +1,21 @@
 export default {
+  computed: {
+     textColor() {
+      return this.$q.dark.isActive ? 'text-white' : 'text-black'
+    },
+    
+    textColorGrey() {
+      return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
+    },
+    
+    textColorGreyLight() {
+      return this.$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'
+    },
+    
+    bgColor() {
+      return this.$q.dark.isActive ? 'bg-grey-9' : 'bg-grey-2'
+    }
+  },
   methods: {
     formatContractAddress(address) {
       if (!address) return ''

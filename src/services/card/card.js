@@ -41,6 +41,18 @@ export class Card {
     return this.raw?.token_address;
   }
 
+  get bchBalance () {
+    return this.raw?.bch_balance || 0;
+  }
+
+  get isLocked() {
+    return this.raw?.is_locked;
+  }
+
+  get isAlertsEnabled() {
+    return this.raw?.is_alerts_enabled;
+  }
+
   // ==================== FACTORIES ====================
 
   /**
@@ -190,12 +202,9 @@ export class Card {
         updateCreateCardAttempt(this.wallet.walletHash, { category: category, status: currentStatus });
       }
 
-      await this._ensureCardUserAuthenticated();
-      
+      await this._ensureCardUserAuthenticated();      
       this._notifyCallbackFn(callbackOnProgress, 'Card user authenticated');
 
-      // Saves the genesis token id (category) to the server 
-      // which triggers server-side contract initialization
       if (currentStatus <= CardCreateAttemptStatus.GENESIS_MINTED) {
         let savedAttempt = lastAttempt
         
@@ -205,20 +214,26 @@ export class Card {
           category = savedAttempt?.category;
         }
 
-        this.raw = await this._saveGenesis(cardId, category, savedAttempt?.idempotencyKey);
-        
+        // Save the auth token category to the server
+        this.raw = await this._saveGenesis(cardId, category);
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
-        
         currentStatus = CardCreateAttemptStatus.GENESIS_SAVED;
-        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });      
       } 
+
+      // Create the contract
+      if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
+        await this._generateContract(lastAttempt?.idempotencyKey);
+        currentStatus = CardCreateAttemptStatus.CONTRACT_CREATED;
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+      }
       
       this.raw = (await backend.get(`/cards/${cardId}/`)).data;
 
       this._initializeContract();
       this._notifyCallbackFn(callbackOnProgress, 'Contract initialized locally');
 
-      if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
+      if (currentStatus <= CardCreateAttemptStatus.CONTRACT_CREATED) {
         await this._issueGlobalAuthToken();
         
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
@@ -309,11 +324,36 @@ export class Card {
    * @param {String} category
    * @returns {Promise<Object>}
    */
-  async _saveGenesis(cardId, category, idempotencyKey = null) {
+  async _saveGenesis(cardId, category) {
     const data = { category };
-    const response = await backend.patch(`/cards/${cardId}/`, data, 
-      { headers: { 'Idempotency-Key': idempotencyKey } }
-    );
+    const response = await backend.patch(`/cards/${cardId}/`, data)
+      .catch(error => {
+        console.error('Error saving genesis token ID to server:', error.response || error.message);
+        if (error.response && error.response.status === 403) {
+          bus.emit('sessionExpired') // Emit sessionExpired event for testing
+        }
+        throw error;
+      });
+
+    return response.data;
+  }
+
+  /**
+   * Generates a contract for the given card
+   * @private
+   * @param {string} idempotencyKey 
+   * @returns {Promise<Object>}
+   */
+  async _generateContract(idempotencyKey) {
+    const response = await backend.post(`/cards/generate-contract/`, null, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }).catch(error => {
+      console.error('Error generating contract:', error.response || error.message);
+      if (error.response && error.response.status === 403) {
+        bus.emit('sessionExpired') // Emit sessionExpired event for testing
+      }
+      throw error;
+    });
 
     return response.data;
   }
@@ -380,14 +420,11 @@ export class Card {
 
   /**
    * Updates the card's alias
-   * @param {Object} param0
-   * @param {string} param0.alias - The new alias for the card
+   * @param {Object} data - The new alias for the card
    * @returns {Promise<Object>} - The updated card data
    */
-  async update({ alias }) {
-    const data = {
-      alias: alias || this.alias,
-    };
+  async update(data = {}) {
+    console.log('Updating card with data:', data);
     const response = await backend.patch(`/cards/${this.id}/`, data);
     return response.data;
   }

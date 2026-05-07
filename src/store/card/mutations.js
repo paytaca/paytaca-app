@@ -17,6 +17,13 @@ export function updateCard (state, updatedCard) {
   }
 }
 
+export function updateCardBalance (state, { cardId, balance }) {
+  const card = state.cards.find(card => card.id === cardId)
+  if (card) {
+    card.balance = balance
+  }
+}
+
 export function setCardTransactions (state, { cardId, transactions }) {
   const card = state.cards.find(card => card.id === cardId)
   if (card) {
