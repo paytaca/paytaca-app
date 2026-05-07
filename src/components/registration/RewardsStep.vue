@@ -237,16 +237,16 @@ export default {
 
     processErrorMessage (resp) {
       if (resp?.code === 'non_mobile_referral') {
-        this.errorMessage = "It looks like you're trying to scan on a desktop. Please use your mobile device to scan the referral code."
+        this.errorMessage = "Oops, scanning won't work here! Please use your mobile device to scan the referral code."
       } else if (resp?.code === 'duplicate_device') {
-        this.errorMessage = "This referral code was already scanned on this device. Try using a different device to redeem it again."
+        this.errorMessage = "Looks like this referral code has already been scanned here! Try using a different device to redeem it again."
       } else if (resp?.code === 'duplicate_referral') {
-        this.errorMessage = "It looks like this account has already been referred by someone. Please check your status with your referrer, or create a new account to redeem again."
+        this.errorMessage = "Looks like this account has already been referred by someone. Please check your status with your referrer, or create a new account to redeem again."
       } else if (resp?.code === 'invalid_code') {
         console.error(resp?.message)
-        this.errorMessage = "Sorry, that referral code appears to be invalid. Please check and try again."
+        this.errorMessage = "Sorry, that referral code appears to be invalid. Please double-check and try again."
       } else {
-        this.errorMessage = 'An error occurred while processing the referral code. Please try again.'
+        this.errorMessage = 'We cannot process your referral code right now. Please try again later.'
       }
     }
   }
