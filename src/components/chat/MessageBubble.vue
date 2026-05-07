@@ -188,11 +188,22 @@ export default {
     mounted () {
       this._timer = setInterval(() => { this.now = Date.now() }, 1000)
       if (this.isImageFile && this.message.aesKeyHex && this.message.nonceHex) {
-        this.loadImage()
+        this._imgObserver = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            this._imgObserver.disconnect()
+            this._imgObserver = null
+            this.loadImage()
+          }
+        }, { rootMargin: '200px' })
+        this._imgObserver.observe(this.$el)
       }
     },
    beforeUnmount () {
      clearInterval(this._timer)
+     if (this._imgObserver) {
+       this._imgObserver.disconnect()
+       this._imgObserver = null
+     }
      if (this.imageBlobUrl) {
        URL.revokeObjectURL(this.imageBlobUrl)
      }
@@ -276,8 +287,8 @@ export default {
     },
     imageStyle () {
       return {
-        maxWidth: this.displayImageWidth + 'px',
-        maxHeight: this.displayImageHeight + 'px',
+        width: this.displayImageWidth + 'px',
+        height: this.displayImageHeight + 'px',
       }
     },
   },
