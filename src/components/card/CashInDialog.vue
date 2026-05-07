@@ -57,7 +57,6 @@
             <q-input
               class="amount-input"
               v-model="cryptoCashInAmount"
-              label="Crypto Amount"
               filled
               hide-bottom-space
               input-class="text-h6 text-weight-bold"
@@ -102,7 +101,6 @@
             <q-input
               class="amount-input"
               v-model="fiatCashInAmount"
-              label="Fiat Amount"
               filled
               hide-bottom-space
               input-class="text-h6 text-weight-bold"
@@ -254,6 +252,7 @@ export default {
       const user = await loadCardUser()
       const wallet = await user.wallet.getRawWallet()
       const result = await wallet.sendBch(sendAmount, this.card?.cashAddress)
+      console.log(result) // error: "18: txn-mempool-conflict"
       this.$q.loading.hide()
 
       if (result.success) {

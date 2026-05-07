@@ -31,7 +31,7 @@
       <!-- Loaded state - everything shows at once -->
       <div v-else class="full-width">
         <div class="q-px-md q-mt-md">
-          <div style="font-size: 16px; font-weight: bold; color: #000000;">My Cards</div>
+          <div :style="{ fontSize: '16px', fontWeight: 'bold', color: $q.dark.isActive ? '#ffffff' : '#000000' }">My Cards</div>
           <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
         </div>
 
