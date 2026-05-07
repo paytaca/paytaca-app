@@ -24,9 +24,22 @@
       <!-- Reply preview -->
       <div v-if="replyToMessage" class="reply-preview" @click="$emit('scroll-to-message', replyToMessage.id)">
         <div class="reply-preview-indicator" :style="{ background: themeColor }"></div>
+        <img
+          v-if="replyToMessage.isFile && replyToMessage.fileType?.startsWith('image/') && replyToMessage.aesKeyHex"
+          :src="replyToImageThumbnail"
+          class="reply-preview-thumb"
+          :style="replyToImageThumbStyle"
+        />
+        <q-icon
+          v-else-if="replyToMessage.isFile"
+          :name="replyToFileIcon"
+          size="18px"
+          class="reply-preview-file-icon"
+          :style="{ color: themeColor }"
+        />
         <div class="reply-preview-body">
           <div class="reply-preview-sender">{{ replySenderName }}</div>
-          <div class="reply-preview-text">{{ replySnippet }}</div>
+          <div v-if="!replyToMessage.isFile" class="reply-preview-text">{{ replySnippet }}</div>
         </div>
       </div>
 
@@ -38,14 +51,10 @@
       
       <!-- Image message (no bubble styling, just the image) -->
       <div v-else-if="isImageFile" class="image-message" @click="imageBlobUrl && (showImageDialog = true)" @touchstart="onImageTouchStart" @touchmove="onImageTouchMove" @touchend="onImageTouchEnd">
-        <q-skeleton
-          v-if="!imageBlobUrl"
-          type="rect"
-          :style="skeletonStyle"
-          animation="wave"
-          class="image-skeleton"
-        />
-        <img v-else :src="imageBlobUrl" class="chat-image" :style="imageStyle" draggable="false" @contextmenu.prevent />
+        <div class="image-frame" :style="imageFrameStyle">
+          <q-skeleton v-if="!imageBlobUrl" type="rect" animation="wave" class="image-fill" />
+          <img v-else :src="imageBlobUrl" class="image-fill" draggable="false" @contextmenu.prevent />
+        </div>
       </div>
 
       <!-- Non-image file card -->
@@ -156,6 +165,12 @@ import { parseMessageMarkup } from 'src/utils/chat-markup'
 import { decryptFile, downloadFromBlossom } from 'src/wallet/nostr-media'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 
+const _replyThumbnailCache = new Map()
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default {
   name: 'MessageBubble',
   props: {
@@ -226,8 +241,31 @@ export default {
     },
     replySnippet () {
       if (!this.replyToMessage) return ''
+      if (this.replyToMessage.isFile) {
+        return this.replyToMessage.fileName || this.$t('File', {}, 'File')
+      }
       const { text } = parseMessageMarkup(this.replyToMessage.content || '')
       return text.length > 80 ? text.slice(0, 80) + '...' : text
+    },
+    replyToFileIcon () {
+      if (!this.replyToMessage) return 'description'
+      if (this.replyToMessage.fileType?.startsWith('image/')) return 'image'
+      if (this.replyToMessage.fileType?.startsWith('video/')) return 'videocam'
+      if (this.replyToMessage.fileType?.startsWith('audio/')) return 'audiotrack'
+      return 'description'
+    },
+    replyToImageThumbnail () {
+      return this.replyToMessage ? (_replyThumbnailCache.get(this.replyToMessage.id) || '') : ''
+    },
+    replyToImageThumbStyle () {
+      const w = this.replyToMessage?.imageWidth || 120
+      const h = this.replyToMessage?.imageHeight || 120
+      const maxSide = 72
+      const scale = Math.min(maxSide / Math.max(w, h), 1)
+      return {
+        width: Math.round(w * scale) + 'px',
+        height: Math.round(h * scale) + 'px',
+      }
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -270,30 +308,61 @@ export default {
     isImageFile () {
       return this.message.fileType?.startsWith('image/')
     },
-    displayImageWidth () {
-      if (!this.message.imageWidth) return 260
-      return Math.min(this.message.imageWidth, 260)
-    },
-    displayImageHeight () {
-      if (!this.message.imageWidth || !this.message.imageHeight) return 200
-      const ratio = this.displayImageWidth / this.message.imageWidth
-      return Math.round(this.message.imageHeight * ratio)
-    },
-    skeletonStyle () {
-      return {
-        width: this.displayImageWidth + 'px',
-        height: this.displayImageHeight + 'px',
+    imageFrameStyle () {
+      const w = this.message.imageWidth
+      const h = this.message.imageHeight
+      if (!w || !h) {
+        return { width: '240px', paddingBottom: '75%' }
+      }
+      // Cap width at 360px (reasonable chat image size), preserve aspect ratio
+      const displayWidth = Math.min(w, 360)
+      const ratio = h / w
+      const displayHeight = displayWidth * ratio
+      // Also cap height to prevent extremely tall images
+      const cappedHeight = Math.min(displayHeight, 480)
+      const finalWidth = cappedHeight < displayHeight ? cappedHeight / ratio : displayWidth
+      
+      return { 
+        width: `${finalWidth}px`,
+        paddingBottom: `${(cappedHeight / finalWidth) * 100}%`
       }
     },
-    imageStyle () {
-      return {
-        width: this.displayImageWidth + 'px',
-        height: this.displayImageHeight + 'px',
-      }
+  },
+  watch: {
+    replyToMessage (msg) {
+      if (!msg || !msg.isFile || !msg.fileType?.startsWith('image/') || !msg.aesKeyHex) return
+      if (_replyThumbnailCache.has(msg.id)) return
+      this.loadReplyThumbnail(msg)
     },
   },
   methods: {
     getDarkModeClass,
+    loadReplyThumbnail (msg) {
+      const blossomServer = 'https://blossom.paytaca.com'
+      downloadFromBlossom(msg.content, blossomServer)
+        .then(encryptedData => decryptFile(encryptedData, msg.aesKeyHex, msg.nonceHex))
+        .then(decryptedData => {
+          const blob = new Blob([decryptedData], { type: msg.fileType || 'image/jpeg' })
+          const url = URL.createObjectURL(blob)
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const size = 32
+            canvas.width = size
+            canvas.height = size
+            const ctx = canvas.getContext('2d')
+            const scale = Math.max(size / img.width, size / img.height)
+            const x = (size - img.width * scale) / 2
+            const y = (size - img.height * scale) / 2
+            ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+            _replyThumbnailCache.set(msg.id, canvas.toDataURL('image/jpeg', 0.6))
+            URL.revokeObjectURL(url)
+          }
+          img.onerror = () => URL.revokeObjectURL(url)
+          img.src = url
+        })
+        .catch(() => {})
+    },
     formatTime (ts) {
       if (!ts) return ''
       const d = new Date(ts * 1000)
@@ -579,6 +648,18 @@ export default {
   flex-shrink: 0;
 }
 
+.reply-preview-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.reply-preview-file-icon {
+  flex-shrink: 0;
+}
+
 .reply-preview-body {
   flex: 1;
   min-width: 0;
@@ -855,22 +936,30 @@ export default {
 
 /* Image message (no bubble) */
 .image-message {
+  display: block;
   cursor: pointer;
-  border-radius: 12px;
-  overflow: hidden;
 }
 
-.chat-image {
-  display: block;
+.image-frame {
+  position: relative;
+  display: inline-block;
+  height: 0;
   border-radius: 12px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.image-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   pointer-events: none;
-}
-
-.image-skeleton {
   border-radius: 12px;
 }
 
