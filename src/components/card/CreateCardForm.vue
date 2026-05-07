@@ -500,11 +500,11 @@ export default {
 }
 
 .method-btn .q-icon {
-  color: #666;
+  color: color-mix(in srgb, var(--q-primary) 60%, grey);
 }
 
 .method-btn .method-label {
-  color: #444;
+  color: color-mix(in srgb, var(--q-primary) 70%, grey);
   font-weight: 500;
 }
 
@@ -514,26 +514,27 @@ export default {
 }
 
 .bg-dark .method-btn .q-icon {
-  color: #aaa;
+  color: color-mix(in srgb, var(--q-primary) 50%, #aaa);
 }
 
 .bg-dark .method-btn .method-label {
-  color: #ccc;
+  color: color-mix(in srgb, var(--q-primary) 60%, #ccc);
 }
 
 .method-btn:hover {
   transform: translateY(-2px);
-  background: rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--q-primary) 8%, transparent);
 }
 
 .bg-dark .method-btn:hover {
-  background: color-mix(in srgb, var(--q-primary) 12%, transparent);
+  background: color-mix(in srgb, var(--q-primary) 15%, transparent);
 }
 
-/* Active state - applies to both light and dark */
+/* Active state - Light mode */
 .method-btn-active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 18%, transparent) 0%, color-mix(in srgb, var(--q-primary) 12%, white) 100%) !important;
+  background: color-mix(in srgb, var(--q-primary) 12%, transparent) !important;
   border-color: var(--q-primary);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--q-primary) 20%, transparent);
 }
 
 .method-btn-active .q-icon {
@@ -543,6 +544,13 @@ export default {
 .method-btn-active .method-label {
   color: var(--q-primary) !important;
   font-weight: 600;
+}
+
+/* Active state - Dark mode */
+.bg-dark .method-btn-active {
+  background: color-mix(in srgb, var(--q-primary) 20%, transparent) !important;
+  border-color: var(--q-primary);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--q-primary) 25%, transparent);
 }
 
 .bg-dark .method-btn-active .q-icon {
@@ -953,7 +961,7 @@ export default {
 }
 
 .mini-card-dark {
-  background: linear-gradient(135deg, #3d3224 0%, #2d2618 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 30%, black) 0%, color-mix(in srgb, var(--q-primary) 20%, black) 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -985,5 +993,15 @@ export default {
     max-width: 100%;
     border-radius: 0;
   }
+}
+
+/* Dark mode secondary text */
+.bg-dark .text-caption,
+.bg-dark .text-body2 {
+  color: white !important;
+}
+
+.bg-dark .method-btn .method-label {
+  color: white !important;
 }
 </style>
