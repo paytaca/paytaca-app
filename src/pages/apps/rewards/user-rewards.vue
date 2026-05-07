@@ -453,7 +453,7 @@ import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import {
   Promos,
   PromosBytes,
-  awardInitialUP,
+  // awardInitialUP,
   getUserRewardsData,
   updateUserPromoData,
   updateUserRewardsData,
@@ -622,7 +622,7 @@ export default {
         urData = await createUserRewardsData()
         this.urId = urData.id
         Promise.allSettled([
-          await updateUserPromoData({ up: urData.id }),
+          await updateUserPromoData({ ur: urData.id }),
           await updateUserRewardsData(urData.id, {
             contract_ct_address: this.urContract.contract.tokenAddress
           })
@@ -643,7 +643,7 @@ export default {
 
           // send 5 initial points when user is a first time user and was referred
           if (urData.is_first_time_user) {
-            await awardInitialUP({ ur_id: this.urId })
+            // await awardInitialUP({ ur_id: this.urId }) // temporarily disabled
             urData = await getUserRewardsData(this.urId)
             // sleep to allow utxos to update
             await new Promise(resolve => setTimeout(resolve, 1000))
