@@ -44,7 +44,7 @@
               </template>
 
               <template v-else-if="priceError && !isSummaryExpanded">
-                <div class="text-caption text-negative">
+                <div class="text-caption" :class="darkMode ? 'text-red-5' : 'text-negative'">
                   <q-icon name="error" size="xs" /> Price unavailable
                 </div>
               </template>
