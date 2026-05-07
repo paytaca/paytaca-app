@@ -15,7 +15,7 @@
           <div class="cash-in-mini-card" :class="$q.dark.isActive ? 'mini-card-dark' : 'mini-card-light'">
             <div class="row items-center justify-between q-pa-md full-height">
               <div class="column">
-                <div class="text-caption text-weight-medium opacity-70">Card Balance</div>
+                <div class="text-caption text-weight-medium opacity-70">{{ (card?.alias || card?.name || 'Card') + "'s balance" }}</div>
                 <div class="text-h5 text-weight-bold">{{ card?.balance || '0.00' }} <span class="text-subtitle2">BCH</span></div>
               </div>
               <q-icon name="account_balance_wallet" size="40px" color="primary" />
@@ -71,21 +71,6 @@
                   <span class="text-weight-bold">{{ selectedCryptoCurrency }}</span>
                 </div>
               </template>
-              <template v-slot:append>
-                <q-btn-dropdown
-                  flat
-                  dense
-                  dropdown-icon="expand_more"
-                  class="currency-selector">
-                  <q-list v-for="option in cryptoCurrencyOptions" :key="option.value" :style="{color: $q.dark.isActive ? 'white' : 'black'}">
-                    <q-item clickable v-close-popup @click="selectedCryptoCurrency = option.value">
-                      <q-item-section>
-                        <q-item-label>{{ option.label }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-btn-dropdown>
-              </template>
             </q-input>
           </div>
 
@@ -114,6 +99,21 @@
                   <q-icon name="attach_money" size="18px" class="q-mr-xs" />
                   <span class="text-weight-bold">{{ selectedFiatCurrency }}</span>
                 </div>
+              </template>
+              <template v-slot:append>
+                <q-btn-dropdown
+                  flat
+                  dense
+                  dropdown-icon="expand_more"
+                  class="currency-selector">
+                  <q-list v-for="option in marketCurrencyOptions" :key="option.symbol" :style="{color: $q.dark.isActive ? 'white' : 'black'}">
+                    <q-item clickable v-close-popup @click="selectedFiatCurrency = option.symbol">
+                      <q-item-section>
+                        <q-item-label>{{ option.name }} ({{ option.symbol }})</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
               </template>
             </q-input>
           </div>
@@ -166,7 +166,7 @@ export default {
       fiatInputFocused: false,
       cryptoCashInAmount: 0,
       fiatCashInAmount: 0,
-      selectedFiatCurrency: this.preferredCurrency,
+      selectedFiatCurrency: 'USD',
       selectedCryptoCurrency: 'BCH',
     };
   },
@@ -185,6 +185,9 @@ export default {
       console.log(this.$store.getters['market/selectedCurrency'])
       return this.$store.getters['market/selectedCurrency'] || 'USD'
     },
+    marketCurrencyOptions () {
+      return this.$store.getters['market/currencyOptions'] || []
+    },
     bchPriceInSelectedCurrency () {
       const currencySymbol = this.selectedFiatCurrency || 'USD'
       console.log('currencySymbol:', currencySymbol)
@@ -194,11 +197,10 @@ export default {
     },
     cryptoCurrencyOptions () {
       const cryptos = this.$store.getters['assets/getAssets']
-      const opts = cryptos.map(c => ({ 
+      return cryptos.map(c => ({ 
           label: c.symbol, 
           value: c.id
         }))
-      return opts
     },
   },
   watch: {
@@ -220,9 +222,19 @@ export default {
         this.cryptoCashInAmount = bchAmount ? (parseFloat(bchAmount) * 100000000).toFixed(0) : 0
       }
     },
+    selectedFiatCurrency() {
+      // Recalculate fiat amount when currency changes (if crypto input is focused)
+      if (this.cryptoInputFocused && this.cryptoCashInAmount) {
+        if (this.selectedCryptoCurrency === 'BCH') {
+          this.fiatCashInAmount = parseFloat(this.cryptoCashInAmount) && this.bchPriceInSelectedCurrency ? (parseFloat(this.cryptoCashInAmount) * this.bchPriceInSelectedCurrency).toFixed(2) : 0
+        } else if (this.selectedCryptoCurrency === 'sats' || this.selectedCryptoCurrency === 'Satoshis') {
+          const bchAmount = parseFloat(this.cryptoCashInAmount) / 100000000
+          this.fiatCashInAmount = bchAmount && this.bchPriceInSelectedCurrency ? (bchAmount * this.bchPriceInSelectedCurrency).toFixed(2) : 0
+        }
+      }
+    },
   },
   mounted() {
-    this.cryptoCurrencyOptions
     this.selectedFiatCurrency = this.preferredCurrency.symbol
   },
   methods: {
