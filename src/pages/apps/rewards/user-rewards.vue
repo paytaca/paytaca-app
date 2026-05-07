@@ -180,6 +180,7 @@
               </q-intersection>
       
               <!-- Initial UP from Referral -->
+              <!--
               <q-intersection once transition="jump-up">
                 <achievement-card>
                   <template #achievement-card-content>
@@ -214,6 +215,7 @@
                   </template>
                 </achievement-card>
               </q-intersection>
+              -->
       
               <!-- Referral Complete -->
               <q-intersection once transition="jump-up">
@@ -227,7 +229,7 @@
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('PointsFrom1stTx', 'First transaction bonus') }}
+                            {{ $t('PointsFrom1stTx', 'Very first transaction bonus') }}
                           </div>
                           <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
                             {{ $t(
@@ -537,13 +539,13 @@ export default {
     },
     completedOneTimeCount () {
       let count = 0
-      if (this.hasReceivedFirstVisitBonus) count++
+      // if (this.hasReceivedFirstVisitBonus) count++
       if (this.hasReceivedFirstTxBonus) count++
       count += this.completedFirstSevenCount
       return count
     },
     totalOneTimeTasks () {
-      return 9
+      return 9 - 1 // temporarily removed first visit bonus
     },
     oneTimeProgress () {
       return this.completedOneTimeCount / this.totalOneTimeTasks
@@ -667,7 +669,7 @@ export default {
       // one-time points
       this.isFirstTimeUser = urData.is_first_time_user
       this.isFirstSevenComplete = urData.is_first_seven_complete
-      this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
+      // this.hasReceivedFirstVisitBonus = urData.has_received_first_visit_bonus
       this.hasReceivedFirstTxBonus = urData.has_received_first_tx_bonus
       this.firstTxDate = urData.first_tx_date
       this.dateJoined = urData.date_joined
