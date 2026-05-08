@@ -166,8 +166,58 @@ export default {
     }
   },
 
+  watch: {
+    manualReferralCode (val) {
+      const formatted = this.formatReferralCode(val)
+      if (formatted !== val) {
+        this.$nextTick(() => {
+          this.manualReferralCode = formatted
+        })
+      }
+    }
+  },
+
   methods: {
     getDarkModeClass,
+
+    formatReferralCode (val) {
+      if (!val) return ''
+
+      const raw = String(val).toUpperCase().replaceAll(/[^A-Z0-9]/g, '')
+
+      let result = ''
+      let pos = 0
+
+      // Segment 1: exactly 2 letters only (digits rejected)
+      while (pos < raw.length && result.length < 2) {
+        if (/[A-Z]/.test(raw[pos])) result += raw[pos]
+        pos++
+      }
+
+      // Auto-dash after 2 letters if more chars follow
+      if (result.length === 2 && pos < raw.length) result += '-'
+
+      // Segment 2: up to 6 alphanumeric chars
+      let seg2Len = 0
+      while (pos < raw.length && seg2Len < 6) {
+        if (/[A-Z0-9]/.test(raw[pos])) {
+          result += raw[pos]
+          seg2Len++
+        }
+        pos++
+      }
+
+      // Auto-dash after segment 2 if more chars follow
+      if (seg2Len === 6 && pos < raw.length) result += '-'
+
+      // Segment 3: any number of digits
+      while (pos < raw.length) {
+        if (/\d/.test(raw[pos])) result += raw[pos]
+        pos++
+      }
+
+      return result
+    },
     
     async processReferralCode (content) {
       this.isLoading = true
@@ -219,7 +269,7 @@ export default {
     },
 
     async submitReferralCode (code) {
-      const parts = code.split('-')
+      const parts = code.toLowerCase().split('-')
       if (parts.length !== 3) {
         // Invalid format
         return { code: 'invalid_code', message: 'Invalid code detected' }
