@@ -266,11 +266,11 @@
 </template>
 
 <script>
+import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
 import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
-import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import {
   PromosBytes,
   getUserPromoData,

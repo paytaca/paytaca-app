@@ -88,14 +88,25 @@
                 >
                   {{ displayPoints }}
                 </span>
-                <span 
+                <span
                   class="text-subtitle1 text-weight-bold q-ml-sm"
                   :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                 >
                   points
                 </span>
               </div>
-              
+
+              <!-- LIFT Conversion Display -->
+              <div v-if="liftConversionRate" class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                <span class="text-token text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  = {{ formattedRemainingLift }} LIFT
+                </span>
+                <span v-if="liftFiatPrice && !priceError"> ≈ {{ formattedRemainingFiat }}</span>
+                <span v-else-if="priceError" :class="darkMode ? 'text-red-5' : 'text-negative'">
+                  <q-icon name="error" size="xs" class="q-mr-xs" /> Price unavailable
+                </span>
+              </div>
+
               <!-- Promo Limit Progress Bar -->
               <div v-if="redeemablePoints" class="promo-limit-section q-mt-md">
                 <div class="row justify-between items-center q-mb-xs">
@@ -189,7 +200,13 @@
                         {{ $t('YouWillReceive') }}
                       </div>
                       <div class="text-h6 text-weight-bold text-positive">
-                        {{ liftToReceive }} LIFT
+                        {{ formattedLiftToReceive }} LIFT
+                      </div>
+                      <div v-if="liftToReceiveFiatValue && !priceError" class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                        ≈ {{ formattedLiftToReceiveFiat }}
+                      </div>
+                      <div v-else-if="priceError" class="text-caption text-weight-medium" :class="darkMode ? 'text-red-5' : 'text-negative'">
+                        <q-icon name="error" size="xs" class="q-mr-xs" /> Price unavailable
                       </div>
                       <div class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
                         {{ $t('ToYourTokenAddress', 'to your token address') }}
@@ -342,9 +359,12 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 import { parseKey } from 'src/utils/custom-keyboard-utils'
 import { NativeBiometric } from 'capacitor-native-biometric'
+import { fetchTokensList } from 'src/wallet/cauldron/tokens'
 import { getChangeAddress } from 'src/utils/send-page-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
+import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
 import {
   getLiftConversionRatio,
   getRewardsSwapContractDetails,
@@ -411,7 +431,16 @@ export default {
       quickAmounts: [25, 50, 75, 100],
       wallet: null,
       rewardsSwapContractAddress: null,
-      rewardsSwapContractBytecode: null
+      rewardsSwapContractBytecode: null,
+
+      // Unmount flag to prevent memory leaks
+      isUnmounted: false,
+      priceError: null,
+
+      // Cauldron API price storage
+      liftBchPriceValue: null,
+      liftUsdPriceValue: null,
+      cauldronPriceIntervalId: null,
     }
   },
 
@@ -422,6 +451,11 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
+    // User's selected fiat currency
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
+    },
+
     animatedPoints () {
       // Computed property showing remaining points after entered amount
       return Math.max(0, this.contractPoints - Number(this.pointsToRedeem || 0))
@@ -472,7 +506,73 @@ export default {
     walletBalance() {
       const asset = this.$store.getters['assets/getAssets'][0]
       return asset?.spendable || 0
-    }
+    },
+    // Get LIFT price in user's selected fiat currency
+    liftFiatPrice () {
+      if (!this.selectedCurrency?.symbol || !this.liftBchPriceValue) return null
+
+      // Get BCH price in user's fiat from store (for fiat conversion rates)
+      const bchToFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedCurrency.symbol)
+
+      if (!bchToFiat) return null
+
+      // Convert: LIFT price (in BCH) × BCH price (in fiat) = LIFT price in fiat
+      return this.liftBchPriceValue * bchToFiat
+    },
+
+    // Calculate remaining LIFT amount from animated points
+    remainingLiftAmount () {
+      if (!this.liftConversionRate || this.liftConversionRate === 0) return 0
+      return this.animatedPoints / this.liftConversionRate
+    },
+
+    // Calculate fiat value of remaining LIFT
+    remainingLiftFiatValue () {
+      const price = this.liftFiatPrice
+      if (!price || price === 0) return 0
+      return price * this.remainingLiftAmount
+    },
+
+    // Format remaining LIFT amount with proper decimals
+    formattedRemainingLift () {
+      if (this.remainingLiftAmount === 0) return '0'
+      const hasFraction = this.remainingLiftAmount % 1 !== 0
+      return formatWithLocale(
+        this.remainingLiftAmount,
+        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
+      )
+    },
+
+    // Format to be received LIFT amount with proper decimals
+    formattedLiftToReceive () {
+      if (this.liftToReceive === 0) return '0'
+      const hasFraction = this.liftToReceive % 1 !== 0
+      return formatWithLocale(
+        this.liftToReceive,
+        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
+      )
+    },
+
+    // Format remaining fiat value
+    formattedRemainingFiat () {
+      if (this.remainingLiftFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
+      if (!this.remainingLiftFiatValue) return '--'
+      return parseFiatCurrency(this.remainingLiftFiatValue, this.selectedCurrency?.symbol)
+    },
+
+    // Calculate fiat value of LIFT to be received
+    liftToReceiveFiatValue () {
+      const price = this.liftFiatPrice
+      if (!price || price === 0) return 0
+      return price * this.liftToReceive
+    },
+
+    // Format fiat value of LIFT to be received
+    formattedLiftToReceiveFiat () {
+      if (this.liftToReceiveFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
+      if (!this.liftToReceiveFiatValue) return '--'
+      return parseFiatCurrency(this.liftToReceiveFiatValue, this.selectedCurrency?.symbol)
+    },
   },
 
   watch: {
@@ -488,8 +588,22 @@ export default {
     Promise.allSettled([
       this.initWallet(),
       this.initializeData(),
-      this.fetchRewardsSwapContractDetails()
+      this.fetchRewardsSwapContractDetails(),
+      // Fetch LIFT token price from Cauldron API
+      this.fetchLiftPriceFromCauldron()
     ])
+    
+    // Start polling Cauldron prices (every 60 seconds)
+    this.startCauldronPricePolling()
+  },
+
+  beforeUnmount () {
+    // Set flag to prevent interval creation after unmount
+    this.isUnmounted = true
+    // Cleanup Cauldron price polling interval
+    if (this.cauldronPriceIntervalId != null) {
+      clearInterval(this.cauldronPriceIntervalId)
+    }
   },
 
   methods: {
@@ -499,6 +613,49 @@ export default {
       const walletIndex = this.$store.getters['global/getWalletIndex']
       const wallet = await loadWallet('BCH', walletIndex)
       this.wallet = markRaw(wallet)
+    },
+
+    async fetchLiftPriceFromCauldron () {
+      try {
+        this.priceError = null
+
+        const tokens = await fetchTokensList({ token_id: LIFT_TOKEN_CATEGORY })
+        
+        if (tokens && tokens.length > 0) {
+          const liftToken = tokens[0]
+          // Format prices according to Cauldron's approach: price / 10^(8 - decimals)
+          this.liftBchPriceValue = liftToken.price_now 
+            ? liftToken.price_now / Math.pow(10, 8)
+            : null
+          this.liftUsdPriceValue = liftToken.price_now_usd
+            ? liftToken.price_now_usd / Math.pow(10, 8 - LIFT_TOKEN_DECIMALS)
+            : null
+        } else {
+          this.liftBchPriceValue = null
+          this.liftUsdPriceValue = null
+          this.priceError = 'LIFT token not found on Cauldron'
+        }
+      } catch (error) {
+        console.error('Error fetching LIFT price from Cauldron:', error)
+        this.priceError = 'Unable to fetch LIFT price from Cauldron'
+        this.liftBchPriceValue = null
+        this.liftUsdPriceValue = null
+      }
+    },
+
+    startCauldronPricePolling () {
+      // Prevent creating interval if component is unmounting/unmounted
+      if (this.isUnmounted) return
+
+      // Clear any existing interval
+      if (this.cauldronPriceIntervalId != null) {
+        clearInterval(this.cauldronPriceIntervalId)
+      }
+
+      // Poll every 60 seconds
+      this.cauldronPriceIntervalId = setInterval(() => {
+        this.fetchLiftPriceFromCauldron()
+      }, 60 * 1000)
     },
     
     // Initialization
