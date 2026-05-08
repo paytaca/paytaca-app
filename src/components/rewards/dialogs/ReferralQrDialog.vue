@@ -96,7 +96,7 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     referralCodeFull () {
-      return `${this.promoType}-${this.code}-${this.promoId}`.toUpperCase()
+      return `${this.promoType}-${this.code}-${this.promoId}`
     },
     copyButtonIcon () {
       if (this.copySuccess) return 'check'

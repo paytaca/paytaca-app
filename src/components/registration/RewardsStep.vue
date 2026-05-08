@@ -269,7 +269,7 @@ export default {
     },
 
     async submitReferralCode (code) {
-      const parts = code.toLowerCase().split('-')
+      const parts = code.split('-')
       if (parts.length !== 3) {
         // Invalid format
         return { code: 'invalid_code', message: 'Invalid code detected' }
