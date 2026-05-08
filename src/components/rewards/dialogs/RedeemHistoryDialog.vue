@@ -232,6 +232,7 @@ export default {
 
         const resp = await getPromoRedeemHistory(this.promo, data)
         this.redemptions.push(...resp.redeem_history)
+        this.offset += this.limit
         this.hasMoreData = resp.has_more_data
       } catch (error) {
         console.error('Failed to load more redemptions:', error)
