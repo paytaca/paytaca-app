@@ -229,7 +229,7 @@
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('PointsFrom1stTx', 'Very first transaction bonus') }}
+                            {{ $t('PointsFrom1stTx', 'First-time transaction bonus') }}
                           </div>
                           <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
                             {{ $t(

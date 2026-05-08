@@ -19,6 +19,8 @@ import { broadcastTxUsingWatchtower } from "src/utils/engagementhub-utils/shared
 
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
+const WATCHTOWER_CASH_URL = process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
+const UTXO_URL = `${WATCHTOWER_CASH_URL}/utxo`
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -63,7 +65,7 @@ export default class PromoContract {
 
     try {
       // get utxos
-      const contractUtxos = await this.contract.getUtxos()
+      const contractUtxos = await this.getContractUtxos()
       if (contractUtxos.length === 0) throw new Error('Contract has no UTXOs')
 
       // compute bch and token balances
@@ -159,7 +161,7 @@ export default class PromoContract {
    * @returns the computed promo token balance
    */
   async getTokenBalance () {
-    const tokenUtxos = await this.contract.getUtxos()
+    const tokenUtxos = await this.getContractUtxos()
       .then(utxos => utxos.filter(r => r.token?.category === PROMO_TOKEN_CATEGORY)
     )
     if (tokenUtxos.length === 0) return 0
@@ -167,5 +169,63 @@ export default class PromoContract {
       .reduce((total, el) => {
         return total + (Number(el.token?.amount))
       }, 0) / (10 ** PROMO_TOKEN_DECIMALS)
+  }
+
+  async getContractUtxos () {
+    let contractUtxos = []
+
+    try {
+      // get UTXOs from Watchtower first
+      // bch utxos
+      const bchUtxosUrl = `${UTXO_URL}/bch/${this.contract.address}/`
+      const bchUtxos = await axios
+        .get(bchUtxosUrl)
+        .then(response => {
+          if (response.status === 200) return response.data.utxos
+          else return []
+        })
+        .catch(_error => { return [] })
+  
+      // ct utxos
+      const ctUtxosUrl = `${UTXO_URL}/ct/${this.contract.tokenAddress}/?is_cashtoken=true`
+      const ctUtxos = await axios
+        .get(ctUtxosUrl)
+        .then(response => {
+          if (response.status === 200) return response.data.utxos
+          else return []
+        })
+        .catch(_error => { return [] })
+
+      // combine the two utxos and format to extract needed details
+      const combinedUtxos = [...bchUtxos, ...ctUtxos]
+
+      if (combinedUtxos.length === 0) {
+        throw new Error('Fetched empty UTXOs from Watchtower. Falling to fallback to double check.')
+      }
+
+      for (const utxo of combinedUtxos) {
+        let token
+        if (utxo?.is_cashtoken) {
+          token = {
+            amount: BigInt(utxo.amount),
+            category: utxo.tokenid
+          }
+        }
+
+        contractUtxos.push({
+          satoshis: BigInt(utxo.value),
+          txid: utxo.txid,
+          vout: utxo.vout,
+          token
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch UTXOs from Watchtower. Using getUtxos() function as fallback.')
+      console.error(error)
+      // fallback to contract UTXOs if Watchtower fetch fails or when UTXOs fetched is empty
+      contractUtxos = await this.contract.getUtxos()
+    }
+
+    return contractUtxos
   }
 }
