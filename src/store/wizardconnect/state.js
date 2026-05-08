@@ -3,6 +3,7 @@ export default function () {
     connections: {},
     pendingRequests: [],
     cancelledKeys: [],
-    processedKeys: []
+    processedKeys: [],
+    bufferCheckInterval: null
   }
 }

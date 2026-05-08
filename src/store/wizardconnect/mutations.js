@@ -72,3 +72,16 @@ export function clearProcessedKeys (state) {
   if (!state) return
   state.processedKeys = []
 }
+
+export function setBufferCheckInterval (state, intervalId) {
+  if (!state) return
+  state.bufferCheckInterval = intervalId
+}
+
+export function clearBufferCheckInterval (state) {
+  if (!state) return
+  if (state.bufferCheckInterval) {
+    clearInterval(state.bufferCheckInterval)
+    state.bufferCheckInterval = null
+  }
+}
