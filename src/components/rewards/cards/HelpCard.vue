@@ -279,7 +279,7 @@ export default {
             highlightIndex: 0,
             icon: 'local_activity',
             titleKey: 'RewardsHelpUR21',
-            titleDefault: 'User Reward Points',
+            titleDefault: 'Accumulated Points',
             content: [
               { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here.' },
             ],
@@ -303,7 +303,7 @@ export default {
             highlightIndex: 1,
             icon: 'local_activity',
             titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'Redeem UR Points',
+            titleDefault: 'Redeeming Points',
             content: [
               { key: 'RewardsHelpRedeemPoints1', default: 'To redeem your points, tap the Redeem Points button.' },
               { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
@@ -347,9 +347,9 @@ export default {
             isCentered: true,
             icon: 'local_activity',
             titleKey: 'RewardsHelpUR31',
-            titleDefault: 'Earning UR Points',
+            titleDefault: 'Earning Points',
             content: [
-              { key: 'RewardsHelpUR32', default: 'There are two ways to earn points, which are awarded only after successfully completing the specified actions.' },
+              { key: 'RewardsHelpUR32', default: 'There are two ways to earn points here, which are awarded only after successfully completing the specified actions.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -464,7 +464,7 @@ export default {
             highlightIndex: 0,
             icon: 'local_activity',
             titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'Refer-a-friend Promo Points',
+            titleDefault: 'Accumulated Points',
             content: [
               { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here.' },
             ],
@@ -488,7 +488,7 @@ export default {
             highlightIndex: 1,
             icon: 'hourglass_bottom',
             titleKey: 'RewardsHelpRFP31',
-            titleDefault: 'RFP Points Limit',
+            titleDefault: 'Points Limit',
             content: [
               { key: 'RewardsHelpRFP32', default: "You can only redeem a certain number of points each month. But don't worry; the limit resets at the start of each month." },
             ],
@@ -512,7 +512,7 @@ export default {
             highlightIndex: 2,
             icon: 'local_activity',
             titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'Redeem RF Points',
+            titleDefault: 'Redeeming Points',
             content: [
               { key: 'RewardsHelpRedeemPoints1', default: 'To redeem your points, tap the Redeem Points button.' },
               { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
@@ -580,7 +580,7 @@ export default {
             isCentered: true,
             icon: 'local_activity',
             titleKey: 'RewardsHelpRFP51',
-            titleDefault: 'Earning RFP Points',
+            titleDefault: 'Earning Points',
             content: [
               { key: 'RewardsHelpRFP52', default: 'You will earn points once your referrals successfully set up their wallet and send their first transaction.' },
             ],
