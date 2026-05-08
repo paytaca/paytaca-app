@@ -194,7 +194,9 @@ export default class PromoContract {
           if (response.status === 200) return response.data.utxos
           else return []
         })
-        .catch(_error => { return [] })
+        .catch(error => { 
+          throw new Error(error)
+         })
 
       // combine the two utxos and format to extract needed details
       const combinedUtxos = [...bchUtxos, ...ctUtxos]
