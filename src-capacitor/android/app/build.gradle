@@ -8,7 +8,7 @@ android {
         applicationId "com.paytaca.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 127
+        versionCode 129
         versionName "v0.24.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

@@ -1,9 +1,10 @@
 import { ExchangeLab } from "@cashlab/cauldron";
 import { NATIVE_BCH_TOKEN_ID, PayoutAmountRuleType } from '@cashlab/common';
-import { cashAddressToLockingBytecode, generateRandomBytes, privateKeyToP2pkhLockingBytecode, addressContentsToLockingBytecode } from "@cashlab/common/libauth.js";
+import { cashAddressToLockingBytecode, generateRandomBytes, privateKeyToP2pkhLockingBytecode, addressContentsToLockingBytecode, bigIntToCompactUint, compactUintPrefixToLength } from "@cashlab/common/libauth.js";
 import { buildPoolV0UnlockingBytecode } from '@cashlab/cauldron';
 import { getInputSize, getOutputSize } from 'cashscript/dist/utils.js';
 import { calcTradeSummary, calcTradeWithTargetDemandFromAPair, calcTradeWithTargetSupplyFromAPair } from "@cashlab/cauldron/util.js";
+import { poolTradeToCashscriptOutput } from "./utils";
 
 const PLACEHOLDER_TOKEN_ID_FOR_SIZE_CALC = Array.from({ length: 64 }).fill('0').join('');
 
@@ -183,10 +184,12 @@ const P2PKH_INPUT_SIZE = 141n;
  * @param {{ to:String, amount:BigInt }} opts.platformFee
  * @param {import("@cashlab/cauldron").TradeResult} opts.tradeResult
  * @param {import('@cashlab/common').SpendableCoin[]} opts.spendableCoins
+ * @param {bigint} [opts.tokenOutputSats]
  */
 export function createInputAndOutput(opts) {
   const tradeResult = opts?.tradeResult
   const spendableCoins = opts?.spendableCoins
+  const tokenOutputSats = opts?.tokenOutputSats ?? 1000n;
 
   const privateKey = spendableCoins[0].key
   const lockingBytecode = privateKeyToP2pkhLockingBytecode({ privateKey, throwErrors: true })
@@ -227,7 +230,7 @@ export function createInputAndOutput(opts) {
     if (remainingTokens < 0n) {
       const changeTokenOutput = {
         to: lockingBytecode,
-        amount: 1000n,
+        amount: tokenOutputSats,
         token: {category: PLACEHOLDER_TOKEN_ID_FOR_SIZE_CALC, amount: remainingTokens * -1n },
       }
       satoshisToSupply += changeTokenOutput.amount
@@ -238,21 +241,22 @@ export function createInputAndOutput(opts) {
     payouts.push({
       type: PayoutAmountRuleType.FIXED,
       locking_bytecode: lockingBytecode,
-      amount: 1000n,
+      amount: tokenOutputSats,
       token: {
         token_id: tradeResult.entries[0].demand_token_id,
         amount: tradeResult.summary.demand,
       }
     })
-    satoshisToSupply += 1000n + 25n
-  }
 
-
-  let remainingSats = satoshisToSupply
-  for(const spendableCoin of bchCoins) {
-    if (remainingSats <= 0n) break
-    inputCoins.push(spendableCoin)
-    remainingSats -= spendableCoin.output.amount;
+    const outputSize = getOutputSize({
+      to: lockingBytecode,
+      amount: tokenOutputSats,
+      token: {
+        category: tradeResult.entries[0].demand_token_id,
+        amount: tradeResult.summary.demand,
+      }
+    })
+    satoshisToSupply += tokenOutputSats + BigInt(outputSize);
   }
 
   if (opts?.platformFee) {
@@ -261,16 +265,31 @@ export function createInputAndOutput(opts) {
       locking_bytecode: cashAddressToLockingBytecode(opts?.platformFee?.to)?.bytecode,
       amount: opts.platformFee.amount,
     })
+    const outputSize = getOutputSize(opts.platformFee);
+    satoshisToSupply += opts.platformFee.amount + BigInt(outputSize);
   }
 
-  if (remainingSats < 0n || remainingTokens < 0n) {
-    payouts.push({
-      type: PayoutAmountRuleType.CHANGE,
-      locking_bytecode: lockingBytecode,
-      allow_mixing_native_and_token: false,
-      allow_mixing_native_and_token_when_bch_change_is_dust: true,
-    })
+  // Following lines include the base tx fee in satoshis to supply
+  satoshisToSupply += 8n; // locktime + version size
+  const inputSizePrefixLength = compactUintPrefixToLength(bigIntToCompactUint(tradeResult.entries.length + inputCoins.length));
+  const outputSizePrefixLength = compactUintPrefixToLength(bigIntToCompactUint(tradeResult.entries.length + payouts.length));
+  satoshisToSupply += BigInt(inputSizePrefixLength) + BigInt(outputSizePrefixLength); // although this isnt final but its more accurate
+
+  let remainingSats = satoshisToSupply
+  for(const spendableCoin of bchCoins) {
+    if (remainingSats <= 0n) break
+    inputCoins.push(spendableCoin)
+    remainingSats -= spendableCoin.output.amount;
+    remainingSats += P2PKH_INPUT_SIZE;
   }
+
+  payouts.push({
+    type: PayoutAmountRuleType.CHANGE,
+    locking_bytecode: lockingBytecode,
+    allow_mixing_native_and_token: false,
+    allow_mixing_native_and_token_when_bch_change_is_dust: false,
+    add_change_to_txfee_when_bch_change_is_dust: true,
+  })
 
   return { inputCoins, payouts }
 }
@@ -280,8 +299,6 @@ export function createInputAndOutput(opts) {
  * @param {import('@cashlab/cauldron').TradeResult} tradeResult 
  */
 export function getEntriesSize(tradeResult) {
-  const isBuyingToken = tradeResult.entries[0].supply_token_id == NATIVE_BCH_TOKEN_ID
-
   const inputFees = tradeResult.entries
     .map(entry => buildPoolV0UnlockingBytecode(entry.pool.parameters))
     .map(unlockingBytecode => getInputSize(unlockingBytecode))
@@ -289,15 +306,8 @@ export function getEntriesSize(tradeResult) {
 
   const outputFees = tradeResult.entries
     .map(entry => {
-      const category = isBuyingToken ? entry.demand_token_id : entry.supply_token_id
-      return getOutputSize({
-        to: entry.pool.output.locking_bytecode,
-        amount: isBuyingToken ? entry.supply : entry.demand,
-        token: {
-          category: category,
-          amount: isBuyingToken ? entry.demand : entry.supply
-        }
-      })
+      const output = poolTradeToCashscriptOutput(entry);
+      return getOutputSize(output);
     })
     .reduce((subtotal, size) => subtotal + size, 0)
 
@@ -362,7 +372,8 @@ export function testTradeResult(opts) {
     type: 'CHANGE',
     locking_bytecode: lockingBytecode,
     allow_mixing_native_and_token: false,
-    allow_mixing_native_and_token_when_bch_change_is_dust: true,
+    allow_mixing_native_and_token_when_bch_change_is_dust: false,
+    add_change_to_txfee_when_bch_change_is_dust: true,
   })
 
   const tradeTx = exlab.createTradeTx(tradeResult.entries, coins, payoutRules, null, 1n)

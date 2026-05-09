@@ -88,6 +88,7 @@
                   v-else-if="asset.id !== 'ct/unlisted' && asset.id !== 'slp/unlisted'"
                   class="q-ma-none amount-text"
                   :class="getDarkModeClass(darkMode, '', 'text-grad')"
+                  v-bch-amount="{ denomination }"
                 >
                   <template v-if="!asset.name.includes('New')">
                     <span>
