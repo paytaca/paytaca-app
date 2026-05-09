@@ -50,10 +50,14 @@ function getLocale () {
   // (e.g., "en" + "CA" = "en-CA"). This ensures proper locale formatting.
   // Otherwise, fall back to using the country code directly.
   if (country.language) {
-    // If language already contains a hyphen (e.g., "zh-cn"), use it as-is
-    // Otherwise, construct locale from language + country code
+    // If language contains a hyphen (e.g., "es-ar", "pt-br", "zh-cn"):
+    // - Extract the base language code (the part before the hyphen)
+    // - Concatenate with the country code to form proper locale (e.g., "es-ar" + "AR" = "es-AR")
+    // - This ensures we use the correct i18n translation ("es-ar") but proper locale formatting ("es-AR")
+    // Otherwise, construct locale from language + country code (e.g., "en" + "CA" = "en-CA")
     if (country.language.includes('-')) {
-      currentLocale = country.language
+      const baseLanguage = country.language.split('-')[0]
+      currentLocale = `${baseLanguage}-${countryCode.toUpperCase()}`
     } else {
       currentLocale = `${country.language}-${countryCode.toUpperCase()}`
     }

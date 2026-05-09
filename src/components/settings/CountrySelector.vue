@@ -54,7 +54,26 @@ export default {
         
         if (!this.updateStore) return
         
-        let language = Object.keys(supportedLangs).filter(langCode => langCode === selectedCountry.language)
+        // Map language code to i18n locale
+        // For denomination/number formatting, we use simple codes like 'en', 'ar'
+        // For i18n translations, we need to map to available locales
+        let languageCode = selectedCountry.language
+        let i18nLocale = languageCode
+        
+        // Map simple language codes to available i18n locales
+        if (languageCode === 'en') {
+          i18nLocale = 'en-us'
+        } else if (languageCode === 'zh') {
+          // For Chinese, default to simplified if not specified
+          i18nLocale = 'zh-cn'
+        } else if (languageCode === 'es') {
+          i18nLocale = 'es'
+        } else if (languageCode === 'pt') {
+          i18nLocale = 'pt'
+        }
+        
+        // Verify the locale exists in supportedLangs, otherwise default to en-us
+        let language = Object.keys(supportedLangs).filter(langCode => langCode === i18nLocale)
         if (language.length === 0) {
           language = ['en-us']
         }
@@ -70,6 +89,17 @@ export default {
         if (currency.length !== 0) {
           currency = currency[0]
           vm.$store.commit('market/updateSelectedCurrency', currency)
+          vm.$store.commit('global/setCurrency', currency)
+        } else if (selectedCountry.currency) {
+          // Currency not in options list, but country has a currency defined
+          // Use setSelectedCurrency to set it anyway (without validation)
+          // The currency name will just be the currency code for now
+          const fallbackCurrency = {
+            symbol: selectedCountry.currency,
+            name: selectedCountry.currency
+          }
+          vm.$store.commit('market/setSelectedCurrency', fallbackCurrency)
+          vm.$store.commit('global/setCurrency', fallbackCurrency)
         }
         
         // Persist preferences to backend if wallet hash exists
