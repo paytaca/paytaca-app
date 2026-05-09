@@ -79,7 +79,7 @@ function deriveAddress(hdChain, index, prefix) {
   const pubkeyHash = hash160(pubKey)
   const lockingBytecode = encodeLockingBytecodeP2pkh(pubkeyHash)
   
-  const addressResult = lockingBytecodeToCashAddress(lockingBytecode, prefix)
+  const addressResult = lockingBytecodeToCashAddress({ bytecode: lockingBytecode, prefix })
   if (typeof addressResult === 'string') throw new Error(addressResult)
   
   return {
