@@ -145,9 +145,18 @@ export async function ensureBuffer(watchtower, walletHash, hdNodes, prefix) {
       getAdvanceSubscriptionCount(watchtower, walletHash)
     ])
     
+    console.log('[WizardConnect] Buffer check:', {
+      lastUsedIndex,
+      counts,
+      walletHash
+    })
+    
     const pairsNeeded = calculatePairsNeeded(lastUsedIndex, counts.pairs_advance_subscribed)
     
+    console.log('[WizardConnect] Pairs needed:', pairsNeeded)
+    
     if (pairsNeeded === 0) {
+      console.log('[WizardConnect] Buffer is sufficient, no subscription needed')
       return {
         success: true,
         subscribed: 0,
@@ -157,10 +166,17 @@ export async function ensureBuffer(watchtower, walletHash, hdNodes, prefix) {
     
     // Generate address pairs starting after the current buffer end
     const startIndex = lastUsedIndex + counts.pairs_advance_subscribed + 1
+    console.log('[WizardConnect] Generating', pairsNeeded, 'pairs starting from index', startIndex)
+    
     const addressPairs = generateAddressPairs(hdNodes, startIndex, pairsNeeded, prefix)
+    
+    console.log('[WizardConnect] Generated address pairs:', addressPairs.length, 'pairs')
+    console.log('[WizardConnect] Calling advanceSubscribeAddresses...')
     
     // Subscribe addresses
     const result = await watchtower.advanceSubscribeAddresses(walletHash, startIndex, addressPairs)
+    
+    console.log('[WizardConnect] Advance subscription result:', result)
     
     return {
       success: true,
@@ -168,7 +184,7 @@ export async function ensureBuffer(watchtower, walletHash, hdNodes, prefix) {
       message: `Subscribed ${result.subscribed || 0} addresses in ${pairsNeeded} pairs`
     }
   } catch (error) {
-    console.error('Error ensuring buffer:', error)
+    console.error('[WizardConnect] Error ensuring buffer:', error)
     return {
       success: false,
       subscribed: 0,

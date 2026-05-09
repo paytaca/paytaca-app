@@ -281,16 +281,21 @@ export function handleRemoteDisconnect ({ commit, state, rootGetters }, { connec
  * Ensure advance subscription buffer is maintained
  */
 export async function ensureAddressBuffer ({ rootGetters, state }) {
+  console.log('[WizardConnect] ensureAddressBuffer called')
+  
   // Only run if we have active connections
   if (!state.connections || Object.keys(state.connections).length === 0) {
+    console.log('[WizardConnect] No active connections, skipping buffer check')
     return
   }
   
   const isChipnet = rootGetters['global/isChipnet'] || false
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash
   
+  console.log('[WizardConnect] Buffer check - walletHash:', walletHash, 'isChipnet:', isChipnet)
+  
   if (!walletHash) {
-    console.log('WizardConnect: no wallet hash, skipping buffer check')
+    console.log('[WizardConnect] No wallet hash, skipping buffer check')
     return
   }
   
@@ -299,18 +304,20 @@ export async function ensureAddressBuffer ({ rootGetters, state }) {
     const hdNodes = await wizardConnectService.ensureHdNodes()
     
     if (!hdNodes) {
-      console.warn('WizardConnect: could not get HD nodes for buffer check')
+      console.warn('[WizardConnect] Could not get HD nodes for buffer check')
       return
     }
+    
+    console.log('[WizardConnect] HD nodes ready, calling ensureBuffer...')
     
     const prefix = isChipnet ? 'bchtest' : 'bitcoincash'
     const result = await ensureBuffer(watchtower, walletHash, hdNodes, prefix)
     
     if (result.success && result.subscribed > 0) {
-      console.log(`WizardConnect: ${result.message}`)
+      console.log(`[WizardConnect] ${result.message}`)
     }
   } catch (err) {
-    console.error('WizardConnect: buffer check failed:', err)
+    console.error('[WizardConnect] Buffer check failed:', err)
   }
 }
 
