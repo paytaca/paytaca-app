@@ -31,7 +31,7 @@ function getPrefix() {
   return _isChipnet ? 'bchtest' : 'bitcoincash'
 }
 
-async function ensureHdNodes() {
+export async function ensureHdNodes() {
   if (_hdNodes) return _hdNodes
 
   const mnemonic = await getMnemonic(_walletIndex)
