@@ -997,7 +997,8 @@
   {
     "name": "South Africa",
     "code": "ZA",
-    "currency": "ZAR"
+    "currency": "ZAR",
+    "language": "en"
   },
   {
     "name": "South Georgia and the South Sandwich Islands",
