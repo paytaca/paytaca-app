@@ -77,7 +77,7 @@
                 @selectstart.prevent
               />
             </q-avatar>
-            <div class="amount-label-ss">{{ displayAmountText }}</div>
+            <div class="amount-label-ss" v-bch-amount="{ denomination: displayDenomination }">{{ displayAmountText }}</div>
           </div>
           <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
             <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
@@ -100,7 +100,7 @@
 
           <div v-if="txFee !== null && !Number.isNaN(txFee) && txFee > 0" class="amount-fee-ss text-caption q-mt-sm">
             <div class="text-grey">{{ $t('NetworkFee') }}</div>
-            {{ txFeeFormatted }}
+            <span v-bch-amount="{ denomination: displayDenomination }">{{ txFeeFormatted }}</span>
             <template v-if="txFeeInFiat !== null && !Number.isNaN(txFeeInFiat)">
               ({{ formatTxFeeInFiat(txFeeInFiat) }})
             </template>
@@ -511,6 +511,11 @@ export default {
     explorerLink () {
       return getExplorerLink(this.transactionId || '')
     },
+    displayDenomination () {
+      return (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
+        ? this.denominationTabSelected
+        : this.$store.getters['global/denomination']
+    },
     displayAmountText () {
       if (!this.tx) return ''
       
@@ -520,10 +525,7 @@ export default {
         return this.nftName || this.tx.asset?.name || 'NFT'
       }
       
-      const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
-        ? this.denominationTabSelected
-        : this.$store.getters['global/denomination']
-      return `${parseAssetDenomination(denom, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
+      return `${parseAssetDenomination(this.displayDenomination, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
     },
     hasHistoricalPrice () {
       if (!this.tx) return false
@@ -659,10 +661,7 @@ export default {
     },
     txFeeFormatted() {
       if (this.txFee === null || Number.isNaN(this.txFee)) return '';
-      const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
-        ? this.denominationTabSelected
-        : this.$store.getters['global/denomination']
-      return parseAssetDenomination(denom, { id: 'bch', symbol: 'BCH', balance: this.txFee })
+      return parseAssetDenomination(this.displayDenomination, { id: 'bch', symbol: 'BCH', balance: this.txFee })
     },
     isBchTransaction () {
       if (!this.tx || !this.tx.asset) return false

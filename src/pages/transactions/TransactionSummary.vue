@@ -95,7 +95,7 @@
                     <div class="asset-name text-caption">{{ history.asset?.name || 'Unknown Asset' }}</div>
                   </div>
                   <div class="text-right q-mr-sm">
-                    <div class="asset-amount text-weight-medium">{{ formatAmount(history) }}</div>
+                    <div class="asset-amount text-weight-medium" v-bch-amount="{ denomination: $store.getters['global/denomination'] || 'BCH' }">{{ formatAmount(history) }}</div>
                     <div v-if="getFiatValue(history)" class="asset-fiat text-caption">{{ getFiatValue(history) }}</div>
                   </div>
                   <q-icon name="chevron_right" size="24px" class="arrow-icon" />
@@ -106,7 +106,7 @@
             <!-- Network Fee -->
             <div v-if="networkFee" class="amount-fee-ss text-caption q-mt-sm">
               <div class="text-grey">{{ $t('NetworkFee') }}</div>
-              {{ networkFee }}
+              <span v-bch-amount="{ denomination: $store.getters['global/denomination'] || 'BCH' }">{{ networkFee }}</span>
               <template v-if="networkFeeFiat">
                 ({{ networkFeeFiat }})
               </template>

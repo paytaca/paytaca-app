@@ -489,6 +489,9 @@ export function setLanguage (state, language) {
 export function setCountry (state, data) {
   state.country.name = data.country.name
   state.country.code = data.country.code
+  if (data.country.language) {
+    state.country.language = data.country.language
+  }
   // Removed PayHero theme forcing for HK - use selected theme
   const incomingDenom = data.denomination === 'Satoshis' ? 'sats' : data.denomination
   state.denomination = !['BCH', 'mBCH', 'sats'].includes(incomingDenom) ? 'BCH' : incomingDenom
@@ -497,10 +500,14 @@ export function setCountry (state, data) {
     if (!state.vault[state.walletIndex].settings) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
-    state.vault[state.walletIndex].settings.country = {
+    const countryData = {
       name: data.country.name,
       code: data.country.code
     }
+    if (data.country.language) {
+      countryData.language = data.country.language
+    }
+    state.vault[state.walletIndex].settings.country = countryData
     state.vault[state.walletIndex].settings.denomination = state.denomination
   }
 }
@@ -619,6 +626,16 @@ export function setTheme (state, theme) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
     state.vault[state.walletIndex].settings.theme = theme
+  }
+}
+
+export function setCurrency (state, currency) {
+  // Save to vault - currency getter prioritizes vault over market state
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.currency = currency
   }
 }
 
