@@ -152,6 +152,7 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
   if (isBCH) {
     // fallback condition for translated 'DEEM'
     const { convert, decimal } = getDenomDecimals(denomination)
+    const normalizedDenom = normalizeDenomination(denomination)
     let calculatedBalance = ''
 
     if (isInput) {
@@ -159,7 +160,14 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     } else {
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
-    newBalance = formatWithLocale(calculatedBalance, { max: decimal })
+    
+    // For BCH denomination (not mBCH or sats), always show full 8 decimals for easier comparison
+    if (normalizedDenom === 'BCH' && !isInput) {
+      newBalance = formatWithLocale(calculatedBalance, { min: 8, max: 8 })
+    } else {
+      newBalance = formatWithLocale(calculatedBalance, { max: decimal })
+    }
+    
     if (subStringMax > 0) newBalance = newBalance.substring(0, subStringMax)
     symbol = getDenominationDisplayLabel(denomination)
   } else {
@@ -177,6 +185,92 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
 
   if (asset.excludeSymbol) return `${newBalance}`
   else return `${newBalance} ${symbol}`.trim()
+}
+
+/**
+ * Splits a formatted BCH amount into significant digits and trailing zeros
+ * for rendering with different styles (e.g., graying out trailing zeros).
+ * 
+ * @param {string} formattedAmount - The formatted amount string (e.g., "1,234.56780000")
+ * @param {string} denomination - The denomination (BCH, mBCH, sats)
+ * @param {string} symbol - Optional symbol to include (default: '')
+ * @returns {Object} { main: string, trailingZeros: string, symbol: string }
+ * 
+ * Example:
+ * splitBchAmount("0.91801000 BCH", "BCH", "BCH")
+ * => { main: "0.91801", trailingZeros: "000", symbol: "BCH" }
+ */
+export function splitBchAmount (formattedAmount, denomination, symbol = '') {
+  const normalizedDenom = normalizeDenomination(denomination)
+  
+  // Only split trailing zeros for BCH denomination (not mBCH or sats)
+  if (normalizedDenom !== 'BCH') {
+    return { main: formattedAmount, trailingZeros: '', symbol }
+  }
+  
+  // Remove symbol from the formatted amount if present
+  let numericPart = formattedAmount.replace(/\s*BCH\s*/i, '').trim()
+  
+  // Find the decimal separator
+  const { decimal } = getLocaleSeparators()
+  const parts = numericPart.split(decimal)
+  
+  if (parts.length === 1) {
+    // No decimal part
+    return { main: numericPart, trailingZeros: '', symbol }
+  }
+  
+  const integerPart = parts[0]
+  const decimalPart = parts[1] || ''
+  
+  // Find trailing zeros in decimal part
+  const match = decimalPart.match(/^(\d*?)+(0+)$/)
+  if (match && match[2]) {
+    const significantDecimals = match[1]
+    const trailingZeros = match[2]
+    const mainPart = significantDecimals 
+      ? `${integerPart}${decimal}${significantDecimals}`
+      : integerPart
+    return { 
+      main: mainPart, 
+      trailingZeros: trailingZeros, 
+      symbol 
+    }
+  }
+  
+  // No trailing zeros
+  return { 
+    main: numericPart, 
+    trailingZeros: '', 
+    symbol 
+  }
+}
+
+/**
+ * Formats a BCH amount with trailing zeros grayed out using HTML/CSS.
+ * Returns an HTML string suitable for v-html directive.
+ * 
+ * @param {string} formattedAmount - The formatted amount string
+ * @param {string} denomination - The denomination (BCH, mBCH, sats)
+ * @param {string} symbol - Optional symbol to include
+ * @returns {string} HTML string with styled trailing zeros
+ * 
+ * Example:
+ * formatBchAmountWithGrayZeros("0.91801000", "BCH", "BCH")
+ * => '0.91801<span style="opacity: 0.4">000</span> BCH'
+ */
+export function formatBchAmountWithGrayZeros (formattedAmount, denomination, symbol = '') {
+  const { main, trailingZeros, symbol: sym } = splitBchAmount(formattedAmount, denomination, symbol)
+  
+  let result = main
+  if (trailingZeros) {
+    result += `<span style="opacity: 0.4">${trailingZeros}</span>`
+  }
+  if (sym) {
+    result += ` ${sym}`
+  }
+  
+  return result
 }
 
 /**
