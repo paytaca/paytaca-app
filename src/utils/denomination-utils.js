@@ -43,6 +43,12 @@ function getCountry () {
 
 function getLocale () {
   const country = getCountry()
+  
+  // Defensive check for country code
+  if (!country || !country.code) {
+    return 'en-US' // Fallback to US English locale
+  }
+  
   const countryCode = country.code.toLowerCase()
   let currentLocale
 

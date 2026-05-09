@@ -23,7 +23,7 @@ export default {
       default: false
     },
     // Added changes that allows country selector to be used on other pages/components other than settings page.   
-    // updateStore: Dictates if it will update store global country on coountry select 
+    // updateStore: Dictates if it will update store global country on country select 
     updateStore: {
       type: Boolean,
       default: true
@@ -70,6 +70,12 @@ export default {
           i18nLocale = 'es'
         } else if (languageCode === 'pt') {
           i18nLocale = 'pt'
+        } else if (languageCode === 'ar') {
+          i18nLocale = 'ar'
+        } else if (languageCode === 'de') {
+          i18nLocale = 'de'
+        } else if (languageCode === 'fr') {
+          i18nLocale = 'fr'
         }
         
         // Verify the locale exists in supportedLangs, otherwise default to en-us
