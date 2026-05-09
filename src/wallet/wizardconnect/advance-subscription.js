@@ -24,7 +24,7 @@ const BUFFER_SIZE = 50 // 50 complete address pairs (100 total addresses)
 const MAX_BATCH_SIZE = 50 // API limit: 50 pairs per request
 
 /**
- * Get current advance subscription count for a wallet
+ * Get advance subscription count for a wallet
  * @param {Watchtower} watchtower - Watchtower instance
  * @param {string} walletHash - Wallet hash
  * @returns {Promise<Object>} Counts object
@@ -39,7 +39,8 @@ export async function getAdvanceSubscriptionCount(watchtower, walletHash) {
       pairs_advance_subscribed: 0,
       receiving_advance_subscribed: 0,
       change_advance_subscribed: 0,
-      total_advance_subscribed: 0
+      total_advance_subscribed: 0,
+      highest_pair_index: -1
     }
   }
 }
@@ -91,14 +92,13 @@ function deriveAddress(hdChain, index, prefix) {
 
 /**
  * Calculate how many pairs need to be subscribed to reach buffer size
- * @param {number} lastUsedIndex - Last used address index
  * @param {number} pairsAdvanceSubscribed - Current number of advance subscribed pairs
  * @returns {number} Number of pairs to subscribe
  */
-export function calculatePairsNeeded(lastUsedIndex, pairsAdvanceSubscribed) {
-  const targetIndex = lastUsedIndex + BUFFER_SIZE
-  const currentBufferEnd = lastUsedIndex + pairsAdvanceSubscribed
-  const pairsNeeded = targetIndex - currentBufferEnd
+export function calculatePairsNeeded(pairsAdvanceSubscribed) {
+  // We want to maintain a buffer of BUFFER_SIZE pairs
+  // Regardless of where they are in the index range
+  const pairsNeeded = BUFFER_SIZE - pairsAdvanceSubscribed
   return Math.max(0, Math.min(pairsNeeded, MAX_BATCH_SIZE))
 }
 
@@ -147,18 +147,9 @@ export async function ensureBuffer(watchtower, walletHash, hdNodes, prefix) {
       getAdvanceSubscriptionCount(watchtower, walletHash)
     ])
     
-    console.log('[WizardConnect] Buffer check:', {
-      lastUsedIndex,
-      counts,
-      walletHash
-    })
-    
-    const pairsNeeded = calculatePairsNeeded(lastUsedIndex, counts.pairs_advance_subscribed)
-    
-    console.log('[WizardConnect] Pairs needed:', pairsNeeded)
+    const pairsNeeded = calculatePairsNeeded(counts.pairs_advance_subscribed)
     
     if (pairsNeeded === 0) {
-      console.log('[WizardConnect] Buffer is sufficient, no subscription needed')
       return {
         success: true,
         subscribed: 0,
@@ -166,19 +157,29 @@ export async function ensureBuffer(watchtower, walletHash, hdNodes, prefix) {
       }
     }
     
-    // Generate address pairs starting after the current buffer end
-    const startIndex = lastUsedIndex + counts.pairs_advance_subscribed + 1
-    console.log('[WizardConnect] Generating', pairsNeeded, 'pairs starting from index', startIndex)
+    // Calculate start index:
+    // We need to start from the first index that is NOT already subscribed
+    // This is either:
+    // 1. One after the highest pair index (if we have any pairs), OR
+    // 2. One after the last used index (if we have no pairs)
+    const highestPairIndex = counts.highest_pair_index ?? -1
+    const startIndex = Math.max(highestPairIndex + 1, lastUsedIndex + 1)
     
-    const addressPairs = generateAddressPairs(hdNodes, startIndex, pairsNeeded, prefix)
+    // Detect if there are gaps (indices with regular subscriptions between advance subscriptions)
+    // If there are no gaps, highest_pair_index should be close to (lastUsedIndex + pairs_advance_subscribed)
+    const expectedHighestIfNoGaps = lastUsedIndex + counts.pairs_advance_subscribed
+    const gapSize = Math.max(0, highestPairIndex - expectedHighestIfNoGaps)
+    const hasGaps = gapSize > 0
     
-    console.log('[WizardConnect] Generated address pairs:', addressPairs.length, 'pairs')
-    console.log('[WizardConnect] Calling advanceSubscribeAddresses...')
+    // Generate extra pairs based on the gap size we've observed
+    // This estimates how many more gaps might exist ahead
+    const extraPairsForGaps = hasGaps ? Math.min(gapSize, 10) : 0
+    const pairsToGenerate = Math.min(pairsNeeded + extraPairsForGaps, MAX_BATCH_SIZE)
+    
+    const addressPairs = generateAddressPairs(hdNodes, startIndex, pairsToGenerate, prefix)
     
     // Subscribe addresses
     const result = await watchtower.advanceSubscribeAddresses(walletHash, startIndex, addressPairs)
-    
-    console.log('[WizardConnect] Advance subscription result:', result)
     
     return {
       success: true,
