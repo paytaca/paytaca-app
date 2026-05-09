@@ -83,7 +83,8 @@
   {
     "name": "Bahrain",
     "code": "BH",
-    "currency": "BHD"
+    "currency": "BHD",
+    "language": "ar"
   },
   {
     "name": "Bangladesh",
@@ -906,7 +907,8 @@
   {
     "name": "Saint Helena",
     "code": "SH",
-    "currency": "SHP"
+    "currency": "SHP",
+    "language": "en"
   },
   {
     "name": "Saint Kitts and Nevis",

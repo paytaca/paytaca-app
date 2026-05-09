@@ -50,7 +50,13 @@ function getLocale () {
   // (e.g., "en" + "CA" = "en-CA"). This ensures proper locale formatting.
   // Otherwise, fall back to using the country code directly.
   if (country.language) {
-    currentLocale = `${country.language}-${countryCode.toUpperCase()}`
+    // If language already contains a hyphen (e.g., "zh-cn"), use it as-is
+    // Otherwise, construct locale from language + country code
+    if (country.language.includes('-')) {
+      currentLocale = country.language
+    } else {
+      currentLocale = `${country.language}-${countryCode.toUpperCase()}`
+    }
   } else {
     // use locale from country code
     currentLocale = new Intl.Locale(countryCode)
