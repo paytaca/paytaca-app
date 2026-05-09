@@ -1,7 +1,7 @@
 import * as wizardConnectService from 'src/wallet/wizardconnect/service'
 import Watchtower from 'src/lib/watchtower'
 import { Notify } from 'quasar'
-import { ensureBuffer, scheduleBufferCheck } from 'src/wallet/wizardconnect/advance-subscription'
+import { ensureBuffer } from 'src/wallet/wizardconnect/advance-subscription'
 
 function getStorageKey(walletHash) {
   if (!walletHash) return null
@@ -151,6 +151,7 @@ export async function init ({ commit, dispatch, rootGetters, state }) {
 
 export function reset ({ commit }) {
   commit('clearBufferCheckInterval')
+  commit('clearBufferCheckTimeout')
   wizardConnectService.reset()
   commit('clearPendingRequests')
   commit('clearProcessedKeys')
@@ -329,7 +330,10 @@ export function startPeriodicBufferCheck ({ commit, dispatch, state }) {
   commit('clearBufferCheckInterval')
   
   const intervalId = setInterval(() => {
-    dispatch('ensureAddressBuffer')
+    // Only check if there are active connections
+    if (state.connections && Object.keys(state.connections).length > 0) {
+      dispatch('ensureAddressBuffer')
+    }
   }, 30000) // 30 seconds
   
   commit('setBufferCheckInterval', intervalId)

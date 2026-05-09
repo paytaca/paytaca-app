@@ -4,6 +4,7 @@ export default function () {
     pendingRequests: [],
     cancelledKeys: [],
     processedKeys: [],
-    bufferCheckInterval: null
+    bufferCheckInterval: null,
+    bufferCheckTimeout: null
   }
 }

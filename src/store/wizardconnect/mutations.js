@@ -85,3 +85,16 @@ export function clearBufferCheckInterval (state) {
     state.bufferCheckInterval = null
   }
 }
+
+export function setBufferCheckTimeout (state, timeoutId) {
+  if (!state) return
+  state.bufferCheckTimeout = timeoutId
+}
+
+export function clearBufferCheckTimeout (state) {
+  if (!state) return
+  if (state.bufferCheckTimeout) {
+    clearTimeout(state.bufferCheckTimeout)
+    state.bufferCheckTimeout = null
+  }
+}
