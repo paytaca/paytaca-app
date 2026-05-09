@@ -16,6 +16,8 @@ import {
   encodePrivateKeyWif,
   encodeCashAddress,
   lockingBytecodeToCashAddress,
+  hash160,
+  encodeLockingBytecodeP2pkh,
 } from 'bitauth-libauth-v3'
 
 const BUFFER_SIZE = 50 // 50 complete address pairs (100 total addresses)
@@ -73,9 +75,9 @@ function deriveAddress(hdChain, index, prefix) {
   const pubKey = secp256k1.derivePublicKeyCompressed(child.privateKey)
   if (typeof pubKey === 'string') throw new Error(pubKey)
   
-  // Create P2PKH locking bytecode
-  const pubkeyHash = secp256k1.hash160(pubKey)
-  const lockingBytecode = new Uint8Array([0x76, 0xa9, 0x14, ...pubkeyHash, 0x88, 0xac])
+  // Create P2PKH locking bytecode using hash160
+  const pubkeyHash = hash160(pubKey)
+  const lockingBytecode = encodeLockingBytecodeP2pkh(pubkeyHash)
   
   const addressResult = lockingBytecodeToCashAddress(lockingBytecode, prefix)
   if (typeof addressResult === 'string') throw new Error(addressResult)
