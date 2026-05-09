@@ -37,22 +37,20 @@ function getCountryCode () {
   return Store.getters['global/country'].code
 }
 
+function getCountry () {
+  return Store.getters['global/country']
+}
+
 function getLocale () {
-  const countryCode = getCountryCode().toLowerCase()
+  const country = getCountry()
+  const countryCode = country.code.toLowerCase()
   let currentLocale
 
-  // conditional check because some countries (like Argentina,
-  // maybe others yet to be identified) does not follow the proper
-  // locale separator when using country code
-  // check if country code is equal to Argentina
-  if (countryCode === 'ar') {
-    // use locale from language/i18n
-    const localeCandidate = i18n?.global?.locale
-    if (typeof localeCandidate === 'string') {
-      currentLocale = localeCandidate
-    } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
-      currentLocale = localeCandidate.value || 'en-us'
-    }
+  // If the country has a language field defined, use it to construct the locale
+  // (e.g., "en" + "CA" = "en-CA"). This ensures proper locale formatting.
+  // Otherwise, fall back to using the country code directly.
+  if (country.language) {
+    currentLocale = `${country.language}-${countryCode.toUpperCase()}`
   } else {
     // use locale from country code
     currentLocale = new Intl.Locale(countryCode)

@@ -190,7 +190,8 @@
   {
     "name": "Canada",
     "code": "CA",
-    "currency": "CAD"
+    "currency": "CAD",
+    "language": "en"
   },
   {
     "name": "Cape Verde",
@@ -502,7 +503,8 @@
   {
     "name": "India",
     "code": "IN",
-    "currency": "INR"
+    "currency": "INR",
+    "language": "en"
   },
   {
     "name": "Indonesia",
@@ -522,7 +524,8 @@
   {
     "name": "Ireland",
     "code": "IE",
-    "currency": "EUR"
+    "currency": "EUR",
+    "language": "en"
   },
   {
     "name": "Israel",
@@ -968,7 +971,8 @@
   {
     "name": "Singapore",
     "code": "SG",
-    "currency": "SGD"
+    "currency": "SGD",
+    "language": "en"
   },
   {
     "name": "Slovakia",
