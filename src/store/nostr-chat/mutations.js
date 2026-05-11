@@ -52,6 +52,9 @@ export function UPDATE_ROOM_SUBJECT (state, { roomId, subject }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (room) {
     room.subject = subject
+    if (subject) {
+      room.name = subject
+    }
     room.updatedAt = Math.floor(Date.now() / 1000)
   }
 }

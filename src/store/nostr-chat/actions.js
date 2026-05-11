@@ -295,7 +295,15 @@ export function createPrivateRoom ({ commit, getters, state }, contactNpub) {
 
 export async function createGroupRoom ({ commit, state }, { name, members, subject }) {
   const myPubKey = state.keys.pubKeyHex
-  const allMembers = [...new Set([myPubKey, ...members])]
+  // Convert any npubs to hex pubkeys
+  const memberHexes = members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+  const allMembers = [...new Set([myPubKey, ...memberHexes])]
   const roomId = computeRoomId(allMembers)
 
   const room = {
@@ -319,14 +327,23 @@ export async function sendMessage ({ state }, { roomId, text, replyTo }) {
   const senderPrivKey = state.keys.privKeyHex
   const senderPubKey = state.keys.pubKeyHex
 
+  // Ensure members are hex pubkeys (convert any npubs)
+  const memberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+
   const unsignedKind14 = createUnsignedKind14({
     content: text,
     senderPubKey,
-    members: room.members,
+    members: memberHexes,
     replyTo,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, room.members)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
 
   const message = {
     id: unsignedKind14.id,
@@ -335,7 +352,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo }) {
     created_at: unsignedKind14.created_at,
     kind14Id: unsignedKind14.id,
     replyTo,
-    localSentAt: Date.now(), // Exact local send time — used for read receipts
+    localSentAt: Date.now(),
   }
 
   return { giftWraps, message, roomId }
@@ -348,14 +365,22 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
   const senderPrivKey = state.keys.privKeyHex
   const senderPubKey = state.keys.pubKeyHex
 
+  const memberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+
   const unsignedKind14 = createUnsignedKind14({
     content: text,
     senderPubKey,
-    members: room.members,
+    members: memberHexes,
     editOf,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, room.members)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
 
   const message = {
     id: unsignedKind14.id,
@@ -377,10 +402,18 @@ export async function sendDeleteMessage ({ state }, { roomId, messageId }) {
   const senderPrivKey = state.keys.privKeyHex
   const senderPubKey = state.keys.pubKeyHex
 
+  const memberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+
   const giftWraps = await createKind5DeletionGiftWraps({
     messageId,
     senderPubKey,
-    members: room.members,
+    members: memberHexes,
     senderPrivKey,
   })
 
@@ -404,6 +437,14 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
   const senderPrivKey = state.keys.privKeyHex
   const senderPubKey = state.keys.pubKeyHex
 
+  const memberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+
   if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
 
   if (onProgress) onProgress(0.05)
@@ -423,7 +464,7 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
   if (onProgress) onProgress(0.9)
   const kind15Event = createKind15FileMessage({
     senderPubKey,
-    members: room.members,
+    members: memberHexes,
     fileUrl,
     mimeType,
     aesKeyHex,
@@ -437,7 +478,7 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     replyTo,
   })
 
-  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, room.members)
+  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes)
 
   if (onProgress) onProgress(0.95)
   const message = {
@@ -471,7 +512,17 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
 
   const reactorPrivKey = state.keys.privKeyHex
   const reactorPubKey = state.keys.pubKeyHex
-  const senderPubKey = room.members.find(m => m !== reactorPubKey) || reactorPubKey
+
+  // Convert npubs to hex and find other members (for group chats)
+  const memberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+  const otherMembers = memberHexes.filter(m => m !== reactorPubKey)
+  const senderPubKey = otherMembers[0] || reactorPubKey
 
   const giftWrap = await createReactionGiftWrap({
     messageId,
@@ -498,7 +549,16 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
 
   const reactorPrivKey = state.keys.privKeyHex
   const reactorPubKey = state.keys.pubKeyHex
-  const senderPubKey = room.members.find(m => m !== reactorPubKey) || reactorPubKey
+
+  const memberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) {
+      const decoded = nip19Decode(m)
+      return decoded.data
+    }
+    return m
+  })
+  const otherMembers = memberHexes.filter(m => m !== reactorPubKey)
+  const senderPubKey = otherMembers[0] || reactorPubKey
 
   commit('REMOVE_MESSAGE_REACTION', {
     roomId,

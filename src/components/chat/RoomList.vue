@@ -133,6 +133,7 @@ export default {
   methods: {
     getDarkModeClass,
     isRoomBlocked (room) {
+      if (room.type === 'group') return false
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return false
       return this.$store.getters['nostrChat/isContactBlocked'](otherPubKey)
@@ -156,6 +157,9 @@ export default {
       }
     },
     roomInitial (room) {
+      if (room.type === 'group') {
+        return (room.name || 'G').charAt(0).toUpperCase()
+      }
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (otherPubKey) {
         const contact = this.contacts.find(c => c.pubKeyHex === otherPubKey)
@@ -169,6 +173,7 @@ export default {
       return name.charAt(0).toUpperCase()
     },
     roomName (room) {
+      if (room.type === 'group') return room.name || 'Group Chat'
       // Check if this room has a known contact
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return room.name || room.id.slice(0, 12) + '...'
@@ -230,6 +235,10 @@ export default {
 <style scoped>
 .room-list {
   padding: 4px 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .room-item {

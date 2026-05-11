@@ -444,6 +444,12 @@ const routes = [
             component: () => import('src/pages/apps/chat/profile.vue')
           },
           {
+            path: ':roomId/info',
+            name: 'app-chat-group-info',
+            props: true,
+            component: () => import('src/pages/apps/chat/group-info.vue')
+          },
+          {
             path: ':roomId',
             name: 'app-chat-conversation',
             props: true,

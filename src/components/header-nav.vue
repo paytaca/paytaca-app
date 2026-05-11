@@ -32,6 +32,7 @@
               <slot name="title-append" />
             </span>
           </p>
+          <div v-if="subtitle" class="pt-header-subtitle-text">{{ subtitle }}</div>
         </div>
         <div v-if="route.path?.startsWith('/apps/multisig')" style="position: absolute; right: 0px; ">
           <q-btn
@@ -109,6 +110,7 @@
               <slot name="title-append" />
             </span>
           </p>
+          <div v-if="subtitle" class="pt-header-subtitle-text">{{ subtitle }}</div>
         </div>
         <div class="pt-header-right col-auto q-mr-sm">
           <q-btn
@@ -140,6 +142,10 @@ export default {
   },
   props: {
     title: {
+      type: String,
+      default: ''
+    },
+    subtitle: {
       type: String,
       default: ''
     },
@@ -299,6 +305,19 @@ export default {
   width: 100%;
   padding-left: 10px;
   z-index: 2;
+}
+.pt-header-title-text {
+  display: block;
+}
+.pt-header-subtitle-text {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+  margin-top: -2px;
+  text-align: center;
 }
 .pt-settings-icon {
   position: absolute;

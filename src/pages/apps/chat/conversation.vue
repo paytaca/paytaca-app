@@ -9,16 +9,28 @@
       class="apps-header"
       backnavpath="/apps/chat"
       :title="roomName"
+      :subtitle="isGroupRoom ? $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) : null"
     >
-      <template v-if="room && room.members?.length > 1" v-slot:top-right-menu>
-        <q-btn
-          flat
-          round
-          icon="more_vert"
-          class="header-menu-btn"
-        >
+      <template v-if="room" v-slot:top-right-menu>
+        <div class="header-actions">
+          <q-btn
+            v-if="isGroupRoom"
+            flat
+            round
+            dense
+            icon="group"
+            class="header-info-btn"
+            @click="$router.push(`/apps/chat/${roomId}/info`)"
+          />
+          <q-btn
+            flat
+            round
+            dense
+            icon="more_vert"
+            class="header-menu-btn"
+          >
           <q-menu anchor="bottom right" self="top right">
-            <q-item v-if="otherMemberContact" clickable v-close-popup @click="openRenameDialog">
+            <q-item v-if="!isGroupRoom && otherMemberContact" clickable v-close-popup @click="openRenameDialog">
               <q-item-section side>
                 <q-icon name="edit" size="18px" />
               </q-item-section>
@@ -26,7 +38,23 @@
                 {{ $t('RenameContact', {}, 'Rename Contact') }}
               </q-item-section>
             </q-item>
-            <q-separator v-if="otherMemberContact" />
+            <q-item v-if="isGroupRoom" clickable v-close-popup @click="openRenameGroupDialog">
+              <q-item-section side>
+                <q-icon name="edit" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('RenameGroup', {}, 'Rename Group') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-if="isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/info`)">
+              <q-item-section side>
+                <q-icon name="info" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('GroupInfo', {}, 'Group Info') }}
+              </q-item-section>
+            </q-item>
+            <q-separator v-if="!isGroupRoom && otherMemberContact || isGroupRoom" />
             <q-item v-if="!isRoomArchived" clickable v-close-popup @click="confirmArchiveRoom">
               <q-item-section side>
                 <q-icon name="archive" size="18px" />
@@ -51,9 +79,9 @@
                 {{ $t('DeleteConversation', {}, 'Delete Conversation') }}
               </q-item-section>
             </q-item>
-            <q-separator />
+            <q-separator v-if="!isGroupRoom" />
             <q-item
-              v-if="!isContactBlocked"
+              v-if="!isGroupRoom && !isContactBlocked"
               clickable
               v-close-popup
               @click="confirmBlockRoom"
@@ -66,7 +94,7 @@
               </q-item-section>
             </q-item>
             <q-item
-              v-else
+              v-if="!isGroupRoom && isContactBlocked"
               clickable
               v-close-popup
               @click="confirmUnblockRoom"
@@ -78,8 +106,22 @@
                 {{ $t('UnblockContact', {}, 'Unblock Contact') }}
               </q-item-section>
             </q-item>
+            <q-item
+              v-if="isGroupRoom"
+              clickable
+              v-close-popup
+              @click="confirmLeaveGroup"
+            >
+              <q-item-section side>
+                <q-icon name="exit_to_app" size="18px" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <span class="text-negative">{{ $t('LeaveGroup', {}, 'Leave Group') }}</span>
+              </q-item-section>
+            </q-item>
           </q-menu>
         </q-btn>
+        </div>
       </template>
     </header-nav>
 
@@ -118,9 +160,44 @@
       </q-card>
     </q-dialog>
 
+    <!-- Rename group dialog -->
+    <q-dialog v-model="showRenameGroupDialog" persistent>
+      <q-card style="min-width: 320px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
+        <q-card-section class="dialog-header">
+          <div class="text-h6">{{ $t('RenameGroup', {}, 'Rename Group') }}</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input
+            v-model="renameGroupName"
+            :label="$t('GroupName', {}, 'Group name')"
+            outlined
+            dense
+            rounded
+            class="q-mb-md"
+            autofocus
+            @keyup.enter="renameGroup"
+          />
+          <q-btn
+            :label="$t('Save', {}, 'Save')"
+            color="primary"
+            rounded
+            unelevated
+            class="full-width"
+            :disable="!renameGroupName.trim()"
+            @click="renameGroup"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat :label="$t('Cancel', {}, 'Cancel')" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Unknown contact prompt -->
     <div
-      v-if="isUnknownContact"
+      v-if="isUnknownContact && !isGroupRoom"
       class="unknown-contact-banner"
       :class="getDarkModeClass(darkMode)"
       :style="{ background: `linear-gradient(135deg, ${themeColor}14, ${themeColor}0a)`, borderBottomColor: `${themeColor}26` }"
@@ -134,7 +211,7 @@
     </div>
 
     <!-- Save contact dialog -->
-    <q-dialog v-model="showSaveContactDialog" persistent>
+    <q-dialog v-model="showSaveContactDialog" persistent v-if="!isGroupRoom">
       <q-card style="min-width: 320px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="dialog-header">
           <div class="text-h6">{{ $t('AddContact', {}, 'Add Contact') }}</div>
@@ -352,6 +429,8 @@ export default {
       saveContactName: '',
       showRenameDialog: false,
       renameContactName: '',
+      showRenameGroupDialog: false,
+      renameGroupName: '',
       showSendDialog: false,
       sendAmount: 0,
       sendRecipientPubKey: '',
@@ -407,6 +486,9 @@ export default {
     },
     isRoomArchived () {
       return this.room?.archived === true
+    },
+    isGroupRoom () {
+      return this.room?.type === 'group'
     },
     displayNpub () {
       const npub = this.otherMemberNpub
@@ -466,6 +548,14 @@ export default {
       if (this.replyToMessage.fileType?.startsWith('video/')) return 'videocam'
       if (this.replyToMessage.fileType?.startsWith('audio/')) return 'audiotrack'
       return 'description'
+    },
+    myDisplayName () {
+      const myPub = this.myPubKey
+      if (!myPub) return 'You'
+      const npub = (() => { try { return npubEncode(myPub) } catch { return null } })()
+      if (!npub) return 'You'
+      const contact = this.contacts.find(c => c.pubKeyHex === myPub)
+      return contact?.name || this.$t('You', {}, 'You')
     },
     editSnippet () {
       if (!this.editingMessage) return ''
@@ -959,6 +1049,53 @@ export default {
       this.renameContactName = this.otherMemberContact?.name || ''
       this.showRenameDialog = true
     },
+    openRenameGroupDialog () {
+      this.renameGroupName = this.room?.name || ''
+      this.showRenameGroupDialog = true
+    },
+    async renameGroup () {
+      try {
+        const name = this.renameGroupName.trim()
+        if (!name || !this.room) return
+        this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name })
+        const text = this.$t('GroupRenamedBy', { name }, `${this.myDisplayName} renamed the group to "${name}"`)
+        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+          roomId: this.roomId,
+          text,
+        })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+        this.renameGroupName = ''
+        this.showRenameGroupDialog = false
+        this.$q.notify({ type: 'positive', message: this.$t('GroupRenamed', {}, 'Group renamed') })
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('RenameGroupFailed', {}, 'Failed to rename group') })
+      }
+    },
+    confirmLeaveGroup () {
+      this.$q.dialog({
+        title: this.$t('LeaveGroup', {}, 'Leave Group'),
+        message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        try {
+          const text = this.$t('LeftGroup', {}, `${this.myDisplayName} left the group`)
+          const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+            roomId: this.roomId,
+            text,
+          })
+          this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+          await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
+          this.$store.commit('nostrChat/REMOVE_ROOM', this.roomId)
+          this.$router.replace('/apps/chat')
+          this.$q.notify({ type: 'info', message: this.$t('LeftGroup', {}, 'You left the group') })
+        } catch (err) {
+          this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
+        }
+      })
+    },
     async renameContact () {
       try {
         const name = this.renameContactName.trim()
@@ -1224,9 +1361,27 @@ export default {
   position: relative;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.header-info-btn {
+  height: 36px;
+  width: 36px;
+}
+
 .header-menu-btn {
-  height: 53px;
-  width: 53px;
+  height: 36px;
+  width: 36px;
+}
+
+/* Widen the header right slot only on this page to fit both buttons */
+.apps-header :deep(.pt-header-right) {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: auto;
 }
 
 .messages-scroll-area {

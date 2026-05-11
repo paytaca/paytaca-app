@@ -174,6 +174,7 @@
           >
             <q-tab name="contacts" :label="$t('Contacts', {}, 'Contacts')" />
             <q-tab name="add" :label="$t('AddContact', {}, 'Add Contact')" />
+            <q-tab name="group" :label="$t('NewGroup', {}, 'New Group')" />
           </q-tabs>
 
           <q-tab-panels v-model="dialogTab" animated>
@@ -244,6 +245,58 @@
                 @click="addContactAndChat"
               />
             </q-tab-panel>
+
+            <q-tab-panel name="group" class="q-px-none">
+              <q-input
+                v-model="groupName"
+                :label="$t('GroupName', {}, 'Group name')"
+                outlined
+                dense
+                rounded
+                class="q-mb-sm"
+                autofocus
+              />
+              <div class="group-members-label q-mb-xs">{{ $t('SelectMembers', {}, 'Select members') }}</div>
+              <q-list v-if="contacts.length" separator class="group-members-list">
+                <q-item
+                  v-for="contact in contacts"
+                  :key="contact.npub"
+                  clickable
+                  class="group-member-item"
+                  @click="toggleMember(contact.npub)"
+                >
+                  <q-item-section avatar>
+                    <q-checkbox
+                      :model-value="selectedMemberNpubs.includes(contact.npub)"
+                      @click.stop
+                      @update:model-value="toggleMember(contact.npub)"
+                    />
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-avatar color="primary" text-color="white" size="36px">
+                      {{ contactInitial(contact) }}
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                    <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <div v-else class="text-grey text-center q-pa-md">
+                <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
+                <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Add contacts first.') }}</div>
+              </div>
+              <q-btn
+                :label="$t('CreateGroup', {}, 'Create Group')"
+                color="primary"
+                rounded
+                unelevated
+                class="full-width q-mt-sm"
+                :disable="!canCreateGroup"
+                @click="createGroup"
+              />
+            </q-tab-panel>
           </q-tab-panels>
         </q-card-section>
 
@@ -262,7 +315,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { copyToClipboard } from 'quasar'
-import { npubEncode } from 'nostr-tools/nip19'
+import { decode as nip19Decode, npubEncode } from 'nostr-tools/nip19'
 
 export default {
   name: 'ChatApp',
@@ -278,6 +331,8 @@ export default {
       newContactName: '',
       newContactNpub: '',
       npubError: '',
+      groupName: '',
+      selectedMemberNpubs: [],
     }
   },
   computed: {
@@ -308,6 +363,9 @@ export default {
     canAddContact () {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
     },
+    canCreateGroup () {
+      return this.groupName.trim() && this.selectedMemberNpubs.length > 0
+    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return '#f54270'
@@ -322,6 +380,16 @@ export default {
         this.reopenDialogAfterScan = false
         this.dialogTab = 'add'
         this.showNewChatDialog = true
+      }
+    },
+    showNewChatDialog (val) {
+      if (!val) {
+        this.groupName = ''
+        this.selectedMemberNpubs = []
+        this.newContactName = ''
+        this.newContactNpub = ''
+        this.npubError = ''
+        this.dialogTab = 'contacts'
       }
     },
   },
@@ -583,6 +651,35 @@ openScannerFromDialog () {
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
     },
+    toggleMember (npub) {
+      const idx = this.selectedMemberNpubs.indexOf(npub)
+      if (idx >= 0) {
+        this.selectedMemberNpubs.splice(idx, 1)
+      } else {
+        this.selectedMemberNpubs.push(npub)
+      }
+    },
+    async createGroup () {
+      if (!this.canCreateGroup) return
+      try {
+        // Convert npubs to hex pubkeys
+        const memberPubKeys = this.selectedMemberNpubs.map(npub => {
+          const decoded = nip19Decode(npub)
+          return decoded.data
+        })
+        const room = await this.$store.dispatch('nostrChat/createGroupRoom', {
+          name: this.groupName.trim(),
+          members: memberPubKeys,
+        })
+        this.showNewChatDialog = false
+        this.$router.push(`/apps/chat/${room.id}`)
+      } catch (err) {
+        this.$q.notify({
+          type: 'negative',
+          message: err.message || this.$t('CreateGroupFailed', {}, 'Failed to create group'),
+        })
+      }
+    },
     getRoomDisplayName (room) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return room.name || 'Chat'
@@ -651,6 +748,10 @@ openScannerFromDialog () {
 <style scoped>
 .chat-body {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 140px);
+  min-height: 0;
 }
 
 /* Identity section */
@@ -740,6 +841,10 @@ openScannerFromDialog () {
 /* Rooms section */
 .rooms-section {
   padding-bottom: 80px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-header {
@@ -848,6 +953,30 @@ openScannerFromDialog () {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
+.group-members-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+}
+
+.group-members-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.group-member-item {
+  padding: 6px 4px;
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+}
+
+.group-member-item:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
 /* Tabs */
 .tabs-header {
   padding: 0 16px;
@@ -871,10 +1000,18 @@ openScannerFromDialog () {
 
 .tabs-header :deep(.q-tab-panels) {
   background: transparent;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .tabs-header :deep(.q-tab-panel) {
   padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .npub-caption {
@@ -909,6 +1046,10 @@ openScannerFromDialog () {
 }
 
 .dark .contact-item:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .group-member-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
 }
 
