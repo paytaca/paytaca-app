@@ -120,7 +120,7 @@
         <!-- Info note -->
         <div class="info-note q-mt-md">
           <q-icon name="info" size="16px" color="grey-5" />
-          <span>{{ $t('LeaveGroupNote', {}, 'Leaving a group removes it from your view. Other members will not be notified.') }}</span>
+          <span>{{ $t('LeaveGroupNote', {}, 'Leaving a group removes it from your view. A message will be sent to the group notifying them you left.') }}</span>
         </div>
       </div>
     </div>

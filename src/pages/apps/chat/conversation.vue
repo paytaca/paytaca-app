@@ -498,6 +498,10 @@ export default {
     roomName () {
       const room = this.room
       if (!room) return this.$t('Chat', {}, 'Chat')
+      // Group rooms: use room.name directly
+      if (room.type === 'group') {
+        return room.name || this.$t('GroupChat', {}, 'Group Chat')
+      }
       // If contact exists, use the room name (which is the contact name)
       if (this.otherMemberContact) {
         return room.name || this.$t('Chat', {}, 'Chat')
