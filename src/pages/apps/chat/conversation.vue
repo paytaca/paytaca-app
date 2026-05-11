@@ -29,7 +29,7 @@
             icon="more_vert"
             class="header-menu-btn"
           >
-          <q-menu anchor="bottom right" self="top right">
+          <q-menu anchor="bottom right" self="top right" class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <q-item v-if="!isGroupRoom && otherMemberContact" clickable v-close-popup @click="openRenameDialog">
               <q-item-section side>
                 <q-icon name="edit" size="18px" />
@@ -961,6 +961,7 @@ export default {
       this.$q.dialog({
         title: this.$t('DeleteMessage', {}, 'Delete Message'),
         message: this.$t('DeleteMessageConfirm', {}, 'Delete this message? This cannot be undone.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
         persistent: true,
@@ -1080,6 +1081,7 @@ export default {
       this.$q.dialog({
         title: this.$t('LeaveGroup', {}, 'Leave Group'),
         message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
         persistent: true,
@@ -1138,6 +1140,7 @@ export default {
       this.$q.dialog({
         title: this.$t('ArchiveConversation', {}, 'Archive Conversation'),
         message: this.$t('ArchiveConversationConfirm', { name: roomName }, `Archive conversation with ${roomName}?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Archive', {}, 'Archive'), color: 'primary', flat: true },
         persistent: true,
@@ -1163,6 +1166,7 @@ export default {
       this.$q.dialog({
         title: this.$t('BlockContact', {}, 'Block Contact'),
         message: this.$t('BlockContactConfirm', { name: roomName }, `Block ${roomName}? You will no longer receive messages from them.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Block', {}, 'Block'), color: 'negative', flat: true },
         persistent: true,
@@ -1183,6 +1187,7 @@ export default {
       this.$q.dialog({
         title: this.$t('UnblockContact', {}, 'Unblock Contact'),
         message: this.$t('UnblockContactConfirm', { name: roomName }, `Unblock ${roomName}? They will be able to message you again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Unblock', {}, 'Unblock'), color: 'primary', flat: true },
         persistent: true,
@@ -1205,6 +1210,7 @@ export default {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
           message: this.$t('DeleteConversationConfirm', { name: roomName }, `Delete conversation with ${roomName}? This cannot be undone.`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
           ok: { label: this.$t('Delete', {}, 'Delete'), color: 'negative', flat: true },
           persistent: true,
@@ -1220,6 +1226,7 @@ export default {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
           message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           options: {
             type: 'radio',
             model: 'delete',

@@ -468,6 +468,7 @@ export default {
       this.$q.dialog({
         title: this.$t('ArchiveConversation', {}, 'Archive Conversation'),
         message: this.$t('ArchiveConversationConfirm', { name: roomName }, `Archive conversation with ${roomName}?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: {
           label: this.$t('Cancel', {}, 'Cancel'),
           flat: true,
@@ -498,6 +499,7 @@ export default {
       this.$q.dialog({
         title: this.$t('BlockContact', {}, 'Block Contact'),
         message: this.$t('BlockContactConfirm', { name: roomName }, `Block ${roomName}? They won't be able to start new conversations with you, and you won't receive their messages.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: {
           label: this.$t('Cancel', {}, 'Cancel'),
           flat: true,
@@ -528,6 +530,7 @@ export default {
       this.$q.dialog({
         title: this.$t('UnblockContact', {}, 'Unblock Contact'),
         message: this.$t('UnblockContactConfirm', { name: roomName }, `Unblock ${roomName}? They will be able to send you messages again.`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: {
           label: this.$t('Cancel', {}, 'Cancel'),
           flat: true,
@@ -567,6 +570,7 @@ export default {
         this.$q.dialog({
           title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
           message: this.$t('DeleteConversationConfirm', { name: roomName }, `Permanently delete conversation with ${roomName}?`),
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
           cancel: {
             label: this.$t('Cancel', {}, 'Cancel'),
             flat: true,
@@ -592,6 +596,7 @@ export default {
       this.$q.dialog({
         title: this.$t('DeleteConversation', {}, 'Delete Conversation'),
         message: this.$t('DeleteConversationOptions', { name: roomName }, `How would you like to delete the conversation with ${roomName}?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         options: {
           type: 'radio',
           model: 'delete',

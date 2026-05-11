@@ -136,8 +136,14 @@
 
         <!-- Cache management -->
         <div class="cache-section q-mt-md">
-          <div class="section-title">{{ $t('ChatCache', {}, 'Chat Cache') }}</div>
-          <div class="section-description">
+          <div
+            class="section-title"
+            :style="{ color: darkMode ? '#9ca3af' : '#6b7280' }"
+          >{{ $t('ChatCache', {}, 'Chat Cache') }}</div>
+          <div
+            class="section-description"
+            :style="{ color: darkMode ? '#9ca3af' : '#6b7280' }"
+          >
             {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
           </div>
           <q-btn
@@ -318,6 +324,7 @@ export default {
       this.$q.dialog({
         title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
         message: this.$t('ClearChatCacheConfirm', {}, 'Clear all cached chat images? This will speed up initial loading but images will need to be re-downloaded.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('Clear', {}, 'Clear'), color: 'negative', flat: true },
         persistent: true,
@@ -490,7 +497,6 @@ export default {
 .cache-section .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 10px;
@@ -498,7 +504,6 @@ export default {
 
 .cache-section .section-description {
   font-size: 13px;
-  color: #6b7280;
   line-height: 1.5;
   margin-bottom: 12px;
 }
@@ -507,64 +512,7 @@ export default {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.dark .cache-section .section-title {
-  color: #9ca3af;
-}
-
-.dark .cache-section .section-description {
-  color: #9ca3af;
-}
-
-.cache-section .section-title {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  color: #6b7280 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  margin-bottom: 10px !important;
-}
-
-.cache-section .section-description {
-  font-size: 13px !important;
-  color: #6b7280 !important;
-  line-height: 1.5 !important;
-  margin-bottom: 12px !important;
-}
-
 /* Dark mode */
-.dark .identity-npub .npub-text {
-  color: #e2e8f0;
-}
-
-.dark .section-title {
-  color: #e2e8f0;
-}
-
-.dark .section-description {
-  color: #9ca3af;
-}
-
-.dark .address-text {
-  color: #e2e8f0;
-}
-
-.dark .info-text {
-  color: #cbd5e1;
-}
-
-.dark .cache-section {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.dark .cache-section .section-title {
-  color: #9ca3af !important;
-}
-
-.dark .cache-section .section-description {
-  color: #9ca3af !important;
-}
-
-/* Dark mode overrides */
 .dark .identity-npub .npub-text {
   color: #e2e8f0;
 }

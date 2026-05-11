@@ -224,6 +224,7 @@ export default {
       this.$q.dialog({
         title: this.$t('LeaveGroup', {}, 'Leave Group'),
         message: this.$t('LeaveGroupConfirm', { name: this.room?.name }, `Leave group "${this.room?.name}"?`),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
         ok: { label: this.$t('LeaveGroup', {}, 'Leave Group'), color: 'negative', flat: true },
         persistent: true,
