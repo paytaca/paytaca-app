@@ -65,7 +65,7 @@ export default class PromoContract {
 
     try {
       // get utxos
-      const contractUtxos = await this.getContractUtxos()
+      const contractUtxos = await this.getContractUtxosFromWatchtower()
       if (contractUtxos.length === 0) throw new Error('Contract has no UTXOs')
 
       // compute bch and token balances
@@ -161,7 +161,7 @@ export default class PromoContract {
    * @returns the computed promo token balance
    */
   async getTokenBalance () {
-    const tokenUtxos = await this.getContractUtxos()
+    const tokenUtxos = await this.getContractUtxosFromWatchtower()
       .then(utxos => utxos.filter(r => r.token?.category === PROMO_TOKEN_CATEGORY)
     )
     if (tokenUtxos.length === 0) return 0
@@ -171,7 +171,16 @@ export default class PromoContract {
       }, 0) / (10 ** PROMO_TOKEN_DECIMALS)
   }
 
-  async getContractUtxos () {
+  /**
+   * Fetches UTXOs for the contract from **Watchtower** API. Falls back to
+   * `contract.getUtxos()` if Watchtower fetch fails or returns an empty list.
+   * Combines both BCH and CashToken UTXOs into a unified format.
+   * This is done because Watchtower's node is much faster than what
+   * CashScript uses, provided that the contract address was subscribed
+   * to the Watchtower first.
+   * @returns Array of UTXO objects with standardized format similar with CashScript UTXOs
+   */
+  async getContractUtxosFromWatchtower () {
     let contractUtxos = []
 
     try {
