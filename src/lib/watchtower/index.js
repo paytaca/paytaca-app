@@ -233,6 +233,32 @@ class Watchtower extends WatchtowerSdk {
     return await axios.post(`${this._baseUrl}subscription/`, { address })
   }
 
+  /**
+   * Get count of advance subscribed addresses for a wallet
+   * @param {string} walletHash - The wallet hash
+   * @returns {Promise<Object>} Object with advance subscription counts
+   */
+  async getAdvanceSubscriptionCount(walletHash) {
+    const response = await axios.get(`${this._baseUrl}wallet/advance-subscribe/count/?wallet_hash=${walletHash}`)
+    return response.data
+  }
+
+  /**
+   * Subscribe address pairs in advance (for WizardConnect buffer)
+   * @param {string} walletHash - The wallet hash
+   * @param {number} startIndex - Starting address index
+   * @param {Array<Object>} addressPairs - Array of {receiving, change} pairs
+   * @returns {Promise<Object>} Response from the API
+   */
+  async advanceSubscribeAddresses(walletHash, startIndex, addressPairs) {
+    const response = await axios.post(`${this._baseUrl}wallet/advance-subscribe/`, {
+      wallet_hash: walletHash,
+      start_index: startIndex,
+      address_pairs: addressPairs
+    })
+    return response.data
+  }
+
   async getMultisigWalletUtxos(address) {
     return await axios.get(`${this._baseUrl}multisig/wallets/utxos/${address}`)
   }

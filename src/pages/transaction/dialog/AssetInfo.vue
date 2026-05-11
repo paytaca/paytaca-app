@@ -31,7 +31,7 @@
           <div class="balance-label text-grey-6 text-weight-medium" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
             {{ $t('Balance', {}, 'Balance') }}
           </div>
-          <div class="balance-amount text-weight-bold" style="font-size: 24px; line-height: 1.2;">
+          <div class="balance-amount text-weight-bold" style="font-size: 24px; line-height: 1.2;" v-bch-amount="{ denomination }">
             {{ parseAssetDenomination(denomination, asset) }}
           </div>
           <div v-if="assetFiatValue" class="fiat-value text-grey-7 q-mt-xs" style="font-size: 14px;">

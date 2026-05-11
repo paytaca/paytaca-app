@@ -55,7 +55,7 @@
         </div>
         <template v-else>
           <div class="text-right">
-            <p class="asset-balance q-mb-none">
+            <p class="asset-balance q-mb-none" v-bch-amount="{ denomination }">
               {{ formatTokenCardBalance(asset) }}
             </p>
             <template v-if="asset.id !== 'bch'">

@@ -38,7 +38,7 @@
               />
             </q-item-section>
             <q-item-section>
-              <q-item-label>
+              <q-item-label v-bch-amount="{ denomination: denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination }">
                 {{ `${parseAssetDenomination(
                   denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {
                   ...transaction.asset,
@@ -193,7 +193,7 @@
                       >
                         <span class="col-1">#{{ index + 1 }}</span>
                         <span class="col-5" style="overflow-wrap: anywhere;">{{ data[0] }}</span>
-                        <span class="col-4">
+                        <span class="col-4" v-bch-amount="{ denomination: denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination }">
                           {{
                             `${parseAssetDenomination(
                                 denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination,
