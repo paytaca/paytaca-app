@@ -25,7 +25,11 @@
         @click="redirect"
         class="row items-center"
       >
-        <span class="text-weight-medium" style="word-break: break-all;">
+        <span
+          class="text-weight-medium"
+          style="word-break: break-all;"
+          :class="pendingTypeTextStyle"
+        >
           {{ labelText }}
         </span>
         <q-icon
@@ -136,6 +140,11 @@ export default {
     
     labelText() {
       return this.typeConfig.label(this.data)
+    },
+
+    pendingTypeTextStyle() {
+      if (this.typeConfig.icon) return ''
+      return this.darkMode ? 'text-grey-6' : 'text-grey-8'
     },
     
     showMerchantName() {
