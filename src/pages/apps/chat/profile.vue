@@ -135,7 +135,7 @@
         </div>
 
         <!-- Cache management -->
-        <div class="cache-section q-mt-md" :class="getDarkModeClass(darkMode)">
+        <div class="cache-section q-mt-md">
           <div class="section-title">{{ $t('ChatCache', {}, 'Chat Cache') }}</div>
           <div class="section-description">
             {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
@@ -487,6 +487,50 @@ export default {
   padding: 16px;
 }
 
+.cache-section .section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.cache-section .section-description {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.dark .cache-section {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .cache-section .section-title {
+  color: #9ca3af;
+}
+
+.dark .cache-section .section-description {
+  color: #9ca3af;
+}
+
+.cache-section .section-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-bottom: 10px !important;
+}
+
+.cache-section .section-description {
+  font-size: 13px !important;
+  color: #6b7280 !important;
+  line-height: 1.5 !important;
+  margin-bottom: 12px !important;
+}
+
 /* Dark mode */
 .dark .identity-npub .npub-text {
   color: #e2e8f0;
@@ -510,6 +554,14 @@ export default {
 
 .dark .cache-section {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .cache-section .section-title {
+  color: #9ca3af !important;
+}
+
+.dark .cache-section .section-description {
+  color: #9ca3af !important;
 }
 
 /* Dark mode overrides */
