@@ -173,7 +173,74 @@ const _replyThumbnailCache = new Map()
 
 // Module-level cache for image thumbnails (LRU with max 100 entries)
 const _imageThumbnailCache = new Map()
-const MAX_THUMBNAIL_CACHE_SIZE = 100
+const MAX_THUMBNAIL_CACHE_SIZE = 200
+
+// IndexedDB for persistent thumbnail cache
+const DB_NAME = 'paytaca-chat-cache'
+const DB_VERSION = 1
+const STORE_NAME = 'thumbnails'
+
+let _dbPromise = null
+
+function openDatabase() {
+  if (!_dbPromise) {
+    _dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION)
+      
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result)
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+        }
+      }
+    })
+  }
+  return _dbPromise
+}
+
+async function getThumbnailFromDB(cacheKey) {
+  try {
+    const db = await openDatabase()
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly')
+      const store = tx.objectStore(STORE_NAME)
+      const request = store.get(cacheKey)
+      request.onsuccess = () => resolve(request.result?.thumbnailUrl || null)
+      request.onerror = () => resolve(null)
+    })
+  } catch {
+    return null
+  }
+}
+
+async function saveThumbnailToDB(cacheKey, thumbnailUrl) {
+  try {
+    const db = await openDatabase()
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    store.put({ id: cacheKey, thumbnailUrl, timestamp: Date.now() })
+  } catch (err) {
+    console.warn('Failed to save thumbnail to IndexedDB:', err)
+  }
+}
+
+export async function clearChatCache() {
+  try {
+    const db = await openDatabase()
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    store.clear()
+    _imageThumbnailCache.clear()
+    _replyThumbnailCache.clear()
+    return true
+  } catch (err) {
+    console.error('Failed to clear chat cache:', err)
+    return false
+  }
+}
 
 function evictOldestThumbnail() {
   if (_imageThumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
@@ -395,7 +462,7 @@ export default {
           const img = new Image()
           img.onload = () => {
             const canvas = document.createElement('canvas')
-            const size = 32
+            const size = 48
             canvas.width = size
             canvas.height = size
             const ctx = canvas.getContext('2d')
@@ -403,7 +470,7 @@ export default {
             const x = (size - img.width * scale) / 2
             const y = (size - img.height * scale) / 2
             ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
-            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.6)
+            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85)
             _replyThumbnailCache.set(msgId, thumbnailUrl)
             // Set reactive property to trigger re-render
             this.replyImageThumbnail = thumbnailUrl
@@ -517,9 +584,17 @@ export default {
     async loadThumbnail () {
       const cacheKey = this.message.id || this.message.content
       
-      // Check cache first
+      // Check in-memory cache first
       if (_imageThumbnailCache.has(cacheKey)) {
         this.imageThumbnailUrl = _imageThumbnailCache.get(cacheKey)
+        return
+      }
+
+      // Check IndexedDB cache
+      const dbThumbnail = await getThumbnailFromDB(cacheKey)
+      if (dbThumbnail) {
+        this.imageThumbnailUrl = dbThumbnail
+        _imageThumbnailCache.set(cacheKey, dbThumbnail)
         return
       }
 
@@ -544,13 +619,13 @@ export default {
         const img = new Image()
         const blobUrl = URL.createObjectURL(blob)
         
-        img.onload = () => {
+        img.onload = async () => {
           const canvas = document.createElement('canvas')
           
-          // Use different max dimensions based on orientation
+          // Use larger max dimensions for better quality
           const isLandscape = img.width >= img.height
-          const maxWidth = isLandscape ? 640 : 200
-          const maxHeight = isLandscape ? 480 : 480
+          const maxWidth = isLandscape ? 960 : 300
+          const maxHeight = isLandscape ? 720 : 720
           
           const aspectRatio = img.height / img.width
           let thumbWidth = Math.min(img.width, maxWidth)
@@ -568,11 +643,15 @@ export default {
           const ctx = canvas.getContext('2d')
           ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight)
           
-          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85)
+          // Higher quality JPEG compression
+          const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.92)
           
-          // Cache the thumbnail
+          // Cache in memory
           evictOldestThumbnail()
           _imageThumbnailCache.set(cacheKey, thumbnailUrl)
+          
+          // Persist to IndexedDB
+          await saveThumbnailToDB(cacheKey, thumbnailUrl)
           
           this.imageThumbnailUrl = thumbnailUrl
           URL.revokeObjectURL(blobUrl)

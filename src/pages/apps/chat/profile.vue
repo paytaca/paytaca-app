@@ -133,6 +133,23 @@
             {{ $t('BCHAddressInfo', {}, 'Your BCH address is signed with your Nostr private key and published as a verifiable event. Anyone can verify that you (the owner of this Nostr identity) published this address.') }}
           </div>
         </div>
+
+        <!-- Cache management -->
+        <div class="cache-section q-mt-md" :class="getDarkModeClass(darkMode)">
+          <div class="section-title">{{ $t('ChatCache', {}, 'Chat Cache') }}</div>
+          <div class="section-description">
+            {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
+          </div>
+          <q-btn
+            :label="$t('ClearChatCache', {}, 'Clear Chat Cache')"
+            color="negative"
+            outline
+            rounded
+            class="full-width"
+            :loading="clearingCache"
+            @click="confirmClearCache"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -145,6 +162,7 @@ import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
+import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
 
 export default {
   name: 'ChatProfile',
@@ -158,6 +176,7 @@ export default {
       addressErrorMessage: '',
       publishing: false,
       removing: false,
+      clearingCache: false,
     }
   },
   computed: {
@@ -295,6 +314,35 @@ export default {
         this.removing = false
       }
     },
+    async confirmClearCache () {
+      this.$q.dialog({
+        title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
+        message: this.$t('ClearChatCacheConfirm', {}, 'Clear all cached chat images? This will speed up initial loading but images will need to be re-downloaded.'),
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Clear', {}, 'Clear'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.clearingCache = true
+        try {
+          const success = await clearChatCache()
+          if (success) {
+            this.$q.notify({
+              type: 'positive',
+              message: this.$t('ChatCacheCleared', {}, 'Chat cache cleared successfully'),
+            })
+          } else {
+            throw new Error('Failed to clear cache')
+          }
+        } catch (err) {
+          this.$q.notify({
+            type: 'negative',
+            message: err.message || this.$t('ClearCacheFailed', {}, 'Failed to clear cache'),
+          })
+        } finally {
+          this.clearingCache = false
+        }
+      })
+    },
   },
 }
 </script>
@@ -431,6 +479,37 @@ export default {
   font-size: 12px;
   color: #4b5563;
   line-height: 1.5;
+}
+
+.cache-section {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* Dark mode */
+.dark .identity-npub .npub-text {
+  color: #e2e8f0;
+}
+
+.dark .section-title {
+  color: #e2e8f0;
+}
+
+.dark .section-description {
+  color: #9ca3af;
+}
+
+.dark .address-text {
+  color: #e2e8f0;
+}
+
+.dark .info-text {
+  color: #cbd5e1;
+}
+
+.dark .cache-section {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Dark mode overrides */
