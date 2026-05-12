@@ -2163,6 +2163,38 @@ function displayCoordinates(opts={latitude: 0, longitude: 0, headerText: undefin
 const bchAddress = computed(() => {
   return $store.getters['global/getWallet']('bch')?.lastAddress
 })
+async function checkOrUpdateWallet() {
+  console.debug('Checking wallet address')
+  if (bchAddress.value) {
+    console.debug('Wallet address present')
+    return
+  }
+
+  if (!wallet.value) {
+    console.debug('Initializing wallet')
+    await initWallet()
+  }
+  return await Promise.allSettled([
+    updateWallet(false),
+    updateWallet(true),
+  ])
+}
+
+async function updateWallet(isChipnet=false) {
+  const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
+  const walletData = $store.getters['global/getWallet']('bch')
+  const lastAddressIndex = Math.max(parseInt(walletData?.lastAddressIndex) || 0, 0);
+  const addressSet = await bchWallet.getAddressSetAt(lastAddressIndex)
+  $store.commit('global/updateWallet', {
+    isChipnet,
+    type: 'bch',
+    walletHash: bchWallet.walletHash,
+    derivationPath: bchWallet.derivationPath,
+    lastAddress: addressSet.receiving,
+    lastChangeAddress: addressSet.change,
+    lastAddressIndex: lastAddressIndex,
+  })
+}
 
 const $copyText = inject('$copyText')
 function copyToClipboard(value, message) {
@@ -2189,6 +2221,7 @@ function openImage(img, title) {
 async function refreshPage(done=() => {}) {
   try {
     initialized.value = Boolean(checkout.value.id)
+    await checkOrUpdateWallet().then(console.error);
     await Promise.all([
       fetchCheckout()
         .finally(() => resetFormData())
