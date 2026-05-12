@@ -355,6 +355,7 @@ export default {
 
 .glass-textarea {
   border-radius: 12px;
+
   &.q-field--outlined :deep(.q-field__control) {
     border-radius: 12px;
     background: #ffffff !important;
@@ -367,6 +368,7 @@ export default {
   &.q-field--outlined :deep(.q-field__native) {
     background: #ffffff !important;
     color: inherit;
+    border-block: 1px solid rgba(0, 0, 0, 0.24);
   }
   
   &.q-field--dark.q-field--outlined :deep(.q-field__control),
@@ -375,16 +377,28 @@ export default {
     background: #ffffff !important;
   }
   
+  &.q-field--dark.q-field--outlined :deep(.q-field__native) {
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+  
   &.dark.q-field--outlined :deep(.q-field__control),
   &.dark.q-field--outlined :deep(.q-field__control-container),
   &.dark.q-field--outlined :deep(.q-field__native) {
     background: #ffffff !important;
   }
   
+  &.dark.q-field--outlined :deep(.q-field__native) {
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+  
   &.light.q-field--outlined :deep(.q-field__control),
   &.light.q-field--outlined :deep(.q-field__control-container),
   &.light.q-field--outlined :deep(.q-field__native) {
     background: #ffffff !important;
+  }
+  
+  &.light.q-field--outlined :deep(.q-field__native) {
+    border-color: rgba(0, 0, 0, 0.24);
   }
 }
 
