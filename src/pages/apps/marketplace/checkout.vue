@@ -2164,14 +2164,11 @@ const bchAddress = computed(() => {
   return $store.getters['global/getWallet']('bch')?.lastAddress
 })
 async function checkOrUpdateWallet() {
-  console.debug('Checking wallet address')
   if (bchAddress.value) {
-    console.debug('Wallet address present')
     return
   }
 
   if (!wallet.value) {
-    console.debug('Initializing wallet')
     await initWallet()
   }
   return await Promise.allSettled([
