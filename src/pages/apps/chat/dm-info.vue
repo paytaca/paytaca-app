@@ -77,7 +77,7 @@
         <div class="contact-section" :class="getDarkModeClass(darkMode)">
           <div class="section-title">{{ $t('Contact', {}, 'Contact') }}</div>
           <q-list>
-            <q-item class="contact-item">
+            <q-item class="contact-item" clickable @click="openContactDetails">
               <q-item-section avatar>
                 <q-avatar color="primary" text-color="white" size="44px">
                   {{ contactInitial }}
@@ -90,6 +90,107 @@
             </q-item>
           </q-list>
         </div>
+
+        <!-- Contact Details Dialog -->
+        <q-dialog v-model="showContactDetails" persistent>
+          <q-card class="contact-details-card pt-card text-bow" :class="getDarkModeClass(darkMode)" style="min-width: 320px; border-radius: 16px;">
+            <q-card-section class="row items-center q-pb-none">
+              <div class="text-h6">{{ $t('ContactDetails', {}, 'Contact Details') }}</div>
+              <q-space />
+              <q-btn icon="close" flat round dense v-close-popup />
+            </q-card-section>
+
+            <q-card-section v-if="otherMemberContact">
+              <!-- Avatar and name -->
+              <div class="contact-header">
+                <q-avatar
+                  color="primary"
+                  text-color="white"
+                  size="64px"
+                  style="font-size: 28px;"
+                >
+                  {{ contactInitial }}
+                </q-avatar>
+                <div class="contact-header-info">
+                  <div v-if="!editingContactName" class="contact-display-name">
+                    {{ contactDisplayName }}
+                  </div>
+                  <q-input
+                    v-else
+                    v-model="editContactNameValue"
+                    outlined
+                    dense
+                    rounded
+                    class="contact-name-input"
+                    autofocus
+                    @keyup.enter="saveContactName"
+                  />
+                  <div class="contact-npub-display">{{ fullShortNpub }}</div>
+                </div>
+              </div>
+
+              <!-- Edit name button / actions -->
+              <div v-if="!editingContactName" class="edit-name-section">
+                <q-btn
+                  flat
+                  :label="$t('EditName', {}, 'Edit Name')"
+                  color="primary"
+                  icon="edit"
+                  class="full-width"
+                  @click="startEditContactName"
+                />
+              </div>
+              <div v-else class="edit-actions-row">
+                <q-btn
+                  flat
+                  :label="$t('Cancel', {}, 'Cancel')"
+                  color="grey"
+                  rounded
+                  @click="cancelEditContactName"
+                />
+                <q-btn
+                  unelevated
+                  :label="$t('Save', {}, 'Save')"
+                  color="primary"
+                  rounded
+                  :disable="!editContactNameValue.trim()"
+                  @click="saveContactName"
+                />
+              </div>
+
+              <!-- Use published name option -->
+              <div v-if="editingContactName && fetchedContactDisplayName" class="use-published-name-row q-mt-md">
+                <q-icon name="badge" size="16px" color="primary" />
+                <span class="use-published-name-text">
+                  {{ $t('UsePublishedDisplayName', {}, 'Use published display name:') }}
+                  <strong>{{ fetchedContactDisplayName }}</strong>
+                </span>
+                <q-btn
+                  flat
+                  dense
+                  :label="$t('Use', {}, 'Use')"
+                  color="primary"
+                  size="sm"
+                  @click="useFetchedContactDisplayName"
+                />
+              </div>
+
+              <!-- Copy npub -->
+              <q-btn
+                flat
+                :label="$t('CopyNpub', {}, 'Copy npub')"
+                color="primary"
+                icon="content_copy"
+                class="full-width q-mt-sm"
+                @click="copyContactNpub"
+              />
+            </q-card-section>
+
+            <q-card-actions align="right">
+              <q-btn flat :label="$t('Close', {}, 'Close')" color="primary" v-close-popup />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
       </div>
     </div>
   </div>
@@ -99,6 +200,8 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import { npubEncode } from 'nostr-tools/nip19'
+import { fetchPublishedDisplayName } from 'src/store/nostr-chat/actions'
+import { copyToClipboard } from 'quasar'
 
 export default {
   name: 'DmInfo',
@@ -111,6 +214,10 @@ export default {
       editingSubject: false,
       editSubjectValue: '',
       savingSubject: false,
+      showContactDetails: false,
+      editingContactName: false,
+      editContactNameValue: '',
+      fetchedContactDisplayName: null,
     }
   },
   computed: {
@@ -167,6 +274,21 @@ export default {
         this.$router.replace('/apps/chat')
       }
     },
+    async showContactDetails (val) {
+      this.fetchedContactDisplayName = null
+      if (val && this.otherMemberPubKey) {
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+            pubKeyHex: this.otherMemberPubKey,
+          })
+          if (displayName) {
+            this.fetchedContactDisplayName = displayName
+          }
+        } catch (err) {
+          console.warn('[DmInfo] Failed to fetch display name:', err)
+        }
+      }
+    },
   },
   methods: {
     getDarkModeClass,
@@ -199,6 +321,54 @@ export default {
         this.$q.notify({ type: 'negative', message: err.message || this.$t('SubjectUpdateFailed', {}, 'Failed to update subject') })
       } finally {
         this.savingSubject = false
+      }
+    },
+    openContactDetails () {
+      this.showContactDetails = true
+    },
+    startEditContactName () {
+      this.editContactNameValue = this.otherMemberContact?.name || this.contactDisplayName
+      this.editingContactName = true
+    },
+    cancelEditContactName () {
+      this.editingContactName = false
+      this.editContactNameValue = ''
+    },
+    async saveContactName () {
+      const name = this.editContactNameValue.trim()
+      const contact = this.otherMemberContact
+      if (!name || !contact) return
+      try {
+        await this.$store.dispatch('nostrChat/updateContact', {
+          npub: contact.npub,
+          name,
+        })
+        // Update room name if it's a DM room matching this contact
+        const room = this.$store.getters['nostrChat/getRoomByMember'](contact.pubKeyHex)
+        if (room && room.members.length === 2) {
+          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', {
+            roomId: room.id,
+            name,
+          })
+        }
+        this.editingContactName = false
+        this.$q.notify({ type: 'positive', message: this.$t('ContactRenamed', {}, 'Contact renamed') })
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('ContactRenameFailed', {}, 'Failed to rename contact') })
+      }
+    },
+    copyContactNpub () {
+      if (!this.otherMemberNpub) return
+      copyToClipboard(this.otherMemberNpub)
+      this.$q.notify({
+        type: 'positive',
+        message: this.$t('Copied', {}, 'Copied to clipboard'),
+        timeout: 1500,
+      })
+    },
+    useFetchedContactDisplayName () {
+      if (this.fetchedContactDisplayName) {
+        this.editContactNameValue = this.fetchedContactDisplayName
       }
     },
   },
@@ -293,6 +463,92 @@ export default {
   border-radius: 10px;
 }
 
+.contact-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.contact-details-card {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
+}
+
+.contact-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.contact-header-info {
+  text-align: center;
+  width: 100%;
+}
+
+.contact-display-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.contact-name-input {
+  max-width: 260px;
+  margin: 0 auto 8px;
+}
+
+.contact-name-input :deep(.q-field__control) {
+  border-radius: 10px;
+}
+
+.contact-npub-display {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.edit-name-section {
+  margin-top: 12px;
+}
+
+.edit-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.use-published-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.use-published-name-text {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.use-published-name-text strong {
+  display: block;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 2px;
+}
+
 .npub-caption {
   font-family: 'Courier New', monospace;
   font-size: 11px;
@@ -310,5 +566,30 @@ export default {
 .dark .subject-edit-section,
 .dark .contact-section {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.dark .contact-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .contact-display-name {
+  color: #f1f5f9;
+}
+
+.dark .contact-npub-display {
+  color: #94a3b8;
+}
+
+.dark .use-published-name-row {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .use-published-name-text {
+  color: #d1d5db;
+}
+
+.dark .use-published-name-text strong {
+  color: #f3f4f6;
 }
 </style>
