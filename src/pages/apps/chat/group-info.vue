@@ -76,7 +76,17 @@
 
         <!-- Members list -->
         <div class="members-section" :class="getDarkModeClass(darkMode)">
-          <div class="section-title">{{ $t('Members', {}, 'Members') }}</div>
+          <div class="section-title-row">
+            <div class="section-title">{{ $t('Members', {}, 'Members') }}</div>
+            <q-btn
+              flat
+              dense
+              round
+              icon="person_add"
+              color="primary"
+              @click="openAddMembers"
+            />
+          </div>
           <q-list separator>
             <q-item
               v-for="member in membersWithInfo"
@@ -112,6 +122,60 @@
             </q-item>
           </q-list>
         </div>
+
+        <!-- Add Members Dialog -->
+        <q-dialog v-model="showAddMembers">
+          <q-card class="add-members-card pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card-section class="row items-center q-pb-none">
+              <div class="text-h6">{{ $t('AddMembers', {}, 'Add Members') }}</div>
+              <q-space />
+              <q-btn icon="close" flat round dense v-close-popup />
+            </q-card-section>
+            <q-card-section>
+              <q-list style="max-height: 320px; overflow-y: auto;">
+                <q-item
+                  v-for="contact in addableContacts"
+                  :key="contact.npub"
+                  clickable
+                  @click="toggleNewMember(contact.npub)"
+                >
+                  <q-item-section avatar>
+                    <q-checkbox
+                      :model-value="selectedNewNpubs.includes(contact.npub)"
+                      @update:model-value="toggleNewMember(contact.npub)"
+                    />
+                  </q-item-section>
+                  <q-item-section avatar>
+                    <q-avatar color="grey-5" text-color="white" size="36px">
+                      {{ contact.name.charAt(0).toUpperCase() }}
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ contact.name }}</q-item-label>
+                    <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="addableContacts.length === 0">
+                  <q-item-section>
+                    <q-item-label class="text-grey">{{ $t('NoContactsToAdd', {}, 'All contacts are already in this group') }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-card-section>
+            <q-card-actions align="right">
+              <q-btn flat :label="$t('Cancel', {}, 'Cancel')" color="grey" v-close-popup />
+              <q-btn
+                unelevated
+                :label="$t('AddMembers', {}, 'Add Members')"
+                color="primary"
+                rounded
+                :disable="selectedNewNpubs.length === 0"
+                :loading="addingMembers"
+                @click="confirmAddMembers"
+              />
+            </q-card-actions>
+          </q-card>
+        </q-dialog>
 
         <!-- Leave group -->
         <div class="leave-section q-mt-md">
@@ -151,6 +215,9 @@ export default {
       editingName: false,
       editNameValue: '',
       savingName: false,
+      showAddMembers: false,
+      selectedNewNpubs: [],
+      addingMembers: false,
     }
   },
   computed: {
@@ -190,6 +257,10 @@ export default {
       if (theme === 'glassmorphic-green') return '#4caf50'
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
+    },
+    addableContacts () {
+      const existingHexes = this.room?.members || []
+      return this.contacts.filter(c => !existingHexes.includes(c.pubKeyHex))
     },
   },
   watch: {
@@ -256,6 +327,34 @@ export default {
           this.$q.notify({ type: 'negative', message: err.message || this.$t('LeaveGroupFailed', {}, 'Failed to leave group') })
         }
       })
+    },
+    openAddMembers () {
+      this.selectedNewNpubs = []
+      this.showAddMembers = true
+    },
+    toggleNewMember (npub) {
+      const idx = this.selectedNewNpubs.indexOf(npub)
+      if (idx >= 0) {
+        this.selectedNewNpubs.splice(idx, 1)
+      } else {
+        this.selectedNewNpubs.push(npub)
+      }
+    },
+    async confirmAddMembers () {
+      if (!this.selectedNewNpubs.length) return
+      this.addingMembers = true
+      try {
+        await this.$store.dispatch('nostrChat/addMembersToRoom', {
+          roomId: this.roomId,
+          newMemberNpubs: this.selectedNewNpubs,
+        })
+        this.showAddMembers = false
+        this.$q.notify({ type: 'positive', message: this.$t('MembersAdded', {}, 'Members added') })
+      } catch (err) {
+        this.$q.notify({ type: 'negative', message: err.message || this.$t('AddMembersFailed', {}, 'Failed to add members') })
+      } finally {
+        this.addingMembers = false
+      }
     },
     myDisplayName () {
       const myPub = this.myPubKey
@@ -348,6 +447,23 @@ export default {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 16px;
   padding: 16px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-title-row .section-title {
+  margin-bottom: 0;
+}
+
+.add-members-card {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
 }
 
 .member-item {

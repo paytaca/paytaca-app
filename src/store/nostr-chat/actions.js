@@ -49,6 +49,7 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
   commit('SET_KEYS', keys)
   commit('SET_READY', true)
   commit('SET_INITIALIZED', true)
+  commit('DEDUPLICATE_ROOMS')
 
   // Set up NIP-42 auth signer so relays like damus.io accept our publishes
   relayService.setAuthKey(keys.privKeyHex)
@@ -318,6 +319,69 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
 
   commit('ADD_ROOM', room)
   return room
+}
+
+export async function addMembersToRoom ({ state, commit }, { roomId, newMemberNpubs }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (!room) throw new Error('Room not found')
+
+  const myPubKey = state.keys.pubKeyHex
+  const myPrivKey = state.keys.privKeyHex
+
+  // Convert npubs → hex, deduplicate against existing members
+  const newHexes = newMemberNpubs.map(npub => {
+    if (npub.startsWith('npub1')) return nip19Decode(npub).data
+    return npub
+  }).filter(hex => !room.members.includes(hex))
+
+  if (!newHexes.length) return
+
+  // Resolve new member names for the system message text
+  const contacts = state.contacts || []
+  const newNames = newHexes.map(hex => {
+    const c = contacts.find(c => c.pubKeyHex === hex)
+    return c?.name || hex.slice(0, 8) + '...'
+  })
+  const text = newNames.length === 1
+    ? `${newNames[0]} was added to the group`
+    : `${newNames.slice(0, -1).join(', ')} and ${newNames[newNames.length - 1]} were added to the group`
+
+  // Build the kind:14 rumor using the ORIGINAL member list so that
+  // computeRoomId on the receiver side still matches the existing room.
+  // New members are included only as gift-wrap recipients, not as p-tags.
+  const originalMemberHexes = room.members.map(m => {
+    if (m.startsWith('npub1')) return nip19Decode(m).data
+    return m
+  })
+  const allRecipients = [...new Set([...originalMemberHexes, ...newHexes])]
+
+  const unsignedKind14 = createUnsignedKind14({
+    content: text,
+    senderPubKey: myPubKey,
+    members: originalMemberHexes, // p-tags: original members only → roomId stays the same
+    subject: room.subject || room.name,
+  })
+
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, myPrivKey, allRecipients)
+
+  const message = {
+    id: unsignedKind14.id,
+    content: text,
+    sender: myPubKey,
+    created_at: unsignedKind14.created_at,
+    roomId,
+    replyTo: null,
+    subject: room.subject || room.name,
+  }
+
+  // Update members locally AFTER building the message so the p-tags are correct
+  const updatedMembers = [...new Set([...room.members, ...newHexes])]
+  commit('UPDATE_ROOM_MEMBERS', { roomId, members: updatedMembers })
+  commit('ADD_MESSAGE', { roomId, message })
+
+  for (const giftWrap of giftWraps) {
+    await relayService.publishEvent(state.relays, giftWrap)
+  }
 }
 
 export async function sendMessage ({ state }, { roomId, text, replyTo, subject }) {
@@ -758,6 +822,33 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
   let room = state.rooms.find(r => r.id === roomId)
   if (!room) {
+    // Before creating a new room, check if an existing room has the same member set
+    // (handles the case where a room was previously stored under a different ID)
+    const memberKey = roomMembers.slice().sort().join(',')
+    const existingByMembers = state.rooms.find(r =>
+      (r.members || []).slice().sort().join(',') === memberKey
+    )
+    if (existingByMembers) {
+      // Reuse the existing room — store the message under its ID
+      room = existingByMembers
+      const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
+      const subject = rumor.tags.find(t => t[0] === 'subject')?.[1] || null
+      if (subject && room.subject !== subject) {
+        commit('UPDATE_ROOM_SUBJECT', { roomId: room.id, subject })
+      }
+      const msg = {
+        id: rumor.id,
+        content: rumor.content,
+        sender: rumor.pubkey,
+        created_at: rumor.created_at,
+        roomId: room.id,
+        replyTo,
+        subject,
+      }
+      commit('ADD_MESSAGE', { roomId: room.id, message: msg })
+      return
+    }
+
     // Skip auto-creation if the sender is blocked
     if (state.blockedContacts?.includes(rumor.pubkey)) return
 
