@@ -1506,4 +1506,13 @@ export default {
   padding: 2px 0;
   color: #111827;
 }
+
+.body--dark .seen-by-menu-inner .read-by-label {
+  color: #9ca3af;
+  background: transparent;
+}
+
+.body--dark .seen-by-menu-inner .read-by-name {
+  color: #f3f4f6;
+}
 </style>
