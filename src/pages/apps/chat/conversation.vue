@@ -622,6 +622,14 @@ export default {
         })
         if (sentByMe) {
           this.scrollToBottom()
+        } else {
+          // Auto-scroll for incoming messages only if already near the bottom
+          const container = this.$refs.messagesContainer
+          const nearBottom = container &&
+            container.scrollTop + container.clientHeight >= container.scrollHeight - 150
+          if (nearBottom) {
+            this.scrollToBottom()
+          }
         }
       }
       this.previousMessageCount = newLen

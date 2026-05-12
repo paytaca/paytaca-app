@@ -672,10 +672,21 @@ openScannerFromDialog () {
           const decoded = nip19Decode(npub)
           return decoded.data
         })
+        const name = this.groupName.trim()
         const room = await this.$store.dispatch('nostrChat/createGroupRoom', {
-          name: this.groupName.trim(),
+          name,
           members: memberPubKeys,
         })
+        // Send an initial message with the group name as subject so all members
+        // receive the room via the relay and can reconstruct it on any device
+        const text = this.$t('GroupCreatedWith', { name }, `Created group "${name}"`)
+        const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
+          roomId: room.id,
+          text,
+          subject: name,
+        })
+        this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
+        await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.showNewChatDialog = false
         this.$router.push(`/apps/chat/${room.id}`)
       } catch (err) {

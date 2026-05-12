@@ -689,10 +689,11 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     let room = state.rooms.find(r => r.id === roomId)
     if (!room) {
       if (state.blockedContacts?.includes(rumor.pubkey)) return
+      const isGroup = roomMembers.length > 2
       const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
       room = {
         id: roomId,
-        type: 'private',
+        type: isGroup ? 'group' : 'private',
         name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
         members: roomMembers,
         subject: null,
@@ -700,6 +701,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         updatedAt: rumor.created_at,
       }
       commit('ADD_ROOM', room)
+    } else if (room.type !== 'group' && roomMembers.length > 2) {
+      commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
     }
 
     const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
@@ -741,10 +744,11 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     // Skip auto-creation if the sender is blocked
     if (state.blockedContacts?.includes(rumor.pubkey)) return
 
+    const isGroup = roomMembers.length > 2
     const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
     room = {
       id: roomId,
-      type: 'private',
+      type: isGroup ? 'group' : 'private',
       name: contact?.name || rumor.pubkey.slice(0, 12) + '...',
       members: roomMembers,
       subject: null,
@@ -752,6 +756,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       updatedAt: rumor.created_at,
     }
     commit('ADD_ROOM', room)
+  } else if (room.type !== 'group' && roomMembers.length > 2) {
+    // Upgrade existing private room to group if we discover it has more than 2 members
+    commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
   }
 
   const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null

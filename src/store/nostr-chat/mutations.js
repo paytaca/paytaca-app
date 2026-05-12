@@ -67,6 +67,13 @@ export function UPDATE_ROOM_NAME (state, { roomId, name }) {
   }
 }
 
+export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
+  const room = state.rooms.find(r => r.id === roomId)
+  if (room) {
+    room.type = type
+  }
+}
+
 export function REMOVE_ROOM (state, roomId) {
   state.rooms = state.rooms.filter(r => r.id !== roomId)
   delete state.messages[roomId]
