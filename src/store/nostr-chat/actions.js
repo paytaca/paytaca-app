@@ -620,12 +620,18 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const readerPubKey = rumor.pubkey
 
     if (messageId && readerPubKey) {
-      const roomId = computeRoomId([myPubKey, readerPubKey])
-      commit('SET_MESSAGE_READ_BY', {
-        roomId,
-        messageId,
-        readerPubKey,
-      })
+      // Find the room that contains this message — avoids assuming a 2-person room,
+      // which breaks for group chats where computeRoomId needs all member pubkeys.
+      const roomId = Object.keys(state.messages).find(
+        rid => state.messages[rid]?.some(m => m.id === messageId)
+      )
+      if (roomId) {
+        commit('SET_MESSAGE_READ_BY', {
+          roomId,
+          messageId,
+          readerPubKey,
+        })
+      }
     }
     return
   }

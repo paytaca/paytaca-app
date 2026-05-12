@@ -105,13 +105,32 @@
       <div class="message-meta">
         <span v-if="message.edited" class="edited-label">{{ $t('Edited', {}, 'edited') }}</span>
         <span class="message-time">{{ formatTime(message.created_at) }}</span>
-        <q-icon
+        <span
           v-if="isMine"
-          name="done_all"
-          size="14px"
-          class="read-receipt"
-          :class="isRead ? 'read' : ''"
-        />
+          class="read-receipt-wrapper"
+          :class="{ 'has-readers': readByNames.length > 0 }"
+        >
+          <q-icon
+            :name="isRead ? 'done_all' : 'done'"
+            size="14px"
+            class="read-receipt"
+            :class="isRead ? 'read' : ''"
+          />
+          <q-tooltip
+            v-if="readByNames.length > 0"
+            anchor="top middle"
+            self="bottom middle"
+            :offset="[0, 4]"
+            class="read-by-tooltip"
+          >
+            <div class="read-by-label">{{ $t('SeenBy', {}, 'Seen by') }}</div>
+            <div
+              v-for="name in readByNames"
+              :key="name"
+              class="read-by-name"
+            >{{ name }}</div>
+          </q-tooltip>
+        </span>
       </div>
       <div v-if="groupedReactions.length" class="message-reactions">
         <span
@@ -265,6 +284,7 @@ export default {
     showSenderName: { type: Boolean, default: false },
     contacts: { type: Array, default: () => [] },
     isRead: { type: Boolean, default: true },
+    readByNames: { type: Array, default: () => [] },
     isNew: { type: Boolean, default: false },
     replyToMessage: { type: Object, default: null },
     isReplying: { type: Boolean, default: false },
@@ -1086,12 +1106,45 @@ export default {
   opacity: 0.6;
 }
 
+.read-receipt-wrapper {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
+.read-receipt-wrapper.has-readers {
+  cursor: pointer;
+}
+
 .read-receipt {
   font-size: 14px;
+  color: #fff;
 }
 
 .read-receipt.read {
   color: #34d399;
+}
+
+.read-by-tooltip {
+  padding: 8px 10px;
+  background: rgba(30, 30, 30, 0.92);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.read-by-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 4px;
+}
+
+.read-by-name {
+  color: #fff;
+  font-size: 13px;
 }
 
 /* Payment card */
@@ -1134,7 +1187,7 @@ export default {
 }
 
 .message-row.mine .message-bubble.is-image-bubble .read-receipt {
-  color: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .message-row.mine .message-bubble.is-image-bubble .read-receipt.read {
@@ -1398,7 +1451,7 @@ export default {
 }
 
 .dark .read-receipt {
-  color: #94a3b8;
+  color: #fff;
 }
 
 .dark .read-receipt.read {

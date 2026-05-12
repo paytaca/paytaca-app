@@ -301,6 +301,7 @@
             :show-sender-name="room?.type === 'group'"
             :contacts="contacts"
             :is-read="messageReadMap[msg.id] || false"
+            :read-by-names="readByNamesMap[msg.id] || []"
             :is-new="newMessageIds.has(msg.id)"
             :reply-to-message="getMessageById(msg.replyTo)"
             :is-replying="replyToMessage?.id === msg.id"
@@ -600,6 +601,28 @@ export default {
         if (msg.sender !== myPubKey) continue
         // Read if ANY other room member sent a 👀 reaction for this message
         map[msg.id] = Object.keys(readBy[msg.id] || {}).length > 0
+      }
+
+      return map
+    },
+    readByNamesMap () {
+      // For group chats: build a map of { [msgId]: [displayName, ...] } for reader avatars/tooltips
+      const map = {}
+      const myPubKey = this.myPubKey
+      const room = this.room
+      if (!room || !myPubKey || room.type !== 'group') return map
+
+      const readBy = this.$store.state.nostrChat.messageReadBy?.[this.roomId] || {}
+      const contacts = this.contacts
+
+      for (const msg of this.allMessages) {
+        if (msg.sender !== myPubKey) continue
+        const readers = Object.keys(readBy[msg.id] || {})
+        if (!readers.length) continue
+        map[msg.id] = readers.map(pubKey => {
+          const contact = contacts.find(c => c.pubKeyHex === pubKey)
+          return contact?.name || pubKey.slice(0, 8) + '...'
+        })
       }
 
       return map
