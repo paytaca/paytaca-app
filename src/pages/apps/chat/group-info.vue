@@ -82,10 +82,11 @@
               v-for="member in membersWithInfo"
               :key="member.pubKeyHex"
               class="member-item"
+              :class="{ 'member-item-me': member.isMe }"
             >
               <q-item-section avatar>
                 <q-avatar
-                  color="primary"
+                  :color="member.isMe ? 'primary' : 'grey-5'"
                   text-color="white"
                   size="44px"
                 >
@@ -93,9 +94,16 @@
                 </q-avatar>
               </q-item-section>
               <q-item-section>
-                <q-item-label class="text-weight-medium">
+                <q-item-label class="text-weight-medium member-name-row">
                   {{ member.displayName }}
-                  <span v-if="member.isMe" class="you-badge">{{ $t('You', {}, '(You)') }}</span>
+                  <q-badge
+                    v-if="member.isMe"
+                    color="primary"
+                    class="you-chip q-ml-xs"
+                    outline
+                  >
+                    {{ $t('You', {}, 'You') }}
+                  </q-badge>
                 </q-item-label>
                 <q-item-label caption class="npub-caption">
                   {{ member.displayNpub }}
@@ -160,7 +168,7 @@ export default {
     },
     membersWithInfo () {
       const members = this.room?.members || []
-      return members.map(pubKeyHex => {
+      const list = members.map(pubKeyHex => {
         const contact = this.contacts.find(c => c.pubKeyHex === pubKeyHex)
         let displayNpub = ''
         try { displayNpub = npubEncode(pubKeyHex) } catch { displayNpub = pubKeyHex }
@@ -173,6 +181,8 @@ export default {
           initial,
         }
       })
+      // Sort current user to the top
+      return list.sort((a, b) => (b.isMe ? 1 : 0) - (a.isMe ? 1 : 0))
     },
     themeColor () {
       const theme = this.$store.getters['global/theme']
@@ -348,11 +358,22 @@ export default {
   background: rgba(0, 0, 0, 0.02);
 }
 
-.you-badge {
-  font-size: 12px;
-  font-weight: 400;
-  color: #9ca3af;
-  margin-left: 4px;
+.member-item-me {
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 10px;
+}
+
+.member-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.you-chip {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .npub-caption {
@@ -390,5 +411,9 @@ export default {
 
 .dark .member-item:hover {
   background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .member-item-me {
+  background: rgba(59, 130, 246, 0.12);
 }
 </style>

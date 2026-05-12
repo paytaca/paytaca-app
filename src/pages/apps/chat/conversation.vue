@@ -23,6 +23,15 @@
             @click="$router.push(`/apps/chat/${roomId}/info`)"
           />
           <q-btn
+            v-if="!isGroupRoom"
+            flat
+            round
+            dense
+            icon="info"
+            class="header-info-btn"
+            @click="$router.push(`/apps/chat/${roomId}/dm-info`)"
+          />
+          <q-btn
             flat
             round
             dense
@@ -52,6 +61,14 @@
               </q-item-section>
               <q-item-section>
                 {{ $t('GroupInfo', {}, 'Group Info') }}
+              </q-item-section>
+            </q-item>
+            <q-item v-if="!isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/dm-info`)">
+              <q-item-section side>
+                <q-icon name="info" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('ConversationInfo', {}, 'Conversation Info') }}
               </q-item-section>
             </q-item>
             <q-separator v-if="!isGroupRoom && otherMemberContact || isGroupRoom" />

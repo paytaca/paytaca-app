@@ -450,6 +450,12 @@ const routes = [
             component: () => import('src/pages/apps/chat/group-info.vue')
           },
           {
+            path: ':roomId/dm-info',
+            name: 'app-chat-dm-info',
+            props: true,
+            component: () => import('src/pages/apps/chat/dm-info.vue')
+          },
+          {
             path: ':roomId',
             name: 'app-chat-conversation',
             props: true,

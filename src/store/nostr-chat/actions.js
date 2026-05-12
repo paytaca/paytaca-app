@@ -320,7 +320,7 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
   return room
 }
 
-export async function sendMessage ({ state }, { roomId, text, replyTo }) {
+export async function sendMessage ({ state }, { roomId, text, replyTo, subject }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
 
@@ -341,6 +341,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo }) {
     senderPubKey,
     members: memberHexes,
     replyTo,
+    subject,
   })
 
   const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
