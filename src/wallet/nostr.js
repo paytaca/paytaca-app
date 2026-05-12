@@ -160,8 +160,24 @@ export async function createReadReceiptGiftWrap({ messageId, senderPubKey, recei
   }
   kind7.id = getEventHash(kind7)
 
-  const receiverPrivKeyBytes = hexToBytes(receiverPrivKey)
-  const giftWrap = nip59.wrapEvent(kind7, receiverPrivKeyBytes, senderPubKey)
+  const privKeyBytes = hexToBytes(receiverPrivKey)
+  const TWO_DAYS = 2 * 24 * 60 * 60
+  const randomStamp = () => Math.round(Date.now() / 1000 - Math.random() * TWO_DAYS)
+
+  const seal = nip59.createSeal(kind7, privKeyBytes, senderPubKey)
+
+  const randomKey = generateSecretKey()
+  const conversationKey = nip44.getConversationKey(randomKey, senderPubKey)
+  const giftWrap = finalizeEvent({
+    kind: 1059,
+    content: nip44.encrypt(JSON.stringify(seal), conversationKey),
+    created_at: randomStamp(),
+    tags: [
+      ['p', senderPubKey],
+      ['nonotif', 'read-receipt'],
+    ],
+  }, randomKey)
+
   return giftWrap
 }
 
