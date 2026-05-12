@@ -1,4 +1,4 @@
-import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWrap, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
+import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
 import { finalizeEvent, verifyEvent } from 'nostr-tools'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
@@ -525,9 +525,10 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
   const otherMembers = memberHexes.filter(m => m !== reactorPubKey)
   const senderPubKey = otherMembers[0] || reactorPubKey
 
-  const giftWrap = await createReactionGiftWrap({
+  const giftWraps = await createReactionGiftWraps({
     messageId,
     senderPubKey,
+    recipientPubKeys: memberHexes,
     emoji,
     reactorPubKey,
     reactorPrivKey,
@@ -541,7 +542,9 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
     createdAt: Date.now(),
   })
 
-  await relayService.publishEvent(state.relays, giftWrap)
+  for (const giftWrap of giftWraps) {
+    await relayService.publishEvent(state.relays, giftWrap)
+  }
 }
 
 export async function removeReaction ({ state, commit }, { roomId, messageId, emoji }) {
@@ -568,15 +571,18 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
     emoji,
   })
 
-  const giftWrap = await createReactionGiftWrap({
+  const giftWraps = await createReactionGiftWraps({
     messageId,
     senderPubKey,
+    recipientPubKeys: memberHexes,
     emoji: `-${emoji}`,
     reactorPubKey,
     reactorPrivKey,
   })
 
-  await relayService.publishEvent(state.relays, giftWrap)
+  for (const giftWrap of giftWraps) {
+    await relayService.publishEvent(state.relays, giftWrap)
+  }
 }
 
 export async function publishGiftWraps ({ state }, { giftWraps }) {
@@ -647,7 +653,12 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const isDeletion = content.startsWith('-')
 
     if (messageId && reactorPubKey && content) {
-      const roomId = computeRoomId([myPubKey, reactorPubKey])
+      // Find the room that contains this message — avoids assuming a 2-person room,
+      // which breaks for group chats where computeRoomId needs all member pubkeys.
+      const roomId = Object.keys(state.messages).find(
+        rid => state.messages[rid]?.some(m => m.id === messageId)
+      )
+      if (!roomId) return
 
       if (isDeletion) {
         const emoji = content.slice(1)

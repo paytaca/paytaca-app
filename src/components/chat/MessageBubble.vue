@@ -116,20 +116,22 @@
             class="read-receipt"
             :class="isRead ? 'read' : ''"
           />
-          <q-tooltip
+          <q-menu
             v-if="readByNames.length > 0"
             anchor="top middle"
             self="bottom middle"
-            :offset="[0, 4]"
-            class="read-by-tooltip"
+            :offset="[0, 6]"
+            class="seen-by-menu"
           >
-            <div class="read-by-label">{{ $t('SeenBy', {}, 'Seen by') }}</div>
-            <div
-              v-for="name in readByNames"
-              :key="name"
-              class="read-by-name"
-            >{{ name }}</div>
-          </q-tooltip>
+            <div class="seen-by-menu-inner">
+              <div class="read-by-label">{{ $t('SeenBy', {}, 'Seen by') }}</div>
+              <div
+                v-for="name in readByNames"
+                :key="name"
+                class="read-by-name"
+              >{{ name }}</div>
+            </div>
+          </q-menu>
         </span>
       </div>
       <div v-if="groupedReactions.length" class="message-reactions">
@@ -1125,26 +1127,10 @@ export default {
   color: #34d399;
 }
 
-.read-by-tooltip {
-  padding: 8px 10px;
-  background: rgba(30, 30, 30, 0.92);
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.read-by-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 4px;
-}
-
-.read-by-name {
-  color: #fff;
-  font-size: 13px;
+.seen-by-menu {
+  border-radius: 10px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18) !important;
+  overflow: hidden;
 }
 
 /* Payment card */
@@ -1489,5 +1475,35 @@ export default {
     background-color: #1e293b;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
+}
+</style>
+
+<style>
+/* Global styles for seen-by q-menu portal content (unscoped — q-menu renders outside component) */
+.seen-by-menu-inner {
+  padding: 10px 14px;
+  min-width: 120px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.seen-by-menu-inner .read-by-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin-bottom: 6px;
+  position: sticky;
+  top: 0;
+  background: inherit;
+  padding-top: 2px;
+  padding-bottom: 4px;
+}
+
+.seen-by-menu-inner .read-by-name {
+  font-size: 13px;
+  padding: 2px 0;
+  color: #111827;
 }
 </style>

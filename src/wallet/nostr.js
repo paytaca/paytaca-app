@@ -127,7 +127,7 @@ export function unwrapGiftWrap(giftWrap, receiverPrivKey) {
  * @param {string} [opts.relayHint] - Optional relay hint
  * @returns {Promise<import('nostr-tools').NostrEvent>} - Gift-wrapped Kind 7 event
  */
-export async function createReactionGiftWrap({ messageId, senderPubKey, emoji, reactorPubKey, reactorPrivKey, relayHint = '' }) {
+export async function createReactionGiftWraps({ messageId, senderPubKey, recipientPubKeys, emoji, reactorPubKey, reactorPrivKey, relayHint = '' }) {
   const kind7 = {
     kind: 7,
     pubkey: reactorPubKey,
@@ -142,8 +142,8 @@ export async function createReactionGiftWrap({ messageId, senderPubKey, emoji, r
   kind7.id = getEventHash(kind7)
 
   const reactorPrivKeyBytes = hexToBytes(reactorPrivKey)
-  const giftWrap = nip59.wrapEvent(kind7, reactorPrivKeyBytes, senderPubKey)
-  return giftWrap
+  const giftWraps = nip59.wrapManyEvents(kind7, reactorPrivKeyBytes, recipientPubKeys)
+  return giftWraps
 }
 
 export async function createReadReceiptGiftWrap({ messageId, senderPubKey, receiverPubKey, receiverPrivKey, relayHint = '' }) {
