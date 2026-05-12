@@ -160,6 +160,21 @@
             autofocus
             @keyup.enter="renameContact"
           />
+          <div v-if="fetchedDisplayName && otherMemberContact?.name" class="use-published-name-row q-mb-md">
+            <q-icon name="badge" size="16px" color="primary" />
+            <span class="use-published-name-text">
+              {{ $t('OverrideWithPublishedName', {}, 'Override with published name:') }}
+              <strong>{{ fetchedDisplayName }}</strong>
+            </span>
+            <q-btn
+              flat
+              dense
+              :label="$t('Use', {}, 'Use')"
+              color="primary"
+              size="sm"
+              @click="useFetchedDisplayName"
+            />
+          </div>
           <q-btn
             :label="$t('Save', {}, 'Save')"
             color="primary"
@@ -253,6 +268,21 @@
             readonly
             class="q-mb-md"
           />
+          <div v-if="fetchedDisplayName" class="use-published-name-row q-mb-md">
+            <q-icon name="badge" size="16px" color="primary" />
+            <span class="use-published-name-text">
+              {{ $t('UsePublishedDisplayName', {}, 'Use published display name:') }}
+              <strong>{{ fetchedDisplayName }}</strong>
+            </span>
+            <q-btn
+              flat
+              dense
+              :label="$t('Use', {}, 'Use')"
+              color="primary"
+              size="sm"
+              @click="useFetchedDisplayName"
+            />
+          </div>
           <q-btn
             :label="$t('AddContact', {}, 'Add Contact')"
             color="primary"
@@ -432,6 +462,7 @@ import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
+import { fetchPublishedDisplayName } from 'src/store/nostr-chat/actions'
 
 export default {
   name: 'ChatConversation',
@@ -445,6 +476,7 @@ export default {
       previousMessageCount: 0,
       showSaveContactDialog: false,
       saveContactName: '',
+      fetchedDisplayName: null,
       showRenameDialog: false,
       renameContactName: '',
       showRenameGroupDialog: false,
@@ -660,6 +692,36 @@ export default {
     room (val) {
       if (!val) {
         this.$router.replace('/apps/chat')
+      }
+    },
+    async showSaveContactDialog (val) {
+      this.fetchedDisplayName = null
+      if (val && this.otherMemberPubKey) {
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+            pubKeyHex: this.otherMemberPubKey,
+          })
+          if (displayName) {
+            this.fetchedDisplayName = displayName
+          }
+        } catch (err) {
+          console.warn('[Conversation] Failed to fetch display name:', err)
+        }
+      }
+    },
+    async showRenameDialog (val) {
+      this.fetchedDisplayName = null
+      if (val && this.otherMemberPubKey) {
+        try {
+          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+            pubKeyHex: this.otherMemberPubKey,
+          })
+          if (displayName) {
+            this.fetchedDisplayName = displayName
+          }
+        } catch (err) {
+          console.warn('[Conversation] Failed to fetch display name:', err)
+        }
       }
     },
   },
@@ -1098,6 +1160,15 @@ export default {
           type: 'negative',
           message: this.$t('ContactSaveFailed', {}, 'Failed to save contact') + ': ' + err.message,
         })
+      }
+    },
+    useFetchedDisplayName () {
+      if (this.fetchedDisplayName) {
+        if (this.showRenameDialog) {
+          this.renameContactName = this.fetchedDisplayName
+        } else if (this.showSaveContactDialog) {
+          this.saveContactName = this.fetchedDisplayName
+        }
       }
     },
     openRenameDialog () {
@@ -1576,6 +1647,44 @@ export default {
 
 .dialog-header {
   padding-bottom: 8px;
+}
+
+.use-published-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.use-published-name-text {
+  flex: 1;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.use-published-name-text strong {
+  display: block;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 2px;
+}
+
+/* Dark mode */
+.dark .use-published-name-row {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .use-published-name-text {
+  color: #d1d5db;
+}
+
+.dark .use-published-name-text strong {
+  color: #f3f4f6;
 }
 
 /* Reply bar */

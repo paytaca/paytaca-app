@@ -267,3 +267,24 @@ export function CLEAR_PROFILE_BCH_ADDRESS (state) {
   state.profile.bchAddress = null
   state.profile.publishedAt = null
 }
+
+export function SET_PROFILE_DISPLAY_NAME (state, { displayName, publishedAt }) {
+  if (!state.profile) state.profile = {}
+  state.profile.displayName = displayName
+  state.profile.displayNamePublishedAt = publishedAt
+}
+
+export function CLEAR_PROFILE_DISPLAY_NAME (state) {
+  if (!state.profile) state.profile = {}
+  state.profile.displayName = null
+  state.profile.displayNamePublishedAt = null
+}
+
+export function RESET_PROFILE (state) {
+  state.profile = {
+    bchAddress: null,
+    publishedAt: null,
+    displayName: null,
+    displayNamePublishedAt: null,
+  }
+}

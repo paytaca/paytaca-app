@@ -206,14 +206,6 @@
 
             <q-tab-panel name="add" class="q-px-none">
               <q-input
-                v-model="newContactName"
-                :label="$t('Name', {}, 'Name')"
-                outlined
-                dense
-                rounded
-                class="q-mb-md"
-              />
-              <q-input
                 v-model="newContactNpub"
                 :label="$t('Npub', {}, 'npub...')"
                 outlined
@@ -222,6 +214,7 @@
                 class="q-mb-md"
                 :error="!!npubError"
                 :error-message="npubError"
+                autofocus
               >
                 <template #append>
                   <q-btn
@@ -234,6 +227,22 @@
                   />
                 </template>
               </q-input>
+
+              <q-input
+                v-model="newContactName"
+                :label="$t('Name', {}, 'Name')"
+                outlined
+                dense
+                rounded
+                class="q-mb-md"
+              />
+
+              <div v-if="fetchedContactDisplayName" class="fetched-name-hint q-mb-md">
+                <q-icon name="badge" size="16px" color="primary" />
+                <span class="fetched-name-text">
+                  {{ $t('UsingPublishedDisplayName', {}, 'Using published display name') }}
+                </span>
+              </div>
 
               <q-btn
                 :label="$t('AddContact', {}, 'Add Contact')"
@@ -333,6 +342,7 @@ export default {
       npubError: '',
       groupName: '',
       selectedMemberNpubs: [],
+      fetchedContactDisplayName: null,
     }
   },
   computed: {
@@ -389,7 +399,28 @@ export default {
         this.newContactName = ''
         this.newContactNpub = ''
         this.npubError = ''
+        this.fetchedContactDisplayName = null
         this.dialogTab = 'contacts'
+      }
+    },
+    async newContactNpub (val) {
+      this.fetchedContactDisplayName = null
+      const trimmed = val?.trim()
+      if (trimmed && trimmed.startsWith('npub')) {
+        try {
+          const decoded = nip19Decode(trimmed)
+          if (decoded.type === 'npub' && decoded.data) {
+            const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
+              pubKeyHex: decoded.data,
+            })
+            if (displayName && !this.newContactName.trim()) {
+              this.fetchedContactDisplayName = displayName
+              this.newContactName = displayName
+            }
+          }
+        } catch (err) {
+          console.warn('[Chat] Failed to fetch display name for npub:', err)
+        }
       }
     },
   },
@@ -962,6 +993,23 @@ openScannerFromDialog () {
   padding-bottom: 8px;
 }
 
+.fetched-name-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  margin-bottom: 16px;
+}
+
+.fetched-name-text {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
 .contact-item {
   padding: 10px 4px;
   border-radius: 10px;
@@ -1066,6 +1114,15 @@ openScannerFromDialog () {
 
 .dark .contact-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .fetched-name-hint {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.dark .fetched-name-text {
+  color: #d1d5db;
 }
 
 .dark .group-member-item:hover {

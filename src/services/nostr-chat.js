@@ -401,6 +401,27 @@ export async function fetchBchAddress(relays, pubKey) {
 }
 
 /**
+ * Fetch a user's published display name (paytaca:display-name) from relays.
+ * @param {string[]} relays
+ * @param {string} pubKey - Hex pubkey
+ * @returns {Promise<import('nostr-tools').Event|null>}
+ */
+export async function fetchDisplayName(relays, pubKey) {
+  const pool = getPool()
+  try {
+    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
+    const match = events?.find(e => {
+      const dTag = e.tags?.find(t => t[0] === 'd')
+      return dTag && dTag[1] === 'paytaca:display-name'
+    })
+    return match || null
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch display name:', err)
+    return null
+  }
+}
+
+/**
  * Query for historical kind:1059 gift-wraps addressed to our pubkey.
  * This catches messages that were published before our subscription was active.
  * @param {string[]} relays

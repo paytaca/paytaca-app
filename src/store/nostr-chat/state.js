@@ -24,6 +24,8 @@ export default function () {
     profile: {
       bchAddress: null,
       publishedAt: null,
+      displayName: null,
+      displayNamePublishedAt: null,
     },
   }
 }

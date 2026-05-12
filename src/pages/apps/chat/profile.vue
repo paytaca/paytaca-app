@@ -12,7 +12,7 @@
       />
 
       <div class="profile-body">
-        <!-- Identity card -->
+        <!-- Identity Card -->
         <div
           class="identity-card"
           :class="getDarkModeClass(darkMode)"
@@ -26,7 +26,7 @@
             <q-icon name="account_circle" size="56px" />
           </q-avatar>
           <div class="identity-info">
-            <div class="identity-label">{{ $t('YourNostrID', {}, 'Your Nostr ID') }}</div>
+            <div class="identity-name">{{ profileDisplayName || 'No display name' }}</div>
             <div class="identity-npub" @click="copyNpub">
               <span class="npub-text">{{ displayNpub }}</span>
               <q-icon name="content_copy" size="14px" class="copy-icon" />
@@ -34,116 +34,157 @@
           </div>
         </div>
 
-        <!-- BCH Address Section -->
-        <div class="address-section q-mt-md">
-          <div class="section-header-row">
-            <div class="section-title">{{ $t('BCHAddress', {}, 'BCH Address') }}</div>
-            <q-btn
-              v-if="!editingAddress"
-              flat
-              dense
-              round
-              icon="edit"
-              color="primary"
-              @click="startEditAddress"
-            />
-          </div>
-
-          <div class="section-description">
-            {{ $t('BCHAddressDescription', {}, 'Associate a BCH address with your Nostr profile so others can send you BCH directly from chat.') }}
-          </div>
-
-          <!-- Published address display -->
-          <div v-if="!editingAddress && profileAddress" class="address-display">
-            <q-icon name="account_balance_wallet" size="20px" color="positive" />
-            <div class="address-text">{{ profileAddress }}</div>
-            <q-btn
-              flat
-              dense
-              round
-              icon="content_copy"
-              size="sm"
-              @click="copyAddress"
-            />
-          </div>
-
-          <!-- No address published -->
-          <div v-else-if="!editingAddress && !profileAddress" class="address-empty">
-            <q-icon name="info" size="20px" color="grey-5" />
-            <span>{{ $t('NoBCHAddress', {}, 'No BCH address published') }}</span>
-          </div>
-
-          <!-- Edit form -->
-          <div v-if="editingAddress" class="address-edit">
-            <q-input
-              v-model="editAddressValue"
-              outlined
-              dense
-              :label="$t('BCHAddress', {}, 'BCH Address')"
-              placeholder="bitcoincash:qz..."
-              :error="addressError"
-              :error-message="addressErrorMessage"
-              class="address-input"
-              @update:model-value="validateInput"
-            >
-              <template #append>
+        <!-- Settings Sections -->
+        <div class="settings-section q-mt-lg">
+          
+          <!-- Display Name Row -->
+          <div class="setting-row">
+            <div class="setting-content">
+              <div class="setting-label">{{ $t('DisplayName', {}, 'Display Name') }}</div>
+              <div v-if="!editingDisplayName" class="setting-value">
+                {{ profileDisplayName || $t('NotSet', {}, 'Not set') }}
+              </div>
+              <q-input
+                v-else
+                v-model="editDisplayNameValue"
+                outlined
+                dense
+                :placeholder="$t('DisplayNamePlaceholder', {}, 'e.g. Alice')"
+                :error="displayNameError"
+                :error-message="displayNameErrorMessage"
+                class="setting-input"
+                @update:model-value="validateDisplayName"
+              />
+            </div>
+            <div class="setting-actions">
+              <template v-if="!editingDisplayName">
                 <q-btn
-                  v-if="editAddressValue"
+                  v-if="profileDisplayName"
+                  flat
+                  dense
+                  round
+                  icon="delete"
+                  color="grey-6"
+                  @click="removeDisplayName"
+                />
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="edit"
+                  color="primary"
+                  @click="startEditDisplayName"
+                />
+              </template>
+              <template v-else>
+                <q-btn
                   flat
                   dense
                   round
                   icon="clear"
-                  size="sm"
-                  @click="editAddressValue = ''"
+                  color="grey-6"
+                  @click="cancelEditDisplayName"
+                />
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="check"
+                  color="positive"
+                  :disable="!displayNameValid"
+                  @click="publishDisplayName"
                 />
               </template>
-            </q-input>
-
-            <div class="edit-actions q-mt-sm">
-              <q-btn
-                flat
-                :label="$t('Cancel', {}, 'Cancel')"
-                color="grey"
-                @click="cancelEdit"
-              />
-              <q-btn
-                v-if="profileAddress"
-                flat
-                :label="$t('Remove', {}, 'Remove')"
-                color="negative"
-                :loading="removing"
-                @click="removeAddress"
-              />
-              <q-btn
-                unelevated
-                :label="$t('Publish', {}, 'Publish')"
-                color="positive"
-                :loading="publishing"
-                :disable="!addressValid"
-                @click="publishAddress"
-              />
             </div>
           </div>
-        </div>
 
-        <!-- Info box -->
-        <div class="info-box q-mt-md">
-          <q-icon name="security" size="18px" color="primary" />
-          <div class="info-text">
-            {{ $t('BCHAddressInfo', {}, 'Your BCH address is signed with your Nostr private key and published as a verifiable event. Anyone can verify that you (the owner of this Nostr identity) published this address.') }}
+          <q-separator :color="darkMode ? 'white-10' : 'black-5'" />
+
+          <!-- BCH Address Row -->
+          <div class="setting-row">
+            <div class="setting-content">
+              <div class="setting-label">{{ $t('BCHAddress', {}, 'BCH Address') }}</div>
+              <div v-if="!editingAddress" class="setting-value">
+                {{ profileAddress ? profileAddress.slice(0, 12) + '...' + profileAddress.slice(-8) : $t('NotSet', {}, 'Not set') }}
+              </div>
+              <q-input
+                v-else
+                v-model="editAddressValue"
+                outlined
+                dense
+                placeholder="bitcoincash:qz..."
+                :error="addressError"
+                :error-message="addressErrorMessage"
+                class="setting-input"
+                @update:model-value="validateInput"
+              >
+                <template #hint>
+                  <div v-if="addressGeneratedFromWallet" class="address-hint">
+                    <q-icon name="info" size="14px" />
+                    <span>This is a fresh address generated from your wallet</span>
+                  </div>
+                </template>
+              </q-input>
+            </div>
+            <div class="setting-actions">
+              <template v-if="!editingAddress">
+                <q-btn
+                  v-if="profileAddress"
+                  flat
+                  dense
+                  round
+                  icon="content_copy"
+                  color="grey-6"
+                  @click="copyAddress"
+                />
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="edit"
+                  color="primary"
+                  @click="startEditAddress"
+                />
+              </template>
+              <template v-else>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="refresh"
+                  color="primary"
+                  :loading="generatingAddress"
+                  @click="generateNewAddress"
+                />
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="clear"
+                  color="grey-6"
+                  @click="cancelEdit"
+                />
+                <q-btn
+                  flat
+                  dense
+                  round
+                  icon="check"
+                  color="positive"
+                  :disable="!addressValid"
+                  @click="publishAddress"
+                />
+              </template>
+            </div>
           </div>
+
         </div>
 
-        <!-- Cache management -->
-        <div class="cache-section q-mt-md">
-          <div
-            class="section-title"
-            :style="{ color: darkMode ? '#9ca3af' : '#6b7280' }"
-          >{{ $t('ChatCache', {}, 'Chat Cache') }}</div>
-          <div
-            class="section-description"
-            :style="{ color: darkMode ? '#9ca3af' : '#6b7280' }"
-          >
+        <!-- Cache Management -->
+        <div class="danger-section q-mt-lg">
+          <div class="section-label">
+            {{ $t('ChatCache', {}, 'Chat Cache') }}
+          </div>
+          <div class="section-description">
             {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
           </div>
           <q-btn
@@ -169,6 +210,7 @@ import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
 import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
+import { copyToClipboard } from 'quasar'
 
 export default {
   name: 'ChatProfile',
@@ -182,7 +224,16 @@ export default {
       addressErrorMessage: '',
       publishing: false,
       removing: false,
+      editingDisplayName: false,
+      editDisplayNameValue: '',
+      displayNameValid: false,
+      displayNameError: false,
+      displayNameErrorMessage: '',
+      publishingDisplayName: false,
+      removingDisplayName: false,
       clearingCache: false,
+      addressGeneratedFromWallet: false,
+      generatingAddress: false,
     }
   },
   computed: {
@@ -203,6 +254,9 @@ export default {
     profileAddress () {
       return this.$store.state.nostrChat.profile?.bchAddress || null
     },
+    profileDisplayName () {
+      return this.$store.state.nostrChat.profile?.displayName || null
+    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return '#f54270'
@@ -215,7 +269,7 @@ export default {
     getDarkModeClass,
     copyNpub () {
       if (!this.myNpub) return
-      this.$copyToClipboard(this.myNpub)
+      copyToClipboard(this.myNpub)
       this.$q.notify({
         type: 'positive',
         message: this.$t('Copied', {}, 'Copied to clipboard'),
@@ -224,7 +278,7 @@ export default {
     },
     copyAddress () {
       if (!this.profileAddress) return
-      this.$copyToClipboard(this.profileAddress)
+      copyToClipboard(this.profileAddress)
       this.$q.notify({
         type: 'positive',
         message: this.$t('Copied', {}, 'Copied to clipboard'),
@@ -233,25 +287,30 @@ export default {
     },
     async startEditAddress () {
       this.editingAddress = true
+      this.addressGeneratedFromWallet = false
       // Pre-fill with currently published address if available
       if (this.profileAddress) {
         this.editAddressValue = this.profileAddress
         this.validateInput()
         return
       }
-      // Otherwise fetch the latest receiving address from the wallet
+      // Otherwise fetch the next receiving address from the wallet (lastIndex + 1)
       try {
+        // First sync last address index from watchtower
+        await this.$store.dispatch('global/loadWalletLastAddressIndex')
+        
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const wallet = await cachedLoadWallet('BCH', walletIndex)
         const bchWallet = getWalletByNetwork(wallet, 'bch')
         if (bchWallet?.getAddressSetAt) {
           const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
           const addressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0
-            ? lastAddressIndex
+            ? lastAddressIndex + 1
             : 0
           const addressSet = await bchWallet.getAddressSetAt(addressIndex)
           if (addressSet?.receiving) {
             this.editAddressValue = addressSet.receiving
+            this.addressGeneratedFromWallet = true
             this.validateInput()
             return
           }
@@ -262,11 +321,51 @@ export default {
       this.editAddressValue = ''
       this.validateInput()
     },
+    async generateNewAddress () {
+      this.generatingAddress = true
+      try {
+        // Sync last address index from watchtower
+        await this.$store.dispatch('global/loadWalletLastAddressIndex')
+        
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const wallet = await cachedLoadWallet('BCH', walletIndex)
+        const bchWallet = getWalletByNetwork(wallet, 'bch')
+        if (bchWallet?.getAddressSetAt) {
+          const lastAddressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
+          const addressIndex = typeof lastAddressIndex === 'number' && lastAddressIndex >= 0
+            ? lastAddressIndex + 1
+            : 0
+          const addressSet = await bchWallet.getAddressSetAt(addressIndex)
+          if (addressSet?.receiving) {
+            this.editAddressValue = addressSet.receiving
+            this.addressGeneratedFromWallet = true
+            this.validateInput()
+            this.$q.notify({
+              type: 'positive',
+              message: this.$t('NewAddressGenerated', {}, 'New address generated'),
+              timeout: 1500,
+            })
+            return
+          }
+        }
+        throw new Error('Failed to generate address')
+      } catch (err) {
+        console.warn('[Profile] Failed to generate new address:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: err.message || this.$t('GenerateAddressFailed', {}, 'Failed to generate new address'),
+        })
+      } finally {
+        this.generatingAddress = false
+      }
+    },
     cancelEdit () {
       this.editingAddress = false
       this.editAddressValue = ''
       this.addressError = false
       this.addressValid = false
+      this.addressGeneratedFromWallet = false
+      this.generatingAddress = false
     },
     validateInput () {
       if (!this.editAddressValue) {
@@ -320,6 +419,85 @@ export default {
         this.removing = false
       }
     },
+    startEditDisplayName () {
+      this.editingDisplayName = true
+      this.editDisplayNameValue = this.profileDisplayName || ''
+      this.validateDisplayName()
+    },
+    cancelEditDisplayName () {
+      this.editingDisplayName = false
+      this.editDisplayNameValue = ''
+      this.displayNameError = false
+      this.displayNameValid = false
+    },
+    validateDisplayName () {
+      const val = this.editDisplayNameValue.trim()
+      if (!val) {
+        this.displayNameValid = false
+        this.displayNameError = false
+        this.displayNameErrorMessage = ''
+        return
+      }
+      if (val.length > 50) {
+        this.displayNameValid = false
+        this.displayNameError = true
+        this.displayNameErrorMessage = this.$t('DisplayNameTooLong', {}, 'Display name must be 50 characters or fewer')
+        return
+      }
+      this.displayNameValid = true
+      this.displayNameError = false
+      this.displayNameErrorMessage = ''
+    },
+    async publishDisplayName () {
+      if (!this.displayNameValid) return
+      this.publishingDisplayName = true
+      try {
+        await this.$store.dispatch('nostrChat/publishDisplayName', {
+          displayName: this.editDisplayNameValue.trim(),
+        })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('DisplayNamePublished', {}, 'Display name published successfully'),
+        })
+        this.editingDisplayName = false
+      } catch (err) {
+        console.error('[Profile] Failed to publish display name:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: err.message || this.$t('PublishFailed', {}, 'Failed to publish display name'),
+        })
+      } finally {
+        this.publishingDisplayName = false
+      }
+    },
+    async removeDisplayName () {
+      this.$q.dialog({
+        title: this.$t('RemoveDisplayName', {}, 'Remove Display Name'),
+        message: this.$t('RemoveDisplayNameConfirm', {}, 'Remove your published display name? Others will no longer see it when adding you as a contact.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Remove', {}, 'Remove'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.removingDisplayName = true
+        try {
+          await this.$store.dispatch('nostrChat/removeDisplayName')
+          this.$q.notify({
+            type: 'positive',
+            message: this.$t('DisplayNameRemoved', {}, 'Display name removed'),
+          })
+          this.editingDisplayName = false
+        } catch (err) {
+          console.error('[Profile] Failed to remove display name:', err)
+          this.$q.notify({
+            type: 'negative',
+            message: err.message || this.$t('RemoveFailed', {}, 'Failed to remove display name'),
+          })
+        } finally {
+          this.removingDisplayName = false
+        }
+      })
+    },
     async confirmClearCache () {
       this.$q.dialog({
         title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
@@ -361,16 +539,18 @@ export default {
   margin: 0 auto;
 }
 
+/* Identity Card */
 .identity-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   padding: 20px;
   border-radius: 16px;
 }
 
 .identity-avatar {
   color: #ffffff;
+  flex-shrink: 0;
 }
 
 .identity-info {
@@ -378,28 +558,32 @@ export default {
   min-width: 0;
 }
 
-.identity-label {
-  font-size: 12px;
+.identity-name {
+  font-size: 18px;
   font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #1f2937;
   margin-bottom: 4px;
 }
 
 .identity-npub {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.identity-npub:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .npub-text {
   font-family: 'Courier New', monospace;
-  font-size: 14px;
-  color: #1f2937;
-  word-break: break-all;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .copy-icon {
@@ -407,129 +591,121 @@ export default {
   flex-shrink: 0;
 }
 
-.address-section {
+/* Settings Section */
+.settings-section {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 16px;
-  padding: 16px;
+  padding: 8px 0;
 }
 
-.section-header-row {
+.setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  padding: 14px 16px;
+  gap: 12px;
 }
 
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
+.setting-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-label {
+  font-size: 14px;
+  font-weight: 500;
   color: #1f2937;
+  margin-bottom: 2px;
 }
 
-.section-description {
+.setting-value {
   font-size: 13px;
   color: #6b7280;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-.address-display {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 10px;
-}
-
-.address-text {
-  flex: 1;
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
-  color: #1f2937;
   word-break: break-all;
 }
 
-.address-empty {
+.setting-input {
+  width: 100%;
+  max-width: 280px;
+}
+
+.setting-input :deep(.q-field__control) {
+  border-radius: 8px;
+  background: transparent;
+}
+
+.setting-input :deep(.q-field__hint) {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
-  color: #9ca3af;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
 }
 
-.address-edit {
-  margin-top: 8px;
-}
-
-.address-input :deep(.q-field__control) {
-  border-radius: 10px;
-}
-
-.edit-actions {
+.setting-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.info-box {
-  display: flex;
-  gap: 10px;
-  padding: 14px;
-  background: rgba(59, 130, 246, 0.06);
-  border-radius: 12px;
-  border-left: 3px solid #3b82f6;
-}
-
-.info-text {
-  font-size: 12px;
-  color: #4b5563;
-  line-height: 1.5;
-}
-
-.cache-section {
-  background: rgba(0, 0, 0, 0.02);
+/* Danger Section */
+.danger-section {
+  background: rgba(239, 68, 68, 0.04);
   border-radius: 16px;
   padding: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.1);
 }
 
-.cache-section .section-title {
-  font-size: 13px;
+.danger-section .section-label {
+  font-size: 14px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 10px;
+  color: #dc2626;
+  margin-bottom: 4px;
 }
 
-.cache-section .section-description {
-  font-size: 13px;
+.danger-section .section-description {
+  font-size: 12px;
+  color: #9ca3af;
   line-height: 1.5;
   margin-bottom: 12px;
 }
 
-.dark .cache-section {
-  background: rgba(255, 255, 255, 0.04);
-}
-
 /* Dark mode */
-.dark .identity-npub .npub-text {
+.dark .identity-name {
   color: #e2e8f0;
 }
 
-.dark .section-title {
+.dark .npub-text {
+  color: #94a3b8;
+}
+
+.dark .identity-npub:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .settings-section {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .setting-label {
   color: #e2e8f0;
 }
 
-.dark .section-description {
-  color: #9ca3af;
+.dark .setting-value {
+  color: #94a3b8;
 }
 
-.dark .address-text {
-  color: #e2e8f0;
+.dark .setting-input :deep(.q-field__hint) {
+  color: #94a3b8;
 }
 
-.dark .info-text {
-  color: #cbd5e1;
+.dark .danger-section {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.dark .danger-section .section-label {
+  color: #f87171;
 }
 </style>

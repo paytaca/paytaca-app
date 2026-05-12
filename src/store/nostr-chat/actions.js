@@ -28,10 +28,27 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   if (state.keys.pubKeyHex === keys.pubKeyHex) return
 
   commit('SET_KEYS', keys)
+  commit('RESET_PROFILE')
   relayService.setAuthKey(keys.privKeyHex)
 
   // Register this wallet's Nostr pubkey in Watchtower
   await dispatch('registerNostrPubkey')
+
+  // Fetch profile data for the new wallet
+  try {
+    const [displayName, bchAddress] = await Promise.all([
+      dispatch('fetchPublishedDisplayName', { pubKeyHex: keys.pubKeyHex }),
+      dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
+    ])
+    if (displayName) {
+      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+    }
+    if (bchAddress) {
+      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+    }
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
+  }
 
   // Restart relay subscription for the new identity
   relayService.stopStatusPolling()
@@ -53,6 +70,22 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Set up NIP-42 auth signer so relays like damus.io accept our publishes
   relayService.setAuthKey(keys.privKeyHex)
+
+  // Fetch profile data for this wallet
+  try {
+    const [displayName, bchAddress] = await Promise.all([
+      dispatch('fetchPublishedDisplayName', { pubKeyHex: keys.pubKeyHex }),
+      dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
+    ])
+    if (displayName) {
+      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+    }
+    if (bchAddress) {
+      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+    }
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch profile data during initialize:', err)
+  }
 
   // Publish kind:10050 relay preferences so other NIP-17 clients know where to reach us
   // This is re-published every time to ensure it lands on all relays
@@ -226,6 +259,92 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
   return address
 }
 
+/**
+ * Publish the user's display name as a NIP-78 replaceable event (kind:30078).
+ */
+export async function publishDisplayName ({ state, commit }, { displayName }) {
+  if (!state.keys.privKeyHex) {
+    throw new Error('No Nostr private key available')
+  }
+  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', 'paytaca:display-name'],
+      ['p', state.keys.pubKeyHex],
+    ],
+    content: JSON.stringify({ name: 'Paytaca Display Name', data: { displayName } }),
+  }, privKeyBytes)
+
+  const { accepted, errors } = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    const errorDetails = errors.map(e => `${e.relay}: ${e.reason}`).join('; ')
+    throw new Error(`No relay accepted the event. ${errorDetails || 'Check console for details.'}`)
+  }
+
+  commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: event.created_at })
+  console.log('[Nostr] Published display name:', displayName)
+}
+
+/**
+ * Remove the published display name by publishing an empty kind:30078 event.
+ */
+export async function removeDisplayName ({ state, commit }) {
+  if (!state.keys.privKeyHex) {
+    throw new Error('No Nostr private key available')
+  }
+  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', 'paytaca:display-name'],
+      ['p', state.keys.pubKeyHex],
+    ],
+    content: JSON.stringify({ name: 'Paytaca Display Name', data: {} }),
+  }, privKeyBytes)
+
+  const { accepted, errors } = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    const errorDetails = errors.map(e => `${e.relay}: ${e.reason}`).join('; ')
+    throw new Error(`No relay accepted the removal event. ${errorDetails || 'Check console for details.'}`)
+  }
+
+  commit('CLEAR_PROFILE_DISPLAY_NAME')
+  console.log('[Nostr] Removed published display name')
+}
+
+/**
+ * Fetch a user's published display name from relays.
+ * Returns the display name string or null if not found.
+ */
+export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
+  if (!pubKeyHex) throw new Error('pubKeyHex is required')
+
+  const event = await relayService.fetchDisplayName(state.relays, pubKeyHex)
+  if (!event) return null
+
+  if (!verifyEvent(event)) {
+    console.warn('[Nostr] Display name event failed signature verification')
+    return null
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(event.content || '{}')
+  } catch {
+    console.warn('[Nostr] Display name event has invalid JSON content')
+    return null
+  }
+
+  const displayName = parsed?.data?.displayName?.trim()
+  if (!displayName) return null
+
+  console.log('[Nostr] Found display name:', displayName)
+  return displayName
+}
+
 export async function publishKind10050 ({ state }) {
   if (!state.keys.privKeyHex) return
   try {
@@ -258,11 +377,27 @@ export async function fetchHistoricalMessages ({ state, dispatch }) {
   }
 }
 
-export function addContact ({ commit }, { name, npub }) {
+export async function addContact ({ state, commit }, { name, npub }) {
   const decoded = nip19Decode(npub)
   if (decoded.type !== 'npub') throw new Error('Invalid npub')
   const pubKeyHex = decoded.data
-  commit('ADD_CONTACT', { name, npub, pubKeyHex, addedAt: Date.now() })
+
+  // If no name was provided, try to fetch the contact's published display name
+  let resolvedName = name?.trim() || ''
+  if (!resolvedName) {
+    try {
+      const event = await relayService.fetchDisplayName(state.relays, pubKeyHex)
+      if (event && verifyEvent(event)) {
+        const parsed = JSON.parse(event.content || '{}')
+        const fetched = parsed?.data?.displayName?.trim()
+        if (fetched) resolvedName = fetched
+      }
+    } catch (err) {
+      console.warn('[Nostr] Could not fetch display name for new contact:', err)
+    }
+  }
+
+  commit('ADD_CONTACT', { name: resolvedName, npub, pubKeyHex, addedAt: Date.now() })
 }
 
 export function updateContact ({ commit }, contact) {

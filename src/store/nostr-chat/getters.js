@@ -68,6 +68,18 @@ export function getRoomByContact (state, getters) {
   }
 }
 
+export function getRoomByMember (state) {
+  return (memberPubKeyHex) => {
+    const myPubKey = state.keys?.pubKeyHex
+    if (!myPubKey) return undefined
+    return state.rooms.find(r => {
+      return r.members?.includes(memberPubKeyHex) &&
+        r.members?.includes(myPubKey) &&
+        r.members.length === 2
+    })
+  }
+}
+
 export function getMessages (state) {
   const myPubKey = state.keys?.pubKeyHex
   if (!myPubKey) return () => []
