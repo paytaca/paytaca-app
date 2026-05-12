@@ -519,6 +519,8 @@ export default {
       if (room.type === 'group') {
         return room.name || this.$t('GroupChat', {}, 'Group Chat')
       }
+      // DM: if a subject has been set, prefer it over the contact name
+      if (room.subject) return room.subject
       // If contact exists, use the room name (which is the contact name)
       if (this.otherMemberContact) {
         return room.name || this.$t('Chat', {}, 'Chat')
@@ -1080,10 +1082,11 @@ export default {
         const name = this.renameGroupName.trim()
         if (!name || !this.room) return
         this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name })
-        const text = this.$t('GroupRenamedBy', { name }, `${this.myDisplayName} renamed the group to "${name}"`)
+        const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
           text,
+          subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })

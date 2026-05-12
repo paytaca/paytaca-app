@@ -215,10 +215,11 @@ export default {
       this.savingName = true
       try {
         this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name })
-        const text = this.$t('GroupRenamedBy', { name }, `renamed the group to "${name}"`)
+        const text = this.$t('GroupRenamedTo', { name }, `Changed group name to "${name}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
           text,
+          subject: name,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })

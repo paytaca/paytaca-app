@@ -687,10 +687,13 @@ openScannerFromDialog () {
     },
     getRoomDisplayName (room) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
-      if (!myPubKey) return room.name || 'Chat'
+      if (!myPubKey) return room.subject || room.name || 'Chat'
 
       const otherPubKey = room.members?.find(m => m !== myPubKey)
-      if (!otherPubKey) return room.name || 'Chat'
+      if (!otherPubKey) return room.subject || room.name || 'Chat'
+
+      // If a subject has been set, use it as the conversation name
+      if (room.subject) return room.subject
 
       let otherNpub = null
       try {

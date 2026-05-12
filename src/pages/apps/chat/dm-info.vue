@@ -185,9 +185,10 @@ export default {
       try {
         this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: subject })
         this.$store.commit('nostrChat/UPDATE_ROOM_SUBJECT', { roomId: this.roomId, subject })
+        const text = this.$t('SubjectChangedTo', { subject }, `Changed subject to "${subject}"`)
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
-          text: '',
+          text,
           subject,
         })
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })

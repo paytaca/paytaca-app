@@ -174,6 +174,8 @@ export default {
     },
     roomName (room) {
       if (room.type === 'group') return room.name || 'Group Chat'
+      // If a subject has been set, use it as the conversation name
+      if (room.subject) return room.subject
       // Check if this room has a known contact
       const otherPubKey = room.members?.find(m => m !== this.myPubKey)
       if (!otherPubKey) return room.name || room.id.slice(0, 12) + '...'

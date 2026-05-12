@@ -50,17 +50,21 @@
         @update:model-value="onFileSelected"
       />
       
-      <q-input
-        v-model="text"
-        dense
-        borderless
-        class="col chat-text-field"
-        :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
-        :maxlength="MAX_CHARS"
-        @keydown.enter.prevent="send"
-        @focus="onFocus"
-        @blur="onBlur"
-      />
+      <div class="input-wrapper col">
+        <q-input
+          ref="inputField"
+          v-model="text"
+          dense
+          borderless
+          :dark="darkMode"
+          class="chat-text-field"
+          :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
+          :maxlength="MAX_CHARS"
+          @keydown.enter.prevent="send"
+          @focus="onFocus"
+          @blur="onBlur"
+        />
+      </div>
       <q-btn
         round
         unelevated
@@ -316,17 +320,41 @@ export default {
   box-shadow: 0 4px 24px rgba(59, 130, 246, 0.15), 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.chat-text-field {
+  width: 100%;
+}
+
 .chat-text-field :deep(.q-field__control) {
   background: transparent !important;
 }
 
 .chat-text-field :deep(.q-field__native) {
   font-size: 15px;
-  color: #1f2937;
+  color: #1f2937 !important;
+  caret-color: #1f2937 !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 .chat-text-field :deep(.q-field__native::placeholder) {
   color: #9ca3af;
+  transition: opacity 0.15s ease;
+}
+
+.chat-text-field :deep(.q-field__native:focus::placeholder) {
+  opacity: 0;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .send-btn {
@@ -421,11 +449,22 @@ export default {
 }
 
 .dark .chat-text-field :deep(.q-field__native) {
-  color: #e2e8f0;
+  color: #e2e8f0 !important;
+  caret-color: #e2e8f0 !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+.dark .fake-caret {
+  background-color: #e2e8f0;
 }
 
 .dark .chat-text-field :deep(.q-field__native::placeholder) {
   color: #64748b;
+}
+
+.dark .chat-text-field :deep(.q-field__native:focus::placeholder) {
+  opacity: 0;
 }
 
 .dark .file-preview {
