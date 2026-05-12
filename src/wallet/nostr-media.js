@@ -271,6 +271,82 @@ export function uploadToBlossom(encryptedData, serverUrl, senderPrivKey, senderP
 }
 
 /**
+ * Upload unencrypted (public) data to Blossom server.
+ * Same auth mechanism as uploadToBlossom but sets proper Content-Type
+ * and hashes the raw data directly.
+ * @param {Uint8Array} data - Raw file data (unencrypted)
+ * @param {string} mimeType - MIME type of the data (e.g. 'image/jpeg')
+ * @param {string} serverUrl - Blossom server URL
+ * @param {string} senderPrivKey - Hex private key for signing auth event
+ * @param {string} senderPubKey - Hex public key
+ * @param {Object} [opts]
+ * @param {function(number): void} [opts.onProgress] - Progress callback (0-1)
+ * @param {AbortSignal} [opts.signal] - AbortSignal to cancel the upload
+ * @returns {Promise<{ url: string, sha256: string }>}
+ */
+export function uploadPublicToBlossom(data, mimeType, serverUrl, senderPrivKey, senderPubKey, opts = {}) {
+  const { onProgress, signal } = opts
+  const hashHex = sha256(data)
+
+  const uploadUrl = `${serverUrl}/upload`
+  const authEvent = {
+    kind: 24242,
+    pubkey: senderPubKey,
+    created_at: Math.floor(Date.now() / 1000),
+    content: '',
+    tags: [
+      ['u', uploadUrl],
+      ['method', 'PUT'],
+      ['payload', hashHex],
+    ],
+  }
+  authEvent.id = getEventHash(authEvent)
+
+  const privKeyBytes = hexToBytes(senderPrivKey)
+  const signedAuthEvent = finalizeEvent(authEvent, privKeyBytes)
+
+  const authHeader = btoa(JSON.stringify(signedAuthEvent))
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', uploadUrl, true)
+    xhr.setRequestHeader('Authorization', `Nostr ${authHeader}`)
+    xhr.setRequestHeader('Content-Type', mimeType)
+    xhr.responseType = 'json'
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(e.loaded / e.total)
+      }
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({
+          url: `${serverUrl}/${hashHex}`,
+          sha256: hashHex,
+        })
+      } else {
+        reject(new Error(`Blossom upload failed: ${xhr.status} ${xhr.responseText}`))
+      }
+    }
+
+    xhr.onerror = () => reject(new Error('Blossom upload failed: network error'))
+    xhr.onabort = () => reject(new DOMException('Upload cancelled', 'AbortError'))
+
+    if (signal) {
+      if (signal.aborted) {
+        xhr.abort()
+        return
+      }
+      signal.addEventListener('abort', () => xhr.abort(), { once: true })
+    }
+
+    xhr.send(data)
+  })
+}
+
+/**
  * Download encrypted file from Blossom server.
  * @param {string} url - Blossom URL or hash
  * @param {string} serverUrl - Blossom server URL

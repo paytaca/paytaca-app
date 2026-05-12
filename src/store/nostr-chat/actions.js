@@ -34,21 +34,25 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
   // Register this wallet's Nostr pubkey in Watchtower
   await dispatch('registerNostrPubkey')
 
-  // Fetch profile data for the new wallet
-  try {
-    const [displayName, bchAddress] = await Promise.all([
-      dispatch('fetchPublishedDisplayName', { pubKeyHex: keys.pubKeyHex }),
-      dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
-    ])
-    if (displayName) {
-      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+    // Fetch profile data for the new wallet
+    try {
+      const [displayName, bchAddress, avatar] = await Promise.all([
+        dispatch('fetchPublishedDisplayName', { pubKeyHex: keys.pubKeyHex }),
+        dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
+        dispatch('fetchPublishedAvatar', { pubKeyHex: keys.pubKeyHex }),
+      ])
+      if (displayName) {
+        commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+      }
+      if (bchAddress) {
+        commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+      }
+      if (avatar) {
+        commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
+      }
+    } catch (err) {
+      console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
     }
-    if (bchAddress) {
-      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
-    }
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch profile data during reinitialize:', err)
-  }
 
   // Restart relay subscription for the new identity
   relayService.stopStatusPolling()
@@ -73,15 +77,19 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Fetch profile data for this wallet
   try {
-    const [displayName, bchAddress] = await Promise.all([
+    const [displayName, bchAddress, avatar] = await Promise.all([
       dispatch('fetchPublishedDisplayName', { pubKeyHex: keys.pubKeyHex }),
       dispatch('fetchPublishedBchAddress', { pubKeyHex: keys.pubKeyHex }),
+      dispatch('fetchPublishedAvatar', { pubKeyHex: keys.pubKeyHex }),
     ])
     if (displayName) {
       commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
     }
     if (bchAddress) {
       commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+    }
+    if (avatar) {
+      commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
     }
   } catch (err) {
     console.warn('[Nostr] Failed to fetch profile data during initialize:', err)
@@ -343,6 +351,93 @@ export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
 
   console.log('[Nostr] Found display name:', displayName)
   return displayName
+}
+
+/**
+ * Publish avatar as a NIP-78 replaceable event (kind:30078).
+ * Avatar is stored as a base64 data URL in the content.
+ */
+export async function publishAvatar ({ state, commit }, { avatarDataUrl }) {
+  if (!state.keys.privKeyHex) {
+    throw new Error('No Nostr private key available')
+  }
+  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', 'paytaca:avatar'],
+      ['p', state.keys.pubKeyHex],
+    ],
+    content: JSON.stringify({ name: 'Paytaca Avatar', data: { avatar: avatarDataUrl } }),
+  }, privKeyBytes)
+
+  const { accepted, errors } = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    const errorDetails = errors.map(e => `${e.relay}: ${e.reason}`).join('; ')
+    throw new Error(`No relay accepted the event. ${errorDetails || 'Check console for details.'}`)
+  }
+
+  commit('SET_PROFILE_AVATAR', { avatar: avatarDataUrl, publishedAt: event.created_at })
+  console.log('[Nostr] Published avatar')
+}
+
+/**
+ * Remove the published avatar by publishing an empty kind:30078 event.
+ */
+export async function removeAvatar ({ state, commit }) {
+  if (!state.keys.privKeyHex) {
+    throw new Error('No Nostr private key available')
+  }
+  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', 'paytaca:avatar'],
+      ['p', state.keys.pubKeyHex],
+    ],
+    content: JSON.stringify({ name: 'Paytaca Avatar', data: {} }),
+  }, privKeyBytes)
+
+  const { accepted, errors } = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    const errorDetails = errors.map(e => `${e.relay}: ${e.reason}`).join('; ')
+    throw new Error(`No relay accepted the removal event. ${errorDetails || 'Check console for details.'}`)
+  }
+
+  commit('CLEAR_PROFILE_AVATAR')
+  console.log('[Nostr] Removed published avatar')
+}
+
+/**
+ * Fetch a user's published avatar from relays.
+ * Returns the avatar data URL string or null if not found.
+ */
+export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
+  if (!pubKeyHex) throw new Error('pubKeyHex is required')
+
+  const event = await relayService.fetchAvatar(state.relays, pubKeyHex)
+  if (!event) return null
+
+  if (!verifyEvent(event)) {
+    console.warn('[Nostr] Avatar event failed signature verification')
+    return null
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(event.content || '{}')
+  } catch {
+    console.warn('[Nostr] Avatar event has invalid JSON content')
+    return null
+  }
+
+  const avatar = parsed?.data?.avatar?.trim()
+  if (!avatar) return null
+
+  console.log('[Nostr] Found avatar')
+  return avatar
 }
 
 export async function publishKind10050 ({ state }) {

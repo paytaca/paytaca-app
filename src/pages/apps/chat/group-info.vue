@@ -102,7 +102,8 @@
                   text-color="white"
                   size="44px"
                 >
-                  {{ member.initial }}
+                  <img v-if="member.avatar" :src="member.avatar" />
+                  <template v-else>{{ member.initial }}</template>
                 </q-avatar>
               </q-item-section>
               <q-item-section>
@@ -197,7 +198,8 @@
                   size="64px"
                   style="font-size: 28px;"
                 >
-                  {{ selectedMember.initial }}
+                  <img v-if="selectedMember.avatar" :src="selectedMember.avatar" />
+                  <template v-else>{{ selectedMember.initial }}</template>
                 </q-avatar>
                 <div class="member-header-info">
                   <div v-if="!editingMemberName" class="member-display-name">
@@ -336,6 +338,7 @@ export default {
       editingMemberName: false,
       editMemberNameValue: '',
       fetchedMemberDisplayName: null,
+      memberAvatars: {},
     }
   },
   computed: {
@@ -366,6 +369,7 @@ export default {
           initial,
           contact,
           npub: displayNpub,
+          avatar: this.memberAvatars[pubKeyHex] || null,
         }
       })
       // Sort current user to the top
@@ -383,24 +387,35 @@ export default {
       return this.contacts.filter(c => !existingHexes.includes(c.pubKeyHex))
     },
   },
+  mounted () {
+    this.fetchMemberAvatars()
+  },
   watch: {
     room (val) {
       if (!val) {
         this.$router.replace('/apps/chat')
+      } else {
+        this.memberAvatars = {}
+        this.fetchMemberAvatars()
       }
     },
     async showMemberDetails (val) {
       this.fetchedMemberDisplayName = null
       if (val && this.selectedMember?.pubKeyHex) {
+        const pubKeyHex = this.selectedMember.pubKeyHex
         try {
-          const displayName = await this.$store.dispatch('nostrChat/fetchPublishedDisplayName', {
-            pubKeyHex: this.selectedMember.pubKeyHex,
-          })
+          const [displayName, avatar] = await Promise.all([
+            this.$store.dispatch('nostrChat/fetchPublishedDisplayName', { pubKeyHex }),
+            this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex }),
+          ])
           if (displayName) {
             this.fetchedMemberDisplayName = displayName
           }
+          if (avatar && !this.memberAvatars[pubKeyHex]) {
+            this.memberAvatars = { ...this.memberAvatars, [pubKeyHex]: avatar }
+          }
         } catch (err) {
-          console.warn('[GroupInfo] Failed to fetch display name:', err)
+          console.warn('[GroupInfo] Failed to fetch member details:', err)
         }
       }
     },
@@ -546,6 +561,22 @@ export default {
       if (!myPub) return 'You'
       const contact = this.contacts.find(c => c.pubKeyHex === myPub)
       return contact?.name || 'You'
+    },
+    async fetchMemberAvatars () {
+      const members = this.room?.members || []
+      for (const pubKeyHex of members) {
+        if (this.memberAvatars[pubKeyHex]) continue
+        try {
+          const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', {
+            pubKeyHex,
+          })
+          if (avatar) {
+            this.memberAvatars = { ...this.memberAvatars, [pubKeyHex]: avatar }
+          }
+        } catch (err) {
+          console.warn('[GroupInfo] Failed to fetch avatar:', err)
+        }
+      }
     },
   },
 }

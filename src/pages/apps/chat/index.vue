@@ -25,9 +25,10 @@
         <q-avatar
           size="48px"
           class="identity-avatar"
-          :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
+          :style="avatarStyle"
         >
-          <q-icon name="account_circle" size="40px" />
+          <img v-if="profileAvatar" :src="profileAvatar" />
+          <q-icon v-else name="account_circle" size="40px" />
         </q-avatar>
         <div class="identity-info">
           <div class="identity-label">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
@@ -382,6 +383,15 @@ export default {
       if (theme === 'glassmorphic-green') return '#4caf50'
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
+    },
+    profileAvatar () {
+      return this.$store.state.nostrChat.profile?.avatar || null
+    },
+    avatarStyle () {
+      if (this.profileAvatar) {
+        return { background: 'transparent' }
+      }
+      return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
     },
   },
   watch: {

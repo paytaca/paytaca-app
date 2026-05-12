@@ -34,9 +34,10 @@
             <q-avatar
                 size="52px"
                 class="avatar-bg"
-                :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
+                :style="roomAvatarStyle(room)"
               >
-                <q-icon v-if="room.type === 'group'" name="group" size="24px" />
+                <img v-if="getDmAvatar(room)" :src="getDmAvatar(room)" />
+                <q-icon v-else-if="room.type === 'group'" name="group" size="24px" />
                 <span v-else class="avatar-initial">{{ roomInitial(room) }}</span>
               </q-avatar>
         </div>
@@ -99,6 +100,11 @@ export default {
     archived: { type: Boolean, default: false },
   },
   emits: ['select-room', 'archive-room', 'unarchive-room', 'delete-room', 'block-room', 'unblock-room'],
+  data () {
+    return {
+      dmAvatars: {},
+    }
+  },
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
@@ -128,6 +134,17 @@ export default {
         map[room.id] = msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
       }
       return map
+    },
+  },
+  mounted () {
+    this.fetchDmAvatars()
+  },
+  watch: {
+    rooms: {
+      handler () {
+        this.fetchDmAvatars()
+      },
+      deep: true,
     },
   },
   methods: {
@@ -229,6 +246,37 @@ export default {
     },
     unreadCount (roomId) {
       return this.unreadCountMap[roomId] || 0
+    },
+    getDmAvatar (room) {
+      if (room.type === 'group') return null
+      const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+      return otherPubKey ? this.dmAvatars[otherPubKey] || null : null
+    },
+    roomAvatarStyle (room) {
+      if (this.getDmAvatar(room)) {
+        return { background: 'transparent' }
+      }
+      return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
+    },
+    async fetchDmAvatars () {
+      const toFetch = new Set()
+      for (const room of this.rooms) {
+        if (room.type === 'group') continue
+        const otherPubKey = room.members?.find(m => m !== this.myPubKey)
+        if (otherPubKey && !this.dmAvatars[otherPubKey]) {
+          toFetch.add(otherPubKey)
+        }
+      }
+      for (const pubKeyHex of toFetch) {
+        try {
+          const avatar = await this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex })
+          if (avatar) {
+            this.dmAvatars = { ...this.dmAvatars, [pubKeyHex]: avatar }
+          }
+        } catch (err) {
+          console.warn('[RoomList] Failed to fetch avatar:', err)
+        }
+      }
     },
   },
 }

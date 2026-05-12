@@ -18,13 +18,19 @@
           :class="getDarkModeClass(darkMode)"
           :style="{ background: `linear-gradient(135deg, ${themeColor}14, ${themeColor}0a)` }"
         >
-          <q-avatar
-            size="64px"
-            class="identity-avatar"
-            :style="{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }"
-          >
-            <q-icon name="account_circle" size="56px" />
-          </q-avatar>
+          <div class="identity-avatar-wrapper" @click="onAvatarClick">
+            <q-avatar
+              size="64px"
+              class="identity-avatar"
+              :style="avatarStyle"
+            >
+              <img v-if="avatarDisplaySrc" :src="avatarDisplaySrc" />
+              <q-icon v-else name="account_circle" size="56px" />
+            </q-avatar>
+            <div class="avatar-overlay">
+              <q-icon name="camera_alt" size="20px" />
+            </div>
+          </div>
           <div class="identity-info">
             <div class="identity-name">{{ profileDisplayName || 'No display name' }}</div>
             <div class="identity-npub" @click="copyNpub">
@@ -32,6 +38,64 @@
               <q-icon name="content_copy" size="14px" class="copy-icon" />
             </div>
           </div>
+        </div>
+
+        <input
+          ref="avatarInput"
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          style="display:none"
+          @change="onAvatarSelected"
+        />
+
+        <q-menu ref="avatarMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
+          <q-list style="min-width: 160px">
+            <q-item clickable v-close-popup @click="triggerAvatarUpload">
+              <q-item-section avatar>
+                <q-icon name="camera_alt" size="20px" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ $t('ChangePhoto', {}, 'Change Photo') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="confirmRemoveAvatar">
+              <q-item-section avatar>
+                <q-icon name="delete" size="20px" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <span class="text-negative">{{ $t('RemovePhoto', {}, 'Remove Photo') }}</span>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+
+        <!-- Avatar Actions -->
+        <div v-if="pendingAvatar || avatarError" class="avatar-actions q-mt-sm">
+          <template v-if="pendingAvatar">
+            <q-btn
+              flat
+              dense
+              rounded
+              icon="clear"
+              :label="$t('Cancel', {}, 'Cancel')"
+              color="grey-6"
+              class="avatar-action-btn"
+              @click="cancelAvatar"
+            />
+            <q-btn
+              flat
+              dense
+              rounded
+              icon="check"
+              :label="$t('Save', {}, 'Save')"
+              color="positive"
+              class="avatar-action-btn"
+              :loading="publishingAvatar"
+              :disable="!pendingAvatar"
+              @click="publishAvatarAction"
+            />
+          </template>
+          <div v-if="avatarError" class="avatar-error">{{ avatarError }}</div>
         </div>
 
         <!-- Settings Sections -->
@@ -211,6 +275,7 @@ import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
 import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
 import { copyToClipboard } from 'quasar'
+import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
 
 export default {
   name: 'ChatProfile',
@@ -234,6 +299,11 @@ export default {
       clearingCache: false,
       addressGeneratedFromWallet: false,
       generatingAddress: false,
+      pendingAvatar: null,
+      pendingAvatarBlob: null,
+      publishingAvatar: false,
+      removingAvatar: false,
+      avatarError: '',
     }
   },
   computed: {
@@ -246,6 +316,9 @@ export default {
     myPubKeyHex () {
       return this.$store.getters['nostrChat/myPubKey']
     },
+    myPrivKeyHex () {
+      return this.$store.getters['nostrChat/myPrivKey']
+    },
     displayNpub () {
       const npub = this.myNpub
       if (!npub) return ''
@@ -257,6 +330,18 @@ export default {
     profileDisplayName () {
       return this.$store.state.nostrChat.profile?.displayName || null
     },
+    profileAvatar () {
+      return this.$store.state.nostrChat.profile?.avatar || null
+    },
+    avatarDisplaySrc () {
+      return this.pendingAvatar || this.profileAvatar
+    },
+    avatarStyle () {
+      if (this.avatarDisplaySrc) {
+        return { background: 'transparent' }
+      }
+      return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
+    },
     themeColor () {
       const theme = this.$store.getters['global/theme']
       if (theme === 'glassmorphic-red') return '#f54270'
@@ -264,6 +349,12 @@ export default {
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
     },
+  },
+  mounted () {
+    document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
+  },
+  beforeDestroy () {
+    document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
   },
   methods: {
     getDarkModeClass,
@@ -498,6 +589,150 @@ export default {
         }
       })
     },
+    triggerAvatarUpload () {
+      this.avatarError = ''
+      this.$refs.avatarInput?.click()
+    },
+    onAvatarClick (event) {
+      this.avatarError = ''
+      if (this.pendingAvatar) return
+      if (this.profileAvatar) {
+        this.$refs.avatarMenu?.show(event)
+        return
+      }
+      this.triggerAvatarUpload()
+    },
+    onDocumentPointerDown (e) {
+      const menuEl = this.$refs.avatarMenu?.$el
+      if (!menuEl) return
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : (e.path || [])
+      if (path.indexOf(menuEl) !== -1) return
+      if (menuEl.contains(e.target)) return
+      this.$refs.avatarMenu?.hide()
+    },
+    async onAvatarSelected (event) {
+      this.avatarError = ''
+      const file = event.target.files?.[0]
+      if (!file) return
+
+      // Reset the input so the same file can be selected again
+      event.target.value = ''
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        this.avatarError = this.$t('AvatarTypeError', {}, 'Please select a JPEG, PNG, GIF, or WebP image')
+        return
+      }
+
+      // Validate file size: hard limit at 500KB (10x the 50KB expected max)
+      const MAX_FILE_SIZE = 500 * 1024
+      if (file.size > MAX_FILE_SIZE) {
+        this.avatarError = this.$t('AvatarSizeError', {}, 'Image must be smaller than 500KB')
+        return
+      }
+
+      try {
+        const result = await this.processAvatar(file)
+        this.pendingAvatar = result.dataUrl
+        this.pendingAvatarBlob = result.blob
+      } catch (err) {
+        this.avatarError = err.message || this.$t('AvatarProcessError', {}, 'Failed to process image')
+      }
+    },
+    processAvatar (file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => {
+          // Crop to center square
+          const size = Math.min(img.width, img.height)
+          const sx = (img.width - size) / 2
+          const sy = (img.height - size) / 2
+
+          // Resize to 256x256
+          const TARGET_SIZE = 256
+          const canvas = document.createElement('canvas')
+          canvas.width = TARGET_SIZE
+          canvas.height = TARGET_SIZE
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, TARGET_SIZE, TARGET_SIZE)
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+          canvas.toBlob((blob) => {
+            resolve({ dataUrl, blob })
+          }, 'image/jpeg', 0.85)
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = URL.createObjectURL(file)
+      })
+    },
+    cancelAvatar () {
+      this.pendingAvatar = null
+      this.pendingAvatarBlob = null
+      this.avatarError = ''
+    },
+    async publishAvatarAction () {
+      if (!this.pendingAvatar || !this.pendingAvatarBlob) return
+      this.publishingAvatar = true
+      this.avatarError = ''
+      try {
+        const privKeyHex = this.myPrivKeyHex
+        const pubKeyHex = this.myPubKeyHex
+        if (!privKeyHex || !pubKeyHex) {
+          throw new Error(this.$t('NoNostrKey', {}, 'Nostr keys not available'))
+        }
+
+        const avatarBytes = new Uint8Array(await this.pendingAvatarBlob.arrayBuffer())
+        const { url } = await uploadPublicToBlossom(
+          avatarBytes,
+          'image/jpeg',
+          'https://blossom.paytaca.com',
+          privKeyHex,
+          pubKeyHex,
+        )
+
+        await this.$store.dispatch('nostrChat/publishAvatar', { avatarDataUrl: url })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('AvatarPublished', {}, 'Avatar published successfully'),
+        })
+        this.pendingAvatar = null
+        this.pendingAvatarBlob = null
+      } catch (err) {
+        console.error('[Profile] Failed to publish avatar:', err)
+        this.avatarError = err.message || this.$t('PublishFailed', {}, 'Failed to publish avatar')
+      } finally {
+        this.publishingAvatar = false
+      }
+    },
+    confirmRemoveAvatar () {
+      this.$q.dialog({
+        title: this.$t('RemoveAvatar', {}, 'Remove Avatar'),
+        message: this.$t('RemoveAvatarConfirm', {}, 'Remove your published avatar? Others will no longer see it.'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: { label: this.$t('Cancel', {}, 'Cancel'), flat: true, color: 'grey' },
+        ok: { label: this.$t('Remove', {}, 'Remove'), color: 'negative', flat: true },
+        persistent: true,
+      }).onOk(async () => {
+        this.removingAvatar = true
+        try {
+          await this.$store.dispatch('nostrChat/removeAvatar')
+          this.$q.notify({
+            type: 'positive',
+            message: this.$t('AvatarRemoved', {}, 'Avatar removed'),
+          })
+          this.pendingAvatarBlob = null
+        } catch (err) {
+          console.error('[Profile] Failed to remove avatar:', err)
+          this.$q.notify({
+            type: 'negative',
+            message: err.message || this.$t('RemoveFailed', {}, 'Failed to remove avatar'),
+          })
+        } finally {
+          this.removingAvatar = false
+        }
+      })
+    },
     async confirmClearCache () {
       this.$q.dialog({
         title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
@@ -539,13 +774,38 @@ export default {
   margin: 0 auto;
 }
 
-/* Identity Card */
+/* Identity card */
 .identity-card {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 20px;
   border-radius: 16px;
+}
+
+.identity-avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.identity-avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .identity-avatar {
@@ -649,6 +909,26 @@ export default {
   flex-shrink: 0;
 }
 
+/* Avatar Actions */
+.avatar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.avatar-action-btn {
+  font-size: 12px;
+}
+
+.avatar-error {
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: #ef4444;
+}
+
 /* Danger Section */
 .danger-section {
   background: rgba(239, 68, 68, 0.04);
@@ -682,6 +962,10 @@ export default {
 
 .dark .identity-npub:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .avatar-error {
+  color: #f87171;
 }
 
 .dark .settings-section {

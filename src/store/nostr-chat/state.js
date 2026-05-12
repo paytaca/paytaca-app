@@ -26,6 +26,8 @@ export default function () {
       publishedAt: null,
       displayName: null,
       displayNamePublishedAt: null,
+      avatar: null,
+      avatarPublishedAt: null,
     },
   }
 }

@@ -280,11 +280,25 @@ export function CLEAR_PROFILE_DISPLAY_NAME (state) {
   state.profile.displayNamePublishedAt = null
 }
 
+export function SET_PROFILE_AVATAR (state, { avatar, publishedAt }) {
+  if (!state.profile) state.profile = {}
+  state.profile.avatar = avatar
+  state.profile.avatarPublishedAt = publishedAt
+}
+
+export function CLEAR_PROFILE_AVATAR (state) {
+  if (!state.profile) state.profile = {}
+  state.profile.avatar = null
+  state.profile.avatarPublishedAt = null
+}
+
 export function RESET_PROFILE (state) {
   state.profile = {
     bchAddress: null,
     publishedAt: null,
     displayName: null,
     displayNamePublishedAt: null,
+    avatar: null,
+    avatarPublishedAt: null,
   }
 }
