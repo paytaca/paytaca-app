@@ -425,6 +425,18 @@
       </div>
     </template>
 
+    <!-- Loading group metadata -->
+    <template v-else-if="_fetchingMeta">
+      <div class="request-to-join-container">
+        <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
+          <q-spinner color="primary" size="36px" />
+          <div class="request-card-desc q-mt-md">
+            {{ $t('LoadingGroup', {}, 'Loading group info...') }}
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- Unknown group -->
     <template v-else>
       <div class="request-to-join-container">
@@ -548,6 +560,8 @@ export default {
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
       requestingToJoin: false,
+      _fetchedGroupMeta: null,
+      _fetchingMeta: false,
     }
   },
   computed: {
@@ -575,9 +589,11 @@ export default {
       return this.$route?.name === 'group-chat-link'
     },
     _previewMembers () {
+      if (this._fetchedGroupMeta?.members?.length) return this._fetchedGroupMeta.members
       return this.$route.query?.members?.split(',') || null
     },
     _previewName () {
+      if (this._fetchedGroupMeta?.name) return this._fetchedGroupMeta.name
       return this.$route.query?.name || null
     },
     otherMemberPubKey () {
@@ -799,6 +815,15 @@ export default {
     },
   },
   mounted () {
+    if (!this.room && this._isGroupLink) {
+      this._fetchingMeta = true
+      this.$store.dispatch('nostrChat/fetchGroupMetadata', { roomId: this.roomId }).then(meta => {
+        this._fetchedGroupMeta = meta
+        this._fetchingMeta = false
+      }).catch(() => {
+        this._fetchingMeta = false
+      })
+    }
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
@@ -952,7 +977,16 @@ export default {
         this.requestingToJoin = false
       }
     },
-    shareGroupLink () {
+    async shareGroupLink () {
+      try {
+        await this.$store.dispatch('nostrChat/publishGroupMetadata', {
+          roomId: this.roomId,
+          memberPubKeys: this.room?.members || [],
+          name: this.room?.name,
+        })
+      } catch (err) {
+        console.warn('[Conversation] Failed to publish group metadata:', err)
+      }
       const url = `https://chat.paytaca.com/group/${this.roomId}`
       if (navigator?.clipboard?.writeText) {
         navigator.clipboard.writeText(url)

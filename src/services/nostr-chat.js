@@ -443,6 +443,29 @@ export async function fetchAvatar(relays, pubKey) {
 }
 
 /**
+ * Fetch group metadata from relays (NIP-78 kind:30078).
+ * Queries all authors for the d-tag paytaca:group:<roomId>.
+ * @param {string[]} relays
+ * @param {string} roomId
+ * @returns {Promise<object|null>}
+ */
+export async function fetchGroupMetadata(relays, roomId) {
+  const pool = getPool()
+  const dTag = `paytaca:group:${roomId}`
+  try {
+    const events = await pool.querySync(relays, { kinds: [30078], '#d': [dTag] })
+    const match = events?.find(e => {
+      const dt = e.tags?.find(t => t[0] === 'd')
+      return dt && dt[1] === dTag
+    })
+    return match || null
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch group metadata:', err)
+    return null
+  }
+}
+
+/**
  * Query for historical kind:1059 gift-wraps addressed to our pubkey.
  * This catches messages that were published before our subscription was active.
  * @param {string[]} relays

@@ -614,6 +614,42 @@ export async function addMembersToRoom ({ state, commit }, { roomId, newMemberNp
   }
 }
 
+export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, name }) {
+  const myPubKey = state.keys.pubKeyHex
+  const myPrivKey = state.keys.privKeyHex
+  if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
+
+  const privKeyBytes = Uint8Array.from(Buffer.from(myPrivKey, 'hex'))
+  const event = finalizeEvent({
+    kind: 30078,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['d', `paytaca:group:${roomId}`],
+    ],
+    content: JSON.stringify({
+      name: 'Paytaca Group',
+      data: {
+        roomId,
+        members: memberPubKeys,
+        name: name || 'Group Chat',
+      },
+    }),
+  }, privKeyBytes)
+
+  await relayService.publishEvent(state.relays, event)
+}
+
+export async function fetchGroupMetadata ({ state }, { roomId }) {
+  const event = await relayService.fetchGroupMetadata(state.relays, roomId)
+  if (!event) return null
+  try {
+    const parsed = JSON.parse(event.content || '{}')
+    return parsed?.data || null
+  } catch {
+    return null
+  }
+}
+
 export async function requestToJoinGroup ({ state }, { roomId, memberPubKeys, name }) {
   const myPubKey = state.keys.pubKeyHex
   const myPrivKey = state.keys.privKeyHex
