@@ -11,7 +11,7 @@
     >
     <header-nav
       class="apps-header"
-      backnavpath="/apps"
+      :backnavpath="chatBackPath"
       :title="$t('Chat')"
     />
 
@@ -349,6 +349,9 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+    chatBackPath () {
+      return this.$route.query?.from === 'home' ? '/' : '/apps'
     },
     myNpub () {
       return this.$store.getters['nostrChat/myNpub']
