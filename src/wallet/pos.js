@@ -165,7 +165,10 @@ export function parsePosDeviceData(data) {
     },
     isLinked(){
       return Boolean(this.linkedDevice.linkCode)
-    }
+    },
+    isNFCPaymentsEnabled(){
+      return Boolean(data?.nfc_payments_enabled)
+    },
   }
 
   return response
