@@ -42,6 +42,17 @@
         id="qr-reader-button"
         :class="getDarkModeClass()">{{ 'QR' }}</span>
     </div>
+
+    <transition name="chat-pop">
+      <div v-if="totalUnreadCount > 0" class="floating-chat-icon" :class="getDarkModeClass()" @click.stop="$router.push({ name: 'app-chat' })">
+        <div class="chat-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <span class="chat-badge">{{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}</span>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -54,6 +65,15 @@ export default {
       lastScrollY: 0,
       isFooterHidden: false,
       scrollThreshold: 50
+    }
+  },
+  computed: {
+    totalUnreadCount () {
+      try {
+        return this.$store.getters['nostrChat/getTotalUnreadCount'] || 0
+      } catch (e) {
+        return 0
+      }
     }
   },
   methods: {
@@ -255,5 +275,115 @@ export default {
     transform: translateX(-50%) translateY(120px);
     opacity: 0;
     pointer-events: none;
+  }
+
+  .floating-chat-icon {
+    position: absolute;
+    z-index: 99;
+    right: 16px;
+    bottom: 75px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--q-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    animation: chat-attention 4s ease-in-out infinite;
+
+    .chat-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+
+      svg {
+        width: 22px;
+        height: 22px;
+        display: block;
+      }
+    }
+
+    .chat-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      background: #ff4444;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    &:active {
+      transform: scale(0.9);
+    }
+  }
+
+  .floating-chat-icon.dark {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .chat-pop-enter-active {
+    animation: chat-pop-in 0.25s ease-out;
+  }
+  .chat-pop-leave-active {
+    animation: chat-pop-in 0.2s ease-in reverse;
+  }
+
+  @keyframes chat-pop-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    70% {
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes chat-attention {
+    0%, 60% {
+      transform: rotate(0deg) scale(1);
+    }
+    62% {
+      transform: rotate(-8deg) scale(1.08);
+    }
+    64% {
+      transform: rotate(8deg) scale(1.08);
+    }
+    66% {
+      transform: rotate(-6deg) scale(1.08);
+    }
+    68% {
+      transform: rotate(6deg) scale(1.08);
+    }
+    70% {
+      transform: rotate(-3deg) scale(1.08);
+    }
+    72% {
+      transform: rotate(3deg) scale(1.05);
+    }
+    74% {
+      transform: rotate(0deg) scale(1);
+    }
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
   }
 </style>

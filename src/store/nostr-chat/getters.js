@@ -169,6 +169,19 @@ export function isSubscribed (state) {
   return state.isSubscribed
 }
 
+export function getTotalUnreadCount (state) {
+  const myPubKey = state.keys?.pubKeyHex
+  if (!myPubKey) return 0
+  let total = 0
+  for (const room of state.rooms) {
+    if (!room.members?.includes(myPubKey)) continue
+    const msgs = state.messages[room.id] || []
+    const readIds = state.readMessageIds?.[room.id] || {}
+    total += msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
+  }
+  return total
+}
+
 export function computeRoomId (state, getters) {
   return (pubkeys) => {
     const sorted = pubkeys.slice().sort()
