@@ -169,6 +169,10 @@ export function isSubscribed (state) {
   return state.isSubscribed
 }
 
+export function getRoomById (state) {
+  return (roomId) => state.rooms.find(r => r.id === roomId) || null
+}
+
 export function getTotalUnreadCount (state) {
   const myPubKey = state.keys?.pubKeyHex
   if (!myPubKey) return 0

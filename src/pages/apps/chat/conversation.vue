@@ -63,6 +63,14 @@
                 {{ $t('GroupInfo', {}, 'Group Info') }}
               </q-item-section>
             </q-item>
+            <q-item v-if="isGroupRoom && isRoomMember" clickable v-close-popup @click="shareGroupLink">
+              <q-item-section side>
+                <q-icon name="share" size="18px" />
+              </q-item-section>
+              <q-item-section>
+                {{ $t('ShareGroupLink', {}, 'Share Group Link') }}
+              </q-item-section>
+            </q-item>
             <q-item v-if="!isGroupRoom" clickable v-close-popup @click="$router.push(`/apps/chat/${roomId}/dm-info`)">
               <q-item-section side>
                 <q-icon name="info" size="18px" />
@@ -300,96 +308,122 @@
       </q-card>
     </q-dialog>
 
-    <!-- Messages area -->
-    <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
-      <div v-if="displayedMessages.length === 0" class="empty-conversation">
-        <div class="empty-illustration">
-          <q-icon name="chat_bubble_outline" size="64px" />
+    <!-- Member: normal messages + composer -->
+    <template v-if="isRoomMember">
+      <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
+        <div v-if="displayedMessages.length === 0" class="empty-conversation">
+          <div class="empty-illustration">
+            <q-icon name="chat_bubble_outline" size="64px" />
+          </div>
+          <div class="empty-title">{{ $t('NoMessagesYet', {}, 'No messages yet') }}</div>
+          <div class="empty-subtitle">{{ $t('SendFirstMessage', {}, 'Send your first message') }}</div>
         </div>
-        <div class="empty-title">{{ $t('NoMessagesYet', {}, 'No messages yet') }}</div>
-        <div class="empty-subtitle">{{ $t('SendFirstMessage', {}, 'Send your first message') }}</div>
+
+        <div v-else class="messages-list">
+          <div
+            v-for="(msg, index) in displayedMessages"
+            :key="msg.id"
+            :id="'msg-' + msg.id"
+            class="message-group"
+          >
+            <div
+              v-if="showDateSeparator(index)"
+              class="date-separator"
+            >
+              <span class="date-label">{{ formatDate(msg.created_at) }}</span>
+            </div>
+
+            <message-bubble
+              :message="msg"
+              :my-pub-key="myPubKey"
+              :show-sender-name="room?.type === 'group'"
+              :contacts="contacts"
+              :is-read="messageReadMap[msg.id] || false"
+              :read-by-names="readByNamesMap[msg.id] || []"
+              :is-new="newMessageIds.has(msg.id)"
+              :reply-to-message="getMessageById(msg.replyTo)"
+              :is-replying="replyToMessage?.id === msg.id"
+              :reactions="getMessageReactions(msg.id)"
+              @context-menu="openMessageMenu"
+              @remove-reaction="onRemoveReaction"
+              @scroll-to-message="scrollToMessage"
+              @open-transaction="onOpenTransaction"
+            />
+          </div>
+        </div>
       </div>
 
-      <div v-else class="messages-list">
-        <div
-          v-for="(msg, index) in displayedMessages"
-          :key="msg.id"
-          :id="'msg-' + msg.id"
-          class="message-group"
+      <transition name="scroll-btn-fade">
+        <button
+          v-if="showScrollToBottom"
+          class="scroll-to-bottom-btn"
+          :class="getDarkModeClass(darkMode)"
+          @click="onScrollToBottom"
         >
-          <!-- Date separator (if day changes) -->
-          <div
-            v-if="showDateSeparator(index)"
-            class="date-separator"
-          >
-            <span class="date-label">{{ formatDate(msg.created_at) }}</span>
-          </div>
+          <q-icon name="keyboard_arrow_down" size="24px" />
+        </button>
+      </transition>
 
-          <message-bubble
-            :message="msg"
-            :my-pub-key="myPubKey"
-            :show-sender-name="room?.type === 'group'"
-            :contacts="contacts"
-            :is-read="messageReadMap[msg.id] || false"
-            :read-by-names="readByNamesMap[msg.id] || []"
-            :is-new="newMessageIds.has(msg.id)"
-            :reply-to-message="getMessageById(msg.replyTo)"
-            :is-replying="replyToMessage?.id === msg.id"
-            :reactions="getMessageReactions(msg.id)"
-            @context-menu="openMessageMenu"
-            @remove-reaction="onRemoveReaction"
-            @scroll-to-message="scrollToMessage"
-            @open-transaction="onOpenTransaction"
+      <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
+        <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
+        <q-icon
+          v-if="replyToMessage.isFile"
+          :name="replyToFileIcon"
+          size="18px"
+          class="reply-bar-file-icon"
+          :style="{ color: themeColor }"
+        />
+        <div class="reply-bar-body">
+          <div class="reply-bar-label" :style="{ color: themeColor }">
+            {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
+          </div>
+          <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
+        </div>
+        <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
+      </div>
+
+      <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
+        <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
+        <div class="edit-bar-body">
+          <div class="edit-bar-label" :style="{ color: themeColor }">
+            {{ $t('EditingMessage', {}, 'Editing message') }}
+          </div>
+          <div class="edit-bar-snippet">{{ editSnippet }}</div>
+        </div>
+        <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
+      </div>
+
+      <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
+    </template>
+
+    <!-- Non-member group: request to join card -->
+    <template v-else-if="isGroupRoom">
+      <div class="request-to-join-container">
+        <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
+          <div class="request-card-icon">
+            <q-icon name="group" size="48px" />
+          </div>
+          <div class="request-card-title">{{ room?.name || $t('GroupChat', {}, 'Group Chat') }}</div>
+          <div class="request-card-meta">
+            {{ $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) }}
+          </div>
+          <div class="request-card-desc">
+            {{ $t('RequestToJoinDesc', {}, 'Send a join request to the group members') }}
+          </div>
+          <q-btn
+            unelevated
+            rounded
+            color="primary"
+            size="lg"
+            no-caps
+            :label="$t('RequestToJoin', {}, 'Request to Join')"
+            class="request-join-btn q-mt-md"
+            :loading="requestingToJoin"
+            @click="requestToJoin"
           />
         </div>
       </div>
-    </div>
-
-    <!-- Scroll to bottom button -->
-    <transition name="scroll-btn-fade">
-      <button
-        v-if="showScrollToBottom"
-        class="scroll-to-bottom-btn"
-        :class="getDarkModeClass(darkMode)"
-        @click="onScrollToBottom"
-      >
-        <q-icon name="keyboard_arrow_down" size="24px" />
-      </button>
-    </transition>
-
-    <!-- Reply bar -->
-    <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
-      <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
-      <q-icon
-        v-if="replyToMessage.isFile"
-        :name="replyToFileIcon"
-        size="18px"
-        class="reply-bar-file-icon"
-        :style="{ color: themeColor }"
-      />
-      <div class="reply-bar-body">
-        <div class="reply-bar-label" :style="{ color: themeColor }">
-          {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
-        </div>
-        <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
-      </div>
-      <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
-    </div>
-
-    <!-- Edit bar -->
-    <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
-      <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
-      <div class="edit-bar-body">
-        <div class="edit-bar-label" :style="{ color: themeColor }">
-          {{ $t('EditingMessage', {}, 'Editing message') }}
-        </div>
-        <div class="edit-bar-snippet">{{ editSnippet }}</div>
-      </div>
-      <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
-    </div>
-
-    <!-- Input area -->
-    <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
+    </template>
 
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -498,6 +532,7 @@ export default {
       _scrollToMessageId: null,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
+      requestingToJoin: false,
     }
   },
   computed: {
@@ -505,7 +540,27 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     room () {
-      return this.$store.getters['nostrChat/getRoom'](this.roomId)
+      const room = this.$store.getters['nostrChat/getRoomById'](this.roomId)
+      if (room) return room
+      if (this._previewMembers?.length) {
+        return {
+          id: this.roomId,
+          type: 'group',
+          name: this._previewName || 'Group Chat',
+          members: this._previewMembers,
+        }
+      }
+      return null
+    },
+    isRoomMember () {
+      if (!this.room || !this.myPubKey) return false
+      return this.room.members?.includes(this.myPubKey)
+    },
+    _previewMembers () {
+      return this.$route.query?.members?.split(',') || null
+    },
+    _previewName () {
+      return this.$route.query?.name || null
     },
     otherMemberPubKey () {
       const room = this.room
@@ -690,7 +745,7 @@ export default {
       this.previousMessageCount = newLen
     },
     room (val) {
-      if (!val) {
+      if (!val && !this._previewMembers) {
         this.$router.replace('/apps/chat')
       }
     },
@@ -854,6 +909,61 @@ export default {
         })
       } else {
         this.$store.dispatch('nostrChat/subscribeToRelays')
+      }
+    },
+    async requestToJoin () {
+      this.requestingToJoin = true
+      try {
+        const members = this._previewMembers || this.room?.members || []
+        await this.$store.dispatch('nostrChat/requestToJoinGroup', {
+          roomId: this.roomId,
+          memberPubKeys: members,
+          name: this._previewName || this.room?.name,
+        })
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('JoinRequestSent', {}, 'Join request sent to group members'),
+        })
+      } catch (err) {
+        console.error('[Conversation] Failed to send join request:', err)
+        this.$q.notify({
+          type: 'negative',
+          message: err.message || this.$t('JoinRequestFailed', {}, 'Failed to send join request'),
+        })
+      } finally {
+        this.requestingToJoin = false
+      }
+    },
+    shareGroupLink () {
+      const members = this.room?.members || []
+      const params = new URLSearchParams()
+      if (members.length) params.set('members', members.join(','))
+      if (this.room?.name) params.set('name', this.room.name)
+      const url = `https://chat.paytaca.com/group/${this.roomId}?${params.toString()}`
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(url)
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('GroupLinkCopied', {}, 'Group link copied to clipboard'),
+        })
+      } else {
+        this.$q.dialog({
+          title: this.$t('ShareGroupLink', {}, 'Share Group Link'),
+          message: url,
+          class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+          ok: { label: this.$t('Copy', {}, 'Copy'), flat: true, color: 'primary' },
+        }).onOk(() => {
+          const textArea = document.createElement('textarea')
+          textArea.value = url
+          document.body.appendChild(textArea)
+          textArea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textArea)
+          this.$q.notify({
+            type: 'positive',
+            message: this.$t('GroupLinkCopied', {}, 'Group link copied to clipboard'),
+          })
+        })
       }
     },
     onVisibilityChange () {
@@ -1899,5 +2009,80 @@ export default {
 .scroll-btn-fade-leave-to {
   opacity: 0;
   transform: translateX(-50%) scale(0.7);
+}
+
+.request-to-join-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 0;
+}
+
+.request-to-join-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 32px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+  max-width: 320px;
+  width: 100%;
+}
+
+.request-to-join-card.dark {
+  background: #1e293b;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+
+.request-card-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.06));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--q-primary);
+}
+
+.request-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.dark .request-card-title {
+  color: #f1f5f9;
+}
+
+.request-card-meta {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.dark .request-card-meta {
+  color: #94a3b8;
+}
+
+.request-card-desc {
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+.dark .request-card-desc {
+  color: #64748b;
+}
+
+.request-join-btn {
+  min-width: 180px;
 }
 </style>

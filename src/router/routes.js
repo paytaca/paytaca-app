@@ -462,6 +462,12 @@ const routes = [
             component: () => import('src/pages/apps/chat/conversation.vue')
           }
         ]
+      },
+      {
+        path: 'group/:roomId',
+        name: 'group-chat-link',
+        props: true,
+        component: () => import('src/pages/apps/chat/conversation.vue')
       }
     ]
   },

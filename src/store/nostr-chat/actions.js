@@ -614,6 +614,29 @@ export async function addMembersToRoom ({ state, commit }, { roomId, newMemberNp
   }
 }
 
+export async function requestToJoinGroup ({ state }, { roomId, memberPubKeys, name }) {
+  const myPubKey = state.keys.pubKeyHex
+  const myPrivKey = state.keys.privKeyHex
+  if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
+
+  const existingMembers = memberPubKeys.filter(pk => pk !== myPubKey)
+  if (!existingMembers.length) throw new Error('No members to send request to')
+
+  const text = `${myPubKey.slice(0, 12)}... wants to join the group`
+  const unsignedKind14 = createUnsignedKind14({
+    content: text,
+    senderPubKey: myPubKey,
+    members: existingMembers,
+    subject: name,
+  })
+
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, myPrivKey, existingMembers)
+
+  for (const giftWrap of giftWraps) {
+    await relayService.publishEvent(state.relays, giftWrap)
+  }
+}
+
 export async function sendMessage ({ state }, { roomId, text, replyTo, subject }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (!room) throw new Error('Room not found')
