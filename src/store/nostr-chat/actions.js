@@ -698,6 +698,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
   })
 
   const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  console.log('[sendMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   const message = {
     id: unsignedKind14.id,
@@ -958,6 +959,11 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
     }
   }
 
+  console.log('[publishGiftWraps] publishing', giftWraps.length, 'gift-wraps to relays:', Array.from(targetRelays))
+  giftWraps.forEach((gw, i) => {
+    const pTag = gw.tags.find(t => t[0] === 'p')
+    console.log(`  wrap[${i}]: kind=${gw.kind}, id=${gw.id.slice(0,16)}..., p=${pTag?.[1]?.slice(0, 16) || 'none'}..., created_at=${gw.created_at}`)
+  })
   await relayService.publish(Array.from(targetRelays), giftWraps)
 }
 
