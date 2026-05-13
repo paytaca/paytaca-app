@@ -58,19 +58,36 @@
                 <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
               </div>
               <!-- Card info positioned right below handle -->
-              <div class="card-info row justify-between items-center no-wrap">
+              <div class="card-info row items-center justify-between no-wrap">
+                <div class="virtual-card-chip row items-center no-wrap" style="gap: 6px; padding: 0 8px;">
+                  <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+                </div>
                 <div 
                   class="text-weight-bold text-subtitle2 ellipsis" 
-                  style="max-width: 120px; font-size: 13px; color: inherit;"
+                  style="max-width: 120px; font-size: 15px; color: inherit;"
                 >
                   {{ getCardDisplayName(card) }}
                 </div>
-                <div 
+                <q-img
+                  src="~assets/paytaca_logo.png"
+                  style="width: 55px;"
+                  fit="contain"
+                />
+                <!-- <div 
                   class="text-weight-bold text-subtitle2" 
                   style="font-size: 13px; color: inherit;"
                 >
                   {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
+                </div> -->
+              </div>
+              <div
+                class="text-weight-bold text-subtitle2 text-center"
+                style="font-size: 13px; color: inherit;"
+              >
+                <div v-if="balancesLoading" class="row items-center justify-center" style="height:18px;">
+                  <q-skeleton type="text" width="120px" height="16px" />
                 </div>
+                <div v-else>{{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH</div>
               </div>
             </div>
 
@@ -152,6 +169,8 @@ export default {
       // loadingCards: true,
       // backendDataMap: {} // Map of cardId -> backend data
       cardBalances: [],
+      // true while card balances are being fetched from backend
+      balancesLoading: true,
       isLoaded: false
     }
   },
@@ -202,12 +221,20 @@ export default {
     },
 
     async fetchCardsBalance () {
-      if (!this.user || this.subCards.length === 0) return
+      // show skeletons while fetching
+      this.balancesLoading = true
+
+      if (!this.user || this.subCards.length === 0) {
+        this.balancesLoading = false
+        return
+      }
 
       try {
         this.cardBalances = (await this.user.fetchCardsBalance()).results
       } catch (err) {
         console.error('Error fetching card balances:', err)
+      } finally {
+        this.balancesLoading = false
       }
     },
 
