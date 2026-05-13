@@ -53,11 +53,9 @@
               <!-- Contract Address (Card Number) -->
               <div class="virtual-card-address text-caption text-weight-medium q-mt-sm">
               {{ formatContractAddress(activeCard?.cashAddress) }}
-              <!-- TODO: Replace with card.raw.cash_address or card.raw.token_address from Card class -->
+              
             </div>
               
-              <!-- Bottom Section: Reserved for future use -->
-              <div class="q-mt-auto"></div>
             </div>
           </div>
 

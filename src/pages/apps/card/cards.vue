@@ -74,7 +74,7 @@
               </div>
             </div>
 
-            <div
+            <!-- <div
               class="front-wallet-card flex flex-center cursor-pointer"
               :class="$q.dark.isActive ? 'bg-dark' : ''"
               @click="onOpenCreateCardForm()">
@@ -86,7 +86,7 @@
                 </div>
                 <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
               </q-card-section>
-            </div>
+            </div> -->
 
             <div 
               v-if="subCards.length > 3"
