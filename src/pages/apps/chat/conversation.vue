@@ -397,7 +397,7 @@
     </template>
 
     <!-- Non-member group: request to join card -->
-    <template v-else-if="isGroupRoom">
+    <template v-else-if="isGroupRoom && room?.members?.length">
       <div class="request-to-join-container">
         <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
           <div class="request-card-icon">
@@ -408,7 +408,7 @@
             {{ $t('MemberCount', { count: room?.members?.length || 0 }, `${room?.members?.length || 0} members`) }}
           </div>
           <div class="request-card-desc">
-            {{ $t('RequestToJoinDesc', {}, 'Send a join request to the group members') }}
+            {{ $t('RequestToJoinDesc', {}, 'Request to join this group') }}
           </div>
           <q-btn
             unelevated
@@ -421,6 +421,21 @@
             :loading="requestingToJoin"
             @click="requestToJoin"
           />
+        </div>
+      </div>
+    </template>
+
+    <!-- Unknown group -->
+    <template v-else>
+      <div class="request-to-join-container">
+        <div class="request-to-join-card" :class="getDarkModeClass(darkMode)">
+          <div class="request-card-icon">
+            <q-icon name="group_off" size="48px" color="grey-5" />
+          </div>
+          <div class="request-card-title" style="color: #9ca3af;">{{ $t('GroupNotFound', {}, 'Group Not Found') }}</div>
+          <div class="request-card-desc">
+            {{ $t('GroupNotFoundDesc', {}, 'This group link is invalid or you may not have access.') }}
+          </div>
         </div>
       </div>
     </template>
@@ -555,6 +570,9 @@ export default {
     isRoomMember () {
       if (!this.room || !this.myPubKey) return false
       return this.room.members?.includes(this.myPubKey)
+    },
+    _isGroupLink () {
+      return this.$route?.name === 'group-chat-link'
     },
     _previewMembers () {
       return this.$route.query?.members?.split(',') || null
@@ -745,7 +763,7 @@ export default {
       this.previousMessageCount = newLen
     },
     room (val) {
-      if (!val && !this._previewMembers) {
+      if (!val && !this._isGroupLink) {
         this.$router.replace('/apps/chat')
       }
     },
@@ -935,11 +953,7 @@ export default {
       }
     },
     shareGroupLink () {
-      const members = this.room?.members || []
-      const params = new URLSearchParams()
-      if (members.length) params.set('members', members.join(','))
-      if (this.room?.name) params.set('name', this.room.name)
-      const url = `https://chat.paytaca.com/group/${this.roomId}?${params.toString()}`
+      const url = `https://chat.paytaca.com/group/${this.roomId}`
       if (navigator?.clipboard?.writeText) {
         navigator.clipboard.writeText(url)
         this.$q.notify({
