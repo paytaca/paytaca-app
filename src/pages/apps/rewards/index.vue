@@ -304,6 +304,7 @@
       <RewardsStep
         :wallet-hash="walletHash"
         :dark-mode="darkMode"
+        :from-create-wallet="false"
         @on-proceed-to-next-step="onReferralDialogClose"
       />
     </q-card>

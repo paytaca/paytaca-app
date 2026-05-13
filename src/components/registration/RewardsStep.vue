@@ -7,8 +7,7 @@
       {{ $t('RewardsStepTitle', 'Referral Code') }}
     </h5>
     <p class="text-center text-bow step-subtitle" :class="getDarkModeClass(darkMode)">
-      <!-- Were you referred by a friend or a cashier of one of our partner merchants? -->
-      {{ $t('RewardsStepSubtitle', 'Were you referred by a friend?') }}
+      {{ $t('RewardsStepSubtitle', 'Were you referred by someone?') }}
     </p>
 
     <div v-if="!isCodeProcessed" class="glass-panel q-mt-md" :class="getDarkModeClass(darkMode)">
@@ -94,7 +93,7 @@
         :label="$t('RewardsStepSkipButton', 'I was not referred')"
         class="text-bow skip-button button button-text-primary"
         :class="getDarkModeClass(darkMode)"
-        @click="$emit('on-proceed-to-next-step')"
+        @click="onSkipButtonPressed"
       />
     </div>
 
@@ -142,7 +141,8 @@ export default {
 
   props: {
     walletHash: { type: String, default: '' },
-    darkMode: { type: Boolean, default: false }
+    darkMode: { type: Boolean, default: false },
+    fromCreateWallet: { type: Boolean, default: true }
   },
 
   emits: ['on-proceed-to-next-step'],
@@ -281,8 +281,21 @@ export default {
         wallet_hash: this.walletHash,
         model: parts[0],
         code: parts[1],
-        id: parts[2]
+        id: parts[2],
+        has_deferred_code_entering: false,
+        has_entered_code: true,
+        from_wallet_creation: this.fromCreateWallet
       })
+    },
+
+    async onSkipButtonPressed () {
+      await processReferralCode({
+        wallet_hash: this.walletHash,
+        has_deferred_code_entering: true,
+        has_entered_code: false,
+        from_wallet_creation: this.fromCreateWallet
+      })
+      this.$emit('on-proceed-to-next-step')
     },
 
     processErrorMessage (resp) {
