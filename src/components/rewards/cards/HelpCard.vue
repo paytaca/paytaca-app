@@ -190,7 +190,7 @@ export default {
             titleDefault: 'Points Conversion Rate',
             content: [
               { key: 'RewardsHelpHome72', default: 'Each point you earn is convertible to LIFT tokens, making it easy to see the value of your rewards.' },
-              { key: 'RewardsHelpHome73', default: 'Please note that this conversion rate may be updated in the future to keep things fair and exciting for everyone.' }
+              { key: 'RewardsHelpHome73', default: 'Please note that the conversion rate may be updated in the future to keep things fair and exciting for everyone.' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -390,7 +390,6 @@ export default {
             titleDefault: 'Earning One-time Points',
             content: [
               { key: 'RewardsHelpUR42', default: 'Valid transactions include purchases made with our merchants either through the Marketplace or over the counter, as well as purchases of Eload services.' },
-              { key: 'RewardsHelpUR43', default: 'Please note that these points are only available for new Paytaca users. Existing users cannot earn them.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',

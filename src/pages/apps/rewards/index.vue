@@ -188,6 +188,40 @@
 
     <q-separator class="q-mx-md" />
 
+    <!-- Referral Banner -->
+    <q-slide-transition>
+      <q-banner
+        v-if="showReferralBanner"
+        rounded
+        class="q-mx-lg q-mt-md bg-grad text-white referral-banner"
+      >
+        <span>
+          {{ $t('ReferralBannerText', 'Were you referred by someone? Enter their referral code to earn bonus points!') }}
+        </span>
+        <span class="row justify-end text-caption text-blue-grey-1 q-mb-xs">
+          {{ bannerRemainingTime.hours }} hours and {{ bannerRemainingTime.minutes }} minutes remaining
+        </span>
+        <template v-slot:action>
+          <div class="row q-mt-xs">
+            <q-btn
+              no-caps
+              unelevated
+              :label="$t('EnterCode', 'Enter Code')"
+              class="referral-banner-btn-primary"
+              @click="isReferralDialogActive = true"
+            />
+            <q-btn
+              no-caps
+              outline
+              :label="$t('Dismiss')"
+              class="referral-banner-btn-secondary"
+              @click="dismissReferralBanner"
+            />
+          </div>
+        </template>
+      </q-banner>
+    </q-slide-transition>
+
     <!-- Error State -->
     <error-card
       v-if="error"
@@ -263,6 +297,17 @@
   </div>
 
   <help-card v-model="isHelpActive" :page="'home'" />
+
+  <!-- Referral Code Dialog -->
+  <q-dialog v-model="isReferralDialogActive">
+    <q-card class="pt-card">
+      <RewardsStep
+        :wallet-hash="walletHash"
+        :dark-mode="darkMode"
+        @on-proceed-to-next-step="onReferralDialogClose"
+      />
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -282,6 +327,7 @@ import {
 import HeaderNav from 'src/components/header-nav.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
+import RewardsStep from 'src/components/registration/RewardsStep.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -292,6 +338,7 @@ export default {
     HeaderNav,
     HelpCard,
     ErrorCard,
+    RewardsStep
   },
 
   data () {
@@ -319,6 +366,12 @@ export default {
       // Collapsible section state
       isSummaryExpanded: false,
 
+      // Referral banner state
+      isReferralDialogActive: false,
+      isReferralBannerDismissed: false,
+      bannerRemainingTime: null,
+      enableReferralBanner: false, // value coming from UserPromo API
+
       pointsType: ['ur', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
         ur: {
@@ -345,6 +398,17 @@ export default {
   computed: {
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
+    },
+
+    walletHash () {
+      return this.$store.getters['global/getWallet']('bch')?.walletHash || ''
+    },
+
+    showReferralBanner () {
+      if (this.isHelpActive) return false
+      if (this.isLoading || this.error) return false
+      if (this.isReferralBannerDismissed) return false
+      return this.enableReferralBanner
     },
 
     // User's selected fiat currency
@@ -472,6 +536,16 @@ export default {
       this.isSummaryExpanded = !this.isSummaryExpanded
     },
 
+    dismissReferralBanner () {
+      this.isReferralBannerDismissed = true
+    },
+
+    onReferralDialogClose () {
+      this.isReferralDialogActive = false
+      this.isReferralBannerDismissed = true
+      this.loadRewards()
+    },
+
     async fetchLiftPriceFromCauldron () {
       try {
         this.isPriceLoading = true
@@ -524,16 +598,22 @@ export default {
       this.isPriceLoading = true
       this.priceError = null
 
-      const data = await getUserPromoData()
       const [upResp, ratioResp] = await Promise.allSettled(
         [getUserPromoData(), getLiftConversionRatio()]
       )
       const upData = upResp.value
       const ratioData = ratioResp.value
 
+      // Check referral banner dismissal timestamp from API
+      if (upData?.enable_referral_banner) {
+        this.enableReferralBanner = upData?.enable_referral_banner
+        this.bannerRemainingTime = upData?.banner_remaining_time
+      }
+
       // process fetched upData
       if (upData && Object.keys(upData).length > 0) {
         try {
+          this.totalPoints = 0
           const walletIndex = this.$store.getters['global/getWalletIndex']
           const userPubkey = await getAddress0_0PublicKey(walletIndex)
           for (const type of this.pointsType) {
@@ -570,7 +650,7 @@ export default {
 
       setTimeout(() => {
         this.$nextTick(() => {
-          if (data && !data?.last_viewed) this.isHelpActive = true
+          if (upData && !upData?.last_viewed) this.isHelpActive = true
           updateUserPromoData({ last_viewed: new Date() })
         })
       }, 250)
@@ -595,6 +675,44 @@ export default {
 /* Chevron rotation transition */
 .transition-rotate {
   transition: transform 0.3s ease;
+}
+
+.referral-banner {
+  :deep(.q-banner__content) {
+    font-weight: 500;
+  }
+  :deep(.q-banner__actions) {
+    padding-top: 0;
+  }
+}
+
+.referral-banner-btn-primary {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--q-primary);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 4px 16px;
+  min-height: 32px;
+
+  &:hover {
+    background: #fff;
+  }
+}
+
+.referral-banner-btn-secondary {
+  border-color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 16px;
+  min-height: 32px;
+
+  &:hover {
+    border-color: #fff;
+    color: #fff;
+  }
 }
 
 @media (min-width: 600px) {
