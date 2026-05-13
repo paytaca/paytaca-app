@@ -142,6 +142,7 @@ export default function () {
      * isUnlocked tracks if user has successfully authenticated in current session
      * Not persisted to localStorage
      */
-    isUnlocked: false
+    isUnlocked: false,
+    previousRoute: null
   }
 }

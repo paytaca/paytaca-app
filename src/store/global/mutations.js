@@ -703,3 +703,7 @@ export function setLockApp (state, value) {
 export function setIsUnlocked (state, value) {
   state.isUnlocked = Boolean(value)
 }
+
+export function setPreviousRoute (state, path) {
+  state.previousRoute = path
+}

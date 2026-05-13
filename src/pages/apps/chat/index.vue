@@ -351,7 +351,9 @@ export default {
       return this.$store.getters['darkmode/getStatus']
     },
     chatBackPath () {
-      return this.$route.query?.from === 'home' ? '/' : '/apps'
+      if (this.$route.query?.from === 'home') return '/'
+      const prevRoute = this.$store.state.global.previousRoute
+      return prevRoute === '/apps' ? '/apps' : '/'
     },
     myNpub () {
       return this.$store.getters['nostrChat/myNpub']
