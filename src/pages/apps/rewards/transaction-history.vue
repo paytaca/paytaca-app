@@ -241,7 +241,7 @@ export default {
   methods: {
     getDarkModeClass,
     
-    async loadData() {
+    async loadData(append=false) {
       this.isLoading = true
       this.dataError = ''
       
@@ -255,7 +255,11 @@ export default {
         })
         
         if (data) {
-          this.allTransactions = data.overall_data
+          if (append) {
+            this.allTransactions.push(...data.overall_data)
+          } else {
+            this.allTransactions = data.overall_data
+          }
           
           // Build summary stats dynamically based on category config
           const stats = {
@@ -323,7 +327,7 @@ export default {
     
     async loadMore() {
       this.offset += this.limit
-      await this.loadData()
+      await this.loadData(true)
     }
   }
 }
