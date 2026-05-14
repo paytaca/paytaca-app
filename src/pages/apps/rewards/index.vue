@@ -199,7 +199,18 @@
           {{ $t('ReferralBannerText', 'Were you referred by someone? Enter their referral code to earn bonus points!') }}
         </span>
         <span class="row justify-end text-caption text-blue-grey-1 q-mb-xs">
-          {{ bannerRemainingTime.hours }} hours and {{ bannerRemainingTime.minutes }} minutes remaining
+          <template v-if="bannerRemainingTime.hours > 1">
+            {{ bannerRemainingTime.hours }} hours remaining
+          </template>
+          <template v-else-if="bannerRemainingTime.hours === 1">
+            {{ bannerRemainingTime.hours }} hour remaining
+          </template>
+          <template v-else-if="bannerRemainingTime.hours === 0 && bannerRemainingTime.minutes > 1">
+            {{ bannerRemainingTime.minutes }} minutes remaining
+          </template>
+          <template v-else-if="bannerRemainingTime.hours === 0 && bannerRemainingTime.minutes === 1">
+            {{ bannerRemainingTime.minutes }} minute remaining
+          </template>
         </span>
         <template v-slot:action>
           <div class="row q-mt-xs">
