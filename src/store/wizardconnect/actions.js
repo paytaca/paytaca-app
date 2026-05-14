@@ -209,7 +209,6 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
 
-    // Fire-and-forget broadcast via watchtower (redundant to dApp broadcast)
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
 
