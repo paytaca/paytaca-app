@@ -26,7 +26,7 @@
           :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
           v-on-long-press="onLongPressTitle"
         >
-          <span class="pt-header-title-text">{{ title }}</span>
+          <span class="pt-header-title-text text-weight-bold">{{ title }}</span>
           <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
             <slot name="title-append" />
           </span>
