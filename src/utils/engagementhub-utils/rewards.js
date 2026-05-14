@@ -104,7 +104,7 @@ async function postFetchData (url, data) {
     .post(url, data)
     .then(response => {
       if (response.status === 200) return response.data
-      else if (resp.status === 404) return {}
+      else if (response.status === 404) return {}
       else return null
     })
     .catch(error => {
