@@ -279,7 +279,9 @@ export default {
           
           this.summaryStats = stats
           this.applyFilters()
-          this.hasMoreData = this.allTransactions.length >= this.limit
+
+          const fetchedCount = data.overall_data?.length || 0
+          this.hasMoreData = fetchedCount >= this.limit
         } else {
           this.dataError = this.$t('FailedToLoadData', this.currentConfig.errorMessage)
         }
