@@ -79,6 +79,7 @@
         <transaction-list
           :items="filteredTransactions"
           :loading="isLoading"
+          :loading-more="loadingMore"
           :has-more="hasMoreData"
           :dark-mode="darkMode"
           :empty-state="currentConfig.emptyState"
@@ -145,6 +146,7 @@ export default {
       limit: 20,
       offset: 0,
       hasMoreData: false,
+      loadingMore: false,
 
       // Category-specific configurations
       categoryConfig: {
@@ -326,8 +328,10 @@ export default {
     },
     
     async loadMore() {
+      this.loadingMore = true
       this.offset += this.limit
       await this.loadData(true)
+      this.loadingMore = false
     }
   }
 }
