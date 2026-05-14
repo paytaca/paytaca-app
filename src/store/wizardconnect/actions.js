@@ -213,7 +213,7 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
 
-    if (request.transaction.broadcast === true) {
+    if (request.transaction?.broadcast === true) {
       watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
         console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
       })
