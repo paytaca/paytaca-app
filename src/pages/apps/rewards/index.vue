@@ -632,7 +632,7 @@ export default {
           console.error(error)
           this.error = this.$t('FailedToLoadPromoData', 'Unable to load promo data at the moment. Please try again later.')
         }
-      } else if (upData && Object.keys(upData.length === 0)) {
+      } else if (upData && Object.keys(upData).length === 0) {
         await createUserPromoData()
       } else {
         this.error = this.$t('FailedToLoadPage', 'Unable to load points at the moment. Please try again later.')
