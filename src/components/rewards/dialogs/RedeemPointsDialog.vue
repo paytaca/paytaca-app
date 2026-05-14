@@ -860,7 +860,7 @@ export default {
           promo_contract_bytecode: this.contract.contract.bytecode
         })
 
-        if (swapResp?.error !== '') throw new Error(swapResp?.error)
+        if (swapResp?.error) throw new Error(swapResp?.error)
 
         // call API for recording points redemption
         const recordResp = await recordPointsRedemption({
@@ -871,7 +871,7 @@ export default {
             tx_id: swapResp.tx_id,
             month_max: this.maxRedeemable
         })
-        if (recordResp?.error !== '') throw new Error(recordResp?.error)
+        if (recordResp?.error) throw new Error(recordResp?.error)
 
         // success call
         this.showSuccessCelebration()
