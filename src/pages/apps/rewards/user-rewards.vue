@@ -624,8 +624,8 @@ export default {
         urData = await createUserRewardsData()
         this.urId = urData.id
         Promise.allSettled([
-          await updateUserPromoData({ ur: urData.id }),
-          await updateUserRewardsData(urData.id, {
+          updateUserPromoData({ ur: urData.id }),
+          updateUserRewardsData(urData.id, {
             contract_ct_address: this.urContract.contract.tokenAddress
           })
         ])
