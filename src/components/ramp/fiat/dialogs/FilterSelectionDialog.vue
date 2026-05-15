@@ -7,7 +7,7 @@
       </div>
       <div class="q-px-lg q-pt-sm text-center text-bold" style="font-size: medium;">{{ filterTypeText }}</div>
       <div class="q-pt-sm q-pb-md q-px-lg">
-        <div v-if="type === 'amount'">
+        <div v-if="type === 'amount'" style="position: relative;">
           <q-input
             dense
             rounded
@@ -22,7 +22,7 @@
               <span class="text-bold" style="font-size: 15px;">{{ byFiat ? currency.symbol : 'BCH' }}</span>
             </template>
           </q-input>
-          <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs q-ml-sm">
+          <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="keyboardTipCounter">
             {{ $t('PleaseUseCustomKeyboard') }}
           </div>
           <div class="q-pl-sm q-pt-sm">
@@ -108,6 +108,8 @@ export default {
       byFiat: true,
       readonlyState: false,
       showKeyboardTooltip: false,
+      keyboardTipTimer: null,
+      keyboardTipCounter: 0,
       customKeyboardState: 'dismiss',
       loadFilterButton: false
     }
@@ -216,10 +218,12 @@ export default {
           }
         }
         this.amount = finalAmount
+        clearTimeout(this.keyboardTipTimer)
         this.showKeyboardTooltip = false
       }
     },
     makeKeyAction (action) {
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = false
       if (action === 'backspace') {
         // Backspace
@@ -234,7 +238,10 @@ export default {
     },
     onKeyboardInput (e) {
       e.preventDefault()
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = true
+      this.keyboardTipCounter++
+      this.keyboardTipTimer = setTimeout(() => { this.showKeyboardTooltip = false }, 10000)
     },
     openCustomKeyboard (state) {
       this.readonlyState = state
@@ -255,3 +262,48 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+  .keyboard-tooltip-bubble {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(100% + 10px);
+    z-index: 10;
+    white-space: nowrap;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    animation: shake 0.4s ease-in-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+    }
+
+    &.dark {
+      background: #d32f2f;
+      color: #fff;
+      &::after { border-top-color: #d32f2f; }
+    }
+
+    &.light {
+      background: #e53935;
+      color: #fff;
+      &::after { border-top-color: #e53935; }
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(-50%); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
+    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
+  }
+</style>

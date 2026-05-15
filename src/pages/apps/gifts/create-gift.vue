@@ -208,7 +208,7 @@
                       <q-icon name="mdi-chevron-down" size="20px" class="denomination-arrow" />
                     </template>
                   </q-input>
-                  <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+                  <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="keyboardTipCounter">
                     {{ $t('PleaseUseCustomKeyboard') }}
                   </div>
                 </div>
@@ -504,6 +504,8 @@ export default {
       giftStatus: null,
       failedGiftDetails: null,
       customKeyboardState: 'dismiss',
+      keyboardTipTimer: null,
+      keyboardTipCounter: 0,
       showKeyboardTooltip: false,
       savingGiftQR: false
     }
@@ -1452,9 +1454,13 @@ export default {
     },
     onKeyboardInput(e) {
       e.preventDefault()
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = true
+      this.keyboardTipCounter++
+      this.keyboardTipTimer = setTimeout(() => { this.showKeyboardTooltip = false }, 10000)
     },
     setAmount(key) {
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = false
       // Get current caret position, default to end of string
       const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? String(this.giftAmount).length
@@ -1479,6 +1485,7 @@ export default {
       }
     },
     makeKeyAction(action) {
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = false
       if (action === 'backspace') {
         try {
@@ -2053,7 +2060,51 @@ export default {
 }
 
 // Responsive
-@media (max-width: 600px) {
+  .keyboard-tooltip-bubble {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(100% + 10px);
+    z-index: 10;
+    white-space: nowrap;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    animation: shake 0.4s ease-in-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+    }
+
+    &.dark {
+      background: #d32f2f;
+      color: #fff;
+      &::after { border-top-color: #d32f2f; }
+    }
+
+    &.light {
+      background: #e53935;
+      color: #fff;
+      &::after { border-top-color: #e53935; }
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(-50%); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
+    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
+  }
+
+  @media (max-width: 600px) {
   .form-card,
   .success-card,
   .processing-card {

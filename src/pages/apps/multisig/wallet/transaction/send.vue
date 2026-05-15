@@ -112,7 +112,7 @@
                   </q-item>
                   <q-item v-for="recipient,i in recipients" :key="`recipient-${i}`" :ref="el => { if (el) recipientRefs[i] = el.$el || el }">
                     <q-item-section>
-                      <q-item-label :class="addressInputRefs[i]? 'q-gutter-y-md': ''">
+                      <q-item-label style="position: relative;" :class="addressInputRefs[i]? 'q-gutter-y-md': ''">
                         <div class="flex justify-between items-center">
                             <span class="text-italic">{{ $t('RecipientLabel') }} {{ i + 1 }}</span>
                             <q-btn v-if="i > 0" @click="removeRecipient(i)" icon="remove" color="red" flat dense :disable="isCreatingProposal"></q-btn>
@@ -144,7 +144,7 @@
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                         </q-input>
-                        <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+                        <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="darkMode ? 'dark' : 'light'" :key="keyboardTipCounter">
                           {{ $t('PleaseUseCustomKeyboard') }}
                         </div>
                       </q-item-label>
@@ -267,6 +267,8 @@ const reserveWcAccountUtxos = ref(true)
 const showQrScanner = ref(false)
 const currentRecipientIndex = ref(null)
 const showKeyboardTooltip = ref(false)
+const keyboardTipTimer = ref(null)
+const keyboardTipCounter = ref(0)
 const customKeyboardState = ref('dismiss')
 const focusedInputField = ref('')
 
@@ -470,10 +472,14 @@ const asset = computed(() => {
 
 const onKeydown = (e) => {
   e.preventDefault()
+  clearTimeout(keyboardTipTimer.value)
   showKeyboardTooltip.value = true
+  keyboardTipCounter.value++
+  keyboardTipTimer.value = setTimeout(() => { showKeyboardTooltip.value = false }, 10000)
 }
 
 const setAmount = (amount) => {
+  clearTimeout(keyboardTipTimer.value)
   showKeyboardTooltip.value = false
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
@@ -482,6 +488,7 @@ const setAmount = (amount) => {
 }
 
 const makeKeyAction = (action) => {
+  clearTimeout(keyboardTipTimer.value)
   showKeyboardTooltip.value = false
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
@@ -664,5 +671,49 @@ onMounted(async () => {
 
 .sticky-bottom-spacer {
   height: 100px;
+}
+
+.keyboard-tooltip-bubble {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 10px);
+  z-index: 10;
+  white-space: nowrap;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 700;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  animation: shake 0.4s ease-in-out;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+  }
+
+  &.dark {
+    background: #d32f2f;
+    color: #fff;
+    &::after { border-top-color: #d32f2f; }
+  }
+
+  &.light {
+    background: #e53935;
+    color: #fff;
+    &::after { border-top-color: #e53935; }
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(-50%); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
+  20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
 }
 </style>
