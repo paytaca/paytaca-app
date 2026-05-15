@@ -276,7 +276,7 @@ export default {
       }
 
       return await processReferralCode({
-        device_id: parseDeviceId(this.$pushNotifications.deviceId),
+        device_id: parseDeviceId(this.$pushNotifications?.deviceId),
         platform: Capacitor.getPlatform(),
         wallet_hash: this.walletHash,
         model: parts[0],

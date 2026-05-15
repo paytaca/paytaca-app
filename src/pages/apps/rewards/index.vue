@@ -196,7 +196,7 @@
         class="q-mx-lg q-mt-md bg-grad text-white referral-banner"
       >
         <span>
-          {{ $t('ReferralBannerText', 'Were you referred by someone? Enter their referral code to earn bonus points!') }}
+          {{ $t('ReferralBannerText', 'Missed your referral code? Add it before it\'s too late!') }}
         </span>
         <span class="row justify-end text-caption text-blue-grey-1 q-mb-xs">
           <template v-if="bannerRemainingTime.hours > 1">

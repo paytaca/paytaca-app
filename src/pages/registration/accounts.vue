@@ -2049,6 +2049,7 @@ export default {
       // This allows settings to be saved during steps 2-4
       const wallet = new Wallet(this.mnemonic)
       const walletHash = wallet.BCH.walletHash
+      this.newWalletHash = walletHash
 
       // Create minimal wallet structure with all wallet types (BCH, SLP)
       const minimalWallet = {
