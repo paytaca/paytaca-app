@@ -1,7 +1,7 @@
 <template>
   <q-pull-to-refresh id="app-container" :class="getDarkModeClass(darkMode)" @refresh="onRefresh">
     <div>
-      <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+      <div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '390px' : '100%', margin: '0 auto'}">
           <q-resize-observer @resize="onFixedSectionResize" />
           <div >
             <div
