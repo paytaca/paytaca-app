@@ -2,13 +2,12 @@
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
     <q-page-container>
 
-      <!-- Skeleton loading state - shows everything at once -->
+      <!-- Skeleton loading state -->
       <div v-if="!isLoaded" class="full-width">
         <div class="q-px-md q-mt-md">
-          <q-skeleton type="text" width="100px" height="20px" />
-          <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
+          <q-skeleton type="text" width="120px" height="28px" />
         </div>
-        <div class="flex flex-center full-width">
+        <div class="flex flex-center full-width q-mt-lg">
           <div class="wallet-container" style="position: relative; height: 520px;">
             <div
               v-for="n in 3"
@@ -19,24 +18,48 @@
               <div class="card-handle">
                 <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
               </div>
-              <div class="card-info row justify-between items-center no-wrap">
-                <q-skeleton type="text" width="80px" height="16px" />
-                <q-skeleton type="text" width="60px" height="16px" />
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Loaded state - everything shows at once -->
+      <!-- Loaded state -->
       <div v-else class="full-width">
-        <div class="q-px-md q-mt-md">
-          <div :style="{ fontSize: '16px', fontWeight: 'bold', color: $q.dark.isActive ? '#ffffff' : '#000000' }">My Cards</div>
-          <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
+        <!-- Header -->
+        <div class="q-px-md q-pt-lg q-pb-sm">
+          <div class="row items-center justify-between">
+            <div>
+              <div :style="{ fontSize: '28px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
+                My Cards
+              </div>
+              <div v-if="subCards.length > 0" :style="{ fontSize: '13px', color: $q.dark.isActive ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }">
+                {{ subCards.length }} card{{ subCards.length !== 1 ? 's' : '' }}
+              </div>
+            </div>
+            <q-btn
+              outline
+              rounded
+              no-caps
+              :color="$q.dark.isActive ? 'white' : 'dark'"
+              icon="add"
+              label="New"
+              size="sm"
+              style="border-width: 1.5px; padding: 4px 16px;"
+              @click="onOpenCreateCardForm"
+            />
+          </div>
         </div>
 
-        <div class="flex flex-center full-width">
+        <div class="flex flex-center full-width q-mt-sm">
           <div class="wallet-container">
+            <div v-if="showSwipeHint && displayedCards.length > 0" class="swipe-overlay" @click="dismissSwipeHint">
+              <div class="swipe-overlay-content">
+                <div class="swipe-arrow-container">
+                  <q-icon name="arrow_forward" size="28px" />
+                </div>
+                <div class="swipe-overlay-text">Swipe right to view the card's details</div>
+              </div>
+            </div>
             <div
               v-for="(card, index) in displayedCards"
               :key="card.id"
@@ -53,72 +76,51 @@
               @keyup.right="goToCardDetails(card)"
               tabindex="0"
             >
-              <!-- Grabbable handle at top with info -->
+              <!-- Grabbable handle at top -->
               <div class="card-handle" :class="$q.dark.isActive ? 'bg-dark' : ''">
                 <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
               </div>
-              <!-- Card info positioned right below handle -->
-              <div class="card-info row items-center justify-between no-wrap">
-                <div class="virtual-card-chip row items-center no-wrap" style="gap: 6px; padding: 0 8px;">
-                  <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+
+              <!-- Top-left: BCH logo + Card name -->
+              <div class="card-name-container row items-center no-wrap" style="gap: 10px;">
+                <div class="row items-center justify-center" style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.15);">
+                  <q-img src="~assets/bch-logo.png" style="width: 20px; height: 20px;" fit="contain" />
                 </div>
-                <div 
-                  class="text-weight-bold text-subtitle2 ellipsis" 
-                  style="max-width: 120px; font-size: 15px; color: inherit;"
-                >
+                <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
                   {{ getCardDisplayName(card) }}
                 </div>
-                <q-img
-                  src="~assets/paytaca_logo.png"
-                  style="width: 55px;"
-                  fit="contain"
-                />
-                <!-- <div 
-                  class="text-weight-bold text-subtitle2" 
-                  style="font-size: 13px; color: inherit;"
-                >
-                  {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
-                </div> -->
               </div>
-              <div
-                class="text-weight-bold text-subtitle2 text-center"
-                style="font-size: 13px; color: inherit;"
-              >
-                <div v-if="balancesLoading" class="row items-center justify-center" style="height:18px;">
-                  <q-skeleton type="text" width="120px" height="16px" />
+
+              <!-- Bottom-right: Balance -->
+              <div class="card-balance-container">
+                <div v-if="balancesLoading">
+                  <q-skeleton type="text" width="70px" height="16px" />
                 </div>
-                <div v-else>{{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH</div>
+                <div v-else class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
+                  <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
+                  {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
+                  <span style="font-size: 12px; opacity: 0.7; font-weight: 400;">BCH</span>
+                </div>
+              </div>
+
+              <!-- Top-right: Logo -->
+              <div class="card-logo-container">
+                <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
               </div>
             </div>
 
-            <!-- <div
-              class="front-wallet-card flex flex-center cursor-pointer"
-              :class="$q.dark.isActive ? 'bg-dark' : ''"
-              @click="onOpenCreateCardForm()">
-              <q-card-section class="text-center slot-content">
-                <div 
-                  class="text-h6 q-mb-sm"
-                  :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
-                  Add a new card
-                </div>
-                <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
-              </q-card-section>
-            </div> -->
-
-            <div 
-              v-if="subCards.length > 3"
-              class="see-all-container text-center q-mt-lg">
+            <div v-if="subCards.length > 3" class="text-center q-mt-md">
               <q-btn
                 flat
                 no-caps
-                class="see-all-btn full-width"
-                @click="showAllCards">
-                <div class="row items-center no-wrap" :style="{ color: $q.dark.isActive ? '#ffffff' : '#000000' }">
-                  <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
-                  <q-icon name="expand_more" size="20px" class="q-ml-xs" />
-                </div>
+                :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                @click="showAllCards"
+                style="font-size: 14px;"
+              >
+                View all {{ subCards.length }} cards
+                <q-icon name="chevron_right" size="18px" class="q-ml-xs" />
               </q-btn>
-            </div>  
+            </div>
           </div>
         </div>
       </div>
@@ -171,7 +173,8 @@ export default {
       cardBalances: [],
       // true while card balances are being fetched from backend
       balancesLoading: true,
-      isLoaded: false
+      isLoaded: false,
+      showSwipeHint: true
     }
   },
 
@@ -196,10 +199,20 @@ export default {
   async mounted () {
     await this.loadData()
     this.isLoaded = true
+    this.$nextTick(() => {
+      setTimeout(() => this.dismissSwipeHint(), 5000)
+      window.addEventListener('touchstart', this.dismissSwipeHint, { once: true })
+      window.addEventListener('mousedown', this.dismissSwipeHint, { once: true })
+    })
   },
 
   methods: {
     satoshiToBch,
+    dismissSwipeHint () {
+      this.showSwipeHint = false
+      window.removeEventListener('touchstart', this.dismissSwipeHint)
+      window.removeEventListener('mousedown', this.dismissSwipeHint)
+    },
     async loadData () {
       await this.loadCardUser()
       await this.checkExistingCreateCardAttempt()
@@ -331,10 +344,10 @@ export default {
       const translateX = this.swipeStates[cardId] || 0
       const isDraggingThisCard = this.currentCardId === cardId
       
-      const cardSpacing = 70
+      const cardSpacing = 85
       const totalCards = this.displayedCards.length
       const buttonHeight = 280
-      const cardHeight = 180
+      const cardHeight = 220
       const visibleArea = 70 // handle (30px) + card info area (~40px)
       const hiddenArea = cardHeight - visibleArea // 110px hidden behind button
       
@@ -350,14 +363,16 @@ export default {
         width: '90%',
         left: '5%',
         transform: `translateX(${translateX}px)`,
-        background: this.$q.dark.isActive ? '#1d1d1d' : 'white',
-        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid #9e9e9e',
+        background: this.$q.dark.isActive 
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         borderRadius: '15px',
-        height: '180px',
+        height: '220px',
         touchAction: 'none',
         userSelect: 'none',
         pointerEvents: 'auto',
         cursor: isDraggingThisCard ? 'grabbing' : 'grab',
+        color: 'white',
 
         transition: isDraggingThisCard
           ? 'none'
@@ -368,9 +383,9 @@ export default {
     },
 
     getSkeletonCardStyle (index) {
-      const cardSpacing = 70
+      const cardSpacing = 85
       const buttonHeight = 280
-      const cardHeight = 180
+      const cardHeight = 220
       const visibleArea = 70
       const hiddenArea = cardHeight - visibleArea
       const baseOffset = buttonHeight - hiddenArea
@@ -382,10 +397,11 @@ export default {
         position: 'absolute',
         width: '90%',
         left: '5%',
-        background: this.$q.dark.isActive ? '#2d2d2d' : '#f0f0f0',
-        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid #e0e0e0',
+        background: this.$q.dark.isActive 
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         borderRadius: '15px',
-        height: '180px',
+        height: '220px',
         pointerEvents: 'none'
       }
     },
