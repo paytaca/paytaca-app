@@ -91,7 +91,7 @@
       <div class="q-px-md q-pt-md row items-center">
         <div
           v-if="pageCount > 2"
-          class="text-caption q-r-mt-md text-center"
+          class="text-caption text-center"
           :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
         >
           {{ nftsPagination.count }} {{ $t('Items', {}, 'items') }}
@@ -176,7 +176,6 @@ const topPaginationEl = ref();
 const topPaginationReady = computed(() => !!topPaginationEl.value)
 const movePaginationTop = ref(false)
 function onTopPaginationIntersection(entry) {
-  console.debug(entry);
   movePaginationTop.value = entry.isIntersecting;
 }
 
