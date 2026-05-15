@@ -470,9 +470,6 @@ export function updateWallet (state, details) {
   wallet.lastAddress = details.lastAddress
   wallet.lastChangeAddress = details.lastChangeAddress
   wallet.lastAddressIndex = details.lastAddressIndex
-  wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
-  wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
-  wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
 }
 
 export function setLanguage (state, language) {
@@ -510,19 +507,6 @@ export function setCountry (state, data) {
     state.vault[state.walletIndex].settings.country = countryData
     state.vault[state.walletIndex].settings.denomination = state.denomination
   }
-}
-
-export function setConnectedAddress (state, details) {
-  const wallet = getWalletData(state, details)
-
-  wallet.connectedAddress = details.connectedAddress
-  wallet.connectedAddressIndex = details.connectedAddressIndex
-}
-
-export function setConnectedSites (state, details) {
-  const wallet = getWalletData(state, details)
-
-  wallet.connectedSites = details.connectedSites
 }
 
 export function setWalletSubscribed (state, details) {

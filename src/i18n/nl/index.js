@@ -458,8 +458,6 @@ export default {
   Connect: "Verbinden",
   "Connect to Paytaca": "Verbinden met Paytaca",
   ConnectedAddress: "Verbonden adressen",
-  ConnectedAddresses: "Verbonden adressen",
-  ConnectedAddressesToSite: "U heeft {count} adressen die aan deze site zijn gekoppeld.",
   ConnectedApps: "Connected Apps",
   Connecting: "Verbinden",
   ConnectingToServer: "Verbinding maken met server",

@@ -458,8 +458,6 @@ export default {
   Connect: "Haɗa",
   "Connect to Paytaca": "Haɗa zuwa Paytaca",
   ConnectedAddress: "Adiresoshin da aka haɗa",
-  ConnectedAddresses: "Adiresoshin da aka haɗa",
-  ConnectedAddressesToSite: "Kuna da adireshi {count} da aka haɗa zuwa wannan rukunin yanar gizon.",
   ConnectedApps: "Ayyukan da aka Haɗa",
   Connecting: "Haɗawa",
   ConnectingToServer: "Haɗa zuwa uwar garken",

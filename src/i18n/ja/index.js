@@ -458,8 +458,6 @@ export default {
   Connect: "接続する",
   "Connect to Paytaca": "Paytacaに接続",
   ConnectedAddress: "接続されたアドレス",
-  ConnectedAddresses: "接続されたアドレス",
-  ConnectedAddressesToSite: "このサイトには {count} 個のアドレスが接続されています。",
   ConnectedApps: "接続されているアプリ",
   Connecting: "接続中",
   ConnectingToServer: "サーバーに接続中",

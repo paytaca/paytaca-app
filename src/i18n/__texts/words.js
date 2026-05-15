@@ -476,7 +476,6 @@ const words = [
     TransactionMetadata: 'Transaction Metadata',
     Hide: 'Hide',
     Debug: 'Debug',
-    ConnectedAddresses: 'Connected Addresses',
   },
   {
     Change: 'Change',
