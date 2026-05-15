@@ -208,9 +208,7 @@
                       <q-icon name="mdi-chevron-down" size="20px" class="denomination-arrow" />
                     </template>
                   </q-input>
-                  <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="keyboardTipCounter">
-                    {{ $t('PleaseUseCustomKeyboard') }}
-                  </div>
+                  <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
                 </div>
                 
                 <div class="row items-center justify-between q-mt-sm">
@@ -464,6 +462,8 @@ import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -472,7 +472,12 @@ const sss = require('shamirs-secret-sharing')
 
 export default {
   name: 'Gifts',
+  setup () {
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
+    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
+  },
   components: {
+    KeyboardTooltip,
     HeaderNav,
     ProgressLoader,
     ShareGiftPanel,
@@ -504,9 +509,6 @@ export default {
       giftStatus: null,
       failedGiftDetails: null,
       customKeyboardState: 'dismiss',
-      keyboardTipTimer: null,
-      keyboardTipCounter: 0,
-      showKeyboardTooltip: false,
       savingGiftQR: false
     }
   },
@@ -1454,14 +1456,10 @@ export default {
     },
     onKeyboardInput(e) {
       e.preventDefault()
-      clearTimeout(this.keyboardTipTimer)
-      this.showKeyboardTooltip = true
-      this.keyboardTipCounter++
-      this.keyboardTipTimer = setTimeout(() => { this.showKeyboardTooltip = false }, 10000)
+      this.showKeyboardTooltip()
     },
     setAmount(key) {
-      clearTimeout(this.keyboardTipTimer)
-      this.showKeyboardTooltip = false
+      this.hideKeyboardTooltip()
       // Get current caret position, default to end of string
       const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? String(this.giftAmount).length
 
@@ -1485,8 +1483,7 @@ export default {
       }
     },
     makeKeyAction(action) {
-      clearTimeout(this.keyboardTipTimer)
-      this.showKeyboardTooltip = false
+      this.hideKeyboardTooltip()
       if (action === 'backspace') {
         try {
           const amountStr = String(this.giftAmount || '')
@@ -2058,51 +2055,6 @@ export default {
     }
   }
 }
-
-// Responsive
-  .keyboard-tooltip-bubble {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(100% + 10px);
-    z-index: 10;
-    white-space: nowrap;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    line-height: 1.4;
-    font-weight: 700;
-    pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    animation: shake 0.4s ease-in-out;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 7px solid transparent;
-    }
-
-    &.dark {
-      background: #d32f2f;
-      color: #fff;
-      &::after { border-top-color: #d32f2f; }
-    }
-
-    &.light {
-      background: #e53935;
-      color: #fff;
-      &::after { border-top-color: #e53935; }
-    }
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(-50%); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
-    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
-  }
 
   @media (max-width: 600px) {
   .form-card,

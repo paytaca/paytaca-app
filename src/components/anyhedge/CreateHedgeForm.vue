@@ -216,9 +216,7 @@
           </div>
         </template>
       </q-input>
-      <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="darkMode ? 'dark' : 'light'" :key="keyboardTipCounter">
-        {{ $t('PleaseUseCustomKeyboard') }}
-      </div>
+      <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
       <q-select
         :dark="darkMode"
         outlined
@@ -449,6 +447,8 @@ import DurationField from './DurationField.vue';
 import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useI18n } from 'vue-i18n'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 
 function alertError(...args) {
@@ -472,24 +472,18 @@ let inputState = ref({
 })
 let activeInput = ref()
 let durationRef = ref()
-const showKeyboardTooltip = ref(false)
-const keyboardTipTimer = ref(null)
-const keyboardTipCounter = ref(0)
+const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
 const amountInputFormatted = ref(0)
 const isBalanceClicked = ref(false)
 
 function onKeyboardInput (e) {
   e.preventDefault()
-  clearTimeout(keyboardTipTimer.value)
-  showKeyboardTooltip.value = true
-  keyboardTipCounter.value++
-  keyboardTipTimer.value = setTimeout(() => { showKeyboardTooltip.value = false }, 10000)
+  showKeyboardTooltip()
 }
 
 function readonlyState (state, type) {
   if (state) {
-    clearTimeout(keyboardTipTimer.value)
-    showKeyboardTooltip.value = false
+    hideKeyboardTooltip()
   }
   inputState[type] = state
 
@@ -500,8 +494,7 @@ function readonlyState (state, type) {
 }
 
 function setAmount (key) {
-  clearTimeout(keyboardTipTimer.value)
-  showKeyboardTooltip.value = false
+  hideKeyboardTooltip()
   let tempAmount, amount, tempAmountInput = '', amountInput
 
   // Set Initial Input
@@ -558,8 +551,7 @@ function setAmount (key) {
 }
 
 function makeKeyAction (action) {
-  clearTimeout(keyboardTipTimer.value)
-  showKeyboardTooltip.value = false
+  hideKeyboardTooltip()
   if (action === 'backspace') {
     // Backspace
     this.shiftAmount = String(this.shiftAmount).slice(0, -1)
@@ -1606,53 +1598,5 @@ function amountRules (val) {
   opacity: 0.65;
 }
 
-.keyboard-tooltip-bubble {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(100% + 10px);
-  z-index: 10;
-  white-space: nowrap;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.4;
-  font-weight: 700;
-  pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  animation: shake 0.4s ease-in-out;
-}
 
-.keyboard-tooltip-bubble::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 7px solid transparent;
-}
-
-.keyboard-tooltip-bubble.dark {
-  background: #d32f2f;
-  color: #fff;
-}
-
-.keyboard-tooltip-bubble.dark::after {
-  border-top-color: #d32f2f;
-}
-
-.keyboard-tooltip-bubble.light {
-  background: #e53935;
-  color: #fff;
-}
-
-.keyboard-tooltip-bubble.light::after {
-  border-top-color: #e53935;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(-50%); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
-  20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
-}
 </style>

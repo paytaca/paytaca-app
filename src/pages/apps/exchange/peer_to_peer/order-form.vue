@@ -133,9 +133,7 @@
                     <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
                   </template>
                 </q-input>
-                <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="keyboardTipCounter">
-                  {{ $t('PleaseUseCustomKeyboard') }}
-                </div>
+                <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
                 <div class="row justify-between">
                   <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
                     {{ amountError }}
@@ -300,12 +298,19 @@ import { fetchUser } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
 import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
 import { getFiatCurrencyFractionDigits, parseFiatCurrency } from 'src/utils/denomination-utils'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 export default {
   setup () {
     const scrollTargetRef = ref(null)
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
     return {
       scrollTargetRef,
+      showTooltip,
+      tipCounter,
+      showKeyboardTooltip,
+      hideKeyboardTooltip,
       scrollDown () {
         const x = setTimeout(() => {
           const scrollElement = scrollTargetRef.value.$el
@@ -315,6 +320,7 @@ export default {
     }
   },
   components: {
+    KeyboardTooltip,
     CustomKeyboard,
     AddPaymentMethods,
     MiscDialogs,
@@ -330,9 +336,6 @@ export default {
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (70 + 100),
       customKeyboardState: 'dismiss',
-      showKeyboardTooltip: false,
-      keyboardTipTimer: null,
-      keyboardTipCounter: 0,
       readonlyState: false,
       ad: null,
       state: 'initial',
@@ -578,12 +581,9 @@ export default {
       }
       this.shiftAmount = 0
       this.amount = finalAmount
-      clearTimeout(this.keyboardTipTimer)
-      this.showKeyboardTooltip = false
     },
     makeKeyAction (action) {
-      clearTimeout(this.keyboardTipTimer)
-      this.showKeyboardTooltip = false
+      this.hideKeyboardTooltip()
       if (action === 'backspace') {
         // Backspace
         this.amount = String(this.amount).slice(0, -1)
@@ -597,10 +597,7 @@ export default {
     },
     onKeyboardInput (e) {
       e.preventDefault()
-      clearTimeout(this.keyboardTipTimer)
-      this.showKeyboardTooltip = true
-      this.keyboardTipCounter++
-      this.keyboardTipTimer = setTimeout(() => { this.showKeyboardTooltip = false }, 10000)
+      this.showKeyboardTooltip()
     },
     openCustomKeyboard (state) {
       this.readonlyState = state
@@ -1293,57 +1290,6 @@ export default {
         transform: none;
       }
     }
-  }
-
-  /* ==================== KEYBOARD TOOLTIP BUBBLE ==================== */
-  .keyboard-tooltip-bubble {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(100% + 10px);
-    z-index: 10;
-    white-space: nowrap;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    line-height: 1.4;
-    font-weight: 700;
-    pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    animation: shake 0.4s ease-in-out;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 7px solid transparent;
-    }
-
-    &.dark {
-      background: #d32f2f;
-      color: #fff;
-
-      &::after {
-        border-top-color: #d32f2f;
-      }
-    }
-
-    &.light {
-      background: #e53935;
-      color: #fff;
-
-      &::after {
-        border-top-color: #e53935;
-      }
-    }
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(-50%); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
-    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
   }
 
   /* ==================== SKELETON LOADER STYLES ==================== */

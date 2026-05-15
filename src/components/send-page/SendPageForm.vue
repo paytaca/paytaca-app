@@ -122,9 +122,7 @@
           />
         </template>
       </q-input>
-      <div v-if="activeKeyboardTip === 'bch'" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="'bch-' + keyboardTipCounter">
-        {{ $t('PleaseUseCustomKeyboard') }}
-      </div>
+      <KeyboardTooltip v-if="activeKeyboardTip === 'bch'" :dark-mode="darkMode" :key="'bch-' + keyboardTipCounter" />
     </div>
   </div>
 
@@ -151,9 +149,7 @@
           {{ String(currentSendPageCurrency()).toUpperCase() }}
         </template>
       </q-input>
-      <div v-if="activeKeyboardTip === 'fiat'" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="'fiat-' + keyboardTipCounter">
-        {{ $t('PleaseUseCustomKeyboard') }}
-      </div>
+      <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
     </div>
   </div>
   <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
@@ -263,9 +259,11 @@ import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { convertToFiatAmount } from 'src/utils/send-page-utils'
 
 import SelectChangeAddress from 'src/components/SelectChangeAddress.vue'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 
 export default {
   components: {
+    KeyboardTooltip,
     DenominatorTextDropdown,
     TokenSelectDialog
   },
@@ -335,6 +333,10 @@ export default {
       keyboardTipCounter: 0,
       currentFocusedField: null,
     }
+  },
+
+  beforeUnmount () {
+    clearTimeout(this.keyboardTipTimer)
   },
 
   beforeMount () {
@@ -630,55 +632,6 @@ export default {
     }
   }
 
-  .keyboard-tooltip-bubble {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(100% + 10px);
-    z-index: 10;
-    white-space: nowrap;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    line-height: 1.4;
-    font-weight: 700;
-    pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    animation: shake 0.4s ease-in-out;
-
-    &::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 7px solid transparent;
-    }
-
-    &.dark {
-      background: #d32f2f;
-      color: #fff;
-
-      &::after {
-        border-top-color: #d32f2f;
-      }
-    }
-
-    &.light {
-      background: #e53935;
-      color: #fff;
-
-      &::after {
-        border-top-color: #e53935;
-      }
-    }
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(-50%); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
-    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
-  }
 </style>
 
 <style lang="scss">

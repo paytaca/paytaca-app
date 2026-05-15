@@ -144,9 +144,7 @@
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                         </q-input>
-                        <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="darkMode ? 'dark' : 'light'" :key="keyboardTipCounter">
-                          {{ $t('PleaseUseCustomKeyboard') }}
-                        </div>
+                        <KeyboardTooltip v-if="keyboardTipRecipientIndex === i" :dark-mode="darkMode" :key="'tip-' + keyboardTipCounter" />
                       </q-item-label>
                       <q-separator class="q-my-sm"/>
                     </q-item-section>
@@ -201,7 +199,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref, nextTick, onBeforeMount, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick, onBeforeMount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -214,6 +212,7 @@ import {
   MultisigWallet,
 } from 'src/lib/multisig'
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
@@ -266,7 +265,7 @@ const showWcHeldFundsDialog = ref(false)
 const reserveWcAccountUtxos = ref(true)
 const showQrScanner = ref(false)
 const currentRecipientIndex = ref(null)
-const showKeyboardTooltip = ref(false)
+const keyboardTipRecipientIndex = ref(null)
 const keyboardTipTimer = ref(null)
 const keyboardTipCounter = ref(0)
 const customKeyboardState = ref('dismiss')
@@ -473,14 +472,14 @@ const asset = computed(() => {
 const onKeydown = (e) => {
   e.preventDefault()
   clearTimeout(keyboardTipTimer.value)
-  showKeyboardTooltip.value = true
+  keyboardTipRecipientIndex.value = currentRecipientIndex.value
   keyboardTipCounter.value++
-  keyboardTipTimer.value = setTimeout(() => { showKeyboardTooltip.value = false }, 10000)
+  keyboardTipTimer.value = setTimeout(() => { keyboardTipRecipientIndex.value = null }, 10000)
 }
 
 const setAmount = (amount) => {
   clearTimeout(keyboardTipTimer.value)
-  showKeyboardTooltip.value = false
+  keyboardTipRecipientIndex.value = null
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
@@ -489,7 +488,7 @@ const setAmount = (amount) => {
 
 const makeKeyAction = (action) => {
   clearTimeout(keyboardTipTimer.value)
-  showKeyboardTooltip.value = false
+  keyboardTipRecipientIndex.value = null
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
@@ -648,6 +647,10 @@ onMounted(async () => {
   await wallet.value.subscribeWalletAddressIndex(wallet.value.getLastUsedChangeAddressIndex(network) + 1, 'change')
   purpose.value = `${$t('Send')} ${assetHeaderName.value}`
 })
+
+onUnmounted(() => {
+  clearTimeout(keyboardTipTimer.value)
+})
 </script>
 
 <style scoped>
@@ -673,47 +676,5 @@ onMounted(async () => {
   height: 100px;
 }
 
-.keyboard-tooltip-bubble {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(100% + 10px);
-  z-index: 10;
-  white-space: nowrap;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.4;
-  font-weight: 700;
-  pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  animation: shake 0.4s ease-in-out;
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 7px solid transparent;
-  }
-
-  &.dark {
-    background: #d32f2f;
-    color: #fff;
-    &::after { border-top-color: #d32f2f; }
-  }
-
-  &.light {
-    background: #e53935;
-    color: #fff;
-    &::after { border-top-color: #e53935; }
-  }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(-50%); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
-  20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
-}
 </style>
