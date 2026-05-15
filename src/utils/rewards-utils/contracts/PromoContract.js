@@ -204,7 +204,7 @@ export default class PromoContract {
           else return []
         })
         .catch(error => { 
-          throw new Error(error)
+          throw error
          })
 
       // combine the two utxos and format to extract needed details
