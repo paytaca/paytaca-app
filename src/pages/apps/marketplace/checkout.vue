@@ -2171,10 +2171,12 @@ async function checkOrUpdateWallet() {
   if (!wallet.value) {
     await initWallet()
   }
-  return await Promise.allSettled([
+  const results = await Promise.allSettled([
     updateWallet(false),
     updateWallet(true),
   ])
+  results.filter(r => r.status === 'rejected').forEach(r => console.error(r.reason));
+  return results
 }
 
 async function updateWallet(isChipnet=false) {
@@ -2218,7 +2220,7 @@ function openImage(img, title) {
 async function refreshPage(done=() => {}) {
   try {
     initialized.value = Boolean(checkout.value.id)
-    await checkOrUpdateWallet().then(console.error);
+    await checkOrUpdateWallet();
     await Promise.all([
       fetchCheckout()
         .finally(() => resetFormData())
