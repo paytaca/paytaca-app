@@ -394,8 +394,8 @@ export default {
         rpData = await createRfPromoData()
         this.rpId = rpData.id
         Promise.allSettled([
-          await updateUserPromoData({ rp: rpData.id }),
-          await updateRfPromoData(rpData.id, {
+          updateUserPromoData({ rp: rpData.id }),
+          updateRfPromoData(rpData.id, {
             contract_ct_address: this.rpContract.contract.tokenAddress
           })
         ])
