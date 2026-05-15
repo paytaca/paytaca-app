@@ -7,7 +7,7 @@
       </div>
       <div class="q-px-lg q-pt-sm text-center text-bold" style="font-size: medium;">{{ filterTypeText }}</div>
       <div class="q-pt-sm q-pb-md q-px-lg">
-        <div v-if="type === 'amount'">
+        <div v-if="type === 'amount'" style="position: relative;">
           <q-input
             dense
             rounded
@@ -15,12 +15,14 @@
             v-model="amount"
             :placeholder="$t('EnterAmount')"
             @focus="openCustomKeyboard(true)"
+            @keydown="onKeyboardInput"
             :readonly="readonlyState"
             >
             <template v-slot:append>
               <span class="text-bold" style="font-size: 15px;">{{ byFiat ? currency.symbol : 'BCH' }}</span>
             </template>
           </q-input>
+          <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
           <div class="q-pl-sm q-pt-sm">
             <q-btn
               class="sm-font-size button button-text-primary"
@@ -93,6 +95,8 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import customKeyboard from 'src/components/CustomKeyboard.vue';
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 export default {
   data () {
@@ -108,7 +112,12 @@ export default {
     }
   },
   components: {
-    customKeyboard
+    customKeyboard,
+    KeyboardTooltip
+  },
+  setup() {
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
+    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
   },
   computed: {
     disableUnselectBtn () {
@@ -211,9 +220,11 @@ export default {
           }
         }
         this.amount = finalAmount
+        this.hideKeyboardTooltip()
       }
     },
     makeKeyAction (action) {
+      this.hideKeyboardTooltip()
       if (action === 'backspace') {
         // Backspace
         this.amount = String(this.amount).slice(0, -1)
@@ -224,6 +235,10 @@ export default {
         this.customKeyboardState = 'dismiss'
         this.readonlyState = false
       }
+    },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip()
     },
     openCustomKeyboard (state) {
       this.readonlyState = state
@@ -244,3 +259,5 @@ export default {
   }
 }
 </script>
+<style lang="scss" scoped>
+</style>
