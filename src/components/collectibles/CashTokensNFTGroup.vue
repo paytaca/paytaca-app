@@ -18,7 +18,7 @@
     </template>
     <div :ref="el => topPaginationEl = el" v-intersection="onTopPaginationIntersection">
     </div>
-    <div v-if="nftsPagination.count > 10" class="row no-wrap items-center justify-end q-px-md">
+    <div v-if="nftsPagination.count > 10" class="row no-wrap items-center justify-end q-px-md q-gutter-xs">
       <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Show:</span>
       <q-btn
         v-for="size in [5, 10, 20, 40, 50]"

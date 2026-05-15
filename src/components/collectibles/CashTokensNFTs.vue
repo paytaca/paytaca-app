@@ -171,6 +171,7 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
 }
 
 const nftsPagination = ref({count: 0, limit: 0, offset: 0})
+const pageCount = computed(() => nftsPagination.value?.limit ? Math.ceil(nftsPagination.value.count / nftsPagination.value.limit) : 0)
 
 const parsedNftGroups = computed(() => {
   // Groups from API already have metadata pre-populated and are ordered by backend
