@@ -18,6 +18,32 @@
     </template>
     <div :ref="el => topPaginationEl = el" v-intersection="onTopPaginationIntersection">
     </div>
+    <div v-if="nftsPagination.count > 10" class="row no-wrap items-center justify-end q-px-md">
+      <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">Show:</span>
+      <q-btn
+        v-for="size in [5, 10, 20, 40, 50]"
+        :key="size"
+        dense
+        size="xs"
+        padding="2px 6px"
+        :flat="nftsPagination.limit !== size"
+        :unelevated="nftsPagination.limit === size"
+        :color="nftsPagination.limit === size ? 'pt-primary1' : ''"
+        :text-color="nftsPagination.limit === size ? 'white' : (darkMode ? 'grey-5' : 'grey-7')"
+        :disable="fetchingNfts"
+        @click="fetchNfts({ limit: size })"
+        class="rounded-borders"
+      >
+        {{ size }}
+      </q-btn>
+    </div>
+    <q-linear-progress
+      v-if="fetchingNfts && nfts.length > 0"
+      indeterminate
+      size="2px"
+      color="pt-primary1"
+      class="q-mt-sm"
+    />
 
     <!-- Actual NFTs -->
     <div class="nfts-masonry-grid q-pa-md" ref="nftDivRef">
@@ -62,36 +88,31 @@
       </div>
     </template>
     <Teleport v-if="topPaginationReady" :to="topPaginationEl" :disabled="!movePaginationTop">
-      <div class="row items-center justify-between q-px-md">
+      <div class="q-px-md q-pt-md row items-center">
+        <div
+          v-if="pageCount > 2"
+          class="text-caption q-r-mt-md text-center"
+          :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+        >
+          {{ nftsPagination.count }} {{ $t('Items', {}, 'items') }}
+        </div>
+        <q-space/>
         <LimitOffsetPagination
           :pagination-props="{
-            disable=fetchingNfts,
+            disable: fetchingNfts,
             input: pageCount > 5,
             maxPages: 5,
             round: true,
-            size: 'md',
+            size: 'sm',
             dark: darkMode,
             color: 'pt-primary1',
-            directionLinks: pageCount > 5,
+            directionLinks: true,
             boundaryLinks: pageCount > 5,
+            boundaryNumbers: pageCount <= 5,
           }"
           :hide-below-pages="2"
           :modelValue="nftsPagination"
           @update:modelValue="fetchNfts"
-        />
-        <q-select
-          v-if="pageCount > 2"
-          dense
-          borderless
-          behavior="menu"
-          :disable="fetchingNfts"
-          :label="$t('PageSize')"
-          :model-value="nftsPagination.limit"
-          :options="[5, 10, 20, 40, 50]"
-          @update:model-value="value => fetchNfts({ limit: value })"
-          :popup-content-class="darkMode ? '': 'text-black'"
-          class="full-width"
-          style="max-width:5rem;"
         />
       </div>
     </Teleport>

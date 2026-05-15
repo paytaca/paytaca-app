@@ -55,13 +55,16 @@
       <div class="row items-center justify-end q-px-md q-pb-md">
         <LimitOffsetPagination
           :pagination-props="{
+            disable: fetchingNftGroups,
+            input: pageCount > 5,
             maxPages: 5,
-            rounded: true,
-            padding: 'sm md',
+            round: true,
             size: 'sm',
             dark: darkMode,
-            color: 'brandblue',
-            boundaryNumbers: true
+            color: 'pt-primary1',
+            directionLinks: true,
+            boundaryLinks: pageCount > 5,
+            boundaryNumbers: pageCount <= 5,
           }"
           :hide-below-pages="2"
           :modelValue="nftsPagination"
