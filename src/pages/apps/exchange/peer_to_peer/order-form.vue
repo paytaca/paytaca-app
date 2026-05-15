@@ -111,7 +111,7 @@
               </div>
 
               <!-- Input Card -->
-              <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'" v-if="!isOwner">
+              <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'" v-if="!isOwner" style="position: relative;">
                 <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
                 <q-input
                   class="q-pb-xs"
@@ -133,7 +133,7 @@
                     <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
                   </template>
                 </q-input>
-                <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+                <div v-if="showKeyboardTooltip" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="keyboardTipCounter">
                   {{ $t('PleaseUseCustomKeyboard') }}
                 </div>
                 <div class="row justify-between">
@@ -331,6 +331,8 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (70 + 100),
       customKeyboardState: 'dismiss',
       showKeyboardTooltip: false,
+      keyboardTipTimer: null,
+      keyboardTipCounter: 0,
       readonlyState: false,
       ad: null,
       state: 'initial',
@@ -571,12 +573,16 @@ export default {
             }
           } else {
             finalAmount += key !== '.' ? key.toString() : ''
+        }
+      }
       }
       this.shiftAmount = 0
       this.amount = finalAmount
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = false
     },
     makeKeyAction (action) {
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = false
       if (action === 'backspace') {
         // Backspace
@@ -591,7 +597,10 @@ export default {
     },
     onKeyboardInput (e) {
       e.preventDefault()
+      clearTimeout(this.keyboardTipTimer)
       this.showKeyboardTooltip = true
+      this.keyboardTipCounter++
+      this.keyboardTipTimer = setTimeout(() => { this.showKeyboardTooltip = false }, 10000)
     },
     openCustomKeyboard (state) {
       this.readonlyState = state
@@ -1284,6 +1293,57 @@ export default {
         transform: none;
       }
     }
+  }
+
+  /* ==================== KEYBOARD TOOLTIP BUBBLE ==================== */
+  .keyboard-tooltip-bubble {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(100% + 10px);
+    z-index: 10;
+    white-space: nowrap;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    animation: shake 0.4s ease-in-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+    }
+
+    &.dark {
+      background: #d32f2f;
+      color: #fff;
+
+      &::after {
+        border-top-color: #d32f2f;
+      }
+    }
+
+    &.light {
+      background: #e53935;
+      color: #fff;
+
+      &::after {
+        border-top-color: #e53935;
+      }
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(-50%); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
+    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
   }
 
   /* ==================== SKELETON LOADER STYLES ==================== */

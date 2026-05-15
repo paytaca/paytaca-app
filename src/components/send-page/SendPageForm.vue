@@ -91,7 +91,7 @@
     </q-input>
   </div>
   <div class="row" v-if="!isNFT">
-    <div class="col q-mt-xs">
+    <div class="col q-mt-xs" style="position: relative;">
       <q-input
         type="text"
         inputmode="none"
@@ -122,14 +122,14 @@
           />
         </template>
       </q-input>
-      <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+      <div v-if="activeKeyboardTip === 'bch'" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="'bch-' + keyboardTipCounter">
         {{ $t('PleaseUseCustomKeyboard') }}
       </div>
     </div>
   </div>
 
   <div class="row" v-if="!isNFT && asset?.id === 'bch'">
-    <div class="col q-mt-xs">
+    <div class="col q-mt-xs" style="position: relative;">
       <q-input
         type="text"
         inputmode="none"
@@ -151,13 +151,11 @@
           {{ String(currentSendPageCurrency()).toUpperCase() }}
         </template>
       </q-input>
-      <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+      <div v-if="activeKeyboardTip === 'fiat'" class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)" :key="'fiat-' + keyboardTipCounter">
         {{ $t('PleaseUseCustomKeyboard') }}
       </div>
     </div>
   </div>
-  </div>
-
   <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
     <q-btn
       no-caps
@@ -332,7 +330,10 @@ export default {
       cauldronEnabled: false,
       cauldronAmount: '',
       cauldronAmountFormatted: '',
-      showKeyboardTooltip: false,
+      activeKeyboardTip: null,
+      keyboardTipTimer: null,
+      keyboardTipCounter: 0,
+      currentFocusedField: null,
     }
   },
 
@@ -456,10 +457,15 @@ export default {
     },
     onKeyboardInput (e) {
       e.preventDefault()
-      this.showKeyboardTooltip = true
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = this.currentFocusedField
+      this.keyboardTipCounter++
+      this.keyboardTipTimer = setTimeout(() => { this.activeKeyboardTip = null }, 10000)
     },
     onInputFocus (index, field) {
-      this.showKeyboardTooltip = false
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = null
+      this.currentFocusedField = field
       this.$emit('on-input-focus', { index, field })
     },
     onSelectedDenomination (value) {
@@ -583,10 +589,12 @@ export default {
       },
     },
     amountFormatted () {
-      this.showKeyboardTooltip = false
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = null
     },
     fiatFormatted () {
-      this.showKeyboardTooltip = false
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = null
     },
   }
 }
@@ -620,6 +628,56 @@ export default {
       font-size: 12px;
       font-weight: bold;
     }
+  }
+
+  .keyboard-tooltip-bubble {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(100% + 10px);
+    z-index: 10;
+    white-space: nowrap;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    animation: shake 0.4s ease-in-out;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+    }
+
+    &.dark {
+      background: #d32f2f;
+      color: #fff;
+
+      &::after {
+        border-top-color: #d32f2f;
+      }
+    }
+
+    &.light {
+      background: #e53935;
+      color: #fff;
+
+      &::after {
+        border-top-color: #e53935;
+      }
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(-50%); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 4px)); }
+    20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 4px)); }
   }
 </style>
 
