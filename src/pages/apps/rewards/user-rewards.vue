@@ -462,8 +462,6 @@ import {
   createUserRewardsData,
 } from 'src/utils/engagementhub-utils/rewards'
 
-import i18n from 'src/i18n'
-
 import HeaderNav from 'src/components/header-nav.vue'
 import PointsBadge from 'src/components/rewards/PointsBadge.vue'
 import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
@@ -559,7 +557,7 @@ export default {
     userLocale () {
       // Prefer app-selected language; fall back to i18n locale; then browser locale.
       const fromStore = this.$store.getters['global/language']
-      const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
+      const candidate = fromStore || this.$i18n.locale || globalThis?.navigator?.language || 'en-US'
       return String(candidate).replace('_', '-')
     },
     transformedFirstSeven () {
