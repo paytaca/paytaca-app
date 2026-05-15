@@ -1,14 +1,19 @@
 <template>
-  <div class="keyboard-tooltip-bubble" :class="darkMode ? 'dark' : 'light'">
+  <div class="keyboard-tooltip-bubble" :class="getDarkModeClass(darkMode)">
     {{ $t('PleaseUseCustomKeyboard') }}
   </div>
 </template>
 
 <script>
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+
 export default {
   name: 'KeyboardTooltip',
   props: {
     darkMode: { type: Boolean, default: false }
+  },
+  methods: {
+    getDarkModeClass
   }
 }
 </script>

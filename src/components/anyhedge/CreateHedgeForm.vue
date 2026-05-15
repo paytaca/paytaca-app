@@ -554,7 +554,6 @@ function makeKeyAction (action) {
   hideKeyboardTooltip()
   if (action === 'backspace') {
     // Backspace
-    this.shiftAmount = String(this.shiftAmount).slice(0, -1)
     if (activeInput.value === 'match') {
       createHedgeForm.value.p2pMatch.similarity = String(createHedgeForm.value.p2pMatch.similarity).slice(0, -1)
     } else if (activeInput.value === 'duration') {

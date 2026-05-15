@@ -576,8 +576,8 @@ export default {
             }
           } else {
             finalAmount += key !== '.' ? key.toString() : ''
+          }
         }
-      }
       }
       this.shiftAmount = 0
       this.amount = finalAmount
