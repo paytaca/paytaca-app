@@ -16,6 +16,8 @@
         </q-card>
       </div>
     </template>
+    <div :ref="el => topPaginationEl = el" v-intersection="onTopPaginationIntersection">
+    </div>
 
     <!-- Actual NFTs -->
     <div class="nfts-masonry-grid q-pa-md" ref="nftDivRef">
@@ -59,22 +61,40 @@
         </div>
       </div>
     </template>
-    <div class="row items-center justify-end q-px-md">
-      <LimitOffsetPagination
-        :pagination-props="{
-          maxPages: 5,
-          rounded: true,
-          padding: 'sm md',
-          size: 'sm',
-          dark: darkMode,
-          color: 'brandblue',
-          boundaryNumbers: true
-        }"
-        :hide-below-pages="2"
-        :modelValue="nftsPagination"
-        @update:modelValue="fetchNfts"
-      />
-    </div>
+    <Teleport v-if="topPaginationReady" :to="topPaginationEl" :disabled="!movePaginationTop">
+      <div class="row items-center justify-between q-px-md">
+        <LimitOffsetPagination
+          :pagination-props="{
+            disable=fetchingNfts,
+            input: pageCount > 5,
+            maxPages: 5,
+            round: true,
+            size: 'md',
+            dark: darkMode,
+            color: 'pt-primary1',
+            directionLinks: pageCount > 5,
+            boundaryLinks: pageCount > 5,
+          }"
+          :hide-below-pages="2"
+          :modelValue="nftsPagination"
+          @update:modelValue="fetchNfts"
+        />
+        <q-select
+          v-if="pageCount > 2"
+          dense
+          borderless
+          behavior="menu"
+          :disable="fetchingNfts"
+          :label="$t('PageSize')"
+          :model-value="nftsPagination.limit"
+          :options="[5, 10, 20, 40, 50]"
+          @update:model-value="value => fetchNfts({ limit: value })"
+          :popup-content-class="darkMode ? '': 'text-black'"
+          class="full-width"
+          style="max-width:5rem;"
+        />
+      </div>
+    </Teleport>
   </div>
 </template>
 <script setup>
@@ -129,6 +149,15 @@ onMounted(() => fetchNfts())
 
 const fetchingNfts = ref(false)
 const nftsPagination = ref({count: 0, limit: 0, offset: 0})
+const pageCount = computed(() => nftsPagination.value?.limit ? Math.ceil(nftsPagination.value.count / nftsPagination.value.limit) : 0)
+
+const topPaginationEl = ref();
+const topPaginationReady = computed(() => !!topPaginationEl.value)
+const movePaginationTop = ref(false)
+function onTopPaginationIntersection(entry) {
+  console.debug(entry);
+  movePaginationTop.value = entry.isIntersecting;
+}
 
 const nfts = ref([].map(CashNonFungibleToken.parse))
 function fetchNfts(opts={limit: 0, offset: 0}) {
