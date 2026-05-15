@@ -100,6 +100,7 @@
         ref="amountInput"
         class="bch-input-field"
         @focus="onInputFocus(index, 'bch')"
+        @keydown="onKeyboardInput"
         :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
         :loading="computingMax"
@@ -121,6 +122,9 @@
           />
         </template>
       </q-input>
+      <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+        {{ $t('PleaseUseCustomKeyboard') }}
+      </div>
     </div>
   </div>
 
@@ -134,6 +138,7 @@
         ref="fiatInput"
         class="fiat-input-field"
         @focus="onInputFocus(index, 'fiat')"
+        @keydown="onKeyboardInput"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
         :error="balanceExceeded && !cauldronEnabled"
@@ -146,7 +151,11 @@
           {{ String(currentSendPageCurrency()).toUpperCase() }}
         </template>
       </q-input>
+      <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+        {{ $t('PleaseUseCustomKeyboard') }}
+      </div>
     </div>
+  </div>
   </div>
 
   <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
@@ -323,6 +332,7 @@ export default {
       cauldronEnabled: false,
       cauldronAmount: '',
       cauldronAmountFormatted: '',
+      showKeyboardTooltip: false,
     }
   },
 
@@ -444,7 +454,12 @@ export default {
           this.setMaximumSendAmount()
         })
     },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip = true
+    },
     onInputFocus (index, field) {
+      this.showKeyboardTooltip = false
       this.$emit('on-input-focus', { index, field })
     },
     onSelectedDenomination (value) {
@@ -566,6 +581,12 @@ export default {
       handler() {
         this.syncPropsData();
       },
+    },
+    amountFormatted () {
+      this.showKeyboardTooltip = false
+    },
+    fiatFormatted () {
+      this.showKeyboardTooltip = false
     },
   }
 }

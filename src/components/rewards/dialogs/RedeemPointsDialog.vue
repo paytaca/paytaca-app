@@ -62,6 +62,7 @@
               type="text"
               inputmode="none"
               @focus="customKeyboardState = 'show'"
+              @keydown="onKeyboardInput"
               filled
               v-model="pointsToRedeem"
               :label="$t('Amount')"
@@ -159,6 +160,7 @@
               type="text"
               inputmode="none"
               @focus="customKeyboardState = 'show'"
+              @keydown="onKeyboardInput"
               filled
               v-model="pointsToRedeem"
               :label="$t('Amount')"
@@ -302,6 +304,7 @@ export default {
   data () {
     return {
       pointsToRedeem: '0',
+      showKeyboardTooltip: false,
       customKeyboardState: 'dismiss',
       pointsBalance: 0,
       redeemablePointsBalance: 0,
@@ -347,7 +350,12 @@ export default {
       this.pointsToRedeem = '' + this.points
       this.computeBalance()
     },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip = true
+    },
     setAmount (key) {
+      this.showKeyboardTooltip = false
       const vm = this
 
       const currentPoints = vm.pointsToRedeem
@@ -358,6 +366,7 @@ export default {
       vm.computeBalance()
     },
     makeKeyAction (action) {
+      this.showKeyboardTooltip = false
       const vm = this
 
       if (action === 'backspace') {

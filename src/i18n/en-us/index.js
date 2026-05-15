@@ -1632,6 +1632,7 @@ export default {
   PleaseEnterNickname: "Please enter nickname",
   PleasePay: "Please pay",
   PleaseUnselectUnsupportedPaymentMethods: "Please unselect unsupported payment methods",
+  PleaseUseCustomKeyboard: "Please use the custom keyboard",
   PleaseWaitGift: "Please wait while we create your gift",
   PleaseWaitMoment: "Please wait a moment",
   Plus: "Plus",

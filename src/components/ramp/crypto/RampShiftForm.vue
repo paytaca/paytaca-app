@@ -35,10 +35,14 @@
               v-model="shiftAmount"
               :readonly="readonlyState"
               @focus="openCustomKeyboard(true)"
+              @keydown="onKeyboardInput"
               @update:modelValue="function(){
                   updateConvertionRate()
                 }"              
             />
+            <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+              {{ $t('PleaseUseCustomKeyboard') }}
+            </div>
             <q-item-label
               class="text-right q-mt-sm"
               caption
@@ -283,6 +287,7 @@ export default {
       depositInfoState: 'created',
       prefix: ['ethereum'],
       readonlyState: false,
+      showKeyboardTooltip: false,
       customKeyboardState: 'dismiss'      
     }
   },
@@ -304,6 +309,10 @@ export default {
       //   params: { id: data.shift_id },
       //   state: { details: jsonString}
       // })
+    },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip = true
     },
     openCustomKeyboard (state) {
       this.readonlyState = state
@@ -341,9 +350,11 @@ export default {
           }
         }
         this.shiftAmount = finalAmount
+        this.showKeyboardTooltip = false
         this.updateConvertionRate()        
     },
     makeKeyAction (action) {
+      this.showKeyboardTooltip = false
       if (action === 'backspace') {
         // Backspace
         this.shiftAmount = String(this.shiftAmount).slice(0, -1)

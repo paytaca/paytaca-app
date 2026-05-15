@@ -195,6 +195,7 @@
         inputmode="none"
         @focus="readonlyState(true, 'amount')"
         @blur="readonlyState(false, 'amount')"
+        @keydown="onKeyboardInput"
         :dark="darkMode"
         outlined
         dense
@@ -215,6 +216,9 @@
           </div>
         </template>
       </q-input>
+      <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+        {{ $t('PleaseUseCustomKeyboard') }}
+      </div>
       <q-select
         :dark="darkMode"
         outlined
@@ -468,10 +472,17 @@ let inputState = ref({
 })
 let activeInput = ref()
 let durationRef = ref()
+const showKeyboardTooltip = ref(false)
 const amountInputFormatted = ref(0)
 const isBalanceClicked = ref(false)
 
+function onKeyboardInput (e) {
+  e.preventDefault()
+  showKeyboardTooltip.value = true
+}
+
 function readonlyState (state, type) {
+  if (state) showKeyboardTooltip.value = false
   inputState[type] = state
 
   if (inputState[type]) {
@@ -481,6 +492,7 @@ function readonlyState (state, type) {
 }
 
 function setAmount (key) {
+  showKeyboardTooltip.value = false
   let tempAmount, amount, tempAmountInput = '', amountInput
 
   // Set Initial Input
@@ -537,6 +549,7 @@ function setAmount (key) {
 }
 
 function makeKeyAction (action) {
+  showKeyboardTooltip.value = false
   if (action === 'backspace') {
     // Backspace
     this.shiftAmount = String(this.shiftAmount).slice(0, -1)

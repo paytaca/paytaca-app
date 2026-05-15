@@ -126,12 +126,16 @@
                   v-model="amount"
                   @blur="resetInput"
                   @focus="openCustomKeyboard(true)"
+                  @keydown="onKeyboardInput"
                   :readonly="readonlyState"
                   >
                   <template v-slot:append>
                     <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
                   </template>
                 </q-input>
+                <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+                  {{ $t('PleaseUseCustomKeyboard') }}
+                </div>
                 <div class="row justify-between">
                   <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
                     {{ amountError }}
@@ -326,6 +330,7 @@ export default {
       isloaded: false,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (70 + 100),
       customKeyboardState: 'dismiss',
+      showKeyboardTooltip: false,
       readonlyState: false,
       ad: null,
       state: 'initial',
@@ -566,12 +571,13 @@ export default {
             }
           } else {
             finalAmount += key !== '.' ? key.toString() : ''
-          }
-        }
-        this.amount = finalAmount
       }
+      this.shiftAmount = 0
+      this.amount = finalAmount
+      this.showKeyboardTooltip = false
     },
     makeKeyAction (action) {
+      this.showKeyboardTooltip = false
       if (action === 'backspace') {
         // Backspace
         this.amount = String(this.amount).slice(0, -1)
@@ -582,6 +588,10 @@ export default {
         this.customKeyboardState = 'dismiss'
         this.readonlyState = false
       }
+    },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip = true
     },
     openCustomKeyboard (state) {
       this.readonlyState = state

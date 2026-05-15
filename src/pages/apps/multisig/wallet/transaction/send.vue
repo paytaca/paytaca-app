@@ -140,9 +140,13 @@
                           :disable="isCreatingProposal"
                           inputmode="none"
                           @focus="onAmountFocus(i)"
+                          @keydown="onKeydown"
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                         </q-input>
+                        <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+                          {{ $t('PleaseUseCustomKeyboard') }}
+                        </div>
                       </q-item-label>
                       <q-separator class="q-my-sm"/>
                     </q-item-section>
@@ -262,6 +266,7 @@ const showWcHeldFundsDialog = ref(false)
 const reserveWcAccountUtxos = ref(true)
 const showQrScanner = ref(false)
 const currentRecipientIndex = ref(null)
+const showKeyboardTooltip = ref(false)
 const customKeyboardState = ref('dismiss')
 const focusedInputField = ref('')
 
@@ -463,7 +468,13 @@ const asset = computed(() => {
   }
 })
 
+const onKeydown = (e) => {
+  e.preventDefault()
+  showKeyboardTooltip.value = true
+}
+
 const setAmount = (amount) => {
+  showKeyboardTooltip.value = false
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
@@ -471,6 +482,7 @@ const setAmount = (amount) => {
 }
 
 const makeKeyAction = (action) => {
+  showKeyboardTooltip.value = false
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return

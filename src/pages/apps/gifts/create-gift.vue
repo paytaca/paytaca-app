@@ -199,6 +199,7 @@
                     type="text"
                     v-model="giftAmountFormatted"
                     @focus="onAmountInputFocus"
+                    @keydown="onKeyboardInput"
                     :dark="darkMode"
                     hide-bottom-space
                   >
@@ -207,6 +208,9 @@
                       <q-icon name="mdi-chevron-down" size="20px" class="denomination-arrow" />
                     </template>
                   </q-input>
+                  <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs">
+                    {{ $t('PleaseUseCustomKeyboard') }}
+                  </div>
                 </div>
                 
                 <div class="row items-center justify-between q-mt-sm">
@@ -500,6 +504,7 @@ export default {
       giftStatus: null,
       failedGiftDetails: null,
       customKeyboardState: 'dismiss',
+      showKeyboardTooltip: false,
       savingGiftQR: false
     }
   },
@@ -1445,7 +1450,12 @@ export default {
     onAmountInputFocus() {
       this.customKeyboardState = 'show'
     },
+    onKeyboardInput(e) {
+      e.preventDefault()
+      this.showKeyboardTooltip = true
+    },
     setAmount(key) {
+      this.showKeyboardTooltip = false
       // Get current caret position, default to end of string
       const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? String(this.giftAmount).length
 
@@ -1469,6 +1479,7 @@ export default {
       }
     },
     makeKeyAction(action) {
+      this.showKeyboardTooltip = false
       if (action === 'backspace') {
         try {
           const amountStr = String(this.giftAmount || '')

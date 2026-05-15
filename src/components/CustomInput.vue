@@ -6,6 +6,7 @@
     ref="inputRef"
     v-model="valFormatted"
     @focus="!disable && (keyboardState = 'show')"
+    @keydown="onKeyboardInput"
     :label="label || $t('Amount')"
     :dark="darkMode"
     :rules="inputRules"
@@ -18,6 +19,10 @@
       </div>
     </template>
   </q-input>
+
+  <div v-if="showKeyboardTooltip" class="text-caption text-negative q-mt-xs q-ml-sm">
+    {{ $t('PleaseUseCustomKeyboard') }}
+  </div>
 
   <teleport to="body">
     <custom-keyboard
@@ -74,7 +79,8 @@ export default {
       val: this.modelValue != null ? String(this.modelValue) : '',
       valFormatted: '',
       keyboardState: '',
-      keyPressed: ''
+      keyPressed: '',
+      showKeyboardTooltip: false
     }
   },
 
@@ -114,7 +120,12 @@ export default {
   },
 
   methods: {
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip = true
+    },
     setAmount (key) {
+      this.showKeyboardTooltip = false
       const inputNativeEl = this.$refs.inputRef.nativeEl
       inputNativeEl.focus({ focusVisible: true })
 
@@ -127,6 +138,7 @@ export default {
       this.$emit('on-amount-click', this.val)
     },
     makeKeyAction (key) {
+      this.showKeyboardTooltip = false
       const inputNativeEl = this.$refs.inputRef.nativeEl
       this.keyPressed = String(key)
 
