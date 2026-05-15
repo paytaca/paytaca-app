@@ -458,8 +458,6 @@ export default {
   Connect: "Koppel",
   "Connect to Paytaca": "Koppel aan Paytaca",
   ConnectedAddress: "Gekoppelde adresse",
-  ConnectedAddresses: "Gekoppelde adresse",
-  ConnectedAddressesToSite: "Jy het {count} adresse gekoppel aan hierdie werf.",
   ConnectedApps: "Gekoppelde Programme",
   Connecting: "Verbind",
   ConnectingToServer: "Koppel tans aan bediener",

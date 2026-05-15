@@ -2211,7 +2211,6 @@ const phrases = {
       AddressLocationId: "Address #{locationId}",
       SelectValue: "Select {value}",
       SelectValueAndTo: "Select {value} to {to}",
-      ConnectedAddressesToSite: "You have {count} addresses connected to this site.",
       AdIdNo: "Ad #{ID}",
       ReviewCount: "{count} review(s)",
       TradeCount: "{count} trades",
