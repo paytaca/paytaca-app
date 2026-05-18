@@ -420,6 +420,7 @@ export default {
       if (this.isHelpActive) return false
       if (this.isLoading || this.error) return false
       if (this.isReferralBannerDismissed) return false
+      if (!this.bannerRemainingTime) return false
       return this.enableReferralBanner
     },
 
