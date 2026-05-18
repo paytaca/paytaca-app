@@ -51,7 +51,7 @@
             <slot name="item" :item="item" :index="index">
               <!-- Default slot content if no slot provided -->
             </slot>
-            <q-separator v-if="index < items.length - 1" />
+            <q-separator v-if="includeSeparator && index < items.length - 1" />
           </q-intersection>
         </q-list>
       </q-pull-to-refresh>
@@ -97,6 +97,10 @@ export default {
     darkMode: {
       type: Boolean,
       default: false
+    },
+    includeSeparator: {
+      type: Boolean,
+      default: true
     },
     emptyState: {
       type: Object,
