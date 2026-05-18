@@ -158,7 +158,7 @@
             flat
             color="primary"
             size="sm"
-            icon="visibility"
+            icon-right="chevron_right"
             :label="$t('ViewAll', 'View All')"
             @click="$router.push(`/apps/rewards/referral-history/${rpId}`)"
           />
@@ -224,28 +224,47 @@
             <q-intersection once transition="jump-up" v-for="(item, index) in displayReferralsList" :key="index">
               <achievement-card>
                 <template #achievement-card-content>
-                  <q-card-section>
-                    <div class="row items-center q-gutter-md">
+                  <q-card-section class="q-py-md">
+                    <div class="row items-center q-gutter-sm">
                       <achievement-icon
                         :complete="item.has_transacted"
                         :dark-mode-class="getDarkModeClass(darkMode)"
                       />
                       <div class="col">
-                        <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                          {{ formatWalletHashDisplay(item.wallet_hash) }}
+                        <div class="row items-center">
+                          <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                            {{ formatWalletHashDisplay(item.wallet_hash) }}
+                          </div>
+                          <q-btn
+                            flat
+                            dense
+                            round
+                            size="xs"
+                            icon="content_copy"
+                            class="copy-hash-btn"
+                            @click="copyWalletHash(item.wallet_hash)"
+                          />
                         </div>
-                        <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                          {{ $t(
-                              'WalletCreatedOn',
-                              { dateCreated: formatDateLocaleRelative(item.date_created, false) },
-                              `Wallet created on ${formatDateLocaleRelative(item.date_created, false)}`
-                            ) }}
+                        <div class="row items-center" style="line-break: anywhere;">
+                          <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                            {{ formatDateLocaleRelative(item.date_created, false) }}
+                          </span>
                         </div>
-                        <div v-if="item.has_transacted" class="text-caption text-green-7">
-                          {{ $t('UserHasTransacted', 'User has already transacted') }}
-                        </div>
-                        <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                          {{ $t('UserNotTransacted', 'User has not transacted yet') }}
+                        <div class="row items-center q-mt-xs">
+                          <q-badge
+                            v-if="item.has_transacted"
+                            dense
+                            color="positive"
+                            :label="$t('Transacted', 'Transacted')"
+                            class="q-px-sm q-py-xs text-caption text-black"
+                          />
+                          <q-badge
+                            v-else
+                            dense
+                            color="grey-5"
+                            :label="$t('Pending', 'Pending')"
+                            class="q-px-sm q-py-xs text-caption text-black"
+                          />
                         </div>
                       </div>
                       <points-badge
@@ -432,9 +451,19 @@ export default {
 
     formatWalletHashDisplay (walletHash) {
       const length = walletHash.length
-      const prefix = walletHash.substring(0, 10)
-      const suffix = walletHash.substring(length - 10, length)
+      const prefix = walletHash.substring(0, 5)
+      const suffix = walletHash.substring(length - 5, length)
       return `${prefix}...${suffix}`
+    },
+
+    copyWalletHash (hash) {
+      this.$copyText(hash)
+      this.$q.notify({
+        color: 'blue-9',
+        message: this.$t('CopiedToClipboard', 'Copied to clipboard'),
+        icon: 'mdi-clipboard-check',
+        timeout: 200
+      })
     },
 
     animatePointsCounter () {
@@ -560,6 +589,15 @@ export default {
   
   &.dark {
     border: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+}
+
+.copy-hash-btn {
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
   }
 }
 </style>
