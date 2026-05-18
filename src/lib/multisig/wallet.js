@@ -787,7 +787,7 @@ export class MultisigWallet {
           return total}, '0'
         )
     
-    let targetSatoshis = Big(targetBch).mul(1e8)
+    let targetSatoshis = BigInt(Big(targetBch).mul(1e8).toString())
     /**
      * @type {{Object.<string, bigint>}} - Key is the asset which is the token category
      */

@@ -217,11 +217,17 @@ function knapsackSatoshis(utxos, targetSatoshis) {
  * @returns {{ selectedUtxos: CommonUtxo[], total: bigint, satisfied: boolean }}
  */
 function knapsackTokens(utxos, targetToken) {
-  // Sort descending by satoshis for early pruning
+  const firstCategory = Object.keys(targetToken || {})[0]
+  const targetTokenAmount = firstCategory ? BigInt(targetToken[firstCategory].toString()) : 0n
+
   let sorted = 
     [...utxos]
-      .filter(u => u.token.category === Object.keys(targetToken)[0])
-      .sort((a, b) => b.token.amount - a.token.amount)
+      .filter(u => u.token.category === firstCategory)
+      .sort((a, b) => {
+        const aAmt = BigInt(a.token.amount)
+        const bAmt = BigInt(b.token.amount)
+        return Number(bAmt - aAmt)
+      })
 
   sorted = structuredClone(sorted).map(u => {
     u.token.amount = BigInt(u.token.amount)
@@ -234,11 +240,9 @@ function knapsackTokens(utxos, targetToken) {
   let bestSolution = null
   let bestExcess = null
 
-  const targetTokenAmount = Object.values(targetToken)[0]
-  // Early exit: if any utxo >= target, pick smallest such utxo
   for (const u of sorted) {
     const val = BigInt(u.token.amount)
-    if (val >= targetToken.amount) {
+    if (val >= targetTokenAmount) {
       if (bestExcess === null || val - targetTokenAmount < bestExcess) {
         bestSolution = [u]
         bestExcess = val - targetTokenAmount
@@ -307,9 +311,11 @@ export function selectUtxos (utxos, options) {
   const nonTokenUtxos = utxos.filter(u => !u.token)
   const tokenUtxos = utxos.filter(u => Boolean(u.token?.category))
   
-  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, BigInt(targetSatoshis ?? 0))
+  const normalizedTargetSatoshis = BigInt((targetSatoshis ?? 0).toString())
+  const satsUtxosSelected = knapsackSatoshis(nonTokenUtxos, normalizedTargetSatoshis)
 
-  const targetTokenAmount = BigInt(targetTokens?.[Object.keys(targetTokens || {})[0]] || 0) 
+  const firstCategory = Object.keys(targetTokens || {})[0]
+  const targetTokenAmount = firstCategory ? BigInt(targetTokens[firstCategory].toString()) : 0n 
   
   let candidates = [...satsUtxosSelected.selectedUtxos]
 
@@ -321,33 +327,33 @@ export function selectUtxos (utxos, options) {
     }
   }
 
-  let totalSatoshis = 0
+  let totalSatoshis = 0n
   let totalTokens = {}
 
   for (const utxo of candidates) {
     if (!utxo.token) {
-      totalSatoshis = totalSatoshis + utxo.satoshis
+      totalSatoshis = totalSatoshis + BigInt(utxo.satoshis)
     }
     if (utxo.token?.amount) {
       if (!totalTokens[utxo.token.category]) {
         totalTokens[utxo.token.category] = {
-          total: utxo.token.amount
+          total: BigInt(utxo.token.amount)
         }
       }
-      totalTokens[utxo.token.category].total = totalTokens[utxo.token.category].total + utxo.token.amount
+      totalTokens[utxo.token.category].total = totalTokens[utxo.token.category].total + BigInt(utxo.token.amount)
     }
   }
   let tokensSatisfied = {}
 
   for (const category of Object.keys(targetTokens || {})) {
     if (!totalTokens[category]) continue
-    tokensSatisfied[category] = totalTokens[category].total >= targetTokens[category].amount
+    tokensSatisfied[category] = totalTokens[category].total >= BigInt(targetTokens[category].toString())
   }
 
   return {
     totalSatoshis,
     totalTokens,
-    satoshisSatisfied: BigInt(totalSatoshis) >= BigInt(targetSatoshis ?? 0),
+    satoshisSatisfied: totalSatoshis >= normalizedTargetSatoshis,
     tokensSatisfied,
     selectedUtxos: candidates,
     remainingUtxos: utxos.filter(u => {
