@@ -142,7 +142,7 @@
                         <q-badge
                           v-else
                           dense
-                          color="grey-5"
+                          color="warning"
                           :label="$t('Pending', 'Pending')"
                           class="q-px-sm q-py-xs text-caption text-black"
                         />
