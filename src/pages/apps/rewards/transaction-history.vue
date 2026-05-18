@@ -357,7 +357,7 @@ export default {
   top: 0;
   z-index: 2900;
   padding: 8px 16px;
-  margin: 0 -16px;
+  margin: 0 -16px 10px -16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   
   /* On mobile, the filter container inside is transparent */

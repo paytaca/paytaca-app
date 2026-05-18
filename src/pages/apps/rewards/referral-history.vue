@@ -70,7 +70,7 @@
       />
 
       <template v-else>
-        <div class="sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
+        <div class="pt-header sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
           <!-- Filter Tabs -->
           <div class="flex justify-center">
             <div class="filter-tabs" :class="getDarkModeClass(darkMode)">
@@ -427,7 +427,7 @@ export default {
   top: 0;
   z-index: 2900;
   padding: 8px 0;
-  margin: 0 -16px;
+  margin: 0 -16px 10px -16px;
   padding-left: 16px;
   padding-right: 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
