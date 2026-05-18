@@ -362,7 +362,8 @@ export default {
       dataError: '',
       rpMax: 0,
 
-      referralsList: []
+      referralsList: [],
+      referralsOverallStats: {}
     }
   },
 
@@ -377,13 +378,13 @@ export default {
       return this.rpMax - this.redeemedPoints
     },
     totalReferralsCount () {
-      return this.referralsList.length
+      return this.referralsOverallStats?.total ?? 0
     },
     completedReferralsCount () {
-      return this.referralsList.filter(r => r.has_transacted).length
+      return this.referralsOverallStats?.completed ?? 0
     },
     pendingReferralsCount () {
-      return this.referralsList.filter(r => !r.has_transacted).length
+      return this.referralsOverallStats?.pending ?? 0
     },
     displayReferralsList () {
       return this.referralsList.slice(0, 5)
@@ -443,6 +444,7 @@ export default {
         this.referralsList = rpData.rp_referrals.sort((a, b) => {
           return new Date(b.date_created) - new Date(a.date_created)
         })
+        this.referralsOverallStats = rpData.rp_referrals_overall_stats
       } else {
         this.dataError = this.$t('FailedToLoadData', 'Unable to load at the moment. Please try again later.')
       }
