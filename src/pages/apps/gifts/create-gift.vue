@@ -199,6 +199,7 @@
                     type="text"
                     v-model="giftAmountFormatted"
                     @focus="onAmountInputFocus"
+                    @keydown="onKeyboardInput"
                     :dark="darkMode"
                     hide-bottom-space
                   >
@@ -207,6 +208,7 @@
                       <q-icon name="mdi-chevron-down" size="20px" class="denomination-arrow" />
                     </template>
                   </q-input>
+                  <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
                 </div>
                 
                 <div class="row items-center justify-between q-mt-sm">
@@ -460,6 +462,8 @@ import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../../assets/paytaca_logo_horizontal.png'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import { showLimitDialogWithDeps } from 'src/composables/useTieredLimitGate'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 const aesjs = require('aes-js')
 const short = require('short-uuid')
@@ -468,7 +472,12 @@ const sss = require('shamirs-secret-sharing')
 
 export default {
   name: 'Gifts',
+  setup () {
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
+    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
+  },
   components: {
+    KeyboardTooltip,
     HeaderNav,
     ProgressLoader,
     ShareGiftPanel,
@@ -1445,7 +1454,12 @@ export default {
     onAmountInputFocus() {
       this.customKeyboardState = 'show'
     },
+    onKeyboardInput(e) {
+      e.preventDefault()
+      this.showKeyboardTooltip()
+    },
     setAmount(key) {
+      this.hideKeyboardTooltip()
       // Get current caret position, default to end of string
       const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? String(this.giftAmount).length
 
@@ -1469,6 +1483,7 @@ export default {
       }
     },
     makeKeyAction(action) {
+      this.hideKeyboardTooltip()
       if (action === 'backspace') {
         try {
           const amountStr = String(this.giftAmount || '')
@@ -2041,8 +2056,7 @@ export default {
   }
 }
 
-// Responsive
-@media (max-width: 600px) {
+  @media (max-width: 600px) {
   .form-card,
   .success-card,
   .processing-card {

@@ -1,4 +1,5 @@
 <template>
+  <div style="position: relative;">
   <q-input
     filled
     type="text"
@@ -6,6 +7,7 @@
     ref="inputRef"
     v-model="valFormatted"
     @focus="!disable && (keyboardState = 'show')"
+    @keydown="onKeyboardInput"
     :label="label || $t('Amount')"
     :dark="darkMode"
     :rules="inputRules"
@@ -18,6 +20,9 @@
       </div>
     </template>
   </q-input>
+
+  <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
+  </div>
 
   <teleport to="body">
     <custom-keyboard
@@ -37,6 +42,8 @@ import {
 import { formatWithLocale } from 'src/utils/denomination-utils';
 
 import CustomKeyboard from './CustomKeyboard.vue';
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 export default {
   name: 'CustomInput',
@@ -66,7 +73,12 @@ export default {
   ],
 
   components: {
-    CustomKeyboard
+    CustomKeyboard,
+    KeyboardTooltip
+  },
+  setup() {
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
+    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
   },
 
   data () {
@@ -74,7 +86,7 @@ export default {
       val: this.modelValue != null ? String(this.modelValue) : '',
       valFormatted: '',
       keyboardState: '',
-      keyPressed: ''
+      keyPressed: '',
     }
   },
 
@@ -114,7 +126,12 @@ export default {
   },
 
   methods: {
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip()
+    },
     setAmount (key) {
+      this.hideKeyboardTooltip()
       const inputNativeEl = this.$refs.inputRef.nativeEl
       inputNativeEl.focus({ focusVisible: true })
 
@@ -127,6 +144,7 @@ export default {
       this.$emit('on-amount-click', this.val)
     },
     makeKeyAction (key) {
+      this.hideKeyboardTooltip()
       const inputNativeEl = this.$refs.inputRef.nativeEl
       this.keyPressed = String(key)
 
@@ -155,3 +173,6 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+</style>

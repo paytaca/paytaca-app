@@ -458,8 +458,6 @@ export default {
   Connect: "Hubungkan",
   "Connect to Paytaca": "Hubungkan ke Paytaca",
   ConnectedAddress: "Alamat Terhubung",
-  ConnectedAddresses: "Alamat Terhubung",
-  ConnectedAddressesToSite: "Anda memiliki {count} alamat yang terhubung ke situs ini.",
   ConnectedApps: "Aplikasi yang Terhubung",
   Connecting: "Menghubungkan",
   ConnectingToServer: "Menghubungkan ke server",

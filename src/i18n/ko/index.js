@@ -458,8 +458,6 @@ export default {
   Connect: "연결하다",
   "Connect to Paytaca": "Paytaca에 연결",
   ConnectedAddress: "연결된 주소",
-  ConnectedAddresses: "연결된 주소",
-  ConnectedAddressesToSite: "이 사이트에 {count}개의 주소가 연결되어 있습니다.",
   ConnectedApps: "연결된 앱",
   Connecting: "연결 중",
   ConnectingToServer: "서버에 연결 중",

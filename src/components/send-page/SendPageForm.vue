@@ -91,7 +91,7 @@
     </q-input>
   </div>
   <div class="row" v-if="!isNFT">
-    <div class="col q-mt-xs">
+    <div class="col q-mt-xs" style="position: relative;">
       <q-input
         type="text"
         inputmode="none"
@@ -100,6 +100,7 @@
         ref="amountInput"
         class="bch-input-field"
         @focus="onInputFocus(index, 'bch')"
+        @keydown="onKeyboardInput"
         :label="cauldronEnabled ? $t('ReceiveAmount') : $t('Amount')"
         :dark="darkMode"
         :loading="computingMax"
@@ -121,11 +122,12 @@
           />
         </template>
       </q-input>
+      <KeyboardTooltip v-if="activeKeyboardTip === 'bch'" :dark-mode="darkMode" :key="'bch-' + keyboardTipCounter" />
     </div>
   </div>
 
   <div class="row" v-if="!isNFT && asset?.id === 'bch'">
-    <div class="col q-mt-xs">
+    <div class="col q-mt-xs" style="position: relative;">
       <q-input
         type="text"
         inputmode="none"
@@ -134,6 +136,7 @@
         ref="fiatInput"
         class="fiat-input-field"
         @focus="onInputFocus(index, 'fiat')"
+        @keydown="onKeyboardInput"
         :disabled="recipient.fixedAmount || inputExtras.isBip21"
         :readonly="recipient.fixedAmount || inputExtras.isBip21"
         :error="balanceExceeded && !cauldronEnabled"
@@ -146,9 +149,9 @@
           {{ String(currentSendPageCurrency()).toUpperCase() }}
         </template>
       </q-input>
+      <KeyboardTooltip v-if="activeKeyboardTip === 'fiat'" :dark-mode="darkMode" :key="'fiat-' + keyboardTipCounter" />
     </div>
   </div>
-
   <div v-if="!isNFT && !cauldronEnabled" class="q-mt-sm">
     <q-btn
       no-caps
@@ -256,9 +259,11 @@ import { shortenAddressForDisplay } from 'src/utils/address-utils'
 import { convertToFiatAmount } from 'src/utils/send-page-utils'
 
 import SelectChangeAddress from 'src/components/SelectChangeAddress.vue'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 
 export default {
   components: {
+    KeyboardTooltip,
     DenominatorTextDropdown,
     TokenSelectDialog
   },
@@ -323,7 +328,15 @@ export default {
       cauldronEnabled: false,
       cauldronAmount: '',
       cauldronAmountFormatted: '',
+      activeKeyboardTip: null,
+      keyboardTipTimer: null,
+      keyboardTipCounter: 0,
+      currentFocusedField: null,
     }
+  },
+
+  beforeUnmount () {
+    clearTimeout(this.keyboardTipTimer)
   },
 
   beforeMount () {
@@ -444,7 +457,17 @@ export default {
           this.setMaximumSendAmount()
         })
     },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = this.currentFocusedField
+      this.keyboardTipCounter++
+      this.keyboardTipTimer = setTimeout(() => { this.activeKeyboardTip = null }, 10000)
+    },
     onInputFocus (index, field) {
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = null
+      this.currentFocusedField = field
       this.$emit('on-input-focus', { index, field })
     },
     onSelectedDenomination (value) {
@@ -567,6 +590,14 @@ export default {
         this.syncPropsData();
       },
     },
+    amountFormatted () {
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = null
+    },
+    fiatFormatted () {
+      clearTimeout(this.keyboardTipTimer)
+      this.activeKeyboardTip = null
+    },
   }
 }
 </script>
@@ -600,6 +631,7 @@ export default {
       font-weight: bold;
     }
   }
+
 </style>
 
 <style lang="scss">

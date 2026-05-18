@@ -112,7 +112,7 @@
                   </q-item>
                   <q-item v-for="recipient,i in recipients" :key="`recipient-${i}`" :ref="el => { if (el) recipientRefs[i] = el.$el || el }">
                     <q-item-section>
-                      <q-item-label :class="addressInputRefs[i]? 'q-gutter-y-md': ''">
+                      <q-item-label style="position: relative;" :class="addressInputRefs[i]? 'q-gutter-y-md': ''">
                         <div class="flex justify-between items-center">
                             <span class="text-italic">{{ $t('RecipientLabel') }} {{ i + 1 }}</span>
                             <q-btn v-if="i > 0" @click="removeRecipient(i)" icon="remove" color="red" flat dense :disable="isCreatingProposal"></q-btn>
@@ -140,9 +140,11 @@
                           :disable="isCreatingProposal"
                           inputmode="none"
                           @focus="onAmountFocus(i)"
+                          @keydown="onKeydown"
                           :ref="el => { if (el) amountInputRefs[i] = el }"
                           >
                         </q-input>
+                        <KeyboardTooltip v-if="keyboardTipRecipientIndex === i" :dark-mode="darkMode" :key="'tip-' + keyboardTipCounter" />
                       </q-item-label>
                       <q-separator class="q-my-sm"/>
                     </q-item-section>
@@ -197,7 +199,7 @@
 
 import { useStore } from 'vuex'
 import { useI18n } from 'vue-i18n'
-import { computed, onMounted, ref, nextTick, onBeforeMount, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick, onBeforeMount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import Big from 'big.js'
@@ -210,6 +212,7 @@ import {
   MultisigWallet,
 } from 'src/lib/multisig'
 import CustomKeyboard from 'src/components/CustomKeyboard.vue'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { decodeCashAddress } from 'bitauth-libauth-v3'
 import { generateCosignerAuthPublicKeyFromXpub } from 'src/lib/multisig/coordination'
@@ -262,6 +265,9 @@ const showWcHeldFundsDialog = ref(false)
 const reserveWcAccountUtxos = ref(true)
 const showQrScanner = ref(false)
 const currentRecipientIndex = ref(null)
+const keyboardTipRecipientIndex = ref(null)
+const keyboardTipTimer = ref(null)
+const keyboardTipCounter = ref(0)
 const customKeyboardState = ref('dismiss')
 const focusedInputField = ref('')
 
@@ -463,7 +469,17 @@ const asset = computed(() => {
   }
 })
 
+const onKeydown = (e) => {
+  e.preventDefault()
+  clearTimeout(keyboardTipTimer.value)
+  keyboardTipRecipientIndex.value = currentRecipientIndex.value
+  keyboardTipCounter.value++
+  keyboardTipTimer.value = setTimeout(() => { keyboardTipRecipientIndex.value = null }, 10000)
+}
+
 const setAmount = (amount) => {
+  clearTimeout(keyboardTipTimer.value)
+  keyboardTipRecipientIndex.value = null
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
@@ -471,6 +487,8 @@ const setAmount = (amount) => {
 }
 
 const makeKeyAction = (action) => {
+  clearTimeout(keyboardTipTimer.value)
+  keyboardTipRecipientIndex.value = null
   if (focusedInputField.value !== 'amount') return
   const recipient = recipients.value[currentRecipientIndex.value]
   if (!recipient) return
@@ -629,6 +647,10 @@ onMounted(async () => {
   await wallet.value.subscribeWalletAddressIndex(wallet.value.getLastUsedChangeAddressIndex(network) + 1, 'change')
   purpose.value = `${$t('Send')} ${assetHeaderName.value}`
 })
+
+onUnmounted(() => {
+  clearTimeout(keyboardTipTimer.value)
+})
 </script>
 
 <style scoped>
@@ -653,4 +675,6 @@ onMounted(async () => {
 .sticky-bottom-spacer {
   height: 100px;
 }
+
+
 </style>

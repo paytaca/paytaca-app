@@ -458,8 +458,6 @@ export default {
   Connect: "Kumonekta",
   "Connect to Paytaca": "I-connect sa Paytaca",
   ConnectedAddress: "Mga Konektadong Address",
-  ConnectedAddresses: "Mga Konektadong Address",
-  ConnectedAddressesToSite: "Mayroon kang {count} na mga address na konektado sa site na ito.",
   ConnectedApps: "Mga Konektadong App",
   Connecting: "Kumokonekta",
   ConnectingToServer: "Kumokonekta sa server",

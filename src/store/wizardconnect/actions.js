@@ -209,13 +209,15 @@ export async function approveRequestWithData ({ commit, dispatch, rootGetters },
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
 
-    // Fire-and-forget broadcast via watchtower (redundant to dApp broadcast)
     const isChipnet = rootGetters['global/isChipnet'] || false
     const watchtower = new Watchtower(isChipnet)
-    watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
-      console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
-    })
 
+    if (request.transaction?.broadcast === true) {
+      watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
+        console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
+      })
+    }
+    
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
     
     // After transaction, check buffer (delayed to allow backend to process)

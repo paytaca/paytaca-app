@@ -55,13 +55,16 @@
       <div class="row items-center justify-end q-px-md q-pb-md">
         <LimitOffsetPagination
           :pagination-props="{
+            disable: fetchingNftGroups,
+            input: pageCount > 5,
             maxPages: 5,
-            rounded: true,
-            padding: 'sm md',
+            round: true,
             size: 'sm',
             dark: darkMode,
-            color: 'brandblue',
-            boundaryNumbers: true
+            color: 'pt-primary1',
+            directionLinks: true,
+            boundaryLinks: pageCount > 5,
+            boundaryNumbers: pageCount <= 5,
           }"
           :hide-below-pages="2"
           :modelValue="nftsPagination"
@@ -168,6 +171,7 @@ function fetchNftGroups(opts={ limit: 0, checkCount: true }) {
 }
 
 const nftsPagination = ref({count: 0, limit: 0, offset: 0})
+const pageCount = computed(() => nftsPagination.value?.limit ? Math.ceil(nftsPagination.value.count / nftsPagination.value.limit) : 0)
 
 const parsedNftGroups = computed(() => {
   // Groups from API already have metadata pre-populated and are ordered by backend

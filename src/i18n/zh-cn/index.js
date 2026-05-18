@@ -459,8 +459,6 @@ export default {
   Connect: "连接",
   "Connect to Paytaca": "连接到Paytaca",
   ConnectedAddress: "连接地址",
-  ConnectedAddresses: "连接地址",
-  ConnectedAddressesToSite: "您有 {count} 个地址连接到此站点。",
   ConnectedApps: "已连接应用",
   Connecting: "正在连接",
   ConnectingToServer: "连接到服务器",

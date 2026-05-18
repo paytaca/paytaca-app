@@ -458,8 +458,6 @@ export default {
   Connect: "الاتصال",
   "Connect to Paytaca": "الاتصال بـ Paytaca",
   ConnectedAddress: "العناوين المتصلة",
-  ConnectedAddresses: "العناوين المتصلة",
-  ConnectedAddressesToSite: "لديك {count} عنوان متصل بهذا الموقع.",
   ConnectedApps: "التطبيقات المتصلة",
   Connecting: "الاتصال",
   ConnectingToServer: "الاتصال بالخادم",

@@ -458,8 +458,6 @@ export default {
   Connect: "Подключиться",
   "Connect to Paytaca": "Подключиться к Paytaca",
   ConnectedAddress: "Подключенные адреса",
-  ConnectedAddresses: "Подключенные адреса",
-  ConnectedAddressesToSite: "К этому сайту подключено {count} адресов.",
   ConnectedApps: "Подключенные приложения",
   Connecting: "Подключение",
   ConnectingToServer: "Подключение к серверу",

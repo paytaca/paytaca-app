@@ -458,8 +458,6 @@ export default {
   Connect: "Conectar",
   "Connect to Paytaca": "Conectar ao Paytaca",
   ConnectedAddress: "Endereços conectados",
-  ConnectedAddresses: "Endereços conectados",
-  ConnectedAddressesToSite: "Você tem {count} endereços conectados a este site.",
   ConnectedApps: "Aplicativos Conectados",
   Connecting: "Conectando",
   ConnectingToServer: "Conectando ao servidor",
