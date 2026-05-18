@@ -602,7 +602,8 @@ export default {
             titleKey: 'RewardsHelpRFP61',
             titleDefault: 'Referral Status',
             content: [
-              { key: 'RewardsHelpRFP62', default: 'See the status of your referrals here and keep tabs on your successful ones.' },
+              { key: 'RewardsHelpRFP62', default: 'See the status of your 5 latest referrals here and keep tabs on your successful ones.' },
+              { key: 'RewardsHelpRFP62', default: 'Tap on View All to view all of your referrals.' },
             ],
             hasBack: true,
             primaryBtn: 'Done',
