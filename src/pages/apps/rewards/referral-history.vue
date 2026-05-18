@@ -70,25 +70,37 @@
       />
 
       <template v-else>
-        <!-- Sort Toggle -->
-        <div class="row items-center justify-end q-mb-sm q-gutter-sm">
-          <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-            {{ displayCount }} {{ $t('items', 'items') }}
-          </span>
-          <q-btn-toggle
-            v-model="sortDesc"
-            flat
-            no-caps
-            dense
-            :options="[
-              { label: $t('Newest', 'Newest'), value: true },
-              { label: $t('Oldest', 'Oldest'), value: false }
-            ]"
-            color="primary"
-            text-color="primary"
-            :class="getDarkModeClass(darkMode)"
-            @update:model-value="applySort"
-          />
+        <div class="sticky-filters-wrapper" :class="getDarkModeClass(darkMode)">
+          <!-- Filter Tabs -->
+          <div class="flex justify-center">
+            <div class="filter-tabs" :class="getDarkModeClass(darkMode)">
+              <button
+                v-for="tab in filterTabs"
+                :key="tab.value"
+                class="filter-tab"
+                :class="[darkMode ? 'dark' : '', { 'tab-active': activeFilterTab === tab.value }]"
+                @click="setFilterTab(tab.value)"
+              >
+                {{ $t(tab.label, tab.label) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort Toggle -->
+          <div class="row items-center justify-between">
+            <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+              {{ $t('Showing') }} {{ displayCount }} {{ $t(displayCount === 1 ? 'transaction' : 'transactions') }}
+            </span>
+            <q-btn
+              flat
+              dense
+              size="sm"
+              :icon="sortDesc ? 'arrow_downward' : 'arrow_upward'"
+              :label="sortDesc ? $t('Newest') : $t('Oldest')"
+              :class="darkMode ? 'text-grey-5' : 'text-grey-7'"
+              @click="toggleSort"
+            />
+          </div>
         </div>
 
         <!-- Referral List -->
@@ -99,6 +111,7 @@
           :has-more="hasMoreData"
           :dark-mode="darkMode"
           :empty-state="emptyState"
+          :include-separator="false"
           @refresh="refreshData"
           @load-more="loadMore"
         >
@@ -198,9 +211,9 @@ export default {
       dataError: '',
       rpId: -1,
       sortDesc: true,
+      activeFilterTab: 'all',
 
       allReferrals: [],
-      sortedReferrals: [],
       summaryStats: {
         total_count: 0,
         completed_count: 0,
@@ -226,11 +239,37 @@ export default {
     },
     displayCount() {
       return this.sortedReferrals.length
+    },
+    filterTabs() {
+      return [
+        { label: 'All', value: 'all' },
+        { label: 'Completed', value: 'completed' },
+        { label: 'Pending', value: 'pending' }
+      ]
+    },
+    sortedReferrals() {
+      const filtered = this.allReferrals.filter(item => {
+        if (this.activeFilterTab === 'all') return true
+        if (this.activeFilterTab === 'completed') return item.has_transacted
+        if (this.activeFilterTab === 'pending') return !item.has_transacted
+        return true
+      })
+      return [...filtered].sort((a, b) => {
+        const dateA = new Date(a.date_created)
+        const dateB = new Date(b.date_created)
+        return this.sortDesc ? dateB - dateA : dateA - dateB
+      })
     }
   },
 
   async mounted() {
     await this.loadData()
+
+    this.$nextTick(() => {
+      const headerNavHeight = document.getElementsByClassName('header-nav-wrapper')[0]?.clientHeight || 0
+      const stickyFilter = document.getElementsByClassName('sticky-filters-wrapper')[0]
+      if (stickyFilter) stickyFilter.style.top = `${headerNavHeight - 1}px`
+    })
   },
 
   methods: {
@@ -281,8 +320,6 @@ export default {
             points_earned: data.points_earned
           }
 
-          this.applySort()
-
           const fetchedCount = data.overall_data?.length || 0
           this.hasMoreData = fetchedCount >= this.limit
         } else {
@@ -296,13 +333,11 @@ export default {
       this.isLoading = false
     },
 
-    applySort() {
-      const sorted = [...this.allReferrals].sort((a, b) => {
-        const dateA = new Date(a.date_created)
-        const dateB = new Date(b.date_created)
-        return this.sortDesc ? dateB - dateA : dateA - dateB
-      })
-      this.sortedReferrals = sorted
+    toggleSort() {
+      this.sortDesc = !this.sortDesc
+    },
+    setFilterTab(tab) {
+      this.activeFilterTab = tab
     },
 
     async refreshData(done) {
@@ -339,6 +374,81 @@ export default {
 
   &:hover {
     opacity: 1;
+  }
+}
+
+.filter-tabs {
+  display: inline-flex;
+  gap: 4px;
+  background-color: rgb(242, 243, 252);
+  border-radius: 24px;
+  padding: 4px;
+
+  &.dark {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.filter-tab {
+  min-width: 80px;
+  height: 36px;
+  border-radius: 20px;
+  border: none;
+  color: #4C4F4F;
+  background-color: transparent;
+  outline: 0;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 0 16px;
+
+  &:hover:not(.tab-active) {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  &.dark {
+    color: rgba(255, 255, 255, 0.7);
+
+    &:hover:not(.tab-active) {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &.tab-active {
+    background-color: var(--q-primary) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.sticky-filters-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 2900;
+  padding: 8px 0;
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+  &.dark {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  @media (min-width: 600px) {
+    margin: 0;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    border-bottom: none;
+  }
+
+  @media (max-width: 599px) {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+    &.dark {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
   }
 }
 </style>
