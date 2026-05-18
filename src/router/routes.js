@@ -337,6 +337,12 @@ const routes = [
             name: 'apps-rewards-eload-history',
             component: () => import('src/pages/apps/rewards/transaction-history.vue'),
             props: true
+          },
+          {
+            path: 'referral-history/:id',
+            name: 'app-rewards-referral-history',
+            component: () => import('src/pages/apps/rewards/referral-history.vue'),
+            props: true
           }
         ]
       },

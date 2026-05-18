@@ -3,7 +3,6 @@
     <header-nav
       class="apps-header"
       :title="`RF ${$t('Promo')}`"
-      :rewardsPage="Promos.RFPROMO"
     >
       <template #top-right-menu v-if="!isLoading && !pointsError && !dataError">
         <q-btn
@@ -149,9 +148,20 @@
 
       <!-- Referral Status Section -->
       <template v-else>
-        <div class="section-header q-mb-sm card-help-highlight">
-          <q-icon name="group" size="md" class="q-mr-sm" color="primary" />
-          <span class="text-h6">{{ $t('ReferralStatus', 'Referral Status') }}</span>
+        <div class="section-header row items-center justify-between q-mb-sm card-help-highlight">
+          <div class="row items-center">
+            <q-icon name="group" size="md" class="q-mr-sm" color="primary" />
+            <span class="text-h6">{{ $t('ReferralStatus', 'Referral Status') }}</span>
+          </div>
+          <q-btn
+            v-if="!isLoading"
+            flat
+            color="primary"
+            size="sm"
+            icon="visibility"
+            :label="$t('ViewAll', 'View All')"
+            @click="$router.push(`/apps/rewards/referral-history/${rpId}`)"
+          />
         </div>
 
         <!-- Loading Skeletons for Referral Stats -->
@@ -211,7 +221,7 @@
           </div>
           
           <div v-if="referralsList.length > 0" class="q-mx-sm q-mt-sm q-gutter-y-sm">
-            <q-intersection once transition="jump-up" v-for="(item, index) in referralsList" :key="index">
+            <q-intersection once transition="jump-up" v-for="(item, index) in displayReferralsList" :key="index">
               <achievement-card>
                 <template #achievement-card-content>
                   <q-card-section>
@@ -355,6 +365,9 @@ export default {
     },
     pendingReferralsCount () {
       return this.referralsList.filter(r => !r.has_transacted).length
+    },
+    displayReferralsList () {
+      return this.referralsList.slice(0, 5)
     }
   },
 
