@@ -1461,7 +1461,7 @@ export default {
         await this.refreshFavoriteTokenBalances()
         
         // Refresh prices for all favorite tokens + BCH
-        await this.refreshFavoriteTokenPrices()
+        await this.refreshDisplayedTokenPrices()
         
         // Refresh transaction list
         if (this.$refs['transaction-list-component']) {
@@ -1952,25 +1952,19 @@ export default {
         return Promise.resolve()
       }
     },
-    async refreshFavoriteTokenPrices() {
+    async refreshDisplayedTokenPrices() {
       const vm = this
       try {
-        // Always use API data only - never use Vuex store for favorite tokens
-        let favoriteTokenIds = []
-        
-        if (vm.isCashToken) {
-          // Use token IDs from API data - filter favorites from allTokensFromAPI
-          const favorites = (vm.allTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
-          favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
-        } else {
-          const favorites = (vm.allSlpTokensFromAPI || []).filter(token => token.favorite === 1 || token.favorite === true)
-          favoriteTokenIds = favorites.map(token => token.id).filter(Boolean)
-        }
+        // Refresh prices only for tokens actually displayed in the cards
+        // this.assets returns sortedTokens.slice(0, limit) — the visible subset
+        const displayedTokenIds = (vm.assets || [])
+          .map(token => token.id)
+          .filter(id => id && id !== 'bch')
 
         // Always include BCH (id: 'bch')
-        const tokensToRefresh = [...new Set([...favoriteTokenIds, 'bch'])]
+        const tokensToRefresh = [...new Set([...displayedTokenIds, 'bch'])]
 
-        // Refresh prices for all favorite tokens + BCH using unified API
+        // Refresh prices for all displayed tokens + BCH using unified API
         const pricePromises = tokensToRefresh.map(assetId => {
           return vm.$store.dispatch('market/updateAssetPrices', {
             assetId: assetId,
@@ -1983,7 +1977,7 @@ export default {
 
         return Promise.allSettled(pricePromises)
       } catch (error) {
-        console.error('Error refreshing favorite token prices:', error)
+        console.error('Error refreshing displayed token prices:', error)
         return Promise.resolve()
       }
     },
@@ -2491,7 +2485,7 @@ export default {
         if (!existingBchPrice) {
           vm.loadingBchPrice = true
         }
-        vm.refreshFavoriteTokenPrices()
+        vm.refreshDisplayedTokenPrices()
           .then(() => {
             vm.loadingBchPrice = false
           })
