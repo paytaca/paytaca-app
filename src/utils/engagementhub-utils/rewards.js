@@ -191,6 +191,10 @@ export async function fetchEloadTransactionsData (data) {
   return await postFetchData('userreward/get_ur_eload_transactions/', data)
 }
 
+export async function fetchRfPromoReferrals (data) {
+  return await postFetchData('rfpromo/get_rp_referrals/', data)
+}
+
 export async function getPromoRedeemHistory (promo, data) {
   const promoUrl = {
     'ur': 'userreward/get_ur_redeem_history/',

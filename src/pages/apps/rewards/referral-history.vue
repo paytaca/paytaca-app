@@ -51,9 +51,9 @@
             <q-separator class="q-my-sm" />
 
             <div class="row items-center justify-center q-gutter-sm">
-              <q-icon name="emoji_events" color="primary" size="sm" />
+              <q-icon name="group" color="primary" size="sm" />
               <span class="text-subtitle1 text-weight-medium">
-                {{ summaryStats.total_count }} {{ $t('referralsTotal', 'referrals total') }}
+                {{ summaryStats.points_earned }} points earned
               </span>
             </div>
           </template>
@@ -204,7 +204,8 @@ export default {
       summaryStats: {
         total_count: 0,
         completed_count: 0,
-        pending_count: 0
+        pending_count: 0,
+        points_earned: 0,
       },
 
       limit: 20,
@@ -274,9 +275,10 @@ export default {
           }
 
           this.summaryStats = {
-            total_count: data.total_count || data.overall_count || this.allReferrals.length,
-            completed_count: data.completed_count || this.allReferrals.filter(r => r.has_transacted).length,
-            pending_count: data.pending_count || this.allReferrals.filter(r => !r.has_transacted).length
+            total_count: data.total_count,
+            completed_count: data.completed_count,
+            pending_count: data.pending_count,
+            points_earned: data.points_earned
           }
 
           this.applySort()
