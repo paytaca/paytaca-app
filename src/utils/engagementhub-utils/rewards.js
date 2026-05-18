@@ -210,7 +210,7 @@ export async function processReferralCode (data) {
     .then(_response => { return {} })
     .catch(error => {
       console.error(error)
-      return error.response.data
+      return error.response?.data || { error: error.message || 'Network error' }
     })
 }
 
@@ -237,7 +237,10 @@ export async function processPromoTokensSwap (data) {
   return await REWARDS_URL
     .post('userpromo/process_promo_points_swap/', data)
     .then(response => { return response.data })
-    .catch(error => { return error.response.data })
+    .catch(error => {
+      console.error(error)
+      return error.response?.data || { error: error.message || 'Network error' }
+    })
 }
 
 export async function recordPointsRedemption (data) {
@@ -247,5 +250,8 @@ export async function recordPointsRedemption (data) {
       if (response.status === 200) return { error: '' }
       else return response.data
     })
-    .catch(error => { return error.response.data })
+    .catch(error => {
+      console.error(error)
+      return error.response?.data || { error: error.message || 'Network error' }
+    })
 }
