@@ -47,6 +47,13 @@
           </div>
         </template>
 
+        <!-- Error State -->
+        <ErrorCard
+          v-else-if="hasError"
+          error-text="Failed to load redemption history"
+          @on-retry="fetchRedemptionHistory"
+        />
+
         <!-- Empty State -->
         <div v-else-if="redemptions.length === 0" class="empty-state q-pa-xl text-center">
           <q-icon name="redeem" size="64px" class="text-bow-muted q-mb-md" :class="getDarkModeClass(darkMode)" />
@@ -150,9 +157,14 @@ import { formatDateLocaleRelative } from 'src/utils/time';
 import { getExplorerLink } from 'src/utils/send-page-utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { Promos, getPromoRedeemHistory } from 'src/utils/engagementhub-utils/rewards';
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue';
 
 export default {
   name: 'RedeemHistoryDialog',
+
+  components: {
+    ErrorCard,
+  },
 
   props: {
     promo: { type: String, default: '' },
@@ -163,6 +175,7 @@ export default {
     return {
       isLoading: false,
       isLoadingMore: false,
+      hasError: false,
       hasMoreData: true,
       limit: 10,
       offset: 0,
@@ -204,6 +217,7 @@ export default {
 
     async fetchRedemptionHistory () {
       this.isLoading = true
+      this.hasError = false
       
       try {
         const data = { limit: this.limit, offset: this.offset }
@@ -215,6 +229,7 @@ export default {
         this.hasMoreData = resp.has_more_data
       } catch (error) {
         console.error('Failed to fetch redemption history:', error)
+        this.hasError = true
       } finally {
         this.isLoading = false
       }
