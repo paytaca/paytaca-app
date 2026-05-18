@@ -621,6 +621,7 @@ export default {
         // new user; create and update necessary data
         urData = await createUserRewardsData()
         this.urId = urData.id
+        this.$router.replace({ params: { id: String(urData.id) } })
         Promise.allSettled([
           updateUserPromoData({ ur: urData.id }),
           updateUserRewardsData(urData.id, {
