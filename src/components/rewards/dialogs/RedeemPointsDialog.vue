@@ -944,7 +944,7 @@ export default {
             const timeLeft = animationEnd - Date.now()
 
             if (timeLeft <= 0) {
-              return clearInterval(interval)
+              return clearInterval(this.celebrationIntervalId)
             }
 
             const particleCount = 50 * (timeLeft / duration)
