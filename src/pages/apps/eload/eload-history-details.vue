@@ -149,7 +149,7 @@
 
 			<!-- Rewards Section - Shown when order succeeds and API triggered -->
 			<q-card 
-				v-if="shouldShowRewardsSection" 
+				v-if="showRewardsSection" 
 				class="q-pa-md br-15 q-mt-md q-mb-xl rewards-card"
 				:class="getDarkModeClass(darkMode)"
 			>
@@ -246,9 +246,6 @@ export default {
 			}
 			return ''
 		},
-		shouldShowRewardsSection () {
-			return this.order?.status === 'success' && this.apiCallStatus.triggered
-		},
 		calculatedPoints () {
 			const fee = Number.parseFloat(this.promoSnapshot?.convenience_fee_php || 0)
 			return fee * 2
@@ -300,6 +297,7 @@ export default {
 			if (this.apiCallStatus.triggered || this.apiCallStatus.loading) return
 
 			this.apiCallStatus.loading = true
+			this.showRewardsSection = false
 			try {
 				const payload = {
 					bch_address: await getChangeAddress('bch'),
