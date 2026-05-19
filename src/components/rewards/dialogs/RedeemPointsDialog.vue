@@ -466,6 +466,7 @@ export default {
       return null
     },
     liftToReceive () {
+      if (!this.liftConversionRate) return 0
       return this.pointsToRedeem / this.liftConversionRate
     },
     hasValidationError () {
