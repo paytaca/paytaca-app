@@ -441,6 +441,7 @@ export default {
       liftBchPriceValue: null,
       liftUsdPriceValue: null,
       cauldronPriceIntervalId: null,
+      celebrationIntervalId: null
     }
   },
 
@@ -939,7 +940,7 @@ export default {
 
           const randomInRange = (min, max) => Math.random() * (max - min) + min
 
-          const interval = setInterval(() => {
+          this.celebrationIntervalId = setInterval(() => {
             const timeLeft = animationEnd - Date.now()
 
             if (timeLeft <= 0) {
@@ -964,6 +965,10 @@ export default {
     },
     
     closeCelebration () {
+      if (this.celebrationIntervalId) {
+        clearInterval(this.celebrationIntervalId)
+        this.celebrationIntervalId = null
+      }
       this.showCelebration = false
       clearInterval(this.cauldronPriceIntervalId)
       this.$emit('hide')
