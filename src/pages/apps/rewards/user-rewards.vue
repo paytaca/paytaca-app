@@ -689,7 +689,7 @@ export default {
         points: urData.eload?.total_points || 0
       }
 
-      this.firstSevenTransactions = urData.ur_seven_transactions
+      this.firstSevenTransactions = urData.ur_seven_transactions || []
       for (let i = this.firstSevenTransactions.length; i < 7; i++) {
         this.firstSevenTransactions.push({ ref_id: '', date: '', points: 0 })
       }
