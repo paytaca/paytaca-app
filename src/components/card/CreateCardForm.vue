@@ -461,6 +461,38 @@ export default {
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 25px 80px color-mix(in srgb, var(--q-primary) 15%, transparent);
+  font-family: 'Rubik', sans-serif;
+}
+
+/* Dialog typography */
+.create-card-dialog :deep(.text-h6) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.create-card-dialog :deep(.text-subtitle2) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.create-card-dialog :deep(.text-h5) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.create-card-dialog :deep(.text-body2) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.create-card-dialog :deep(.text-caption) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.3px;
 }
 
 /* Header Styling */
@@ -565,6 +597,9 @@ export default {
   font-size: 11px;
   margin-top: 4px;
   transition: all 0.3s ease;
+  font-family: 'Rubik', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 /* NFC & QR Instructions */
@@ -850,6 +885,23 @@ export default {
   border-radius: 14px;
 }
 
+.custom-input :deep(.q-field__label) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.custom-input :deep(.q-field__native) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+.custom-input :deep(.q-field__counter) {
+  font-family: 'Rubik', sans-serif;
+  font-size: 11px;
+}
+
 /* Status Sections */
 .status-section {
   display: flex;
@@ -915,6 +967,8 @@ export default {
 .step-item span {
   color: var(--q-primary);
   font-weight: 500;
+  font-family: 'Rubik', sans-serif;
+  letter-spacing: 0.3px;
 }
 
 .bg-dark .step-item span {
@@ -941,6 +995,13 @@ export default {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* Button typography */
+.create-card-dialog :deep(.q-btn) {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 
 /* Success Card Preview */
