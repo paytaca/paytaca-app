@@ -182,6 +182,10 @@ animation: float 6s ease-in-out infinite;
 	height: 180px;
 	border-radius: 15px;
 	overflow: hidden;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12);
+	font-family: 'Rubik', sans-serif;
+	font-weight: 400;
+	letter-spacing: 0.3px;
 
 	// for swiping card events
 	user-select: none;
@@ -220,20 +224,16 @@ animation: float 6s ease-in-out infinite;
 .card-handle {
 	width: 100%;
 	height: 30px;
-	background: color-mix(in srgb, var(--q-primary) 25%, transparent);
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	cursor: grab;
 	position: relative;
 	flex-shrink: 0;
+	gap: 4px;
 
 	&:active {
 		cursor: grabbing;
-		background: color-mix(in srgb, var(--q-primary) 40%, transparent);
 	}
 }
 
@@ -259,7 +259,7 @@ animation: float 6s ease-in-out infinite;
 // Balance in bottom-left
 .card-balance-container {
 	position: absolute;
-	bottom: 16px;
+	bottom: 24px;
 	left: 16px;
 	z-index: 5;
 	text-align: left;
@@ -267,20 +267,62 @@ animation: float 6s ease-in-out infinite;
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-// Logo in top-right
-.card-logo-container {
+// Contract address in top-right
+.card-contract-container {
 	position: absolute;
 	top: 45px;
+	right: 16px;
+	z-index: 5;
+	color: white;
+	font-size: 11px;
+	font-weight: 400;
+	letter-spacing: 0.2px;
+	opacity: 0.75;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	height: 32px;
+	display: flex;
+	align-items: center;
+}
+
+// Logo in bottom-right
+.card-logo-container {
+	position: absolute;
+	bottom: 24px;
 	right: 16px;
 	z-index: 5;
 }
 
 .handle-indicator {
-	width: 50px;
-	height: 4px;
-	background: rgba(255, 255, 255, 0.9);
-	border-radius: 3px;
-	box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+	display: flex;
+	align-items: center;
+	gap: 3px;
+
+	&::before, &::after {
+		content: '';
+		display: block;
+		width: 0;
+		height: 0;
+		border-top: 5px solid transparent;
+		border-bottom: 5px solid transparent;
+		border-left: 8px solid rgba(255, 255, 255, 0.8);
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+		animation: swipePulse 1.5s ease-in-out infinite;
+	}
+
+	&::before {
+		opacity: 0.5;
+		animation-delay: 0s;
+	}
+
+	&::after {
+		opacity: 0.9;
+		animation-delay: 0.2s;
+	}
+}
+
+@keyframes swipePulse {
+	0%, 100% { transform: translateX(0); }
+	50% { transform: translateX(4px); }
 }
 
 .body--light {
