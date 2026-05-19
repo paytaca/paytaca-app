@@ -12,56 +12,42 @@
             <div
               v-for="n in 3"
               :key="n"
-              class="stacked-card"
+              class="skeleton-card"
               :style="getSkeletonCardStyle(n-1)"
-            >
-              <div class="card-handle"></div>
-            </div>
+            ></div>
           </div>
         </div>
       </div>
 
       <!-- Loaded state -->
       <div v-else class="full-width">
-        <div class="flex flex-center full-width q-mt-sm">
-          <div class="wallet-container">
-            <div class="new-card-btn-container">
-              <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
-                My Cards
-              </div>
-              <div class="plus-btn-circle">
-                <q-btn
-                  dense
-                  round
-                  flat
-                  :color="$q.dark.isActive ? 'white' : 'dark'"
-                  icon="add"
-                  size="md"
-                  @click="onOpenCreateCardForm"
-                />
-              </div>
-            </div>
-            <div v-if="showSwipeHint && displayedCards.length > 0" class="swipe-overlay" @click="dismissSwipeHint">
-              <div class="swipe-overlay-content">
-                <div class="swipe-arrow-container">
-                  <q-icon name="arrow_forward" size="28px" />
+          <div class="flex flex-center full-width q-mt-sm">
+          <div class="cards-area">
+            <div class="wallet-container" @wheel="onWheel">
+              <div class="new-card-btn-container">
+                <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
+                  My Cards
                 </div>
-                <div class="swipe-overlay-text">Swipe right to view the card's details</div>
+                <div class="plus-btn-circle">
+                  <q-btn
+                    dense
+                    round
+                    flat
+                    :color="$q.dark.isActive ? 'white' : 'dark'"
+                    icon="add"
+                    size="md"
+                    @click="onOpenCreateCardForm"
+                  />
+                </div>
               </div>
-            </div>
-            <div
-              v-for="(card, index) in displayedCards"
+              <div
+                v-for="(card, index) in displayedCards"
               :key="card.id"
               class="stacked-card"
-              :class="{ 'swipe-hint': index === 0, 'is-dragging': currentCardId === card.id }"
+              :class="{ 'is-dragging': currentCardId === card.id }"
               :style="getCardStyle(index)"
-              @mousedown="startDrag($event, card)"
-              @touchstart="startDrag($event, card)"
-              @mousemove="onDrag($event, card)"
-              @touchmove="onDrag($event, card)"
-              @mouseup="endDrag(card)"
-              @touchend="endDrag(card)"
-              @mouseleave="endDrag(card)"
+              @mousedown="onPointerDown($event, card)"
+              @touchstart="onPointerDown($event, card)"
               @keyup.right="goToCardDetails(card)"
               tabindex="0"
             >
@@ -105,22 +91,53 @@
                 <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
               </div>
             </div>
-
-            <div v-if="subCards.length > 3" class="text-center q-mt-md">
-              <q-btn
-                flat
-                no-caps
-                :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
-                @click="showAllCards"
-                style="font-size: 14px;"
-              >
-                View all {{ subCards.length }} cards
-                <q-icon name="chevron_right" size="18px" class="q-ml-xs" />
-              </q-btn>
+          </div>
+          <div v-if="subCards.length > 0" class="flex flex-center view-all-wrapper">
+            <q-btn
+              outline
+              rounded
+              no-caps
+              :color="$q.dark.isActive ? 'grey-3' : 'grey-7'"
+              @click="showAllCards"
+              size="sm"
+              style="border-width: 1.5px; padding: 6px 20px; font-size: 12px; letter-spacing: 0.5px;"
+            >
+              View all {{ subCards.length }} card{{ subCards.length !== 1 ? 's' : '' }}
+              <q-icon name="arrow_forward_ios" size="12px" class="q-ml-sm" />
+            </q-btn>
+          </div>
+          <div
+            v-if="showSwipeHint && displayedCards.length > 0"
+            class="swipe-overlay"
+            @click="dismissSwipeHint"
+          >
+            <div class="swipe-overlay-content">
+              <div class="swipe-hint-label">GESTURES</div>
+              <div class="swipe-hint-row">
+                <div class="swipe-arrow-circle carousel-arrows">
+                  <q-icon name="expand_less" size="20px" class="arrow-up" />
+                  <q-icon name="expand_more" size="20px" class="arrow-down" />
+                </div>
+                <div>
+                  <div class="swipe-hint-title">Browse cards</div>
+                  <div class="swipe-hint-sub">Swipe up or down</div>
+                </div>
+              </div>
+              <div class="swipe-hint-row">
+                <div class="swipe-arrow-circle swipe-right-circle">
+                  <q-icon name="chevron_right" size="24px" class="arrow-right" />
+                </div>
+                <div>
+                  <div class="swipe-hint-title">View details</div>
+                  <div class="swipe-hint-sub">Swipe right</div>
+                </div>
+              </div>
+              <div class="swipe-hint-dismiss">Tap anywhere to dismiss</div>
             </div>
           </div>
         </div>
       </div>
+    </div>
       
       <!-- Create Card Dialog -->
       <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" :idempotencyKey="idempotencyKey"/>
@@ -160,7 +177,12 @@ export default {
       isDragging: false,
       currentCardId: null,
       startX: 0,
+      startY: 0,
       currentX: 0,
+      verticalDragOffset: 0,
+      gestureLock: null,
+      carouselIndex: 0,
+      wheelAccumulator: 0,
       // showCreateCardDialog: false,
       newCardName: '',
       isMinting: false,
@@ -176,16 +198,16 @@ export default {
   },
 
   computed: {
-    hiddenCount () {
-      return this.subCards.length - 3
-    },
-
     subCards () {
       return this.$store.getters['card/cards'] || []
     },
 
+    sortedCards () {
+      return [...this.subCards].sort((a, b) => b.id - a.id)
+    },
+
     displayedCards () {
-      return ([...this.subCards].sort((a, b) => b.id - a.id)).slice(0, 3)
+      return this.sortedCards
     },
 
     textColor () {
@@ -197,10 +219,19 @@ export default {
     await this.loadData()
     this.isLoaded = true
     this.$nextTick(() => {
-      setTimeout(() => this.dismissSwipeHint(), 5000)
       window.addEventListener('touchstart', this.dismissSwipeHint, { once: true })
       window.addEventListener('mousedown', this.dismissSwipeHint, { once: true })
     })
+  },
+
+  watch: {
+    displayedCards (cards) {
+      if (cards.length > 0) {
+        this.carouselIndex = this.carouselIndex % cards.length
+      } else {
+        this.carouselIndex = 0
+      }
+    }
   },
 
   methods: {
@@ -340,42 +371,53 @@ export default {
       const cardId = card?.id
       const translateX = this.swipeStates[cardId] || 0
       const isDraggingThisCard = this.currentCardId === cardId
-      
+      const total = this.displayedCards.length
+      const isFrontCard = index === this.carouselIndex
+      const offset = total > 1 ? (index - this.carouselIndex + total) % total : 0
+
       const cardSpacing = 85
-      const totalCards = this.displayedCards.length
       const buttonHeight = 280
       const cardHeight = 220
-      const visibleArea = 70 // handle (30px) + card info area (~40px)
-      const hiddenArea = cardHeight - visibleArea // 110px hidden behind button
-      
-      // Base position for newest card: 170px from bottom
+      const visibleArea = 70
+      const hiddenArea = cardHeight - visibleArea
       const baseOffset = buttonHeight - hiddenArea
-      // As cards are added, older cards move up by 70px so their info remains visible
-      const bottomOffset = baseOffset + index * cardSpacing
+
+      const depthFactor = Math.max(0, 1 - offset * 0.3)
+      const dragOffset = isFrontCard ? (this.verticalDragOffset || 0) : (this.verticalDragOffset || 0) * depthFactor * 0.25
+      const bottomOffset = baseOffset + offset * cardSpacing + dragOffset
+
+      const scale = Math.max(0.88, 1 - offset * 0.04)
+      const tx = isFrontCard ? translateX : 0
+      const gapCompensation = offset * cardSpacing * (1 - scale) * 0.5
 
       return {
-        bottom: `${bottomOffset}px`,
-        zIndex: isDraggingThisCard ? 100 : (totalCards - index),
+        bottom: `${bottomOffset - gapCompensation}px`,
+        zIndex: total - offset,
         position: 'absolute',
         width: '90%',
         left: '5%',
-        transform: `translateX(${translateX}px)`,
+        transform: `translateX(${tx}px) scale(${scale})`,
+        transformOrigin: 'center bottom',
         background: this.$q.dark.isActive 
           ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
           : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         borderRadius: '15px',
         height: '220px',
+        boxShadow: isFrontCard
+          ? '0 16px 48px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1)'
+          : `0 ${4 + offset * 2}px ${12 + offset * 6}px rgba(0,0,0,${0.1 + offset * 0.04}), 0 1px 4px rgba(0,0,0,0.08)`,
         touchAction: 'none',
         userSelect: 'none',
         pointerEvents: 'auto',
         cursor: isDraggingThisCard ? 'grabbing' : 'grab',
         color: 'white',
 
-        transition: isDraggingThisCard
-          ? 'none'
-          : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        transitionProperty: 'bottom, transform, box-shadow',
+        transitionDuration: this.isDragging ? '0.02s, 0.02s, 0.02s' : '0.4s, 0.45s, 0.35s',
+        transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1), cubic-bezier(0.34, 1.56, 0.64, 1), ease',
 
-        filter: `brightness(${1 - index * 0.1})`
+        filter: `brightness(${Math.max(0.6, 1 - offset * 0.1)})`,
+        opacity: Math.max(0.5, 1 - offset * 0.15)
       }
     },
 
@@ -403,119 +445,106 @@ export default {
       }
     },
 
-    startDrag (evt, card) {
-      console.log('startDrag called for card:', card?.id)
+    onPointerDown (evt, card) {
       const cardId = card?.id
-      if (!cardId) {
-        console.log('startDrag early return - no cardId')
-        return
-      }
+      if (!cardId) return
 
-      evt.preventDefault()
-      
       this.isDragging = true
       this.currentCardId = cardId
-      
-      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
-      this.startX = clientX
+      this.gestureLock = null
+      this.verticalDragOffset = 0
+
+      const pos = evt.touches ? evt.touches[0] : evt
+      this.startX = pos.clientX
+      this.startY = pos.clientY
       this.currentX = this.swipeStates[cardId] || 0
-      
-      console.log('startDrag initialized - startX:', this.startX, 'currentX:', this.currentX)
-      
-      // Add global event listeners for dragging outside the element
-      document.addEventListener('mousemove', this.onGlobalMove)
-      document.addEventListener('mouseup', this.onGlobalEnd)
-      document.addEventListener('touchmove', this.onGlobalMove, { passive: false })
-      document.addEventListener('touchend', this.onGlobalEnd)
+
+      const moveHandler = (e) => {
+        if (!this.isDragging) return
+        e.preventDefault()
+        const p = e.touches ? e.touches[0] : e
+        const deltaX = p.clientX - this.startX
+        const deltaY = p.clientY - this.startY
+        const absX = Math.abs(deltaX)
+        const absY = Math.abs(deltaY)
+
+        if (!this.gestureLock) {
+          if (absX > 10 || absY > 10) {
+            this.gestureLock = absX > absY * 2 ? 'horizontal' : 'vertical'
+          }
+        }
+
+        if (this.gestureLock === 'horizontal') {
+          const isFront = this.displayedCards.findIndex(c => c.id === cardId) === this.carouselIndex
+          if (isFront) {
+            this.swipeStates[cardId] = Math.max(0, this.currentX + deltaX)
+          }
+        } else if (this.gestureLock === 'vertical') {
+          const adjusted = -deltaY
+          this.verticalDragOffset = Math.max(Math.min(adjusted, 110), -110)
+        }
+      }
+
+      const endHandler = () => {
+        document.removeEventListener('mousemove', moveHandler)
+        document.removeEventListener('mouseup', endHandler)
+        document.removeEventListener('touchmove', moveHandler)
+        document.removeEventListener('touchend', endHandler)
+
+        const vOff = this.verticalDragOffset || 0
+        const isV = this.gestureLock === 'vertical'
+        const isH = this.gestureLock === 'horizontal'
+
+        this.gestureLock = null
+        this.currentCardId = null
+        this.isDragging = false
+
+        if (isV) {
+          const total = this.displayedCards.length
+          if (vOff < 0) {
+            this.carouselIndex = (this.carouselIndex + 1) % total
+          } else if (vOff > 0) {
+            this.carouselIndex = (this.carouselIndex - 1 + total) % total
+          }
+          this.verticalDragOffset = 0
+        } else if (isH) {
+          const swipeX = this.swipeStates[cardId] || 0
+          if (swipeX > 150) {
+            const c = this.displayedCards.find(c => c.id === cardId)
+            if (c) this.goToCardDetails(c)
+          } else {
+            this.swipeStates[cardId] = 0
+          }
+        } else {
+          this.verticalDragOffset = 0
+        }
+      }
+
+      document.addEventListener('mousemove', moveHandler)
+      document.addEventListener('mouseup', endHandler)
+      document.addEventListener('touchmove', moveHandler, { passive: false })
+      document.addEventListener('touchend', endHandler)
     },
 
-    onDrag (evt, card) {
-      if (!this.isDragging || this.currentCardId !== card?.id) return
+    onWheel (evt) {
       evt.preventDefault()
-      
-      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
-      const deltaX = clientX - this.startX
-      
-      // Only allow right swipe (positive delta)
-      const newX = Math.max(0, this.currentX + deltaX)
-      this.swipeStates[card.id] = newX
-    },
 
-    onGlobalMove (evt) {
-      if (!this.isDragging || !this.currentCardId) return
-      
-      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
-      const deltaX = clientX - this.startX
-      
-      // Only allow right swipe (positive delta)
-      const newX = Math.max(0, this.currentX + deltaX)
-      this.swipeStates[this.currentCardId] = newX
-    },
+      this.wheelAccumulator += evt.deltaY
 
-    endDrag (card) {
-      console.log('endDrag called for card:', card?.id)
-      if (!this.isDragging || this.currentCardId !== card?.id) {
-        console.log('endDrag early return - isDragging:', this.isDragging, 'currentCardId:', this.currentCardId, 'card.id:', card?.id)
-        return
-      }
-      
-      this.isDragging = false
-      
-      // Remove global event listeners
-      document.removeEventListener('mousemove', this.onGlobalMove)
-      document.removeEventListener('mouseup', this.onGlobalEnd)
-      document.removeEventListener('touchmove', this.onGlobalMove)
-      document.removeEventListener('touchend', this.onGlobalEnd)
+      if (this._wheelTimeout) clearTimeout(this._wheelTimeout)
+      this._wheelTimeout = setTimeout(() => {
+        this.wheelAccumulator = 0
+      }, 200)
 
-      const swipeX = this.swipeStates[card.id] || 0
-      console.log('Swipe distance:', swipeX)
-
-      // if swipe distance is enough, navigate
-      if (swipeX > 150) {
-        console.log('Swipe distance > 150, calling goToCardDetails')
-        this.goToCardDetails(card)
+      if (Math.abs(this.wheelAccumulator) > 60) {
+        const total = this.displayedCards.length
+        if (this.wheelAccumulator > 0) {
+          this.carouselIndex = (this.carouselIndex + 1) % total
+        } else {
+          this.carouselIndex = (this.carouselIndex - 1 + total) % total
+        }
+        this.wheelAccumulator = 0
       }
-      else {
-        console.log('Swipe distance < 150, resetting card position')
-        // brings card back to initial position
-        this.swipeStates[card.id] = 0
-      }
-      
-      this.currentCardId = null
-    },
-
-    onGlobalEnd () {
-      console.log('onGlobalEnd called, currentCardId:', this.currentCardId)
-      if (!this.currentCardId) {
-        console.log('onGlobalEnd early return - no currentCardId')
-        return
-      }
-      
-      const swipeX = this.swipeStates[this.currentCardId] || 0
-      console.log('onGlobalEnd swipe distance:', swipeX)
-      
-      this.isDragging = false
-      
-      // Remove global event listeners
-      document.removeEventListener('mousemove', this.onGlobalMove)
-      document.removeEventListener('mouseup', this.onGlobalEnd)
-      document.removeEventListener('touchmove', this.onGlobalMove)
-      document.removeEventListener('touchend', this.onGlobalEnd)
-
-      // if swipe distance is enough, navigate
-      if (swipeX > 150) {
-        console.log('onGlobalEnd: swipe > 150, finding card...')
-        const card = this.displayedCards.find(c => c.id === this.currentCardId)
-        console.log('onGlobalEnd: found card:', card)
-        if (card) this.goToCardDetails(card)
-      }
-      else {
-        console.log('onGlobalEnd: swipe < 150, resetting position')
-        // brings card back to initial position
-        this.swipeStates[this.currentCardId] = 0
-      }
-      
-      this.currentCardId = null
     },
 
     formatContractAddress (address) {
@@ -619,5 +648,26 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .skeleton-card {
+    position: absolute;
+    border-radius: 15px;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .cards-area {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .view-all-wrapper {
+    margin-top: 12px;
+    z-index: 1;
   }
 </style>
