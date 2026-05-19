@@ -15,9 +15,7 @@
               class="stacked-card"
               :style="getSkeletonCardStyle(n-1)"
             >
-              <div class="card-handle">
-                <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
-              </div>
+              <div class="card-handle"></div>
             </div>
           </div>
         </div>
@@ -25,33 +23,24 @@
 
       <!-- Loaded state -->
       <div v-else class="full-width">
-        <!-- Header -->
-        <div class="q-px-md q-pt-lg q-pb-sm">
-          <div class="row items-center justify-between">
-            <div>
-              <div :style="{ fontSize: '28px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
-                My Cards
-              </div>
-              <div v-if="subCards.length > 0" :style="{ fontSize: '13px', color: $q.dark.isActive ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)' }">
-                {{ subCards.length }} card{{ subCards.length !== 1 ? 's' : '' }}
-              </div>
-            </div>
-            <q-btn
-              outline
-              rounded
-              no-caps
-              :color="$q.dark.isActive ? 'white' : 'dark'"
-              icon="add"
-              label="New"
-              size="sm"
-              style="border-width: 1.5px; padding: 4px 16px;"
-              @click="onOpenCreateCardForm"
-            />
-          </div>
-        </div>
-
         <div class="flex flex-center full-width q-mt-sm">
           <div class="wallet-container">
+            <div class="new-card-btn-container">
+              <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
+                My Cards
+              </div>
+              <div class="plus-btn-circle">
+                <q-btn
+                  dense
+                  round
+                  flat
+                  :color="$q.dark.isActive ? 'white' : 'dark'"
+                  icon="add"
+                  size="md"
+                  @click="onOpenCreateCardForm"
+                />
+              </div>
+            </div>
             <div v-if="showSwipeHint && displayedCards.length > 0" class="swipe-overlay" @click="dismissSwipeHint">
               <div class="swipe-overlay-content">
                 <div class="swipe-arrow-container">
@@ -77,33 +66,41 @@
               tabindex="0"
             >
               <!-- Grabbable handle at top -->
-              <div class="card-handle" :class="$q.dark.isActive ? 'bg-dark' : ''">
-                <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
+              <div class="card-handle">
+                <div class="handle-indicator"></div>
               </div>
 
-              <!-- Top-left: BCH logo + Card name -->
-              <div class="card-name-container row items-center no-wrap" style="gap: 10px;">
-                <div class="row items-center justify-center" style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.15);">
-                  <q-img src="~assets/bch-logo.png" style="width: 20px; height: 20px;" fit="contain" />
-                </div>
+              <!-- Top-left: Card name -->
+              <div class="card-name-container">
                 <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
                   {{ getCardDisplayName(card) }}
                 </div>
               </div>
 
-              <!-- Bottom-right: Balance -->
+              <!-- Bottom-left: Balance -->
               <div class="card-balance-container">
                 <div v-if="balancesLoading">
                   <q-skeleton type="text" width="70px" height="16px" />
                 </div>
-                <div v-else class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
+                <div v-else>
                   <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
-                  {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
-                  <span style="font-size: 12px; opacity: 0.7; font-weight: 400;">BCH</span>
+                  <div class="row items-center no-wrap" style="gap: 6px;">
+                    <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
+                      {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
+                    </div>
+                    <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
+                      <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Top-right: Logo -->
+              <!-- Top-right: Contract address -->
+              <div class="card-contract-container">
+                {{ formatContractAddress(card.cashAddress) }}
+              </div>
+
+              <!-- Bottom-right: Logo -->
               <div class="card-logo-container">
                 <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
               </div>
@@ -521,6 +518,15 @@ export default {
       this.currentCardId = null
     },
 
+    formatContractAddress (address) {
+      if (!address) return ''
+      const addr = typeof address === 'object' ? address.contractAddress : address
+      if (!addr) return ''
+      const str = String(addr)
+      if (str.length <= 9) return str
+      return str.slice(0, 16) + '...' + str.slice(-5)
+    },
+
     goToCardDetails (card) {
       console.log('goToCardDetails called with card:', card)
       if (card && card.id) {
@@ -592,4 +598,26 @@ export default {
 
 <style lang="scss" scoped>
   @import "src/css/app-card.scss";
+
+  .new-card-btn-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+
+  .plus-btn-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 </style>
