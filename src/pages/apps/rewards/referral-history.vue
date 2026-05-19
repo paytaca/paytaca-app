@@ -294,7 +294,7 @@ export default {
     },
 
     async loadData(append = false) {
-      this.isLoading = true
+      if (!append) this.isLoading = true
       this.dataError = ''
 
       this.rpId = Number(this.$route.params.id || -1)
@@ -330,7 +330,7 @@ export default {
         this.dataError = this.$t('FailedToLoadData', 'Unable to load referral history. Please try again later.')
       }
 
-      this.isLoading = false
+      if (!append) this.isLoading = false
     },
 
     toggleSort() {

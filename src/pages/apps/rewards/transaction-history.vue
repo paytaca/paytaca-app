@@ -244,7 +244,7 @@ export default {
     getDarkModeClass,
     
     async loadData(append=false) {
-      this.isLoading = true
+      if (!append) this.isLoading = true
       this.dataError = ''
       
       this.urId = Number(this.$route.params.id || -1)
@@ -290,7 +290,7 @@ export default {
         this.dataError = this.$t('FailedToLoadData', this.currentConfig.errorMessage)
       }
       
-      this.isLoading = false
+      if (!append)  this.isLoading = false
     },
     
     applyFilters() {
