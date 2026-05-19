@@ -21,12 +21,17 @@
 
       <!-- Loaded state -->
       <div v-else class="full-width">
-          <div class="flex flex-center full-width q-mt-sm">
+        <div class="flex flex-center full-width q-mt-sm">
           <div class="cards-area">
             <div class="wallet-container" @wheel="onWheel">
               <div class="new-card-btn-container">
-                <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
-                  My Cards
+                <div>
+                  <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
+                    My Cards{{ displayedCards.length > 0 ? ' (' + displayedCards.length + ')' : '' }}
+                  </div>
+                  <div v-if="totalBchBalance && !balancesLoading" :style="{ fontSize: '11px', fontWeight: '400', color: $q.dark.isActive ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }">
+                    {{ totalBchBalance }} BCH total
+                  </div>
                 </div>
                 <div class="plus-btn-circle">
                   <q-btn
@@ -40,72 +45,81 @@
                   />
                 </div>
               </div>
-              <div
-                v-for="(card, index) in displayedCards"
-              :key="card.id"
-              class="stacked-card"
-              :class="{ 'is-dragging': currentCardId === card.id }"
-              :style="getCardStyle(index)"
-              @mousedown="onPointerDown($event, card)"
-              @touchstart="onPointerDown($event, card)"
-              @keyup.right="goToCardDetails(card)"
-              tabindex="0"
-            >
-              <!-- Grabbable handle at top -->
-              <div class="card-handle">
-                <div class="handle-indicator"></div>
-              </div>
 
-              <!-- Top-left: Card name -->
-              <div class="card-name-container">
-                <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
-                  {{ getCardDisplayName(card) }}
+              <div class="cards-stack-area">
+                <div
+                  v-for="(card, index) in displayedCards"
+                :key="card.id"
+                class="stacked-card"
+                :class="{ 'is-dragging': currentCardId === card.id }"
+                :style="getCardStyle(index)"
+                @mousedown="onPointerDown($event, card)"
+                @touchstart="onPointerDown($event, card)"
+                @keyup.right="goToCardDetails(card)"
+                tabindex="0"
+              >
+                <!-- Grabbable handle at top -->
+                <div class="card-handle">
+                  <div class="handle-indicator"></div>
                 </div>
-              </div>
 
-              <!-- Bottom-left: Balance -->
-              <div class="card-balance-container">
-                <div v-if="balancesLoading">
-                  <q-skeleton type="text" width="70px" height="16px" />
+                <!-- Top-left: Card name with status -->
+                <div class="card-name-container">
+                  <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
+                    {{ getCardDisplayName(card) }}
+                  </div>
+                  <q-badge
+                    rounded
+                    :color="card?.isLocked ? 'negative' : 'positive'"
+                    size="xs"
+                    class="card-status-badge cursor-pointer blink-badge"
+                  >
+                    <q-tooltip>{{ card?.isLocked ? 'Locked' : 'Active' }}</q-tooltip>
+                  </q-badge>
                 </div>
-                <div v-else>
-                  <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
-                  <div class="row items-center no-wrap" style="gap: 6px;">
-                    <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
-                      {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
-                    </div>
-                    <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
-                      <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+
+                <!-- Bottom-left: Balance -->
+                <div class="card-balance-container">
+                  <div v-if="balancesLoading">
+                    <q-skeleton type="text" width="70px" height="16px" />
+                  </div>
+                  <div v-else>
+                    <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
+                    <div class="row items-center no-wrap" style="gap: 6px;">
+                      <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
+                        {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
+                      </div>
+                      <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
+                        <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- Top-right: Contract address -->
+                <div class="card-contract-container">
+                  {{ formatContractAddress(card.cashAddress) }}
+                </div>
+
+                <!-- Bottom-right: Logo -->
+                <div class="card-logo-container">
+                  <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
+                </div>
               </div>
 
-              <!-- Top-right: Contract address -->
-              <div class="card-contract-container">
-                {{ formatContractAddress(card.cashAddress) }}
-              </div>
-
-              <!-- Bottom-right: Logo -->
-              <div class="card-logo-container">
-                <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
+              <!-- Vertical dot indicators -->
+              <div v-if="displayedCards.length > 1" class="dot-indicators">
+                <div
+                  v-for="(_, i) in displayedCards"
+                  :key="i"
+                  class="dot"
+                  :class="{ 'dot-active': i === carouselIndex }"
+                ></div>
               </div>
             </div>
+            </div>
           </div>
-          <div v-if="subCards.length > 0" class="flex flex-center view-all-wrapper">
-            <q-btn
-              outline
-              rounded
-              no-caps
-              :color="$q.dark.isActive ? 'grey-3' : 'grey-7'"
-              @click="showAllCards"
-              size="sm"
-              style="border-width: 1.5px; padding: 6px 20px; font-size: 12px; letter-spacing: 0.5px;"
-            >
-              View all {{ subCards.length }} card{{ subCards.length !== 1 ? 's' : '' }}
-              <q-icon name="arrow_forward_ios" size="12px" class="q-ml-sm" />
-            </q-btn>
-          </div>
+
           <div
             v-if="showSwipeHint && displayedCards.length > 0"
             class="swipe-overlay"
@@ -137,8 +151,7 @@
           </div>
         </div>
       </div>
-    </div>
-      
+       
       <!-- Create Card Dialog -->
       <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" :idempotencyKey="idempotencyKey"/>
       <ResumeCreateCardDialog 
@@ -212,6 +225,12 @@ export default {
 
     textColor () {
       return this.$q.dark.isActive ? 'text-white' : 'text-black'
+    },
+
+    totalBchBalance () {
+      if (!this.cardBalances || this.cardBalances.length === 0) return null
+      const totalSats = this.cardBalances.reduce((sum, b) => sum + (Number(b.bch_balance) || 0), 0)
+      return satoshiToBch(totalSats)
     }
   },
 
@@ -241,6 +260,7 @@ export default {
       window.removeEventListener('touchstart', this.dismissSwipeHint)
       window.removeEventListener('mousedown', this.dismissSwipeHint)
     },
+
     async loadData () {
       await this.loadCardUser()
       await this.checkExistingCreateCardAttempt()
@@ -568,10 +588,6 @@ export default {
       }
     },
 
-    showAllCards () {
-      this.$router.push({ name: 'all-cards' })
-    },
-
     closeDialog () {
       this.showCreateCardDialog = false
       this.newCardName = ''
@@ -666,8 +682,57 @@ export default {
     width: 100%;
   }
 
-  .view-all-wrapper {
-    margin-top: 12px;
-    z-index: 1;
+  .cards-stack-area {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .dot-indicators {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transition: all 0.3s ease;
+  }
+
+  .dot-active {
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  }
+
+  .card-status-badge {
+    position: relative;
+    z-index: 6;
+  }
+
+  .blink-badge {
+    animation: blink-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.85);
+    }
   }
 </style>
