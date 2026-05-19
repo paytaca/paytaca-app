@@ -441,7 +441,7 @@ export default {
         this.rpMax = await getRpMaxRedeemable()
         this.redeemedPoints = rpData.redeemed_points
         this.referralCode = rpData.referral_code
-        this.referralsList = rpData.rp_referrals.sort((a, b) => {
+        this.referralsList = (rpData.rp_referrals || []).sort((a, b) => {
           return new Date(b.date_created) - new Date(a.date_created)
         })
         this.referralsOverallStats = rpData.rp_referrals_overall_stats
