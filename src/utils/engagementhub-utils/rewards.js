@@ -235,7 +235,7 @@ export async function processEloadPoints (data) {
 
 export async function processPromoTokensSwap (data) {
   return await REWARDS_URL
-    .post('userpromo/process_promo_points_swap/', data)
+    .post('userpromo/process_promo_tokens_swap/', data)
     .then(response => { return response.data })
     .catch(error => {
       console.error(error)

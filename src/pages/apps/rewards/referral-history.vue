@@ -87,7 +87,7 @@
           </div>
 
           <!-- Sort Toggle -->
-          <div class="row items-center justify-between">
+          <div class="row items-center justify-between q-mt-xs">
             <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
               {{ $t('Showing') }} {{ displayCount }} {{ $t(displayCount === 1 ? 'transaction' : 'transactions') }}
             </span>

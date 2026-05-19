@@ -1,6 +1,8 @@
 import { Store } from 'src/store'
 import { formatWithLocale } from 'src/utils/denomination-utils'
 
+import axios from 'axios'
+
 const LIFT_DECIMALS = 2
 
 // ==============================
