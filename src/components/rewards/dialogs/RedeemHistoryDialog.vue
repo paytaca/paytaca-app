@@ -225,6 +225,7 @@ export default {
         else if (this.promo === Promos.RFPROMO) data.rp_id = this.promoId
 
         const resp = await getPromoRedeemHistory(this.promo, data)
+        if (!resp) throw new Error('Unable to load redemption history.')
         this.redemptions = resp.redeem_history
         this.hasMoreData = resp.has_more_data
       } catch (error) {
