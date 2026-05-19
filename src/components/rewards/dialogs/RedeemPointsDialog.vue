@@ -965,6 +965,7 @@ export default {
     
     closeCelebration () {
       this.showCelebration = false
+      clearInterval(this.cauldronPriceIntervalId)
       this.$emit('hide')
     },
     
