@@ -654,19 +654,25 @@ animation: float 6s ease-in-out infinite;
 .content-box-light {
 	width: 100%;
 	min-height: 300px;
-	border: 2px solid #e0e0e0;
+	border: 1px solid rgba(255, 255, 255, 0.6);
 	border-radius: 15px;
 	padding: 20px;
-	background: #ffffff;
+	background: rgba(255, 255, 255, 0.25);
+	backdrop-filter: blur(16px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .content-box-dark {
 	width: 100%;
 	min-height: 300px;
-	border: 2px solid #424242;
+	border: 1px solid rgba(255, 255, 255, 0.25);
 	border-radius: 15px;
 	padding: 20px;
-	background: #1d1d1d;
+	background: rgba(30, 30, 40, 0.3);
+	backdrop-filter: blur(16px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .disabled-merchant {
@@ -831,7 +837,7 @@ animation: float 6s ease-in-out infinite;
 
 .tabs-wrapper {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
   overflow-x: auto;
   padding-bottom: 4px;
   
@@ -841,12 +847,17 @@ animation: float 6s ease-in-out infinite;
 }
 
 .tab-item {
-  padding: 10px 16px;
-  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
   background: transparent;
+  min-width: 0;
   
   &:hover {
     background: color-mix(in srgb, var(--q-primary) 10%, transparent);
@@ -886,8 +897,9 @@ animation: float 6s ease-in-out infinite;
 }
 
 .tab-label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 // Disabled tab styles
