@@ -1378,12 +1378,16 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   try {
     const connectedAddressForTopic = sessionTopicWalletAddressMapping.value[sessionRequest.topic]
     if (!connectedAddressForTopic?.address) {
-      // response.error = { code: -32603, message: 'Account has no active session' }
       throw new Error('Account has no active session')
     }
+    const expectedAccount = sessionRequest.session?.namespaces?.bch?.accounts?.[0]
+    const expectedSignerAddress = expectedAccount ? expectedAccount.replace('bch:', '') : ''
+    if (expectedSignerAddress && expectedSignerAddress !== connectedAddressForTopic.address) {
+      throw new Error(`Expected signing address doesn't match session address`)
+    }
+
     const message = sessionRequest.params?.request?.params?.message
     if (message == undefined) {
-      // response.error = { code: -32603, message: 'Message parameter is mandatory' }
       throw new Error('Message parameter is mandatory')
     }
     response.result = signMessage(message, connectedAddressForTopic.wif)
