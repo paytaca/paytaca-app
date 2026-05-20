@@ -55,15 +55,7 @@
           </div>
 
           <div class="row justify-center full-width">
-            <div class="row items-center">
-              <div 
-                class="q-mr-sm"
-                :class="textColor"
-              >
-                {{ bchBalance }} BCH
-              </div>
-              <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
-            </div>
+            <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
           </div>
         </div>
 
