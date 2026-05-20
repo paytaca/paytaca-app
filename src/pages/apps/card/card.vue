@@ -22,7 +22,7 @@
                   rounded 
                   :color="activeCard?.isLocked ? 'negative' : 'positive'" 
                   size="xs" 
-                  class="card-status-badge cursor-pointer"
+                  class="card-status-badge cursor-pointer blink-badge"
                 >
                   <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
                 </q-badge>
@@ -54,8 +54,8 @@
             </div>
           </div>
 
-          <div class="row justify-center full-width">
-            <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
+          <div class="row justify-center full-width q-mt-sm">
+            <q-btn unelevated rounded label="Cash In" color="primary" class="cash-in-btn q-px-lg" @click="openCashInDialog" />
           </div>
         </div>
 
@@ -63,12 +63,13 @@
           <div class="tabs-wrapper">
             <div 
               v-for="tab in tabs"
-              :key="tab"
+              :key="tab.label"
               class="tab-item"
-              :class="{ 'tab-active': activeTab === tab }"
-              @click="activeTab = tab"
+              :class="{ 'tab-active': activeTab === tab.label }"
+              @click="activeTab = tab.label"
             >
-              <span class="tab-label">{{ tab }}</span>
+              <q-icon :name="tab.icon" size="1.3rem" />
+              <span class="tab-label">{{ tab.label }}</span>
             </div>
           </div>
         </div>
@@ -682,10 +683,13 @@ export default {
   computed: {
     tabs () {
       const hasPhysicalCard = this.activeCard?.hasOrderedPhysicalCard || this.hasOrderedPhysicalCard
-      const baseTabs = ['Transactions', 'Manage Merchants', 'Card Security']
-      const thirdTab = hasPhysicalCard ? 'Card Replacement' : 'Order Card'
-      baseTabs.splice(2, 0, thirdTab)
-      return baseTabs
+      const allTabs = [
+        { label: 'Transactions', icon: 'receipt_long' },
+        { label: 'Manage Merchants', icon: 'storefront' },
+        { label: hasPhysicalCard ? 'Card Replacement' : 'Order Card', icon: hasPhysicalCard ? 'autorenew' : 'credit_card' },
+        { label: 'Card Security', icon: 'shield' }
+      ]
+      return allTabs
     },
 
     selectedCurrency () {
@@ -1748,4 +1752,19 @@ export default {
 
 <style lang="scss" scoped>
   @import "src/css/app-card.scss";
+
+  .blink-badge {
+    animation: blink-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.85);
+    }
+  }
 </style>
