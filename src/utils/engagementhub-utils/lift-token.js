@@ -280,11 +280,28 @@ export async function executePurchaseFlow(params) {
   }
 
   // Get address path and pubkey
-  const addressPath = await getAddressPath(buyerAddress)
+  let addressPath
+  try {
+    addressPath = await getAddressPath(buyerAddress)
+  } catch (error) {
+    console.error('Failed to get address path from watchtower:', error)
+    throw new Error('FailedToGetAddressPath')
+  }
+
   const walletIndex = getStoreGetter('global/getWalletIndex')
-  const { loadLibauthHdWallet } = await import('src/wallet')
-  const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
-  const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+  if (!walletIndex && walletIndex !== 0) {
+    throw new Error('WalletUnavailable')
+  }
+
+  let pubkeyHex
+  try {
+    const { loadLibauthHdWallet } = await import('src/wallet')
+    const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+    pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+  } catch (error) {
+    console.error('Failed to load wallet or get pubkey:', error)
+    throw new Error('FailedToGenerateAddress')
+  }
 
   // Get contract data
   const idPubkeyData = await getIdAndPubkeyApi()
