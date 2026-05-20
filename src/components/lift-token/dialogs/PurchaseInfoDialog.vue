@@ -49,7 +49,7 @@
           </div>
           <div class="row q-gutter-sm text-caption" :class="darkMode ? 'text-grey-4' : ' text-grey-7'">
             <span>
-              {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, "USD") }}
+              {{ parseFiatCurrency(getDiscountedPriceUsd(), "USD") }}
             </span>
             <template v-if="purchase.purchase_more_details.payment_method === 'bch'">
               <span>•</span>
@@ -299,7 +299,7 @@ import {
   getAssetDenomination,
   formatWithLocale,
 } from "src/utils/denomination-utils";
-import { SaleGroup, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
+import { SaleGroup, SaleGroupPrice, getDiscountedPriceUsd, getOriginalPriceUsd } from "src/utils/engagementhub-utils/lift-token";
 
 import StatusChip from "src/components/rewards/StatusChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
@@ -350,13 +350,11 @@ export default {
     getPurchaseDiscount() {
       return parseFloat(this.purchase?.purchase_more_details?.discount || 0)
     },
+    getDiscountedPriceUsd() {
+      return getDiscountedPriceUsd(this.purchase)
+    },
     getOriginalPriceUsd() {
-      const discount = this.getPurchaseDiscount()
-      const usdPaid = this.purchase?.purchase_partial_details?.usd_paid || 0
-      if (discount > 0 && usdPaid > 0) {
-        return usdPaid / (1 - discount / 100)
-      }
-      return 0
+      return getOriginalPriceUsd(this.purchase)
     },
     getPricePerToken() {
       const tknPaid = this.purchase?.purchase_partial_details?.tkn_paid || 0
