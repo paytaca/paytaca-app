@@ -269,7 +269,7 @@ import {
   formatWithLocale,
 } from "src/utils/denomination-utils";
 
-import { SaleGroup, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
+import { SaleGroup, SaleGroupPrice, getDiscountedPriceUsd, getOriginalPriceUsd } from "src/utils/engagementhub-utils/lift-token";
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PurchaseInfoDialog from "./dialogs/PurchaseInfoDialog.vue";
@@ -323,33 +323,10 @@ export default {
       return parseFloat(purchase.purchase_more_details?.discount || 0)
     },
     getDiscountedPriceUsd(purchase) {
-      // use separate value for paid reservations with discounts
-      // (reservations that only has one reservation_partial_purchase instance)
-      if (
-        Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
-        purchase.purchase_more_details.reservation_partial_purchase.length === 1
-      ) {
-        return Number.parseFloat(purchase.purchase_more_details.discounted_amount)
-      }
-
-      return purchase.purchase_partial_details.usd_paid
+      return getDiscountedPriceUsd(purchase)
     },
     getOriginalPriceUsd(purchase) {
-      // use separate value for paid reservations with discounts
-      // (reservations that only has one reservation_partial_purchase instance)
-      if (
-        Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
-        purchase.purchase_more_details.reservation_partial_purchase.length === 1
-      ) {
-        return Number.parseFloat(purchase.purchase_more_details.reserved_amount_usd)
-      }
-
-      const discount = this.getPurchaseDiscount(purchase)
-      const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
-      if (discount > 0 && usdPaid > 0) {
-        return usdPaid / (1 - discount / 100)
-      }
-      return 0
+      return getOriginalPriceUsd(purchase)
     },
     getPricePerToken(purchase) {
       const tknPaid = purchase.purchase_partial_details?.tkn_paid || 0

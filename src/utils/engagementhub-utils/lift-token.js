@@ -153,6 +153,51 @@ export function convertDateToBlockHeight(date) {
 }
 
 // ================================
+// Price calculation utilities for purchase objects
+// ================================
+
+/**
+ * Returns the discounted price (amount actually paid) for a purchase.
+ * For single-partial-purchase reservations with a discount, prefers the
+ * server-provided discounted_amount over client-side usd_paid.
+ * @param {Object} purchase - Purchase object with purchase_more_details and purchase_partial_details
+ * @returns {number} The discounted USD price
+ */
+export function getDiscountedPriceUsd(purchase) {
+  if (
+    Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
+    purchase.purchase_more_details.reservation_partial_purchase?.length === 1
+  ) {
+    return Number.parseFloat(purchase.purchase_more_details.discounted_amount)
+  }
+
+  return purchase.purchase_partial_details.usd_paid
+}
+
+/**
+ * Returns the original price (before discount) for a purchase.
+ * For single-partial-purchase reservations with a discount, prefers the
+ * server-provided reserved_amount_usd over client-side reverse-calculation.
+ * @param {Object} purchase - Purchase object with purchase_more_details and purchase_partial_details
+ * @returns {number} The original USD price before discount
+ */
+export function getOriginalPriceUsd(purchase) {
+  if (
+    Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
+    purchase.purchase_more_details.reservation_partial_purchase?.length === 1
+  ) {
+    return Number.parseFloat(purchase.purchase_more_details.reserved_amount_usd)
+  }
+
+  const discount = Number.parseFloat(purchase.purchase_more_details?.discount || 0)
+  const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
+  if (discount > 0 && usdPaid > 0) {
+    return usdPaid / (1 - discount / 100)
+  }
+  return 0
+}
+
+// ================================
 // Functions with calls to engagement hub
 // ================================
 
