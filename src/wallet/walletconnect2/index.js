@@ -350,12 +350,12 @@ export function signMessage(message, wif='') {
       throw new Error(`Invalid WIF: ${decodedPrivateKeyWif}`);
     }
     const privateKey = decodedPrivateKeyWif.privateKey;
-    const isCompressed = decodedPrivateKeyWif.type === 'mainnet' || decodedPrivateKeyWif.type === 'testnet'; 
     
+    const isCompressed = !decodedPrivateKeyWif.type.endsWith('Uncompressed'); 
     const prefixStr = "Bitcoin Signed Message:\n";
     const prefixBin = utf8ToBin(prefixStr);
+    // Intentionally hardcoding length for hardcoded prefixStr, will change if refactored using dynamic prefix.
     const prefixLenBin = new Uint8Array([0x18]); 
-    
     const messageBin = utf8ToBin(message);
     const messageLenBin = bigIntToCompactUint(BigInt(messageBin.length));
   
@@ -369,6 +369,9 @@ export function signMessage(message, wif='') {
     const preImageHash = hash256(preImage);
     // Note: Standard Bitcoin message signing historically relies strictly on ECDSA.
     const sigObj = secp256k1.signMessageHashRecoverableCompact(privateKey, preImageHash);
+    if (typeof sigObj === 'string') {
+      throw new Error(`Signing failed: ${sigObj}`);
+    }
     // Legacy format requires adding 27 for uncompressed keys, 31 for compressed keys
     const headerByte = sigObj.recoveryId + (isCompressed ? 31 : 27);
     const compactSignature = new Uint8Array([headerByte, ...sigObj.signature]);
