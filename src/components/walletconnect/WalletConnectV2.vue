@@ -1376,22 +1376,26 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   if (!['personal_sign', 'bch_signMessage'].includes(sessionRequest.params.request.method)) return
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   try {
-    const signingAddress = sessionRequest.params?.request?.params?.account
     const connectedAddressForTopic = sessionTopicWalletAddressMapping.value[sessionRequest.topic]
-    if (!connectedAddressForTopic?.address || signingAddress !== connectedAddressForTopic.address) {
-      response.error = { code: -32603, message: 'Account has no active session' }
+    if (!connectedAddressForTopic?.address) {
+      throw new Error('Account has no active session')
     }
+    const expectedAccount = sessionRequest.session?.namespaces?.bch?.accounts?.[0]
+    const expectedSignerAddress = expectedAccount ? expectedAccount.replace('bch:', '') : ''
+    if (expectedSignerAddress && expectedSignerAddress !== connectedAddressForTopic.address) {
+      throw new Error(`Expected signing address doesn't match session address`)
+    }
+
     const message = sessionRequest.params?.request?.params?.message
     if (message == undefined) {
-      response.error = { code: -32603, message: 'Message parameter is mandatory' }
+      throw new Error('Message parameter is mandatory')
     }
-    response.result = await signMessage(message, connectedAddressForTopic.wif)
+    response.result = signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
-    console.error('🚀 ~ respondToSignMessageRequest ~ err:', err)
     response.error = {
       code: -32603,
-      message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+      message: err?.message || 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
