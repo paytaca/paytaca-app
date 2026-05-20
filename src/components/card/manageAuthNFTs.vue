@@ -42,26 +42,29 @@
       <div class="col">
         <q-input 
           v-model="search" 
-          label="Search merchants..." 
-          outlined 
+          placeholder="Search merchants..." 
           dense
+          borderless
+          input-class="search-input-field"
           :dark="$q.dark.isActive"
           clearable
+          class="search-input-wrapper"
         >
-          <template v-slot:append>
-            <q-icon name="search" />
+          <template v-slot:prepend>
+            <q-icon name="search" size="1.1rem" color="primary" />
           </template>
         </q-input>
       </div>
       <q-btn
         :color="selectMultipleMode ? 'secondary' : 'primary'"
         :icon="selectMultipleMode ? 'checklist' : 'checklist_rtl'"
-        :label="selectMultipleMode ? 'Done' : 'Select'"
         dense
-        no-caps
-        outline
+        unelevated
+        round
         @click="toggleSelectMultipleMode"
-      />
+      >
+        <q-tooltip>{{ selectMultipleMode ? 'Done selecting' : 'Select multiple' }}</q-tooltip>
+      </q-btn>
     </div>
 
     <!-- Batch Action Bar (shown when in select multiple mode and items selected) -->
@@ -1414,6 +1417,35 @@ export default {
   .body--dark {
     .location-search {
       background: #1d1d1d;
+    }
+  }
+
+  .search-input-wrapper {
+    background: transparent;
+    border-radius: 20px;
+    border: 1.5px solid;
+    border-color: rgba(0, 0, 0, 0.12);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    padding-left: 4px;
+
+    &:focus-within {
+      border-color: var(--q-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--q-primary) 15%, transparent);
+    }
+  }
+
+  .search-input-field {
+    font-size: 13px;
+  }
+
+  .body--dark {
+    .search-input-wrapper {
+      border-color: rgba(255, 255, 255, 0.15);
+
+      &:focus-within {
+        border-color: var(--q-primary);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--q-primary) 20%, transparent);
+      }
     }
   }
 </style>
