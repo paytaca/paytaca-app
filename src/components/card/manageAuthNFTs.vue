@@ -32,8 +32,8 @@
       :class="$q.dark.isActive ? 'text-grey-4' : 'text-black'"
       @click="openDistanceDialog"
     >
-      <span class="text-weight-medium">Search Radius</span>
-      <q-icon name="settings" size="1rem" class="q-mx-xs" color="primary" />
+      <span class="text-weight-medium">Proximity</span>
+      <q-icon name="near_me" size="1rem" class="q-mx-xs" color="primary" />
       <span class="text-weight-bold">{{ radius }} km</span>
     </div>
 
