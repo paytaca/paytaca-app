@@ -8,70 +8,59 @@
 
       <q-page v-else-if="activeCard" class="q-px-md">
         <div class="column items-center q-mb-lg">
-          <div class="row items-center q-mb-sm full-width q-gutter-sm">
-            <!-- Card name - uses localStorage (add skeleton when enabling backend)
-                 Backend option: <q-skeleton v-if="loading" type="text" width="120px" /> -->
+          <div class="flex flex-center full-width q-mb-md">
             <div 
-              class="text-subtitle1 q-mr-sm"
-              :class="textColor"
+              class="virtual-card-container shadow-4"
+              :class="$q.dark.isActive ? 'virtual-card-dark' : 'virtual-card-light'"
             >
-              {{ activeCard?.alias }}
-            </div>
-            <q-badge 
-              rounded 
-              :color="activeCard?.isLocked ? 'negative' : 'positive'" 
-              size="xs" 
-              class="cursor-pointer"
-            >
-              <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
-            </q-badge>
-            <q-btn flat dense icon="edit" size="sm" :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="showEditNameDialog = true"/>
-          </div>
+              <!-- Card name + badge + edit - top left -->
+              <div class="card-name-container">
+                <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
+                  {{ activeCard?.alias }}
+                </div>
+                <q-badge 
+                  rounded 
+                  :color="activeCard?.isLocked ? 'negative' : 'positive'" 
+                  size="xs" 
+                  class="card-status-badge cursor-pointer"
+                >
+                  <q-tooltip>{{ activeCard?.isLocked ? 'Card is locked' : 'Card is active' }}</q-tooltip>
+                </q-badge>
+                <q-btn flat dense icon="edit" size="xs" class="text-white" style="opacity: 0.7" @click="showEditNameDialog = true"/>
+              </div>
 
-          <div 
-            class="virtual-card-container flex flex-center shadow-4"
-            :class="$q.dark.isActive ? 'virtual-card-dark' : 'virtual-card-light'"
-          >
-            <div class="virtual-card-content full-width full-height q-pa-sm">
-              <!-- Card Header with Logo -->
-              <div class="row items-center justify-between">
-                <div class="virtual-card-chip row items-center no-wrap" style="gap: 6px; padding: 0 8px;">
-                  <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
-                  <!-- Card name in chip - uses localStorage
-                       Backend option: <q-skeleton v-if="loading" type="text" width="80px" height="16px" /> -->
-                  <div class="text-caption text-weight-bold ellipsis" style="max-width: 100px; color: inherit; font-family: 'Courier New', monospace; letter-spacing: 0.5px;">
-                    {{ activeCard?.alias }}
+              <!-- Balance - bottom left -->
+              <div class="card-balance-container">
+                <div style="font-size: 10px; opacity: 0.6; font-weight: 400; letter-spacing: 0.5px;">BALANCE</div>
+                <div class="row items-center no-wrap" style="gap: 6px;">
+                  <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
+                    {{ bchBalance }}
+                  </div>
+                  <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
+                    <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                   </div>
                 </div>
-                <q-img
-                  src="~assets/paytaca_logo.png"
-                  style="width: 55px;"
-                  fit="contain"
-                />
               </div>
-              
-              <!-- Contract Address (Card Number) -->
-              <div class="virtual-card-address text-caption text-weight-medium q-mt-sm">
-              {{ formatContractAddress(activeCard?.cashAddress) }}
-              
-            </div>
-              
+
+              <!-- Contract address - top right -->
+              <div class="card-contract-container">
+                {{ formatContractAddress(activeCard?.cashAddress) }}
+              </div>
+
+              <!-- Logo - bottom right -->
+              <div class="card-logo-container">
+                <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
+              </div>
             </div>
           </div>
 
-          <div class="row justify-center full-width q-mt-md">
+          <div class="row justify-center full-width">
             <div class="row items-center">
-              <!-- Backend data fetching disabled - showing localStorage data only -->
-              <!-- <div v-if="loading" class="q-mr-sm">
-                <q-skeleton type="text" width="120px" height="24px" />
-              </div> -->
               <div 
                 class="q-mr-sm"
                 :class="textColor"
               >
                 {{ bchBalance }} BCH
-                <!-- NEW: Use Card class getBchBalance() method -->
-                <!-- {{ formatBalance(activeCard?.getBchBalance ? activeCard.getBchBalance() : activeCard?.balance) }} BCH -->
               </div>
               <q-btn outline dense label="Cash In" color="primary" size="sm" class="cash-in-btn q-px-md q-py-xs" style="border-width: 1px" @click="openCashInDialog" />
             </div>
