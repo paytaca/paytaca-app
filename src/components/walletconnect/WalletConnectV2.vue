@@ -1395,7 +1395,7 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   } catch (err) {
     response.error = {
       code: -32603,
-      message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+      message: err?.message || 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
