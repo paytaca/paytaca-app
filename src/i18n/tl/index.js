@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "Kumpirmahin ang Pagbabayad",
   ConfirmPin: "Kumpirmahin ang PIN",
   ConfirmReservation: "Kumpirmahin ang Pagpapareserba",
-  ConfirmReservationError: "Error sa pagkumpirma ng reservation",
+  ConfirmReservationError: "May naganap na error sa pagkumpirma ng reservation. Pakisubukan muli mamaya.",
   ConfirmSwap: "Kumpirmahin ang Swap",
   Confirmation: "Kumpirmasyon",
   Confirmed: "Nakumpirma",

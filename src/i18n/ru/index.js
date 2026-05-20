@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "Подтвердить платеж",
   ConfirmPin: "Подтвердить PIN-код",
   ConfirmReservation: "Подтвердить бронирование",
-  ConfirmReservationError: "Ошибка подтверждения бронирования",
+  ConfirmReservationError: "Произошла ошибка при подтверждении бронирования. Пожалуйста, попробуйте позже.",
   ConfirmSwap: "Подтвердить обмен",
   Confirmation: "Подтверждение",
   Confirmed: "Подтверждено",

@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "تأكيد الدفع",
   ConfirmPin: "تأكيد رقم التعريف الشخصي",
   ConfirmReservation: "تأكيد الحجز",
-  ConfirmReservationError: "خطأ في تأكيد الحجز",
+  ConfirmReservationError: "حدث خطأ في تأكيد الحجز. يرجى المحاولة مرة أخرى لاحقًا.",
   ConfirmSwap: "تأكيد المبادلة",
   Confirmation: "تأكيد",
   Confirmed: "تم التأكيد",

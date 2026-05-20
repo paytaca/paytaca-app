@@ -2065,7 +2065,7 @@ const phrases = {
       EnterCustomAmount: 'Enter custom amount',
       Devicesuspended: 'Device suspended',
       SuccessfulConfirmReservationMessage: 'Reservation confirmed successfully. Check the Purchases tab for more details.',
-      ConfirmReservationError: 'Error confirming reservation',
+      ConfirmReservationError: 'An error occurred with confirming the reservation. Please try again later.',
     },
     {
       HowToGetBCH: 'How to get BCH',

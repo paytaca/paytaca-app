@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "결제 확인",
   ConfirmPin: "PIN 확인",
   ConfirmReservation: "예약 확인",
-  ConfirmReservationError: "예약 확인 오류",
+  ConfirmReservationError: "예약 확인 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
   ConfirmSwap: "교환 확인",
   Confirmation: "확인",
   Confirmed: "확인됨",

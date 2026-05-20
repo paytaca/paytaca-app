@@ -449,7 +449,7 @@ export default {
   ConfirmPayment: "确认付款",
   ConfirmPin: "确认密码",
   ConfirmReservation: "确认预订",
-  ConfirmReservationError: "确认预订时出错",
+  ConfirmReservationError: "确认预订时出错，请稍后重试。",
   ConfirmSwap: "确认兑换",
   Confirmation: "确认",
   Confirmed: "已确认",

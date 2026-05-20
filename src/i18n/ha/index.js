@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "Tabbatar da Biya",
   ConfirmPin: "Tabbatar da PIN",
   ConfirmReservation: "Tabbatar da Ajiye",
-  ConfirmReservationError: "Kuskuren tabbatar da ajiyar wuri",
+  ConfirmReservationError: "An kuskure yayin tabbatar da ajiyar wuri. Da fatan za a sake gwadawa daga baya.",
   ConfirmSwap: "Tabbatar da Musanya",
   Confirmation: "Tabbatarwa",
   Confirmed: "An tabbatar",

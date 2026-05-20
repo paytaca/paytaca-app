@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "Konfirmasi Pembayaran",
   ConfirmPin: "Konfirmasi PIN",
   ConfirmReservation: "Konfirmasi Reservasi",
-  ConfirmReservationError: "Kesalahan saat mengonfirmasi reservasi",
+  ConfirmReservationError: "Terjadi kesalahan saat mengonfirmasi reservasi. Silakan coba lagi nanti.",
   ConfirmSwap: "Konfirmasi Tukar",
   Confirmation: "Konfirmasi",
   Confirmed: "Dikonfirmasi",

@@ -448,7 +448,7 @@ export default {
   ConfirmPayment: "Conferma pagamento",
   ConfirmPin: "Conferma il PIN",
   ConfirmReservation: "Conferma prenotazione",
-  ConfirmReservationError: "Errore nella conferma della prenotazione",
+  ConfirmReservationError: "Si è verificato un errore nella conferma della prenotazione. Riprova più tardi.",
   ConfirmSwap: "Conferma lo scambio",
   Confirmation: "Conferma",
   Confirmed: "Confermato",
