@@ -249,7 +249,7 @@ export default {
           )
         } catch (error) {
           console.error('Failed to initialize vesting contract:', error)
-          raiseNotifyError(this.$t("ConfirmReservationError"))
+          raiseNotifyError(this.$t(error.message || "ConfirmReservationError"));
           this.isSliderLoading = false
           return
         }
