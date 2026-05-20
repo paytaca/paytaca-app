@@ -130,7 +130,7 @@
 
             <div v-if="getPurchaseDiscount(purchase) > 0" class="discount-banner q-mb-sm q-pa-xs text-center">
               <q-icon name="mdi-sale" size="xs" class="q-mr-xs" />
-<span class="text-caption text-weight-bold">
+                <span class="text-caption text-weight-bold">
                   {{ formatWithLocale(getPurchaseDiscount(purchase), { max: 2 }) }}% {{ $t("DiscountApplied") }}
                 </span>
             </div>
@@ -138,7 +138,7 @@
             <div class="row col-12 justify-between q-mb-sm items-start">
               <div>
                 <span class="usd-amount text-subtitle1 text-weight-medium">
-                  {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, "USD") }}
+                  {{ parseFiatCurrency(getDiscountedPriceUsd(purchase), "USD") }}
                 </span>
                 <span v-if="getPurchaseDiscount(purchase) > 0" class="original-price text-caption text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
                   {{ parseFiatCurrency(getOriginalPriceUsd(purchase), "USD") }}
@@ -322,7 +322,28 @@ export default {
     getPurchaseDiscount(purchase) {
       return parseFloat(purchase.purchase_more_details?.discount || 0)
     },
+    getDiscountedPriceUsd(purchase) {
+      // use separate value for paid reservations with discounts
+      // (reservations that only has one reservation_partial_purchase instance)
+      if (
+        Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
+        purchase.purchase_more_details.reservation_partial_purchase.length === 1
+      ) {
+        return Number.parseFloat(purchase.purchase_more_details.discounted_amount)
+      }
+
+      return purchase.purchase_partial_details.usd_paid
+    },
     getOriginalPriceUsd(purchase) {
+      // use separate value for paid reservations with discounts
+      // (reservations that only has one reservation_partial_purchase instance)
+      if (
+        Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
+        purchase.purchase_more_details.reservation_partial_purchase.length === 1
+      ) {
+        return Number.parseFloat(purchase.purchase_more_details.reserved_amount_usd)
+      }
+
       const discount = this.getPurchaseDiscount(purchase)
       const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
       if (discount > 0 && usdPaid > 0) {
