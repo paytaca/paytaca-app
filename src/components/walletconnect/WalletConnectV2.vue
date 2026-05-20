@@ -1386,7 +1386,7 @@ const respondToSignMessageRequest = async (sessionRequest) => {
       // response.error = { code: -32603, message: 'Message parameter is mandatory' }
       throw new Error('Message parameter is mandatory')
     }
-    response.result = await signMessage(message, connectedAddressForTopic.wif)
+    response.result = signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
     response.error = {
