@@ -39,16 +39,34 @@ const ORACLE_RELAY = process.env.ORACLE_RELAY || "oracles.generalprotocols.com";
 // ================================
 
 export function initializeVestingContract(buyerPubkey, liftTokenId, adminPubkey, lockupEnd, amount) {
+  if (!isEvenHex(buyerPubkey)) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+  if (!isEvenHex(liftTokenId)) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+  if (amount === null || amount === undefined || typeof amount !== 'number' || !Number.isFinite(amount) || !Number.isInteger(amount) || amount < 0) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+  const lockupTimestamp = new Date(lockupEnd).getTime()
+  if (Number.isNaN(lockupTimestamp)) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+
   const provider = new ElectrumNetworkProvider('mainnet')
   const contractParams = [
-    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')), // buyer pubkey hash
-    changeEndianness(liftTokenId), // LIFT token ID
-    adminPubkey, // admin pubkey
-    BigInt(convertDateToBlockHeight(lockupEnd)), // lockup end
-    BigInt(amount), // total LIFT tokens purchased
+    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')),
+    changeEndianness(liftTokenId),
+    adminPubkey,
+    BigInt(convertDateToBlockHeight(lockupEnd)),
+    BigInt(amount),
   ]
 
   return new Contract(VestingContractArtifact, contractParams, { provider })
+}
+
+function isEvenHex(value) {
+  return typeof value === 'string' && value.length > 0 && value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value)
 }
 
 // ================================
@@ -117,6 +135,12 @@ export function convertDateToBlockHeight(date) {
   // BTC Genesis Block | January 03 2009, 18:15:05 UTC
   const btcGenesisBlock = 1231006505;
   const dateTimestamp = Math.floor(new Date(date).getTime() / 1000);
+
+  if (Number.isNaN(dateTimestamp)) {
+    throw new Error(
+      "Date stamp cannot be before the date of BTC genesis block."
+    );
+  }
 
   if (dateTimestamp < btcGenesisBlock) {
     throw new Error(
