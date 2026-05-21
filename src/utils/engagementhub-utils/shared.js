@@ -1,5 +1,6 @@
 import { Store } from 'src/store'
 import { formatWithLocale } from 'src/utils/denomination-utils'
+import { hash256 } from 'bitauth-libauth-v3'
 
 import axios from 'axios'
 
@@ -41,6 +42,17 @@ export function parseLiftToken (amount) {
   const finalAmount = formatWithLocale(newAmount, { max: LIFT_DECIMALS })
 
   return `${finalAmount} LIFT`
+}
+
+/**
+ * Convert a bytecode value (usually a contract bytecode) to bytes32.
+ * @param {String} bytecode the bytecode to be converted
+ * @param {boolean} convertToHex whether to convert the bytes32 to a hex string
+ * @returns the bytes32-converted bytecode in hex String or Uint8Array
+ */
+export function convertToBytes32(bytecode, convertToHex = true) {
+  const bytes32 = hash256(Buffer.from(bytecode, "hex"));
+  return convertToHex ? bytes32.toString("hex") : bytes32;
 }
 
 // ==============================
