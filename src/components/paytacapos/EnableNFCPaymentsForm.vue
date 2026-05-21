@@ -125,6 +125,9 @@ export default {
         }
 
         const generateLinkCode = async (opts) => {
+            const wallet = props.wallet.BCH
+            const xpubkey = await wallet.getXPubKey()
+
             if (!encryptionPublicKey.value) {
                 $q.notify({
                     message: 'Encryption public key is required to generate link code',
@@ -142,6 +145,7 @@ export default {
                 const addressIndex = 0
                 const merchantWallet = await loadCardMerchantWallet(addressIndex)
                 const _data = {
+                    xpubkey: xpubkey,
                     privateKey: merchantWallet.privkey()
                 }
                 const encrypted = encryptWithPublicKey(_data, encryptionPublicKey.value)
