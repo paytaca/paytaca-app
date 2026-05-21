@@ -1,5 +1,7 @@
 import { computeContractFee } from "src/utils/cashscript-utils";
+import { convertToBytes32 } from '../../engagementhub-utils/shared';
 import { changeEndianness } from "src/utils/engagementhub-utils/lift-token";
+import { broadcastTxUsingWatchtower } from "src/utils/engagementhub-utils/shared";
 import {
   PROMO_TOKEN_CATEGORY,
   PROMO_TOKEN_DECIMALS
@@ -15,7 +17,6 @@ import {
 import axios from "axios"
 
 import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
-import { broadcastTxUsingWatchtower } from "src/utils/engagementhub-utils/shared";
 
 
 const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
@@ -110,7 +111,7 @@ export default class PromoContract {
       const tx = this.contract.functions.send(
         new SignatureTemplate(userWif),
         this.promo,
-        rewardsSwapContractBytecode
+        convertToBytes32(rewardsSwapContractBytecode, false)
       )
       // +1 in outputs length for bch change output
       payload.fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5) + 1000n
@@ -129,7 +130,7 @@ export default class PromoContract {
           this.contract.unlock.send(
             new SignatureTemplate(userWif),
             this.promo,
-            rewardsSwapContractBytecode
+            convertToBytes32(rewardsSwapContractBytecode, false)
           )
         )
         .addOutputs(outputs)
