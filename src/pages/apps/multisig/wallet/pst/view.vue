@@ -531,7 +531,7 @@ const openFileDownloadDialog = ({dialogTitle, dialogMessage, defaultFilename, fi
           path: fullFilename,
           data: data, 
           directory: Directory.Cache,
-          encoding: 'utf8' 
+          encoding: 'base64' 
         });
 
         return await Share.share({
