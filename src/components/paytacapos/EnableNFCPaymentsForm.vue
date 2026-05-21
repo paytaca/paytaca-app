@@ -1,28 +1,36 @@
 <template>
     <EncryptionPubkeyInput
-        v-if="posDevice && showEncryptionPubkeyInput"
+        v-if="showEncryptionPubkeyInput && posDevice"
         :pos-id="posDevice?.posid"
         @submit="submitEncryptionPublicKey"
         @close="$emit('close')"
     />
+    <NfcSetupRequestCode 
+        v-if="showRequestCode && requestCode" 
+        :pos-id="posDevice?.posid" 
+        :request-code="requestCode"
+        @close="$emit('close')"
+        />
 </template>
 <script>
 
-import EncryptionPubkeyInput from './EncryptionPubkeyInput.vue';
-import QrScanner from 'src/components/qr-scanner.vue'
+import BCHJS from '@psf/bch-js';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { encryptWithPublicKey } from 'src/utils/ecies';
 import { loadCardMerchantWallet } from 'src/services/wallet';
 import { useStore } from 'vuex';
-import BCHJS from '@psf/bch-js';
+import EncryptionPubkeyInput from './EncryptionPubkeyInput.vue';
+import QrScanner from 'src/components/qr-scanner.vue'
+import NfcSetupRequestCode from './NfcSetupRequestCode.vue';
 
 export default {
     name: 'EnableNFCPaymentsForm',
     components: {
         EncryptionPubkeyInput,
-        QrScanner
+        QrScanner,
+        NfcSetupRequestCode
     },
     emits: ['close'],
     props: {
@@ -37,18 +45,24 @@ export default {
     },
     setup (props, { emits }) {
 
-        const showEnableNFCPaymentsForm = ref(true)
-        const showEncryptionPubkeyInput = ref(true)
-        const encryptionPublicKey = ref('')
-        const encryptionPublicKeyInput = ref('')
-        const showQrScanner = ref(false)
-        const generatingLinkCode = ref(false)
         const $q = useQuasar()
         const $store = useStore()
         const bchjs = new BCHJS()
 
+        const showEnableNFCPaymentsForm = ref(true)
+        const showEncryptionPubkeyInput = ref(true)
+        const showRequestCode = ref(false)
+        const encryptionPublicKey = ref('')
+        const showQrScanner = ref(false)
+        const generatingLinkCode = ref(false)
+        const requestCode = ref(null)
+
         const darkMode = computed(() => {
             return $store.getters['darkmode/getStatus']
+        })
+
+        watch(requestCode, () => { 
+            console.log('Request code updated:', requestCode.value) 
         })
 
         onMounted(() => {
@@ -66,7 +80,6 @@ export default {
         const onEncryptionPublicKeyScanned = (result) => {
             showQrScanner.value = false
             try {
-                encryptionPublicKeyInput.value = result
                 encryptionPublicKey.value = result
                 $q.notify({
                     message: 'Encryption public key scanned successfully',
@@ -141,6 +154,7 @@ export default {
                 const data = {
                     walletHash: wallet.walletHash,
                     posid: props.posDevice.posid,
+                    encryptKey: encrypted.encryptKey,
                     encryptedData: encrypted.encryptedData,
                     nonce: nonce,
                     signature: signature,
@@ -152,7 +166,9 @@ export default {
                 console.log('Data to generate link code:', data)
 
                 generatingLinkCode.value = true
-                await $store.dispatch('paytacapos/generateNfcSetupCode', data)
+                requestCode.value = await $store.dispatch('paytacapos/generateNfcSetupCode', data)
+                showEncryptionPubkeyInput.value = false
+                showRequestCode.value = true
                 
             } catch (error) {
                 console.error('Error generating link code:', error)
@@ -176,7 +192,9 @@ export default {
             getDarkModeClass,
             scanPosEncryptionPublicKey,
             onEncryptionPublicKeyScanned,
-            submitEncryptionPublicKey
+            submitEncryptionPublicKey,
+            showRequestCode,
+            requestCode
         }
     }
 }

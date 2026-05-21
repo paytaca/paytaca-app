@@ -334,7 +334,7 @@ export async function generateNfcSetupCode(context, data) {
   const setup_data = {
     wallet_hash: data?.walletHash,
     posid: data?.posid,
-    encryptedData: data?.encryptedData,
+    encrypted_data: data?.encryptedData,
     signature: data?.signature,
   }
 
@@ -342,15 +342,16 @@ export async function generateNfcSetupCode(context, data) {
     .then(response => {
       if (!response?.data?.code) return Promise.reject({ response })
       console.log('NFC setup code generated successfully:', response.data)
-      // context.commit('saveNfcSetupCode', {
-      //   walletHash: data.walletHash,
-      //   posid: data.posid,
-      //   code: response.data.code,
-      //   expiresAt: response.data.expires,
-      //   encryptKey: data?.encryptKey,
-      //   nonce: data?.nonce,
-      // })
-      return Promise.resolve(response)
+      console.log('data.encryptKey:', data?.encryptKey)
+      const responseData = {
+        walletHash: data.walletHash,
+        posid: data.posid,
+        code: response.data.code,
+        expiresAt: response.data.expires,
+        encryptKey: data?.encryptKey,
+        nonce: data?.nonce,
+      }
+      return Promise.resolve(responseData)
     })
     .catch(error => {
       console.error(error?.response || error)
