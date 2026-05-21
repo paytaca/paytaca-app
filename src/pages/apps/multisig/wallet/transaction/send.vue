@@ -627,7 +627,7 @@ watch(() => wallet.value?.id, async (walletId) => {
       return
     }
     $q.notify({
-      type: 'Warning',
+      type: 'warning',
       message: $t('WalletConnectPrevSessionCheckError')
     })
   }
