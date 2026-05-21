@@ -1997,6 +1997,7 @@ const phrases = {
       UTXOScanFailed: 'UTXO scan failed',
       AddressScanComplete: 'Address scan complete',
       FailedToGenerateAddress: 'Failed to generate address',
+      FailedToGetAddressPath: 'Failed to get address path. Please try again later.',
       FailedToSweepBCH: 'Failed to sweep BCH',
       SweepFailed: 'Sweep failed',
       CheckTheAssetsThatYouWouldLikeToSweep: 'Check the assets that you would like to sweep',
@@ -2064,7 +2065,7 @@ const phrases = {
       EnterCustomAmount: 'Enter custom amount',
       Devicesuspended: 'Device suspended',
       SuccessfulConfirmReservationMessage: 'Reservation confirmed successfully. Check the Purchases tab for more details.',
-      ConfirmReservationError: 'Error confirming reservation',
+      ConfirmReservationError: 'An error occurred with confirming the reservation. Please try again later.',
     },
     {
       HowToGetBCH: 'How to get BCH',
@@ -2126,6 +2127,7 @@ const phrases = {
       TokenLockupTransactionId: 'Token Lockup Transaction ID',
       PaymentTransactionId: 'Payment Transaction ID',
       FailedToGetContractData: 'Failed to get contract data. Please try again later.',
+      FailedToGetOracleData: 'Failed to get oracle data. Please try again later.',
       FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',
       SLPLimitedWarning: 'SLP functionality is currently limited. Viewing history, sending, and receiving tokens are temporarily disabled.',
       TokensInstruction: 'Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens.'
