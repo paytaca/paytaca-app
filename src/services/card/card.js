@@ -223,6 +223,9 @@ export class Card {
 
       // Create the contract
       if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
+        if (!lastAttempt) {
+          lastAttempt = await getCreateCardAttempt(this.wallet.walletHash);
+        }
         await this._generateContract(lastAttempt?.idempotencyKey);
         currentStatus = CardCreateAttemptStatus.CONTRACT_CREATED;
         updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
