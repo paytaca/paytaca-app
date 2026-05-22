@@ -136,6 +136,9 @@ export default {
         const qrCodeDataLink = computed(() => `app://com.paytaca.pos/link?code=${qrCodeDataB64.value}`)
         const qrCodeDataB64 = computed(() => btoa(qrCodeData.value))
 
+        const expirationUpdateInterval = ref(null)
+        const codeExpiresIn = ref(null)
+
         const qrCodeData = computed(() => {
             return JSON.stringify({
                 code: requestCode.value?.code,
@@ -146,15 +149,9 @@ export default {
 
         watch(requestCode, () => updateCodeExpiration())
 
-        const expirationUpdateInterval = ref(null)
-        const codeExpiresIn = ref(null)
         onMounted(() => {
             expirationUpdateInterval.value = setInterval(() => updateCodeExpiration(), 1000)
             updateCodeExpiration()
-        })
-    
-        onMounted(() => {
-            console.log(requestCode.value)
         })
 
         onUnmounted(() => clearInterval(expirationUpdateInterval.value))
@@ -179,6 +176,7 @@ export default {
         }
 
         function generateRequestCode() {
+            console.log('Generating new request code...')
             emit('regenerate')
         }
 

@@ -9,7 +9,9 @@
         v-if="showRequestCode && requestCode" 
         :pos-id="posDevice?.posid" 
         :request-code="requestCode"
+        @regenerate="generateRequestCode"
         @close="$emit('close')"
+        :key="nfcSetupRequestCodeKey"
         />
 </template>
 <script>
@@ -43,7 +45,7 @@ export default {
             required: true
         }
     },
-    setup (props, { emits }) {
+    setup (props, { emit }) {
 
         const $q = useQuasar()
         const $store = useStore()
@@ -56,6 +58,7 @@ export default {
         const showQrScanner = ref(false)
         const generatingLinkCode = ref(false)
         const requestCode = ref(null)
+        const nfcSetupRequestCodeKey = ref(0) // Used to force remount NfcSetupRequestCode component when request code changes
 
         const darkMode = computed(() => {
             return $store.getters['darkmode/getStatus']
@@ -87,8 +90,8 @@ export default {
                     icon: 'check_circle',
                     timeout: 2000
                 })
-                // Automatically generate link code after scanning the public key
-                generateLinkCode({ checkExpiry: true })
+                // Automatically generate request code after scanning the public key
+                generateRequestCode({ checkExpiry: true })
             } catch (error) {
                 console.error('Error processing scanned encryption public key:', error)
                 $q.notify({
@@ -120,11 +123,12 @@ export default {
                 icon: 'check_circle',
                 timeout: 2000
             })
-            // Generate link code with the entered encryption public key
-            await generateLinkCode({ checkExpiry: true })
+            // Generate request code with the entered encryption public key
+            await generateRequestCode({ checkExpiry: true })
         }
 
-        const generateLinkCode = async (opts) => {
+        const generateRequestCode = async (opts) => {
+            console.log('Generating request code with encryption public key:', encryptionPublicKey.value)
             const wallet = props.wallet.BCH
             const xpubkey = await wallet.getXPubKey()
 
@@ -167,23 +171,25 @@ export default {
                     }
                 }
 
-                console.log('Data to generate link code:', data)
+                console.log('Data to generate request code:', data)
 
                 generatingLinkCode.value = true
                 requestCode.value = await $store.dispatch('paytacapos/generateNfcSetupCode', data)
+                console.log('>>>>Generated request code:', requestCode.value)
                 showEncryptionPubkeyInput.value = false
                 showRequestCode.value = true
                 
             } catch (error) {
-                console.error('Error generating link code:', error)
+                console.error('Error generating request code:', error)
                 $q.notify({
-                    message: `Failed to generate link code: ${error?.message}`,
+                    message: `Failed to generate request code: ${error?.message}`,
                     color: 'negative',
                     icon: 'error',
                     timeout: 3000
                 })
             } finally {
                 generatingLinkCode.value = false
+                nfcSetupRequestCodeKey.value += 1 // Force remount NfcSetupRequestCode to reset its state with the new request code
             }
         }
 
@@ -198,7 +204,9 @@ export default {
             onEncryptionPublicKeyScanned,
             submitEncryptionPublicKey,
             showRequestCode,
-            requestCode
+            requestCode,
+            generateRequestCode,
+            nfcSetupRequestCodeKey
         }
     }
 }

@@ -320,7 +320,7 @@
                       </q-item-section>
                     </q-item>
                     <q-item
-                      v-if="!posDevice?.isNFCPaymentsEnabled?.()"
+                      v-if="!posDevice?.isNFCPaymentsEnabled?.() && posDevice?.isLinked?.()"
                       clickable
                       v-close-popup
                       @click="enableNFCPayments(posDevice)">
@@ -435,7 +435,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useRouter, useRoute } from 'vue-router'
 import { loadCardMerchantWallet } from 'src/services/wallet'; 
 import { backend as cardBackend } from 'src/services/card/backend';
-import EnableNFCPaymentsForm from 'src/components/paytacapos/EnableNFCPaymentsForm.vue';
+import EnableNFCPaymentsForm from 'src/components/paytacapos/nfc-payments/EnableNFCPaymentsForm.vue';
 
 const bchjs = new BCHJS()
 
@@ -566,7 +566,7 @@ async function fetchAuthWallet() {
 }
 
 function openCashoutPage () {
-  $router.push({ name: 'app-pos-cashout', state: { merchantId: this.merchantInfo?.id } })
+  $router.push({ name: 'app-pos-cashout', state: { merchantId: merchantInfo.value?.id } })
 }
 
 const merchantsList = computed(() => $store.getters[`paytacapos/merchants`])

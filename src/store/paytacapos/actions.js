@@ -338,7 +338,7 @@ export async function generateNfcSetupCode(context, data) {
     signature: data?.signature,
   }
 
-  return posBackend.post('paytacapos/devices/generate_nfc_setup_code/', setup_data, { authorize: true })
+  return posBackend.post('paytacapos/devices/generate_nfc_request_code/', setup_data, { authorize: true })
     .then(response => {
       if (!response?.data?.code) return Promise.reject({ response })
       console.log('NFC setup code generated successfully:', response.data)
