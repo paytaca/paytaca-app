@@ -84,9 +84,9 @@
                   </q-chip>
                 </div>
                 <div>
-                  {{ product?.minMarkupPrice }}
+                  {{ formatPrice(product?.minMarkupPrice) }}
                   <template v-if="product?.minMarkupPrice != product?.maxMarkupPrice">
-                    - {{ product?.maxMarkupPrice }}
+                    - {{ formatPrice(product?.maxMarkupPrice) }}
                   </template>
                   {{ getStorefrontCurrency(product?.storefrontId) }}
                 </div>
@@ -115,7 +115,7 @@
 import noImage from 'src/assets/no-image.svg'
 import { backend } from 'src/marketplace/backend'
 import { Collection, Product } from 'src/marketplace/objects'
-import { roundRating } from 'src/marketplace/utils'
+import { formatPrice, roundRating } from 'src/marketplace/utils'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onUnmounted, nextTick } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'

@@ -41,7 +41,7 @@ function getCountry () {
   return Store.getters['global/country']
 }
 
-function getLocale () {
+export function getLocale () {
   const country = getCountry()
   
   // Defensive check for country code
