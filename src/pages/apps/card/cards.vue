@@ -400,7 +400,18 @@ export default {
       const cardHeight = 220
       const visibleArea = 70
       const hiddenArea = cardHeight - visibleArea
-      const baseOffset = buttonHeight - hiddenArea
+      const containerHeight = 520
+      const headerArea = 60
+      let baseOffset = buttonHeight - hiddenArea
+
+      if (total > 1) {
+        const maxOffset = total - 1
+        const maxBottom = containerHeight - headerArea - cardHeight
+        const requiredBottom = baseOffset + maxOffset * cardSpacing
+        if (requiredBottom > maxBottom) {
+          baseOffset = Math.max(0, maxBottom - maxOffset * cardSpacing)
+        }
+      }
 
       const depthFactor = Math.max(0, 1 - offset * 0.3)
       const dragOffset = isFrontCard ? (this.verticalDragOffset || 0) : (this.verticalDragOffset || 0) * depthFactor * 0.25
@@ -447,7 +458,19 @@ export default {
       const cardHeight = 220
       const visibleArea = 70
       const hiddenArea = cardHeight - visibleArea
-      const baseOffset = buttonHeight - hiddenArea
+      const containerHeight = 520
+      const headerArea = 60
+      let baseOffset = buttonHeight - hiddenArea
+
+      const total = 3
+      if (total > 1) {
+        const maxOffset = total - 1
+        const maxBottom = containerHeight - headerArea - cardHeight
+        const requiredBottom = baseOffset + maxOffset * cardSpacing
+        if (requiredBottom > maxBottom) {
+          baseOffset = Math.max(0, maxBottom - maxOffset * cardSpacing)
+        }
+      }
       const bottomOffset = baseOffset + index * cardSpacing
 
       return {
