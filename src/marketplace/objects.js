@@ -352,6 +352,49 @@ export class Collection {
   }
 }
 
+
+export class PricingData {
+  static parseOptional(data) {
+    if (!data) return
+    return new PricingData(data);
+  }
+
+  static parse(data) {
+    return new PricingData(data)
+  }
+
+   /**
+   * @param {any} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {String} data.base_price
+   * @param {String} data.tax_amount
+   * @param {String} data.discount_amount
+   * @param {String} data.markup_amount
+   * @param {String} data.final_price
+   * @param {String} data.final_markup_price
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.basePrice = parseFloat(data?.base_price);
+    this.taxAmount = parseFloat(data?.tax_amount);
+    this.discountAmount = parseFloat(data?.discount_amount);
+    this.markupAmount = parseFloat(data?.markup_amount);
+    this.finalPrice = parseFloat(data?.final_price);
+    this.finalMarkupPrice = parseFloat(data?.final_markup_price);
+  }
+}
+
+
 export class Variant {
   static parse(data) {
     return new Variant(data)
@@ -381,6 +424,7 @@ export class Variant {
    * @param {String} data.image_url
    * @param {String} data.name
    * @param {Number} data.price
+   * @param {Object} data.price_data
    * @param {Number} data.markup_price
    * @param {Number} data.total_stocks
    * @param {Number} data.expired_stocks
@@ -395,6 +439,7 @@ export class Variant {
     this.imageUrl = data?.image_url
     this.name = data?.name
     this.price = data?.price
+    this.priceData = PricingData.parseOptional(data?.price_data);
     this.markupPrice = data?.markup_price
     this.totalStocks = data?.total_stocks
     this.expiredStocks = data?.expired_stocks
@@ -415,6 +460,14 @@ export class Variant {
       return this.totalStocks
     }
     return this.totalStocks - this.expiredStocks
+  }
+
+  get markupPrice() {
+    return this.priceData?.finalMarkupPrice ?? this.$markupPrice;
+  }
+
+  set markupPrice(value) {
+    this.$markupPrice = value;
   }
 }
 
@@ -455,6 +508,8 @@ export class Product {
    * @param {Number} [data.max_price]
    * @param {Number} [data.min_markup_price]
    * @param {Number} [data.max_markup_price]
+   * @param {Object} [data.min_price_data]
+   * @param {Object} [data.max_price_data]
    * @param {Number} [data.storefront_id]
    * @param {String} [data.created_at]
    * @param {Object[]} [data.variants]
@@ -481,6 +536,8 @@ export class Product {
     this.maxPrice = data?.max_price
     this.minMarkupPrice = data?.min_markup_price
     this.maxMarkupPrice = data?.max_markup_price
+    this.minPriceData = PricingData.parseOptional(data?.min_price_data);
+    this.maxPriceData = PricingData.parseOptional(data?.max_price_data);
     this.storefrontId = data?.storefront_id
     if(data?.created_at) this.createdAt = new Date(data?.created_at)
 
@@ -507,6 +564,22 @@ export class Product {
       return this.variants.map(variant => variant.imageUrl).find(Boolean)
     }
     return ''
+  }
+
+  get minMarkupPrice() {
+    return this.minPriceData?.finalMarkupPrice ?? this.$minMarkupPrice;
+  }
+
+  set minMarkupPrice(value) {
+    this.$minMarkupPrice = value;
+  }
+
+  get maxMarkupPrice() {
+    return this.maxPriceData?.finalMarkupPrice ?? this.$maxMarkupPrice;
+  }
+
+  set maxMarkupPrice(value) {
+    this.$maxMarkupPrice = value;
   }
 
   updateVariants(variantsData=[]) {
@@ -732,6 +805,8 @@ export class CartItem {
    * @param {Object} data.variant
    * @param {Number} data.quantity
    * @param {Boolean} data.require_stocks
+   * @param {Number} data.unit_price
+   * @param {Number} data.final_amount
    * @param {{ schema:Object, data:Object }} [data.properties]
    * @param {Object[]} [data.addons]
    */
@@ -742,6 +817,9 @@ export class CartItem {
     this.quantity = data?.quantity
     this.properties = data?.properties
     this.requireStocks = data?.require_stocks
+    this.unitPrice = data?.unit_price
+    this.finalAmount = data?.final_amount
+
     this.addons = (Array.isArray(data?.addons) ? data.addons: []).map(LineItemAddon.parse)
   }
 
@@ -1171,6 +1249,8 @@ export class OrderItem {
    * @param {Number} data.quantity
    * @param {Number} data.price
    * @param {Number} data.markup_price
+   * @param {Object} data.price_data
+   * @param {Number} data.final_amount
    * @param {{ schema:Object, data:Object }} [data.properties]
    * @param {Object[]} [data.addons]
    */
@@ -1182,11 +1262,16 @@ export class OrderItem {
     this.quantity = data?.quantity
     this.price = data?.price
     this.markupPrice = data?.markup_price
+    this.priceData = PricingData.parseOptional(data?.price_data);
+    this.finalAmount = data?.final_amount;
     this.properties = data?.properties
     this.addons = (Array.isArray(data?.addons) ? data.addons: []).map(LineItemAddon.parse)
   }
 
   get displayPrice() {
+    if (this.priceData) {
+      return this.finalAmount / this.quantity;
+    }
     return this.markupPrice || this.price
   }
 

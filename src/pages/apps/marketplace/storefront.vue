@@ -36,7 +36,7 @@
       <div v-if="!storefront?.isStorepickupOnly && deliveryCalculation?.fee" class="row items-center no-wrap q-px-sm">
         <div class="q-space">
           Delivery:
-          {{ deliveryCalculation?.fee }} {{ deliveryCalculation?.currencySymbol }}
+          {{ formatPrice(deliveryCalculation?.fee) }} {{ deliveryCalculation?.currencySymbol }}
           <span v-if="deliveryCalculation?.distance">
             &nbsp;| {{ round(deliveryCalculation?.distance, 1) / 1000 }} km
           </span>
@@ -58,7 +58,7 @@
             <div style="min-width: min(250px, 75vw);">
               <div v-if="deliveryCalculation?.fee" class="row items-center">
                 <div class="q-space">Delivery fee:</div>
-                <div>{{ deliveryCalculation?.fee }} {{ deliveryCalculation?.currencySymbol }}</div>
+                <div>{{ formatPrice(deliveryCalculation?.fee) }} {{ deliveryCalculation?.currencySymbol }}</div>
               </div>
               <div class="row items-center">
                 <div class="q-space">Delivery time:</div>
@@ -392,9 +392,9 @@
                     </q-chip>
                   </div>
                   <div>
-                    {{ product.minMarkupPrice }}
+                    {{ formatPrice(product.minMarkupPrice) }}
                     <template v-if="product?.minMarkupPrice != product?.maxMarkupPrice">
-                      - {{ product?.maxMarkupPrice }}
+                      - {{ formatPrice(product?.maxMarkupPrice) }}
                     </template>
                     {{ getStorefrontCurrency(product?.storefrontId) }}
                   </div>
@@ -425,7 +425,7 @@ import noImage from 'src/assets/no-image.svg'
 import { backend, cachedBackend } from 'src/marketplace/backend'
 import { parseCashbackCampaign, getCashbackCampaign } from 'src/marketplace/cashback'
 import { Collection, Product, Storefront } from 'src/marketplace/objects'
-import { formatDateRelative, formatDuration, roundRating, round } from 'src/marketplace/utils'
+import { formatDateRelative, formatDuration, roundRating, round, formatPrice } from 'src/marketplace/utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
 import { vElementVisibility } from '@vueuse/components'
