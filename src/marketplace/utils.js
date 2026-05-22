@@ -1,6 +1,18 @@
 import ago from 's-ago'
 import { capitalize } from 'vue'
 import { backend } from './backend'
+import { getLocale } from 'src/utils/denomination-utils';
+
+
+export function formatPrice(value) {
+  if (typeof value !== 'number') return value;
+
+  let minimumFractionDigits = 0;
+  let maximumFractionDigits = 2;
+  if (value % 1 !== 0) minimumFractionDigits = 2;
+
+  return value.toLocaleString(getLocale(), { maximumFractionDigits, minimumFractionDigits })
+}
 
 /**
  * @param {Number} value 
