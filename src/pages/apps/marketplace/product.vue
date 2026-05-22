@@ -123,13 +123,13 @@
               </q-item-section>
               <q-item-section avatar>
                 <q-item-label>
-                  {{ variant?.markupPrice }} {{ currency }}
+                  {{ formatPrice(variant?.markupPrice) }} {{ currency }}
                 </q-item-label>
               </q-item-section>
             </q-item>
           </template>
           <template v-else>
-            <div class="text-subtitle1 text-center">{{ selectedVariant?.markupPrice }} {{ currency }}</div>
+            <div class="text-subtitle1 text-center">{{ formatPrice(selectedVariant?.markupPrice) }} {{ currency }}</div>
           </template>
           <q-card
             v-if="product?.cartOptions?.length"
@@ -218,7 +218,7 @@
 <script setup>
 import { Cart, Collection, Product, Review } from 'src/marketplace/objects'
 import { backend, getCachedBackend } from 'src/marketplace/backend'
-import { roundRating } from 'src/marketplace/utils'
+import { formatPrice, roundRating } from 'src/marketplace/utils'
 import { debounce, useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated } from 'vue'

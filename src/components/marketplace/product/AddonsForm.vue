@@ -53,7 +53,7 @@
               <template v-if="addon?.isRequired">*</template>
             </div>
             <div v-else class="q-space text-grey text-body2"> --- </div>
-            <div>{{ option?.markupPrice }} {{ currency }}</div>
+            <div>{{ formatPrice(option?.markupPrice) }} {{ currency }}</div>
           </div>
         </q-checkbox>
         <div
@@ -87,6 +87,7 @@
 <script>
 import { Addon } from "src/marketplace/objects";
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
+import { formatPrice } from "src/marketplace/utils";
 import { debounce, useQuasar } from "quasar";
 import { useStore } from "vuex";
 import { watch, computed, ref, defineComponent } from "vue";
@@ -247,6 +248,8 @@ export default defineComponent({
       getError,
       resetValidation,
       validate,
+
+      formatPrice,
     }
   },
 })
