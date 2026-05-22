@@ -90,7 +90,7 @@
       <q-btn
         outline
         no-caps
-        :label="$t('RewardsStepSkipButton', 'I was not referred')"
+        :label="$t('RewardsStepSkipButton', 'Skip for now')"
         class="text-bow skip-button button button-text-primary"
         :class="getDarkModeClass(darkMode)"
         @click="onSkipButtonPressed"
