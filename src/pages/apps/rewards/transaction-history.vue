@@ -103,7 +103,8 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { 
   fetchMerchantTransactionsData,
   fetchCashinTransactionsData,
-  fetchEloadTransactionsData
+  fetchEloadTransactionsData,
+  fetchCauldronTransactionsData
 } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
@@ -165,7 +166,7 @@ export default {
           ],
           emptyState: {
             title: 'No merchant transactions found',
-            description: 'Start making orders or over-the-counter purchases to earn points!'
+            description: 'Start placing orders or making over-the-counter purchases with Paytaca\'s partner merchants to earn points!'
           },
           errorMessage: 'Unable to load your merchant history. Please try again.'
         },
@@ -184,22 +185,35 @@ export default {
           ],
           emptyState: {
             title: 'No cash-in transactions found',
-            description: 'Cash in from the P2P Ramp app or through our vending machine to earn points!'
+            description: 'Cash in from the P2P Ramp app or through Paytaca\'s vending machine to earn points!'
           },
           errorMessage: 'Unable to load your cash-in history. Please try again.'
         },
+        cauldron: {
+          title: 'Cauldron DEX History',
+          fetchFunction: fetchCauldronTransactionsData,
+          filters: [], // No filters for cauldron
+          stats: [
+            { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
+          ],
+          emptyState: {
+            title: 'No Cauldron DEX transactions found',
+            description: 'Swap CashTokens on Cauldron DEX to earn points!'
+          },
+          errorMessage: 'Unable to load your Cauldron DEX history. Please try again.'
+        },
         eload: {
-          title: 'E-Load History',
+          title: 'E-Load Service History',
           fetchFunction: fetchEloadTransactionsData,
           filters: [], // No filters for eload
           stats: [
             { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
           ],
           emptyState: {
-            title: 'No e-load transactions found',
+            title: 'No e-load service transactions found',
             description: 'Purchase eload services to earn points!'
           },
-          errorMessage: 'Unable to load your eload history. Please try again.'
+          errorMessage: 'Unable to load your eload service history. Please try again.'
         }
       }
     }
@@ -215,6 +229,7 @@ export default {
       const routeName = this.$route.name
       if (routeName === 'app-rewards-merchant-history') return 'marketplace'
       if (routeName === 'apps-rewards-cashin-history') return 'cashin'
+      if (routeName === 'apps-rewards-cauldron-history') return 'cauldron'
       if (routeName === 'apps-rewards-eload-history') return 'eload'
       return 'marketplace' // Default fallback
     },
