@@ -71,7 +71,7 @@
               <div class="q-mb-md">
                 <q-badge
                   class="q-px-md q-py-xs text-subtitle2"
-                  :color="darkMode ? 'deep-purple-4' : 'deep-purple-6'"
+                  color="secondary"
                   text-color="white"
                 >
                   <q-icon name="local_activity" size="16px" class="q-mr-xs" />
@@ -99,7 +99,7 @@
                   color="primary"
                   class="rounded-borders"
                   size="8px"
-                  track-color="purple-6"
+                  track-color="secondary"
                 />
               </div>
             </div>
