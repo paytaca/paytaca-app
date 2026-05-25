@@ -53,6 +53,9 @@ export class Card {
     return this.raw?.is_alerts_enabled;
   }
 
+  get isSubscribed() {
+    return this.raw?.subscribed_to_transactions;
+  }
   // ==================== FACTORIES ====================
 
   /**
@@ -432,6 +435,16 @@ export class Card {
     return response.data;
   }
 
+  async subscribeToTransactions() {
+    if (this.isSubscribed) return;
+    console.log('Subscribing to transactions for card ID:', this.id)
+    await backend.post(`/cards/${this.id}/subscribe-transactions/`, null).then(() => {
+      console.log('Successfully subscribed to card transactions')
+    }).catch(err => {
+      console.error('Error subscribing to card transactions:', err.response || err)
+    })
+  }
+
   // ==================== AUTH NFT OPERATIONS ====================
 
   /**
@@ -635,6 +648,7 @@ export class Card {
 
   /**
    * Issues all auth tokens to card's token address
+   * @private
    * @returns {Promise<Object>}
    */
   async _issueAuthTokens() {

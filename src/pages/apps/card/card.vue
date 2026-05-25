@@ -820,9 +820,16 @@ export default {
     // await this.loadSpecificCard()
     this.getCardBchBalance()
     console.log('Active card loaded:', this.activeCard)
+
+    this.subscribeToCardTransactions()
   },
 
   methods: {
+    async subscribeToCardTransactions () {
+      if (!this.activeCard) return
+      await this.activeCard.subscribeToTransactions()
+    },
+
     capitalizeFirst (str) {
       if (!str) return ''
       return str.charAt(0).toUpperCase() + str.slice(1)
