@@ -316,7 +316,7 @@ export default {
 
           if (result.hasContent) {
             const rawContent = String(result.content || '').trim()
-          const normalizedContent = vm.normalizeUrContent(rawContent)
+            const normalizedContent = vm.normalizeUrContent(rawContent)
             const isStreamingContent = normalizedContent.startsWith('ur:crypto-mofnwallet') || normalizedContent.startsWith('ur:crypto-psbt')
 
             if (!isStreamingContent) {  
