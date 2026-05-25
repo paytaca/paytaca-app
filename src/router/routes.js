@@ -333,6 +333,12 @@ const routes = [
             props: true
           },
           {
+            path: 'cauldron-history/:id',
+            name: 'apps-rewards-cauldron-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
             path: 'eload-history/:id',
             name: 'apps-rewards-eload-history',
             component: () => import('src/pages/apps/rewards/transaction-history.vue'),

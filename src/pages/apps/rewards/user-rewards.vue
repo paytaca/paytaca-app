@@ -411,6 +411,29 @@
                   </div>
                 </div>
 
+                <!-- Cauldron Row -->
+                <div class="row items-center q-mb-md cursor-pointer hover-highlight" @click="openCauldronHistory">
+                  <q-icon
+                    name="img:cauldron-logo.svg"
+                    size="24px"
+                    class="q-mr-sm bg-primary q-pa-sm"
+                    style="border-radius: 50%;"
+                    color="white"
+                  />
+                  <div class="col">
+                    <span class="text-body2 text-weight-medium">Cauldron DEX</span>
+                    <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                      {{ continuousPoints.cauldron.points }} {{ continuousPoints.cauldron.points === 1 ? 'point' : 'points' }} earned
+                    </div>
+                  </div>
+                  <div class="row justify-between items-center">
+                    <span class="text-body2 text-weight-bold text-primary">
+                      {{ continuousPoints.cauldron.txCount }} {{ continuousPoints.cauldron.txCount === 1 ? 'order' : 'orders' }}
+                    </span>
+                    <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCauldronHistory" />
+                  </div>
+                </div>
+
                 <!-- Eload Row -->
                 <div class="row items-center cursor-pointer hover-highlight" @click="openEloadHistory">
                   <q-icon
@@ -421,7 +444,7 @@
                     color="white"
                   />
                   <div class="col">
-                    <span class="text-body2 text-weight-medium">{{ $t('Eload', 'Eload') }}</span>
+                    <span class="text-body2 text-weight-medium">Eload Service</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{ continuousPoints.eload.points }} {{ continuousPoints.eload.points === 1 ? 'point' : 'points' }} earned
                     </div>
@@ -520,6 +543,7 @@ export default {
       continuousPoints: {
         marketplace: { txCount: 0, points: 0 },
         cashin: { txCount: 0, points: 0 },
+        cauldron: {txCount: 0, points: 0},
         eload: { txCount: 0, points: 0 }
       },
 
@@ -684,6 +708,11 @@ export default {
         points: urData.cashin?.total_points || 0
       }
 
+      this.continuousPoints.cauldron = {
+        txCount: urData.cauldron?.total_tx_count || 0,
+        points: urData.cauldron?.total_points || 0
+      }
+
       this.continuousPoints.eload = {
         txCount: urData.eload?.total_tx_count || 0,
         points: urData.eload?.total_points || 0
@@ -768,6 +797,12 @@ export default {
     openCashinHistory () {
       this.$router.push({
         name: 'apps-rewards-cashin-history',
+        params: { id: this.urId }
+      })
+    },
+    openCauldronHistory () {
+      this.$router.push({
+        name: 'apps-rewards-cauldron-history',
         params: { id: this.urId }
       })
     },
