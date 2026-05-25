@@ -102,7 +102,7 @@ const onUpdateWalletFileModelValue = (file) => {
       })
     }
     reader.onerror = (err) => {
-      console.err(err)
+      console.error(err)
     }
     reader.readAsArrayBuffer(file)
   }
