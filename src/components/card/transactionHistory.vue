@@ -60,28 +60,29 @@
       -->
       <div v-if="isLoaded && filteredTransactions.length > 0">
         <q-list separator :dark="$q.dark.isActive">
-          <q-item v-for="t in filteredTransactions" :key="t.id" class="q-px-none">
+          <q-item v-for="transaction in filteredTransactions" :key="transaction.id" class="q-px-none">
             <!-- SKELETON LOADER for transaction icon: <q-item-section avatar><q-skeleton type="QAvatar" size="24px" /></q-item-section> -->
             <q-item-section avatar>
-               <q-icon :name="t.amount > 0 ? 'north_east' : 'south_west'" 
-                       :color="t.amount > 0 ? 'negative' : 'positive'" 
-                       size="xs" />
+                <q-icon v-if="transaction.type === 'OUTGOING'" name="north_east" color="negative" size="xs" />
+                <q-icon v-if="transaction.type === 'INCOMING'" name="south_west" color="positive" size="xs" />
             </q-item-section>
             <q-item-section>
               <div 
                 class="text-weight-bold"
-                :class="textColor"
-              >
+                :class="textColor">
                 <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
-                {{ t.merchant?.name }}
+                <span v-if="transaction.type === 'OUTGOING'">{{ transaction.merchant?.name }}</span>
+                <span v-if="transaction.type === 'INCOMING'">{{ transaction.is_nft ? 'NFT' : 'Cash In' }}</span>
               </div>
                <!-- SKELETON LOADER for date: <q-skeleton v-if="loading" type="text" width="80px" height="12px" /> -->
-               <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ t.date }}</div>
+               <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ transaction.created_at }}</div>
             </q-item-section>
             <q-item-section side>
               <!-- SKELETON LOADER for amount: <q-skeleton v-if="loading" type="text" width="70px" /> -->
-              <div class="text-weight-bold" :class="t.amount > 0 ? 'text-negative' : 'text-positive'">
-                {{ t.amount > 0 ? '-' : '' }}{{ t.amount }} BCH
+              <div v-if="!transaction.is_nft" class="text-weight-bold" :class="transaction.type === 'OUTGOING' ? 'text-negative' : 'text-positive'">
+                <span v-if="transaction.type === 'OUTGOING'">-</span>
+                <span v-if="transaction.type === 'INCOMING'">+</span>
+                <span>{{ transaction.amount }} BCH</span>
               </div>
             </q-item-section>
           </q-item>
@@ -105,14 +106,6 @@ export default {
       search: '',
       sortKey: 'date',
       sortOrder: 'desc',
-      // loading: false, // SKELETON LOADER: Set to true when fetching backend data
-      // Mock data - in a real app, you'd fetch this using this.card.id
-      // SKELETON LOADER: Replace with backend fetch in mounted() or a method
-      // transactions: [
-      //   { id: 1, name: 'Main Street Coffee', amount: -0.0012, date: '2026-02-28' },
-      //   { id: 2, name: 'Refund: Tech Store', amount: 0.05, date: '2026-02-27' },
-      //   { id: 3, name: 'Gas Station', amount: -0.0085, date: '2026-02-26' }
-      // ],
       isLoaded: false,
     }
   },

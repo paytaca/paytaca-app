@@ -590,7 +590,7 @@
 
 <script>
 import {createCardLogic} from 'src/components/card/createCard.js'
-import TransactionHistory from 'src/components/card/transactionHistory.vue'
+import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/manageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'

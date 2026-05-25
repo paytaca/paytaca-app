@@ -59,20 +59,20 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
         const merchantRefIds = [...new Set(transactions.map(tx => tx.merchant?.ref_id).filter(id => id != null))];
         console.log('Merchant reference IDs to fetch:', merchantRefIds);
 
-        // TODO: inefficient to fetch merchants one by one, but backend doesn't support batch fetching yet
-        //  — optimize when endpoint is available
-        const merchants = await Promise.all(merchantRefIds.map(id => (posBackend.get(`paytacapos/merchants/${id}/`).then(res => res.data))));
-
+        const merchants = await posBackend.get(`paytacapos/merchants/`, { params: { ids: merchantRefIds.join(',') } }).then(res => res.data?.results);
         console.log('Fetched merchants:', merchants);
 
         transactions = transactions.map(tx => ({
             id: tx.id,
+            type: tx.type,
             txid: tx.txid,
-            merchant: {
+            merchant: tx.merchant ? {
                 id: tx.merchant?.ref_id,
                 name: merchants.find(merchant => merchant.id === tx.merchant?.ref_id)?.name || 'Unknown Merchant',
-            },
+            } : null,
             amount: satoshiToBch(tx.value),
+            is_nft: tx.is_nft,
+            token_data: tx.token_data,
             created_at: (new Date(tx.created_at)).toLocaleString(), // Format timestamp for display
         }));
         console.log('Formatted transactions:', transactions);
