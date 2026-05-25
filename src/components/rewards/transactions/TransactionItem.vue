@@ -33,7 +33,7 @@
           {{ labelText }}
         </span>
         <q-icon
-          v-if="data.type !== 'vm' && typeConfig.redirect !== 'none'"
+          v-if="typeConfig.redirect !== 'none'"
           name="open_in_new"
           size="14px"
           class="q-ml-sm"
