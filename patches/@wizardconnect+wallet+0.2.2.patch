@@ -1,13 +1,12 @@
 diff --git a/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js b/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js
-index 65729ae..13fa6a5 100644
+index 65729ae..3a39ea7 100644
 --- a/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js
 +++ b/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js
-@@ -110,24 +110,44 @@ export class WalletConnectionManager extends EventEmitter {
-         }
+@@ -111,23 +111,35 @@ export class WalletConnectionManager extends EventEmitter {
      }
      doDisconnect(connectionId, sendMessage) {
-+        console.log('doing disconnectz', sendMessage, connectionId)
          const conn = this.connections.get(connectionId);
++
          if (!conn)
              return;
 +
@@ -44,14 +43,6 @@ index 65729ae..13fa6a5 100644
 -        conn.cleanup();
 -        this.connections.delete(connectionId);
 -        this.emit("connectionsChanged");
-+
-+        // for (const seq of conn.signSequences) {
-+        //     this.activeSignSequences.delete(seq);
-+        // }
-+        // clearInterval(conn.notificationProcessor ?? undefined);
-+        // conn.cleanup();
-+        // this.connections.delete(connectionId);
-+        // this.emit("connectionsChanged");
      }
      /**
       * Get all connection states (for UI/Redux).
