@@ -244,17 +244,6 @@
         <div class="text-body2 q-mb-lg text-primary">
           Your new card is ready to use
         </div>
-        <div class="success-card-preview q-mb-md">
-          <div class="mini-card" :class="$q.dark.isActive ? 'mini-card-dark' : 'mini-card-light'">
-            <div class="row items-center justify-between q-pa-md">
-              <div class="column">
-                <div class="text-caption text-primary">Card Name</div>
-                <div class="text-subtitle1 text-weight-bold text-primary">{{ newCard.name }}</div>
-              </div>
-              <q-icon name="credit_card" size="32px" color="primary" />
-            </div>
-          </div>
-        </div>
       </q-card-section>
 
       <!-- Error State -->
@@ -438,10 +427,6 @@ export default {
         .then(card => {
           console.log('Card created successfully:', card);
           this.state = 'success';
-          setTimeout(() => {
-            this.$emit('card-created', card);
-            this.closeDialog();
-          }, 1500); // Show success message for 1.5 seconds before closing
         })
         .catch(error => {
           console.error('Error creating card:', error);
@@ -1002,32 +987,6 @@ export default {
   font-family: 'Rubik', sans-serif;
   font-weight: 500;
   letter-spacing: 0.3px;
-}
-
-/* Success Card Preview */
-.success-card-preview {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-.mini-card {
-  width: 220px;
-  height: 70px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--q-primary) 15%, transparent);
-  color: white;
-  display: flex;
-  align-items: center;
-}
-
-.mini-card-dark {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 30%, black) 0%, color-mix(in srgb, var(--q-primary) 20%, black) 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.mini-card-light {
-  background: linear-gradient(135deg, var(--q-primary) 0%, var(--q-primary) 100%);
 }
 
 /* Error Animation */
