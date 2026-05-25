@@ -170,6 +170,7 @@
                       :value="oneTimeProgress"
                       color="primary"
                       class="q-mt-md rounded-borders"
+                      track-color="secondary"
                       size="8px"
                     />
                     <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
@@ -382,7 +383,7 @@
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.marketplace.txCount }} {{ continuousPoints.marketplace.txCount === 1 ? 'order' : 'orders' }}
+                      {{ continuousPoints.marketplace.txCount }} {{ continuousPoints.marketplace.txCount === 1 ? 'transaction' : 'transactions' }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openMarketplaceHistory" />
                   </div>
@@ -405,7 +406,7 @@
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.cashin.txCount }} {{ continuousPoints.cashin.txCount === 1 ? 'order' : 'orders' }}
+                      {{ continuousPoints.cashin.txCount }} {{ continuousPoints.cashin.txCount === 1 ? 'transaction' : 'transactions' }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCashinHistory" />
                   </div>
@@ -428,7 +429,7 @@
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.cauldron.txCount }} {{ continuousPoints.cauldron.txCount === 1 ? 'order' : 'orders' }}
+                      {{ continuousPoints.cauldron.txCount }} {{ continuousPoints.cauldron.txCount === 1 ? 'transaction' : 'transactions' }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCauldronHistory" />
                   </div>
@@ -451,7 +452,7 @@
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.eload.txCount }} {{ continuousPoints.eload.txCount === 1 ? 'order' : 'orders' }}
+                      {{ continuousPoints.eload.txCount }} {{ continuousPoints.eload.txCount === 1 ? 'transaction' : 'transactions' }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openEloadHistory" />
                   </div>

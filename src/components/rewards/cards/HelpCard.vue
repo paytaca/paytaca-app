@@ -389,7 +389,7 @@ export default {
             titleKey: 'RewardsHelpUR41',
             titleDefault: 'Earning One-time Points',
             content: [
-              { key: 'RewardsHelpUR42', default: 'Valid transactions include purchases made with our merchants either through the Marketplace or over the counter, as well as purchases of Eload services.' },
+              { key: 'RewardsHelpUR42', default: 'Valid transactions include purchases made with our merchants either through the Marketplace or over the counter, cash-in either through the P2P Ramp or on our vending machines, swap transactions in the Cauldron DEX, and purchases of Eload services.' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -427,7 +427,7 @@ export default {
             titleDefault: 'Earning Continuous Points',
             content: [
               { key: 'RewardsHelpUR53', default: 'You can get points when you shop with our merchants in the Marketplace or pay over the counter. Plus, you can earn even more points by buying from inactive merchants.' },
-              { key: 'RewardsHelpUR54', default: 'You can also earn points when you buy BCH through the P2P Ramp or cash in using our vending machines.' },
+              { key: 'RewardsHelpUR54', default: 'You can also earn points when you buy BCH through the P2P Ramp or cash in using our vending machines, as well as swapping tokens in the Cauldron DEX.' },
               { key: 'RewardsHelpUR55', default: 'Additionally, you can obtain points when you purchase services through the Eload Service.' },
             ],
             hasBack: true,
