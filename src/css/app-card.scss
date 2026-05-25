@@ -220,23 +220,6 @@ animation: float 6s ease-in-out infinite;
 	}
 }
 
-// Grabbable handle at the top of each card
-.card-handle {
-	width: 100%;
-	height: 30px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: grab;
-	position: relative;
-	flex-shrink: 0;
-	gap: 4px;
-
-	&:active {
-		cursor: grabbing;
-	}
-}
-
 // Card name in top-left
 .card-name-container {
 	position: absolute;
@@ -293,51 +276,6 @@ animation: float 6s ease-in-out infinite;
 	bottom: 24px;
 	right: 16px;
 	z-index: 5;
-}
-
-.handle-indicator {
-	display: flex;
-	align-items: center;
-	gap: 3px;
-	min-width: 18px;
-	min-height: 10px;
-}
-
-.handle-arrows {
-	&::before, &::after {
-		content: '';
-		display: block;
-		width: 0;
-		height: 0;
-		border-top: 5px solid transparent;
-		border-bottom: 5px solid transparent;
-		border-left: 8px solid rgba(255, 255, 255, 0.8);
-		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-		animation: swipePulse 1.5s ease-in-out infinite;
-	}
-
-	&::before {
-		opacity: 0.5;
-		animation-delay: 0s;
-	}
-
-	&::after {
-		opacity: 0.9;
-		margin-left: -1px;
-		animation-delay: 0.2s;
-	}
-}
-
-@keyframes swipePulse {
-	0%, 100% { transform: translateX(0); }
-	50% { transform: translateX(4px); }
-}
-
-.body--light {
-	.handle-indicator {
-		background: rgba(0, 0, 0, 0.4);
-		box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-	}
 }
 
 .card-info {

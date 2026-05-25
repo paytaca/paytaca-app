@@ -58,11 +58,6 @@
                 @keyup.right="goToCardDetails(card)"
                 tabindex="0"
               >
-                <!-- Grabbable handle at top -->
-                <div class="card-handle">
-                  <div class="handle-indicator"></div>
-                </div>
-
                 <!-- Top-left: Card name with status -->
                 <div class="card-name-container">
                   <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
