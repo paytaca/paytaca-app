@@ -3,6 +3,7 @@ import { satoshiToBch } from 'src/exchange';
 import { loadCardUser } from 'src/services/card/user';
 import { backend as posBackend } from "src/wallet/pos";
 import { Card } from 'src/services/card/card';
+import { getMerchantList } from 'src/services/card/merchants';
 
 export async function fetchCard(context, cardId) {
     try {
@@ -133,6 +134,25 @@ export async function updateCardAlertsStatus(context, { cardId, isAlertsEnabled 
         return updatedCard;
     } catch (error) {
         console.error('Error in updateCardAlertsStatus action:', error);
+        throw error;
+    }
+}
+
+export async function fetchMerchantList(context, { coordinates, radius = 10, page = 1, page_size = 20 } = {}) {
+    try {
+        const params = {
+            limit: page_size,
+            offset: (page - 1) * page_size,
+            location: coordinates,
+            radius: radius
+        }
+        const response = await getMerchantList(params)
+        const merchants = response?.results || []
+        console.log('___________merchants:', merchants)
+        context.commit('setMerchants', merchants);
+        return merchants;
+    } catch (error) {
+        console.error('Error in fetchMerchantList action:', error);
         throw error;
     }
 }

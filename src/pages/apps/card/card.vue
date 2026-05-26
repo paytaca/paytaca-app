@@ -591,7 +591,7 @@
 <script>
 import {createCardLogic} from 'src/components/card/createCard.js'
 import TransactionHistory from 'src/components/card/TransactionHistory.vue'
-import ManageAuthNFTs from 'src/components/card/manageAuthNFTs.vue'
+import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
 import L from 'leaflet'
@@ -822,6 +822,12 @@ export default {
     console.log('Active card loaded:', this.activeCard)
 
     this.subscribeToCardTransactions()
+
+    this.activeCard.getUtxos().then(utxos => {
+      console.log('Card UTXOs:', utxos)
+    }).catch(error => {
+      console.error('Error fetching card UTXOs:', error)
+    })
   },
 
   methods: {

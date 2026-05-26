@@ -20,3 +20,7 @@ export function transactions (state) {
     return card ? card.transactions : []
   }
 }
+
+export function userLocation (state) {
+  return state.location || {}
+}

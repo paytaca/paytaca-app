@@ -1,30 +1,34 @@
 <template>
   <div class="full-width">
     <!-- Location Info - clickable to open map popup -->
-    <div 
-      v-if="displayLocation || userLocation"
-      class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
-      :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
-      @click="openLocationMapDialog"
-    >
-      <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
-      <span class="text-caption ellipsis">
-        {{ displayLocation?.formatted || userLocation?.formatted || 'Using current location' }}
-      </span>
-      <q-icon name="edit" size="0.9rem" class="q-ml-xs" color="primary" />
-      <q-tooltip>Click to update your location</q-tooltip>
-    </div>
-    <div 
-      v-else
-      class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
-      :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
-      @click="openLocationMapDialog"
-    >
-      <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
-      <span class="text-caption">Detecting your location... (click to set manually)</span>
-      <q-icon name="edit" size="0.9rem" class="q-ml-xs" />
-      <q-tooltip>Click to set your location</q-tooltip>
-    </div>
+    <GeolocateBtn silent-on-error silent-on-deny @geolocate="onGeolocated" @denied="onLocationDenied">
+      <template #default="{ attemptGeolocate }">
+        <div
+          v-if="userLocation"
+          class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
+          :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'"
+          @click="() => attemptGeolocate().catch(console.error).then(() => openLocationMapDialog())"
+        >
+          <q-icon name="location_on" size="1.2rem" class="q-mr-xs" color="primary" />
+          <span class="text-caption ellipsis">
+            {{ fullUserLocation || 'Using current location' }}
+          </span>
+          <q-icon name="edit" size="0.9rem" class="q-ml-xs" color="primary" />
+          <q-tooltip>Click to update your location</q-tooltip>
+        </div>
+        <div
+          v-else
+          class="row items-center q-mb-md q-px-sm cursor-pointer location-info"
+          :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'"
+          @click="() => attemptGeolocate().catch(console.error).then(() => openLocationMapDialog())"
+        >
+          <q-icon name="location_off" size="1.2rem" class="q-mr-xs" />
+          <span class="text-caption">Detecting your location... (click to set manually)</span>
+          <q-icon name="edit" size="0.9rem" class="q-ml-xs" />
+          <q-tooltip>Click to set your location</q-tooltip>
+        </div>
+      </template>
+    </GeolocateBtn>
 
     <!-- Distance Filter -->
     <div 
@@ -409,10 +413,17 @@
 <script>
 import { createCardLogic, CardStorage } from './createCard.js'
 import { getMerchantList } from 'src/services/card/merchants'
+import { geolocationManager } from 'src/boot/geolocation'
+import GeolocateBtn from 'src/components/GeolocateBtn.vue'
+import PinLocationDialog from 'src/components/PinLocationDialog.vue';
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils.js';
+import { markRaw } from 'vue';
+import { init } from 'src/store/wizardconnect/actions.js';
 
 export default {
   name: 'ManageAuthNFTs',
   mixins: [createCardLogic],
+  components: { GeolocateBtn },
   props: {
     card: { type: Object, required: true }
   },
@@ -446,7 +457,7 @@ export default {
       // Location map
       locationMap: null,
       locationMarker: null,
-      tempLocation: null, // Temporary location while user is selecting
+      mapCoordinates: { lat: null, lng: null },
       locationSearchQuery: '',
       // Local display location - updates immediately when user changes location
       displayLocation: null,
@@ -454,11 +465,20 @@ export default {
       saveDebounceTimer: null,
       // Flag to prevent saving during initialization
       isInitializing: false,
+      lastGeolocatePosition: null,
+      darkMode: this.$store.getters['darkmode/getStatus'],
     }
   },
   computed: {
     userLocation() {
-      return this.$store.getters['marketplace/sessionLocation']
+      console.log('???????/card/userLocation:', this.$store.getters['card/userLocation'])
+      return this.$store.getters['card/userLocation']
+    },
+    fullUserLocation() {
+      const loc = this.userLocation
+      if (!loc) return null
+      const parts = [loc.formatted, loc.street, loc.city, loc.country].filter(Boolean)
+      return parts.join(', ')
     },
     userLocationValid() {
       const coords = this.$store.getters['marketplace/customerCoordinates']
@@ -488,43 +508,23 @@ export default {
       set(val) {
         this.toggleSelectAll(val)
       }
+    },
+    mapUid() {
+      return `leaflet-map-${this.$.uid}`
     }
   },
   mounted() {
-    console.log('ManageAuthNFTs MOUNTED, card:', this.card?.id, 'card object:', this.card)
-    this.initializeComponent()
+    console.log('ManageAuthNFTs MOUNTED, card:', this.card)
+    geolocationManager.getOrUpdateGeoIp()
+    this.loadMerchantList()
+    // this.initializeComponent()
   },
 
   methods: {
     // Initialize component - called on mount and when card changes
+    getDarkModeClass,
     async initializeComponent() {
       this.isInitializing = true
-      console.log('Initializing manageAuthNFTs for card:', this.card?.id)
-      
-      // Wait for card to have an ID - longer wait for refresh scenarios
-      let attempts = 0
-      while (!this.card?.id && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 50))
-        attempts++
-        if (attempts % 10 === 0) {
-          console.log(`Waiting for card ID... attempt ${attempts}, card:`, this.card)
-        }
-      }
-      
-      if (!this.card?.id) {
-        console.error('Card ID not available after waiting 2.5 seconds')
-        console.error('Card object:', this.card)
-        this.isInitializing = false
-        return
-      }
-      
-      const cardId = String(this.card.id)
-      console.log('Card ID confirmed:', cardId, '- About to load saved data')
-      
-      // Check what's in CardStorage for this card
-      const allCards = CardStorage.getCards()
-      const thisCard = allCards.find(c => String(c.id) === cardId)
-      console.log('Card from storage:', thisCard ? 'FOUND' : 'NOT FOUND', 'Properties:', thisCard ? Object.keys(thisCard) : 'N/A')
       
       // Reset state first
       this.merchants = []
@@ -540,15 +540,15 @@ export default {
       this.loadSavedRadius()
       console.log('After loadSavedRadius, radius changed from', oldRadius, 'to', this.radius)
       
-      // Initialize display location from store if no saved location
-      if (!this.displayLocation) {
-        const storeLocation = this.$store.getters['marketplace/sessionLocation']
-        console.log('Store location:', storeLocation)
-        if (storeLocation) {
-          this.displayLocation = { ...storeLocation }
-          console.log('Set displayLocation from store')
-        }
-      }
+      // // Initialize display location from store if no saved location
+      // if (!this.displayLocation) {
+      //   const storeLocation = this.$store.getters['marketplace/sessionLocation']
+      //   console.log('Store location:', storeLocation)
+      //   if (storeLocation) {
+      //     this.displayLocation = { ...storeLocation }
+      //     console.log('Set displayLocation from store')
+      //   }
+      // }
       
       // Load saved merchants from card storage
       console.log('Loading saved merchants...')
@@ -579,10 +579,86 @@ export default {
       })
     },
 
+    async getInitialSelectCoordinatePosition() {
+      const initLocation = { 
+        latitude: this.userLocation?.latitude || null, 
+        longitude: this.userLocation?.longitude || null, 
+        zoom: 18 
+      }
+
+      if (initLocation.latitude && initLocation.longitude) {
+        return initLocation
+      }
+
+      // Use position from GeolocateBtn if available (set when user clicks the location area)
+      const geolocated = this.lastGeolocatePosition
+      if (geolocated?.latitude && geolocated?.longitude) {
+        return { latitude: geolocated.latitude, longitude: geolocated.longitude, zoom: 16 }
+      }
+
+      // Fall back to GeoIP
+      const geoip = geolocationManager.geoip.value
+      if (geoip?.latitude && geoip?.longitude) {
+        initLocation.latitude = geoip.latitude
+        initLocation.longitude = geoip.longitude
+        initLocation.zoom = 11
+      }
+
+      return initLocation
+    },
+
+    onGeolocated(position) {
+      this.lastGeolocatePosition = position?.coords
+    },
+
+    onLocationDenied() {
+      this.$q.notify({
+        message: this.$t('EnableLocationInBrowser', {}, 'Location access is blocked. To allow it, go to your browser\'s site settings and enable location access for this site.'),
+        caption: this.$t('UsingApproximateLocation', {}, 'Showing approximate location based on your IP address'),
+        icon: 'location_disabled',
+        color: 'warning',
+        position: 'top',
+        textColor: 'black',
+        timeout: 6000,
+      })
+    },
+
+    // Location Map Methods
+    async openLocationMapDialog(opts={ autoFocusSearch: false }) {
+      const initLocation = await this.getInitialSelectCoordinatePosition();
+      this.$q.dialog({
+        component: PinLocationDialog,
+        componentProps: {
+          disableGeolocate: true,
+          search: {
+            enable: true,
+            autofocus: opts?.autoFocusSearch,
+            forceResults: true,
+          },
+          initLocation: initLocation,
+        }
+      }) .onOk(coordinates => {
+        const userLocationComponents = { ...this.userLocation } || {}
+        userLocationComponents.longitude = coordinates.lng
+        userLocationComponents.latitude = coordinates.lat
+
+        if (!coordinates?.components) return console.log('No components')
+
+        const components = coordinates.components
+        userLocationComponents.location = components.address1
+        userLocationComponents.landmark = components.address2
+        userLocationComponents.street = components.street
+        userLocationComponents.city = components.city
+        userLocationComponents.country = components.country
+        this.$store.commit('card/setUserLocation', userLocationComponents)
+      })
+    },
+
+
     async loadMerchantList(opts = {}) {
       // Use provided coordinates or fall back to store
-      const locationCoords = opts.location || this.userCoordinates
-      
+      const locationCoords = opts.location || this.userLocation
+      console.log('locationCoords for loadMerchantList:', locationCoords)      
       if (!locationCoords || !Number.isFinite(locationCoords.latitude) || !Number.isFinite(locationCoords.longitude)) {
         this.loading = false
         return
@@ -601,8 +677,8 @@ export default {
       }
 
       // Don't load more if already loading or no more results
-      if (this.loading || this.loadingMore) return
-      if (!isReset && !this.merchantsPagination.hasMore) return
+      // if (this.loading || this.loadingMore) return
+      // if (!isReset && !this.merchantsPagination.hasMore) return
 
       if (isReset) {
         this.loading = true
@@ -618,7 +694,10 @@ export default {
           radius: this.radius
         }
 
+        console.log('params for getMerchantList:', params)
+
         const response = await getMerchantList(params)
+        console.log('___________reponse:', response)
         
         // Map new merchants with UI state
         const newMerchants = response.results.map(merchant => ({
@@ -948,52 +1027,6 @@ export default {
       this.selectMultipleMode = false;
     },
 
-    // Location Map Methods
-    openLocationMapDialog() {
-      this.showLocationMapDialog = true;
-      // Initialize temporary location with current location
-      const currentCoords = this.$store.getters['marketplace/customerCoordinates'];
-      if (currentCoords && currentCoords.latitude && currentCoords.longitude) {
-        this.tempLocation = { ...currentCoords };
-      }
-    },
-
-    async initLocationMap() {
-      if (!this.$refs.locationMap) return;
-
-      // Dynamically import Leaflet
-      const L = await import('leaflet');
-
-      // Get current coordinates or use default (Philippines)
-      const currentCoords = this.$store.getters['marketplace/customerCoordinates'];
-      const lat = this.tempLocation?.latitude || currentCoords?.latitude || 7.123;
-      const lng = this.tempLocation?.longitude || currentCoords?.longitude || 124.845;
-
-      this.locationMap = L.map(this.$refs.locationMap).setView([lat, lng], 13);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(this.locationMap);
-
-      this.locationMarker = L.marker([lat, lng], { draggable: true }).addTo(this.locationMap);
-
-      // Update temp location when marker is dragged
-      this.locationMarker.on('dragend', (event) => {
-        const { lat, lng } = event.target.getLatLng();
-        this.tempLocation = { latitude: lat, longitude: lng };
-        this.reverseGeocodeLocation(lat, lng);
-      });
-
-      // Update temp location when map is clicked
-      this.locationMap.on('click', (e) => {
-        const { lat, lng } = e.latlng;
-        this.locationMarker.setLatLng([lat, lng]);
-        this.tempLocation = { latitude: lat, longitude: lng };
-        this.reverseGeocodeLocation(lat, lng);
-      });
-    },
-
     destroyLocationMap() {
       if (this.locationMap) {
         this.locationMap.remove();
@@ -1009,8 +1042,8 @@ export default {
         );
         const data = await response.json();
         if (data.display_name) {
-          this.tempLocation = {
-            ...this.tempLocation,
+          this.mapCoordinates = {
+            ...this.mapCoordinates,
             formatted: data.display_name,
             address: data.address
           };
@@ -1045,7 +1078,7 @@ export default {
           this.locationMarker.setLatLng([lat, lng]);
 
           // Update temp location
-          this.tempLocation = {
+          this.mapCoordinates = {
             latitude: lat,
             longitude: lng,
             formatted: result.display_name,
@@ -1078,7 +1111,7 @@ export default {
     },
 
     async confirmLocationUpdate() {
-      if (!this.tempLocation || !this.tempLocation.latitude || !this.tempLocation.longitude) {
+      if (!this.mapCoordinates || !this.mapCoordinates.latitude || !this.mapCoordinates.longitude) {
         this.$q.notify({
           message: 'Please select a location first',
           color: 'warning',
@@ -1101,9 +1134,9 @@ export default {
 
       // Update display location immediately (for UI feedback)
       this.displayLocation = {
-        formatted: this.tempLocation.formatted || 'Custom location',
-        latitude: this.tempLocation.latitude,
-        longitude: this.tempLocation.longitude
+        formatted: this.mapCoordinates.formatted || 'Custom location',
+        latitude: this.mapCoordinates.latitude,
+        longitude: this.mapCoordinates.longitude
       };
 
       // Save location to card storage
@@ -1111,17 +1144,17 @@ export default {
 
       // Update the store with new location
       this.$store.dispatch('marketplace/setSessionLocation', {
-        formatted: this.tempLocation.formatted || 'Custom location',
-        latitude: this.tempLocation.latitude,
-        longitude: this.tempLocation.longitude
+        formatted: this.mapCoordinates.formatted || 'Custom location',
+        latitude: this.mapCoordinates.latitude,
+        longitude: this.mapCoordinates.longitude
       });
 
       // Reload merchants with new location - pass coordinates directly to ensure new location is used
       await this.loadMerchantList({ 
         reset: true, 
         location: {
-          latitude: this.tempLocation.latitude,
-          longitude: this.tempLocation.longitude
+          latitude: this.mapCoordinates.latitude,
+          longitude: this.mapCoordinates.longitude
         }
       });
 
@@ -1164,12 +1197,7 @@ export default {
     },
 
     // Load saved location from card storage
-    loadSavedLocation() {
-      if (!this.card || !this.card.id) {
-        console.warn('Cannot load location - card or card.id not available')
-        return;
-      }
-      
+    loadSavedLocation() {      
       const cardId = String(this.card.id);
       
       // Debug: Check localStorage directly

@@ -248,7 +248,7 @@ export async function loadWallet (
   return wallet
 }
 
-export async function loadCardMerchantWallet (merchantAddressIndex = 0) {
+export async function loadCardMerchantWallet (merchantAddressIndex = 1) {
   const isChipnet = Store.getters['global/isChipnet']
   const globalWallet = Store.getters['global/getWallet']('bch')
   const walletIndex = Store.getters['global/getWalletIndex']

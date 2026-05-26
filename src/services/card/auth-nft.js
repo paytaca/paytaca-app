@@ -29,7 +29,7 @@ class AuthNftService {
      */
     _assertWallet() {
         if (!this.wallet) {
-            throw new Error('Wallet not initialized. Call initWallet() first.');
+            throw new Error('Wallet not initialized. Call initializeWithWallet() first.');
         }
     }
 

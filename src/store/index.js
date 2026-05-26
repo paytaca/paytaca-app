@@ -206,10 +206,6 @@ function reducer(state) {
           // Skip wizardconnect - connections are persisted separately via localStorage
           // in actions.js (paytaca:wizardConnectUris), and runtime state doesn't need persistence
           continue
-        } else if (moduleName === 'card') {
-          // Skip card - Card instances contain non-serializable objects (wallet, authNftService)
-          // Cards are always fetched fresh from the backend on each session
-          continue
         } else {
           // For other modules, serialize normally
           serialized[moduleName] = serializeState(state[moduleName])
@@ -259,8 +255,6 @@ export const Store = createStore({
                 delete parsed[moduleName]
               }
             }
-            // Always exclude card — Card instances aren't serializable, fetch fresh each session
-            delete parsed.card
           }
           return parsed
         } catch (err) {

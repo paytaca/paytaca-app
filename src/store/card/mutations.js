@@ -44,3 +44,19 @@ export function clearCardTransactions (state, cardId) {
     card.transactions = []
   }
 }
+
+export function setUserLocation (state, location) {
+  state.location = location
+}
+
+export function clearUserLocation (state) {
+  state.location = {}
+}
+
+export function setMerchants (state, merchants) {
+  state.merchants = merchants
+}
+
+export function clearMerchants (state) {
+  state.merchants = []
+}

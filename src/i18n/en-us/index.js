@@ -693,6 +693,7 @@ export default {
   EmptyReservations3: "Reserve LIFT tokens to get started",
   EnableAdvertisements: "Enable Advertisements",
   EnableLocation: "Enable access location in app settings",
+  EnableLocationInBrowser: "Location access is blocked. To allow it, go to your browser's site settings and enable location access for this site.",
   EnablePushNotifications: "Enable Advertisements",
   EnableSlp: "Enable SLP",
   EnableSlpToolTip: "Enable SLP token support",

@@ -720,7 +720,11 @@ export class Card {
    */
   async getUtxos() {
     this._assertContract();
-    return await this.contract.getUtxos();
+    // const temp = await this.wallet.getUtxos()
+    // console.log('Wallet UTXOs:', temp);
+    const contractUtxos = await this.contract.getUtxos();
+    console.log('>>>>>> contractUtxos:', contractUtxos)
+    return contractUtxos;
   }
 
   /**
