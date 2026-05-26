@@ -4,9 +4,8 @@ import { Store } from 'src/store'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 
-// const ENGAGEMENT_HUB_URL =
-//   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
-const ENGAGEMENT_HUB_URL = 'http://127.0.0.1:8000/api/'
+const ENGAGEMENT_HUB_URL =
+  process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
 export const PROMO_TOKEN_DECIMALS = 2
@@ -232,6 +231,10 @@ export async function processMerchantOtcPoints (data) {
 
 export async function processRampCashinPoints (data) {
   return await processPoints('userreward/process_cashin_points/', data)
+}
+
+export async function processCauldronPoints (data) {
+  return await processPoints('userreward/process_cauldron_points/', data)
 }
 
 export async function processEloadPoints (data) {
