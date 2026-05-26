@@ -43,3 +43,4 @@ yarn-error.log*
 # npm cache
 .npm-cache
 .opencode
+RELEASE.md
