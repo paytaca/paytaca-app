@@ -75,8 +75,7 @@
             echo ""
             echo "Commands:"
             echo "  npm install      - Install dependencies"
-            echo "  npm run dev      - Start development server (SPA)"
-            echo "  npx quasar dev   - Run quasar development server"
+            echo "  npm run dev      - Start development server"
             echo ""
           '';
         };
