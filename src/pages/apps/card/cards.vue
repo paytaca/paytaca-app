@@ -148,7 +148,7 @@
       </div>
        
       <!-- Create Card Dialog -->
-      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" :idempotencyKey="idempotencyKey"/>
+      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
       <ResumeCreateCardDialog 
         v-if="showResumeCreateCardDialog" 
         @resumeAttempt="onResumeCardAttempt" 
@@ -270,6 +270,12 @@ export default {
         console.error('Error loading card user:', err)
         this.user = null
       })   
+    },
+
+    async onCardCreated () {
+      await this.onCloseCreateCardForm()
+      await this.fetchCards()
+      this.fetchCardsBalance()
     },
 
     async fetchCards () {
@@ -631,8 +637,7 @@ export default {
         raw: { alias: this.newCardName.trim() },
         balance: '0.0000', // New card has 0 BCH balance
         status: 'Active',
-        contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
-        // TODO: Replace with card_instance.raw.cash_address or card_instance.raw.token_address from Card class
+        contractAddress: this.contractAddress,
         isLocked: false,
         cardReplacementStatus: 'none'
       }
