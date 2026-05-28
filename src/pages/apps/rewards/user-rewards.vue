@@ -598,6 +598,24 @@ export default {
             created_at: item.merchant_tx.created_at
           }
         }
+        if (item.cashin_tx) {
+          return {
+            type: item.cashin_tx.type,
+            ref_id: item.cashin_tx.ref_id,
+            tx_id: item.cashin_tx.tx_id,
+            points_earned: item.points_earned,
+            created_at: item.cashin_tx.created_at
+          }
+        }
+        if (item.cauldron_tx) {
+          return {
+            type: 'cauldron',
+            ref_id: item.cauldron_tx.ref_id,
+            tx_id: item.cauldron_tx.tx_id,
+            points_earned: item.points_earned,
+            created_at: item.cauldron_tx.created_at
+          }
+        }
         if (item.eload_tx) {
           return {
             type: 'eload',
