@@ -1623,3 +1623,19 @@ animation: float 6s ease-in-out infinite;
     }
   }
 }
+
+// ====== Global overrides for cards.vue ======
+html, body {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.q-layout {
+  height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+.q-page-container {
+  height: 100dvh !important;
+  overflow: hidden !important;
+}
