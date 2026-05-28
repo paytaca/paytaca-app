@@ -113,6 +113,13 @@ export default {
           redirect: 'transaction',
           showMerchantName: false
         },
+        cauldron: {
+          icon: 'img:cauldron-logo.svg',
+          bgClass: 'bg-primary',
+          label: (data) => `Ref ID ${data.ref_id}`,
+          redirect: 'transaction',
+          showMerchantName: false
+        },
         vm: {
           icon: 'mdi-cash-plus',
           bgClass: 'bg-secondary',
