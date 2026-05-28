@@ -52,8 +52,8 @@
       {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            nodejs_20
-            python311
+            nodejs_latest
+            python315
             git
             gnumake
             gcc
