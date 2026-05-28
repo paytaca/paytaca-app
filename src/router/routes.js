@@ -303,7 +303,8 @@ const routes = [
           }
         ]
       },
-      { path: 'rewards',
+      {
+        path: 'rewards',
         children: [
           {
             path: '',
