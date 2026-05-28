@@ -666,4 +666,50 @@ export default {
 
 <style lang="scss" scoped>
   @import "src/css/app-card.scss";
+
+  .swipe-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: fadeIn 0.35s ease-out;
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  .swipe-overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    color: white;
+    padding: 24px 28px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    min-width: 220px;
+  }
+</style>
+
+<style lang="scss">
+  // Kept in sync with app-card.scss global overrides section
+  html, body {
+    overflow: hidden !important;
+    height: 100% !important;
+  }
+
+  .q-layout {
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  .q-page-container {
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
 </style>
