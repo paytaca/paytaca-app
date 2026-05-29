@@ -183,6 +183,16 @@ export default {
           }
         },
         {
+          id: 'auction',
+          name: this.$t('Auction'),
+          description: this.$t('Apps.Auction.Description', {}, 'Auction your items and bid other\'s lots'),
+          iconName: 'img:auction.png',
+          path: '/apps/auction',
+          iconStyle: 'width:100%; height: 100%;',
+          active: !this.$store.getters['global/isChipnet'],
+          //beta: true
+        },
+        {
           id: 'eload-service',
           name: this.$t('Eload Service'),
           description: this.$t('Apps.Eload.Description', {}, 'Buy Telco loads, Cable Subscription and Gamepins'),

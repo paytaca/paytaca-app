@@ -188,6 +188,16 @@ const routes = [
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },
+      // ===== AUCTION ROUTE =====
+      {
+        path: 'auction',
+        children: [
+          { path: '', component: () => import('src/pages/apps/auction/index.vue'), name: 'app-auction' },
+          { path: 'add-auction', component: () => import('src/pages/apps/auction/add-auction.vue') },
+          { path: 'auction-details/:auctionId', component: () => import('src/pages/apps/auction/auction-details.vue'), name: 'app-auction-details', props: route => Object.assign({}, route.params, route.query) },
+          { path: 'lot-details/:lotId', component: () => import('src/pages/apps/auction/lot-details.vue'), name: 'app-auction-lot-details', props: route => Object.assign({}, route.params, route.query) }
+        ]
+      },
       {
         path: 'crypto-swap/',
         name: 'crypto-swap',
