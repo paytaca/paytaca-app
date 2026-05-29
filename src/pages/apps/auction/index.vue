@@ -70,7 +70,7 @@
             :class="getDarkModeClass(darkMode)"
           >
             <q-img 
-              src="./test.jpg" 
+              src="./test.jpg"
               ratio="1.75"
             >
               <template v-slot:loading>
@@ -107,6 +107,7 @@ import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 
+// Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
@@ -162,5 +163,17 @@ const formatAuctionDate = (dateString) => { return date.formatDate(dateString, '
 </script>
 
 <style scoped lang="scss">
-  
+  @import '../../../css/shared.scss';
+
+  #app-container.dark {
+    .orders--fixed-bottom {
+      background-color: $brand_dark;
+    }
+  }
+
+  #app-container.light {
+    .orders--fixed-bottom {
+      background-color: $brand_light;
+    }
+  }
 </style>
