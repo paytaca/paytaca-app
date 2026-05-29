@@ -846,7 +846,7 @@ export default {
         const redeemResp = await this.contract.redeemPoints(
           wif,
           this.rewardsSwapContractAddress,
-          this.liftToReceive,
+          this.pointsToRedeem,
           this.rewardsSwapContractBytecode
         )
         if (redeemResp.error !== '') {
