@@ -68,7 +68,7 @@
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-front', params: { auctionId: '1' }})"
+            @click="$router.push({ name: 'app-auction-details', params: { auctionId: '1' }})"
           >
             <q-img 
               src="./test.jpg"
