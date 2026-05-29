@@ -11,10 +11,7 @@
       </template>
     </HeaderNav>
 
-    <div
-      class="q-px-md q-pt-xs q-pb-md sticky-below-header"
-      :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
-    >
+    <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
       <AuctionSearch />
     </div>
 
@@ -67,7 +64,7 @@
           </q-card>
         </div>-->
 
-        <div v-for="n in 6" :key="`card-${n}`" class="col-6 col-sm-4 q-pa-xs">
+        <div v-for="auction in auctionDetails" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow"
             :class="getDarkModeClass(darkMode)"
@@ -83,18 +80,18 @@
 
             <q-card-section class="q-py-sm">
               <div class="q-mb-xs">
-                <q-badge color="primary" text-color="white" label="English Auction" class="text-bold q-pa-xs" />
+                <q-badge color="primary" text-color="white" :label="`${auction.type} Auction`" class="text-bold q-pa-xs" />
               </div>
 
-              <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">Auction Title</div>
+              <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
               
               <div class="row items-center text-caption no-wrap q-mb-xs">
                 <q-icon name="location_on" size="xs" class="q-mr-xs" />
-                <div class="ellipsis">Tacloban City, Leyte</div>
+                <div class="ellipsis">{{ auction.location }}</div>
               </div>
 
               <div class="text-caption">
-                <span class="text-weight-medium">Dates:</span> May 28, 2026 - July 1, 2026
+                <span class="text-weight-medium">Dates:</span> {{ formatAuctionDate(auction.startDate) }} - {{ formatAuctionDate(auction.endDate) }}
               </div>
             </q-card-section>
           </q-card>
@@ -105,7 +102,7 @@
 </template>
 
 <script setup>
-import { useQuasar } from 'quasar'
+import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
@@ -117,6 +114,51 @@ import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const auctionDetails = [
+  {
+    id: 1,
+    title: "Prime Commercial Lot - Downtown Area",
+    location: "Tacloban City, Leyte",
+    type: "English",
+    startDate: "2026-05-28",
+    endDate: "2026-07-01",
+  },
+  {
+    id: 2,
+    title: "Heavy Construction Equipment Surplus (Excavators & Trucks)",
+    location: "Ormoc City, Leyte",
+    type: "Dutch",
+    startDate: "2026-06-15",
+    endDate: "2026-06-22",
+  },
+  {
+    id: 3,
+    title: "Vintage Luxury Watch Collection (Rolex, Omega, Patek)",
+    location: "Metro Manila",
+    type: "English",
+    startDate: "2026-05-01",
+    endDate: "2026-05-15",
+  },
+  {
+    id: 4,
+    title: "Sealed Container of Mixed Electronic Goods & Laptops",
+    location: "Cebu City, Cebu",
+    type: "Sealed Bid",
+    startDate: "2026-05-25",
+    endDate: "2026-06-05",
+  },
+  {
+    id: 5,
+    title: "Agricultural Tractors and Milling Machinery",
+    location: "Baybay City, Leyte",
+    type: "English",
+    startDate: "2026-07-10",
+    endDate: "2026-07-20",
+  }
+];
+
+const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 </script>
 
 <style scoped lang="scss">
