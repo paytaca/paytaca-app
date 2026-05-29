@@ -185,6 +185,7 @@ export default {
         {
           id: 'auction',
           name: this.$t('Auction'),
+          description: this.$t('Apps.Auction.Description', {}, 'Auction your items and bid other\'s lots'),
           iconName: 'img:auction.png',
           path: '/apps/auction',
           iconStyle: 'width:100%; height: 100%;',
