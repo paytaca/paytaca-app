@@ -88,9 +88,8 @@
           <!-- Actual products -->
           <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card 
-              class="pt-card text-bow cursor-pointer" 
+              class="pt-card text-bow" 
               :class="getDarkModeClass(darkMode)"
-              @click="$router.push({ name: 'app-auction-lot-details', params: { lotId: '1' }})"
             >
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1">
                 <template v-slot:loading>
