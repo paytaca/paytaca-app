@@ -87,7 +87,10 @@
 
           <!-- Actual products -->
           <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
-            <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <q-card 
+              class="pt-card text-bow" 
+              :class="getDarkModeClass(darkMode)"
+            >
               <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1">
                 <template v-slot:loading>
                   <q-skeleton height="100%" width="100%" square />
@@ -154,15 +157,5 @@ defineOptions({
 const $store = useStore();
 //DARKMODE STATUS
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
-const auctionfronts = [
-  {
-    id: 1,
-    imageUrl: noImage,
-    isOpen: true,
-    inPrelaunch: false,
-
-  }
-]
 
 </script>
