@@ -8,11 +8,11 @@
     <HeaderNav :title="$t('Auction')" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row q-px-sm">
+      <div class="row q-px-sm justify-center">
         <!-- 1-img auction -->
-        <q-img :src="collection?.imageUrl || noImage" width="300px" height="350px"> </q-img>
+        <q-img :src="collection?.imageUrl || noImage" width="340px" height="350px" />
         <!-- auction title -->
-        <div class="flex column padding q-pl-md">
+        <div class="flex column padding q-pl-md q-mr-auto q-mt-md">
           <div class="text-h5 q-mr-xs">{{ auctionFront?.name || 'N/A'}}</div>
           <span class="q-mr-xs">Auctioneer: {{ auctionFront?.auctioneer || 'N/A'}}</span>
           <span class="q-mr-xs">Auctioneer Rating: {{ auctionFront?.rating || 'N/A'}}</span>
