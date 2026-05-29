@@ -66,8 +66,9 @@
 
         <div v-for="auction in auctionDetails" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
-            class="pt-card text-bow"
+            class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
+            @click="$router.push({ name: 'app-auction-front', params: { auctionId: '1' }})"
           >
             <q-img 
               src="./test.jpg"
