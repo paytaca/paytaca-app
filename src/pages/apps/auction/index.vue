@@ -80,7 +80,7 @@
 
             <q-card-section class="q-py-sm">
               <div class="q-mb-xs">
-                <q-badge color="primary" text-color="white" :label="`${auction.type} Auction`" class="text-bold q-pa-xs" />
+                <q-badge color="primary" text-color="white" :label="`${auction.type} Auction`" class="text-bold q-pa-sm" />
               </div>
 
               <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
