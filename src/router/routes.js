@@ -193,7 +193,8 @@ const routes = [
         path: 'auction',
         children: [
           { path: '', component: () => import('src/pages/apps/auction/index.vue') },
-          { path: ':auctionId', component: () => import('src/pages/apps/auction/auction.vue') }
+          { path: ':auctionId', component: () => import('src/pages/apps/auction/auction.vue') },
+          { path: 'add-auction', component: () => import('src/pages/apps/auction/add-auction.vue') }
         ]
       },
       {
