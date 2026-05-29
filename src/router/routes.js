@@ -188,12 +188,14 @@ const routes = [
           { path: 'arbiter', component: () => import('src/pages/apps/marketplace/arbiter/index.vue'), props: route => Object.assign({}, route.params, route.query), name: 'app-marketplace-arbiter', meta: { hideCartBtn: true, skipInit: true } }
         ]
       },
-
+      // ===== AUCTION ROUTE =====
       {
         path: 'auction',
-        component: () => import('src/pages/apps/auction/index.vue')
+        children: [
+          { path: '', component: () => import('src/pages/apps/auction/index.vue') },
+          { path: ':auctionId', component: () => import('src/pages/apps/auction/auction.vue') }
+        ]
       },
-
       {
         path: 'crypto-swap/',
         name: 'crypto-swap',
