@@ -5,7 +5,17 @@
     :class="getDarkModeClass(darkMode)"
     
   >
-    Hello world
+    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav">
+      <template v-slot:top-right-menu>
+        <AuctionHeaderMenu />
+      </template>
+    </HeaderNav>
+
+    <div>
+      <AddAuctionDetails :auction-type="auctionType" />
+    </div>
+
+    
   </q-pull-to-refresh>
 </template>
 
@@ -14,6 +24,11 @@ import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
+
+// Components
+import HeaderNav from 'src/components/header-nav.vue'
+import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
+import AddAuctionDetails from 'src/components/auction/AddAuctionDetails.vue'
 
 const $q = useQuasar()
 const $store = useStore()
