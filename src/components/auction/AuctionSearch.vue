@@ -18,6 +18,7 @@
     </q-input>
   </div>
 </template>
+
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useRouter } from "vue-router";
