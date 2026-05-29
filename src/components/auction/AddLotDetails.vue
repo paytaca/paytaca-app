@@ -1,9 +1,9 @@
 <template>
   <div id="toggle-add-hide-item" class="q-px-md q-mb-sm text-right">
     <q-btn
-      flat
       no-caps
       color="primary"
+      text-color="white"
       :icon="isToggledAddItem ? fillMinusSign : fillPlusSign"
       :label="isToggledAddItem ? 'Hide Item Form' : 'Add Item'"
       @click="onToggleAddItem"
