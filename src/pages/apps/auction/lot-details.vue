@@ -1,7 +1,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    class="marketplace-container"
+    class="auction-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
@@ -69,7 +69,6 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
 
 
 defineOptions({

@@ -1,7 +1,7 @@
 <template>
   <q-pull-to-refresh
     id="app-container"
-    class="marketplace-container"
+    class="auction-container"
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
@@ -31,7 +31,7 @@
       class="q-px-md q-pt-xs q-pb-md q-mt-md sticky-below-header"
       :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
     >
-      <MarketplaceSearch/>
+      <AuctionSearch/>
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -146,7 +146,7 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import MarketplaceSearch from 'src/components/marketplace/MarketplaceSearch.vue'
+import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 
 
 defineOptions({
