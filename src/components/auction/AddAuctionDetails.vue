@@ -114,10 +114,13 @@
 </template>
 
 <script setup>
+import { useQuasar } from 'quasar'
 import { ref } from 'vue'
 
 // Components
 import AddLotDetails from 'src/components/auction/AddLotDetails.vue'
+
+const $q = useQuasar()
 
 const auctionTitle = ref('')
 const auctionType = ref('English Auction')
