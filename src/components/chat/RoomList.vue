@@ -58,20 +58,6 @@
               <div v-if="unreadCount(room.id) > 0" class="unread-badge">
                 {{ unreadCount(room.id) }}
               </div>
-              <q-badge
-                v-if="isRoomBlocked(room)"
-                color="red"
-                label="blocked"
-                outline
-                class="room-badge"
-              />
-              <q-badge
-                v-if="room.type === 'group'"
-                color="accent"
-                label="group"
-                outline
-                class="room-badge"
-              />
             </div>
           </div>
         </div>
@@ -395,12 +381,6 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
-
-.room-badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  flex-shrink: 0;
 }
 
 .empty-state {

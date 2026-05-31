@@ -13,50 +13,17 @@
       class="apps-header"
       :backnavpath="chatBackPath"
       :title="$t('Chat')"
-    />
+    >
+      <template #top-right-menu>
+        <q-btn flat round dense icon="qr_code" @click="showQrDialog = true" />
+        <q-btn flat round dense icon="edit_square" @click="showNewChatDialog = true" />
+        <q-btn flat round dense icon="settings" @click="$router.push('/apps/chat/profile')" />
+      </template>
+    </header-nav>
 
     <div class="chat-body">
-      <!-- User identity header -->
-      <div
-        class="identity-section"
-        :class="getDarkModeClass(darkMode)"
-        :style="{ background: `linear-gradient(135deg, ${themeColor}14, ${themeColor}0a)` }"
-      >
-        <q-avatar
-          size="48px"
-          class="identity-avatar"
-          :style="avatarStyle"
-        >
-          <img v-if="profileAvatar" :src="profileAvatar" />
-          <q-icon v-else name="account_circle" size="40px" />
-        </q-avatar>
-        <div class="identity-info">
-          <div class="identity-label">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
-          <div class="identity-npub" @click="copyNpub">
-            <span class="npub-text">{{ displayNpub }}</span>
-            <q-icon name="content_copy" size="14px" class="copy-icon" />
-          </div>
-        </div>
-        <q-btn
-          flat
-          round
-          dense
-          icon="qr_code"
-          class="qr-btn"
-          @click="showQrDialog = true"
-        />
-        <q-btn
-          flat
-          round
-          dense
-          icon="settings"
-          class="profile-btn"
-          @click="$router.push('/apps/chat/profile')"
-        />
-      </div>
-
       <!-- Rooms list -->
-      <div class="rooms-section" :class="getDarkModeClass(darkMode)">
+      <div class="rooms-section">
         <q-tabs
           v-model="chatTab"
           dense
@@ -72,10 +39,6 @@
 
         <q-tab-panels v-model="chatTab" animated>
           <q-tab-panel name="active" class="q-pa-none">
-            <div class="section-header">
-              <span class="section-title">{{ $t('Conversations', {}, 'Conversations') }}</span>
-              <span v-if="rooms.length" class="section-count">{{ rooms.length }}</span>
-            </div>
             <room-list
               :rooms="rooms"
               :messages="messages"
@@ -86,10 +49,6 @@
             />
           </q-tab-panel>
           <q-tab-panel name="archived" class="q-pa-none">
-            <div class="section-header">
-              <span class="section-title">{{ $t('ArchivedConversations', {}, 'Archived Conversations') }}</span>
-              <span v-if="archivedRooms.length" class="section-count">{{ archivedRooms.length }}</span>
-            </div>
             <room-list
               :rooms="archivedRooms"
               :messages="messages"
@@ -103,33 +62,11 @@
       </div>
     </div>
 
-    <!-- FAB for new chat -->
-    <q-btn
-      fab
-      icon="chat"
-      color="primary"
-      class="fab-btn"
-      @click="showNewChatDialog = true"
-    />
-
-    <!-- Nostr footer -->
-    <div class="nostr-footer" :class="getDarkModeClass(darkMode)">
-      <span class="footer-text">
-        {{ $t('PoweredBy', {}, 'Powered by') }}
-        <a
-          href="https://nostr.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="nostr-link"
-        >Nostr</a>
-      </span>
-    </div>
-
-    <!-- QR code display dialog -->
+    <!-- QR code dialog -->
     <q-dialog v-model="showQrDialog">
       <q-card style="min-width: 300px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="row items-center justify-between">
-          <div class="text-h6" :class="getDarkModeClass(darkMode)">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
+          <div class="text-h6">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
         <q-card-section class="flex flex-center q-pt-none">
@@ -144,20 +81,12 @@
         </q-card-section>
         <q-card-section class="q-pt-none text-center">
           <div class="npub-full-text">{{ myNpub }}</div>
-          <q-btn
-            flat
-            dense
-            icon="content_copy"
-            :label="$t('Copy', {}, 'Copy')"
-            color="primary"
-            class="q-mt-sm"
-            @click="copyNpub"
-          />
+          <q-btn flat dense icon="content_copy" :label="$t('Copy', {}, 'Copy')" color="primary" class="q-mt-sm" @click="copyNpub" />
         </q-card-section>
       </q-card>
     </q-dialog>
 
-    <!-- New chat / add contact dialog -->
+    <!-- New chat dialog -->
     <q-dialog v-model="showNewChatDialog" persistent>
       <q-card style="min-width: 320px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
         <q-card-section class="dialog-header">
@@ -358,12 +287,6 @@ export default {
     myNpub () {
       return this.$store.getters['nostrChat/myNpub']
     },
-    displayNpub () {
-      const npub = this.myNpub || ''
-      if (!npub) return '...'
-      if (npub.length <= 24) return npub
-      return npub.slice(0, 12) + '...' + npub.slice(-8)
-    },
     rooms () {
       return this.$store.getters['nostrChat/getRooms']
     },
@@ -381,22 +304,6 @@ export default {
     },
     canCreateGroup () {
       return this.groupName.trim() && this.selectedMemberNpubs.length > 0
-    },
-    themeColor () {
-      const theme = this.$store.getters['global/theme']
-      if (theme === 'glassmorphic-red') return '#f54270'
-      if (theme === 'glassmorphic-green') return '#4caf50'
-      if (theme === 'glassmorphic-gold') return '#ffa726'
-      return '#3b82f6'
-    },
-    profileAvatar () {
-      return this.$store.state.nostrChat.profile?.avatar || null
-    },
-    avatarStyle () {
-      if (this.profileAvatar) {
-        return { background: 'transparent' }
-      }
-      return { background: `linear-gradient(135deg, ${this.themeColor}, ${this.themeColor}dd)` }
     },
   },
   watch: {
@@ -811,252 +718,28 @@ openScannerFromDialog () {
 </script>
 
 <style scoped>
+/* Override shared bottom padding — no footer on chat page */
+#app-container {
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .chat-body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 140px);
-  min-height: 0;
-}
-
-/* Identity section */
-.identity-section {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-.identity-avatar {
-  color: #ffffff;
-}
-
-.identity-info {
   flex: 1;
-  min-width: 0;
-}
-
-.identity-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin-bottom: 2px;
-}
-
-.identity-npub {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  padding: 4px 8px;
-  margin: -4px -8px;
-  border-radius: 8px;
-  transition: background-color 0.15s ease;
-}
-
-.identity-npub:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.npub-text {
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
-  color: #374151;
-  font-weight: 500;
-}
-
-.copy-icon {
-  color: #9ca3af;
-  transition: color 0.15s ease;
-}
-
-.identity-npub:hover .copy-icon {
-  color: #3b82f6;
-}
-
-.qr-btn {
-  color: #6b7280;
-  transition: color 0.15s ease;
-}
-
-.qr-btn:hover {
-  color: #3b82f6;
-}
-
-.qr-display-box {
-  padding: 16px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.npub-full-text {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  color: #6b7280;
-  word-break: break-all;
-  line-height: 1.5;
-  max-width: 240px;
-  margin: 0 auto;
+  min-height: 0;
 }
 
 /* Rooms section */
 .rooms-section {
-  padding-bottom: 80px;
+  background: transparent;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px 8px;
-}
-
-.section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.section-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: #ffffff;
-  background: #9ca3af;
-  padding: 1px 7px;
-  border-radius: 10px;
-  min-width: 20px;
-  text-align: center;
-}
-
-/* FAB */
-.fab-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 100;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.fab-btn:active {
-  transform: scale(0.94);
-}
-
-/* Nostr footer */
-.nostr-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 6px 16px;
-  padding-bottom: max(4px, env(safe-area-inset-bottom, 4px));
-  background: rgba(245, 247, 250, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-  text-align: center;
-  z-index: 50;
-}
-
-.footer-text {
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 500;
-}
-
-.nostr-link {
-  color: #3b82f6;
-  font-weight: 600;
-  text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-
-.nostr-link:hover {
-  opacity: 0.8;
-}
-
-.nostr-link:active {
-  opacity: 0.6;
-}
-
-/* Dark mode: nostr footer */
-.dark.nostr-footer {
-  background: rgba(15, 23, 42, 0.95);
-  border-top-color: rgba(255, 255, 255, 0.04);
-}
-
-.dark .footer-text {
-  color: #64748b;
-}
-
-.dark .nostr-link {
-  color: #60a5fa;
-}
-
-/* Dialog */
-.dialog-header {
-  padding-bottom: 8px;
-}
-
-.fetched-name-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: rgba(59, 130, 246, 0.06);
-  border-radius: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  margin-bottom: 16px;
-}
-
-.fetched-name-text {
-  font-size: 13px;
-  color: #374151;
-  font-weight: 500;
-}
-
-.contact-item {
-  padding: 10px 4px;
-  border-radius: 10px;
-  transition: background-color 0.15s ease;
-}
-
-.contact-item:hover {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
-.group-members-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 0 4px;
-}
-
-.group-members-list {
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.group-member-item {
-  padding: 6px 4px;
-  border-radius: 10px;
-  transition: background-color 0.15s ease;
-}
-
-.group-member-item:hover {
-  background-color: rgba(0, 0, 0, 0.03);
 }
 
 /* Tabs */
@@ -1090,10 +773,15 @@ openScannerFromDialog () {
 
 .tabs-header :deep(.q-tab-panel) {
   padding: 0;
+  background: transparent;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.tabs-header :deep(.q-panel.scroll) {
+  background: transparent;
 }
 
 .npub-caption {
@@ -1101,32 +789,32 @@ openScannerFromDialog () {
   font-size: 12px;
 }
 
+/* Header right slot - remove fixed width so action icons display in a row */
+.apps-header :deep(.pt-header-right) {
+  flex-basis: auto;
+  width: auto;
+  min-width: auto;
+}
+
+/* QR dialog */
+.qr-display-box {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.npub-full-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+  line-height: 1.5;
+  max-width: 240px;
+  margin: 0 auto;
+}
+
 /* Dark mode */
-.dark.identity-section {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.06));
-  border-bottom-color: rgba(255, 255, 255, 0.04);
-}
-
-.dark .identity-label {
-  color: #64748b;
-}
-
-.dark .npub-text {
-  color: #cbd5e1;
-}
-
-.dark .identity-npub:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.dark .section-title {
-  color: #64748b;
-}
-
-.dark .section-count {
-  background: #475569;
-}
-
 .dark .contact-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
 }
@@ -1146,14 +834,6 @@ openScannerFromDialog () {
 
 .dark .tabs-header {
   border-bottom-color: rgba(255, 255, 255, 0.04);
-}
-
-.dark .qr-btn {
-  color: #94a3b8;
-}
-
-.dark .qr-btn:hover {
-  color: #60a5fa;
 }
 
 .dark .qr-display-box {
