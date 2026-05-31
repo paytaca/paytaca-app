@@ -166,7 +166,7 @@
           </q-page>
         </q-page-container>
       </q-pull-to-refresh>
-      <div class="sticky-bottom-actions">
+      <div class="sticky-bottom-actions" v-if="!showQrScanner">
         <q-btn
           :loading="isCreatingProposal"
           style="width: 100%; filter: opacity((100%))"

@@ -82,8 +82,17 @@ const onUpdateWalletFileModelValue = (file) => {
   if (file) {
     const reader = new FileReader()
     reader.onload = () => {
-      const decoded = cborDecode(base64ToBin(reader.result))
-      console.log('DECODED', decoded)
+      const bin = new Uint8Array(reader.result)
+      let base64Data
+
+      const text = new TextDecoder().decode(bin)
+      if (/^[A-Za-z0-9+/]+=*$/.test(text.slice(0, 60))) {
+        base64Data = text
+      } else {
+        base64Data = btoa(String.fromCharCode(...bin))
+      }
+
+      const decoded = cborDecode(base64ToBin(base64Data))
       walletInstance.value = MultisigWallet.import(decoded)
       walletInstance.value.setStore($store)
       walletInstance.value.save()
@@ -93,9 +102,9 @@ const onUpdateWalletFileModelValue = (file) => {
       })
     }
     reader.onerror = (err) => {
-      console.err(err)
+      console.error(err)
     }
-    reader.readAsText(file)
+    reader.readAsArrayBuffer(file)
   }
 }
 

@@ -345,8 +345,10 @@ export async function storeMnemonic (mnemonic, walletHashOrIndex = 0) {
   await storeMnemonicByHash(mnemonic, walletHash)
   
   // Only store using old scheme if migration not completed (for backward compatibility during transition)
-  if (!migrationCompleted) {
-    const index = typeof walletHashOrIndex === 'number' ? walletHashOrIndex : 0
+  // Only do this when we have the correct index (number) — never when given a wallet hash string,
+  // since we can't determine the correct old-scheme key from a hash alone.
+  if (!migrationCompleted && typeof walletHashOrIndex === 'number') {
+    const index = walletHashOrIndex
     let oldKey = 'mn'
     if (index !== 0) {
       oldKey = oldKey + index
@@ -430,7 +432,26 @@ export async function getMnemonic (walletHashOrIndex = 0) {
     }
     // If not found with new scheme, fall through to try old scheme
   }
-  
+
+  // Also try new scheme for index-based lookups even before migration is flagged.
+  // Wallets imported via the restore flow store mnemonics using the new (hash-based)
+  // scheme only, so the old index-based keys won't exist. Without this fallback,
+  // getMnemonic(index) would return null immediately after import, causing the
+  // transaction page to load a broken wallet with zero balance.
+  if (typeof walletHashOrIndex === 'number') {
+    try {
+      const walletHash = await getWalletHashFromIndexAsync(walletHashOrIndex)
+      if (walletHash) {
+        const mnemonic = await getMnemonicByHash(walletHash)
+        if (mnemonic) {
+          return mnemonic
+        }
+      }
+    } catch (err) {
+      // Non-critical, continue to old scheme fallback
+    }
+  }
+
   // Otherwise treat as index (backward compatibility)
   const index = typeof walletHashOrIndex === 'number' ? walletHashOrIndex : 0
   let mnemonic = null

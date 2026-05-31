@@ -2173,6 +2173,7 @@ const phrases = {
       CreateNewContact: 'Create new contact',
       CreateContactSuccess: 'New contact created successfully.',
       CreateContactError: 'Failed to add new contact. Try again later.',
+      WalletConnectPrevSessionCheckError: 'Unable to check if this wallet has wallet connect session.'
     },
   ],
   dynamic: [

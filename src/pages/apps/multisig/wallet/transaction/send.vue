@@ -171,7 +171,7 @@
           </q-page>
         </q-page-container>
       </q-pull-to-refresh>
-      <div class="sticky-bottom-actions" v-if="customKeyboardState !== 'show'">
+      <div class="sticky-bottom-actions" v-if="customKeyboardState !== 'show' && !showQrScanner">
         <q-btn
           :loading="isCreatingProposal"
           style="width: 100%; filter: opacity((100%))"
@@ -605,16 +605,31 @@ const initWallet = () => {
 }
 
 watch(() => wallet.value?.id, async (walletId) => {
-  if (walletId) {
-    walletWcSessionHistory.value = await wallet.value?.options?.coordinationServer?.getWalletWcSessions({
-      walletIdentifier: wallet.value?.id
-    })
-    
-    if (!walletWcSessionHistory.value || walletWcSessionHistory.value?.length === 0) {
+  
+  if (!walletId) {
+    reserveWcAccountUtxos.value = false
+    return
+  }
+  try {
+    walletWcSessionHistory.value = await wallet.value.options?.coordinationServer?.getWalletWcSessions({
+      walletIdentifier: walletId
+    }) || []
+
+    if (walletWcSessionHistory.value?.length === 0) {
       reserveWcAccountUtxos.value = false  
+    } else {
+      reserveWcAccountUtxos.value = wallet.value?.settings?.reserveWcAccountUtxos !== false
+    }
+
+  } catch (error) {
+    if (error.response?.status === 404) {
+      reserveWcAccountUtxos.value = false
       return
     }
-    reserveWcAccountUtxos.value = wallet.value?.settings?.reserveWcAccountUtxos !== false
+    $q.notify({
+      type: 'warning',
+      message: $t('WalletConnectPrevSessionCheckError')
+    })
   }
 }, { immediate: true })
 

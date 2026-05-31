@@ -186,6 +186,10 @@ export default {
   methods: {
     getDarkModeClass,
 
+    normalizeUrContent (value = '') {
+      return String(value || '').trim().toLowerCase()
+    },
+
     // DESKTOP
     onScannerInit (promise) {
       console.log('camera set up successfully')
@@ -311,18 +315,20 @@ export default {
           }
 
           if (result.hasContent) {
-            const isStreamingContent = result.content?.startsWith('ur:crypto-mofnwallet') || result.content?.startsWith('ur:crypto-psbt')
+            const rawContent = String(result.content || '').trim()
+            const normalizedContent = vm.normalizeUrContent(rawContent)
+            const isStreamingContent = normalizedContent.startsWith('ur:crypto-mofnwallet') || normalizedContent.startsWith('ur:crypto-psbt')
 
             if (!isStreamingContent) {  
               // Non-streaming QR code - process normally and stop
               vm.stopScan()
               document.body.classList.remove('transparent-body')
-              await vm.onQRDecode([{ rawValue: result.content }])
+              await vm.onQRDecode([{ rawValue: rawContent }])
               return 
             }
             
-            // Feed the fragment to the UR Decoder
-            await vm.urDecoder.receivePart(result.content);
+            // Feed the normalized UR fragment to the decoder
+            await vm.urDecoder.receivePart(normalizedContent);
             vm.progress = await vm.urDecoder.estimatedPercentComplete();
 
             // Check if we have all fragments
@@ -332,7 +338,7 @@ export default {
               vm.stopScan()
               document.body.classList.remove('transparent-body');
               // 2. Final processing
-              await vm.onQRDecode([{ rawValue: result.content }]);
+              await vm.onQRDecode([{ rawValue: rawContent }]);
               return
             }
             await BarcodeScanner.resumeScanning()
@@ -386,7 +392,8 @@ export default {
       const vm = this
 
       if (content) {
-        const _value = content[0].rawValue
+        const _value = String(content[0].rawValue || '').trim()
+        const normalizedValue = vm.normalizeUrContent(_value)
         // Only parse as prefixless address if content doesn't have query params
         // Query params indicate BIP21 URI that needs full parsing
         const addressValidation = !_value.includes('?') ? parseAddressWithoutPrefix(_value) : { valid: false }
@@ -433,8 +440,8 @@ export default {
             name: 'app-sweep',
             query: { w: '', bip38String: value }
           })
-        } else if(_value?.startsWith('ur:crypto-mofnwallet')) {
-          const part = content[0].rawValue;
+        } else if (normalizedValue.startsWith('ur:crypto-mofnwallet')) {
+          const part = normalizedValue;
           vm.urDecoder.receivePart(part);
           vm.progress = vm.urDecoder.estimatedPercentComplete()
           if (vm.urDecoder.isComplete()) {
@@ -449,8 +456,8 @@ export default {
               params: { wallethash: wallet.getWalletHash() }
             })
           }
-        } else if(_value?.startsWith('ur:crypto-psbt')) {
-          const part = content[0].rawValue;
+        } else if (normalizedValue.startsWith('ur:crypto-psbt')) {
+          const part = normalizedValue;
           vm.urDecoder.receivePart(part);
           vm.progress = vm.urDecoder.estimatedPercentComplete()
           if (vm.urDecoder.isComplete()) {
