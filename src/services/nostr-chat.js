@@ -14,6 +14,8 @@ let _pollInterval = null
 let _statusInterval = null
 let _keepaliveInterval = null
 let _seenEventIds = new Set()
+let _resubscribeTimer = null
+let _subscriptionCallbacks = null
 
 // Subscription state tracking
 let _isSubscribed = false
@@ -67,6 +69,10 @@ export function connect(relays) {
 }
 
 export function disconnect() {
+  if (_resubscribeTimer) {
+    clearTimeout(_resubscribeTimer)
+    _resubscribeTimer = null
+  }
   if (_pool) {
     for (const sub of _subs) {
       try { sub.close() } catch (_) {}
@@ -91,6 +97,7 @@ export function disconnect() {
   _subscribedRelays = []
   _subscribedPubKey = null
   _subscribing = false
+  _subscriptionCallbacks = null
   _statusBackoff = 1
 }
 
@@ -172,6 +179,25 @@ export function stopStatusPolling() {
 }
 
 /**
+ * Schedule a re-subscription attempt after a connection loss.
+ * Debounces rapid close/reconnect cycles.
+ */
+function scheduleResubscribe() {
+  if (_resubscribeTimer) return
+  _resubscribeTimer = setTimeout(() => {
+    _resubscribeTimer = null
+    if (
+      !_isSubscribed &&
+      _subscribedRelays.length > 0 &&
+      _subscribedPubKey &&
+      _subscriptionCallbacks
+    ) {
+      subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, { force: true })
+    }
+  }, 3000)
+}
+
+/**
  * Subscribe to kind:1059 gift-wraps addressed to our pubkey.
  * Also sets up a polling fallback every 30 seconds.
  * @param {string[]} relays
@@ -201,11 +227,20 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   }
   _subscribing = true
 
+  // Cancel any pending auto-resubscribe since we're about to re-subscribe
+  if (_resubscribeTimer) {
+    clearTimeout(_resubscribeTimer)
+    _resubscribeTimer = null
+  }
+
   // Close any stale subscriptions before creating new ones
   for (const sub of _subs) {
     try { sub.close() } catch (_) {}
   }
   _subs = []
+
+  // Store callbacks for future auto-resubscribe
+  _subscriptionCallbacks = callbacks
 
   const pool = getPool()
   const filter = { kinds: [1059], '#p': [myPubKey] }
@@ -224,6 +259,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
           console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
           if (!reasons.includes('closed by caller')) {
             _isSubscribed = false
+            scheduleResubscribe()
           }
         },
       })
@@ -263,13 +299,13 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     }, 30000)
   }
 
-  // Keepalive: periodically verify subscription is alive by checking pool connections.
-  // If all subscriptions have closed (e.g., relay dropped), trigger a re-subscribe
-  // by setting _isSubscribed = false so the next ensureSubscribed call can recreate them.
+  // Keepalive: periodically verify subscription is alive.
+  // If _isSubscribed was set to false (e.g., onclose fired) but the auto-resubscribe
+  // didn't trigger (e.g., back-to-back failures), this catches it.
   if (!_keepaliveInterval) {
     _keepaliveInterval = setInterval(() => {
-      if (_subs.length === 0) {
-        _isSubscribed = false
+      if (!_isSubscribed && _subscribedRelays.length > 0 && _subscribedPubKey && _subscriptionCallbacks) {
+        subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, { force: true })
       }
     }, KEEPALIVE_INTERVAL_MS)
   }
@@ -282,6 +318,10 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
 
   return {
     close() {
+      if (_resubscribeTimer) {
+        clearTimeout(_resubscribeTimer)
+        _resubscribeTimer = null
+      }
       for (const sub of _subs) {
         try { sub.close() } catch (_) {}
       }
@@ -295,6 +335,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
         _keepaliveInterval = null
       }
       _isSubscribed = false
+      _subscriptionCallbacks = null
     },
   }
 }
