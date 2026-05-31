@@ -524,6 +524,8 @@ export function createPrivateRoom ({ commit, getters, state }, contactNpub) {
   return room
 }
 
+const MAX_GROUP_MEMBERS = 10
+
 export async function createGroupRoom ({ commit, state }, { name, members, subject }) {
   const myPubKey = state.keys.pubKeyHex
   // Convert any npubs to hex pubkeys
@@ -535,6 +537,9 @@ export async function createGroupRoom ({ commit, state }, { name, members, subje
     return m
   })
   const allMembers = [...new Set([myPubKey, ...memberHexes])]
+  if (allMembers.length > MAX_GROUP_MEMBERS) {
+    throw new Error(`Group limited to ${MAX_GROUP_MEMBERS} members total`)
+  }
   const roomId = computeRoomId(allMembers)
 
   const room = {

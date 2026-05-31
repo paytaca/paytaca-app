@@ -29,7 +29,12 @@ let _statusBackoff = 1
 const STATUS_BASE_INTERVAL = 15000
 const STATUS_MAX_INTERVAL = 60000
 const SUBSCRIBE_COOLDOWN_MS = 2000
-const KEEPALIVE_INTERVAL_MS = 60000
+const KEEPALIVE_INTERVAL_MS = 30000
+
+// Resubscribe backoff state
+let _resubscribeAttempts = 0
+const RESUBSCRIBE_BASE_MS = 1000
+const RESUBSCRIBE_MAX_MS = 60000
 
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2)
@@ -99,6 +104,7 @@ export function disconnect() {
   _subscribing = false
   _subscriptionCallbacks = null
   _statusBackoff = 1
+  _resubscribeAttempts = 0
 }
 
 /**
@@ -184,6 +190,11 @@ export function stopStatusPolling() {
  */
 function scheduleResubscribe() {
   if (_resubscribeTimer) return
+  const delay = Math.min(
+    RESUBSCRIBE_BASE_MS * Math.pow(2, _resubscribeAttempts),
+    RESUBSCRIBE_MAX_MS
+  )
+  _resubscribeAttempts++
   _resubscribeTimer = setTimeout(() => {
     _resubscribeTimer = null
     if (
@@ -192,9 +203,14 @@ function scheduleResubscribe() {
       _subscribedPubKey &&
       _subscriptionCallbacks
     ) {
+      // If we've exhausted backoff, reset the pool to clear stale state
+      if (_resubscribeAttempts >= 6) {
+        disconnect()
+        _pool = getPool()
+      }
       subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, { force: true })
     }
-  }, 3000)
+  }, delay)
 }
 
 /**
@@ -225,7 +241,6 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   if (_subscribing && !options.force) {
     return { close() {} }
   }
-  _subscribing = true
 
   // Cancel any pending auto-resubscribe since we're about to re-subscribe
   if (_resubscribeTimer) {
@@ -245,28 +260,36 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   const pool = getPool()
   const filter = { kinds: [1059], '#p': [myPubKey] }
 
-  // Subscribe to each relay individually so we can track which ones work
-  for (const relayUrl of relays) {
-    try {
-      const sub = pool.subscribeMany([relayUrl], filter, {
-        onevent(event) {
-          if (_seenEventIds.has(event.id)) return
-          _seenEventIds.add(event.id)
-          if (callbacks.onEvent) callbacks.onEvent(event)
-        },
-        oneose() {},
-        onclose(reasons) {
-          console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
-          if (!reasons.includes('closed by caller')) {
-            _isSubscribed = false
-            scheduleResubscribe()
-          }
-        },
-      })
-      _subs.push(sub)
-    } catch (err) {
-      // Relay subscription failed silently
+  try {
+    _subscribing = true
+
+    // Subscribe to each relay individually so we can track which ones work
+    for (const relayUrl of relays) {
+      try {
+        const sub = pool.subscribeMany([relayUrl], filter, {
+          onevent(event) {
+            if (_seenEventIds.has(event.id)) return
+            _seenEventIds.add(event.id)
+            if (callbacks.onEvent) callbacks.onEvent(event)
+          },
+          oneose() {
+            _resubscribeAttempts = 0
+          },
+          onclose(reasons) {
+            console.warn(`[Nostr] Subscription closed for ${relayUrl}:`, reasons)
+            if (!reasons.includes('closed by caller')) {
+              _isSubscribed = false
+              scheduleResubscribe()
+            }
+          },
+        })
+        _subs.push(sub)
+      } catch (err) {
+        // Relay subscription failed silently
+      }
     }
+  } finally {
+    _subscribing = false
   }
 
   // Polling fallback: query all relays every 30 seconds for gift-wraps.
@@ -314,7 +337,6 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
   _lastSubscribeTime = now
   _subscribedRelays = [...relays]
   _subscribedPubKey = myPubKey
-  _subscribing = false
 
   return {
     close() {

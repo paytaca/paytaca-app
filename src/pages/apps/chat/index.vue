@@ -303,7 +303,7 @@ export default {
       return this.newContactName.trim() && this.newContactNpub.trim().startsWith('npub')
     },
     canCreateGroup () {
-      return this.groupName.trim() && this.selectedMemberNpubs.length > 0
+      return this.groupName.trim() && this.selectedMemberNpubs.length > 0 && this.selectedMemberNpubs.length <= 9
     },
   },
   watch: {
