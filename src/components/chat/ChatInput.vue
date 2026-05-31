@@ -81,15 +81,45 @@
       {{ remainingChars }}
     </div>
     </template>
+
+    <!-- Image resize dialog -->
+    <q-dialog v-model="showResizeDialog" persistent>
+      <q-card style="min-width: 320px">
+        <q-card-section class="q-pb-none">
+          <div class="text-h6">Resize Image</div>
+          <div class="text-caption text-grey">Original: {{ formatFileSize(imageOriginalSize) }}</div>
+        </q-card-section>
+        <q-card-section>
+          <q-option-group
+            v-model="resizeOption"
+            :options="resizeOptions"
+            type="radio"
+            color="primary"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Skip" color="grey" v-close-popup @click="sendResizedFile(null)" />
+          <q-btn unelevated label="Resize & Send" color="primary" v-close-popup @click="sendResizedFile(resizeOption)" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { resizeImage } from 'src/wallet/nostr-media'
 
 const SEND_COMMAND_PATTERN = /^\/send\s+([\d.]+)\s+([A-Za-z0-9]+)\s*$/i
 const MAX_CHARS = 1000
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
+
+const RESIZE_OPTIONS = [
+  { label: 'Small (≈0.5 MB)', value: 'small', description: '800px max, 70% quality' },
+  { label: 'Medium (≈1 MB)', value: 'medium', description: '1400px max, 80% quality' },
+  { label: 'Large (≤2.5 MB)', value: 'large', description: '2048px max, 85% quality' },
+]
 
 export default {
   name: 'ChatInput',
@@ -107,11 +137,17 @@ export default {
       isSending: false,
       imageThumbnail: null,
       uploadAbortController: null,
+      showResizeDialog: false,
+      resizeOption: 'medium',
+      imageOriginalSize: 0,
       MAX_CHARS,
       MAX_FILE_SIZE,
     }
   },
   computed: {
+    resizeOptions () {
+      return RESIZE_OPTIONS
+    },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']
     },
@@ -160,11 +196,36 @@ export default {
       
       if (selectedFile.type?.startsWith('image/')) {
         this.generateThumbnail(selectedFile)
+        if (selectedFile.size >= RESIZE_THRESHOLD) {
+          this.imageOriginalSize = selectedFile.size
+          this.resizeOption = 'medium'
+          this.showResizeDialog = true
+          return
+        }
       }
       
       this.$nextTick(() => {
         this.sendFile()
       })
+    },
+    async sendResizedFile (option) {
+      if (!option) {
+        this.$nextTick(() => this.sendFile())
+        return
+      }
+      const configs = {
+        small: { maxDimension: 800, quality: 0.7 },
+        medium: { maxDimension: 1400, quality: 0.8 },
+        large: { maxDimension: 2048, quality: 0.85, maxSizeBytes: 2.5 * 1024 * 1024 },
+      }
+      const cfg = configs[option]
+      if (!cfg) return
+      try {
+        this.selectedFile = await resizeImage(this.selectedFile, cfg)
+      } catch (err) {
+        console.error('[ChatInput] Image resize failed:', err)
+      }
+      this.$nextTick(() => this.sendFile())
     },
     generateThumbnail (file) {
       const reader = new FileReader()

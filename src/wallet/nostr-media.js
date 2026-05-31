@@ -486,3 +486,39 @@ function concatBytes(...arrays) {
   }
   return result
 }
+
+export function resizeImage(file, { maxDimension, quality, maxSizeBytes }) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      if (width > height && width > maxDimension) {
+        height = Math.round(height * maxDimension / width)
+        width = maxDimension
+      } else if (height > maxDimension) {
+        width = Math.round(width * maxDimension / height)
+        height = maxDimension
+      }
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, 0, 0, width, height)
+      const tryEncode = (q) => {
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Failed to encode image'))
+          if (maxSizeBytes && blob.size > maxSizeBytes && q > 0.1) {
+            tryEncode(Math.round((q - 0.1) * 100) / 100)
+          } else {
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg', lastModified: Date.now() }))
+          }
+        }, 'image/jpeg', q)
+      }
+      tryEncode(quality)
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
