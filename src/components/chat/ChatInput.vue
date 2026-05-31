@@ -111,7 +111,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { resizeImage } from 'src/wallet/nostr-media'
 
 const SEND_COMMAND_PATTERN = /^\/send\s+([\d.]+)\s+([A-Za-z0-9]+)\s*$/i
-const MAX_CHARS = 1000
+const MAX_CHARS = 3000
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
 
