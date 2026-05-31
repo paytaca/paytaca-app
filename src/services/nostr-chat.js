@@ -302,7 +302,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
         const events = await pool.querySync(relays, {
           kinds: [1059],
           '#p': [myPubKey],
-          limit: 100,
+          limit: 500,
         })
         if (!events || !events.length) return
         const newEvents = events.filter(e => !_seenEventIds.has(e.id))
@@ -311,9 +311,9 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
           _seenEventIds.add(event.id)
           if (callbacks.onEvent) callbacks.onEvent(event)
         }
-        // Prevent unbounded growth
-        if (_seenEventIds.size > 1000) {
-          const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 1000)
+        // Prevent unbounded growth. Keep more entries since polling limit increased.
+        if (_seenEventIds.size > 5000) {
+          const toDelete = Array.from(_seenEventIds).slice(0, _seenEventIds.size - 5000)
           toDelete.forEach(id => _seenEventIds.delete(id))
         }
       } catch (err) {
@@ -539,7 +539,7 @@ export async function fetchGroupMetadata(relays, roomId) {
 export async function fetchHistoricalGiftWraps(relays, myPubKey, callbacks = {}) {
   const pool = getPool()
   try {
-    const events = await pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 50 })
+    const events = await pool.querySync(relays, { kinds: [1059], '#p': [myPubKey], limit: 200 })
     if (!events || !events.length) return
     for (const event of events) {
       if (callbacks.onEvent) callbacks.onEvent(event)
