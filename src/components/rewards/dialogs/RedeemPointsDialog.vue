@@ -606,6 +606,10 @@ export default {
     if (this.cauldronPriceIntervalId != null) {
       clearInterval(this.cauldronPriceIntervalId)
     }
+    // Cleanup celebration interval if active
+    if (this.celebrationIntervalId != null) {
+      clearInterval(this.celebrationIntervalId)
+    }
   },
 
   methods: {
