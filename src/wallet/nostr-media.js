@@ -119,35 +119,32 @@ export async function decryptFile(encryptedData, aesKeyHex, nonceHex) {
 
 /**
  * Create a kind:15 file message event (NIP-17).
+ * Minimal format to fit within relay size limits after NIP-59 double encryption.
+ * - content: hex hash of encrypted file (used to construct Blossom URL)
+ * - p-tags: standard hex pubkeys
+ * - d-tag: base64 of (aes_key[32] || nonce[12]) — 44 bytes → 60 base64 chars
+ * - m-tag: MIME type (e.g. "image/jpeg")
  * @param {Object} opts
  * @param {string} opts.senderPubKey - Hex pubkey of sender
- * @param {string[]} opts.members - All room member pubkeys (including sender)
- * @param {string} opts.fileUrl - Blossom URL of encrypted file
- * @param {string} opts.mimeType - MIME type of original file
- * @param {string} opts.aesKeyHex - Raw AES key (hex) for decryption
- * @param {string} opts.nonceHex - AES-GCM nonce (hex)
- * @param {string} opts.hash - SHA-256 hash of encrypted file
- * @param {string} opts.originalHash - SHA-256 hash of original file
- * @param {number} opts.size - Size of encrypted file in bytes
- * @param {string} [opts.fileName] - Original file name
- * @param {string} [opts.subject] - Optional conversation subject
+ * @param {string[]} opts.members - All room member pubkeys (including sender, hex format)
+ * @param {string} opts.hash - SHA-256 hash of encrypted file (hex, 64 chars)
+ * @param {string} opts.aesKeyHex - Raw AES key (hex, 64 chars) for decryption
+ * @param {string} opts.nonceHex - AES-GCM nonce (hex, 24 chars)
+ * @param {string} [opts.mimeType] - MIME type of original file
+ * @param {number} [opts.imageWidth] - Image width in pixels
+ * @param {number} [opts.imageHeight] - Image height in pixels
  * @param {string} [opts.replyTo] - Optional kind:14 id being replied to
  * @returns {import('nostr-tools').Rumor}
  */
 export function createKind15FileMessage({
   senderPubKey,
   members,
-  fileUrl,
-  mimeType,
+  hash,
   aesKeyHex,
   nonceHex,
-  hash,
-  originalHash,
-  size,
-  fileName,
+  mimeType,
   imageWidth,
   imageHeight,
-  subject,
   replyTo,
 }) {
   const tags = []
@@ -158,25 +155,21 @@ export function createKind15FileMessage({
     }
   }
 
-  tags.push(['file-type', mimeType])
-  tags.push(['encryption-algorithm', 'aes-gcm'])
-  tags.push(['decryption-key', aesKeyHex])
-  tags.push(['decryption-nonce', nonceHex])
-  tags.push(['x', hash])
-  tags.push(['ox', originalHash])
-  tags.push(['size', size.toString()])
+  const keyBytes = hexToBytes(aesKeyHex)
+  const nonceBytes = hexToBytes(nonceHex)
+  const d = bytesToBase64(concatBytes(keyBytes, nonceBytes))
+  tags.push(['d', d])
 
-  if (fileName) tags.push(['filename', fileName])
-  if (imageWidth) tags.push(['image-width', imageWidth.toString()])
-  if (imageHeight) tags.push(['image-height', imageHeight.toString()])
-  if (subject) tags.push(['subject', subject])
+  if (mimeType) tags.push(['m', mimeType])
+  if (imageWidth) tags.push(['w', String(imageWidth)])
+  if (imageHeight) tags.push(['h', String(imageHeight)])
   if (replyTo) tags.push(['e', replyTo, '', 'reply'])
 
   const event = {
     kind: 15,
     pubkey: senderPubKey,
     created_at: Math.floor(Date.now() / 1000),
-    content: fileUrl,
+    content: hash,
     tags,
   }
 
@@ -186,6 +179,7 @@ export function createKind15FileMessage({
 
 /**
  * Wrap a kind:15 file message for each recipient (NIP-17 gift-wrap).
+ * Logs gift wrap sizes for debugging relay size limits.
  * @param {import('nostr-tools').UnsignedEvent} kind15Event
  * @param {string} senderPrivKey - Hex private key of sender
  * @param {string[]} receiverPubKeys - All member pubkeys to send to
@@ -194,6 +188,14 @@ export function createKind15FileMessage({
 export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiverPubKeys) {
   const senderPrivKeyBytes = hexToBytes(senderPrivKey)
   const giftWraps = nip59.wrapManyEvents(kind15Event, senderPrivKeyBytes, receiverPubKeys)
+
+  const rumorJson = JSON.stringify(kind15Event)
+  console.log('[wrapKind15FileMessage] Rumor JSON size:', rumorJson.length, 'bytes')
+  for (let i = 0; i < giftWraps.length; i++) {
+    const wrapJson = JSON.stringify(giftWraps[i])
+    console.log(`[wrapKind15FileMessage] Gift wrap[${i}] JSON size: ${wrapJson.length} bytes, content size: ${giftWraps[i].content.length} chars`)
+  }
+
   return giftWraps
 }
 
@@ -371,32 +373,71 @@ export async function downloadFromBlossom(url, serverUrl) {
 
 /**
  * Parse a kind:15 file message event.
+ * Supports both the new minimal format (d-tag = key+nonce only, m-tag for mime)
+ * and the legacy binary-packed format (d-tag with key+nonce+mime+size+filename).
  * @param {Object} event - Kind:15 event
- * @returns {{ fileUrl: string, mimeType: string, aesKeyHex: string, nonceHex: string, hash: string, originalHash: string, size: number, fileName: string|null }|null}
+ * @returns {{ fileUrl: string, mimeType: string, aesKeyHex: string, nonceHex: string, hash: string, size: number, fileName: string|null, imageWidth: number|null, imageHeight: number|null }|null}
  */
 export function parseKind15FileMessage(event) {
   if (event.kind !== 15) return null
 
-  const getTag = (name) => event.tags.find(t => t[0] === name)?.[1]
+  const hashHex = event.content?.match(/^[a-f0-9]{64}$/)
+    ? event.content
+    : null
+
+  let aesKeyHex = null
+  let nonceHex = null
+  let mimeType = null
+  let size = 0
+  let fileName = null
+  let imageWidth = null
+  let imageHeight = null
+
+  const d = event.tags.find(t => t[0] === 'd')?.[1]
+  if (d) {
+    try {
+      const bytes = base64ToBytes(d)
+      aesKeyHex = bytesToHex(bytes.slice(0, 32))
+      nonceHex = bytesToHex(bytes.slice(32, 44))
+      if (bytes.length > 44) {
+        const mimeLen = bytes[44]
+        mimeType = new TextDecoder().decode(bytes.slice(45, 45 + mimeLen))
+        let pos = 45 + mimeLen
+        if (bytes.length >= pos + 4) {
+          size = new DataView(bytes.buffer, bytes.byteOffset + pos, 4).getUint32(0, false)
+          pos += 4
+          if (bytes.length > pos) {
+            const nameLen = bytes[pos]
+            fileName = new TextDecoder().decode(bytes.slice(pos + 1, pos + 1 + nameLen))
+          }
+        }
+      }
+    } catch {}
+  }
+
+  const mTag = event.tags.find(t => t[0] === 'm')?.[1]
+  if (mTag) mimeType = mTag
+  imageWidth = parseInt(event.tags.find(t => t[0] === 'w')?.[1]) || null
+  imageHeight = parseInt(event.tags.find(t => t[0] === 'h')?.[1]) || null
+
+  let fileUrl = null
+  if (hashHex) {
+    fileUrl = `https://blossom.paytaca.com/${hashHex}`
+  } else if (event.content?.startsWith('https://')) {
+    fileUrl = event.content
+  }
 
   return {
-    fileUrl: event.content,
-    mimeType: getTag('file-type'),
-    aesKeyHex: getTag('decryption-key'),
-    nonceHex: getTag('decryption-nonce'),
-    hash: getTag('x'),
-    originalHash: getTag('ox'),
-    size: parseInt(getTag('size') || '0', 10),
-    fileName: getTag('filename') || null,
-    imageWidth: getTag('image-width') ? parseInt(getTag('image-width'), 10) : null,
-    imageHeight: getTag('image-height') ? parseInt(getTag('image-height'), 10) : null,
+    fileUrl,
+    mimeType,
+    aesKeyHex,
+    nonceHex,
+    hash: hashHex,
+    size,
+    fileName,
+    imageWidth,
+    imageHeight,
   }
-}
-
-function bytesToHex(bytes) {
-  return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
 }
 
 function hexToBytes(hex) {
@@ -405,4 +446,43 @@ function hexToBytes(hex) {
     bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16)
   }
   return bytes
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function bytesToBase64(bytes) {
+  const binary = Array.from(bytes).map(b => String.fromCharCode(b)).join('')
+  return btoa(binary)
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes
+}
+
+function hexToBase64(hex) {
+  return bytesToBase64(hexToBytes(hex))
+}
+
+export function base64ToHex(base64) {
+  return bytesToHex(base64ToBytes(base64))
+}
+
+function concatBytes(...arrays) {
+  const total = arrays.reduce((sum, a) => sum + a.length, 0)
+  const result = new Uint8Array(total)
+  let offset = 0
+  for (const a of arrays) {
+    result.set(a, offset)
+    offset += a.length
+  }
+  return result
 }

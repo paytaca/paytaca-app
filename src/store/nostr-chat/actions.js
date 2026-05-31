@@ -13,6 +13,7 @@ import {
   uploadToBlossom,
   downloadFromBlossom,
   parseKind15FileMessage,
+  base64ToHex,
 } from 'src/wallet/nostr-media'
 
 const DISCOVERY_RELAYS = [
@@ -739,7 +740,7 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
   if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
 
   if (onProgress) onProgress(0.05)
-  const { encrypted, aesKeyHex, nonceHex, hash, originalHash, mimeType, size: encryptedSize, imageWidth, imageHeight } = await encryptFile(file)
+  const { encrypted, aesKeyHex, nonceHex, hash, mimeType, size: encryptedSize, imageWidth, imageHeight } = await encryptFile(file)
 
   if (signal?.aborted) throw new DOMException('Upload cancelled', 'AbortError')
 
@@ -756,20 +757,17 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
   const kind15Event = createKind15FileMessage({
     senderPubKey,
     members: memberHexes,
-    fileUrl,
-    mimeType,
+    hash,
     aesKeyHex,
     nonceHex,
-    hash,
-    originalHash,
-    size: encryptedSize,
-    fileName: file.name,
+    mimeType,
     imageWidth,
     imageHeight,
     replyTo,
   })
 
   const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes)
+  console.log('[sendFileMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   if (onProgress) onProgress(0.95)
   const message = {
@@ -783,7 +781,6 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     fileSize: file.size,
     encryptedSize,
     hash,
-    originalHash,
     aesKeyHex,
     nonceHex,
     imageWidth,
@@ -898,7 +895,8 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   console.log('[publishGiftWraps] publishing', giftWraps.length, 'gift-wraps to relays:', Array.from(targetRelays))
   giftWraps.forEach((gw, i) => {
     const pTag = gw.tags.find(t => t[0] === 'p')
-    console.log(`  wrap[${i}]: kind=${gw.kind}, id=${gw.id.slice(0,16)}..., p=${pTag?.[1]?.slice(0, 16) || 'none'}..., created_at=${gw.created_at}`)
+    const jsonSize = JSON.stringify(gw).length
+    console.log(`  wrap[${i}]: kind=${gw.kind}, id=${gw.id.slice(0,16)}..., p=${pTag?.[1]?.slice(0, 16) || 'none'}..., content_len=${gw.content.length}, total_json=${jsonSize} bytes`)
   })
   await relayService.publish(Array.from(targetRelays), giftWraps)
 }
@@ -994,7 +992,10 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     const parsed = parseKind15FileMessage(rumor)
     if (!parsed) return
 
-    const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => t[1])
+    const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => {
+      const val = t[1]
+      return val.length === 64 && /^[a-f0-9]+$/.test(val) ? val : base64ToHex(val)
+    })
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
     const roomId = computeRoomId(roomMembers)
 
@@ -1019,6 +1020,11 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
     const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
 
+    const ext = parsed.mimeType ? parsed.mimeType.split('/')[1] || '' : ''
+    const fallbackFileName = parsed.hash
+      ? `file_${parsed.hash.slice(0, 8)}.${ext || 'bin'}`
+      : 'file'
+
     const message = {
       id: rumor.id,
       content: parsed.fileUrl,
@@ -1026,11 +1032,10 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       created_at: rumor.created_at,
       kind15Id: rumor.id,
       fileType: parsed.mimeType,
-      fileName: parsed.fileName,
-      fileSize: parsed.size,
-      encryptedSize: parsed.size,
+      fileName: parsed.fileName || fallbackFileName,
+      fileSize: parsed.size || 0,
+      encryptedSize: parsed.size || 0,
       hash: parsed.hash,
-      originalHash: parsed.originalHash,
       aesKeyHex: parsed.aesKeyHex,
       nonceHex: parsed.nonceHex,
       imageWidth: parsed.imageWidth,

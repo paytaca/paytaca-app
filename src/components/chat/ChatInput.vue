@@ -44,7 +44,6 @@
       <q-file
         ref="qFile"
         style="display: none;"
-        v-model="selectedFile"
         accept="image/*,video/*,audio/*,application/pdf"
         :max-file-size="MAX_FILE_SIZE"
         @update:model-value="onFileSelected"
