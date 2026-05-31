@@ -2301,12 +2301,15 @@ export default {
         typeLabel.textContent = isReceived ? 'Received' : 'Sent'
         amountContainer.appendChild(typeLabel)
 
+        const amountLen = amount.length
+        const amtFontSize = amountLen > 18 ? 28 : amountLen > 15 ? 34 : amountLen > 12 ? 42 : 48
         const amountValue = document.createElement('div')
         amountValue.style.cssText = `
-          font-size: 48px;
+          font-size: ${amtFontSize}px;
           font-weight: 800;
           color: white;
           letter-spacing: -1px;
+          white-space: nowrap;
           margin-bottom: ${fiatAmount ? '12px' : '0'};
         `
         amountValue.textContent = amount

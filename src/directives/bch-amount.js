@@ -43,6 +43,7 @@ function applyGrayZeros(el, binding) {
   // Matches: "0.91801000 BCH" -> gray the "000"
   // Matches: "0.91801000" -> gray the "000" (no BCH symbol)
   // Matches: "1,234.56780000" -> gray the "000"
+  // Matches: "0.00000000" -> gray all "00000000" (no non-zero digits)
   // Does NOT match: "100 BCH" (no decimal)
   // Does NOT match: "1000.12345678" (no trailing zeros)
   // Does NOT match: "1.09453099" (the 0 is not trailing, there's a 9 after it)
@@ -58,7 +59,8 @@ function applyGrayZeros(el, binding) {
   const rest = parts.slice(1).join('');
   
   // Check if the number ends with zeros after decimal point
-  const pattern = /^([\d,\s]*\.\d*?[1-9])(0+)$/;
+  // Optional non-zero digit part handles "0.00000000" (all zeros)
+  const pattern = /^([\d,\s]*\.(?:\d*?[1-9])?)(0+)$/;
   const match = numberPart.match(pattern);
   
   if (!match) {

@@ -189,12 +189,13 @@
         </q-popup-proxy>
       </q-icon>
     </div>
-    <div class="row no-wrap q-gutter-x-sm">
+    <div class="row no-wrap q-gutter-x-sm" style="position: relative;">
       <q-input
         type="text"
         inputmode="none"
         @focus="readonlyState(true, 'amount')"
         @blur="readonlyState(false, 'amount')"
+        @keydown="onKeyboardInput"
         :dark="darkMode"
         outlined
         dense
@@ -215,6 +216,7 @@
           </div>
         </template>
       </q-input>
+      <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
       <q-select
         :dark="darkMode"
         outlined
@@ -445,6 +447,8 @@ import DurationField from './DurationField.vue';
 import { getAssetDenomination, parseFiatCurrency, convertToBCH } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useI18n } from 'vue-i18n'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 
 function alertError(...args) {
@@ -468,10 +472,19 @@ let inputState = ref({
 })
 let activeInput = ref()
 let durationRef = ref()
+const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
 const amountInputFormatted = ref(0)
 const isBalanceClicked = ref(false)
 
+function onKeyboardInput (e) {
+  e.preventDefault()
+  showKeyboardTooltip()
+}
+
 function readonlyState (state, type) {
+  if (state) {
+    hideKeyboardTooltip()
+  }
   inputState[type] = state
 
   if (inputState[type]) {
@@ -481,6 +494,7 @@ function readonlyState (state, type) {
 }
 
 function setAmount (key) {
+  hideKeyboardTooltip()
   let tempAmount, amount, tempAmountInput = '', amountInput
 
   // Set Initial Input
@@ -537,9 +551,9 @@ function setAmount (key) {
 }
 
 function makeKeyAction (action) {
+  hideKeyboardTooltip()
   if (action === 'backspace') {
     // Backspace
-    this.shiftAmount = String(this.shiftAmount).slice(0, -1)
     if (activeInput.value === 'match') {
       createHedgeForm.value.p2pMatch.similarity = String(createHedgeForm.value.p2pMatch.similarity).slice(0, -1)
     } else if (activeInput.value === 'duration') {
@@ -1582,4 +1596,6 @@ function amountRules (val) {
 .disabled-pool-option {
   opacity: 0.65;
 }
+
+
 </style>

@@ -206,8 +206,8 @@ export default {
       return currency?.symbol;
     },
     walletBalance() {
-      const asset = this.$store.getters["assets/getAssets"][0];
-      return asset.spendable;
+      const asset = this.$store.getters["assets/getAssets"]?.[0];
+      return asset?.spendable || 0;
     },
     inputValidationRules() {
       return [
@@ -358,21 +358,29 @@ export default {
     },
   },
 
-  async mounted() {
+    async mounted() {
     if (!this.rsvp) return;
 
     this.amountTkn = this.parseToken() / 10 ** 2;
-    
-    const oracleData = await getOracleData()
-    this.currentUsdPrice = oracleData.price
-    this.currentMessageTimestamp = oracleData.messageTimestamp
+
+    try {
+      const oracleData = await getOracleData()
+      this.currentUsdPrice = oracleData.price
+      this.currentMessageTimestamp = oracleData.messageTimestamp
+    } catch (error) {
+      console.error('Failed to fetch oracle data on mount:', error)
+    }
     this.computeUsdBch();
     this.computeBalances();
 
     this.intervalId = setInterval(async () => {
-      const oracleData = await getOracleData()
-      this.currentUsdPrice = oracleData.price
-      this.currentMessageTimestamp = oracleData.messageTimestamp
+      try {
+        const oracleData = await getOracleData()
+        this.currentUsdPrice = oracleData.price
+        this.currentMessageTimestamp = oracleData.messageTimestamp
+      } catch (error) {
+        console.error('Failed to refresh oracle data:', error)
+      }
       this.computeUsdBch();
       this.computeBalances();
     }, 60000);

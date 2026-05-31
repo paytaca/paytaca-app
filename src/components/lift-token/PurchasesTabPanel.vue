@@ -130,7 +130,7 @@
 
             <div v-if="getPurchaseDiscount(purchase) > 0" class="discount-banner q-mb-sm q-pa-xs text-center">
               <q-icon name="mdi-sale" size="xs" class="q-mr-xs" />
-<span class="text-caption text-weight-bold">
+                <span class="text-caption text-weight-bold">
                   {{ formatWithLocale(getPurchaseDiscount(purchase), { max: 2 }) }}% {{ $t("DiscountApplied") }}
                 </span>
             </div>
@@ -138,7 +138,7 @@
             <div class="row col-12 justify-between q-mb-sm items-start">
               <div>
                 <span class="usd-amount text-subtitle1 text-weight-medium">
-                  {{ parseFiatCurrency(purchase.purchase_partial_details.usd_paid, "USD") }}
+                  {{ parseFiatCurrency(getDiscountedPriceUsd(purchase), "USD") }}
                 </span>
                 <span v-if="getPurchaseDiscount(purchase) > 0" class="original-price text-caption text-strike q-ml-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-5'">
                   {{ parseFiatCurrency(getOriginalPriceUsd(purchase), "USD") }}
@@ -269,7 +269,7 @@ import {
   formatWithLocale,
 } from "src/utils/denomination-utils";
 
-import { SaleGroup, SaleGroupPrice } from "src/utils/engagementhub-utils/lift-token";
+import { SaleGroup, SaleGroupPrice, getDiscountedPriceUsd, getOriginalPriceUsd } from "src/utils/engagementhub-utils/lift-token";
 import SaleGroupChip from "src/components/lift-token/SaleGroupChip.vue";
 import SaleGroupBadge from "src/components/lift-token/SaleGroupBadge.vue";
 import PurchaseInfoDialog from "./dialogs/PurchaseInfoDialog.vue";
@@ -322,13 +322,11 @@ export default {
     getPurchaseDiscount(purchase) {
       return parseFloat(purchase.purchase_more_details?.discount || 0)
     },
+    getDiscountedPriceUsd(purchase) {
+      return getDiscountedPriceUsd(purchase)
+    },
     getOriginalPriceUsd(purchase) {
-      const discount = this.getPurchaseDiscount(purchase)
-      const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
-      if (discount > 0 && usdPaid > 0) {
-        return usdPaid / (1 - discount / 100)
-      }
-      return 0
+      return getOriginalPriceUsd(purchase)
     },
     getPricePerToken(purchase) {
       const tknPaid = purchase.purchase_partial_details?.tkn_paid || 0

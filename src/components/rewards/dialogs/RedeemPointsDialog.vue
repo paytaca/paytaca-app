@@ -56,12 +56,13 @@
             </span>
           </div>
 
-          <div class="q-mt-md q-mb-sm">
+          <div class="q-mt-md q-mb-sm" style="position: relative;">
             <q-input
               ref="points-input"
               type="text"
               inputmode="none"
               @focus="customKeyboardState = 'show'"
+              @keydown="onKeyboardInput"
               filled
               v-model="pointsToRedeem"
               :label="$t('Amount')"
@@ -78,6 +79,7 @@
                 </div>
               </template>
             </q-input>
+            <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
           </div>
 
           <div class="row justify-between q-mb-sm q-mx-sm">
@@ -153,12 +155,13 @@
             </span>
           </div>
 
-          <div class="q-mt-md q-mb-sm">
+          <div class="q-mt-md q-mb-sm" style="position: relative;">
             <q-input
               ref="points-input"
               type="text"
               inputmode="none"
               @focus="customKeyboardState = 'show'"
+              @keydown="onKeyboardInput"
               filled
               v-model="pointsToRedeem"
               :label="$t('Amount')"
@@ -175,6 +178,7 @@
                 </div>
               </template>
             </q-input>
+            <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
           </div>
 
           <div class="row justify-between q-mb-sm q-mx-sm">
@@ -259,6 +263,8 @@
 <script>
 import { NativeBiometric } from 'capacitor-native-biometric'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 import {
   generateReceivingAddress,
   getDerivationPathForWalletType
@@ -296,7 +302,12 @@ export default {
     CustomKeyboard,
     BiometricWarningAttempt,
     PinDialog,
-    ProgressLoader
+    ProgressLoader,
+    KeyboardTooltip
+  },
+  setup() {
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
+    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
   },
 
   data () {
@@ -347,7 +358,12 @@ export default {
       this.pointsToRedeem = '' + this.points
       this.computeBalance()
     },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip()
+    },
     setAmount (key) {
+      this.hideKeyboardTooltip()
       const vm = this
 
       const currentPoints = vm.pointsToRedeem
@@ -358,6 +374,7 @@ export default {
       vm.computeBalance()
     },
     makeKeyAction (action) {
+      this.hideKeyboardTooltip()
       const vm = this
 
       if (action === 'backspace') {
@@ -513,4 +530,6 @@ export default {
     color: #6fa8ff;
   }
 }
+
+
 </style>

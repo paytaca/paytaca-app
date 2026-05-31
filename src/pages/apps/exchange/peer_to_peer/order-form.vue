@@ -111,7 +111,7 @@
               </div>
 
               <!-- Input Card -->
-              <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'" v-if="!isOwner">
+              <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'" v-if="!isOwner" style="position: relative;">
                 <!-- <div class="xs-font-size subtext q-pb-xs q-pl-sm">Amount</div> -->
                 <q-input
                   class="q-pb-xs"
@@ -126,12 +126,14 @@
                   v-model="amount"
                   @blur="resetInput"
                   @focus="openCustomKeyboard(true)"
+                  @keydown="onKeyboardInput"
                   :readonly="readonlyState"
                   >
                   <template v-slot:append>
                     <span>{{ byFiat ? ad?.fiat_currency?.symbol : 'BCH' }}</span>
                   </template>
                 </q-input>
+                <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
                 <div class="row justify-between">
                   <div v-if="amountError" class="col text-left text-weight-bold subtext sm-font-size q-pl-sm text-red">
                     {{ amountError }}
@@ -296,12 +298,19 @@ import { fetchUser } from 'src/exchange/auth'
 import { loadChatIdentity } from 'src/exchange/chat'
 import ShareDialog from 'src/components/ramp/fiat/dialogs/ShareDialog.vue'
 import { getFiatCurrencyFractionDigits, parseFiatCurrency } from 'src/utils/denomination-utils'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 
 export default {
   setup () {
     const scrollTargetRef = ref(null)
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
     return {
       scrollTargetRef,
+      showTooltip,
+      tipCounter,
+      showKeyboardTooltip,
+      hideKeyboardTooltip,
       scrollDown () {
         const x = setTimeout(() => {
           const scrollElement = scrollTargetRef.value.$el
@@ -311,6 +320,7 @@ export default {
     }
   },
   components: {
+    KeyboardTooltip,
     CustomKeyboard,
     AddPaymentMethods,
     MiscDialogs,
@@ -568,10 +578,12 @@ export default {
             finalAmount += key !== '.' ? key.toString() : ''
           }
         }
-        this.amount = finalAmount
       }
+      this.shiftAmount = 0
+      this.amount = finalAmount
     },
     makeKeyAction (action) {
+      this.hideKeyboardTooltip()
       if (action === 'backspace') {
         // Backspace
         this.amount = String(this.amount).slice(0, -1)
@@ -582,6 +594,10 @@ export default {
         this.customKeyboardState = 'dismiss'
         this.readonlyState = false
       }
+    },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip()
     },
     openCustomKeyboard (state) {
       this.readonlyState = state

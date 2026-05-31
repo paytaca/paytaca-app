@@ -289,27 +289,6 @@ export function getDefaultAssetLogo () {
   }
 }
 
-export function getConnectedAddress (state) {
-  return function (walletType) {
-    const walletData = getWalletData(state, walletType)
-    return walletData.connectedAddress
-  }
-}
-
-export function getConnectedAddressIndex (state) {
-  return function (walletType) {
-    const walletData = getWalletData(state, walletType)
-    return walletData.connectedAddressIndex
-  }
-}
-
-export function getConnectedSites (state) {
-  return function (walletType) {
-    const walletData = getWalletData(state, walletType)
-    return walletData.connectedSites
-  }
-}
-
 export function denomination (state) {
   // Backward-compat: older wallets may still have 'Satoshis' stored.
   // Canonical UI/value moving forward is 'sats'.
