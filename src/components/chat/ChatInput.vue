@@ -116,9 +116,9 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
 
 const RESIZE_OPTIONS = [
-  { label: 'Small (≈0.5 MB)', value: 'small', description: '800px max, 70% quality' },
-  { label: 'Medium (≈1 MB)', value: 'medium', description: '1400px max, 80% quality' },
-  { label: 'Large (≤2.5 MB)', value: 'large', description: '2048px max, 85% quality' },
+  { label: 'Small (≈0.3 MB)', value: 'small', description: '800px max, 70% quality' },
+  { label: 'Medium (≤1 MB)', value: 'medium', description: '1600px max, up to 90% quality' },
+  { label: 'Large (≤2.5 MB)', value: 'large', description: '2048px max, up to 85% quality' },
 ]
 
 export default {
@@ -215,7 +215,7 @@ export default {
       }
       const configs = {
         small: { maxDimension: 800, quality: 0.7 },
-        medium: { maxDimension: 1400, quality: 0.8 },
+        medium: { maxDimension: 1600, quality: 0.9, maxSizeBytes: 1 * 1024 * 1024 },
         large: { maxDimension: 2048, quality: 0.85, maxSizeBytes: 2.5 * 1024 * 1024 },
       }
       const cfg = configs[option]
