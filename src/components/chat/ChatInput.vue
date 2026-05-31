@@ -53,13 +53,15 @@
         <q-input
           ref="inputField"
           v-model="text"
+          type="textarea"
+          autogrow
           dense
           borderless
           :dark="darkMode"
           class="chat-text-field"
           :placeholder="$t('TypeAMessage', {}, 'Type a message...')"
           :maxlength="MAX_CHARS"
-          @keydown.enter.prevent="send"
+          @keydown.enter="onEnterKey"
           @focus="onFocus"
           @blur="onBlur"
         />
@@ -167,6 +169,12 @@ export default {
     },
     setText (val) {
       this.text = val
+    },
+    onEnterKey (event) {
+      if (!event.shiftKey) {
+        event.preventDefault()
+        this.send()
+      }
     },
     onAttachClick () {
       // Use Quasar's q-file pickFiles() method which works on iOS
@@ -401,6 +409,13 @@ export default {
   caret-color: #1f2937 !important;
   user-select: text !important;
   -webkit-user-select: text !important;
+  resize: none;
+  overflow: hidden;
+}
+
+.chat-text-field :deep(.q-field__native textarea) {
+  resize: none;
+  line-height: 1.4;
 }
 
 .chat-text-field :deep(.q-field__native::placeholder) {
