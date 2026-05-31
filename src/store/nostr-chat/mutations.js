@@ -2,50 +2,6 @@ export function SET_KEYS (state, keys) {
   state.keys = keys
 }
 
-export function DEDUPLICATE_ROOMS (state) {
-  // Group rooms by their canonical member-set key (sorted members joined)
-  const seen = new Map() // memberKey -> room
-  for (const room of state.rooms) {
-    const key = (room.members || []).slice().sort().join(',')
-    const existing = seen.get(key)
-    if (!existing) {
-      seen.set(key, room)
-    } else {
-      // Keep the room with more messages, falling back to more recent updatedAt
-      const existingMsgCount = (state.messages[existing.id] || []).length
-      const candidateMsgCount = (state.messages[room.id] || []).length
-      if (candidateMsgCount > existingMsgCount ||
-          (candidateMsgCount === existingMsgCount && (room.updatedAt || 0) > (existing.updatedAt || 0))) {
-        // Merge messages from the loser into the winner, then drop the loser
-        const loserMsgs = state.messages[existing.id] || []
-        if (loserMsgs.length) {
-          if (!state.messages[room.id]) state.messages[room.id] = []
-          for (const msg of loserMsgs) {
-            if (!state.messages[room.id].find(m => m.id === msg.id)) {
-              state.messages[room.id].push(msg)
-            }
-          }
-        }
-        delete state.messages[existing.id]
-        seen.set(key, room)
-      } else {
-        // Keep existing, merge messages from the loser (room) into it
-        const loserMsgs = state.messages[room.id] || []
-        if (loserMsgs.length) {
-          if (!state.messages[existing.id]) state.messages[existing.id] = []
-          for (const msg of loserMsgs) {
-            if (!state.messages[existing.id].find(m => m.id === msg.id)) {
-              state.messages[existing.id].push(msg)
-            }
-          }
-        }
-        delete state.messages[room.id]
-      }
-    }
-  }
-  state.rooms = Array.from(seen.values())
-}
-
 export function SET_READY (state, ready) {
   state.isReady = ready
 }
@@ -115,13 +71,6 @@ export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
   const room = state.rooms.find(r => r.id === roomId)
   if (room) {
     room.type = type
-  }
-}
-
-export function UPDATE_ROOM_MEMBERS (state, { roomId, members }) {
-  const room = state.rooms.find(r => r.id === roomId)
-  if (room) {
-    room.members = members
   }
 }
 
