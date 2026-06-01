@@ -22,5 +22,6 @@ export function transactions (state) {
 }
 
 export function userLocation (state) {
-  return state.location || {}
+  if (!state.location || !state.location.latitude) return null
+  return state.location
 }
