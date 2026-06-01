@@ -364,6 +364,10 @@ export async function getLatestMerchantIndex (context, walletHash) {
   const url = `paytacapos/merchants/latest_index/`
   return posBackend.post(url, { wallet_hash: walletHash })
     .then(response => Promise.resolve(response))
-    .catch(err => Promise.reject(err))
+    .catch(error => {
+      console.error(error?.response || error)
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
 }
 

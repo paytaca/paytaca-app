@@ -413,13 +413,15 @@
 
 <script>
 import { createCardLogic, CardStorage } from './createCard.js'
-import { getMerchantList } from 'src/services/card/merchants'
+import { getMerchantList, getMerchantsByCity } from 'src/services/card/merchants'
 import { geolocationManager } from 'src/boot/geolocation'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils.js';
 import { markRaw } from 'vue';
 import { init } from 'src/store/wizardconnect/actions.js';
+import { backend } from 'src/exchange/backend.js';
+import { backend as cardBackend } from 'src/services/card/backend.js';
 
 export default {
   name: 'ManageAuthNFTs',
@@ -472,7 +474,6 @@ export default {
   },
   computed: {
     userLocation() {
-      console.log('???????/card/userLocation:', this.$store.getters['card/userLocation'])
       return this.$store.getters['card/userLocation']
     },
     fullUserLocation() {
@@ -482,11 +483,8 @@ export default {
       return parts.join(', ')
     },
     userLocationValid() {
-      const coords = this.$store.getters['marketplace/customerCoordinates']
+      const coords = this.userLocation
       return Number.isFinite(coords?.latitude) && Number.isFinite(coords?.longitude)
-    },
-    userCoordinates() {
-      return this.$store.getters['marketplace/customerCoordinates']
     },
     filteredMerchants() {
       let list = [...this.merchants];
@@ -728,6 +726,30 @@ export default {
       })
     },
 
+    async getMerchantsByCity(city, opts = {}) {
+      if (!city) {
+        this.showFailedToLoadMerchants()
+        return
+      }
+      await cardBackend.get(`/merchants/by-city/${city}`, { 
+        params: { limit: opts.limit, page: opts.offset }
+      }).then(res => {
+        console.log('Merchants by city response:', res.data)
+          return res.data.results || []
+        }).catch(err => {
+          console.error(err.response || err)
+          this.showFailedToLoadMerchants()
+        })
+    },
+
+    showFailedToLoadMerchants() {
+      this.$q.notify({
+        message: 'Failed to load merchants near your location',
+        color: 'red',
+        icon: 'error',
+        timeout: 4000,
+      })
+    },
 
     async loadMerchantList(opts = {}) {
       // Use provided coordinates or fall back to store
@@ -764,14 +786,12 @@ export default {
         const params = {
           limit: this.merchantsPagination.limit,
           offset: this.merchantsPagination.offset,
-          location: locationCoords,
-          radius: this.radius
+          // location: locationCoords,
+          // radius: this.radius
         }
 
-        console.log('params for getMerchantList:', params)
-
-        const response = await getMerchantList(params)
-        console.log('___________reponse:', response)
+        const response = await getMerchantsByCity(locationCoords.city, params)
+        console.log('getMerchantsByCity:', response)
         
         // Map new merchants with UI state
         const newMerchants = response.results.map(merchant => ({
@@ -889,6 +909,7 @@ export default {
     },
 
     async onMerchantToggle(merchant, enabled) {
+      console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
       if (enabled) {
         merchant.spendLimit = merchant.spendLimit || '1';
         
@@ -982,6 +1003,7 @@ export default {
     },
 
     handleMerchantClick(merchant) {
+      console.log('handleMerchantClick:', merchant.name, 'selectMultipleMode:', this.selectMultipleMode)
       if (this.selectMultipleMode) {
         // In select mode, toggle selection
         this.toggleMerchantSelection(merchant, !this.selectedMerchants.has(merchant.id));

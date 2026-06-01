@@ -1,4 +1,5 @@
 import { backend } from 'src/marketplace/backend';
+import { backend as cardBackend } from './backend';
 
 /**
  * Fetches verified merchants from commercehub storefronts endpoint
@@ -64,5 +65,36 @@ export async function getMerchantList(params = {}) {
     limit: response?.data?.limit || limit,
     offset: response?.data?.offset || offset,
     hasMore: (response?.data?.offset || offset) + merchants.length < (response?.data?.count || 0)
+  };
+}
+
+/**
+ * Fetches merchants by city
+ * @param {string} city - City name
+ * @param {Object} params - Query parameters
+ * @param {number} params.limit - Number of results per page (default: 50)
+ * @param {number} params.offset - Offset for pagination (default: 0)
+ * @returns {Promise<Object>} Response with results, count, limit, offset
+ */
+export async function getMerchantsByCity(city, params = {}) {
+  const {
+    limit = 50,
+    offset = 0,
+  } = params;
+
+  const queryParams = {
+    limit,
+    offset,
+    city,
+  };
+
+  const response = await cardBackend.get(`/merchants/by-city/${city}`, { params: queryParams });
+  
+  return {
+    results: response?.data?.results || [],
+    count: response?.data?.count || 0,
+    limit: response?.data?.limit || limit,
+    offset: response?.data?.offset || offset,
+    hasMore: (response?.data?.offset || offset) + (response?.data?.results?.length || 0) < (response?.data?.count || 0)
   };
 }

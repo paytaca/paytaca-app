@@ -495,7 +495,25 @@ onMounted(()=> registerForCardPayments())
  * This is required to link a card wallet to the merchant and enable NFC payments.
  */
 async function registerForCardPayments() {
-  const nfcPaymentsEnabled = $store.getters['paytacapos/nfcPaymentsEnabled']
+  console.log('Registering merchant for card payments if not already enabled...')
+
+  let nfcPaymentsEnabled = false
+  const watchtower = new Watchtower()
+  await watchtower.BCH._api.get(`paytacapos/merchants/${merchantId}/`).then(response => {
+    console.log('Merchant info from watchtower:', response?.data)
+    nfcPaymentsEnabled = response?.data?.nfc_enabled || false
+  }).catch(error => {
+    console.error('Error fetching merchant info from watchtower:', error.response || error)
+  })
+
+  // await watchtower.BCH._api.patch(`paytacapos/merchants/${merchantId}/`, { nfc_enabled: true }).then(response => {
+  //   console.log('Merchant info from watchtower:', response?.data)
+  //   nfcPaymentsEnabled = response?.data?.nfc_enabled || false
+  // }).catch(error => {
+  //   console.error('Error fetching merchant info from watchtower:', error.response || error)
+  // })
+  
+  console.log('NFC payments enabled:', nfcPaymentsEnabled)
   if (nfcPaymentsEnabled) {
     console.log('NFC payments already enabled. Skipping registration.')
     return
@@ -512,10 +530,14 @@ async function registerForCardPayments() {
   cardBackend.post('/merchants/', payload)
     .then(response => {
       console.log('Registered merchant:', response.data)
-      $store.commit('paytacapos/setNfcPaymentsEnabled', true)
     })
     .catch(error => {
       console.error('Error registering merchant for card payments:', error.response || error)
+      $q.notify({
+        type: 'negative',
+        message: 'Failed to register merchant for card payments',
+        icon: 'error',
+      })
     })
 }
 
