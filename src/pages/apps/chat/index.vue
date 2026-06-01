@@ -15,9 +15,8 @@
       :title="$t('Chat')"
     >
       <template #top-right-menu>
-        <q-btn flat round dense icon="qr_code" @click="showQrDialog = true" />
         <q-btn flat round dense icon="edit_square" @click="showNewChatDialog = true" />
-        <q-btn flat round dense icon="settings" @click="$router.push('/apps/chat/profile')" />
+        <q-btn flat round dense icon="account_circle" @click="$router.push('/apps/chat/profile')" />
       </template>
     </header-nav>
 
@@ -82,181 +81,306 @@
       </div>
     </div>
 
-    <!-- QR code dialog -->
-    <q-dialog v-model="showQrDialog">
-      <q-card style="min-width: 300px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="row items-center justify-between">
-          <div class="text-h6">{{ $t('YourChatID', {}, 'Your Chat ID') }}</div>
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-        <q-card-section class="flex flex-center q-pt-none">
-          <div class="qr-display-box">
-            <qr-code
-              :text="`nostr:${myNpub}`"
-              border-width="3px"
-              border-color="#3b82f6"
-              :size="240"
-            />
-          </div>
-        </q-card-section>
-        <q-card-section class="q-pt-none text-center">
-          <div class="npub-full-text">{{ myNpub }}</div>
-          <q-btn flat dense icon="content_copy" :label="$t('Copy', {}, 'Copy')" color="primary" class="q-mt-sm" @click="copyNpub" />
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
     <!-- New chat dialog -->
     <q-dialog v-model="showNewChatDialog" persistent>
       <q-card style="min-width: 320px; border-radius: 16px;" :class="getDarkModeClass(darkMode)">
-        <q-card-section class="dialog-header">
-          <div class="text-h6">{{ $t('NewChat', {}, 'New Chat') }}</div>
+        <q-card-section class="dialog-header row items-center q-gutter-sm">
+          <q-btn
+            v-if="selectedChatType"
+            flat
+            round
+            dense
+            icon="arrow_back"
+            @click="handleDialogBack"
+          />
+          <div class="text-h6">{{ dialogTitle }}</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-tabs
-            v-model="dialogTab"
-            dense
-            class="text-grey"
-            active-color="primary"
-            indicator-color="primary"
-            align="justify"
-          >
-            <q-tab name="contacts" :label="$t('Contacts', {}, 'Contacts')" />
-            <q-tab name="add" :label="$t('AddContact', {}, 'Add Contact')" />
-            <q-tab name="group" :label="$t('NewGroup', {}, 'New Group')" />
-          </q-tabs>
-
-          <q-tab-panels v-model="dialogTab" animated>
-            <q-tab-panel name="contacts" class="q-px-none">
-              <q-list v-if="contacts.length" separator>
-                <q-item
-                  v-for="contact in contacts"
-                  :key="contact.npub"
-                  clickable
-                  class="contact-item"
-                  @click="startChatWith(contact)"
-                >
-                  <q-item-section avatar>
-                    <q-avatar color="primary" text-color="white" size="44px">
-                      {{ contactInitial(contact) }}
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
-                    <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-              <div v-else class="text-grey text-center q-pa-lg">
-                <q-icon name="person_off" size="40px" class="q-mb-sm" style="opacity: 0.4;" />
-                <div>{{ $t('NoContactsYet', {}, 'No contacts yet. Add one below.') }}</div>
+          <!-- Step 1: Choose chat type -->
+          <div v-if="!selectedChatType" class="chat-type-list">
+            <div
+              class="chat-type-option"
+              :class="getDarkModeClass(darkMode)"
+              @click="selectChatType('dm')"
+            >
+              <q-avatar size="44px" class="chat-type-icon dm-icon">
+                <q-icon name="person" size="24px" color="white" />
+              </q-avatar>
+              <div class="chat-type-text">
+                <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
+                  {{ $t('DirectMessage', {}, 'Direct Message') }}
+                </div>
+                <div class="chat-type-desc">
+                  {{ $t('DirectMessageDesc', {}, 'End-to-end encrypted one-on-one chat.') }}
+                </div>
               </div>
-            </q-tab-panel>
+              <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
+            </div>
 
-            <q-tab-panel name="add" class="q-px-none">
-              <q-input
-                v-model="newContactNpub"
-                :label="$t('Npub', {}, 'npub...')"
-                outlined
-                dense
-                rounded
-                class="q-mb-md"
-                :error="!!npubError"
-                :error-message="npubError"
-                autofocus
-              >
-                <template #append>
-                  <q-btn
-                    flat
-                    round
-                    dense
-                    icon="qr_code_scanner"
-                    color="primary"
-                    @click="openScannerFromDialog"
-                  />
-                </template>
-              </q-input>
-
-              <q-input
-                v-model="newContactName"
-                :label="$t('Name', {}, 'Name')"
-                outlined
-                dense
-                rounded
-                class="q-mb-md"
-              />
-
-              <div v-if="fetchedContactDisplayName" class="fetched-name-hint q-mb-md">
-                <q-icon name="badge" size="16px" color="primary" />
-                <span class="fetched-name-text">
-                  {{ $t('UsingPublishedDisplayName', {}, 'Using published display name') }}
-                </span>
+            <div
+              class="chat-type-option"
+              :class="getDarkModeClass(darkMode)"
+              @click="selectChatType('private_group')"
+            >
+              <q-avatar size="44px" class="chat-type-icon group-icon">
+                <q-icon name="groups" size="24px" color="white" />
+              </q-avatar>
+              <div class="chat-type-text">
+                <div class="chat-type-title" :class="getDarkModeClass(darkMode)">
+                  {{ $t('PrivateGroup', {}, 'Private Group') }}
+                </div>
+                <div class="chat-type-desc">
+                  {{ $t('PrivateGroupDesc', {}, 'End-to-end encrypted, up to 10 members. Members are fixed once created.') }}
+                </div>
               </div>
+              <q-icon name="chevron_right" size="20px" class="chat-type-chevron" />
+            </div>
 
-              <q-btn
-                :label="$t('AddContact', {}, 'Add Contact')"
-                color="primary"
-                rounded
-                unelevated
-                class="full-width"
-                :disable="!canAddContact"
-                @click="addContactAndChat"
-              />
-            </q-tab-panel>
+            <div
+              class="chat-type-option chat-type-option--disabled"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <q-avatar size="44px" class="chat-type-icon public-group-icon">
+                <q-icon name="public" size="24px" color="white" />
+              </q-avatar>
+              <div class="chat-type-text">
+                <div class="chat-type-title-row">
+                  <span class="chat-type-title" :class="getDarkModeClass(darkMode)">
+                    {{ $t('PublicGroup', {}, 'Public Group') }}
+                  </span>
+                  <span class="coming-soon-badge">
+                    {{ $t('ComingSoon', {}, 'Coming soon') }}
+                  </span>
+                </div>
+                <div class="chat-type-desc">
+                  {{ $t('PublicGroupDesc', {}, 'Unencrypted, open membership with no limit.') }}
+                </div>
+              </div>
+            </div>
+          </div>
 
-            <q-tab-panel name="group" class="q-px-none">
-              <q-input
-                v-model="groupName"
-                :label="$t('GroupName', {}, 'Group name')"
-                outlined
-                dense
-                rounded
-                class="q-mb-sm"
-                autofocus
-              />
-              <div class="group-members-label q-mb-xs">{{ $t('SelectMembers', {}, 'Select members') }}</div>
-              <q-list v-if="contacts.length" separator class="group-members-list">
-                <q-item
-                  v-for="contact in contacts"
-                  :key="contact.npub"
-                  clickable
-                  class="group-member-item"
-                  @click="toggleMember(contact.npub)"
+          <!-- Step 2 (DM): Contacts + Add Contact -->
+          <template v-else-if="selectedChatType === 'dm'">
+            <q-tabs
+              v-model="dialogTab"
+              dense
+              class="text-grey"
+              active-color="primary"
+              indicator-color="primary"
+              align="justify"
+            >
+              <q-tab name="contacts" :label="$t('Contacts', {}, 'Contacts')" />
+              <q-tab name="add" :label="$t('AddContact', {}, 'Add Contact')" />
+            </q-tabs>
+
+            <q-tab-panels v-model="dialogTab" animated>
+              <q-tab-panel name="contacts" class="q-px-none">
+                <q-list v-if="contacts.length" separator>
+                  <q-item
+                    v-for="contact in contacts"
+                    :key="contact.npub"
+                    clickable
+                    class="contact-item"
+                    @click="startChatWith(contact)"
+                  >
+                    <q-item-section avatar>
+                      <q-avatar color="primary" text-color="white" size="44px">
+                        {{ contactInitial(contact) }}
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                      <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+                <div v-else class="text-grey text-center q-pa-lg">
+                  <q-icon name="person_off" size="40px" class="q-mb-sm" style="opacity: 0.4;" />
+                  <div>{{ $t('NoContactsYet', {}, 'No contacts yet. Add one below.') }}</div>
+                </div>
+              </q-tab-panel>
+
+              <q-tab-panel name="add" class="q-px-none">
+                <q-input
+                  v-model="newContactNpub"
+                  :label="$t('Npub', {}, 'npub...')"
+                  outlined
+                  dense
+                  rounded
+                  class="q-mb-md"
+                  :error="!!npubError"
+                  :error-message="npubError"
+                  autofocus
                 >
-                  <q-item-section avatar>
-                    <q-checkbox
-                      :model-value="selectedMemberNpubs.includes(contact.npub)"
-                      @click.stop
-                      @update:model-value="toggleMember(contact.npub)"
+                  <template #append>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="qr_code_scanner"
+                      color="primary"
+                      @click="openScannerFromDialog"
                     />
-                  </q-item-section>
-                  <q-item-section avatar>
-                    <q-avatar color="primary" text-color="white" size="36px">
-                      {{ contactInitial(contact) }}
-                    </q-avatar>
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
-                    <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-              <div v-else class="text-grey text-center q-pa-md">
-                <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
-                <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Add contacts first.') }}</div>
-              </div>
-              <q-btn
-                :label="$t('CreateGroup', {}, 'Create Group')"
-                color="primary"
-                rounded
-                unelevated
-                class="full-width q-mt-sm"
-                :disable="!canCreateGroup"
-                @click="createGroup"
-              />
-            </q-tab-panel>
-          </q-tab-panels>
+                  </template>
+                </q-input>
+
+                <q-input
+                  v-model="newContactName"
+                  :label="$t('Name', {}, 'Name')"
+                  outlined
+                  dense
+                  rounded
+                  class="q-mb-md"
+                />
+
+                <div v-if="fetchedContactDisplayName" class="fetched-name-hint q-mb-md">
+                  <q-icon name="badge" size="16px" color="primary" />
+                  <span class="fetched-name-text">
+                    {{ $t('UsingPublishedDisplayName', {}, 'Using published display name') }}
+                  </span>
+                </div>
+
+                <q-btn
+                  :label="$t('AddContact', {}, 'Add Contact')"
+                  color="primary"
+                  rounded
+                  unelevated
+                  class="full-width"
+                  :disable="!canAddContact"
+                  @click="addContactAndChat"
+                />
+              </q-tab-panel>
+            </q-tab-panels>
+          </template>
+
+          <!-- Step 2 (Private Group): Create group form -->
+          <template v-else-if="selectedChatType === 'private_group'">
+            <q-tabs
+              v-model="dialogTab"
+              dense
+              class="text-grey"
+              active-color="primary"
+              indicator-color="primary"
+              align="justify"
+            >
+              <q-tab name="members" :label="$t('Members', {}, 'Members')" />
+              <q-tab name="add" :label="$t('AddContact', {}, 'Add Contact')" />
+            </q-tabs>
+
+            <q-tab-panels v-model="dialogTab" animated>
+              <q-tab-panel name="members" class="q-px-none">
+                <div class="group-hint q-mb-md">
+                  <q-icon name="lock" size="14px" color="primary" />
+                  <span>
+                    {{ $t('PrivateGroupHint', {}, 'End-to-end encrypted. Members are fixed once created.') }}
+                  </span>
+                </div>
+                <q-input
+                  v-model="groupName"
+                  :label="$t('GroupName', {}, 'Group name')"
+                  outlined
+                  dense
+                  rounded
+                  class="q-mb-sm"
+                  autofocus
+                />
+                <div class="group-members-label q-mb-xs">
+                  {{ $t('SelectMembersWithLimit', { count: selectedMemberNpubs.length, max: 9 }, `Select members (${selectedMemberNpubs.length}/9)`) }}
+                </div>
+                <q-list v-if="contacts.length" separator class="group-members-list">
+                  <q-item
+                    v-for="contact in contacts"
+                    :key="contact.npub"
+                    clickable
+                    class="group-member-item"
+                    @click="toggleMember(contact.npub)"
+                  >
+                    <q-item-section avatar>
+                      <q-checkbox
+                        :model-value="selectedMemberNpubs.includes(contact.npub)"
+                        @click.stop
+                        @update:model-value="toggleMember(contact.npub)"
+                      />
+                    </q-item-section>
+                    <q-item-section avatar>
+                      <q-avatar color="primary" text-color="white" size="36px">
+                        {{ contactInitial(contact) }}
+                      </q-avatar>
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-weight-medium">{{ contact.name }}</q-item-label>
+                      <q-item-label caption class="npub-caption">{{ contact.npub.slice(0, 18) }}...</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+                <div v-else class="text-grey text-center q-pa-md">
+                  <q-icon name="person_off" size="32px" class="q-mb-sm" style="opacity: 0.4;" />
+                  <div>{{ $t('NoContactsToAdd', {}, 'No contacts to add. Use the Add Contact tab.') }}</div>
+                </div>
+                <q-btn
+                  :label="$t('CreateGroup', {}, 'Create Group')"
+                  color="primary"
+                  rounded
+                  unelevated
+                  class="full-width q-mt-sm"
+                  :disable="!canCreateGroup"
+                  @click="createGroup"
+                />
+              </q-tab-panel>
+
+              <q-tab-panel name="add" class="q-px-none">
+                <q-input
+                  v-model="newContactNpub"
+                  :label="$t('Npub', {}, 'npub...')"
+                  outlined
+                  dense
+                  rounded
+                  class="q-mb-md"
+                  :error="!!npubError"
+                  :error-message="npubError"
+                  autofocus
+                >
+                  <template #append>
+                    <q-btn
+                      flat
+                      round
+                      dense
+                      icon="qr_code_scanner"
+                      color="primary"
+                      @click="openScannerFromDialog"
+                    />
+                  </template>
+                </q-input>
+
+                <q-input
+                  v-model="newContactName"
+                  :label="$t('Name', {}, 'Name')"
+                  outlined
+                  dense
+                  rounded
+                  class="q-mb-md"
+                />
+
+                <div v-if="fetchedContactDisplayName" class="fetched-name-hint q-mb-md">
+                  <q-icon name="badge" size="16px" color="primary" />
+                  <span class="fetched-name-text">
+                    {{ $t('UsingPublishedDisplayName', {}, 'Using published display name') }}
+                  </span>
+                </div>
+
+                <q-btn
+                  :label="$t('AddContact', {}, 'Add Contact')"
+                  color="primary"
+                  rounded
+                  unelevated
+                  class="full-width"
+                  :disable="!canAddContact"
+                  @click="addContactForGroup"
+                />
+              </q-tab-panel>
+            </q-tab-panels>
+          </template>
         </q-card-section>
 
         <q-card-actions align="right">
@@ -273,7 +397,6 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import RoomList from 'src/components/chat/RoomList.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
-import { copyToClipboard } from 'quasar'
 import { decode as nip19Decode, npubEncode } from 'nostr-tools/nip19'
 
 export default {
@@ -283,9 +406,10 @@ export default {
     return {
       chatTab: 'active',
       showNewChatDialog: false,
-      showQrDialog: false,
       showQrScanner: false,
       reopenDialogAfterScan: false,
+      scannerOrigin: null,
+      selectedChatType: null,
       dialogTab: 'contacts',
       newContactName: '',
       newContactNpub: '',
@@ -303,9 +427,6 @@ export default {
       if (this.$route.query?.from === 'home') return '/'
       const prevRoute = this.$store.state.global.previousRoute
       return prevRoute === '/apps' ? '/apps' : '/'
-    },
-    myNpub () {
-      return this.$store.getters['nostrChat/myNpub']
     },
     rooms () {
       return this.$store.getters['nostrChat/getRooms']
@@ -331,12 +452,27 @@ export default {
     archivedUnreadCount () {
       return this.totalUnreadFor(this.archivedRooms)
     },
+    dialogTitle () {
+      if (this.selectedChatType === 'dm') {
+        return this.$t('NewDirectMessage', {}, 'New Direct Message')
+      }
+      if (this.selectedChatType === 'private_group') {
+        return this.$t('NewPrivateGroup', {}, 'New Private Group')
+      }
+      return this.$t('NewChat', {}, 'New Chat')
+    },
   },
   watch: {
     showQrScanner (val) {
       if (!val && this.reopenDialogAfterScan) {
         this.reopenDialogAfterScan = false
+        if (this.scannerOrigin === 'group') {
+          this.selectedChatType = 'private_group'
+        } else {
+          this.selectedChatType = 'dm'
+        }
         this.dialogTab = 'add'
+        this.scannerOrigin = null
         this.showNewChatDialog = true
       }
     },
@@ -348,7 +484,9 @@ export default {
         this.newContactNpub = ''
         this.npubError = ''
         this.fetchedContactDisplayName = null
+        this.selectedChatType = null
         this.dialogTab = 'contacts'
+        this.scannerOrigin = null
       }
     },
     async newContactNpub (val) {
@@ -388,6 +526,7 @@ export default {
         this.newContactNpub = scannedNpub
         this.newContactName = ''
         this.npubError = ''
+        this.selectedChatType = 'dm'
         this.dialogTab = 'add'
         this.showNewChatDialog = true
       } else if (this.$store.state.nostrChat.initialized) {
@@ -420,6 +559,36 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    selectChatType (type) {
+      this.selectedChatType = type
+      if (type === 'dm') {
+        this.dialogTab = this.contacts.length ? 'contacts' : 'add'
+      } else if (type === 'private_group') {
+        this.dialogTab = 'members'
+      }
+    },
+    handleDialogBack () {
+      this.selectedChatType = null
+    },
+    async addContactForGroup () {
+      try {
+        const npub = this.newContactNpub.trim()
+        await this.$store.dispatch('nostrChat/addContact', {
+          name: this.newContactName.trim(),
+          npub,
+        })
+        if (!this.selectedMemberNpubs.includes(npub) && this.selectedMemberNpubs.length < 9) {
+          this.selectedMemberNpubs.push(npub)
+        }
+        this.newContactName = ''
+        this.newContactNpub = ''
+        this.npubError = ''
+        this.fetchedContactDisplayName = null
+        this.dialogTab = 'members'
+      } catch (err) {
+        this.npubError = err.message
+      }
+    },
     totalUnreadFor (rooms) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
       if (!myPubKey) return 0
@@ -431,22 +600,6 @@ export default {
         total += msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
       }
       return total
-    },
-    copyNpub () {
-      if (!this.myNpub) return
-      copyToClipboard(this.myNpub)
-        .then(() => {
-          this.$q.notify({
-            type: 'positive',
-            message: this.$t('CopiedToClipboard', {}, 'Copied to clipboard'),
-          })
-        })
-        .catch(() => {
-          this.$q.notify({
-            type: 'negative',
-            message: this.$t('CopyFailed', {}, 'Copy failed'),
-          })
-        })
     },
     openRoom (roomId) {
       this.$router.push(`/apps/chat/${roomId}`)
@@ -626,24 +779,31 @@ export default {
         })
       })
     },
-openScannerFromDialog () {
-        this.showNewChatDialog = false
-        this.reopenDialogAfterScan = true
-        this.showQrScanner = true
-      },
-      onScannerDecode (value) {
-        const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
-        if (nostrMatch) {
-          this.newContactNpub = nostrMatch[2]
-          this.npubError = ''
-        } else {
-          this.npubError = this.$t('InvalidNpub', {}, 'Invalid npub')
-        }
-        this.showQrScanner = false
-        this.reopenDialogAfterScan = false
-        this.dialogTab = 'add'
-        this.showNewChatDialog = true
-      },
+    openScannerFromDialog () {
+      this.scannerOrigin = this.selectedChatType === 'private_group' ? 'group' : 'dm'
+      this.showNewChatDialog = false
+      this.reopenDialogAfterScan = true
+      this.showQrScanner = true
+    },
+    onScannerDecode (value) {
+      const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
+      if (nostrMatch) {
+        this.newContactNpub = nostrMatch[2]
+        this.npubError = ''
+      } else {
+        this.npubError = this.$t('InvalidNpub', {}, 'Invalid npub')
+      }
+      this.showQrScanner = false
+      this.reopenDialogAfterScan = false
+      if (this.scannerOrigin === 'group') {
+        this.selectedChatType = 'private_group'
+      } else {
+        this.selectedChatType = 'dm'
+      }
+      this.dialogTab = 'add'
+      this.scannerOrigin = null
+      this.showNewChatDialog = true
+    },
     contactInitial (contact) {
       return (contact.name || '').charAt(0).toUpperCase()
     },
@@ -747,6 +907,7 @@ openScannerFromDialog () {
         this.newContactNpub = npub
         this.newContactName = ''
         this.npubError = ''
+        this.selectedChatType = 'dm'
         this.dialogTab = 'add'
         this.showNewChatDialog = true
       }
@@ -823,6 +984,131 @@ openScannerFromDialog () {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
+/* New chat dialog — chat type picker */
+.chat-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.chat-type-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.015);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.chat-type-option:hover {
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.chat-type-option:active {
+  transform: scale(0.99);
+}
+
+.chat-type-option--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.chat-type-option--disabled:hover {
+  background: rgba(0, 0, 0, 0.015);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.chat-type-option--disabled:active {
+  transform: none;
+}
+
+.chat-type-icon {
+  flex-shrink: 0;
+}
+
+.chat-type-icon.dm-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.chat-type-icon.group-icon {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+}
+
+.chat-type-icon.public-group-icon {
+  background: linear-gradient(135deg, #10b981, #047857);
+}
+
+.chat-type-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-type-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.chat-type-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.chat-type-title-row .chat-type-title {
+  margin-bottom: 0;
+}
+
+.chat-type-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.chat-type-chevron {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.coming-soon-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  line-height: 1.4;
+}
+
+.group-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.08);
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.group-members-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
 .tabs-header :deep(.q-tab-panels) {
   background: transparent;
   flex: 1;
@@ -856,24 +1142,6 @@ openScannerFromDialog () {
   min-width: auto;
 }
 
-/* QR dialog */
-.qr-display-box {
-  padding: 16px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.npub-full-text {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  color: #6b7280;
-  word-break: break-all;
-  line-height: 1.5;
-  max-width: 240px;
-  margin: 0 auto;
-}
-
 /* Dark mode */
 .dark .contact-item:hover {
   background-color: rgba(255, 255, 255, 0.04);
@@ -900,11 +1168,45 @@ openScannerFromDialog () {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 }
 
-.dark .qr-display-box {
-  background: #1e293b;
+.dark.chat-type-option {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
-.dark .npub-full-text {
+.dark.chat-type-option:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.dark.chat-type-option--disabled:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .chat-type-title {
+  color: #f1f5f9;
+}
+
+.dark .chat-type-desc {
+  color: #94a3b8;
+}
+
+.dark .chat-type-chevron {
+  color: #64748b;
+}
+
+.dark .coming-soon-badge {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.dark .group-hint {
+  background: rgba(59, 130, 246, 0.14);
+  color: #cbd5e1;
+}
+
+.dark .group-members-label {
   color: #94a3b8;
 }
 

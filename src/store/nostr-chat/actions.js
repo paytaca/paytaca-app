@@ -1073,9 +1073,19 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
       const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
-      const subject = rumor.tags.find(t => t[0] === 'subject')?.[1] || null
-      if (subject && room.subject !== subject) {
-        commit('UPDATE_ROOM_SUBJECT', { roomId: room.id, subject })
+      const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
+      const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
+      const subject = hasSubjectTag ? (subjectRaw ?? '') : null
+      if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+        commit('UPDATE_ROOM_SUBJECT', { roomId: room.id, subject: subject || null })
+        if (!subject && room.type !== 'group') {
+          const memberPubKeys = (room.members || []).filter(pk => pk !== state.keys?.pubKeyHex)
+          const otherPubKey = memberPubKeys[0]
+          const contact = state.contacts.find(c => c.pubKeyHex === otherPubKey)
+          if (contact?.name) {
+            commit('UPDATE_ROOM_NAME', { roomId: room.id, name: contact.name })
+          }
+        }
       }
       const msg = {
         id: rumor.id,
@@ -1112,10 +1122,23 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
   const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
   const editOf = rumor.tags.find(t => t[0] === 'edit')?.[1] || null
-  const subject = rumor.tags.find(t => t[0] === 'subject')?.[1] || null
+  const hasSubjectTag = rumor.tags.some(t => t[0] === 'subject')
+  const subjectRaw = rumor.tags.find(t => t[0] === 'subject')?.[1]
+  const subject = hasSubjectTag ? (subjectRaw ?? '') : null
 
-  if (subject && room.subject !== subject) {
-    commit('UPDATE_ROOM_SUBJECT', { roomId, subject })
+  // Only apply subject changes from messages that are not older than the
+  // room's current updatedAt. This prevents old messages from re-applying
+  // a subject that was cleared/updated by a newer local action.
+  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+    commit('UPDATE_ROOM_SUBJECT', { roomId, subject: subject || null })
+    if (!subject && room.type !== 'group') {
+      const memberPubKeys = (room.members || []).filter(pk => pk !== state.keys?.pubKeyHex)
+      const otherPubKey = memberPubKeys[0]
+      const contact = state.contacts.find(c => c.pubKeyHex === otherPubKey)
+      if (contact?.name) {
+        commit('UPDATE_ROOM_NAME', { roomId, name: contact.name })
+      }
+    }
   }
 
   if (editOf) {

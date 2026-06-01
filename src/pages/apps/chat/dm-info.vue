@@ -15,8 +15,9 @@
         <!-- Contact header card -->
         <div
           class="dm-header-card"
-          :class="getDarkModeClass(darkMode)"
+          :class="[getDarkModeClass(darkMode), 'clickable']"
           :style="{ background: `linear-gradient(135deg, ${themeColor}14, ${themeColor}0a)` }"
+          @click="openContactDetails"
         >
           <q-avatar
             size="64px"
@@ -33,7 +34,20 @@
         <div class="subject-edit-section" :class="getDarkModeClass(darkMode)">
           <div class="section-title">{{ $t('ConversationSubject', {}, 'Conversation Subject') }}</div>
           <div v-if="!editingSubject" class="subject-display-row">
-            <div class="subject-text">{{ room?.name || $t('NoSubject', {}, 'No subject set') }}</div>
+            <div class="subject-text" :class="{ 'subject-text-empty': !room?.subject }">
+              {{ room?.subject || $t('NoSubject', {}, 'No subject set') }}
+            </div>
+            <q-btn
+              v-if="room?.subject"
+              flat
+              dense
+              round
+              icon="close"
+              color="grey"
+              @click="clearSubject"
+            >
+              <q-tooltip>{{ $t('ClearSubject', {}, 'Clear subject') }}</q-tooltip>
+            </q-btn>
             <q-btn
               flat
               dense
@@ -60,7 +74,6 @@
               color="primary"
               rounded
               :loading="savingSubject"
-              :disable="!editSubjectValue.trim()"
               @click="saveSubject"
             />
             <q-btn
@@ -71,24 +84,6 @@
               @click="cancelEditSubject"
             />
           </div>
-        </div>
-
-        <!-- Contact details -->
-        <div class="contact-section" :class="getDarkModeClass(darkMode)">
-          <div class="section-title">{{ $t('Contact', {}, 'Contact') }}</div>
-          <q-list>
-            <q-item class="contact-item" clickable @click="openContactDetails">
-              <q-item-section avatar>
-                <q-avatar color="primary" text-color="white" size="44px">
-                  {{ contactInitial }}
-                </q-avatar>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label class="text-weight-medium">{{ contactDisplayName }}</q-item-label>
-                <q-item-label caption class="npub-caption">{{ fullShortNpub }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
         </div>
 
         <!-- Contact Details Dialog -->
@@ -293,21 +288,42 @@ export default {
   methods: {
     getDarkModeClass,
     startEditSubject () {
-      this.editSubjectValue = this.room?.subject || this.room?.name || ''
+      this.editSubjectValue = this.room?.subject || ''
       this.editingSubject = true
     },
     cancelEditSubject () {
       this.editingSubject = false
       this.editSubjectValue = ''
     },
+    clearSubject () {
+      if (!this.room || !this.room.subject) return
+      this.$q.dialog({
+        title: this.$t('ClearSubjectTitle', {}, 'Clear subject'),
+        message: this.$t('ClearSubjectConfirm', {}, 'Are you sure you want to clear the subject?'),
+        cancel: true,
+        persistent: true,
+      }).onOk(() => {
+        this.editSubjectValue = ''
+        this.saveSubject()
+      })
+    },
     async saveSubject () {
       const subject = this.editSubjectValue.trim()
-      if (!subject || !this.room) return
+      if (!this.room) return
       this.savingSubject = true
       try {
-        this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: subject })
-        this.$store.commit('nostrChat/UPDATE_ROOM_SUBJECT', { roomId: this.roomId, subject })
-        const text = this.$t('SubjectChangedTo', { subject }, `Changed subject to "${subject}"`)
+        if (subject) {
+          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: subject })
+        } else if (this.otherMemberContact) {
+          this.$store.commit('nostrChat/UPDATE_ROOM_NAME', { roomId: this.roomId, name: this.otherMemberContact.name })
+        }
+        this.$store.commit('nostrChat/UPDATE_ROOM_SUBJECT', { roomId: this.roomId, subject: subject || null })
+        let text
+        if (subject) {
+          text = this.$t('SubjectChangedTo', { subject }, `Changed subject to "${subject}"`)
+        } else {
+          text = this.$t('SubjectCleared', {}, 'Cleared the subject')
+        }
         const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
           roomId: this.roomId,
           text,
@@ -316,7 +332,12 @@ export default {
         this.$store.commit('nostrChat/ADD_MESSAGE', { roomId, message })
         await this.$store.dispatch('nostrChat/publishGiftWraps', { giftWraps })
         this.editingSubject = false
-        this.$q.notify({ type: 'positive', message: this.$t('SubjectUpdated', {}, 'Subject updated') })
+        this.$q.notify({
+          type: 'positive',
+          message: subject
+            ? this.$t('SubjectUpdated', {}, 'Subject updated')
+            : this.$t('SubjectClearedNotify', {}, 'Subject cleared'),
+        })
       } catch (err) {
         this.$q.notify({ type: 'negative', message: err.message || this.$t('SubjectUpdateFailed', {}, 'Failed to update subject') })
       } finally {
@@ -414,8 +435,7 @@ export default {
   font-family: 'Courier New', monospace;
 }
 
-.subject-edit-section,
-.contact-section {
+.subject-edit-section {
   margin-top: 16px;
   background: rgba(0, 0, 0, 0.02);
   border-radius: 16px;
@@ -444,6 +464,12 @@ export default {
   flex: 1;
 }
 
+.subject-text-empty {
+  color: #9ca3af;
+  font-style: italic;
+  font-weight: 400;
+}
+
 .subject-edit-row {
   display: flex;
   align-items: center;
@@ -458,13 +484,18 @@ export default {
   border-radius: 10px;
 }
 
-.contact-item {
-  padding: 8px 4px;
-  border-radius: 10px;
+.dm-header-card.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.contact-item:hover {
-  background: rgba(0, 0, 0, 0.02);
+.dm-header-card.clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dm-header-card.clickable:active {
+  transform: translateY(0);
 }
 
 .contact-details-card {
@@ -549,11 +580,6 @@ export default {
   margin-top: 2px;
 }
 
-.npub-caption {
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-}
-
 /* Dark mode */
 .dark .contact-name-display {
   color: #f1f5f9;
@@ -563,13 +589,12 @@ export default {
   color: #f1f5f9;
 }
 
-.dark .subject-edit-section,
-.dark .contact-section {
-  background: rgba(255, 255, 255, 0.04);
+.dark .subject-text-empty {
+  color: #6b7280;
 }
 
-.dark .contact-item:hover {
-  background: rgba(255, 255, 255, 0.03);
+.dark .subject-edit-section {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .dark .contact-display-name {
