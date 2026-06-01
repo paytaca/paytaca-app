@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
+    <q-page-container :class="$q.dark.isActive ? '' : 'card-page-bg-light'">
         <!-- Show skeleton header while loading -->
         <div v-if="!isloaded" class="row items-center q-pa-md" style="min-height: 60px;">
           <q-btn flat round dense icon="arrow_back" color="primary" style="opacity: 0.3" />
@@ -129,4 +129,10 @@ export default {
 
 <style lang="scss" scoped>
 @import 'src/css/app-card.scss';
+</style>
+
+<style>
+.card-page-bg-light {
+  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
+}
 </style>
