@@ -218,6 +218,7 @@ export default {
     async fetchRedemptionHistory () {
       this.isLoading = true
       this.hasError = false
+      this.offset = 0
       
       try {
         const data = { limit: this.limit, offset: this.offset }
@@ -247,6 +248,7 @@ export default {
         else if (this.promo === Promos.RFPROMO) data.rp_id = this.promoId
 
         const resp = await getPromoRedeemHistory(this.promo, data)
+        if (!resp) throw new Error('Unable to load more redemptions.')
         this.redemptions.push(...resp.redeem_history)
         this.offset += this.limit
         this.hasMoreData = resp.has_more_data

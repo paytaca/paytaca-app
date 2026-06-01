@@ -334,7 +334,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Platform } from 'quasar';
 import Big from 'big.js'
-import { binToBase64, hexToBin, secp256k1, sortObjectKeys } from 'bitauth-libauth-v3'
+import { binToBase64, base64ToBin, hexToBin, secp256k1, sortObjectKeys } from 'bitauth-libauth-v3'
 import { cborEncode } from '@ngraveio/bc-ur/dist/cbor'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -544,7 +544,7 @@ const downloadWalletFile = async (walletToExport) => {
         path: fullFilename,
         data: data, 
         directory: Directory.Cache, 
-        encoding: 'utf8' 
+        encoding: 'base64' 
       });
 
       return await Share.share({
@@ -553,7 +553,7 @@ const downloadWalletFile = async (walletToExport) => {
       });
     } 
 
-    const blob = new Blob([data], { type: 'text/plain' })
+    const blob = new Blob([base64ToBin(data)], { type: 'application/octet-stream' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
