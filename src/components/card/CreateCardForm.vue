@@ -1,8 +1,8 @@
 <template>
   <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs" transition-show="fade" transition-hide="fade">
-    <q-card class="create-card-dialog" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+    <q-card class="create-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
       <!-- Dialog Header -->
-      <div class="dialog-header q-px-md q-pt-md q-pb-sm" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'">
+      <div class="dialog-header q-px-md q-pt-md q-pb-sm">
         <div class="row items-center justify-between">
           <div class="row items-center">
             <div class="header-icon-container q-mr-md" :class="$q.dark.isActive ? 'icon-dark' : 'icon-light'">
@@ -450,6 +450,10 @@ export default {
   font-family: 'Rubik', sans-serif;
 }
 
+.create-card-dialog.light {
+  background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
+}
+
 /* Dialog typography */
 .create-card-dialog :deep(.text-h6) {
   font-family: 'Rubik', sans-serif;
@@ -500,10 +504,6 @@ export default {
   background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 15%, transparent) 0%, color-mix(in srgb, var(--q-primary) 8%, transparent) 100%);
 }
 
-.icon-dark {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--q-primary) 10%, transparent) 0%, color-mix(in srgb, var(--q-primary) 5%, transparent) 100%);
-}
-
 /* Input Methods */
 .input-methods {
   text-align: left;
@@ -526,16 +526,33 @@ export default {
   font-weight: 500;
 }
 
-/* Dark mode method button base styles */
-.bg-dark .method-btn {
+/* Method button base styles */
+.method-btn {
+  border-radius: 12px;
+  height: 70px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.method-btn .q-icon {
+  color: color-mix(in srgb, var(--q-primary) 60%, grey);
+}
+
+.method-btn .method-label {
+  color: color-mix(in srgb, var(--q-primary) 70%, grey);
+  font-weight: 500;
+}
+
+.body--dark .method-btn {
   background: color-mix(in srgb, var(--q-primary) 8%, transparent);
 }
 
-.bg-dark .method-btn .q-icon {
+.body--dark .method-btn .q-icon {
   color: color-mix(in srgb, var(--q-primary) 50%, #aaa);
 }
 
-.bg-dark .method-btn .method-label {
+.body--dark .method-btn .method-label {
   color: color-mix(in srgb, var(--q-primary) 60%, #ccc);
 }
 
@@ -544,11 +561,11 @@ export default {
   background: color-mix(in srgb, var(--q-primary) 8%, transparent);
 }
 
-.bg-dark .method-btn:hover {
+.body--dark .method-btn:hover {
   background: color-mix(in srgb, var(--q-primary) 15%, transparent);
 }
 
-/* Active state - Light mode */
+/* Active state */
 .method-btn-active {
   background: color-mix(in srgb, var(--q-primary) 12%, transparent) !important;
   border-color: var(--q-primary);
@@ -564,18 +581,17 @@ export default {
   font-weight: 600;
 }
 
-/* Active state - Dark mode */
-.bg-dark .method-btn-active {
+.body--dark .method-btn-active {
   background: color-mix(in srgb, var(--q-primary) 20%, transparent) !important;
   border-color: var(--q-primary);
   box-shadow: 0 0 16px color-mix(in srgb, var(--q-primary) 25%, transparent);
 }
 
-.bg-dark .method-btn-active .q-icon {
+.body--dark .method-btn-active .q-icon {
   color: var(--q-primary) !important;
 }
 
-.bg-dark .method-btn-active .method-label {
+.body--dark .method-btn-active .method-label {
   color: var(--q-primary) !important;
 }
 
@@ -957,7 +973,7 @@ export default {
   letter-spacing: 0.3px;
 }
 
-.bg-dark .step-item span {
+.body--dark .step-item span {
   color: var(--q-primary);
 }
 
@@ -1017,12 +1033,12 @@ export default {
 }
 
 /* Dark mode secondary text */
-.bg-dark .text-caption,
-.bg-dark .text-body2 {
+.body--dark .text-caption,
+.body--dark .text-body2 {
   color: white !important;
 }
 
-.bg-dark .method-btn .method-label {
+.body--dark .method-btn .method-label {
   color: white !important;
 }
 </style>
