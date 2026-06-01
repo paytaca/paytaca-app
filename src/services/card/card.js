@@ -56,6 +56,10 @@ export class Card {
   get isSubscribed() {
     return this.raw?.subscribed_to_transactions;
   }
+
+  get category() {
+    return this.raw?.category
+  }
   // ==================== FACTORIES ====================
 
   /**
@@ -561,7 +565,7 @@ export class Card {
    * @param {string} options.merchant.pubkey - Merchant public key
    * @returns {Promise<{mintResult: Object, issueResult: Object}>}
    */
-  async issueMerchantAuthToken({ authorized = true, spendLimitSats, merchant } = {}, retryOnFailure = true) {
+  async issueMerchantAuthToken({ authorized = true, spendLimitSats = defaultSpendLimitSats, merchant } = {}, retryOnFailure = true) {
     console.log('Issuing merchant auth token...');
     if (!merchant?.id || !merchant?.pubkey) {
       throw new Error('Merchant id and pubkey are required to issue merchant auth token');

@@ -76,25 +76,15 @@ export async function getMerchantList(params = {}) {
  * @param {number} params.offset - Offset for pagination (default: 0)
  * @returns {Promise<Object>} Response with results, count, limit, offset
  */
-export async function getMerchantsByCity(city, params = {}) {
-  const {
-    limit = 50,
-    offset = 0,
-  } = params;
-
-  const queryParams = {
-    limit,
-    offset,
-    city,
-  };
-
-  const response = await cardBackend.get(`/merchants/by-city/${city}`, { params: queryParams });
+export async function getMerchantsByCity(city, params = {limit: 50, offset: 0, token_id: null}) {
+  const response = await cardBackend.get(`/merchants/by-city/${city}`, { params: params });
+  console.log('Fetched merchants by city:', response?.data);
   
   return {
     results: response?.data?.results || [],
     count: response?.data?.count || 0,
-    limit: response?.data?.limit || limit,
-    offset: response?.data?.offset || offset,
-    hasMore: (response?.data?.offset || offset) + (response?.data?.results?.length || 0) < (response?.data?.count || 0)
+    limit: response?.data?.limit || params.limit,
+    offset: response?.data?.offset || params.offset,
+    hasMore: (response?.data?.offset || params.offset) + (response?.data?.results?.length || 0) < (response?.data?.count || 0)
   };
 }

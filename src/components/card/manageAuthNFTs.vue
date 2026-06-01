@@ -253,7 +253,7 @@
                 <!-- Toggle (hidden in select multiple mode) -->
                 <q-toggle 
                   v-if="!selectMultipleMode"
-                  v-model="merchant.isEnabled"
+                  v-model="merchant.has_auth_nft"
                   :disable="genericAuthEnabled || mintingMerchants.has(merchant.id)"
                   :color="genericAuthEnabled 
                     ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
@@ -492,6 +492,7 @@ export default {
         const s = this.search.toLowerCase();
         list = list.filter(m => m.name.toLowerCase().includes(s));
       }
+      console.log('Filtered merchants:', list)
       return list;
     },
     textColor() {
@@ -726,22 +727,6 @@ export default {
       })
     },
 
-    async getMerchantsByCity(city, opts = {}) {
-      if (!city) {
-        this.showFailedToLoadMerchants()
-        return
-      }
-      await cardBackend.get(`/merchants/by-city/${city}`, { 
-        params: { limit: opts.limit, page: opts.offset }
-      }).then(res => {
-        console.log('Merchants by city response:', res.data)
-          return res.data.results || []
-        }).catch(err => {
-          console.error(err.response || err)
-          this.showFailedToLoadMerchants()
-        })
-    },
-
     showFailedToLoadMerchants() {
       this.$q.notify({
         message: 'Failed to load merchants near your location',
@@ -786,31 +771,37 @@ export default {
         const params = {
           limit: this.merchantsPagination.limit,
           offset: this.merchantsPagination.offset,
+          token_id: this.card?.category,
           // location: locationCoords,
           // radius: this.radius
         }
 
+        console.log('Fetching merchants with params:', params)
+
         const response = await getMerchantsByCity(locationCoords.city, params)
         console.log('getMerchantsByCity:', response)
         
-        // Map new merchants with UI state
-        const newMerchants = response.results.map(merchant => ({
-          ...merchant,
-          isEnabled: false,
-          wasEnabledBeforeGeneric: false,
-          spendLimit: null
-        }))
+        // // Map new merchants with UI state
+        // const newMerchants = response.results.map(merchant => ({
+        //   ...merchant,
+        //   isEnabled: false,
+        //   wasEnabledBeforeGeneric: false,
+        //   spendLimit: null
+        // }))
 
-        // Merge with existing merchants
-        if (isReset) {
-          this.merchants = newMerchants
-        } else {
-          // Avoid duplicates
-          const existingIds = new Set(this.merchants.map(m => m.id))
-          const uniqueNewMerchants = newMerchants.filter(m => !existingIds.has(m.id))
-          this.merchants = [...this.merchants, ...uniqueNewMerchants]
-        }
+        // // Merge with existing merchants
+        // if (isReset) {
+        //   this.merchants = newMerchants
+        // } else {
+        //   // Avoid duplicates
+        //   const existingIds = new Set(this.merchants.map(m => m.id))
+        //   const uniqueNewMerchants = newMerchants.filter(m => !existingIds.has(m.id))
+        //   this.merchants = [...this.merchants, ...uniqueNewMerchants]
+        // }
 
+        this.merchants = response.results
+
+        console.log('merchants:', this.merchants)
         // Update pagination - use the filtered count
         this.merchantsPagination = {
           count: response.count,
@@ -819,7 +810,7 @@ export default {
           hasMore: response.hasMore
         }
 
-        console.log(`Loaded ${newMerchants.length} merchants. Total displayed: ${this.merchants.length}/${response.count}`)
+        // console.log(`Loaded ${newMerchants.length} merchants. Total displayed: ${this.merchants.length}/${response.count}`)
       } catch (error) {
         console.error('Failed to load merchant list:', error);
         this.notifyError('Failed to load merchants near your location');
@@ -909,7 +900,8 @@ export default {
     },
 
     async onMerchantToggle(merchant, enabled) {
-      console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
+      // console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
+      console.log('card:', this.card)
       if (enabled) {
         merchant.spendLimit = merchant.spendLimit || '1';
         
@@ -918,7 +910,19 @@ export default {
         this.mintingMerchants = new Set(this.mintingMerchants); // Trigger reactivity
         
         // Simulate minting delay (2 seconds)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('Issuing auth NFT for merchant:', merchant.name)
+        this.card.issueMerchantAuthToken({ merchant }).then(() => {
+          console.log('Minting successful for merchant:', merchant.name)
+        }).catch(err => {
+          console.error('Minting failed for merchant:', merchant.name, err)
+          this.$q.notify({
+            message: `Failed to mint auth NFT for ${merchant.name}`,
+            color: 'red',
+            icon: 'error',
+            timeout: 4000,
+          })
+        });
         
         // Minting complete
         this.mintingMerchants.delete(merchant.id);
