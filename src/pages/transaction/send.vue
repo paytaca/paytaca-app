@@ -2532,7 +2532,8 @@ export default {
             ref_id: hexToRef(result.txid.substring(0, 6)),
             tx_id: result.txid,
             customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
-            merchant_address: this.recipients[0].recipientAddress
+            merchant_address: this.recipients[0].recipientAddress,
+            bch_spent: Number(this.recipients[0].amount)
           }).then(resp => {
             if (resp) {
               vm.$q.dialog({

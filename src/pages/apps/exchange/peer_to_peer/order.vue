@@ -2212,7 +2212,8 @@ getBackNavigationPath () {
                 bch_address: buyerAddress,
                 is_ramp: true,
                 ref_id: hexToRef(txid.substring(0, 6)),
-                tx_id: txid
+                tx_id: txid,
+                bch_spent: satoshiToBch(this.order.trade_amount)
               })
 
               if (pointsResp) {
