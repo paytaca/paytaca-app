@@ -521,9 +521,9 @@
                       </div>
                     </q-btn>
                   </td>
-                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(orderItem?.displayPrice) }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(orderItem?.displayPrice, 3)) }}</td>
                   <td class="text-center" style="white-space:nowrap;">{{ orderItem?.quantity }}</td>
-                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(orderItem?.displayPrice * orderItem?.quantity, 3)) }}</td>
+                  <td class="text-center" style="white-space:nowrap;">{{ formatFiatAmount(round(orderItem?.finalAmount, 3)) }}</td>
                 </tr>
                 <tr v-for="(addon, index) in orderItem.addons" :key="`${orderItem?.id}-${index}`">
                   <td></td>
