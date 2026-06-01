@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" full-width>
-    <q-card class="cash-in-dialog q-mx-lg" :class="$q.dark.isActive ? 'bg-dark' : 'bg-white'" style="border-radius: 20px; overflow: hidden;">
+    <q-card class="cash-in-dialog q-mx-lg pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 20px; overflow: hidden;">
       <q-card-section class="q-pa-lg">
         <!-- Header -->
         <div class="row items-center justify-between q-mb-lg">
@@ -12,13 +12,13 @@
         </div>
 
         <!-- Balance Strip -->
-        <div class="balance-strip q-mb-lg">
+        <div class="balance-strip bg-grad q-mb-lg">
           <div class="row items-center justify-between">
             <div class="col">
-              <div class="text-caption text-weight-medium" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'" style="letter-spacing: 0.5px;">CURRENT BALANCE</div>
+              <div class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px;">CURRENT BALANCE</div>
               <div class="row items-baseline q-mt-xs">
-                <span class="text-h4 text-weight-bold" :class="textColor" style="line-height: 1.1;">{{ card?.balance || '0.00' }}</span>
-                <span class="text-subtitle2 q-ml-xs" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-6'" style="font-weight: 500;">BCH</span>
+                <span class="text-h4 text-weight-bold text-white" style="line-height: 1.1;">{{ card?.balance || '0.00' }}</span>
+                <span class="text-subtitle2 q-ml-xs text-white" style="font-weight: 500;">BCH</span>
               </div>
             </div>
             <q-img src="~assets/paytaca_logo.png" style="width: 28px;" fit="contain" />
@@ -26,7 +26,7 @@
         </div>
 
         <!-- QR + Address Combined -->
-        <div class="deposit-card q-mb-lg" :class="$q.dark.isActive ? 'deposit-card-dark' : 'deposit-card-light'">
+        <div class="deposit-card q-mb-lg pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'">
           <div class="flex flex-center q-py-md">
             <qr-code
               :text="card?.cashAddress || ''"
@@ -50,7 +50,7 @@
           </div>
 
           <!-- Crypto Amount -->
-          <div class="q-mb-sm">
+          <div class="q-mb-sm pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
             <q-input
               class="amount-input"
               v-model="cryptoCashInAmount"
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Fiat Amount -->
-          <div class="q-mb-sm">
+          <div class="q-mb-sm pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
             <q-input
               class="amount-input"
               v-model="fiatCashInAmount"
@@ -319,7 +319,6 @@ export default {
 
 /* Balance Strip */
 .balance-strip {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 16px;
   padding: 16px 20px;
   color: white;
@@ -329,14 +328,6 @@ export default {
 .deposit-card {
   border-radius: 16px;
   transition: all 0.3s ease;
-}
-
-.deposit-card-dark {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.deposit-card-light {
-  background: rgba(0, 0, 0, 0.03);
 }
 
 .address-badge {
@@ -373,6 +364,13 @@ export default {
 .amount-input :deep(.q-field__control) {
   border-radius: 14px;
   padding-left: 4px;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.amount-input :deep(.q-field__control::before),
+.amount-input :deep(.q-field__control::after) {
+  display: none !important;
 }
 
 .amount-input :deep(.q-field__native) {
@@ -401,6 +399,59 @@ export default {
 .badge-light {
   background: rgba(0, 0, 0, 0.05);
   color: #333;
+}
+
+:deep(.drag-slide-container) {
+  margin: 0 !important;
+}
+
+:deep(.drag-slide-container) .q-list {
+  padding: 0 !important;
+}
+
+:deep(.drag-slide-container) > .q-list > div {
+  margin: 0 !important;
+}
+
+:deep(.drag-slide-container) h5 {
+  color: white !important;
+  text-align: center !important;
+}
+
+:deep(.drag-slide-container) .q-slide-item {
+  border: none !important;
+  background: transparent !important;
+  border-radius: 16px !important;
+}
+
+:deep(.drag-slide-container) .q-item {
+  border: none !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  border-radius: 16px !important;
+}
+
+:deep(.drag-slide-container) .q-slide-item__track,
+:deep(.drag-slide-container) .q-slide-item__top,
+:deep(.drag-slide-container) .q-slide-item__bottom {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:deep(.drag-slide-container) .q-item {
+  border: none !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  border-radius: 12px !important;
+}
+
+:deep(.drag-slide-container) .q-item.q-item--dark {
+  border: none !important;
+}
+
+:deep(.drag-slide-container) .q-item__section {
+  padding: 0 !important;
 }
 
 /* Exchange Rate */
