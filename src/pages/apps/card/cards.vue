@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
-    <q-page-container>
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
+    <q-page-container :class="$q.dark.isActive ? '' : 'card-page-bg-light'">
 
       <!-- Skeleton loading state -->
       <div v-if="!isLoaded" class="full-width">
@@ -712,4 +712,10 @@ export default {
     height: 100dvh !important;
     overflow: hidden !important;
   }
+</style>
+
+<style>
+.card-page-bg-light {
+  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
+}
 </style>
