@@ -1,5 +1,5 @@
 <template>
-  <div class="row items-center q-pa-md">
+  <div class="row items-center q-pa-md" style="background: transparent;">
     <q-btn
       flat
       round
