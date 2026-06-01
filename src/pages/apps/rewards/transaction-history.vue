@@ -100,12 +100,7 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { 
-  fetchMerchantTransactionsData,
-  fetchCashinTransactionsData,
-  fetchEloadTransactionsData,
-  fetchCauldronTransactionsData
-} from 'src/utils/engagementhub-utils/rewards'
+import { getTransactionsData } from 'src/utils/engagementhub-utils/rewards'
 
 import HeaderNav from 'src/components/header-nav.vue'
 import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
@@ -153,7 +148,7 @@ export default {
       categoryConfig: {
         marketplace: {
           title: 'Merchant Transactions History',
-          fetchFunction: fetchMerchantTransactionsData,
+          fetchType: 'merchant',
           filters: [
             { value: 'all', label: 'All' },
             { value: 'orders', label: 'Orders', type: 'order' },
@@ -172,7 +167,7 @@ export default {
         },
         cashin: {
           title: 'Cash-in History',
-          fetchFunction: fetchCashinTransactionsData,
+          fetchType: 'cashin',
           filters: [
             { value: 'all', label: 'All' },
             { value: 'ramp', label: 'P2P Ramp', type: 'ramp' },
@@ -191,7 +186,7 @@ export default {
         },
         cauldron: {
           title: 'Cauldron DEX History',
-          fetchFunction: fetchCauldronTransactionsData,
+          fetchType: 'cauldron',
           filters: [], // No filters for cauldron
           stats: [
             { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
@@ -204,7 +199,7 @@ export default {
         },
         eload: {
           title: 'E-Load Service History',
-          fetchFunction: fetchEloadTransactionsData,
+          fetchType: 'eload',
           filters: [], // No filters for eload
           stats: [
             { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
@@ -265,13 +260,16 @@ export default {
       this.urId = Number(this.$route.params.id || -1)
       
       try {
-        const data = await this.currentConfig.fetchFunction({
+        const resp = await getTransactionsData({
           ur_id: this.urId,
           limit: this.limit,
-          offset: this.offset
+          offset: this.offset,
+          types: [this.currentConfig.fetchType]
         })
         
-        if (data) {
+        if (resp) {
+          const data = resp[this.currentConfig.fetchType]
+
           if (append) {
             this.allTransactions.push(...data.overall_data)
           } else {
