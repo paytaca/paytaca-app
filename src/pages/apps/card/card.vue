@@ -1,5 +1,5 @@
 <template>
-  <div :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
+  <div :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
     <!-- Loading state while fetching card -->
     <q-page v-if="loading" class="flex flex-center">
         <q-spinner color="primary" size="3em" />
@@ -503,27 +503,55 @@
       </q-page>
 
       <q-dialog v-model="showEditNameDialog">
-        <q-card style="min-width: 300px">
-          <q-card-section>
-            <div class="text-h6" :class="textColor">Edit Card Name</div>
-          </q-card-section>
+        <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 340px; border-radius: 20px;">
+          <q-card-section class="q-pa-lg">
+            <div class="row items-center justify-between q-mb-md">
+              <div class="text-h6 text-weight-bold" :class="textColor">Edit Card Name</div>
+              <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="showEditNameDialog = false" />
+            </div>
 
-          <q-card-section class="q-pt-none">
-            <q-input
-              v-model="newCardName"
-              filled
-              maxlength="10"
-              counter
-              autofocus
-              placeholder="Enter new card name"
-              :dark="$q.dark.isActive"
-            />
-          </q-card-section>
+            <div class="q-mb-md" :class="textColor">
+              <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Current name: </span>
+              <span class="text-subtitle1 text-weight-medium">{{ activeCard?.alias }}</span>
+            </div>
 
-          <q-card-actions align="right">
-            <q-btn flat label="Close" color="primary" @click="showEditNameDialog = false" />
-            <q-btn flat label="Save" color="primary" @click="saveCardName" />
-          </q-card-actions>
+            <div class="pt-card-2" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 14px; overflow: hidden;">
+              <q-input
+                v-model="newCardName"
+                filled
+                maxlength="10"
+                counter
+                autofocus
+                placeholder="Enter new card name"
+                :dark="$q.dark.isActive"
+                class="edit-name-input"
+                @keyup.enter="saveCardName"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="edit" size="1.1rem" color="primary" />
+                </template>
+              </q-input>
+            </div>
+
+            <div class="row q-mt-lg" style="gap: 8px;">
+              <q-btn
+                flat
+                label="Cancel"
+                :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
+                class="col"
+                style="border-radius: 12px;"
+                @click="showEditNameDialog = false"
+              />
+              <q-btn
+                unelevated
+                label="Save"
+                color="primary"
+                class="col bg-grad text-white"
+                style="border-radius: 12px;"
+                @click="saveCardName"
+              />
+            </div>
+          </q-card-section>
         </q-card>
       </q-dialog>
 
@@ -1779,5 +1807,9 @@ export default {
       opacity: 0.5;
       transform: scale(0.85);
     }
+  }
+
+  .pt-card.light {
+    background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
   }
 </style>
