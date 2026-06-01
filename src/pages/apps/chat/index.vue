@@ -33,8 +33,28 @@
           align="left"
           narrow-indicator
         >
-          <q-tab name="active" :label="$t('Active', {}, 'Active')" />
-          <q-tab name="archived" :label="$t('Archived', {}, 'Archived')" />
+          <q-tab name="active">
+            <div class="tab-label-wrapper">
+              <span>{{ $t('Active', {}, 'Active') }}</span>
+              <span
+                v-if="chatTab !== 'active' && activeUnreadCount > 0"
+                class="tab-unread-badge"
+              >
+                {{ activeUnreadCount }}
+              </span>
+            </div>
+          </q-tab>
+          <q-tab name="archived">
+            <div class="tab-label-wrapper">
+              <span>{{ $t('Archived', {}, 'Archived') }}</span>
+              <span
+                v-if="chatTab !== 'archived' && archivedUnreadCount > 0"
+                class="tab-unread-badge"
+              >
+                {{ archivedUnreadCount }}
+              </span>
+            </div>
+          </q-tab>
         </q-tabs>
 
         <q-tab-panels v-model="chatTab" animated>
@@ -305,6 +325,12 @@ export default {
     canCreateGroup () {
       return this.groupName.trim() && this.selectedMemberNpubs.length > 0 && this.selectedMemberNpubs.length <= 9
     },
+    activeUnreadCount () {
+      return this.totalUnreadFor(this.rooms)
+    },
+    archivedUnreadCount () {
+      return this.totalUnreadFor(this.archivedRooms)
+    },
   },
   watch: {
     showQrScanner (val) {
@@ -394,6 +420,18 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    totalUnreadFor (rooms) {
+      const myPubKey = this.$store.getters['nostrChat/myPubKey']
+      if (!myPubKey) return 0
+      const readIdsMap = this.$store.state.nostrChat.readMessageIds || {}
+      let total = 0
+      for (const room of rooms) {
+        const msgs = this.messages[room.id] || []
+        const readIds = readIdsMap[room.id] || {}
+        total += msgs.filter(m => m.sender !== myPubKey && !readIds[m.id]).length
+      }
+      return total
+    },
     copyNpub () {
       if (!this.myNpub) return
       copyToClipboard(this.myNpub)
@@ -763,6 +801,28 @@ openScannerFromDialog () {
   color: var(--q-primary);
 }
 
+.tab-label-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-unread-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
 .tabs-header :deep(.q-tab-panels) {
   background: transparent;
   flex: 1;
@@ -834,6 +894,10 @@ openScannerFromDialog () {
 
 .dark .tabs-header {
   border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .tab-unread-badge {
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 }
 
 .dark .qr-display-box {
