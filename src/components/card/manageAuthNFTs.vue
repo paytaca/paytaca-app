@@ -60,6 +60,7 @@
         </q-input>
       </div>
       <q-btn
+        v-if="merchants.some(m => m.isEnabled)"
         :color="selectMultipleMode ? 'secondary' : 'primary'"
         :icon="selectMultipleMode ? 'checklist' : 'checklist_rtl'"
         dense
@@ -513,11 +514,32 @@ export default {
       return `leaflet-map-${this.$.uid}`
     }
   },
-  mounted() {
+  async mounted() {
     console.log('ManageAuthNFTs MOUNTED, card:', this.card)
-    geolocationManager.getOrUpdateGeoIp()
+    await geolocationManager.getOrUpdateGeoIp()
+    const geoip = geolocationManager.geoip.value
+    if (geoip?.latitude && geoip?.longitude && !this.userLocation) {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
+        )
+        const data = await response.json()
+        const address = data?.address || {}
+        this.$store.commit('card/setUserLocation', {
+          latitude: geoip.latitude,
+          longitude: geoip.longitude,
+          formatted: data.display_name || '',
+          location: address.suburb || address.city_district || address.town || '',
+          landmark: address.suburb || '',
+          street: address.road || address.street || '',
+          city: address.city || address.town || address.village || address.county || '',
+          country: address.country || ''
+        })
+      } catch (error) {
+        console.error('Reverse geocoding on mount failed:', error)
+      }
+    }
     this.loadMerchantList()
-    // this.initializeComponent()
   },
 
   methods: {
@@ -607,8 +629,33 @@ export default {
       return initLocation
     },
 
-    onGeolocated(position) {
-      this.lastGeolocatePosition = position?.coords
+    async onGeolocated(position) {
+      const coords = position?.coords
+      if (!coords) return
+
+      this.lastGeolocatePosition = coords
+      console.log('onGeolocated fired:', coords.latitude, coords.longitude)
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.latitude}&lon=${coords.longitude}`
+        )
+        const data = await response.json()
+        const address = data?.address || {}
+        console.log('Reverse geocode result:', data.display_name)
+        this.$store.commit('card/setUserLocation', {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          formatted: data.display_name || '',
+          location: address.suburb || address.city_district || address.town || '',
+          landmark: address.suburb || '',
+          street: address.road || address.street || '',
+          city: address.city || address.town || address.village || address.county || '',
+          country: address.country || ''
+        })
+      } catch (error) {
+        console.error('Reverse geocoding failed:', error)
+      }
     },
 
     onLocationDenied() {
@@ -637,20 +684,46 @@ export default {
           },
           initLocation: initLocation,
         }
-      }) .onOk(coordinates => {
+      }) .onOk(async coordinates => {
         const userLocationComponents = { ...this.userLocation } || {}
         userLocationComponents.longitude = coordinates.lng
         userLocationComponents.latitude = coordinates.lat
 
-        if (!coordinates?.components) return console.log('No components')
+        if (coordinates?.components) {
+          const components = coordinates.components
+          userLocationComponents.location = components.address1
+          userLocationComponents.landmark = components.address2
+          userLocationComponents.street = components.street
+          userLocationComponents.city = components.city
+          userLocationComponents.country = components.country
+          this.$store.commit('card/setUserLocation', userLocationComponents)
+          this.radius = 10
+          this.saveRadius()
+          this.loadMerchantList({ reset: true, location: { latitude: coordinates.lat, longitude: coordinates.lng } }).then(() => this.saveMerchantsToCard())
+          return
+        }
 
-        const components = coordinates.components
-        userLocationComponents.location = components.address1
-        userLocationComponents.landmark = components.address2
-        userLocationComponents.street = components.street
-        userLocationComponents.city = components.city
-        userLocationComponents.country = components.country
+        // No components — reverse geocode to get location name
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coordinates.lat}&lon=${coordinates.lng}`
+          )
+          const data = await response.json()
+          const address = data?.address || {}
+          userLocationComponents.formatted = data.display_name || ''
+          userLocationComponents.location = address.suburb || address.city_district || address.town || ''
+          userLocationComponents.landmark = address.suburb || ''
+          userLocationComponents.street = address.road || address.street || ''
+          userLocationComponents.city = address.city || address.town || address.village || address.county || ''
+          userLocationComponents.country = address.country || ''
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error)
+          userLocationComponents.formatted = `${coordinates.lat}, ${coordinates.lng}`
+        }
         this.$store.commit('card/setUserLocation', userLocationComponents)
+        this.radius = 10
+        this.saveRadius()
+        this.loadMerchantList({ reset: true, location: { latitude: coordinates.lat, longitude: coordinates.lng } }).then(() => this.saveMerchantsToCard())
       })
     },
 
@@ -1149,21 +1222,21 @@ export default {
         longitude: this.mapCoordinates.longitude
       });
 
-      // Reload merchants with new location - pass coordinates directly to ensure new location is used
-      await this.loadMerchantList({ 
-        reset: true, 
-        location: {
-          latitude: this.mapCoordinates.latitude,
-          longitude: this.mapCoordinates.longitude
-        }
+      // Also update card store so merchant reload picks up the new location
+      this.$store.commit('card/setUserLocation', {
+        ...(this.userLocation || {}),
+        latitude: this.mapCoordinates.latitude,
+        longitude: this.mapCoordinates.longitude,
+        formatted: this.mapCoordinates.formatted || ''
       });
 
-      // Save the new merchant list after loading
+      // Reset proximity to 10km
+      this.radius = 10;
+
+      // Reload merchants with new location
+      await this.loadMerchantList({ reset: true, location: { latitude: this.mapCoordinates.latitude, longitude: this.mapCoordinates.longitude } });
       this.saveMerchantsToCard();
-      
-      // Also save current radius with the new location data
-      this.saveRadius();
-      
+
       this.$q.notify({
         message: 'Location updated successfully. Reloading nearby merchants...',
         color: 'positive',
