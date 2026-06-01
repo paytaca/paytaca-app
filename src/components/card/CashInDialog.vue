@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="showDialog" full-width>
-    <q-card class="cash-in-dialog q-mx-lg pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 20px; overflow: hidden;">
-      <q-card-section class="q-pa-lg">
+    <q-card class="cash-in-dialog q-mx-lg pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 20px;">
+      <q-card-section class="q-pa-lg cash-in-section">
         <!-- Header -->
         <div class="row items-center justify-between q-mb-lg">
           <div class="column">
@@ -12,16 +12,16 @@
         </div>
 
         <!-- Balance Strip -->
-        <div class="balance-strip bg-grad q-mb-lg">
+        <div class="balance-strip bg-grad q-mb-md">
           <div class="row items-center justify-between">
             <div class="col">
               <div class="text-caption text-weight-medium text-white" style="letter-spacing: 0.5px;">CURRENT BALANCE</div>
               <div class="row items-baseline q-mt-xs">
-                <span class="text-h4 text-weight-bold text-white" style="line-height: 1.1;">{{ card?.balance || '0.00' }}</span>
+                <span class="text-h5 text-weight-bold text-white" style="line-height: 1.1;">{{ card?.balance || '0.00' }}</span>
                 <span class="text-subtitle2 q-ml-xs text-white" style="font-weight: 500;">BCH</span>
               </div>
             </div>
-            <q-img src="~assets/paytaca_logo.png" style="width: 28px;" fit="contain" />
+            <q-img src="~assets/paytaca_logo.png" style="width: 24px;" fit="contain" />
           </div>
         </div>
 
@@ -313,8 +313,15 @@ export default {
 <style scoped>
 .cash-in-dialog {
   max-width: 400px;
+  max-height: 85vh;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   border-radius: 24px !important;
+  overflow: hidden;
+}
+
+.cash-in-section {
+  overflow-y: auto;
+  max-height: 80vh;
 }
 
 /* Balance Strip */
@@ -464,5 +471,9 @@ export default {
 /* Currency Selector */
 .currency-selector :deep(.q-btn__content) {
   padding: 4px 8px;
+}
+
+.cash-in-dialog.light {
+  background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
 }
 </style>
