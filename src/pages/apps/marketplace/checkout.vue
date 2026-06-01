@@ -478,6 +478,31 @@
             </template>
           </div>
 
+          <div class="row items-start no-wrap q-my-sm">
+            <div>{{ $t('Discounts') }}</div>
+            <q-space/>
+            <div class="text-right">
+              <div v-if="checkout.discounts" class="text-grey q-gutter-xs row wrap q-mb-sm">
+                <q-chip
+                  v-for="discount in checkout.discounts" :key="discount.id"
+                  square outline dense
+                  color="pt-primary1"
+                  class="ellipsis q-mb-none q-mr-none"
+                >
+                  {{ discount.name }}
+                </q-chip>
+              </div>
+              <q-btn
+                flat
+                color="pt-primary1"
+                padding="none"
+                no-caps
+                label="Apply discount"
+                @click="openDiscountCodeDialog"
+              />
+            </div>
+          </div>
+
           <PaymentSelectionPanel
             v-if="checkout.balanceToPay > 0"
             :checkout="checkout"
@@ -955,6 +980,7 @@ const loadingState = ref({
   rider: false,
   deliveryFee: false,
   deliveryAddress: false,
+  applyingDiscount: false,
   creatingPayment: false,
   payment: false,
   completing: false,
@@ -1506,6 +1532,52 @@ function saveDeliveryAddress() {
     loadingState.value.deliveryAddress = false
     loadingMsg.value = resolveLoadingMsg()
   })
+}
+
+function openDiscountCodeDialog() {
+  $q.dialog({
+    title: $t('ApplyDiscount', {}, 'Apply Discount'),
+    description: $t('ApplyDiscountCodeDescription', {}, 'Input discount code'),
+    prompt: true,
+    position: 'bottom',
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`
+  }).onOk(applyDiscountCode)
+}
+async function applyDiscountCode(code) {
+  const data = {
+    checkout_id: checkout.value.id,
+    discount_codes: [code],
+  }
+  const dialog = $q.dialog({
+    title: $t('ApplyingDiscount', {}, 'Applying Discount'),
+    ok: false,
+    persistent: true,
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode)}`,
+  })
+  loadingState.value.applyingDiscount = true
+  return backend.post(`connecta/checkouts/discount_application/`, data)
+    .then(response => {
+      setCheckoutData(response?.data)
+      dialog.hide()
+      return response
+    })
+    .catch(error => {
+      console.error(error)
+      const data = error?.response?.data
+      const discountCodeError = data?.discount_codes?.[0]
+      let errorMessage = 'Failed to apply discount'
+      if (discountCodeError) {
+        if (discountCodeError?.includes('does not exist')) errorMessage = 'Discount not found'
+        if (discountCodeError?.includes('did not map to any line item')) errorMessage = 'No item/s to apply discount'
+        else errorMessage = discountCodeError
+      }
+
+      dialog.update({ title: $t('Discount'), message: errorMessage })
+    })
+    .finally(() => {
+      loadingState.value.applyingDiscount = false;
+      dialog.update({ persistent: false, ok: true });
+    })
 }
 
 function savePayment() {

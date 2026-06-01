@@ -352,6 +352,46 @@ export class Collection {
   }
 }
 
+export class DiscountType {
+  static parseList(data) {
+    if (!Array.isArray(data)) return
+    return data.map(DiscountType.parse)
+  }
+
+  static parse(data) {
+    return new DiscountType(data)
+  }
+
+   /**
+   * @param {any} data
+   */
+  constructor(data) {
+    this.raw = data;
+  }
+
+  get raw() {
+    return this.$raw;
+  }
+
+  /**
+   * @param {Object} data
+   * @param {Number} data.id
+   * @param {String} data.name
+   * @param {String} data.scope
+   * @param {String} data.type
+   * @param {String} data.value
+   * @param {String} [data.max_amount]
+   */
+  set raw(data) {
+    this.$raw = data;
+    this.id = data?.id;
+    this.name = data?.name;
+    this.scope = data?.scope;
+    this.type = data?.type;
+    this.value = data?.value;
+    this.maxAmount = data?.max_amount;
+  }
+}
 
 export class PricingData {
   static parseOptional(data) {
@@ -1105,12 +1145,13 @@ export class Checkout {
    * @param {'local_delivery' | 'store_pickup' | 'shipping'} data.delivery_type
    * @param {Object} data.delivery_address
    * @param {Object} data.payment
+   * @param {{ currency: CurrencyInfo, price: Number, timestamp: String | Number}} data.payment.bch_price
+   * @param {Number} data.payment.delivery_fee
    * @param {Number} [data.total_paid]
    * @param {Number} [data.total_pending_payment]
    * @param {Number} [data.total_payments]
    * @param {Number} [data.total_refunded]
-   * @param {{ currency: CurrencyInfo, price: Number, timestamp: String | Number}} data.payment.bch_price
-   * @param {Number} data.payment.delivery_fee
+   * @param {Object[]} data.discounts
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -1133,6 +1174,7 @@ export class Checkout {
     this.totalPendingPayment = data?.total_pending_payment
     this.totalPayments = data?.total_payments
     this.totalRefunded = data?.total_refunded
+    this.discounts = DiscountType.parseList(data?.discounts)
   }
 
   get totalPaymentsSent() {
