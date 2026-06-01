@@ -76,7 +76,7 @@
     />
   </div>
 
-  <div class="q-px-md">
+  <div class="q-px-md q-mb-md">
     <label class="text-md text-weight-bold block q-mb-xs">Insert Image <span class="text-caption block q-mb-xs text-italic">
       (Accepts .jpg, .jpeg., and .png only)
     </span></label>
@@ -104,6 +104,16 @@
         />
       </template>
     </q-file>
+  </div>
+
+  <div class="row justify-end q-mx-md">
+    <q-btn
+      no-caps
+      color="primary"
+      text-color="white"
+      label="Post Auction"
+      class="q-px-xl"
+    />
   </div>
 
   <q-separator class="q-my-md" :dark="$q.dark.isActive" />

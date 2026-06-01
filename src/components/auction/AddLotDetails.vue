@@ -1,25 +1,26 @@
 <template>
-  <div id="toggle-add-hide-item" class="q-px-md q-mb-sm text-right">
+  <div id="toggle-add-hide-lot" class="q-px-md q-mb-sm text-right">
     <q-btn
+      outline
       no-caps
       color="primary"
-      text-color="white"
-      :icon="isToggledAddItem ? fillMinusSign : fillPlusSign"
-      :label="isToggledAddItem ? 'Hide Item Form' : 'Add Item'"
-      @click="onToggleAddItem"
+      :label="isToggledAddLot ? 'Hide Lot Form' : 'Add Lot'"
+      :icon="isToggledAddLot ? 'remove' : 'add'"
+      class="q-px-lg dropdown-add-lot-btn"
+      @click="onToggleAddLot"
     />
   </div>
 
-  <div v-if="isToggledAddItem">
+  <div v-if="isToggledAddLot">
     <div class="row q-col-gutter-md q-px-md q-mb-md">
       <div class="col-12 col-sm-6">
-        <label class="text-md text-weight-bold block q-mb-xs">Item Name</label>
+        <label class="text-md text-weight-bold block q-mb-xs">Lot Name</label>
         <q-input
           outlined
           dense
-          v-model="itemName"
+          v-model="lotName"
           autocomplete="off"
-          placeholder="Enter item name"
+          placeholder="Enter lot name"
           color="pt-primary1"
           debounce="500"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -27,14 +28,14 @@
       </div>
       
       <div class="col-12 col-sm-6">
-        <label class="text-md text-weight-bold block q-mb-xs">Item Type</label>
+        <label class="text-md text-weight-bold block q-mb-xs">Lot Type</label>
         <q-select
           outlined
           dense
-          v-model="itemType" 
-          :options="itemTypeOptions"
+          v-model="lotType" 
+          :options="lotTypeOptions"
           autocomplete="off"
-          placeholder="Select item type"
+          placeholder="Select lot type"
           color="pt-primary1"
           debounce="500"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -130,7 +131,7 @@
         accept=".jpg, .jpeg, .png"
         outlined
         dense
-        v-model="itemImages"
+        v-model="lotImages"
         multiple
         :max-files="3"
         autocomplete="off"
@@ -144,14 +145,31 @@
           <q-icon name="attach_file" />
         </template>
 
-        <template v-slot:append v-if="itemImages && itemImages.length > 0">
+        <template v-slot:append v-if="lotImages && lotImages.length > 0">
           <q-icon 
             name="close" 
             class="cursor-pointer" 
-            @click.stop.prevent="itemImages = null" 
+            @click.stop.prevent="lotImages = null" 
           />
         </template>
       </q-file>
+    </div>
+
+    <div class="q-px-md q-mb-md">
+      <q-checkbox 
+        v-model="isFiatUsed" 
+        label="Use Fiat currency" 
+      />
+    </div>
+
+    <div class="row justify-end q-mx-md">
+      <q-btn
+        no-caps
+        color="primary"
+        text-color="white"
+        label="Add Lot"
+        class="q-px-xl"
+      />
     </div>
   </div>
 </template>
@@ -170,9 +188,9 @@ defineProps({
 
 const $q = useQuasar()
 
-const itemName = ref('')
-const itemType = ref('Physical')
-const itemTypeOptions = [
+const lotName = ref('')
+const lotType = ref('Physical')
+const lotTypeOptions = [
   'Physical',
   'Digital'
 ]
@@ -180,11 +198,12 @@ const estimatedPrice = ref(null)
 const priceFloor = ref(null)
 const priceCeiling = ref(null)
 const priceDrop = ref(null)
-const itemImages = ref([])
+const lotImages = ref([])
+const isFiatUsed = ref(false)
 
-const isToggledAddItem = ref(false)
-const onToggleAddItem = () => {
-  isToggledAddItem.value = !isToggledAddItem.value
+const isToggledAddLot = ref(false)
+const onToggleAddLot = () => {
+  isToggledAddLot.value = !isToggledAddLot.value
 }
 
 const onRejected = (rejectedEntries) => {
@@ -196,7 +215,11 @@ const onRejected = (rejectedEntries) => {
 </script>
 
 <style scoped lang="scss">
-  #toggle-add-hide-item:hover {
+  #toggle-add-hide-lot:hover {
     text-decoration: underline;
+  }
+
+  .dropdown-add-lot-btn {
+    min-width: 175px;
   }
 </style>

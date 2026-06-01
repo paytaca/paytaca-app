@@ -38,7 +38,7 @@
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
           >
-            <q-img :src="product?.imageUrl || product?.variantImageUrl || noImage" ratio="1">
+            <q-img :src="collection?.imageUrl || noImage" ratio="1">
               <template v-slot:loading>
                 <q-skeleton height="100%" width="100%" square />
               </template>
