@@ -5,7 +5,7 @@
         <!-- Header -->
         <div class="row items-center justify-between q-mb-lg">
           <div class="column">
-            <div class="text-h6 text-weight-bold" :class="textColor">Cash In</div>
+            <div class="text-h6 text-weight-bold" :class="textColor">Fund</div>
             <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">Deposit funds to your card</div>
           </div>
           <q-btn flat round dense icon="close" :color="$q.dark.isActive ? 'grey-4' : 'grey-6'" @click="onHideCashInDialog" />
@@ -35,10 +35,10 @@
               border-width="0px"
             />
           </div>
-          <div class="q-px-md q-pb-md">
-            <div class="row items-center no-wrap address-row" :class="$q.dark.isActive ? 'address-row-dark' : 'address-row-light'">
-              <div class="address-text text-body2 ellipsis col" :class="textColor">{{ card?.cashAddress }}</div>
-              <q-btn flat round dense icon="content_copy" size="sm" color="primary" @click="copyContractAddress" />
+          <div class="flex flex-center q-px-md q-pb-md">
+            <div class="address-badge" :class="$q.dark.isActive ? 'address-badge-dark' : 'address-badge-light'">
+              <span class="address-text" :class="textColor">{{ formatContractAddress(card?.cashAddress) }}</span>
+              <q-icon name="content_copy" size="14px" class="cursor-pointer" color="primary" @click="copyContractAddress" />
             </div>
           </div>
         </div>
@@ -123,7 +123,7 @@
 
           <!-- Exchange Rate -->
           <div class="exchange-rate q-mb-md">
-            <div class="row items-center justify-between text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'">
+            <div class="row items-center no-wrap text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-6'" style="gap: 6px;">
               <span>Exchange Rate</span>
               <span class="text-weight-medium">1 BCH ≈ {{ bchPriceInSelectedCurrency ? bchPriceInSelectedCurrency.toFixed(2) : '--' }} {{ selectedFiatCurrency }}</span>
             </div>
@@ -328,32 +328,35 @@ export default {
 /* Deposit Card (QR + Address) */
 .deposit-card {
   border-radius: 16px;
-  border: 2px solid;
   transition: all 0.3s ease;
 }
 
 .deposit-card-dark {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .deposit-card-light {
   background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.address-row {
-  padding: 10px 14px;
-  border-radius: 12px;
+.address-badge {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid;
+  width: fit-content;
 }
 
-.address-row-dark {
+.address-badge-dark {
   background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.address-row-light {
+.address-badge-light {
   background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 .address-text {

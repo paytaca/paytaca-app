@@ -55,7 +55,7 @@
           </div>
 
           <div class="row justify-center full-width q-mt-sm">
-            <q-btn unelevated rounded label="Cash In" color="primary" class="cash-in-btn q-px-lg" @click="openCashInDialog" />
+            <q-btn unelevated rounded label="Fund" color="primary" class="cash-in-btn q-px-lg" @click="openCashInDialog" />
           </div>
         </div>
 
