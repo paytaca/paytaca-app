@@ -7,11 +7,20 @@
 	display: flex;
 	flex-direction: column;
 	border-radius: 18px;
+	border: none;
 	box-shadow:
   	0 20px 40px rgba(0, 0, 0, 0.25),
   	0 0 0 1px rgba(255, 255, 255, 0.05),
   	0 0 40px rgba(33, 150, 243, 0.25);
 	overflow: hidden;
+
+  &.dark {
+    background: rgba(28, 40, 51, 0.35) !important;
+  }
+}
+
+.card-page-bg-light {
+  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
 }
 
 .view-card-dialog {
@@ -1651,6 +1660,17 @@ html, body {
 }
 
 .q-page-container {
-  height: 100dvh !important;
-  overflow: hidden !important;
+	height: 100dvh !important;
+	overflow: hidden !important;
+}
+
+// ====== Edit Card Name Dialog ======
+.edit-name-input {
+  .q-field__control {
+    background: transparent !important;
+  }
+
+  .q-field--filled .q-field__control {
+    background: transparent !important;
+  }
 }
