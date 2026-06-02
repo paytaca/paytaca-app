@@ -16,7 +16,10 @@
               <q-item-label>Profile</q-item-label>
             </q-item-section>
           </q-item>
-          <q-item>
+          <q-item
+            clickable v-ripple
+            @click="$router.push({ name: 'app-auction-activity' })"
+          >
             <q-item-section avatar style="min-width:0px;">
               <q-icon name="receipt"/>
             </q-item-section>
@@ -34,6 +37,9 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, defineComponent } from 'vue'
 import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
+
+const $router = useRouter()
 
 export default defineComponent({
   name: 'AuctionHeaderMenu',
