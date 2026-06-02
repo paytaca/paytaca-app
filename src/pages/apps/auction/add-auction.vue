@@ -1,5 +1,5 @@
 <template>
-  <q-pull-to-refresh
+  <div
     id="app-container"
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
@@ -74,7 +74,7 @@
       <div ref="productScrollSentinel" style="height: 1px; width: 100%;"></div>
       -->
     </div>
-  </q-pull-to-refresh>
+  </div>
 </template>
 
 <script setup>
