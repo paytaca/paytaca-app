@@ -3,6 +3,7 @@
     id="app-container"
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
+    @refresh="refresh"
   >
     <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav">
       <template v-slot:top-right-menu>
@@ -17,6 +18,8 @@
         text-color="white"
         label="Add Auction"
         class="q-px-xl"
+        clickable v-ripple
+        @click="$router.push({ name: 'app-auction-add' })"
       />
     </div>
 
@@ -166,6 +169,7 @@ import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -175,6 +179,7 @@ import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const $router = useRouter()
 
 const selectedActivityType = ref('biddings')
 const filterActivityType = (type) => {
@@ -184,6 +189,12 @@ const filterActivityType = (type) => {
   else {
     selectedActivityType.value = 'auctions';
   }
+}
+
+const refresh = (done) => {
+  setTimeout(() => {
+    done()
+  }, 1000)
 }
 
 

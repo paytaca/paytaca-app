@@ -207,4 +207,9 @@ const filterLotItems = (type='All') => {
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const refresh = (done) => {
+  setTimeout(() => {
+    done()
+  }, 1000)
+}
 </script>

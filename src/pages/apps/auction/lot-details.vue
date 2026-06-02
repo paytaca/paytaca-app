@@ -85,4 +85,9 @@ const $store = useStore();
 //DARKMODE STATUS
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const refresh = (done) => {
+  setTimeout(() => {
+    done()
+  }, 1000)
+}
 </script>

@@ -3,6 +3,7 @@
     id="app-container"
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
+    @refresh="refresh"
   >
     <HeaderNav :title="$t('Auction')" backnavpath="/apps" class="header-nav">
       <template v-slot:top-right-menu>
@@ -186,6 +187,11 @@ const filterAuctionItems = (type='All') => {
   selectedAuctionType.value = type;
 }
 
+const refresh = (done) => {
+  setTimeout(() => {
+    done()
+  }, 1000)
+}
 </script>
 
 <style scoped lang="scss">
