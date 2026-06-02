@@ -29,29 +29,43 @@
         <q-space/>
       </div>
 
-      <div class="q-mx-xs q-mb-md row items-center justify-around">
+      <div class="q-mx-xs q-mb-md row items-center justify-around gap-sm">
         <q-btn
+          :outline="selectedAuctionType !== 'English'"
+          :color="selectedAuctionType == 'English' ? 'pt-primary1' : ''"
           rounded
           padding="xs md"
-          no-caps label="English Auction"
+          no-caps
+          icon="gavel"
+          label="English Auction"
           style="min-width:150px;"
           @click="filterAuctionItems('English')"
         />
-
+        
         <q-btn
+          :outline="selectedAuctionType !== 'Dutch'"
+          :color="selectedAuctionType == 'Dutch' ? 'pt-primary1' : ''"
+          color="pt-primary1"
           rounded
           padding="xs md"
-          no-caps label="Dutch Auction"
+          no-caps
+          icon="gavel"
+          label="Dutch Auction"
           style="min-width:150px;"
           @click="filterAuctionItems('Dutch')"
         />
-
+        
         <q-btn
+          :outline="selectedAuctionType !== 'All'"
+          :color="selectedAuctionType == 'All' ? 'pt-primary1' : ''"
+          color="pt-primary1"
           rounded
           padding="xs md"
-          no-caps label="All Auctions"
+          no-caps
+          icon="gavel"
+          label="All Auctions"
           style="min-width:150px;"
-          @click="filterAuctionItems()"
+          @click="filterAuctionItems('All')" 
         />
       </div>
 
@@ -148,7 +162,7 @@ const auctionDetails = [
     id: 4,
     title: "Sealed Container of Mixed Electronic Goods & Laptops",
     location: "Cebu City, Cebu",
-    type: "Sealed Bid",
+    type: "Dutch",
     startDate: "2026-05-25",
     endDate: "2026-06-05",
   },
@@ -163,12 +177,19 @@ const auctionDetails = [
 ]
 
 let filteredItems = ref([...auctionDetails])
+const selectedAuctionType = ref('All')
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 
 const filterAuctionItems = (type='All') => {
-  if(type === 'All') filteredItems.value = [...auctionDetails]
-  else filteredItems.value = [...auctionDetails].filter(auction => auction.type === type)
+  if(type === 'All') {
+    filteredItems.value = [...auctionDetails]
+    selectedAuctionType.value = 'All';
+  }
+  else {
+    filteredItems.value = [...auctionDetails].filter(auction => auction.type === type)
+    selectedAuctionType.value = type;
+  }
 }
 
 </script>
