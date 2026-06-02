@@ -3,9 +3,9 @@
     id="app-container"
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
-    @refresh="refreshPage"
+    @refresh="refresh"
   >
-    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav" />
+    <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row q-px-sm justify-center">
@@ -21,7 +21,9 @@
           <span class="q-mr-xs">Auction Status:</span>
           <q-btn class="q-mb-lg" style="background-color: #097000;" :label="auctionFront?.status || 'N/A' "/>
           <span class="q-mr-xs">Description:</span>
-          <span class="q-mr-xs q-space">{{ auctionFront?.description || 'N/A' }}</span>
+          <span class="q-mr-xs q-mb-lg q-space">{{ auctionFront?.description || 'N/A' }}</span>
+          <span class="q-mr-xs">Start Date: {{ auctionFront?.startDate || 'N/A'}}</span>
+          <span class="q-mr-xs">End Date: {{ auctionFront?.endDate || 'N/A'}}</span>
         </div>
       </div>
     </div>
@@ -157,6 +159,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
 
@@ -209,6 +212,17 @@ const filterLotItems = (type='All') => {
 
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const $route = useRoute()
+
+const smartBackPath = computed(() => {
+  const sourceContext = $route.query.from
+
+  if (sourceContext === 'activity') {
+    return '/apps/auction/activity'
+  }
+
+  return '/apps/auction'
+})
 
 const refresh = (done) => {
   setTimeout(() => {
