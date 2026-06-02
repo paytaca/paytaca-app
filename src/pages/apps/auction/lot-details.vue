@@ -33,6 +33,7 @@
             class="q-mt-md "
             style="background-color: var(--q-secondary)"
             label="PLACE BID"
+            @click="openDialog = !openDialog"
           />
         </div>
         <!-- auction title -->
@@ -58,6 +59,7 @@
       </div>
     </div>
 
+    <BiddingPopup v-model="openDialog" />
   </q-pull-to-refresh>
 </template>
 
@@ -69,13 +71,15 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-
+import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 
 defineOptions({
   directives: {
     'element-visibility': vElementVisibility
   }
 })
+
+const openDialog = ref(false);
 
 const $store = useStore();
 //DARKMODE STATUS
