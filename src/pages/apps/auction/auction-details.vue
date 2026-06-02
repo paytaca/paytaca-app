@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refreshPage"
   >
-    <HeaderNav :title="$t('Auction')" class="header-nav" />
+    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav" />
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row q-px-sm justify-center">
@@ -112,7 +112,7 @@
             <q-card 
               class="pt-card text-bow cursor-pointer" 
               :class="getDarkModeClass(darkMode)"
-              @click="$router.push({ name: 'app-auction-lot-details', params: { lotId: lot.id }})"
+              @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: $route.params.auctionId, lotId: lot.id }})"
             >
               <q-img :src="noImage" ratio="1">
                 <template v-slot:loading>

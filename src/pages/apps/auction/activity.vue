@@ -16,8 +16,9 @@
         no-caps
         color="primary"
         text-color="white"
+        icon="add"
         label="Add Auction"
-        class="q-px-xl"
+        class="q-px-md"
         clickable v-ripple
         @click="$router.push({ name: 'app-auction-add' })"
       />
@@ -105,6 +106,8 @@
       <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
       <div class="row items-start" ref="productsContainer">
         <!-- Skeleton loaders -->
+          
+        <!--
         <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <q-skeleton height="200px" square />
@@ -117,49 +120,45 @@
             </q-card-section>
           </q-card>
         </div>
+        -->
 
         <!-- Actual products -->
-        <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-for="lot in lots" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
+            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: '5', lotId: lot.id }, query: { from: 'activity' }})"
           >
-            <q-img :src="collection?.imageUrl || noImage" ratio="1">
+            <q-img :src="noImage" ratio="1">
               <template v-slot:loading>
                 <q-skeleton height="100%" width="100%" square />
               </template>
             </q-img>
             <q-card-section>
-              <div class="q-mb-xs">
-                <q-badge color="primary" text-color="white" :label="`Physical`" class="text-bold q-pa-sm" />
-              </div>
               <div class="row items-center">
-                <div class="q-space text-body1 ellipsis text-bold">Test Lot</div>
+                <div class="q-space text-body1 ellipsis text-bold">{{lot.name}}</div>
+                <q-chip
+                  dense
+                  :color="lot.is_sold ? 'red' : 'green'" text-color="white"
+                  class="q-pa-md"
+                >
+                Bidding {{ lot.is_sold ? 'Closed' : 'Open' }}
+                </q-chip>
               </div>
-              <div>Lot 1</div>
-              <div>Est. Php 300 - Php 1,000</div>
-              <div>Php 450 (5 bids)</div>
+              <div>Lot {{ lot.lot_num }} | {{ lot.type }}</div>
+              <div>Est. {{ lot.est_price }}</div>
+              <div>{{ lot.high_bid}}  ({{ lot.num_bids }} bids)</div>
             </q-card-section>
           </q-card>
         </div>
         
         <!-- Empty state -->
+        <!--
         <div>
           {{ $t('NoProducts') }}
         </div>
+        -->
       </div>
-      
-      <!-- Infinite scroll loading indicator -->
-      <!--
-      <div class="row justify-center q-py-md">
-        <q-spinner size="2em" color="pt-primary1"/>
-      </div>
-      -->
-
-      <!-- Scroll sentinel for infinite loading -->
-      <!--
-      <div ref="productScrollSentinel" style="height: 1px; width: 100%;"></div>
-      -->
     </div>
   </q-pull-to-refresh>
 </template>
@@ -241,6 +240,39 @@ const auctionDetails = [
     endDate: "2026-07-20",
   }
 ];
+
+const lots = [
+  {
+    id: 11,
+    name: 'lot1',
+    type: 'Physical',
+    is_sold: false,
+    lot_num: 1,
+    est_price: '₱1000',
+    high_bid: '₱950',
+    num_bids: 0
+  }, 
+  {
+    id: 12,
+    name: 'Thingymajig',
+    type: 'Physical',
+    is_sold: false,
+    lot_num: '2',
+    est_price: '₱1000',
+    high_bid: '₱950',
+    num_bids: 3
+  },
+  {
+    id: 13,
+    name: 'Another thingy',
+    type: 'Digital',
+    is_sold: true,
+    lot_num: '3',
+    est_price: '₱1000',
+    high_bid: '₱950',
+    num_bids: 11
+  }
+]
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 </script>

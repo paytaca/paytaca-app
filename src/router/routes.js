@@ -197,8 +197,8 @@ const routes = [
           { path: 'activity', component: () => import('src/pages/apps/auction/activity.vue'), name: 'app-auction-activity' },
           { path: 'add-auction', component: () => import('src/pages/apps/auction/add-auction.vue'), name: 'app-auction-add' },
           { path: 'edit-auction', component: () => import('src/pages/apps/auction/add-auction.vue'), name: 'app-auction-edit', props: route => Object.assign({}, route.params, route.query) },
-          { path: 'auction-details/:auctionId', component: () => import('src/pages/apps/auction/auction-details.vue'), name: 'app-auction-details', props: route => Object.assign({}, route.params, route.query) },
-          { path: 'lot-details/:lotId', component: () => import('src/pages/apps/auction/lot-details.vue'), name: 'app-auction-lot-details', props: route => Object.assign({}, route.params, route.query) }
+          { path: ':auctionId', component: () => import('src/pages/apps/auction/auction-details.vue'), name: 'app-auction-details', props: route => Object.assign({}, route.params, route.query) },
+          { path: ':auctionId/lot/:lotId', component: () => import('src/pages/apps/auction/lot-details.vue'), name: 'app-auction-lot-details', props: route => Object.assign({}, route.params, route.query) }
         ]
       },
       {
