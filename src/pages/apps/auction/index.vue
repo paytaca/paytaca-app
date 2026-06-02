@@ -35,6 +35,7 @@
           padding="xs md"
           no-caps label="English Auction"
           style="min-width:150px;"
+          @click="filterAuctionItems('English')"
         />
 
         <q-btn
@@ -42,6 +43,7 @@
           padding="xs md"
           no-caps label="Dutch Auction"
           style="min-width:150px;"
+          @click="filterAuctionItems('Dutch')"
         />
 
         <q-btn
@@ -49,6 +51,7 @@
           padding="xs md"
           no-caps label="All Auctions"
           style="min-width:150px;"
+          @click="filterAuctionItems()"
         />
       </div>
 
@@ -63,7 +66,7 @@
           </q-card>
         </div>-->
 
-        <div v-for="auction in auctionDetails" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+        <div v-for="auction in filteredItems" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
@@ -157,9 +160,17 @@ const auctionDetails = [
     startDate: "2026-07-10",
     endDate: "2026-07-20",
   }
-];
+]
+
+let filteredItems = ref([...auctionDetails])
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
+
+const filterAuctionItems = (type='All') => {
+  if(type === 'All') filteredItems.value = [...auctionDetails]
+  else filteredItems.value = [...auctionDetails].filter(auction => auction.type === type)
+}
+
 </script>
 
 <style scoped lang="scss">
