@@ -182,14 +182,8 @@ const selectedAuctionType = ref('All')
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 
 const filterAuctionItems = (type='All') => {
-  if(type === 'All') {
-    filteredItems.value = [...auctionDetails]
-    selectedAuctionType.value = 'All';
-  }
-  else {
-    filteredItems.value = [...auctionDetails].filter(auction => auction.type === type)
-    selectedAuctionType.value = type;
-  }
+  filteredItems.value = (type === 'All') ? [...auctionDetails] : [...auctionDetails].filter(auction => auction.type === type)
+  selectedAuctionType.value = type;
 }
 
 </script>

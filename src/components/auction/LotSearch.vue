@@ -7,7 +7,7 @@
       clearable
       v-model="inputVal"
       autocomplete="off"
-      placeholder="Search auction"
+      placeholder="Search lot"
       color="pt-primary1"
       debounce="500"
       :class="getDarkModeClass(darkMode)"
