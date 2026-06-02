@@ -26,28 +26,28 @@
             <div class="flex row items-center q-gutter-md">
               <q-btn
                 flat
-                label="&#8369;100"
+                label="₱100"
                 padding="xs md"
                 style="text-wrap:nowrap; background-color: #097000;"
               />
 
               <q-btn
                 flat
-                label="&#8369;150"
+                label="₱150"
                 padding="xs md"
                 style="text-wrap:nowrap; background-color: #097000;"
               />
 
               <q-btn
                 flat
-                label="&#8369;200"
+                label="₱200"
                 padding="xs md"
                 style="text-wrap:nowrap; background-color: #097000;"
               />
 
               <q-btn
                 flat
-                label="&#8369;300"
+                label="₱300"
                 padding="xs md"
                 style="text-wrap:nowrap; background-color: #097000;"
               />
@@ -62,7 +62,7 @@
               type="number"
               label="Enter a price"
               outlined
-              prefix="&#8369;"
+              prefix="₱"
               min="0"
             />
           </div>
