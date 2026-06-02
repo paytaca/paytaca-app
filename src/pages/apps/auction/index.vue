@@ -34,7 +34,7 @@
           :outline="selectedAuctionType !== 'English'"
           :color="selectedAuctionType == 'English' ? 'pt-primary1' : ''"
           rounded
-          padding="xs md"
+          padding="sm md"
           no-caps
           icon="gavel"
           label="English Auction"
@@ -47,7 +47,7 @@
           :color="selectedAuctionType == 'Dutch' ? 'pt-primary1' : ''"
           color="pt-primary1"
           rounded
-          padding="xs md"
+          padding="sm md"
           no-caps
           icon="gavel"
           label="Dutch Auction"
@@ -60,7 +60,7 @@
           :color="selectedAuctionType == 'All' ? 'pt-primary1' : ''"
           color="pt-primary1"
           rounded
-          padding="xs md"
+          padding="sm md"
           no-caps
           icon="gavel"
           label="All Auctions"
