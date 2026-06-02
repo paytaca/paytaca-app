@@ -34,7 +34,7 @@
         <!-- Actual products -->
         <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
-            class="pt-card text-bow cursor-pointer" 
+            class="pt-card text-bow" 
             :class="getDarkModeClass(darkMode)"
           >
             <q-img :src="collection?.imageUrl || noImage" ratio="1">

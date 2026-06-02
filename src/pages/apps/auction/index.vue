@@ -89,7 +89,7 @@
             @click="$router.push({ name: 'app-auction-details', params: { auctionId: auction.id }})"
           >
             <q-img 
-              :src="collection?.imageUrl || noImage"
+              :src="noImage"
               ratio="1.75"
             >
               <template v-slot:loading>
