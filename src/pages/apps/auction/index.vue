@@ -3,7 +3,6 @@
     id="app-container"
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
-    
   >
     <HeaderNav :title="$t('Auction')" backnavpath="/apps" class="header-nav">
       <template v-slot:top-right-menu>

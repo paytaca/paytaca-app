@@ -21,7 +21,7 @@
               <q-icon name="receipt"/>
             </q-item-section>
             <q-item-section>
-              <q-item-label>Bids and Auctions</q-item-label>
+              <q-item-label>Activity</q-item-label>
             </q-item-section>
           </q-item>
         </q-list>
