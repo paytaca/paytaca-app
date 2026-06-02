@@ -55,7 +55,8 @@
           style="min-width:150px;"
           @click="filterAuctionItems('Dutch')"
         />
-        
+      </div>
+      <div class="flex justify-center q-mb-md">
         <q-btn
           :outline="selectedAuctionType !== 'All'"
           :color="selectedAuctionType == 'All' ? 'pt-primary1' : ''"
