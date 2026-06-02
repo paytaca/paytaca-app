@@ -26,12 +26,12 @@
       </div>
     </div>
 
-    <!--EDIT THIS TO MAKE NEW AUCTIONSEARCH COMPONENT-->
+    <!--EDIT THIS TO MAKE NEW LotSearch COMPONENT-->
     <div
       class="q-px-md q-pt-xs q-pb-md q-mt-md sticky-below-header"
       :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
     >
-      <AuctionSearch/>
+      <LotSearch/>
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -120,18 +120,6 @@
             {{ $t('NoProducts') }}
           </div>
         </div>
-        
-        <!-- Infinite scroll loading indicator -->
-        <!--
-        <div class="row justify-center q-py-md">
-          <q-spinner size="2em" color="pt-primary1"/>
-        </div>
-        -->
-
-        <!-- Scroll sentinel for infinite loading -->
-        <!--
-        <div ref="productScrollSentinel" style="height: 1px; width: 100%;"></div>
-        -->
       </div>
       
     </div>
@@ -146,7 +134,7 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import HeaderNav from 'src/components/header-nav.vue'
-import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
+import LotSearch from 'src/components/auction/LotSearch.vue'
 
 
 defineOptions({
@@ -156,7 +144,6 @@ defineOptions({
 })
 
 const $store = useStore();
-//DARKMODE STATUS
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 </script>
