@@ -49,15 +49,16 @@
           dense
           v-model.number="estimatedPrice"
           type="number"
-          step="0.00000001"
+          :step="isFiatUsed ? '0.00000001' : '0.01'"
           inputmode="decimal"
           autocomplete="off"
-          placeholder="Enter BCH"
+          :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
           color="pt-primary1"
           debounce="500"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
         />
-        <label class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
       </div>
     </div>
 
@@ -70,15 +71,16 @@
           dense
           v-model.number="priceFloor"
           type="number"
-          step="0.00000001"
+          :step="isFiatUsed ? '0.00000001' : '0.01'"
           inputmode="decimal"
           autocomplete="off"
-          placeholder="Enter BCH"
+          :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
           color="pt-primary1"
           debounce="500"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
         />
-        <label class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
       </div>
     </div>
 
@@ -91,15 +93,16 @@
           dense
           v-model.number="priceCeiling"
           type="number"
-          step="0.00000001"
+          :step="isFiatUsed ? '0.00000001' : '0.01'"
           inputmode="decimal"
           autocomplete="off"
-          placeholder="Enter BCH"
+          :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
           color="pt-primary1"
           debounce="500"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
         />
-        <label class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
       </div>
 
       <div class="col-12 col-sm-6">
@@ -111,15 +114,16 @@
           dense
           v-model.number="priceDrop"
           type="number"
-          step="0.00000001"
+          :step="isFiatUsed ? '0.00000001' : '0.01'"
           inputmode="decimal"
           autocomplete="off"
-          placeholder="Enter BCH"
+          :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
           color="pt-primary1"
           debounce="500"
           :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
         />
-        <label class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
+        <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
       </div>
     </div>
 
@@ -158,7 +162,8 @@
     <div class="q-px-md q-mb-md">
       <q-checkbox 
         v-model="isFiatUsed" 
-        label="Use Fiat currency" 
+        label="Use Fiat currency"
+        @update:model-value="toggleCurrency" 
       />
     </div>
 
@@ -201,7 +206,7 @@ const priceDrop = ref(null)
 const lotImages = ref([])
 const isFiatUsed = ref(false)
 
-const isToggledAddLot = ref(false)
+const isToggledAddLot = ref(true)
 const onToggleAddLot = () => {
   isToggledAddLot.value = !isToggledAddLot.value
 }
@@ -211,6 +216,10 @@ const onRejected = (rejectedEntries) => {
     type: 'negative',
     message: `${rejectedEntries.length} file(s) did not overcome validation constraints (Max 3 images, invalid format)`
   })
+}
+
+const toggleCurrency = (isFiat) => {
+  // Code block for converting user input money to its equivalent currency
 }
 </script>
 
