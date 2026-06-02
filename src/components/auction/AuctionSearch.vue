@@ -5,12 +5,12 @@
       dense
       :loading="loading"
       clearable
-      v-model="inputVal"
+      v-model="searchQuery"
       autocomplete="off"
-      placeholder="Search auction"
+      :placeholder="placeholder"
       color="pt-primary1"
       debounce="500"
-      :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+      :class="getDarkModeClass(darkMode)"
     >
       <template v-slot:append>
         <q-icon name="search"/>
@@ -28,7 +28,14 @@ import { computed, ref } from "vue";
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const inputVal = ref('')
+const searchQuery = ref('')
 const lastSearch = ref('')
 const loading = ref(false)
+
+defineProps({
+  placeholder: {
+    type: String,
+    default: 'Search auctions'
+  }
+})
 </script>

@@ -21,7 +21,7 @@
     </div>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <AuctionSearch />
+      <AuctionSearch :placeholder="`Search my ${selectedActivityType}`"/>
     </div>
 
     <div class="q-mx-xs q-mb-md row items-center justify-around">
