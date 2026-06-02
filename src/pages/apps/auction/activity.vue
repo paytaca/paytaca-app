@@ -26,22 +26,32 @@
 
     <div class="q-mx-xs q-mb-md row items-center justify-around">
       <q-btn
+        :outline="selectedActivityType !== 'biddings'"
+        :color="selectedActivityType == 'biddings' ? 'pt-primary1' : ''"
         rounded
-        padding="xs md"
-        no-caps label="My Biddings"
+        padding="sm md"
+        no-caps
+        icon="monetization_on"
+        label="My Biddings"
         style="min-width:150px;"
+        @click="filterActivityType('biddings')"
       />
 
       <q-btn
+        :outline="selectedActivityType !== 'auctions'"
+        :color="selectedActivityType == 'auctions' ? 'pt-primary1' : ''"
         rounded
-        padding="xs md"
-        no-caps label="My Auctions"
+        padding="sm md"
+        no-caps
+        icon="gavel"
+        label="My Auctions"
         style="min-width:150px;"
+        @click="filterActivityType('auctions')"
       />
     </div>
 
-    <!-- All user's BIDDINGS -->
-    <div class="row items-start justify-start q-mb-md q-pa-sm">
+    <!-- All user's AUCTIONS made -->
+    <div v-if="selectedActivityType == 'auctions'" class="row items-start justify-start q-mb-md q-pa-sm">
       <!--<div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
         <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
           <q-skeleton height="200px" />
@@ -87,8 +97,8 @@
       </div>
     </div>
 
-    <!-- All user's AUCTIONS made -->
-    <div class="q-pa-sm">        
+    <!-- All user's BIDDINGS made -->
+    <div v-if="selectedActivityType == 'biddings'" class="q-pa-sm">        
       <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
       <div class="row items-start" ref="productsContainer">
         <!-- Skeleton loaders -->
@@ -166,7 +176,15 @@ const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-
+const selectedActivityType = ref('biddings')
+const filterActivityType = (type) => {
+  if(type === 'biddings') {
+    selectedActivityType.value = 'biddings';
+  }
+  else {
+    selectedActivityType.value = 'auctions';
+  }
+}
 
 
 
