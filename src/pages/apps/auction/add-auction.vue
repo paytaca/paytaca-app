@@ -61,7 +61,7 @@
                 <div class="text-caption text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
               </div>
 
-              <div class="row q-mt-sm">
+              <div class="row q-my-sm">
                 <q-btn
                   icon="edit"
                   class="q-pa-sm"
