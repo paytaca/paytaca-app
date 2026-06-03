@@ -13,6 +13,7 @@ import { getMnemonicByHash } from 'src/wallet'
 import { pubkeyToAddress } from 'src/utils/crypto'
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import packageInfo from '../../package.json'
+import { Loading, QSpinnerIos } from 'quasar'
 
 /**
  * Base URL for the Payment Hub API.
@@ -200,6 +201,49 @@ backend.interceptors.request.use(async (config) => {
 
   return config
 })
+
+/**
+ * Response interceptor to automatically handle token expiration (403 Forbidden).
+ */
+backend.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+
+    // If 403 error, attempt to regenerate token and retry exactly once
+    if (
+      error.response?.status === 403 && 
+      !originalRequest._retry && 
+      originalRequest.authorize && 
+      originalRequest.wallet
+    ) {
+      originalRequest._retry = true
+      
+      try {
+        // Show loading indicator during regeneration
+        Loading.show({
+          spinner: QSpinnerIos,
+          message: 'Refreshing authentication...',
+          backgroundColor: 'pt-primary1'
+        })
+
+        console.log('[Payment Hub] Token expired (403). Regenerating...')
+        const token = await authToken.get(originalRequest.wallet, true)
+        
+        // Update the header and retry the original request
+        originalRequest.headers.Authorization = `Bearer ${token}`
+        return backend(originalRequest)
+      } catch (refreshError) {
+        console.error('[Payment Hub] Authentication refresh failed:', refreshError)
+        return Promise.reject(refreshError)
+      } finally {
+        Loading.hide()
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
 
 /**
  * PaymentHub class implementation based on API_DOCS.md.

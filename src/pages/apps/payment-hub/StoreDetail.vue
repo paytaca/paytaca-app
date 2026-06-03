@@ -49,25 +49,31 @@
         <q-item v-for="key in filteredApiKeys" :key="key.id" class="q-py-md">
           <q-item-section>
             <div class="row items-center no-wrap full-width">
-              <!-- Key Name: Flexible space, truncates if too long -->
-              <div class="col text-weight-bold ellipsis q-pr-md">
+              <!-- Key Name: Flexible space -->
+              <div class="col text-weight-bold ellipsis q-pr-sm">
                 {{ key.name }}
               </div>
 
-              <!-- Key Prefix: Fixed width for alignment -->
-              <div class="col-auto font-mono text-grey-7 text-right" style="width: 100px;">
+              <!-- Key Prefix: Fixed width for vertical alignment -->
+              <div class="col-auto font-mono text-grey-7 text-center q-px-sm" style="width: 110px; font-size: 0.85rem;">
                 {{ getKeyPrefix(key.id) }}
               </div>
 
-              <!-- Status Badge: Fixed width to keep things lined up -->
-              <div class="col-auto text-center" style="width: 100px;">
-                <q-badge :color="key.revoked ? 'grey-5' : 'green-5'" rounded class="q-px-sm">
+              <!-- Status: Fixed width to keep layout stable -->
+              <div class="col-auto text-center q-px-sm" style="width: 100px;">
+                <q-badge
+                  :color="key.revoked ? 'grey-5' : 'green-5'"
+                  :text-color="darkMode ? 'black' : 'white'"
+                  rounded
+                  class="q-px-sm text-weight-medium"
+                  style="min-width: 80px;"
+                >
                   {{ key.revoked ? $t('Revoked', {}, 'Revoked') : $t('Active', {}, 'Active') }}
                 </q-badge>
               </div>
 
-              <!-- Action Button: Occupies space even if hidden -->
-              <div class="col-auto text-right" style="width: 48px;">
+              <!-- Revoke Button: Occupies fixed space regardless of visibility -->
+              <div class="col-auto text-right" style="width: 40px;">
                 <q-btn
                   v-if="!key.revoked"
                   flat
@@ -76,7 +82,7 @@
                   icon="block"
                   color="grey-6"
                   size="sm"
-                  @click="deleteKey(key)"
+                  @click="revokeKey(key)"
                 >
                   <q-tooltip>{{ $t('Revoke', {}, 'Revoke') }}</q-tooltip>
                 </q-btn>
@@ -237,11 +243,11 @@ function createApiKey() {
 /**
  * Revokes an existing API key.
  */
-function deleteKey(key) {
+function revokeKey(key) {
   $q.dialog({
-    title: $t('DeleteKey', {}, 'Delete API Key'),
-    message: $t('DeleteKeyConfirm', { name: key.name }, `Are you sure you want to delete '${key.name}'?`),
-    ok: { label: $t('Delete'), color: 'red', unelevated: true, rounded: true },
+    title: $t('RevokeKey', {}, 'Revoke API Key'),
+    message: $t('RevokeKeyConfirm', { name: key.name }, `Are you sure you want to revoke '${key.name}'? This cannot be undone`),
+    ok: { label: $t('Revoke'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
   }).onOk(async () => {
