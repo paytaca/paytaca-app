@@ -11,54 +11,59 @@
     </HeaderNav>
 
     <div>
-      <AddAuctionDetails :auction-type="auctionType" />
+      <AddAuctionDetails v-model:auction-type="auctionType" @add-lot="handleNewLot" />
     </div>
 
-    <div>        
-      <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
+    <div>
       <div class="row items-start" ref="productsContainer">
-        <!-- Skeleton loaders -->
-        <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
-          <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-            <q-skeleton height="200px" square />
-            <q-card-section>
-              <q-skeleton type="text" width="30%" class="float-right" />
-              <q-skeleton type="text" width="70%" />
-              <q-skeleton type="text" width="30%" class="q-mt-xs" />
-              <q-skeleton type="text" width="50%" class="q-mt-xs" />
-              <q-skeleton type="text" width="50%" class="q-mt-xs" />
-            </q-card-section>
-          </q-card>
-        </div>
-
-        <!-- Actual products -->
-        <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-for="(lot, index) in lots" :key="index" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
             class="pt-card text-bow" 
             :class="getDarkModeClass(darkMode)"
           >
-            <q-img :src="collection?.imageUrl || noImage" ratio="1">
+            <q-img :src="lot.imageUrl || noImage" ratio="1">
               <template v-slot:loading>
                 <q-skeleton height="100%" width="100%" square />
               </template>
             </q-img>
+
             <q-card-section>
               <div class="q-mb-xs">
-                <q-badge color="primary" text-color="white" :label="`Physical`" class="text-bold q-pa-sm" />
+                <q-badge
+                  color="primary"
+                  text-color="white"
+                  :label="lot.type"
+                  class="text-bold q-pa-sm"
+                />
               </div>
+
               <div class="row items-center">
-                <div class="q-space text-body1 ellipsis text-bold">Test Lot</div>
+                <div class="q-space text-body1 ellipsis text-bold">{{ lot.title || 'Untitled Lot' }}</div>
               </div>
-              <div>Lot 1</div>
-              <div>Est. Php 300 - Php 1,000</div>
-              <div>Php 450 (5 bids)</div>
+
+              <div class="row items-center q-mb-xs">
+                <div class="q-space text-caption">Estimated Price: {{ lot.estimatedPrice }}</div>
+              </div>
+
+              <div v-if="auctionType === 'English Auction'">
+                <div>Floor/Reserve: Php {{ lot.threshold }}</div>
+              </div>
+
+              <div v-else-if="auctionType === 'Dutch Auction'">
+                <div>Ceiling Price: {{ lot.threshold }} BCH</div>
+                <div class="text-caption text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
+              </div>
             </q-card-section>
           </q-card>
         </div>
         
         <!-- Empty state -->
-        <div>
-          {{ $t('NoProducts') }}
+        <div v-if="isLotEmpty"
+          class="row flex-center q-mx-md q-mb-md rounded-borders"
+          :class="$q.dark.isActive ? 'bg-pt-dark' : 'bg-pt-light'"
+          style="min-height: 70px; width: 100%;"
+        >
+          <div>{{ $t('NoProducts') }}</div>
         </div>
       </div>
       
@@ -87,10 +92,20 @@ import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } f
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AddAuctionDetails from 'src/components/auction/AddAuctionDetails.vue'
+import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const auctionType = ref('English Auction')
+const lots = ref([])
+
+const isLotEmpty = computed(() => lots.value.length === 0)
+
+const handleNewLot = (lotData) => {
+  lots.value.push(lotData)
+}
 </script>
 
 <style scoped lang="scss">

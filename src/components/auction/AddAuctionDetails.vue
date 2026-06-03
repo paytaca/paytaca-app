@@ -19,7 +19,8 @@
       <q-select
         outlined
         dense
-        v-model="auctionType" 
+        v-model="auctionType"
+        @update:model-value="$emit('update:auction-type', $event)"
         :options="auctionTypeOptions"
         autocomplete="off"
         placeholder="Select auction type"
@@ -119,7 +120,10 @@
   <q-separator class="q-my-md" :dark="$q.dark.isActive" />
 
   <div>
-    <AddLotDetails :auctionType="auctionType"/>
+    <AddLotDetails
+      :auctionType="auctionType"
+      @add-lot="$emit('add-lot', $event)"
+    />
   </div>
 </template>
 
@@ -150,4 +154,12 @@ const onRejected = () => {
     message: 'Invalid file format.'
   })
 }
+
+defineProps({
+  auctionType: {
+    type: String,
+    default: 'English Auction'
+  }
+})
+defineEmits(['update:auction-type', 'add-lot'])
 </script>

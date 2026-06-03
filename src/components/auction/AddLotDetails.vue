@@ -71,7 +71,7 @@
             <q-input
               outlined
               dense
-              v-model.number="priceFloor"
+              v-model.number="priceThreshold"
               type="number"
               :step="isFiatUsed ? '0.00000001' : '0.01'"
               inputmode="decimal"
@@ -93,7 +93,7 @@
             <q-input
               outlined
               dense
-              v-model.number="priceCeiling"
+              v-model.number="priceThreshold"
               type="number"
               :step="isFiatUsed ? '0.00000001' : '0.01'"
               inputmode="decimal"
@@ -176,6 +176,7 @@
             text-color="white"
             label="Add Lot"
             class="q-px-xl"
+            @click="addLot"
           />
         </div>
       </q-card-section>
@@ -198,20 +199,21 @@ defineProps({
   }
 })
 
+const emit = defineEmits(['add-lot'])
+
 const $q = useQuasar()
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const lotName = ref('')
+const lotName = ref('Lot Title')
 const lotType = ref('Physical')
 const lotTypeOptions = [
   'Physical',
   'Digital'
 ]
-const estimatedPrice = ref(null)
-const priceFloor = ref(null)
-const priceCeiling = ref(null)
-const priceDrop = ref(null)
+const estimatedPrice = ref(0.002)
+const priceThreshold = ref(0.002)
+const priceDrop = ref(0.0005)
 const lotImages = ref([])
 const isFiatUsed = ref(false)
 
@@ -229,6 +231,36 @@ const onRejected = (rejectedEntries) => {
 
 const toggleCurrency = (isFiat) => {
   // Code block for converting user input money to its equivalent currency
+}
+
+const addLot = () => {
+  if (!lotName.value) {
+    $q.notify({ type: 'warning', message: 'Please enter a lot name.' })
+    return
+  }
+  
+  const payload = {
+    title: lotName.value,
+    type: lotType.value,
+    estimatedPrice: estimatedPrice.value,
+    threshold: priceThreshold.value || 0,
+    price_drop: priceDrop.value || 0,
+    isFiatUsed: isFiatUsed.value,
+    imageUrl: lotImages.value && lotImages.value.length > 0 
+      ? URL.createObjectURL(lotImages.value[0]) 
+      : null
+  }
+
+  emit('add-lot', payload)
+
+  isToggledAddLot.value = false
+  
+  // lotName.value = ''
+  // estimatedPrice.value = null
+  // priceFloor.value = null
+  // priceCeiling.value = null
+  // priceDrop.value = 0.0005
+  // lotImages.value = []
 }
 </script>
 
