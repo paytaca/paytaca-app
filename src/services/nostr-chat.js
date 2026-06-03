@@ -205,8 +205,14 @@ function scheduleResubscribe() {
     ) {
       // If we've exhausted backoff, reset the pool to clear stale state
       if (_resubscribeAttempts >= 6) {
+        const savedRelays = _subscribedRelays
+        const savedPubKey = _subscribedPubKey
+        const savedCallbacks = _subscriptionCallbacks
         disconnect()
         _pool = getPool()
+        _subscribedRelays = savedRelays
+        _subscribedPubKey = savedPubKey
+        _subscriptionCallbacks = savedCallbacks
       }
       subscribeGiftWraps(_subscribedRelays, _subscribedPubKey, _subscriptionCallbacks, { force: true })
     }

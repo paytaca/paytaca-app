@@ -444,7 +444,7 @@ export async function publishKind10050 ({ state }) {
   if (!state.keys.privKeyHex) return
   try {
     const kind10050 = createKind10050(state.relays, state.keys.privKeyHex)
-    const accepted = await relayService.publishEvent(state.relays, kind10050)
+    const { accepted } = await relayService.publishEvent(state.relays, kind10050)
     if (accepted.length === 0) {
       console.warn('[Nostr] kind:10050 was not accepted by any relay — other clients may not be able to reply')
     }
@@ -814,8 +814,10 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
     }
     return m
   })
-  const otherMembers = memberHexes.filter(m => m !== reactorPubKey)
-  const senderPubKey = otherMembers[0] || reactorPubKey
+  // Look up the actual message sender from the message being reacted to
+  const messages = state.messages[roomId] || []
+  const originalMessage = messages.find(m => m.id === messageId)
+  const senderPubKey = originalMessage?.sender || memberHexes.find(m => m !== reactorPubKey) || reactorPubKey
 
   const giftWraps = await createReactionGiftWraps({
     messageId,
@@ -853,8 +855,10 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
     }
     return m
   })
-  const otherMembers = memberHexes.filter(m => m !== reactorPubKey)
-  const senderPubKey = otherMembers[0] || reactorPubKey
+  // Look up the actual message sender from the message being un-reacted to
+  const messages = state.messages[roomId] || []
+  const originalMessage = messages.find(m => m.id === messageId)
+  const senderPubKey = originalMessage?.sender || memberHexes.find(m => m !== reactorPubKey) || reactorPubKey
 
   commit('REMOVE_MESSAGE_REACTION', {
     roomId,
@@ -999,8 +1003,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
 
     const pTags = rumor.tags.filter(t => t[0] === 'p').map(t => {
       const val = t[1]
-      return val.length === 64 && /^[a-f0-9]+$/.test(val) ? val : base64ToHex(val)
-    })
+      if (val.length === 64 && /^[a-f0-9]+$/.test(val)) return val
+      try { return base64ToHex(val) } catch (_) { return null }
+    }).filter(Boolean)
     const roomMembers = [...new Set([myPubKey, rumor.pubkey, ...pTags])]
     const roomId = computeRoomId(roomMembers)
 

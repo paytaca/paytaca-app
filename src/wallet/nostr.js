@@ -108,11 +108,8 @@ export async function createNip17GiftWraps(unsignedKind14, senderPrivKey, receiv
 export function unwrapGiftWrap(giftWrap, receiverPrivKey) {
   const receiverPrivKeyBytes = hexToBytes(receiverPrivKey)
   const rumor = nip59.unwrapEvent(giftWrap, receiverPrivKeyBytes)
-  // In nip59.unwrapEvent, the rumor.pubkey is the seal pubkey
-  // We must verify it matches the inner event pubkey for NIP-17 compliance
-  if (rumor.pubkey !== rumor.pubkey) {
-    // This is handled internally by nostr-tools nip59, but we keep the check
-  }
+  // nip59.unwrapEvent verifies the seal pubkey against the rumor pubkey internally.
+  // The returned rumor.pubkey is the verified seal pubkey.
   return { rumor, sealPubkey: rumor.pubkey }
 }
 

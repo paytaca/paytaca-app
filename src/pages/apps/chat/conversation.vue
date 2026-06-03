@@ -1038,8 +1038,8 @@ export default {
     },
     showDateSeparator (index) {
       if (index === 0) return true
-      const curr = new Date(this.allMessages[index].created_at * 1000)
-      const prev = new Date(this.allMessages[index - 1].created_at * 1000)
+      const curr = new Date(this.displayedMessages[index].created_at * 1000)
+      const prev = new Date(this.displayedMessages[index - 1].created_at * 1000)
       return curr.toDateString() !== prev.toDateString()
     },
     formatDate (ts) {
