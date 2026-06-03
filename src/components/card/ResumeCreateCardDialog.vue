@@ -1,6 +1,6 @@
 <template>
     <q-dialog v-model="showDialog" persistent>
-      <q-card>
+      <q-card style="border-radius: 24px;">
         <q-card-section class="row items-center">
           <q-avatar icon="warning" color="orange" text-color="white" size="56px"/>
           <div class="col q-ml-md">

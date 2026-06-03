@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" full-width>
-    <q-card class="cash-in-dialog q-mx-lg pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 20px;">
+    <q-card class="cash-in-dialog q-mx-lg pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="border-radius: 24px;">
       <q-card-section class="q-pa-lg cash-in-section">
         <!-- Header -->
         <div class="row items-center justify-between q-mb-lg">

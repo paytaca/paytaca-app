@@ -503,7 +503,7 @@
       </q-page>
 
       <q-dialog v-model="showEditNameDialog">
-        <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 340px; border-radius: 20px;">
+        <q-card class="pt-card" :class="$q.dark.isActive ? 'dark' : 'light'" style="min-width: 340px; border-radius: 24px;">
           <q-card-section class="q-pa-lg">
             <div class="row items-center justify-between q-mb-md">
               <div class="text-h6 text-weight-bold" :class="textColor">Edit Card Name</div>
