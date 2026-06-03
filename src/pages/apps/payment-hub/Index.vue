@@ -112,6 +112,8 @@ import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
+import { PaymentHub, backend } from 'src/wallet/payment-hub'
+import { loadWallet } from 'src/wallet'
 
 const $store = useStore()
 const $router = useRouter()
@@ -120,41 +122,98 @@ const { t: $t } = useI18n()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-// Placeholder data
-const storesList = ref([
-  { id: 1, name: 'Main Store' },
-  { id: 2, name: 'Secondary Store' }
-])
+// Core state
+const wallet = ref(null)
+const hub = ref(null)
+const hubWalletData = ref(null)
+const storesList = ref([])
 const fetchingStores = ref(false)
 
 onMounted(() => {
   refreshPage()
 })
 
-async function refreshPage(done) {
-  fetchingStores.value = true
-  // TODO: Implement auto-registration/login logic here
-  // Check if user has a token, if not, generate one
+/**
+ * Initializes the wallet and Payment Hub interface.
+ * Handles automatic registration of the master wallet on the hub.
+ */
+async function initHub() {
+  if (!wallet.value) {
+    wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+  }
   
-  // TODO: Fetch stores from API
-  setTimeout(() => {
-    fetchingStores.value = false
-    if (done) done()
-  }, 1000)
+  if (!hub.value) {
+    hub.value = new PaymentHub(wallet.value)
+  }
+
+  // Check if wallet is already registered on the hub
+  let registration = await hub.value.checkRegistration()
+  
+  // Auto-register if not found
+  if (!registration) {
+    console.log('Wallet not registered on Payment Hub. Registering now...')
+    registration = await hub.value.registerWallet()
+  }
+  
+  hubWalletData.value = registration
+  return hub.value
 }
 
+/**
+ * Main refresh function.
+ * Ensures authentication, registration, and fetches the latest stores list.
+ */
+async function refreshPage(done) {
+  fetchingStores.value = true
+  try {
+    const paymentHub = await initHub()
+    
+    // Fetch stores associated with this wallet
+    const stores = await paymentHub.listStores()
+    storesList.value = stores
+  } catch (error) {
+    console.error('Payment Hub Error:', error)
+    $q.notify({
+      type: 'negative',
+      message: $t('PaymentHubError', {}, 'Failed to connect to Payment Hub')
+    })
+  } finally {
+    fetchingStores.value = false
+    if (typeof done === 'function') done()
+  }
+}
+
+/**
+ * Opens the dialog to add or edit a store.
+ */
 function openStoreInfoDialog(storeData) {
   $q.dialog({
     component: StoreInfoDialog,
     componentProps: {
       storeData: storeData
     }
-  }).onOk((data) => {
-    // TODO: Update local list or re-fetch
-    console.log('Store saved:', data)
+  }).onOk(async (data) => {
+    try {
+      $q.loading.show()
+      if (data.id) {
+        // Update existing store
+        await hub.value.renameStore(data.id, data.name)
+      } else {
+        // Create new store
+        await hub.value.createStore(data.name, hubWalletData.value.id)
+      }
+      await refreshPage()
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorSavingStore', {}, 'Error saving store') })
+    } finally {
+      $q.loading.hide()
+    }
   })
 }
 
+/**
+ * Navigates to the store details page.
+ */
 function goToStorePage(store) {
   $router.push({
     name: 'payment-hub-store-detail',
@@ -163,17 +222,28 @@ function goToStorePage(store) {
   })
 }
 
+/**
+ * Confirms and executes store deletion.
+ */
 function confirmDeleteStore(store) {
   $q.dialog({
     title: $t('DeleteStore', {}, 'Delete Store'),
-    message: $t('AreYouSure', {}, 'Are you sure?'),
+    message: $t('DeleteStoreConfirm', { name: store.name }, `Are you sure you want to delete '${store.name}'?`),
     ok: { label: $t('Delete'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-  }).onOk(() => {
-    // TODO: Implement delete logic
-    console.log('Deleting store:', store.id)
-    storesList.value = storesList.value.filter(s => s.id !== store.id)
+  }).onOk(async () => {
+    try {
+      $q.loading.show()
+      // Note: API_DOCS.md doesn't explicitly list a DELETE /api/stores/ endpoint,
+      // but typical REST APIs use DELETE. If not supported, this might need adjustment.
+      await backend.delete(`/api/stores/${store.id}/`, { authorize: true, wallet: wallet.value })
+      await refreshPage()
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorDeletingStore', {}, 'Error deleting store') })
+    } finally {
+      $q.loading.hide()
+    }
   })
 }
 </script>

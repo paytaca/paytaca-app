@@ -67,13 +67,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { useQuasar, copyToClipboard } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
+import { PaymentHub } from 'src/wallet/payment-hub'
+import { loadWallet } from 'src/wallet'
 
 const $route = useRoute()
 const $store = useStore()
@@ -84,28 +86,62 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const storeId = computed(() => $route.params.storeId)
 const storeName = computed(() => $route.query.name)
 
-// Placeholder API keys
-const apiKeys = ref([
-  { id: 1, name: 'Production Key', value: 'ph_live_abcdef1234567890abcdef1234567890', active: true },
-  { id: 2, name: 'Test Key', value: 'ph_test_1234567890abcdef1234567890abcdef', active: true }
-])
+// Core state
+const wallet = ref(null)
+const hub = ref(null)
+const apiKeys = ref([])
+const fetchingKeys = ref(false)
 
-async function refreshPage(done) {
-  // TODO: Add logic to fetch API keys
-  setTimeout(() => {
-    if (done) done()
-  }, 1000)
+onMounted(() => {
+  refreshPage()
+})
+
+/**
+ * Initializes the Hub interface for this specific store view.
+ */
+async function initHub() {
+  if (!wallet.value) {
+    wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+  }
+  if (!hub.value) {
+    hub.value = new PaymentHub(wallet.value)
+  }
+  return hub.value
 }
 
+/**
+ * Fetches the list of API keys for the current store.
+ */
+async function refreshPage(done) {
+  fetchingKeys.value = true
+  try {
+    const paymentHub = await initHub()
+    const keys = await paymentHub.listApiKeys(storeId.value)
+    apiKeys.value = keys
+  } catch (error) {
+    console.error('Error fetching API keys:', error)
+  } finally {
+    fetchingKeys.value = false
+    if (typeof done === 'function') done()
+  }
+}
+
+/**
+ * Trims the key for safe display.
+ */
 function trimKey(key) {
-  if (!key) return ''
+  if (!key) return '********'
+  if (key.length < 12) return key
   return key.substring(0, 8) + '...' + key.substring(key.length - 4)
 }
 
+/**
+ * Copies a value to clipboard with notification.
+ */
 function copyKey(key) {
   copyToClipboard(key)
   $q.notify({
-    message: $t('KeyCopied', {}, 'API Key copied to clipboard'),
+    message: $t('KeyCopied', {}, 'Copied to clipboard'),
     color: 'positive',
     icon: 'check',
     position: 'bottom',
@@ -113,17 +149,54 @@ function copyKey(key) {
   })
 }
 
+/**
+ * Prompts for a key name and generates a new API key.
+ * Shows the secret key once to the user.
+ */
 function createApiKey() {
-  // TODO: Add logic to create a new API key via API
-  const newKey = {
-    id: Date.now(),
-    name: 'New Key ' + (apiKeys.value.length + 1),
-    value: 'ph_new_' + Math.random().toString(36).substring(7),
-    active: true
-  }
-  apiKeys.value.push(newKey)
+  $q.dialog({
+    title: $t('CreateKey', {}, 'Create API Key'),
+    message: $t('EnterKeyName', {}, 'Enter a name for this key (e.g. Mobile App)'),
+    prompt: {
+      model: '',
+      type: 'text'
+    },
+    cancel: true,
+    persistent: true,
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  }).onOk(async (name) => {
+    if (!name) return
+    try {
+      $q.loading.show()
+      const newKeyData = await hub.value.generateApiKey(storeId.value, name)
+      
+      // The secret key is only shown once.
+      const secret = newKeyData.key || newKeyData.secret || newKeyData.token
+      
+      $q.dialog({
+        title: $t('KeyGenerated', {}, 'API Key Generated'),
+        message: $t('KeySecretWarning', {}, 'Please copy this key now. It will not be shown again.'),
+        prompt: {
+          model: secret,
+          readonly: true
+        },
+        ok: { label: $t('CopyAndClose', {}, 'Copy & Close'), color: 'pt-primary1' },
+        class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+      }).onOk(() => {
+        copyKey(secret)
+        refreshPage()
+      })
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorGeneratingKey', {}, 'Error generating key') })
+    } finally {
+      $q.loading.hide()
+    }
+  })
 }
 
+/**
+ * Revokes an existing API key.
+ */
 function deleteKey(key) {
   $q.dialog({
     title: $t('DeleteKey', {}, 'Delete API Key'),
@@ -131,9 +204,16 @@ function deleteKey(key) {
     ok: { label: $t('Delete'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-  }).onOk(() => {
-    // TODO: Implement delete logic via API
-    apiKeys.value = apiKeys.value.filter(k => k.id !== key.id)
+  }).onOk(async () => {
+    try {
+      $q.loading.show()
+      await hub.value.revokeApiKey(key.id)
+      await refreshPage()
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorRevokingKey', {}, 'Error revoking key') })
+    } finally {
+      $q.loading.hide()
+    }
   })
 }
 </script>
