@@ -60,6 +60,24 @@
                 <div>Ceiling Price: {{ lot.threshold }} BCH</div>
                 <div class="text-caption text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
               </div>
+
+              <div class="row q-mt-sm">
+                <q-btn
+                  icon="edit"
+                  class="q-pa-sm"
+                  size="sm"
+                  color="green"
+                  @click="editLotDetails(lot, index)"
+                />
+
+                <q-btn
+                  icon="delete"
+                  class="q-pa-sm q-ml-sm"
+                  size="sm"
+                  color="red"
+                  @click="deleteLot(lot, index)"
+                />
+              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -100,6 +118,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AddAuctionDetails from 'src/components/auction/AddAuctionDetails.vue'
 import AddLotDetails from 'src/components/auction/AddLotDetails.vue'
+import EditLotDetails from 'src/components/auction/EditLotDetails.vue'
 import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
@@ -113,6 +132,22 @@ const isLotEmpty = computed(() => lots.value.length === 0)
 
 const handleNewLot = (lotData) => {
   lots.value.push(lotData)
+}
+
+const editLotDetails = (lot, index) => {
+  $q.notify({
+    type: 'positive',
+    message: 'Lot edited!',
+    timeout: 3000
+  })
+}
+
+const deleteLot = (lot, index) => {
+  $q.notify({
+    type: 'positive',
+    message: 'Lot deleted!',
+    timeout: 3000
+  })
 }
 </script>
 

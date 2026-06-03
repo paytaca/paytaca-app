@@ -1,16 +1,4 @@
 <template>
-  <div id="toggle-add-hide-lot" class="q-px-md q-mb-sm text-right">
-    <q-btn
-      outline
-      no-caps
-      color="primary"
-      label="Add Lot"
-      icon="add"
-      class="q-px-lg dropdown-add-lot-btn"
-      @click="onToggleAddLot"
-    />
-  </div>
-
   <q-dialog v-model="isToggledAddLot" position="bottom">
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-form @submit="addLot">
@@ -228,9 +216,6 @@ const lotImages = ref([])
 const isFiatUsed = ref(false)
 
 const isToggledAddLot = ref(false)
-const onToggleAddLot = () => {
-  isToggledAddLot.value = !isToggledAddLot.value
-}
 
 const onRejected = (rejectedEntries) => {
   $q.notify({
