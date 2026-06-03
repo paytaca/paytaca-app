@@ -137,13 +137,6 @@
   </q-card>
 
   <q-separator class="q-my-md" :dark="$q.dark.isActive" />
-
-  <div>
-    <AddLotDetails
-      :auctionType="auctionType"
-      @add-lot="$emit('add-lot', $event)"
-    />
-  </div>
 </template>
 
 <script setup>
@@ -152,9 +145,6 @@ import { ref } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
-
-// Components
-import AddLotDetails from 'src/components/auction/AddLotDetails.vue'
 
 const $q = useQuasar()
 const $store = useStore();
@@ -185,7 +175,7 @@ defineProps({
     default: 'English Auction'
   }
 })
-defineEmits(['update:auction-type', 'add-lot'])
+defineEmits(['update:auction-type'])
 
 const postAuction = () => {
   $q.notify({

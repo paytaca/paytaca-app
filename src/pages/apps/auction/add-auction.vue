@@ -11,7 +11,14 @@
     </HeaderNav>
 
     <div>
-      <AddAuctionDetails v-model:auction-type="auctionType" @add-lot="handleNewLot" />
+      <AddAuctionDetails v-model:auction-type="auctionType" />
+    </div>
+
+    <div>
+      <AddLotDetails
+        :auctionType="auctionType"
+        @add-lot="handleNewLot"
+      />
     </div>
 
     <div>
@@ -92,6 +99,7 @@ import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } f
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AddAuctionDetails from 'src/components/auction/AddAuctionDetails.vue'
+import AddLotDetails from 'src/components/auction/AddLotDetails.vue'
 import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
