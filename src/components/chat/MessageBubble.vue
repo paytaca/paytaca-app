@@ -331,6 +331,7 @@ export default {
       }
     },
    beforeUnmount () {
+     this._unmounted = true
      clearInterval(this._timer)
      if (this._imgObserver) {
        this._imgObserver.disconnect()
@@ -481,12 +482,14 @@ export default {
     loadReplyThumbnail (msg) {
       const msgId = msg.id || msg.content
       const blossomServer = 'https://blossom.paytaca.com'
+      const self = this
       downloadFromBlossom(msg.content, blossomServer)
         .then(encryptedData => decryptFile(encryptedData, msg.aesKeyHex, msg.nonceHex))
         .then(decryptedData => {
+          if (self._unmounted) return
           const blob = new Blob([decryptedData], { type: msg.fileType || 'image/jpeg' })
           const url = URL.createObjectURL(blob)
-          this._pendingThumbnailUrl = url
+          self._pendingThumbnailUrl = url
           const img = new Image()
           img.onload = () => {
             const canvas = document.createElement('canvas')
@@ -500,13 +503,13 @@ export default {
             ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
             const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85)
             _replyThumbnailCache.set(msgId, thumbnailUrl)
-            this.replyImageThumbnail = thumbnailUrl
+            self.replyImageThumbnail = thumbnailUrl
             URL.revokeObjectURL(url)
-            this._pendingThumbnailUrl = null
+            self._pendingThumbnailUrl = null
           }
           img.onerror = () => {
             URL.revokeObjectURL(url)
-            this._pendingThumbnailUrl = null
+            self._pendingThumbnailUrl = null
           }
           img.src = url
         })

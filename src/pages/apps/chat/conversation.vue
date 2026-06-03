@@ -932,7 +932,6 @@ export default {
       this.$nextTick(() => {
         const container = this.$refs.messagesContainer
         if (container) {
-          container.scrollTop = container.scrollHeight
           container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
         }
       })

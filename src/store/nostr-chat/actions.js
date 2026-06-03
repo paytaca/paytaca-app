@@ -578,7 +578,10 @@ export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, 
     }),
   }, privKeyBytes)
 
-  await relayService.publishEvent(state.relays, event)
+  const { accepted } = await relayService.publishEvent(state.relays, event)
+  if (accepted.length === 0) {
+    console.warn('[Nostr] Group metadata was not accepted by any relay')
+  }
 }
 
 export async function fetchGroupMetadata ({ state }, { roomId }) {
@@ -610,9 +613,9 @@ export async function requestToJoinGroup ({ state }, { roomId, memberPubKeys, na
 
   const giftWraps = await createNip17GiftWraps(unsignedKind14, myPrivKey, existingMembers)
 
-  for (const giftWrap of giftWraps) {
-    await relayService.publishEvent(state.relays, giftWrap)
-  }
+  await Promise.allSettled(
+    giftWraps.map(gw => relayService.publishEvent(state.relays, gw))
+  )
 }
 
 export async function sendMessage ({ state }, { roomId, text, replyTo, subject }) {
@@ -911,11 +914,8 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
 }
 
 export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
-  // Verify sender pubkey consistency (NIP-17 requirement)
-  if (rumor.pubkey !== sealPubkey) {
-    console.warn('[Nostr] Pubkey mismatch in received message: seal says', sealPubkey, 'but rumor says', rumor.pubkey)
-    return
-  }
+  // NIP-17 seal pubkey verification is performed inside unwrapGiftWrap().
+  // If we reach here, the rumor has already been verified.
 
   const myPubKey = state.keys.pubKeyHex
 
@@ -1152,6 +1152,19 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       commit('UPDATE_MESSAGE', { roomId, messageId: editOf, newContent: rumor.content })
       return
     }
+    // Original message not found in this room (e.g., deep pagination).
+    // Search across all rooms before falling through to insert as new.
+    for (const otherRoomId of Object.keys(state.messages)) {
+      if (otherRoomId === roomId) continue
+      const otherMsg = state.messages[otherRoomId]?.find(m => m.id === editOf)
+      if (otherMsg) {
+        commit('UPDATE_MESSAGE', { roomId: otherRoomId, messageId: editOf, newContent: rumor.content })
+        return
+      }
+    }
+    // Target still not found — skip insertion to avoid creating a phantom message
+    console.warn('[Nostr] Edit targets unknown message', editOf, '— skipping')
+    return
   }
 
   const message = {
@@ -1203,19 +1216,21 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
   }
 
   for (const [senderPubKey, messageIds] of senderMap) {
-    for (const messageId of messageIds) {
-      try {
-        const giftWrap = await createReadReceiptGiftWrap({
+    const receipts = await Promise.allSettled(
+      messageIds.map(messageId =>
+        createReadReceiptGiftWrap({
           messageId,
           senderPubKey,
           receiverPubKey: myPubKey,
           receiverPrivKey: myPrivKey,
         })
-        await relayService.publishEvent(state.relays, giftWrap)
-      } catch (err) {
-        console.warn('[Nostr] Failed to send read receipt:', err)
-      }
-    }
+      )
+    )
+    await Promise.allSettled(
+      receipts
+        .filter(r => r.status === 'fulfilled')
+        .map(r => relayService.publishEvent(state.relays, r.value))
+    )
   }
 }
 
