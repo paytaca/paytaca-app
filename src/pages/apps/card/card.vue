@@ -89,41 +89,45 @@
           />
           <div 
             v-else-if="activeTab === 'Order Card' && activeCard"
-            class="full-width"
+            class="full-width text-center"
           >
-            <div class="order-physical-card-intro text-center q-pa-lg">
-              <div 
-                class="text-h5 text-weight-bold q-mb-sm"
-                :class="textColor"
-              >
-                Your new Paytaca card awaits.
-              </div>
-              <p 
-                class="opacity-80 q-mb-lg"
-                :class="textColorGrey"
-              >
-                Global payments, Paytaca style.
-              </p>
-              <div 
-                class="text-caption q-mb-md"
-                :class="textColorGreyLight"
-                style="max-width: 400px; margin: 0 auto;"
-              >
-                <q-icon name="local_shipping" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
-                <strong>Local shipping:</strong> 7-10 business days<br/>
-                <q-icon name="public" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
-                <strong>International shipping:</strong> May take longer depending on destination
-              </div>
-              <q-btn 
-                :label="'Order Your Card'" 
-                color="primary" 
-                class="q-px-xl q-mt-lg text-bold"
-                unelevated
-                style="border-radius: 24px"
-                icon="open_in_new"
-                @click="openOrderCardWebsite"
-              />
+            <q-icon 
+              name="credit_card" 
+              size="64px" 
+              color="primary" 
+              class="q-mb-md q-mt-lg"
+            />
+            <div 
+              class="text-h5 text-weight-bold q-mb-sm"
+              :class="textColor"
+            >
+              Your new Paytaca card awaits.
             </div>
+            <p 
+              class="opacity-80 q-mb-lg"
+              :class="textColorGrey"
+            >
+              Global payments, Paytaca style.
+            </p>
+            <div 
+              class="text-caption q-mb-md"
+              :class="textColorGreyLight"
+              style="max-width: 400px; margin: 0 auto;"
+            >
+              <q-icon name="local_shipping" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
+              <strong>Local shipping:</strong> 7-10 business days<br/>
+              <q-icon name="public" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
+              <strong>International shipping:</strong> May take longer depending on destination
+            </div>
+            <q-btn 
+              :label="'Order Your Card'" 
+              color="primary" 
+              class="q-px-xl q-mt-lg text-bold"
+              unelevated
+              style="border-radius: 24px"
+              icon="open_in_new"
+              @click="openOrderCardWebsite"
+            />
           </div>
 
           <div 
