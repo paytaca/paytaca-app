@@ -885,19 +885,19 @@ export async function publishGiftWraps ({ state }, { giftWraps }) {
   // Start with our own relays as fallback
   let targetRelays = new Set(state.relays)
 
-  // Try to fetch each recipient's kind:10050 and add their preferred relays
-  for (const gw of giftWraps) {
-    const recipient = gw.tags.find(t => t[0] === 'p')?.[1]
-    if (!recipient || recipient === state.keys.pubKeyHex) continue
-    try {
-      const event = await relayService.fetchKind10050(state.relays, recipient)
-      if (event?.tags) {
-        for (const tag of event.tags) {
-          if (tag[0] === 'relay' && tag[1]) targetRelays.add(tag[1])
-        }
+  // Fetch each recipient's kind:10050 in parallel and add their preferred relays
+  const recipients = giftWraps
+    .map(gw => gw.tags.find(t => t[0] === 'p')?.[1])
+    .filter(r => r && r !== state.keys.pubKeyHex)
+  const uniqueRecipients = [...new Set(recipients)]
+  const results = await Promise.allSettled(
+    uniqueRecipients.map(recipient => relayService.fetchKind10050(state.relays, recipient))
+  )
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value?.tags) {
+      for (const tag of result.value.tags) {
+        if (tag[0] === 'relay' && tag[1]) targetRelays.add(tag[1])
       }
-    } catch (err) {
-      console.warn(`Failed to fetch kind:10050 for ${recipient}:`, err)
     }
   }
 

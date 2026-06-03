@@ -195,7 +195,6 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav.vue'
 import { npubEncode } from 'nostr-tools/nip19'
-import { fetchPublishedDisplayName } from 'src/store/nostr-chat/actions'
 import { copyToClipboard } from 'quasar'
 
 export default {

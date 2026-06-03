@@ -111,8 +111,11 @@ export function ADD_MESSAGE (state, { roomId, message }) {
   }
   const exists = state.messages[roomId].find(m => m.id === message.id)
   if (!exists) {
-    state.messages[roomId].push(message)
-    state.messages[roomId].sort((a, b) => a.created_at - b.created_at)
+    const arr = state.messages[roomId]
+    // Insertion-sort: find correct position and splice in place
+    let i = arr.length
+    while (i > 0 && arr[i - 1].created_at > message.created_at) i--
+    arr.splice(i, 0, message)
     const room = state.rooms.find(r => r.id === roomId)
     if (room) {
       room.updatedAt = Math.max(room.updatedAt || 0, message.created_at)

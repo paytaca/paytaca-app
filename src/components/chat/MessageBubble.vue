@@ -336,10 +336,15 @@ export default {
        this._imgObserver.disconnect()
        this._imgObserver = null
      }
-     // Only revoke full image URL (thumbnails are cached globally)
-     if (this.imageFullUrl) {
-       URL.revokeObjectURL(this.imageFullUrl)
-     }
+      // Only revoke full image URL (thumbnails are cached globally)
+      if (this.imageFullUrl) {
+        URL.revokeObjectURL(this.imageFullUrl)
+      }
+      // Revoke any in-flight thumbnail blob URL
+      if (this._pendingThumbnailUrl) {
+        URL.revokeObjectURL(this._pendingThumbnailUrl)
+        this._pendingThumbnailUrl = null
+      }
    },
   computed: {
     isMine () {
@@ -481,6 +486,7 @@ export default {
         .then(decryptedData => {
           const blob = new Blob([decryptedData], { type: msg.fileType || 'image/jpeg' })
           const url = URL.createObjectURL(blob)
+          this._pendingThumbnailUrl = url
           const img = new Image()
           img.onload = () => {
             const canvas = document.createElement('canvas')
@@ -494,11 +500,14 @@ export default {
             ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
             const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85)
             _replyThumbnailCache.set(msgId, thumbnailUrl)
-            // Set reactive property to trigger re-render
             this.replyImageThumbnail = thumbnailUrl
             URL.revokeObjectURL(url)
+            this._pendingThumbnailUrl = null
           }
-          img.onerror = () => URL.revokeObjectURL(url)
+          img.onerror = () => {
+            URL.revokeObjectURL(url)
+            this._pendingThumbnailUrl = null
+          }
           img.src = url
         })
         .catch(() => {})

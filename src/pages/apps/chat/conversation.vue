@@ -523,7 +523,6 @@ import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
-import { fetchPublishedDisplayName } from 'src/store/nostr-chat/actions'
 
 export default {
   name: 'ChatConversation',

@@ -506,6 +506,7 @@ export function resizeImage(file, { maxDimension, quality, maxSizeBytes }) {
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(img, 0, 0, width, height)
+      URL.revokeObjectURL(img.src)
       const tryEncode = (q) => {
         canvas.toBlob((blob) => {
           if (!blob) return reject(new Error('Failed to encode image'))
@@ -518,7 +519,10 @@ export function resizeImage(file, { maxDimension, quality, maxSizeBytes }) {
       }
       tryEncode(quality)
     }
-    img.onerror = () => reject(new Error('Failed to load image'))
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src)
+      reject(new Error('Failed to load image'))
+    }
     img.src = URL.createObjectURL(file)
   })
 }
