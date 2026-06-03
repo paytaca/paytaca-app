@@ -144,15 +144,21 @@ function getKeyPrefix(id) {
 /**
  * Initializes the Hub interface for this specific store view.
  */
-
 async function initHub() {
-  if (!wallet.value) {
-    wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+  $q.loading.show({
+    message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
+  })
+  try {
+    if (!wallet.value) {
+      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+    }
+    if (!hub.value) {
+      hub.value = new PaymentHub(wallet.value)
+    }
+    return hub.value
+  } finally {
+    $q.loading.hide()
   }
-  if (!hub.value) {
-    hub.value = new PaymentHub(wallet.value)
-  }
-  return hub.value
 }
 
 /**

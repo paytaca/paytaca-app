@@ -97,9 +97,6 @@
         </q-card>
       </div>
     </div>
-
-    <!-- Dialog Placeholder -->
-    <!-- You should import and use StoreInfoDialog here -->
   </q-pull-to-refresh>
 </template>
 
@@ -138,25 +135,32 @@ onMounted(() => {
  * Handles automatic registration of the master wallet on the hub.
  */
 async function initHub() {
-  if (!wallet.value) {
-    wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
-  }
-  
-  if (!hub.value) {
-    hub.value = new PaymentHub(wallet.value)
-  }
+  $q.loading.show({
+    message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
+  })
+  try {
+    if (!wallet.value) {
+      wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
+    }
+    
+    if (!hub.value) {
+      hub.value = new PaymentHub(wallet.value)
+    }
 
-  // Check if wallet is already registered on the hub
-  let registration = await hub.value.checkRegistration()
-  
-  // Auto-register if not found
-  if (!registration) {
-    console.log('Wallet not registered on Payment Hub. Registering now...')
-    registration = await hub.value.registerWallet()
+    // Check if wallet is already registered on the hub
+    let registration = await hub.value.checkRegistration()
+    
+    // Auto-register if not found
+    if (!registration) {
+      console.log('Wallet not registered on Payment Hub. Registering now...')
+      registration = await hub.value.registerWallet()
+    }
+    
+    hubWalletData.value = registration
+    return hub.value
+  } finally {
+    $q.loading.hide()
   }
-  
-  hubWalletData.value = registration
-  return hub.value
 }
 
 /**
