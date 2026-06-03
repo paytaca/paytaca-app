@@ -254,8 +254,25 @@ export class PaymentHub {
     return response.data
   }
 
+  /**
+   * Retrieves details of a specific store.
+   * @param {String} storeId - The UUID of the store.
+   */
+  async getStore(storeId) {
+    const response = await backend.get(`/stores/${storeId}`, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Renames an existing store.
+   * @param {String} storeId - The UUID of the store.
+   * @param {String} newName - The new name for the store.
+   */
   async renameStore(storeId, newName) {
-    const response = await backend.patch(`/stores/${storeId}/`, {
+    const response = await backend.patch(`/stores/${storeId}`, {
       name: newName
     }, {
       authorize: true,
@@ -264,6 +281,24 @@ export class PaymentHub {
     return response.data
   }
 
+  /**
+   * Deletes a store instance.
+   * @param {String} storeId - The UUID of the store.
+   */
+  async deleteStore(storeId) {
+    const response = await backend.delete(`/stores/${storeId}`, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Generates a unique BCH receiving address for a store.
+   * Requires a valid API Key for the store.
+   * @param {String} storeId - The UUID of the store.
+   * @param {String} apiKey - The secret API Key for the store.
+   */
   async generateStoreAddress(storeId, apiKey) {
     const response = await backend.get(`/stores/${storeId}/generate-address`, {
       apiKey: apiKey
@@ -273,6 +308,10 @@ export class PaymentHub {
 
   // --- API Keys Section ---
 
+  /**
+   * Lists all API keys for a specific store.
+   * @param {String} storeId - The UUID of the store.
+   */
   async listApiKeys(storeId) {
     const response = await backend.get('/keys/', {
       params: { store_id: storeId },
@@ -282,6 +321,11 @@ export class PaymentHub {
     return response.data.results || response.data
   }
 
+  /**
+   * Generates a new API Key for a store.
+   * @param {String} storeId - The UUID of the store.
+   * @param {String} keyName - An identifier for the key (e.g., "Mobile App").
+   */
   async generateApiKey(storeId, keyName) {
     const response = await backend.post('/keys/', {
       store_id: storeId,
@@ -293,6 +337,10 @@ export class PaymentHub {
     return response.data
   }
 
+  /**
+   * Revokes (permanently disables) an API Key.
+   * @param {String} keyId - The ID of the API key to revoke.
+   */
   async revokeApiKey(keyId) {
     const response = await backend.patch(`/keys/${keyId}/revoke/`, {}, {
       authorize: true,

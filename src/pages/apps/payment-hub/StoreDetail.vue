@@ -16,6 +16,17 @@
         <div class="text-h6 q-mr-sm">{{ $t('APIKeys', {}, 'API Keys') }}</div>
         <q-space/>
         <q-btn
+          flat
+          round
+          dense
+          :icon="hideRevoked ? 'visibility_off' : 'visibility'"
+          :color="hideRevoked ? 'grey' : 'pt-primary1'"
+          class="q-mr-sm"
+          @click="hideRevoked = !hideRevoked"
+        >
+          <q-tooltip>{{ hideRevoked ? $t('ShowRevoked', {}, 'Show Revoked') : $t('HideRevoked', {}, 'Hide Revoked') }}</q-tooltip>
+        </q-btn>
+        <q-btn
           unelevated
           rounded
           dense
@@ -29,36 +40,48 @@
       </div>
 
       <!-- API Keys List -->
-      <div v-if="apiKeys.length === 0" class="text-center q-mt-xl text-grey">
+      <div v-if="filteredApiKeys.length === 0" class="text-center q-mt-xl text-grey">
         <q-icon name="vpn_key" size="3em" class="q-mb-md" />
-        <div>{{ $t('NoAPIKeys', {}, 'No API keys generated yet.') }}</div>
+        <div>{{ hideRevoked && apiKeys.some(k => k.revoked) ? $t('AllKeysRevoked', {}, 'All keys are revoked.') : $t('NoAPIKeys', {}, 'No API keys generated yet.') }}</div>
       </div>
 
       <q-list v-else separator class="br-15 overflow-hidden border-grey-4">
-        <q-item v-for="key in apiKeys" :key="key.id" class="q-py-md">
+        <q-item v-for="key in filteredApiKeys" :key="key.id" class="q-py-md">
           <q-item-section>
-            <q-item-label class="text-weight-bold">{{ key.name }}</q-item-label>
-            <q-item-label caption class="font-mono">
-              {{ trimKey(key.value) }}
-              <q-btn
-                flat
-                round
-                dense
-                size="sm"
-                icon="content_copy"
-                @click="copyKey(key.value)"
-              />
-            </q-item-label>
-          </q-item-section>
+            <div class="row items-center no-wrap full-width">
+              <!-- Key Name: Flexible space, truncates if too long -->
+              <div class="col text-weight-bold ellipsis q-pr-md">
+                {{ key.name }}
+              </div>
 
-          <q-item-section side>
-            <q-badge :color="key.active ? 'green' : 'grey'" rounded>
-              {{ key.active ? $t('Active') : $t('Inactive') }}
-            </q-badge>
-          </q-item-section>
+              <!-- Key Prefix: Fixed width for alignment -->
+              <div class="col-auto font-mono text-grey-7 text-right" style="width: 100px;">
+                {{ getKeyPrefix(key.id) }}
+              </div>
 
-          <q-item-section side>
-            <q-btn flat round dense icon="delete" color="grey" @click="deleteKey(key)" />
+              <!-- Status Badge: Fixed width to keep things lined up -->
+              <div class="col-auto text-center" style="width: 100px;">
+                <q-badge :color="key.revoked ? 'grey-5' : 'green-5'" rounded class="q-px-sm">
+                  {{ key.revoked ? $t('Revoked', {}, 'Revoked') : $t('Active', {}, 'Active') }}
+                </q-badge>
+              </div>
+
+              <!-- Action Button: Occupies space even if hidden -->
+              <div class="col-auto text-right" style="width: 48px;">
+                <q-btn
+                  v-if="!key.revoked"
+                  flat
+                  round
+                  dense
+                  icon="block"
+                  color="grey-6"
+                  size="sm"
+                  @click="deleteKey(key)"
+                >
+                  <q-tooltip>{{ $t('Revoke', {}, 'Revoke') }}</q-tooltip>
+                </q-btn>
+              </div>
+            </div>
           </q-item-section>
         </q-item>
       </q-list>
@@ -91,14 +114,31 @@ const wallet = ref(null)
 const hub = ref(null)
 const apiKeys = ref([])
 const fetchingKeys = ref(false)
+const hideRevoked = ref(true)
+
+const filteredApiKeys = computed(() => {
+  if (hideRevoked.value) {
+    return apiKeys.value.filter(k => !k.revoked)
+  }
+  return apiKeys.value
+})
 
 onMounted(() => {
   refreshPage()
 })
 
 /**
+ * Extracts a prefix from the key ID for safe identification.
+ */
+function getKeyPrefix(id) {
+  if (!id) return ''
+  return id.substring(0, 8) + '...'
+}
+
+/**
  * Initializes the Hub interface for this specific store view.
  */
+
 async function initHub() {
   if (!wallet.value) {
     wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])

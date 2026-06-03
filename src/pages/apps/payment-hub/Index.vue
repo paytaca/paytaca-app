@@ -235,9 +235,7 @@ function confirmDeleteStore(store) {
   }).onOk(async () => {
     try {
       $q.loading.show()
-      // Note: API_DOCS.md doesn't explicitly list a DELETE /api/stores/ endpoint,
-      // but typical REST APIs use DELETE. If not supported, this might need adjustment.
-      await backend.delete(`/api/stores/${store.id}/`, { authorize: true, wallet: wallet.value })
+      await hub.value.deleteStore(store.id)
       await refreshPage()
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorDeletingStore', {}, 'Error deleting store') })
@@ -246,6 +244,7 @@ function confirmDeleteStore(store) {
     }
   })
 }
+
 </script>
 
 <style lang="scss" scoped>
