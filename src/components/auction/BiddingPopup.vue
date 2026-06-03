@@ -73,7 +73,7 @@
               no-caps
               label="Place Bid"
               class="full-width button"
-              
+              @click="placeBid"
             />
           </div>
         </q-card-section>
@@ -82,6 +82,7 @@
 </template>
 
 <script setup>
+  import { useQuasar } from 'quasar'
   import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
   import { computed } from 'vue'
   import { useStore } from 'vuex'
@@ -91,7 +92,16 @@
   })
   const emit = defineEmits(['update:modelValue'])
 
+  const $q = useQuasar()
   const $store = useStore();
   const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+  const placeBid = () => {
+    $q.notify({
+      type: 'positive',
+      message: 'Bid placed!',
+      timeout: 300
+    })
+  }
 </script>
     
