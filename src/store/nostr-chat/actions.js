@@ -1,5 +1,5 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
-import { finalizeEvent, verifyEvent } from 'nostr-tools'
+import { finalizeEvent, verifyEvent, hexToBytes } from 'nostr-tools'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'
@@ -173,7 +173,7 @@ export async function publishBchAddress ({ state, commit }, { address }) {
   if (!state.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
@@ -205,7 +205,7 @@ export async function removeBchAddress ({ state, commit }) {
   if (!state.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
@@ -274,7 +274,7 @@ export async function publishDisplayName ({ state, commit }, { displayName }) {
   if (!state.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
@@ -302,7 +302,7 @@ export async function removeDisplayName ({ state, commit }) {
   if (!state.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
@@ -361,7 +361,7 @@ export async function publishAvatar ({ state, commit }, { avatarDataUrl }) {
   if (!state.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
@@ -389,7 +389,7 @@ export async function removeAvatar ({ state, commit }) {
   if (!state.keys.privKeyHex) {
     throw new Error('No Nostr private key available')
   }
-  const privKeyBytes = Uint8Array.from(Buffer.from(state.keys.privKeyHex, 'hex'))
+  const privKeyBytes = hexToBytes(state.keys.privKeyHex)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),
@@ -561,7 +561,7 @@ export async function publishGroupMetadata ({ state }, { roomId, memberPubKeys, 
   const myPrivKey = state.keys.privKeyHex
   if (!myPubKey || !myPrivKey) throw new Error('Not authenticated')
 
-  const privKeyBytes = Uint8Array.from(Buffer.from(myPrivKey, 'hex'))
+  const privKeyBytes = hexToBytes(myPrivKey)
   const event = finalizeEvent({
     kind: 30078,
     created_at: Math.floor(Date.now() / 1000),

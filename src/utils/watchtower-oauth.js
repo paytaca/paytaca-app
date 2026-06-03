@@ -129,9 +129,10 @@ export async function getAuthHeaders() {
 
   const credentials = await deriveOAuthCredentials()
   
+  const isChipnet = Store.getters['global/isChipnet']
   const client = new BitcoinCashOAuthClient({
     serverUrl: getWatchtowerUrl(),
-    network: 'mainnet',
+    network: isChipnet ? 'chipnet' : 'mainnet',
     authBasePath: '/bch-auth',
     fetch: axiosFetch
   })

@@ -108,8 +108,25 @@ export async function createNip17GiftWraps(unsignedKind14, senderPrivKey, receiv
 export function unwrapGiftWrap(giftWrap, receiverPrivKey) {
   const receiverPrivKeyBytes = hexToBytes(receiverPrivKey)
   const rumor = nip59.unwrapEvent(giftWrap, receiverPrivKeyBytes)
-  // nip59.unwrapEvent verifies the seal pubkey against the rumor pubkey internally.
-  // The returned rumor.pubkey is the verified seal pubkey.
+
+  // Verify seal pubkey matches rumor pubkey (NIP-17 requirement).
+  // Decrypt the gift-wrap layer to extract the seal event and its signing pubkey.
+  try {
+    const conversationKey = nip44.getConversationKey(receiverPrivKeyBytes, giftWrap.pubkey)
+    const sealJson = nip44.decrypt(giftWrap.content, conversationKey)
+    const seal = JSON.parse(sealJson)
+    if (seal.pubkey !== rumor.pubkey) {
+      console.warn('[Nostr] NIP-17 verification failed: seal pubkey', seal.pubkey, '!== rumor pubkey', rumor.pubkey)
+      throw new Error('Seal pubkey does not match rumor pubkey')
+    }
+  } catch (err) {
+    // Re-throw verification failures; swallow decryption edge-case errors
+    // (e.g. malformed gift-wrap) but still return the rumor for callers
+    // that want best-effort processing.
+    if (err.message === 'Seal pubkey does not match rumor pubkey') throw err
+    console.warn('[Nostr] Could not independently verify seal pubkey:', err.message)
+  }
+
   return { rumor, sealPubkey: rumor.pubkey }
 }
 
