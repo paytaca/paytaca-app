@@ -677,6 +677,7 @@ export default {
         component: PinLocationDialog,
         componentProps: {
           disableGeolocate: true,
+          rounded: true,
           search: {
             enable: true,
             autofocus: opts?.autoFocusSearch,
