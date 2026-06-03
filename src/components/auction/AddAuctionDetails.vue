@@ -14,6 +14,8 @@
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+              lazy-rules
+              :rules="[ val => val && val.trim().length > 0 || 'Auction title is required' ]"
             />
           </div>
 
@@ -30,6 +32,8 @@
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+              lazy-rules
+              :rules="[ val => !!val || 'Please select an auction type' ]"
             />
           </div>
         </div>
@@ -46,6 +50,8 @@
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+              lazy-rules
+              :rules="[ val => !!val || 'Global time start is required' ]"
             />
           </div>
 
@@ -60,6 +66,8 @@
               color="pt-primary1"
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+              lazy-rules
+              :rules="[ val => !!val || 'Global time start is required' ]"
             />
           </div>
         </div>
@@ -77,6 +85,8 @@
             color="pt-primary1"
             debounce="500"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+            lazy-rules
+            :rules="[ val => val && val.trim().length > 0 || 'Auction description is required' ]"
           />
         </div>
 
@@ -95,6 +105,8 @@
             debounce="500"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
             @rejected="onRejected"
+            lazy-rules
+            :rules="[ val => val && val.length > 0 || 'Please upload at least 1 image' ]"
           >
             <template v-slot:prepend>
               <q-icon name="attach_file" />

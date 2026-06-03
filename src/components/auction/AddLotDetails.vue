@@ -140,22 +140,6 @@
 
           <div class="q-px-md q-mb-md">
             <label class="text-md text-weight-bold block q-mb-xs">Insert Images (max. 3) <span class="text-caption block q-mb-xs text-italic">(Accepts .jpg, .jpeg., and .png only)</span></label>
-            <!--<q-file
-              accept=".jpg, .jpeg, .png"
-              outlined
-              dense
-              v-model="lotImages"
-              multiple
-              :max-files="3"
-              autocomplete="off"
-              placeholder="Choose or drag an image file..."
-              color="pt-primary1"
-              debounce="500"
-              :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-              @rejected="onRejected"
-              lazy-rules
-              :rules="[ val => val && val.length > 0 || 'Please upload at least 1 image' ]"
-            >-->
             <q-file
               accept=".jpg, .jpeg, .png"
               outlined
@@ -170,6 +154,7 @@
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
               @rejected="onRejected"
               lazy-rules
+              :rules="[ val => val && val.length > 0 || 'Please upload at least 1 image' ]"
             >
               <template v-slot:prepend>
                 <q-icon name="attach_file" />
