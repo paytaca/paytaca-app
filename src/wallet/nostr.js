@@ -160,14 +160,16 @@ export async function createReactionGiftWraps({ messageId, senderPubKey, recipie
   return giftWraps
 }
 
-export async function createReadReceiptGiftWrap({ messageId, senderPubKey, receiverPubKey, receiverPrivKey, relayHint = '' }) {
+export async function createReadReceiptGiftWrap({ messageIds, messageId, senderPubKey, receiverPubKey, receiverPrivKey, relayHint = '' }) {
+  const ids = messageIds || (messageId ? [messageId] : [])
+  const eTags = ids.map(id => ['e', id, relayHint, senderPubKey])
   const kind7 = {
     kind: 7,
     pubkey: receiverPubKey,
     created_at: Math.floor(Date.now() / 1000),
     content: '👀',
     tags: [
-      ['e', messageId, relayHint, senderPubKey],
+      ...eTags,
       ['p', senderPubKey, relayHint],
       ['k', '14'],
     ],

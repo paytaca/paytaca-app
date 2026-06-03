@@ -341,11 +341,16 @@ export default {
       if (this.imageFullUrl) {
         URL.revokeObjectURL(this.imageFullUrl)
       }
-      // Revoke any in-flight thumbnail blob URL
-      if (this._pendingThumbnailUrl) {
-        URL.revokeObjectURL(this._pendingThumbnailUrl)
-        this._pendingThumbnailUrl = null
-      }
+       // Revoke any in-flight thumbnail blob URL
+       if (this._pendingThumbnailUrl) {
+         URL.revokeObjectURL(this._pendingThumbnailUrl)
+         this._pendingThumbnailUrl = null
+       }
+       // Revoke any in-flight loading thumbnail blob URL
+       if (this._loadingBlobUrl) {
+         URL.revokeObjectURL(this._loadingBlobUrl)
+         this._loadingBlobUrl = null
+       }
    },
   computed: {
     isMine () {
@@ -652,6 +657,7 @@ export default {
         // Generate thumbnail with aspect ratio preservation
         const img = new Image()
         const blobUrl = URL.createObjectURL(blob)
+        this._loadingBlobUrl = blobUrl
         
         img.onload = async () => {
           const canvas = document.createElement('canvas')
@@ -689,10 +695,12 @@ export default {
           
           this.imageThumbnailUrl = thumbnailUrl
           URL.revokeObjectURL(blobUrl)
+          this._loadingBlobUrl = null
         }
         
         img.onerror = () => {
           URL.revokeObjectURL(blobUrl)
+          this._loadingBlobUrl = null
         }
         
         img.src = blobUrl

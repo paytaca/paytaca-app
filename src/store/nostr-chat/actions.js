@@ -839,9 +839,9 @@ export async function sendReaction ({ state, commit }, { roomId, messageId, emoj
     createdAt: Date.now(),
   })
 
-  for (const giftWrap of giftWraps) {
-    await relayService.publishEvent(state.relays, giftWrap)
-  }
+  await Promise.allSettled(
+    giftWraps.map(gw => relayService.publishEvent(state.relays, gw))
+  )
 }
 
 export async function removeReaction ({ state, commit }, { roomId, messageId, emoji }) {
@@ -879,9 +879,9 @@ export async function removeReaction ({ state, commit }, { roomId, messageId, em
     reactorPrivKey,
   })
 
-  for (const giftWrap of giftWraps) {
-    await relayService.publishEvent(state.relays, giftWrap)
-  }
+  await Promise.allSettled(
+    giftWraps.map(gw => relayService.publishEvent(state.relays, gw))
+  )
 }
 
 export async function publishGiftWraps ({ state }, { giftWraps }) {
@@ -1216,21 +1216,17 @@ export async function markRoomAsRead ({ commit, state }, roomId) {
   }
 
   for (const [senderPubKey, messageIds] of senderMap) {
-    const receipts = await Promise.allSettled(
-      messageIds.map(messageId =>
-        createReadReceiptGiftWrap({
-          messageId,
-          senderPubKey,
-          receiverPubKey: myPubKey,
-          receiverPrivKey: myPrivKey,
-        })
-      )
-    )
-    await Promise.allSettled(
-      receipts
-        .filter(r => r.status === 'fulfilled')
-        .map(r => relayService.publishEvent(state.relays, r.value))
-    )
+    try {
+      const giftWrap = await createReadReceiptGiftWrap({
+        messageIds,
+        senderPubKey,
+        receiverPubKey: myPubKey,
+        receiverPrivKey: myPrivKey,
+      })
+      await relayService.publishEvent(state.relays, giftWrap)
+    } catch (err) {
+      console.warn('[Nostr] Failed to send read receipts for sender:', err)
+    }
   }
 }
 

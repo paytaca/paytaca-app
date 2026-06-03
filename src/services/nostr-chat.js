@@ -388,7 +388,7 @@ function arraysEqual(a, b) {
  */
 export async function publish(relays, events) {
   const pool = getPool()
-  for (const event of events) {
+  await Promise.allSettled(events.map(async (event) => {
     try {
       const promises = pool.publish(relays, event, { maxWait: 30000 })
       const results = await Promise.allSettled(promises)
@@ -400,7 +400,7 @@ export async function publish(relays, events) {
     } catch (err) {
       console.warn('[Nostr] Failed to publish event:', err)
     }
-  }
+  }))
 }
 
 /**
