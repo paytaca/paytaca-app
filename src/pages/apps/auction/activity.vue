@@ -28,30 +28,32 @@
       <AuctionSearch :placeholder="`Search my ${selectedActivityType}`"/>
     </div>
 
-    <div class="q-mx-xs q-mb-md row items-center justify-around">
-      <q-btn
-        :outline="selectedActivityType !== 'biddings'"
-        :color="selectedActivityType == 'biddings' ? 'pt-primary1' : ''"
-        rounded
-        padding="sm md"
-        no-caps
-        icon="monetization_on"
-        label="My Biddings"
-        style="min-width:150px;"
-        @click="filterActivityType('biddings')"
-      />
+    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="q-mx-xs q-mb-md row items-center justify-around">
+        <q-btn
+          :outline="selectedActivityType !== 'biddings'"
+          :color="selectedActivityType == 'biddings' ? 'pt-primary1' : ''"
+          rounded
+          padding="sm md"
+          no-caps
+          icon="monetization_on"
+          label="My Biddings"
+          style="min-width:150px;"
+          @click="filterActivityType('biddings')"
+        />
 
-      <q-btn
-        :outline="selectedActivityType !== 'auctions'"
-        :color="selectedActivityType == 'auctions' ? 'pt-primary1' : ''"
-        rounded
-        padding="sm md"
-        no-caps
-        icon="gavel"
-        label="My Auctions"
-        style="min-width:150px;"
-        @click="filterActivityType('auctions')"
-      />
+        <q-btn
+          :outline="selectedActivityType !== 'auctions'"
+          :color="selectedActivityType == 'auctions' ? 'pt-primary1' : ''"
+          rounded
+          padding="sm md"
+          no-caps
+          icon="gavel"
+          label="My Auctions"
+          style="min-width:150px;"
+          @click="filterActivityType('auctions')"
+        />
+      </div>
     </div>
 
     <!-- All user's AUCTIONS made -->
@@ -123,7 +125,7 @@
         -->
 
         <!-- Actual products -->
-        <div v-for="lot in lots" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-for="lot in lots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
@@ -174,6 +176,7 @@ import { useRouter } from 'vue-router'
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
+import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -182,12 +185,7 @@ const $router = useRouter()
 
 const selectedActivityType = ref('biddings')
 const filterActivityType = (type) => {
-  if(type === 'biddings') {
-    selectedActivityType.value = 'biddings';
-  }
-  else {
-    selectedActivityType.value = 'auctions';
-  }
+  selectedActivityType.value = type
 }
 
 const refresh = (done) => {
@@ -276,3 +274,19 @@ const lots = [
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 </script>
+
+<style scoped lang="scss">
+  @import '../../../css/shared.scss';
+
+  #app-container.dark {
+    .orders--fixed-bottom {
+      background-color: $brand_dark;
+    }
+  }
+
+  #app-container.light {
+    .orders--fixed-bottom {
+      background-color: $brand_light;
+    }
+  }
+</style>
