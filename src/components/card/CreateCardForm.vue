@@ -257,7 +257,7 @@
         </div>
         <q-btn 
           color="primary" 
-          rounded
+          style="border-radius: 24px"
           class="q-px-xl"
           icon="refresh"
           label="Try Again" 
@@ -268,7 +268,7 @@
       <q-card-actions v-if="state === 'form'" class="q-px-lg q-pb-lg q-pt-md">
         <q-btn 
           flat 
-          rounded
+          style="border-radius: 24px"
           label="Cancel" 
           class="q-px-lg"
           color="primary" 
@@ -277,7 +277,7 @@
         <q-btn 
           label="Create Card" 
           color="primary" 
-          rounded
+          style="border-radius: 24px"
           unelevated
           class="q-px-xl"
           :disable="!inputValidation"

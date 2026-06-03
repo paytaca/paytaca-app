@@ -55,7 +55,7 @@
           </div>
 
           <div class="row justify-center full-width q-mt-sm">
-            <q-btn rounded label="Fund" class="cash-in-btn bg-grad text-white q-px-lg" @click="openCashInDialog" />
+            <q-btn label="Fund" class="cash-in-btn bg-grad text-white q-px-lg" @click="openCashInDialog" />
           </div>
         </div>
 
@@ -119,7 +119,7 @@
                 color="primary" 
                 class="q-px-xl q-mt-lg text-bold"
                 unelevated
-                rounded
+                style="border-radius: 24px"
                 icon="open_in_new"
                 @click="openOrderCardWebsite"
               />
@@ -166,7 +166,7 @@
                   color="primary" 
                   class="q-px-xl"
                   unelevated
-                  rounded
+                  style="border-radius: 24px"
                   @click="activeTab = 'Transactions'"
                 />
               </div>
@@ -207,7 +207,7 @@
                   color="primary" 
                   class="q-px-xl"
                   unelevated
-                  rounded
+                  style="border-radius: 24px"
                   @click="activeTab = 'Transactions'"
                 />
               </div>
@@ -248,7 +248,7 @@
                   color="primary" 
                   class="q-px-xl"
                   unelevated
-                  rounded
+                  style="border-radius: 24px"
                   @click="activeTab = 'Transactions'"
                 />
               </div>
@@ -348,7 +348,7 @@
                     :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                     class="q-px-xl"
                     unelevated
-                    rounded
+                    style="border-radius: 24px"
                     @click="resetReplacementFlow"
                   />
                   <q-btn 
@@ -356,7 +356,7 @@
                     color="primary" 
                     class="q-px-xl"
                     unelevated
-                    rounded
+                    style="border-radius: 24px"
                     type="submit"
                     :disable="hasCardBalance"
                   />
@@ -393,7 +393,7 @@
                   :color="$q.dark.isActive ? 'grey-5' : 'grey-7'"
                   class="q-px-xl"
                   unelevated
-                  rounded
+                  style="border-radius: 24px"
                   @click="resetReplacementFlow"
                 />
                 <q-btn 
@@ -401,7 +401,7 @@
                   color="primary" 
                   class="q-px-xl"
                   unelevated
-                  rounded
+                  style="border-radius: 24px"
                   @click="confirmCardReplacement"
                   :disable="hasCardBalance"
                 />
@@ -431,7 +431,7 @@
                     text-color="primary"
                     class="q-ma-sm"
                     unelevated
-                    rounded
+                    style="border-radius: 24px"
                     :disable="hasCardBalance"
                     @click="selectReplacementReason(option.value)"
                   />
@@ -458,7 +458,7 @@
                     text-color="primary"
                     class="q-ma-sm q-px-xl"
                     unelevated
-                    rounded
+                    style="border-radius: 24px"
                     @click="handleLocationSame(true)"
                   />
                   <q-btn 
@@ -469,7 +469,7 @@
                     text-color="primary"
                     class="q-ma-sm q-px-xl"
                     unelevated
-                    rounded
+                    style="border-radius: 24px"
                     @click="handleLocationSame(false)"
                   />
                   <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
@@ -539,7 +539,7 @@
                 label="Cancel"
                 :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
                 class="col"
-                style="border-radius: 12px;"
+                style="border-radius: 24px;"
                 @click="showEditNameDialog = false"
               />
               <q-btn
@@ -547,7 +547,7 @@
                 label="Save"
                 color="primary"
                 class="col bg-grad text-white"
-                style="border-radius: 12px;"
+                style="border-radius: 24px;"
                 @click="saveCardName"
               />
             </div>

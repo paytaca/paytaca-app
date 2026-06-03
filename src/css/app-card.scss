@@ -678,7 +678,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .see-all-btn {
-  border-radius: 12px;
+  border-radius: 24px;
   background: color-mix(in srgb, var(--q-primary) 10%, transparent);
   color: var(--q-primary);
   padding: 12px 20px;
@@ -771,7 +771,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .tab-btn {
-  border-radius: 20px !important;
+  border-radius: 24px !important;
 }
 
 .cash-in-btn {
@@ -1041,7 +1041,7 @@ animation: float 6s ease-in-out infinite;
 
 .view-cards-btn {
   transition: all 0.2s ease;
-  border-radius: 20px;
+  border-radius: 24px;
   
   &:hover {
     background: rgba(0, 0, 0, 0.05);
@@ -1094,7 +1094,7 @@ animation: float 6s ease-in-out infinite;
 
 .view-cards-btn {
   transition: all 0.2s ease;
-  border-radius: 20px;
+  border-radius: 24px;
   
   &:hover {
     background: rgba(0, 0, 0, 0.05);

@@ -400,7 +400,7 @@
               icon="check" 
               label="Confirm Location" 
               unelevated
-              rounded
+              style="border-radius: 24px"
               @click="confirmLocationUpdate"
             />
           </div>
