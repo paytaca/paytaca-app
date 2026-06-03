@@ -1,20 +1,14 @@
 <template>
-  <div id="qr-reader-body" :class="getDarkModeClass(darkMode)" class="relative-position overflow-hidden full-height-viewport">
-    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" class="z-top" />
+  <div id="qr-reader-body" :class="getDarkModeClass(darkMode)" class="relative-position overflow-hidden window-height full-width bg-black">
+    <!-- Header floats cleanly on top of the background layer -->
+    <header-nav :title="$t('QRReader')" :backnavpath="`${ $route.query.backnavpath || '/' }`" class="z-top text-white" />
 
     <QRUploader ref="qr-upload" @detect-upload="onQRDecode" />
 
-    <div class="scanner-container-wrapper relative-position full-width">
-      
-      <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg z-max absolute-center full-width">
-        <q-icon name="error" left/>
-        {{ error }} 
-      </div>
-
-      <!-- Unified Crash-Free Web Camera Stream Engine -->
-      <template v-else>
+    <!-- Pure Video Area taking up 100% of the viewport window background -->
+    <div class="scanner-viewport-window absolute-full">
+      <template v-if="!paused && !decode && !error">
         <qrcode-stream
-          v-if="!paused && !decode"
           :constraints="cameraConstraints"
           :formats="['qr_code']"
           :paused="paused"
@@ -25,61 +19,75 @@
         />
       </template>
 
-      <!-- Absolute UI Interface Overlay Layer -->
-      <div class="scanner-overlay-ui-layer absolute-full column justify-between no-pointer-events z-custom-ui">
-        <div></div>
-
-        <!-- Target Center Viewpoint Crosshairs Frame Box -->
-        <div v-if="!error" class="scanner-box-frame self-center column items-center" ref="box">
-          <div class="scan-layout-design relative-position">
-            <div class="scan-design1"><div class="line-design1"></div></div>
-            <div class="scan-design2"><div class="line-design2"></div></div>
-            <div class="scan-design3"><div class="line-design3"></div></div>
-            <div class="scan-design4"><div class="line-design4"></div></div>
-          </div>
-          <span class="scanner-text text-center text-white text-bold q-mt-md text-shadow-glow">
-            {{ $t('ScanQrCode') }}
-          </span>
-        </div>
-
-        <!-- Translucent Hardware Control Bar -->
-        <div class="bottom-action-controls-section full-width q-pb-xl all-pointer-events row items-center justify-center">
-          <template v-if="isMobile && !decode && !error">
-            <div class="scanner-bottom-controls row items-center justify-center q-pa-sm rounded-borders bg-blur-dark">
-              <div class="scanner-zoom-controls row items-center">
-                <q-btn icon="remove" round dense color="white" text-color="black" size="md" @click="zoomOut" />
-                <q-btn icon="add" round dense color="white" text-color="black" size="md" class="q-ml-sm" @click="zoomIn" />
-              </div>
-              <div class="vertical-control-divider q-mx-md"></div>
-              <div class="scanner-torch-control">
-                <q-btn :icon="torchOn ? 'flash_on' : 'flash_off'" round dense :color="torchOn ? 'yellow' : 'white'" text-color="black" size="md" @click="toggleTorch" />
-              </div>
-            </div>
-          </template>
-        </div>
+      <div v-if="error" class="scanner-error-dialog text-center bg-red-1 text-red q-pa-lg z-max absolute-center full-width">
+        <q-icon name="error" left/>
+        {{ error }} 
       </div>
     </div>
 
-    <!-- Actions Footer Controls Area -->
-    <div class="action-footer-buttons-wrapper z-max full-width q-pt-md">
-      <div v-if="progress" class="q-mb-md row items-center justify-center q-px-lg">
-        <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mx-xl" >
-          <div class="absolute-full flex flex-center items-center">
-            <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
-          </div>
-        </q-linear-progress>
+    <!-- UI Overlay Layer - Manages the translucent vignette dark overlay and the broken-border box -->
+    <div v-if="!error" class="absolute-full column justify-between no-pointer-events z-custom-ui">
+      
+      <!-- Top Spacer to push the layout below the header bar -->
+      <div style="height: 80px;"></div>
+
+      <!-- Perfect Centered Viewfinder with True Broken Borders Mask (Matches standard mobile wallets) -->
+      <div class="scanner-center-position-box self-center column items-center justify-center">
+        
+        <!-- The Center Square with Infinite Outer Translucent Shadow Mask -->
+        <div class="scan-layout-design-mask relative-position">
+          
+          <!-- The 4 Broken Rounded Corner Brackets mapped to your primary color -->
+          <div class="rounded-corner-bracket corner-top-left"></div>
+          <div class="rounded-corner-bracket corner-top-right"></div>
+          <div class="rounded-corner-bracket corner-bottom-left"></div>
+          <div class="rounded-corner-bracket corner-bottom-right"></div>
+          
+          <!-- Animated laser bar matching your primary style language -->
+          <div class="scanner-laser-line"></div>
+        </div>
+
+        <span class="scanner-text text-center text-white text-bold q-mt-xl text-shadow-glow">
+          {{ $t('ScanQrCode') }}
+        </span>
       </div>
 
-      <div class="row items-center justify-around q-pb-lg">
-        <div v-if="!hideGenerateQR" class="column flex flex-center">
-          <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="add" :disabled="progress" @click="$router.push({ name: 'generate-qr' })" />
-          <span class="q-mt-sm text-subtitle2">{{ $t('GenerateQR') }}</span>
+      <!-- Integrated Floating Controls & Action Button layout panels -->
+      <div class="bottom-controls-and-actions-panel full-width column items-center all-pointer-events bg-translucent-overlay q-pt-md">
+        
+        <template v-if="isMobile && !decode">
+          <div class="scanner-bottom-controls row items-center justify-center q-pa-sm q-mb-lg rounded-borders bg-blur-dark">
+            <div class="scanner-zoom-controls row items-center">
+              <q-btn icon="remove" round dense color="white" text-color="black" size="md" @click="zoomOut" />
+              <q-btn icon="add" round Storage dense color="white" text-color="black" size="md" class="q-ml-sm" @click="zoomIn" />
+            </div>
+            <div class="vertical-control-divider q-mx-md"></div>
+            <div class="scanner-torch-control">
+              <q-btn :icon="torchOn ? 'flash_on' : 'flash_off'" round dense :color="torchOn ? 'yellow' : 'white'" text-color="black" size="md" @click="toggleTorch" />
+            </div>
+          </div>
+        </template>
+
+        <div v-if="progress" class="q-mb-md row items-center justify-center q-px-lg full-width">
+          <q-linear-progress rounded size="30px" :value="progress" color="primary" class="q-mx-xl" >
+            <div class="absolute-full flex flex-center items-center">
+              <span class="text-caption text-bold text-white">{{ progressLabel }}</span>
+            </div>
+          </q-linear-progress>
         </div>
-        <div v-if="!hideUploadQR" class="column flex flex-center">
-          <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="upload" :disabled="progress" @click="$refs['qr-upload'].$refs['q-file'].pickFiles()" />
-          <span class="q-mt-sm text-subtitle2">{{ $t('UploadQR') }}</span>
+
+        <div class="row items-center justify-around q-pb-xl full-width">
+          <div v-if="!hideGenerateQR" class="column flex flex-center">
+            <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="add" :disabled="progress" @click="$router.push({ name: 'generate-qr' })" />
+            <span class="q-mt-sm text-subtitle2 text-white text-shadow-glow">{{ $t('GenerateQR') }}</span>
+          </div>
+          <div v-if="!hideUploadQR" class="column flex flex-center">
+            <q-btn round size="lg" class="btn-scan button text-white bg-grad" icon="upload" :disabled="progress" @click="$refs['qr-upload'].$refs['q-file'].pickFiles()" />
+            <span class="q-mt-sm text-subtitle2 text-white text-shadow-glow">{{ $t('UploadQR') }}</span>
+          </div>
         </div>
       </div>
+
     </div>
 
     <footer-menu v-if="!hideFooter && !(isMobile && !decode && !error)" class="z-top" />
@@ -484,37 +492,120 @@ export default {
 }
 </script>
     
-
-
 <style scoped>
-.full-height-viewport {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+.window-height {
+  height: 100vh !important;
 }
-.scanner-container-wrapper {
-  flex: 1;
+
+.scanner-viewport-window {
+  z-index: 1;
   background-color: #000000;
 }
+
+/* Edge-to-edge camera matrix coverage configuration */
 .camera-video-canvas :deep(video) {
-  width: 100% !important;
-  height: 100% !important;
+  width: 100vw !important;
+  height: 100vh !important;
   object-fit: cover !important;
 }
+
 .z-custom-ui { z-index: 5; }
 .z-top { z-index: 10; }
 .z-max { z-index: 20; }
 .no-pointer-events { pointer-events: none; }
 .all-pointer-events { pointer-events: all; }
-.scanner-box-frame { width: 280px; height: 280px; }
-.scan-layout-design { width: 240px; height: 240px; border: 1px solid rgba(255, 255, 255, 0.15); }
-.text-shadow-glow { text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.85); }
-.bg-blur-dark {
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+
+/* Viewport alignment layout constraints */
+.scanner-center-position-box {
+  width: 100%;
+  max-width: 340px;
+  margin-top: -60px; /* Positions the box cleanly in the optical center */
 }
-.vertical-control-divider { width: 1px; height: 24px; background-color: rgba(255, 255, 255, 0.2); }
+
+/* The Mask Square: Clean center cutout surrounded by a dark translucent overlay */
+.scan-layout-design-mask {
+  width: 250px;
+  height: 250px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65); 
+  border-radius: 16px; /* Smoothes out the inner square corners to match bracket curves */
+}
+
+/* Base configuration for the thick, rounded primary brackets */
+.rounded-corner-bracket {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  /* Dynamically inherits Quasar's primary brand color hex token */
+  border-color: var(--q-primary) !important; 
+  border-style: solid;
+  pointer-events: none;
+}
+
+.corner-top-left {
+  top: -4px;
+  left: -4px;
+  border-width: 5px 0 0 5px; /* Top and Left strokes only */
+  border-top-left-radius: 18px; /* High radius curves */
+}
+
+.corner-top-right {
+  top: -4px;
+  right: -4px;
+  border-width: 5px 5px 0 0; /* Top and Right strokes only */
+  border-top-right-radius: 18px;
+}
+
+.corner-bottom-left {
+  bottom: -4px;
+  left: -4px;
+  border-width: 0 0 5px 5px; /* Bottom and Left strokes only */
+  border-bottom-left-radius: 18px;
+}
+
+.corner-bottom-right {
+  bottom: -4px;
+  right: -4px;
+  border-width: 0 5px 5px 0; /* Bottom and Right strokes only */
+  border-bottom-right-radius: 18px;
+}
+
+/* Animated laser bar matching your primary style layout values */
+.scanner-laser-line {
+  position: absolute;
+  left: 5%;
+  width: 90%;
+  height: 3px;
+  background: linear-gradient(to right, transparent, var(--q-primary), transparent);
+  opacity: 0.8;
+  animation: scan-laser-motion 2.5s infinite linear;
+}
+
+@keyframes scan-laser-motion {
+  0% { top: 5%; }
+  50% { top: 92%; }
+  100% { top: 5%; }
+}
+
+.text-shadow-glow {
+  text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.95);
+}
+
+.bg-translucent-overlay {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, rgba(0, 0, 0, 0) 100%);
+}
+
+.bg-blur-dark {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.vertical-control-divider {
+  width: 1px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.25);
+}
 </style>
