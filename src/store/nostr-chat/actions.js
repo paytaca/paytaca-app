@@ -1223,6 +1223,7 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
   const myPubKey = state.keys.pubKeyHex
   if (!myPubKey) return
 
+  const wasSubscribed = relayService.isSubscribed()
   const sub = relayService.subscribeGiftWraps(state.relays, myPubKey, {
     async onEvent(event) {
       try {
@@ -1237,8 +1238,8 @@ export function subscribeToRelays ({ state, dispatch, commit }) {
 
   commit('SET_SUBSCRIBED', relayService.isSubscribed())
 
-  // Only start status polling if not already running
-  if (!relayService.isSubscribed()) {
+  // Start status polling if this is the first subscription
+  if (!wasSubscribed) {
     relayService.startStatusPolling(state.relays, (status) => {
       for (const url of state.relays) {
         const s = status[url] || 'disconnected'
