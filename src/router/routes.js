@@ -428,6 +428,22 @@ const routes = [
             component: () => import('src/pages/apps/address-book/add-record.vue')
           }
         ]
+      },
+      {
+        path: 'payment-hub',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-index',
+            component: () => import('src/pages/apps/payment-hub/Index.vue')
+          },
+          {
+            path: 'store/:storeId',
+            name: 'payment-hub-store-detail',
+            component: () => import('src/pages/apps/payment-hub/StoreDetail.vue'),
+            props: true
+          }
+        ]
       }
     ]
   },

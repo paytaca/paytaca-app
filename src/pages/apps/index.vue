@@ -319,6 +319,15 @@ export default {
           active: !this.$store.getters['global/isChipnet']
         },
         {
+          id: 'payment-hub',
+          name: this.$t('PaymentHub', {}, 'Payment Hub'),
+          description: this.$t('Apps.PaymentHub.Description', {}, 'Manage stores and invoices.'),
+          iconName: 'point_of_sale',
+          path: '/apps/payment-hub/',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet']
+        },
+        {
           id: 'support',
           name: this.$t('Support', {}, 'Support'),
           description: this.$t('Apps.Support.Description', {}, 'Get help, guides, and wallet information.'),
