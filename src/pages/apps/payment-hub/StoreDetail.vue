@@ -62,7 +62,7 @@
               <!-- Status: Fixed width to keep layout stable -->
               <div class="col-auto text-center q-px-sm" style="width: 100px;">
                 <q-badge
-                  :color="key.revoked ? 'grey-5' : 'green-5'"
+                  :color="key.revoked ? 'red-4' : 'green-4'"
                   :text-color="darkMode ? 'black' : 'white'"
                   rounded
                   class="q-px-sm text-weight-medium"
