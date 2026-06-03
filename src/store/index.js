@@ -5,6 +5,7 @@ import createPersistedState from 'vuex-persistedstate'
 // import { sanitizeForIndexedDB } from 'src/utils/migrate-localstorage-to-indexdb'
 
 import anyhedge from './anyhedge'
+import auction from './auction'
 import global from './global'
 import darkmode from './darkmode'
 import market from './market'
@@ -273,6 +274,7 @@ export const Store = createStore({
   ],
   modules: {
     anyhedge,
+    auction,
     global,
     darkmode,
     assets,
