@@ -246,7 +246,7 @@ export default {
 }
 
 .step-card.compact {
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .step-card:hover {
@@ -305,7 +305,7 @@ export default {
 .step-icon-wrapper.compact-icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .icon-wrapper-light {
@@ -410,7 +410,7 @@ export default {
   .step-icon-wrapper.compact-icon {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
+    border-radius: 16px;
   }
 
   .step-icon-wrapper.compact-icon .q-icon {

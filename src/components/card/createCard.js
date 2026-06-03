@@ -159,7 +159,7 @@ export const createCardLogic = {
     heroStyle() {
       return {
         background: 'linear-gradient(135deg, #027be3 0%, #26a69a 50%, #9c27b0 100%)',
-        borderRadius: '24px',
+        borderRadius: '16px',
         minHeight: '500px',
         width: '100%',
         maxWidth: '1100px',

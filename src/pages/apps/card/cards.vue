@@ -433,7 +433,7 @@ export default {
         background: this.$q.dark.isActive 
           ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
           : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '15px',
+        borderRadius: '16px',
         height: '220px',
         boxShadow: isFrontCard
           ? '0 16px 48px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1)'
@@ -483,7 +483,7 @@ export default {
         background: this.$q.dark.isActive 
           ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
           : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '15px',
+        borderRadius: '16px',
         height: '220px',
         pointerEvents: 'none'
       }
