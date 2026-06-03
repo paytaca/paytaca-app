@@ -31,12 +31,14 @@
           outline
           color="grey"
           class="col"
+          :style="rounded ? 'border-radius: 24px' : ''"
           @click="hide()"
         />
         <q-btn
           no-caps
           label="OK"
           class="col button"
+          :style="rounded ? 'border-radius: 24px' : ''"
           @click="onDialogOK(computedInnerVal)"
         />
       </q-card-actions>
@@ -83,6 +85,7 @@ const props = defineProps({
     }
   },
   disableGeolocate: Boolean,
+  rounded: Boolean,
 })
 
 const computedInnerVal = computed(() => {
