@@ -34,6 +34,7 @@
         <q-btn
           :outline="selectedAuctionType !== 'English'"
           :color="selectedAuctionType == 'English' ? 'pt-primary1' : ''"
+          color="pt-primary1"
           rounded
           padding="sm md"
           no-caps
@@ -130,6 +131,7 @@ import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } f
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
+import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
