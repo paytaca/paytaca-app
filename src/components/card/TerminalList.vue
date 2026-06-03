@@ -9,9 +9,9 @@
         <q-card-section class="q-px-md q-py-none">
           <q-input
             v-model="searchQuery"
+            class="search-input"
             dense
             outlined
-            rounded
             debounce="300"
             placeholder="Search">
             <template v-slot:append>
@@ -227,3 +227,9 @@ export default {
 }
 
 </script>
+
+<style lang="scss" scoped>
+.search-input :deep(.q-field__control) {
+  border-radius: 14px;
+}
+</style>

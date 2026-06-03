@@ -1507,11 +1507,11 @@ export default {
 
   .location-search {
     background: white;
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 
     :deep(.q-field__control) {
-      border-radius: 12px;
+      border-radius: 14px;
     }
   }
 

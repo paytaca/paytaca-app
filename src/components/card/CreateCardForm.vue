@@ -97,7 +97,6 @@
               :dark="$q.dark.isActive"
               :rules="[val => !!val || 'Card UID is required']"
               outlined
-              rounded
               hide-bottom-space>
               <template v-slot:prepend>
                 <q-icon name="tag" color="primary" />
@@ -187,7 +186,6 @@
               val => val.length <= 10 || 'Maximum 10 characters'
             ]"
             outlined
-            rounded
             maxlength="10"
             counter
             hide-bottom-space>
