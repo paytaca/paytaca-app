@@ -116,18 +116,18 @@
                   </div>
                   <div class="col-auto text-center q-px-sm" style="width: 100px;">
                     <q-badge
-                      :color="key.revoked ? 'red-4' : 'green-4'"
+                      :color="key.has_expired ? 'grey-5' : (key.revoked ? 'red-4' : 'green-4')"
                       :text-color="darkMode ? 'black' : 'white'"
                       rounded
                       class="q-px-sm text-weight-medium"
                       style="min-width: 80px;"
                     >
-                      {{ key.revoked ? $t('Revoked', {}, 'Revoked') : $t('Active', {}, 'Active') }}
+                      {{ key.has_expired ? $t('Expired', {}, 'Expired') : (key.revoked ? $t('Revoked', {}, 'Revoked') : $t('Active', {}, 'Active')) }}
                     </q-badge>
                   </div>
                   <div class="col-auto text-right" style="width: 40px;">
                     <q-btn
-                      v-if="!key.revoked"
+                      v-if="!key.revoked && !key.has_expired"
                       flat
                       round
                       dense
@@ -149,6 +149,7 @@
       <!-- Settings Tab -->
       <q-tab-panel name="settings">
         <div class="q-gutter-y-md">
+          <!-- Basic Configuration -->
           <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
             <q-card-section>
               <div class="text-subtitle1 text-weight-bold q-mb-md">{{ $t('Configuration', {}, 'Configuration') }}</div>
@@ -163,15 +164,44 @@
                   <div class="text-caption text-grey">{{ $t('InvoiceExpiry', {}, 'Invoice Expiry') }}</div>
                   <div class="text-body2 text-right">{{ storeData?.invoice_expiration_minutes }} min</div>
                 </div>
-                <q-separator />
-                <div class="row justify-between items-center">
-                  <div class="text-caption text-grey">{{ $t('Tolerance', {}, 'Tolerance') }}</div>
-                  <div class="text-body2 text-right">{{ (storeData?.underpayment_tolerance_percent * 100).toFixed(2) }}%</div>
-                </div>
               </div>
             </q-card-section>
             <q-card-actions align="center">
               <q-btn outline rounded no-caps color="pt-primary1" :label="$t('EditSettings', {}, 'Edit Settings')" @click="editStore" />
+            </q-card-actions>
+          </q-card>
+
+          <!-- Webhook Key Management -->
+          <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
+            <q-card-section>
+              <div class="row items-center q-mb-md">
+                <div class="text-subtitle1 text-weight-bold">{{ $t('WebhookVerification', {}, 'Webhook Verification') }}</div>
+                <q-space />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="refresh"
+                  color="pt-primary1"
+                  @click="confirmRotateWebhookKeys"
+                >
+                  <q-tooltip>{{ $t('RotateKeys', {}, 'Rotate Keys') }}</q-tooltip>
+                </q-btn>
+              </div>
+
+              <div class="q-mb-sm text-caption text-grey">
+                {{ $t('WebhookKeyDescription', {}, 'Use this Ed25519 public key to verify that webhooks are authentically from the Payment Hub.') }}
+              </div>
+
+              <div v-if="webhookPublicKey" class="font-mono bg-grey-3 q-pa-sm br-5 text-caption text-black overflow-auto" style="max-height: 100px; white-space: pre-wrap; word-break: break-all;">
+                {{ webhookPublicKey }}
+              </div>
+              <div v-else class="text-center q-pa-md text-grey italic">
+                {{ $t('NoWebhookKey', {}, 'No key pair generated yet.') }}
+              </div>
+            </q-card-section>
+            <q-card-actions v-if="webhookPublicKey" align="right">
+              <q-btn flat dense color="pt-primary1" icon="content_copy" :label="$t('CopyKey', {}, 'Copy Key')" @click="copyKey(webhookPublicKey)" />
             </q-card-actions>
           </q-card>
         </div>
@@ -189,6 +219,7 @@ import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
+import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
@@ -206,13 +237,15 @@ const wallet = ref(null)
 const hub = ref(null)
 const storeData = ref(null)
 const apiKeys = ref([])
+const webhookPublicKey = ref('')
 const fetchingKeys = ref(false)
 const hideRevoked = ref(true)
 const activeTab = ref('api_keys')
 
 const filteredApiKeys = computed(() => {
   if (hideRevoked.value) {
-    return apiKeys.value.filter(k => !k.revoked)
+    // Hide both revoked and expired keys if the toggle is active to keep list clean
+    return apiKeys.value.filter(k => !k.revoked && !k.has_expired)
   }
   return apiKeys.value
 })
@@ -255,6 +288,10 @@ async function refreshPage(done) {
     // Fetch API keys
     const keys = await paymentHub.listApiKeys(storeId.value)
     apiKeys.value = keys
+
+    // Fetch Webhook Public Key
+    const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
+    webhookPublicKey.value = keyData?.public_key || ''
   } catch (error) {
     console.error('Error fetching store details:', error)
   } finally {
@@ -323,22 +360,22 @@ function editStore() {
 
 function createApiKey() {
   $q.dialog({
-    title: $t('CreateKey', {}, 'Create API Key'),
-    message: $t('EnterKeyName', {}, 'Enter a name for this key (e.g. Mobile App)'),
-    prompt: { model: '', type: 'text' },
-    cancel: true,
-    persistent: true,
-    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
-  }).onOk(async (name) => {
-    if (!name) return
+    component: ApiKeyFormDialog
+  }).onOk(async (data) => {
     try {
       $q.loading.show()
-      const newKeyData = await hub.value.generateApiKey(storeId.value, name)
+      const newKeyData = await hub.value.generateApiKey(storeId.value, data.name, data.expiry_date)
+      
+      // The secret key is only shown once.
       const secret = newKeyData.key || newKeyData.secret || newKeyData.token
+      
       $q.dialog({
         title: $t('KeyGenerated', {}, 'API Key Generated'),
         message: $t('KeySecretWarning', {}, 'Please copy this key now. It will not be shown again.'),
-        prompt: { model: secret, readonly: true },
+        prompt: {
+          model: secret,
+          readonly: true
+        },
         ok: { label: $t('CopyAndClose', {}, 'Copy & Close'), color: 'pt-primary1' },
         class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
       }).onOk(() => {
@@ -367,6 +404,30 @@ function revokeKey(key) {
       await refreshPage()
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorRevokingKey', {}, 'Error revoking key') })
+    } finally {
+      $q.loading.hide()
+    }
+  })
+}
+
+/**
+ * Confirms and executes webhook key rotation.
+ */
+function confirmRotateWebhookKeys() {
+  $q.dialog({
+    title: $t('RotateWebhookKeys', {}, 'Rotate Webhook Keys'),
+    message: $t('RotateKeysWarning', {}, 'Rotating keys will immediately invalidate the previous public key. Any system verifying your webhooks must be updated. Continue?'),
+    ok: { label: $t('Rotate'), color: 'red', unelevated: true, rounded: true },
+    cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  }).onOk(async () => {
+    try {
+      $q.loading.show()
+      const result = await hub.value.rotateWebhookKeys(storeId.value)
+      webhookPublicKey.value = result.public_key
+      $q.notify({ type: 'positive', message: $t('KeysRotated', {}, 'Webhook keys rotated successfully') })
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorRotatingKeys', {}, 'Error rotating keys') })
     } finally {
       $q.loading.hide()
     }

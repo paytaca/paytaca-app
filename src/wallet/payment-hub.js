@@ -299,13 +299,11 @@ export class PaymentHub {
       wallet_id: storeData.wallet_id,
       name: storeData.name,
       webhook_url: storeData.webhook_url,
-      webhook_secret: storeData.webhook_secret,
       default_currency: storeData.default_currency,
       website_url: storeData.website_url,
       logo_url: storeData.logo_url,
       support_email: storeData.support_email,
-      invoice_expiration_minutes: storeData.invoice_expiration_minutes,
-      underpayment_tolerance_percent: storeData.underpayment_tolerance_percent
+      invoice_expiration_minutes: storeData.invoice_expiration_minutes
     }, {
       authorize: true,
       wallet: this.wallet
@@ -363,6 +361,30 @@ export class PaymentHub {
     return response.data
   }
 
+  /**
+   * Retrieves the current webhook Ed25519 public key for a store.
+   * @param {String} storeId - The UUID of the store.
+   */
+  async getWebhookPublicKey(storeId) {
+    const response = await backend.get(`/stores/${storeId}/webhook-key`, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Rotates (regenerates) the webhook Ed25519 key pair for a store.
+   * @param {String} storeId - The UUID of the store.
+   */
+  async rotateWebhookKeys(storeId) {
+    const response = await backend.post(`/stores/${storeId}/webhook-key`, {}, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
   // --- API Keys Section ---
 
   /**
@@ -382,11 +404,13 @@ export class PaymentHub {
    * Generates a new API Key for a store.
    * @param {String} storeId - The UUID of the store.
    * @param {String} keyName - An identifier for the key (e.g., "Mobile App").
+   * @param {String} [expiryDate] - Optional expiry date in ISO format.
    */
-  async generateApiKey(storeId, keyName) {
+  async generateApiKey(storeId, keyName, expiryDate) {
     const response = await backend.post('/keys/', {
       store_id: storeId,
-      name: keyName
+      name: keyName,
+      expiry_date: expiryDate
     }, {
       authorize: true,
       wallet: this.wallet
@@ -399,7 +423,7 @@ export class PaymentHub {
    * @param {String} keyId - The ID of the API key to revoke.
    */
   async revokeApiKey(keyId) {
-    const response = await backend.patch(`/keys/${keyId}/revoke/`, {}, {
+    const response = await backend.patch(`/keys/${keyId}/revoke`, {}, {
       authorize: true,
       wallet: this.wallet
     })

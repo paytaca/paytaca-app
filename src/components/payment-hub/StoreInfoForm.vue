@@ -61,36 +61,17 @@
           placeholder="https://..."
         />
 
-        <q-input
-          v-model="form.webhook_secret"
-          :label="$t('WebhookSecret', {}, 'Webhook Secret')"
-          outlined
-          dense
-          type="password"
-        />
-
         <q-separator class="q-my-sm" />
         <div class="text-subtitle2 text-grey-7">{{ $t('AdvancedSettings', {}, 'Advanced Settings') }}</div>
 
         <div class="row q-col-gutter-sm">
-          <div class="col-6">
+          <div class="col-12">
             <q-input
               v-model.number="form.invoice_expiration_minutes"
               :label="$t('ExpiryMinutes', {}, 'Invoice Expiry (min)')"
               outlined
               dense
               type="number"
-            />
-          </div>
-          <div class="col-6">
-            <q-input
-              v-model.number="form.underpayment_tolerance_percent"
-              :label="$t('TolerancePercent', {}, 'Tolerance (%)')"
-              outlined
-              dense
-              type="number"
-              step="0.01"
-              suffix="%"
             />
           </div>
         </div>
@@ -141,13 +122,11 @@ const currencyOptions = [
 const form = reactive({
   name: '',
   webhook_url: '',
-  webhook_secret: '',
   default_currency: 'USD',
   website_url: '',
   logo_url: '',
   support_email: '',
-  invoice_expiration_minutes: 15,
-  underpayment_tolerance_percent: 0.05
+  invoice_expiration_minutes: 15
 })
 
 onMounted(() => {
@@ -168,18 +147,16 @@ async function onSubmit() {
 }
 
 /**
- * Public method to reset the form, similar to MerchantInfoForm pattern
+ * Public method to reset the form
  */
 function resetForm() {
   form.name = ''
   form.webhook_url = ''
-  form.webhook_secret = ''
   form.default_currency = 'USD'
   form.website_url = ''
   form.logo_url = ''
   form.support_email = ''
   form.invoice_expiration_minutes = 15
-  form.underpayment_tolerance_percent = 0.05
 }
 
 defineExpose({

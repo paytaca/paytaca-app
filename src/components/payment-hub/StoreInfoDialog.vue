@@ -1,5 +1,5 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide" no-backdrop-dismiss seamless class="no-click-outside">
+  <q-dialog ref="dialogRef" @hide="onDialogHide" persistent>
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 500px; max-width: 90vw;">
       <div class="row no-wrap items-center justify-center q-pl-md">
         <div class="text-h6 q-space q-mt-sm">
@@ -33,6 +33,7 @@
 import { computed, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
+import { useRoute } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import StoreInfoForm from './StoreInfoForm.vue'
 
@@ -51,9 +52,17 @@ const $emit = defineEmits([
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $store = useStore()
+const $route = useRoute()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const storeForm = ref(null)
+
+/**
+ * Automatically close dialog if user navigates away (e.g. via hardware back button)
+ */
+watch(() => $route.fullPath, () => {
+  onDialogCancel()
+})
 
 /**
  * Handle modelValue for seamless usage if needed
