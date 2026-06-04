@@ -14,6 +14,16 @@
       <!-- API Keys Header -->
       <div class="row items-center q-mt-md q-mb-md">
         <div class="text-h6 q-mr-sm">{{ $t('APIKeys', {}, 'API Keys') }}</div>
+        <q-btn
+          flat
+          round
+          dense
+          icon="help"
+          color="grey"
+          @click="showHelpDialog"
+        >
+          <q-tooltip>{{ $t('Help', {}, 'Help') }}</q-tooltip>
+        </q-btn>
         <q-space/>
         <q-btn
           flat
@@ -128,6 +138,31 @@ const filteredApiKeys = computed(() => {
   }
   return apiKeys.value
 })
+
+/**
+ * Shows a help dialog with examples of how to use the API Key.
+ */
+function showHelpDialog() {
+  $q.dialog({
+    title: $t('APIUsage', {}, 'API Usage'),
+    message: `
+      <div class="q-mb-md text-body2">
+        To generate a receiving address for this store, use the following endpoint:
+      </div>
+      <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption q-mb-md overflow-hidden text-black" style="word-break: break-all;">
+        GET /api/stores/${storeId.value}/generate-address
+      </div>
+      <div class="q-mb-sm text-weight-medium text-caption">Headers:</div>
+      <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption text-black" style="word-break: break-all;">
+        Authorization: Api-Key &lt;YOUR_SECRET_KEY&gt;
+      </div>
+      <!-- NOTE: This endpoint is temporary for testing and will be modified in the future -->
+    `,
+    html: true,
+    ok: { label: $t('Close'), flat: true, color: 'grey' },
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  })
+}
 
 onMounted(() => {
   refreshPage()
