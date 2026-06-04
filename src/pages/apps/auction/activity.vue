@@ -84,8 +84,14 @@
           </q-img>
 
           <q-card-section class="q-py-sm">
-            <div class="q-mb-xs">
-              <q-badge color="primary" text-color="white" :label="`${auction.type} Auction`" class="text-bold q-pa-sm" />
+            <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
+              <q-icon name="gavel" size="sm" />
+              <q-badge
+                :label="`${auction.type} Auction`"
+                class="text-bold"
+                flat
+                color="transparent"
+              />
             </div>
 
             <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
@@ -137,6 +143,15 @@
               </template>
             </q-img>
             <q-card-section>
+              <div class="q-mb-xs bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
+                <q-icon :name="lot.type === 'Physical' ? 'delivery_dining' : 'computer'" size="sm" />
+                <q-badge
+                  :label="lot.type"
+                  class="text-bold"
+                  flat
+                  color="transparent"
+                />
+              </div>
               <div class="row items-center">
                 <div class="q-space text-body1 ellipsis text-bold">{{lot.name}}</div>
                 <q-chip
@@ -147,7 +162,7 @@
                 Bidding {{ lot.is_sold ? 'Closed' : 'Open' }}
                 </q-chip>
               </div>
-              <div>Lot {{ lot.lot_num }} | {{ lot.type }}</div>
+              <div>Lot {{ lot.lot_num }}</div>
               <div>Est. {{ lot.est_price }}</div>
               <div>{{ lot.high_bid}}  ({{ lot.num_bids }} bids)</div>
             </q-card-section>
