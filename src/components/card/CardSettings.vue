@@ -206,7 +206,49 @@
         </div>
         <q-icon :name="showSweepFunds ? 'expand_less' : 'expand_more'" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
       </div>
+
+      <template v-if="showSweepFunds">
+        <div class="q-pa-md full-width">
+          <div class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
+            This will transfer all funds ({{ activeCard?.balance || 0 }} BCH) from your card back to your wallet.
+          </div>
+          <div class="row justify-center">
+            <q-btn
+              label="Sweep Funds"
+              color="info"
+              class="q-px-xl"
+              unelevated
+              style="border-radius: 24px"
+              :disable="!hasCardBalance"
+              @click="showSweepFundsDialog = true"
+            />
+            <q-tooltip v-if="!hasCardBalance" anchor="top middle" self="bottom middle">
+              No funds to sweep
+            </q-tooltip>
+          </div>
+        </div>
+      </template>
     </div>
+
+    <q-dialog v-model="showSweepFundsDialog" persistent>
+      <q-card style="min-width: 320px">
+        <q-card-section>
+          <div class="text-h6" :class="textColor">Sweep Funds</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="q-mb-md" :class="textColorGrey">
+            This will transfer all funds ({{ activeCard?.balance || 0 }} BCH) from your card back to your wallet.
+          </div>
+          <div class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
+            Are you sure you want to sweep all funds?
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" @click="showSweepFundsDialog = false" />
+          <q-btn flat label="Sweep Funds" color="info" @click="handleSweepFunds" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 
   <div 
@@ -246,7 +288,52 @@
           Please sweep all funds before deleting your card
         </q-tooltip>
       </div>
+
+      <template v-if="showDeleteCard">
+        <div class="q-pa-md full-width">
+          <div class="text-caption q-mb-md" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">
+            Are you sure you want to delete this card? This action cannot be undone.
+          </div>
+          <div class="text-caption text-negative q-mb-md">
+            Warning: Any remaining funds will be lost.
+          </div>
+          <div class="row justify-center">
+            <q-btn
+              label="Delete Card"
+              color="negative"
+              class="q-px-xl"
+              unelevated
+              style="border-radius: 24px"
+              :disable="hasCardBalance"
+              @click="showDeleteCardDialog = true"
+            />
+            <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">
+              Please sweep all funds before deleting your card
+            </q-tooltip>
+          </div>
+        </div>
+      </template>
     </div>
+
+    <q-dialog v-model="showDeleteCardDialog" persistent>
+      <q-card style="min-width: 320px">
+        <q-card-section>
+          <div class="text-h6 text-negative">Delete Card</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div class="q-mb-md" :class="textColorGrey">
+            Are you sure you want to delete this card? This action cannot be undone.
+          </div>
+          <div class="text-caption text-negative">
+            Warning: Any remaining funds will be lost.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" @click="showDeleteCardDialog = false" />
+          <q-btn flat label="Delete Card" color="negative" @click="handleDeleteCard" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 
 </div>
@@ -276,7 +363,9 @@ export default {
       cardReplacementStatus: 'none',
       showCardReplacement: false,
       showSweepFunds: false,
+      showSweepFundsDialog: false,
       showDeleteCard: false,
+      showDeleteCardDialog: false,
       replacementMap: null,
       replacementMarker: null,
       orderPhysicalCardData: {
@@ -290,7 +379,8 @@ export default {
   },
   computed: {
     hasCardBalance() {
-      return this.activeCard?.bchBalance > 0;
+      const balance = parseFloat(this.activeCard?.balance) || 0
+      return balance > 0
     },
     replacementReasons () {
       return [
@@ -356,6 +446,54 @@ export default {
           message: `Failed to update transaction alerts. Please try again.`
         });
       }
+    },
+    handleSweepFunds () {
+      if (!this.activeCard) return
+
+      const balance = parseFloat(this.activeCard?.balance) || 0
+
+      if (balance <= 0) {
+        this.$q.notify({
+          message: 'No funds to sweep',
+          color: 'warning',
+          position: 'top',
+          timeout: 1500
+        })
+        this.showSweepFundsDialog = false
+        return
+      }
+
+      CardStorage.setCardProperty(this.activeCard.id, 'balance', '0')
+      if (this.activeCard) {
+        this.activeCard.balance = '0'
+      }
+
+      this.$q.notify({
+        message: `Successfully swept ${balance} BCH to your wallet`,
+        color: 'positive',
+        icon: 'check_circle',
+        position: 'top'
+      })
+
+      this.showSweepFundsDialog = false
+    },
+    handleDeleteCard () {
+      if (!this.activeCard) return
+
+      const deleted = CardStorage.deleteCard(this.activeCard.id)
+
+      if (deleted) {
+        this.$q.notify({
+          message: 'Card has been deleted',
+          color: 'positive',
+          icon: 'delete',
+          position: 'top',
+          timeout: 2000
+        })
+      }
+
+      this.showDeleteCardDialog = false
+      this.$router.push({ name: 'card-list' })
     },
     selectReplacementReason (reason) {
       this.replacementReason = reason
