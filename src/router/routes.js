@@ -100,6 +100,7 @@ const routes = [
       { path: 'create/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-3', props: route => route.query },
       { path: 'create/step-4', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-4', props: route => route.query },
       { path: 'create/step-5', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-5', props: route => route.query },
+      { path: 'create/step-6', component: () => import('pages/registration/accounts.vue'), name: 'wallet-create-step-6', props: route => route.query },
       { path: 'restore/step-1', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-1', props: route => route.query },
       { path: 'restore/step-2', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-2', props: route => route.query },
       { path: 'restore/step-3', component: () => import('pages/registration/accounts.vue'), name: 'wallet-restore-step-3', props: route => route.query },
@@ -169,7 +170,7 @@ const routes = [
         children: [          
           { path: 'form', component: () => import('src/pages/apps/eload/eload-form.vue'), name: 'eload-service-form' },
           { path: 'orders', component: () => import('src/pages/apps/eload/eload-history.vue'), name: 'eload-service-orders' },
-          { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details' },
+          { path: 'order/:orderId', component: () => import('src/pages/apps/eload/eload-history-details.vue'), name: 'eload-service-order-details', props: route => ({ ...route.params, ...route.query}), },
         ]
       },
 
@@ -303,7 +304,8 @@ const routes = [
           }
         ]
       },
-      { path: 'rewards',
+      {
+        path: 'rewards',
         children: [
           {
             path: '',
@@ -311,16 +313,44 @@ const routes = [
             component: () => import('src/pages/apps/rewards/index.vue'),
           },
           {
-            path: 'user-rewards',
+            path: 'user-rewards/:id',
             name: 'user-rewards',
-            props: route => route.query,
-            component: () => import('src/pages/apps/rewards/promos/user-rewards.vue')
+            component: () => import('src/pages/apps/rewards/user-rewards.vue')
           },
           {
-            path: 'rfp',
+            path: 'rfp/:id',
             name: 'rfp',
-            props: route => route.query,
-            component: () => import('src/pages/apps/rewards/promos/rfp.vue')
+            component: () => import('src/pages/apps/rewards/rfp.vue')
+          },
+          {
+            path: 'merchant-history/:id',
+            name: 'app-rewards-merchant-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
+            path: 'cashin-history/:id',
+            name: 'apps-rewards-cashin-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
+            path: 'cauldron-history/:id',
+            name: 'apps-rewards-cauldron-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
+            path: 'eload-history/:id',
+            name: 'apps-rewards-eload-history',
+            component: () => import('src/pages/apps/rewards/transaction-history.vue'),
+            props: true
+          },
+          {
+            path: 'referral-history/:id',
+            name: 'app-rewards-referral-history',
+            component: () => import('src/pages/apps/rewards/referral-history.vue'),
+            props: true
           }
         ]
       },

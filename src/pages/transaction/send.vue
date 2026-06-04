@@ -437,7 +437,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
 import WatchtowerExtended from 'src/lib/watchtower'
-import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType,
+  generateAddressSetWithoutSubscription
+} from 'src/utils/address-generation-utils'
 import { toTokenAddress } from 'src/utils/crypto'
 import axios from 'axios'
 import {
@@ -459,10 +463,7 @@ import {
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
-import {
-  processCashinPoints,
-  processOnetimePoints
-} from 'src/utils/engagementhub-utils/rewards'
+import { processMerchantOtcPoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 
@@ -480,6 +481,7 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import { hexToRef } from 'src/utils/reference-id-utils'
 import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
 import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
@@ -2524,23 +2526,22 @@ export default {
             query,
             state
           })
-        }
-
-        // Handle points in background (non-blocking) – do not delay success feedback
-        if (!vm.assetId?.startsWith?.('ct/')) {
-          Promise.all([
-            processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
-            processOnetimePoints({
-              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-              ref_id: result.txid.substring(0, 6)
-            })
-          ]).then(([cashinResp, onetimePointsResp]) => {
-            if (cashinResp || onetimePointsResp) {
+          
+          // Handle points in background (non-blocking) – do not delay success feedback
+          processMerchantOtcPoints({
+            ref_id: hexToRef(result.txid.substring(0, 6)),
+            tx_id: result.txid,
+            customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            merchant_address: this.recipients[0].recipientAddress
+          }).then(resp => {
+            if (resp) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  hasReceivedCashinPoints: cashinResp,
-                  hasReceivedOneTimePoints: onetimePointsResp
+                  isFirstSevenTx: resp.is_first_seven_tx,
+                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
+                  isMerchantOtcTx: true,
+                  merchantName: resp.merchant_name ?? ''
                 }
               })
             }

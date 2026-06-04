@@ -27,7 +27,7 @@
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
             v-on-long-press="onLongPressTitle"
           >
-            <span class="pt-header-title-text">{{ title }}</span>
+            <span class="pt-header-title-text text-weight-bold">{{ title }}</span>
             <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
               <slot name="title-append" />
             </span>
@@ -105,7 +105,7 @@
             :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
             v-on-long-press="onLongPressTitle"
           >
-            <span class="pt-header-title-text">{{ title }}</span>
+            <span class="pt-header-title-text text-weight-bold">{{ title }}</span>
             <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
               <slot name="title-append" />
             </span>
@@ -122,13 +122,15 @@
           />
         </div>
       </div>
-    </template>
+      <div class="pt-header-right col-auto row items-center justify-center">
+        <slot name="top-right-menu">&nbsp;</slot>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
-import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useRoute } from 'vue-router'
 export default {
@@ -152,14 +154,7 @@ export default {
     backnavpath: {
       type: [String, Object],
       default: ''
-    },
-    rewardsPage: {
-      type: String,
-      default: ''
     }
-  },
-  components: {
-    HelpDialog,
   },
   emits: ['click', 'long-press-title'],
   data () {
@@ -252,12 +247,6 @@ export default {
         this.$router.go(-1)
       }
       this.$emit('click')
-    },
-    openRewardsHelpDialog () {
-      this.$q.dialog({
-        component: HelpDialog,
-        componentProps: { page: this.rewardsPage }
-      })
     },
     onLongPressTitle () {
       this.$emit('long-press-title')

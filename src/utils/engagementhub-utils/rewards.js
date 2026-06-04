@@ -1,65 +1,37 @@
-import { deriveHdPrivateNodeFromSeed, deriveHdPath, secp256k1 } from '@bitauth/libauth'
 import axios from 'axios'
 
 import { Store } from 'src/store'
-import { convertToBCH, parseFiatCurrency } from 'src/utils/denomination-utils'
-import { getMnemonic } from 'src/wallet'
-import { getWallet } from 'src/utils/send-page-utils'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
-const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
+export const REWARDS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}rewards/` })
+export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
+export const PROMO_TOKEN_DECIMALS = 2
 
 export const Promos = {
   USERREWARDS: 'ur',
-  RFPROMO: 'rfp' //,
+  RFPROMO: 'rp' //,
   // LOYALTYPROMO: 'lp',
   // CHAMPIONPROMO: 'cp',
   // PPRPROMO: 'pprp'
 }
-
-// ================================
-// local functions
-// ================================
-
-function denomination () {
-  return Store.getters['global/denomination']
-}
-
-function fiatCurrency () {
-  const currency = Store.getters['market/selectedCurrency']
-  return currency?.symbol
-}
-
-function bchMarketPrice () {
-  if (!fiatCurrency()) return 0
-  return Store.getters['market/getAssetPrice']('bch', fiatCurrency())
+export const PromosBytes = {
+  UR: 0x01.toString(),
+  RP: 0x02.toString(),
+  // LP: 0x03,
+  // CP: 0x04,
+  // MP: 0x05
 }
 
 // ================================
 // util functions
 // ================================
 
-export async function getKeyPairFromWalletMnemonic () {
-  const mnemonic = await getMnemonic(Store.getters['global/getWalletIndex'])
-    .then(mnemonic => {
-      return mnemonic
-    })
-  const rootNode = deriveHdPrivateNodeFromSeed(mnemonic, true)
-  const childNode = deriveHdPath(rootNode, getWallet('bch').derivationPath)
-  const childPub = secp256k1.derivePublicKeyCompressed(childNode.privateKey)
-  const childPriv = childNode.privateKey
-
-  if (typeof childPub === 'string') throw new Error(childPub)
-
-  return { pubKey: childPub, privKey: childPriv }
-}
-
-export async function getWalletTokenAddress () {
+export async function getWalletTokenAddress (use0thAddressIndex=false) {
   const { generateReceivingAddress, getDerivationPathForWalletType } = await import('src/utils/address-generation-utils.js')
-  const addressIndex = Store.getters['global/getLastAddressIndex']('bch')
+  const addressIndex = use0thAddressIndex ? 0 : Store.getters['global/getLastAddressIndex']('bch')
   const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
   const bchAddress = await generateReceivingAddress({
     walletIndex: Store.getters['global/getWalletIndex'],
@@ -73,44 +45,35 @@ export async function getWalletTokenAddress () {
   return convertCashAddress(bchAddress, false, true)
 }
 
-export function convertPoints (points, pointsDivisor) {
-  const fiat = points / pointsDivisor
-  // use PHP for conversion basis
-  const phpFiat = Store.getters['market/getAssetPrice']('bch', 'PHP')
-  const bch = convertToBCH(denomination(), fiat / phpFiat)
-
-  const convertedFiat = Store.getters['market/getAssetPrice']('bch', fiatCurrency())
-  const bchNum = Number(bch) === 0 || Number.isNaN(Number(bch)) ? '0' : bch.toFixed(8)
-  const fiatAmount = Number(bchNum) * Number(convertedFiat)
-  const finalFiat = parseFiatCurrency(fiatAmount, fiatCurrency())
-  const finalBch = `${bchNum} ${denomination()}`
-
-  return `${finalFiat} or ${finalBch}`
-}
-
 // ================================
 // functions with calls to engagement hub
 // ================================
 
 // ========== reusable functions ==========
 
-/**
- * Process points depending on given url and data.
- * @returns true if points were processed successfully;
- * false otherwise
- */
 async function processPoints (url, data) {
   return await REWARDS_URL
     .post(url, data)
-    .then(response => { return response.status === 200 })
-    .catch(_error => { return false })
+    .then(response => {
+      if (response.status === 200) return response.data
+      else return null
+    })
+    .catch(_error => { return null })
 }
 
 async function getData (url) {
   return await REWARDS_URL
     .get(url)
-    .then(response => { return response.data })
-    .catch(_error => { return null })
+    .then(resp => {
+      if (resp.status === 200) return resp.data
+      else if (resp.status === 404) return {}
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      if (error?.message.includes('404')) return {}
+      else return null
+    })
 }
 
 async function createData (url) {
@@ -124,17 +87,34 @@ async function createData (url) {
 }
 
 async function updateData (url, data) {
-  await REWARDS_URL
+  return await REWARDS_URL
     .patch(url, data)
-    .then(_response => {})
-    .catch(error => { console.error(error) })
+    .then(response => {
+      if (response.status === 200) return response.data
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      return null
+    })
+}
+
+async function postFetchData (url, data) {
+  return await REWARDS_URL
+    .post(url, data)
+    .then(response => {
+      if (response.status === 200) return response.data
+      else if (response.status === 404) return {}
+      else return null
+    })
+    .catch(error => {
+      console.error(error)
+      if (error?.message.includes('404')) return {}
+      else return null
+    })
 }
 
 // ========== get functions ==========
-
-export async function getRewardsPageToggle () {
-  return await getData('rewardspagetoggle/')
-}
 
 export async function getUserPromoData () {
   return await getData(`userpromo/${getWalletHash()}/`)
@@ -146,6 +126,24 @@ export async function getUserRewardsData (id) {
 
 export async function getRfPromoData (id) {
   return await getData(`rfpromo/${id}/`)
+}
+
+export async function getRpMaxRedeemable () {
+  const rpMax = await getData('rfpromo/get_rp_max_redeemable/')
+  // fallback to original value of 10_000 when something goes wrong with server fetch
+  return rpMax && Object.keys(rpMax).length > 0 ? rpMax.rp_max : 10000
+}
+
+export async function getLiftConversionRatio () {
+  const conversionRatio = await getData('userpromo/get_lift_convertion_ratio/')
+  // fallback to original value of 4 when something goes wrong with server fetch
+  return conversionRatio && Object.keys(conversionRatio).length > 0
+    ? conversionRatio.conversion_ratio
+    : 4
+}
+
+export async function getRewardsSwapContractDetails () {
+  return await getData('userpromo/get_rewards_swap_contract_details/')
 }
 
 // ========== create functions ==========
@@ -172,7 +170,7 @@ export async function updateUserPromoData (data) {
 }
 
 export async function updateUserRewardsData(id, data) {
-  await updateData(`userreward/${id}/`, data)
+  return await updateData(`userreward/${id}/`, data)
 }
 
 export async function updateRfPromoData (id, data) {
@@ -181,61 +179,31 @@ export async function updateRfPromoData (id, data) {
 
 // ========== other functions ==========
 
+export async function getTransactionsData (data) {
+  return await postFetchData('userreward/get_transactions/', data)
+}
+
+export async function fetchRfPromoReferrals (data) {
+  return await postFetchData('rfpromo/get_rp_referrals/', data)
+}
+
+export async function getPromoRedeemHistory (promo, data) {
+  const promoUrl = {
+    'ur': 'userreward/get_ur_redeem_history/',
+    'rp': 'rfpromo/get_rp_redeem_history/'
+  }
+
+  return await postFetchData(promoUrl[promo], data)
+}
+
 export async function processReferralCode (data) {
-  await REWARDS_URL
+  return await REWARDS_URL
     .post('userreward/process_referral_code/', data)
-    .then(response => { return response.status !== 200 })
+    .then(_response => { return {} })
     .catch(error => {
       console.error(error)
-      return true
+      return error.response?.data || { error: error.message || 'Network error' }
     })
-}
-
-export async function getPromoPointsDivisorData () {
-  return await REWARDS_URL
-    .get('promopointsdivisor/')
-    .then(response => { return response.data })
-    .catch(error => {
-      console.error(error)
-      // return initial values set during first marketing planning
-      return {
-        ur_divisor: 4,
-        rfp_divisor: 4
-      }
-    })
-}
-
-export async function processCashinPoints (data) {
-  return await processPoints('userreward/process_cashin_points/', data)
-}
-
-export async function processOnetimePoints (data) {
-  return await processPoints('userreward/process_onetime_points/', data)
-}
-
-export async function processContinuousPoints (data) {
-  return await processPoints('userreward/process_continuous_points/', data)
-}
-
-export async function processPointsRedemption (data) {
-  return await processPoints('userpromo/process_points_redemption/', data)
-}
-
-export async function getContractInitialBalance (data) {
-  return await REWARDS_URL
-    .post('userpromo/send_contract_initial_balance/', data)
-    .then(response => { return response.status === 200 })
-    .catch(_error => { return false })
-}
-
-export async function sendAuthkeyNftToWallet (tokenAddress) {
-  return await REWARDS_URL
-    .post('userpromo/send_authkeynft/', {
-      token_address: tokenAddress,
-      user_wallet_hash: getWalletHash()
-    })
-    .then(_response => { })
-    .catch(error => { console.error(error) } )
 }
 
 export async function awardInitialUP (data) {
@@ -243,4 +211,43 @@ export async function awardInitialUP (data) {
     .post('userreward/award_initial_points/', data)
     .then(_response => { })
     .catch(error => { console.error(error) })
+}
+
+export async function processMerchantOtcPoints (data) {
+  return await processPoints('userreward/process_merchant_otc_points/', data)
+}
+
+export async function processRampCashinPoints (data) {
+  return await processPoints('userreward/process_cashin_points/', data)
+}
+
+export async function processCauldronPoints (data) {
+  return await processPoints('userreward/process_cauldron_points/', data)
+}
+
+export async function processEloadPoints (data) {
+  return await processPoints('userreward/process_eload_points/', data)
+}
+
+export async function processPromoTokensSwap (data) {
+  return await REWARDS_URL
+    .post('userpromo/process_promo_tokens_swap/', data)
+    .then(response => { return response.data })
+    .catch(error => {
+      console.error(error)
+      return error.response?.data || { error: error.message || 'Network error' }
+    })
+}
+
+export async function recordPointsRedemption (data) {
+  return await REWARDS_URL
+    .post('userpromo/record_points_redemption/', data)
+    .then(response => {
+      if (response.status === 200) return { error: '' }
+      else return response.data
+    })
+    .catch(error => {
+      console.error(error)
+      return error.response?.data || { error: error.message || 'Network error' }
+    })
 }

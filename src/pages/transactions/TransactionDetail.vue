@@ -877,6 +877,9 @@ export default {
           query: { assetID: assetId }
         }
       }
+      if (['app-rewards-transaction-history', 'user-rewards'].includes(fromParam)) {
+        return -1
+      }
       if (fromParam?.includes('apps/multisig')) { 
         return {
           path: this.$route?.query?.from,
