@@ -153,6 +153,7 @@ const routes = [
       { path: 'debug', component: () => import('src/pages/apps/debug/index.vue'), name: 'app-debug' },
       { path: 'debug/address-key-viewer', component: () => import('src/pages/apps/debug/tools.vue'), name: 'app-debug-address-key-viewer' },
       { path: 'debug/console', component: () => import('src/pages/apps/debug/console.vue'), name: 'app-debug-console' },
+      { path: 'debug/push-notifications-reset', component: () => import('src/pages/apps/debug/push-notifications-reset.vue'), name: 'app-debug-push-notifications-reset' },
       { path: 'connecta', component: () => import('src/pages/apps/connecta/index.vue'), name: 'connecta', props: route => route.query },
       { path: 'gifts', component: () => import('src/pages/apps/gifts/index.vue'), name: 'gifts' },
       { path: 'gifts/create', component: () => import('src/pages/apps/gifts/create-gift.vue'), name: 'create-gift' },
@@ -458,6 +459,45 @@ const routes = [
             component: () => import('src/pages/apps/address-book/add-record.vue')
           }
         ]
+      },
+      {
+        path: 'chat',
+        children: [
+          {
+            path: '',
+            name: 'app-chat',
+            component: () => import('src/pages/apps/chat/index.vue')
+          },
+          {
+            path: 'profile',
+            name: 'app-chat-profile',
+            component: () => import('src/pages/apps/chat/profile.vue')
+          },
+          {
+            path: ':roomId/info',
+            name: 'app-chat-group-info',
+            props: true,
+            component: () => import('src/pages/apps/chat/group-info.vue')
+          },
+          {
+            path: ':roomId/dm-info',
+            name: 'app-chat-dm-info',
+            props: true,
+            component: () => import('src/pages/apps/chat/dm-info.vue')
+          },
+          {
+            path: ':roomId',
+            name: 'app-chat-conversation',
+            props: true,
+            component: () => import('src/pages/apps/chat/conversation.vue')
+          }
+        ]
+      },
+      {
+        path: 'group/:roomId',
+        name: 'group-chat-link',
+        props: true,
+        component: () => import('src/pages/apps/chat/conversation.vue')
       }
     ]
   },

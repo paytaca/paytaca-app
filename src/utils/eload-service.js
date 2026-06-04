@@ -252,15 +252,24 @@ async function getAuthHeaders() {
 		console.log('[OAuth] User not found, registering...')
 		
 		try {
-			// New register API requires signing: register(address, privateKeyHex, publicKeyHex, userId, timestamp, domain)
-			await client.register(
-				credentials.address,    // address
-				privateKeyHex,          // privateKeyHex
-				credentials.publicKey,  // publicKeyHex
-				walletHash,             // userId (wallet hash)
-				timestamp,              // timestamp
-				domain                  // domain
-			)
+			// Register with BCH OAuth server
+			const registerTimestamp = timestamp || Math.floor(Date.now() / 1000)
+			const registerDomain = domain || getOAuthDomain()
+			const registerMessage = client.createAuthMessage(walletHash, registerTimestamp, registerDomain)
+			const registerSignature = await client.signAuthMessage(registerMessage, privateKeyHex)
+
+			await axiosFetch(`${baseURL}/auth/register`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					bitcoincash_address: credentials.address,
+					user_id: walletHash,
+					timestamp: registerTimestamp,
+					domain: registerDomain,
+					public_key: credentials.publicKey,
+					signature: registerSignature,
+				})
+			})
 			console.log('[OAuth] User registered successfully')
 		} catch (regError) {
 			console.error('[OAuth] Registration failed:', regError.message)
