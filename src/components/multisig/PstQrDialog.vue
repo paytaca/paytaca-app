@@ -77,7 +77,7 @@ async function prepareBase64Chunks() {
     const buffer = Buffer.from(base64ToBin(base64Psbt), 'base64');
     const ur = new UR(buffer, "crypto-psbt");
     
-    const chunkSize = 50; 
+    const chunkSize = 150; 
     encoder.value = new UREncoder(ur, chunkSize);
     return encoder.value?.fragments?.length;
   } catch (error) {
@@ -130,7 +130,7 @@ function qrToString(text) {
     const qrcode = new QRCode({
       content: text,
       ecl: "Q",   
-      padding: 8, 
+      padding: 4, 
       join: true,
       swap: true
     });
