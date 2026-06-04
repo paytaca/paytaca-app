@@ -1,19 +1,27 @@
-import { ElectrumNetworkProvider, Network } from "cashscript"
-import { Contract, SignatureTemplate } from 'cashscript'
-import { getChangeAddress } from "src/utils/send-page-utils"
-import { getMnemonic, Wallet } from "src/wallet"
-import { markRaw } from "vue"
-import { Store } from "src/store"
-import { getWalletByNetwork } from "src/wallet/chipnet"
-import { getWalletTokenAddress } from "src/utils/engagementhub-utils/rewards"
+import { computeContractFee } from "src/utils/cashscript-utils";
+import { convertToBytes32 } from '../../engagementhub-utils/shared';
+import { changeEndianness } from "src/utils/engagementhub-utils/lift-token";
+import { broadcastTxUsingWatchtower } from "src/utils/engagementhub-utils/shared";
+import {
+  PROMO_TOKEN_CATEGORY,
+  PROMO_TOKEN_DECIMALS
+} from "src/utils/engagementhub-utils/rewards"
+import {
+  Network,
+  Contract,
+  SignatureTemplate,
+  TransactionBuilder,
+  ElectrumNetworkProvider,
+} from "cashscript"
 
 import axios from "axios"
-import Watchtower from "watchtower-cash-js"
 
-import PromoContractArtifact from 'src/cashscripts/rewards/PromoContract.json'
+import PromoContractArtifact from 'src/cashscripts/rewards/PromoContractv1.json'
 
-const watchtower = new Watchtower(false)
-const promoTokensDecimals = 2
+
+const ADMIN_PUBKEY = process.env.ADMIN_PUBKEY
+const WATCHTOWER_CASH_URL = process.env.MAINNET_WATCHTOWER_BASE_URL || 'https://watchtower.cash/api'
+const UTXO_URL = `${WATCHTOWER_CASH_URL}/utxo`
 
 /**
  * Represents an instance of a promo contract. May vary
@@ -21,231 +29,122 @@ const promoTokensDecimals = 2
  */
 export default class PromoContract {
   /**
-   * @param {'ur' | 'rfp' | 'lp' | 'cp' | 'pprp'} promo type of promo
-   * @param {Uint8Array<ArrayBufferLike>} pubKey the public key derived from the user's wallet mnemonic
+   * Constructor of the PromoContract class
+   * @param {String} userPubKey the public key derived from the user's wallet mnemonic
+   * @param {String} promo 1-byte hex string representing the target promo
    */
-  constructor (promo, pubKey) {
+  constructor (userPubKey, promo) {
     this.promo = promo
+    this.provider = null
 
-    this.initializeContract(pubKey)
+    this.initializeContract(userPubKey)
   }
 
   /**
    * Initializes the contract by compiling its source code, generating
    * the contract parameters, and creating a new Contract instance.
-   * @param {Uint8Array<ArrayBufferLike>} pubKey the public key derived from the user's wallet mnemonic
+   * @param {String} userPubKey the public key derived from the user's wallet mnemonic
    */
-  initializeContract (pubKey) {
-    const provider = new ElectrumNetworkProvider(Network.MAINNET)
-    const contractParams = [pubKey, this.promo]
-    this.contract = new Contract(PromoContractArtifact, contractParams, { provider })
+  initializeContract (userPubKey) {
+    this.provider = new ElectrumNetworkProvider(Network.MAINNET)
+    const contractParams = [
+      ADMIN_PUBKEY,
+      userPubKey,
+      changeEndianness(PROMO_TOKEN_CATEGORY),
+      this.promo
+  ]
+    this.contract = new Contract(PromoContractArtifact, contractParams, { provider: this.provider })
   }
 
-  /**
-   * Facilitate the swapping of promo token to BCH. It sends the AuthKeyNFT to
-   * the promo contract to be included in the transaction output, which will be
-   * processed in the engagement-hub server.
-   * @param {Number} amount the amount to be swapped
-   * @param {string} walletHash the wallet hash of the user's wallet
-   * @param {string} swapContractAddress the token address of the swap contract
-   * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
-   * @param {number} retries number of retries when transaction fails
-   * @returns the transaction ID (`txid`) of the successful transaction; `undefined` otherwise
-   */
-  async redeemPromoTokenToBch(
-    amount, walletHash, swapContractAddress, privKey, retries = 0
+  async redeemPoints (
+    userWif,
+    rewardsSwapContractAddress,
+    pointsToRedeem,
+    rewardsSwapContractBytecode
   ) {
-    let txId
-    // get AuthKeyNFT details from user wallet
-    const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
-    const params = `?wallet_hash=${walletHash}&has_balance=true&category=${category}`
-    const nft_url = `https://watchtower.cash/api/cashtokens/nft/${params}`
-    const authKeyNft = await axios
-      .get(nft_url)
-      .then(response => {
-        return response.data.results[0]
-      })
-    
-    // send AuthKeyNFT from user wallet to contract ct
-    const recipientParams = [{
-      address: this.contract.tokenAddress,
-      amount: 0.00001,
-      tokenAmount: 0
-    }]
-    const tokenParams = {
-      tokenId: authKeyNft.category,
-      commitment: authKeyNft.commitment,
-      capability: authKeyNft.capability,
-      txid: authKeyNft.current_txid,
-      vout: "" + authKeyNft.current_index
-    }
-    const changeAddress = getChangeAddress('bch')
+    const payload = { txid: '', error: '', fee: 0 }
 
-    const walletIndex = Store.getters['global/getWalletIndex']
-    const mnemonic = await getMnemonic(walletIndex)
-    const wallet = markRaw(new Wallet(mnemonic, this.network))
-    const result = await getWalletByNetwork(wallet, 'bch')
-      .sendBch(0, '', changeAddress, tokenParams, undefined, recipientParams)
-    
-    if (result.success) {
-      // 1 second timeout to properly load contract utxos after recent transaction
-      setTimeout(() => { }, 1000);
-      
-      try {
-        const contractUtxos = await this.contract.getUtxos()
-        const balanceUtxos = contractUtxos
-          .filter(utxo =>
-            utxo?.token?.category === undefined && utxo?.satoshis > BigInt(1000)
-          )
-        const authKeyNftUtxo = contractUtxos.filter(utxo =>
-          utxo?.token?.category === category && utxo?.token?.amount === BigInt(0)
-        )[0]
-        const tokenUtxos = contractUtxos.filter(utxo => 
-          utxo?.token?.category === process.env.PROMO_TOKEN_ID
-        )
-        
-        // compile outputs
-        const output = [
-          // 0th output is promo token
-          {
-            to: swapContractAddress,
-            amount: BigInt(1000),
-            token: {
-              amount: BigInt(amount),
-              category: process.env.PROMO_TOKEN_ID,
-            }
-          },
-          // 1st output is AuthKeyNFT
-          {
-            to: swapContractAddress,
-            amount: BigInt(1000),
-            token: {
-              amount: BigInt(0),
-              category: authKeyNftUtxo.token.category,
-              nft: {
-                capability: authKeyNftUtxo.token.nft.capability,
-                commitment: authKeyNftUtxo.token.nft.commitment
-              }
-            }
-          }
-        ]
+    try {
+      // get utxos
+      const contractUtxos = await this.getContractUtxosFromWatchtower()
+      if (contractUtxos.length === 0) throw new Error('Contract has no UTXOs')
 
-        const transaction = await this.contract.functions
-          .transfer(new SignatureTemplate(privKey), this.promo)
-          .from([authKeyNftUtxo, ...tokenUtxos, ...balanceUtxos])
-          .to(output)
-          .send()
-        txId = transaction.txid
-        console.log('Swap transaction processed successfully.')
-      } catch (error) {
-        console.error(error)
-        await this.recoverAuthKeyNft(privKey)
-        if (retries <= 3) {
-          txId = await this.redeemPromoTokenToBch(
-            amount, walletHash, swapContractAddress, privKey, retries + 1
-          )
-        }
-      }
-    } else {
-      console.error('An error occurred while sending AuthKeyNFT to promo contract.')
-    }
+      // compute bch and token balances
+      const bchBalance = contractUtxos.reduce((prev, utxo) => prev + utxo.satoshis, 0n)
+      const tokenBalance = contractUtxos
+        .filter(utxo => utxo.token)
+        .reduce((prev, utxo) => prev + utxo.token?.amount, 0n)
 
-    return txId
-  }
+      // multiple points to redeem by token decimal
+      const actualPointstoRedeem = BigInt(Math.trunc(pointsToRedeem * (10 ** PROMO_TOKEN_DECIMALS)))
 
-  /**
-   * Recover AuthKeyNFT sent to this contract then send it to user wallet.
-   * Called when redeeming promo token to BCH fails for some reason.
-   * @param {Uint8Array} privKey 
-   */
-  async recoverAuthKeyNft (privKey) {
-    const category = process.env.AUTHKEY_NFT_CHILDREN_TOKEN_ID
-    const contractUtxos = await this.contract.getUtxos()
-    const balanceUtxos = contractUtxos
-      .filter(utxo =>
-        utxo?.token?.category === undefined && utxo.satoshis > BigInt(1000)
-      )
-      // ensure that the UTXO with most satoshis is used
-      .sort((a, b) => Number(b.satoshis) - Number(a.satoshis))[0]
-    const authKeyNftUtxo = contractUtxos.filter(utxo =>
-      utxo?.token?.category === category && utxo?.token?.amount === BigInt(0)
-    )[0]
+      // build input
+      const inputs = contractUtxos
 
-    // check if authkeynft is present
-    if (authKeyNftUtxo) {
-      const userTokenAddress = await getWalletTokenAddress()
-      const output = [
+      // build output
+      const outputs = [
+        // user address in outputs[0]
         {
-          to: userTokenAddress,
-          amount: BigInt(1000),
+          to: rewardsSwapContractAddress,
+          amount: 1000n,
           token: {
-            amount: BigInt(0),
-            category: authKeyNftUtxo.token.category,
-            nft: {
-              capability: authKeyNftUtxo.token.nft.capability,
-              commitment: authKeyNftUtxo.token.nft.commitment
-            }
+            amount: actualPointstoRedeem,
+            category: PROMO_TOKEN_CATEGORY
           }
         }
       ]
 
-      const sigTemp = new SignatureTemplate(privKey)
-      await this.contract.functions
-        .transfer(sigTemp, this.promo)
-        .from([authKeyNftUtxo, balanceUtxos])
-        .to(output)
-        .send()
-      console.log('AuthKeyNFT returned successfully. Retrying redemption if allowed.')
-    } else {
-      // error
-      console.error('Contract does not have any AuthKeyNFTs stored.')
-    }
-  }
-
-  /**
-   * Converts the stored points determined by the given amount in the contract to Paytaca tokens.
-   * Since the points stored in the contract are also Paytaca tokens, in essence, this "unlocks"
-   * the tokens and is sent to the user's wallet token address, creating a new or adding to
-   * their existing token supply.
-   * @param {Uint8Array} privKey the private key derived as a key pair from the wallet's mnemonic
-   * @param {string} tokenAddress the token address of the user's wallet
-   * @param {number} amount the amount to be swapped
-   * @returns the transaction ID (`txid`) of the successful transaction; `undefined` otherwise
-   */
-  async unlockPromoToken (privKey, tokenAddress, amount) {
-    let txId
-
-    const contractUtxos = await this.contract.getUtxos()
-    const balanceUtxos = contractUtxos
-      .filter(utxo =>
-        utxo?.token?.category === undefined && utxo?.satoshis > BigInt(1000)
-      )
-    const tokenUtxos = contractUtxos.filter(utxo => 
-      utxo?.token?.category === process.env.PROMO_TOKEN_ID
-    )
-
-    const output = [{
-      to: tokenAddress,
-      amount: BigInt(1000),
-      token: {
-        amount: BigInt(amount),
-        category: process.env.PROMO_TOKEN_ID,
+      if (tokenBalance - actualPointstoRedeem > 0n) {
+        // token change output in outputs[1]
+        // (will be outputs[2] later on after inserting bch change output)
+        outputs.push({
+          to: this.contract.tokenAddress,
+          amount: 1000n,
+          token: {
+            amount: tokenBalance - actualPointstoRedeem,
+            category: PROMO_TOKEN_CATEGORY
+          }
+        })
       }
-    }]
-    
-    try {
-      const transaction = await this.contract.functions
-        .transfer(new SignatureTemplate(privKey), this.promo)
-        .from([...tokenUtxos, ...balanceUtxos])
-        .to(output)
-        .send()
-      txId = transaction.txid
-      console.log('Convert transaction processed successfully.')
-    } catch {
-      console.log('Convert transaction failed.')
+
+      // compute fee
+      const tx = this.contract.functions.send(
+        new SignatureTemplate(userWif),
+        this.promo,
+        convertToBytes32(rewardsSwapContractBytecode, false)
+      )
+      // +1 in outputs length for bch change output
+      payload.fee = computeContractFee(tx, outputs, inputs.length, outputs.length + 1, 1.5) + 1000n
+
+      // insert bch change outputs to outputs[1]
+      // (token change output is now in outputs[2] if existing)
+      outputs.splice(1, 0, {
+        to: this.contract.tokenAddress,
+        amount: bchBalance - payload.fee
+      })
+
+      // build and broadcast transaction
+      const txHex = new TransactionBuilder({ provider: this.provider })
+        .addInputs(
+          inputs,
+          this.contract.unlock.send(
+            new SignatureTemplate(userWif),
+            this.promo,
+            convertToBytes32(rewardsSwapContractBytecode, false)
+          )
+        )
+        .addOutputs(outputs)
+        .build()
+  
+      payload.txid = await broadcastTxUsingWatchtower(txHex)
+    } catch (error) {
+      if (error?.requireStatement?.message)
+        payload.error = error?.requireStatement?.message
+      else payload.error = error.message
+      payload.fee = (payload.fee || 0n) + 1000n
     }
 
-    return txId
+    return payload
   }
 
   /**
@@ -253,44 +152,92 @@ export default class PromoContract {
    * to watch for transactions to and from the address.
    */
   async subscribeAddress () {
-    await watchtower.BCH._api.post('subscription/', { address: this.contract.address })
+    try {
+      await axios.post("https://watchtower.cash/api/subscription/", { address: this.contract.address });
+    } catch {}
   }
 
   /**
-   * Computes the promo token balance of the contract. It first retrieves
-   * the balance on Watchtower. If it fails, it retrieves the balance
-   * from the contract itself.
+   * Computes the promo token balance of the contract.
    * @returns the computed promo token balance
    */
   async getTokenBalance () {
-    let balance = 0
+    const tokenUtxos = await this.getContractUtxosFromWatchtower()
+      .then(utxos => utxos.filter(r => r.token?.category === PROMO_TOKEN_CATEGORY)
+    )
+    if (tokenUtxos.length === 0) return 0
+    return tokenUtxos
+      .reduce((total, el) => {
+        return total + (Number(el.token?.amount))
+      }, 0) / (10 ** PROMO_TOKEN_DECIMALS)
+  }
 
-    // retrieve balance from watchtower
-    await watchtower.BCH._api.get(
-      `cts/balances/${this.contract.tokenAddress}/fts`,
-      { limit: 100 }
-    ).then(resp => {
-      const tokens = resp.data.results.map(token => {
-        return {
-          category: token?.tokenId,
-          balance: token?.balance
-        }
-      })
-      const promoToken = tokens.filter(t => t.category === process.env.PROMO_TOKEN_ID)
-      if (promoToken.length > 0) {
-        balance = Number(promoToken[0].balance) / (10 ** promoTokensDecimals)
-      }
-    }).catch(async _error => {
-      // retrieve balance from contract token utxos
-      const promoTokenUtxos = await this.contract.getUtxos()
-        .then(result => {
-          return result.filter(r => r.token?.category === process.env.PROMO_TOKEN_ID)
+  /**
+   * Fetches UTXOs for the contract from **Watchtower** API. Falls back to
+   * `contract.getUtxos()` if Watchtower fetch fails or returns an empty list.
+   * Combines both BCH and CashToken UTXOs into a unified format.
+   * This is done because Watchtower's node is much faster than what
+   * CashScript uses, provided that the contract address was subscribed
+   * to the Watchtower first.
+   * @returns Array of UTXO objects with standardized format similar with CashScript UTXOs
+   */
+  async getContractUtxosFromWatchtower () {
+    let contractUtxos = []
+
+    try {
+      // get UTXOs from Watchtower first
+      // bch utxos
+      const bchUtxosUrl = `${UTXO_URL}/bch/${this.contract.address}/`
+      const bchUtxos = await axios
+        .get(bchUtxosUrl)
+        .then(response => {
+          if (response.status === 200) return response.data.utxos
+          else return []
         })
-      balance = promoTokenUtxos.reduce((total, el) => {
-        return total + (Number(el.token?.amount) / (10 ** promoTokensDecimals))
-      }, 0)
-    })
+        .catch(_error => { return [] })
+  
+      // ct utxos
+      const ctUtxosUrl = `${UTXO_URL}/ct/${this.contract.tokenAddress}/?is_cashtoken=true`
+      const ctUtxos = await axios
+        .get(ctUtxosUrl)
+        .then(response => {
+          if (response.status === 200) return response.data.utxos
+          else return []
+        })
+        .catch(error => { 
+          throw error
+         })
 
-    return balance
+      // combine the two utxos and format to extract needed details
+      const combinedUtxos = [...bchUtxos, ...ctUtxos]
+
+      if (combinedUtxos.length === 0) {
+        throw new Error('Fetched empty UTXOs from Watchtower. Falling to fallback to double check.')
+      }
+
+      for (const utxo of combinedUtxos) {
+        let token
+        if (utxo?.is_cashtoken) {
+          token = {
+            amount: BigInt(utxo.amount),
+            category: utxo.tokenid
+          }
+        }
+
+        contractUtxos.push({
+          satoshis: BigInt(utxo.value),
+          txid: utxo.txid,
+          vout: utxo.vout,
+          token
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch UTXOs from Watchtower. Using getUtxos() function as fallback.')
+      console.error(error)
+      // fallback to contract UTXOs if Watchtower fetch fails or when UTXOs fetched is empty
+      contractUtxos = await this.contract.getUtxos()
+    }
+
+    return contractUtxos
   }
 }

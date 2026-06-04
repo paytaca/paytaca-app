@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { Store } from 'src/store'
-import i18n from 'src/i18n'
+import { i18n } from 'src/boot/i18n'
 
 
 export async function getNetworkTimeDiff() {
@@ -64,7 +64,7 @@ export function formatDateLocaleRelative(date, useRelative=true, currentTime=new
   const userLocale = () => {
       // Prefer app-selected language; fall back to i18n locale; then browser locale.
       const fromStore = Store.getters['global/language']
-      const candidate = fromStore || i18n || globalThis?.navigator?.language || 'en-US'
+      const candidate = fromStore || i18n.global.locale.value || globalThis?.navigator?.language || 'en-US'
       return String(candidate).replace('_', '-')
     }
 
