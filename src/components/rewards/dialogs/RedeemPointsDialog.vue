@@ -4,10 +4,20 @@
     seamless
     ref="dialogRef"
     class="no-click-outside"
+    @show="onDialogShow"
+    @hide="onDialogHide"
   >
-    <q-card class="q-pa-md pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center">
-        <span class="text-h6">{{ $t('RedeemPoints') }}</span>
+    <q-card 
+      class="q-pa-md pt-card text-bow br-15" 
+      :class="getDarkModeClass(darkMode)"
+      style="max-width: 450px; width: 90vw; max-height: 85vh; display: flex; flex-direction: column;"
+    >
+      <!-- Header -->
+      <div class="row justify-between items-center q-mb-sm dialog-header">
+        <div class="row items-center q-gutter-sm">
+          <q-icon name="card_giftcard" size="28px" color="primary" />
+          <span class="text-h6 text-weight-bold">{{ $t('RedeemPoints', 'Redeem Points') }}</span>
+        </div>
         <q-btn
           flat
           round
@@ -15,274 +25,361 @@
           icon="close"
           class="close-button"
           v-close-popup
+          :disable="isLoading"
         />
       </div>
 
-      <q-tabs
-        no-caps
-        v-model="redeemTab"
-        class="col-12"
-        indicator-color=""
-        @click="pointsToRedeem = '0'; computeBalance()"
-      >
-        <q-tab
-          name="swap"
-          :label="$t('SwapToBCH')"
-          class="network-selection-tab rewards"
-          :class="getDarkModeClass(darkMode)"
-        />
-        <q-tab
-          name="convert"
-          :label="$t('ConvertToTokens')"
-          class="network-selection-tab rewards"
-          :class="getDarkModeClass(darkMode)"
-        />
-      </q-tabs>
+      <q-separator class="q-mb-md" />
 
-      <q-tab-panels
-        animated
-        v-model="redeemTab"
-        class="row full-width"
-      >
-        <q-tab-panel name="swap" style="padding: 5px 0;">
-          <div class="row q-mt-sm">
-            <span class="full-width text-subtitle1 q-mb-sm">
-              {{ $t('SwaptoBCHDescription') }}
-            </span>
-            <span>
-              <strong>{{ $t('Rate') }}:</strong> 1
-              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-              = {{ singlePointConversion }}
-            </span>
+      <div class="dialog-content scrollable-content">
+        <!-- Loading State - Skeleton -->
+        <div v-if="isLoading" class="skeleton-container q-py-md">
+          <div class="text-center q-mb-lg">
+            <q-skeleton type="text" width="120px" height="40px" class="q-mx-auto q-mb-sm" />
+            <q-skeleton type="text" width="80px" height="20px" class="q-mx-auto" />
           </div>
+          
+          <q-card class="q-mb-md" flat bordered>
+            <q-card-section>
+              <q-skeleton type="text" width="50%" class="q-mb-sm" />
+              <q-skeleton type="QInput" height="40px" class="q-mb-md" />
+              <div class="row items-center justify-between">
+                <q-skeleton type="QChip" class="col-2"/>
+                <q-skeleton type="QChip" class="col-2"/>
+                <q-skeleton type="QChip" class="col-2"/>
+                <q-skeleton type="QChip" class="col-2"/>
+              </div>
+            </q-card-section>
+          </q-card>
 
-          <div class="q-mt-md q-mb-sm" style="position: relative;">
-            <q-input
-              ref="points-input"
-              type="text"
-              inputmode="none"
-              @focus="customKeyboardState = 'show'"
-              @keydown="onKeyboardInput"
-              filled
-              v-model="pointsToRedeem"
-              :label="$t('Amount')"
-              :dark="darkMode"
-              :error="
-                pointsToRedeem > points ||
-                (redeemablePoints && pointsToRedeem > redeemablePointsBalance)
-              "
-              :error-message="$t('BalanceExceeded')"
+          <q-card flat bordered>
+            <q-card-section>
+              <q-skeleton type="text" width="50%" class="q-mb-sm" />
+              <q-skeleton type="QInput" height="25px" />
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="loadingError" class="text-center q-ma-sm">
+          <error-card
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            :error-text="loadingError"
+            @on-retry="fetchContractPoints"
+          />
+        </div>
+
+        <!-- Main Content -->
+        <template v-else>
+          <!-- Points Hero Section -->
+          <div class="points-hero-section text-center q-mb-lg">
+            <div 
+              class="points-display-container q-pa-md rounded-borders"
+              :class="darkMode ? 'bg-dark-3' : 'bg-grey-2'"
             >
-              <template v-slot:append>
-                <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                  {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
+              <div class="text-caption text-uppercase q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('RemainingPoints', 'Remaining Points') }}
+              </div>
+              <div class="row flex-center">
+                <span 
+                  class="text-h4 text-bold text-primary animated-points"
+                  :class="{ 'animate': isPointsAnimating }"
+                >
+                  {{ displayPoints }}
+                </span>
+                <span
+                  class="text-subtitle1 text-weight-bold q-ml-sm"
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                >
+                  points
+                </span>
+              </div>
+
+              <!-- LIFT Conversion Display -->
+              <div v-if="liftConversionRate" class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                <span class="text-token text-weight-medium" :class="getDarkModeClass(darkMode)">
+                  = {{ formattedRemainingLift }} LIFT
+                </span>
+                <span v-if="liftFiatPrice && !priceError"> ≈ {{ formattedRemainingFiat }}</span>
+                <span v-else-if="priceError" :class="darkMode ? 'text-red-5' : 'text-negative'">
+                  <q-icon name="error" size="xs" class="q-mr-xs" /> Price unavailable
+                </span>
+              </div>
+
+              <!-- Promo Limit Progress Bar -->
+              <div v-if="redeemablePoints" class="promo-limit-section q-mt-md">
+                <div class="row justify-between items-center q-mb-xs">
+                  <span class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
+                    {{ $t('PromoLimit', 'Promo Limit') }}
+                  </span>
+                  <span 
+                    class="text-caption text-weight-medium"
+                    :class="promoLimitExceeded ? 'text-negative' : 'text-positive'"
+                  >
+                    {{ Math.max(0, redeemablePoints - Number(pointsToRedeem || 0)) }} points remaining
+                  </span>
                 </div>
-              </template>
-            </q-input>
-            <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
+                <q-linear-progress
+                  :value="promoProgressValue"
+                  :color="promoProgressColor"
+                  size="8px"
+                  rounded
+                  class="promo-progress-bar"
+                  :class="{ 'exceeded': promoLimitExceeded }"
+                />
+                <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
+                  {{ $t('MaxRedeemable', 'Max redeemable') }}: {{ maxRedeemable }} points
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="row justify-between q-mb-sm q-mx-sm">
-            <span>
-              {{ pointsBalance }}
-              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-            </span>
-            <q-btn
-              flat
-              dense
-              no-caps
-              class="max-button"
-              :class="getDarkModeClass(darkMode)"
-              :label="$t('MAX')"
-              @click="onMaxClick"
-            />
-          </div>
+          <!-- Amount Input Section -->
+          <q-card flat bordered class="amount-input-card" :class="getDarkModeClass(darkMode)">
+            <q-card-section class="q-px-md q-py-sm">
+              <div class="text-subtitle2 text-weight-medium q-mb-sm">
+                <q-icon name="toll" size="16px" class="q-mr-sm" color="primary" />
+                {{ $t('AmountToRedeem', 'Amount to Redeem') }}
+              </div>
+              
+              <q-input
+                ref="points-input"
+                type="text"
+                inputmode="none"
+                @focus="customKeyboardState = 'show'"
+                filled
+                v-model="pointsToRedeem"
+                :dark="darkMode"
+                class="amount-input"
+                input-class="text-h6 text-center"
+              >
+                <template v-slot:append>
+                  <div class="text-weight-bold text-primary" style="font-size: 14px;">
+                    points
+                  </div>
+                </template>
+              </q-input>
 
-          <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
-            {{ redeemablePointsBalance }}
-            {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-            {{ $t('Remaining') }}
-          </div>
+              <!-- Quick Amount Buttons -->
+              <div class="row q-gutter-sm q-mt-sm">
+                <q-btn
+                  v-for="percent in quickAmounts"
+                  :key="percent"
+                  :outline="activeQuickAmount !== percent"
+                  :color="activeQuickAmount === percent ? 'primary' : ''"
+                  dense
+                  no-caps
+                  size="sm"
+                  class="quick-amount-btn col"
+                  :class="getDarkModeClass(darkMode)"
+                  :label="percent === 100 ? 'MAX' : `${percent}%`"
+                  @click="setQuickAmount(percent)"
+                  :disable="isCalculatingQuickAmount"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
 
-          <div class="text-body1 q-mb-sm">
-            <span>{{ $t('YouWillReceive') }}:</span><br/>
-            <span class="row q-ml-md">
-              {{ pointsConvertion }}
-            </span>
-          </div>
+          <!-- Redeem Progress Preview -->
+          <q-slide-transition :duration="300">
+            <div v-if="Number(pointsToRedeem) > 0 && !hasValidationError" class="redeem-preview q-mt-md">
+              <q-card 
+                flat 
+                bordered 
+                class="preview-card"
+                :class="[getDarkModeClass(darkMode), { 'pulse-animation': isRedeemReady }]"
+              >
+                <q-card-section class="q-pa-sm">
+                  <div class="row items-center q-gutter-md">
+                    <div class="preview-icon-container">
+                      <q-icon name="arrow_forward" size="24px" color="white" />
+                    </div>
+                    <div class="col">
+                      <div class="text-caption text-uppercase" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                        {{ $t('YouWillReceive') }}
+                      </div>
+                      <div class="text-h6 text-weight-bold text-positive">
+                        {{ formattedLiftToReceive }} LIFT
+                      </div>
+                      <div v-if="liftToReceiveFiatValue && !priceError" class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                        ≈ {{ formattedLiftToReceiveFiat }}
+                      </div>
+                      <div v-else-if="priceError" class="text-caption text-weight-medium" :class="darkMode ? 'text-red-5' : 'text-negative'">
+                        <q-icon name="error" size="xs" class="q-mr-xs" /> Price unavailable
+                      </div>
+                      <div class="text-caption" :class="darkMode ? 'text-grey-7' : 'text-grey-7'">
+                        {{ $t('ToYourTokenAddress', 'to your token address') }}
+                      </div>
+                    </div>
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+          </q-slide-transition>
 
-          <div class="row full-width justify-evenly">
-            <template v-if="isSending">
-              <progress-loader
-                
-                :isTight="true"
-                class="q-mb-md"
-              />
-            </template>
-            <template v-else>
-              <q-btn
-                rounded
-                outline
-                class="button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
-                :label="$t('Cancel')"
-                v-close-popup
-              />
-              <q-btn
-                rounded
-                class="button"
-                :label="$t('Swap')"
-                :disable="
-                  pointsBalance < 0 ||
-                  Number(pointsToRedeem) === 0 ||
-                  (redeemablePoints && redeemablePointsBalance < 0)
-                "
-                @click="executeSecurityChecking"
-              />
-            </template>
-          </div>
-        </q-tab-panel>
+          <!-- Validation Error Alert -->
+          <q-slide-transition :duration="300">
+            <div v-if="hasValidationError" class="q-mt-md">
+              <q-banner class="bg-negative text-white rounded-borders" dense>
+                <template v-slot:avatar>
+                  <q-icon name="error" />
+                </template>
+                {{ validationErrorMessage }}
+              </q-banner>
+            </div>
+          </q-slide-transition>
 
-        <q-tab-panel name="convert" style="padding: 5px 0;">
-          <div class="row q-mt-sm">
-            <span class="full-width text-subtitle1 q-mb-sm">
-              {{ $t('ConvertToTokensDescription') }}
-            </span>
-            <span>
-              <strong>{{ $t('Rate') }}:</strong> 1
-              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-              = 1 PTC
-            </span>
-          </div>
+          <!-- Token Address Card -->
+          <q-card 
+            class="token-address-card q-mt-md" 
+            flat 
+            bordered
+            :class="getDarkModeClass(darkMode)"
+          >
+            <q-card-section class="q-px-md q-py-sm">
+              <div class="row items-center q-gutter-sm">
+                <q-icon name="account_balance_wallet" size="20px" color="primary" />
+                <span class="text-caption text-weight-medium">
+                  {{ $t('DestinationAddress', 'Destination Address') }}
+                </span>
+              </div>
+              <div class="q-mt-sm q-px-sm q-py-xs rounded-borders token-address-box">
+                <div class="row items-center no-wrap">
+                  <span class="text-body2 text-grey-8 ellipsis">{{ tokenAddress }}</span>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="sm"
+                    icon="content_copy"
+                    class="q-ml-auto"
+                    @click="copyTokenAddress"
+                  >
+                    <q-tooltip>{{ $t('Copy') }}</q-tooltip>
+                  </q-btn>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </template>
+      </div>
 
-          <div class="q-mt-md q-mb-sm" style="position: relative;">
-            <q-input
-              ref="points-input"
-              type="text"
-              inputmode="none"
-              @focus="customKeyboardState = 'show'"
-              @keydown="onKeyboardInput"
-              filled
-              v-model="pointsToRedeem"
-              :label="$t('Amount')"
-              :dark="darkMode"
-              :error="
-                pointsToRedeem > points ||
-                (redeemablePoints && pointsToRedeem > redeemablePointsBalance)
-              "
-              :error-message="$t('BalanceExceeded')"
+      <q-separator class="q-mt-md" />
+
+      <!-- Action Buttons -->
+      <div class="row full-width justify-evenly q-mt-md dialog-footer">
+        <template v-if="isSending">
+          <div class="text-center full-width">
+            <progress-loader :isTight="true" class="q-mb-md" />
+            <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+              Processing redemption...
+            </div>
+            <div
+              v-if="displayAdditionalRedeemText"
+              class="text-caption"
+              :class="darkMode ? 'text-grey-6' : 'text-grey-7'"
             >
-              <template v-slot:append>
-                <div class="q-pr-sm text-weight-bold" style="font-size: 15px;">
-                  {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-                </div>
-              </template>
-            </q-input>
-            <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
+              (A tiny fee will be taken from your wallet for this process.)
+            </div>
           </div>
-
-          <div class="row justify-between q-mb-sm q-mx-sm">
-            <span>
-              {{ pointsBalance }}
-              {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-            </span>
-            <q-btn
-              flat
-              dense
-              no-caps
-              class="max-button"
-              :class="getDarkModeClass(darkMode)"
-              :label="$t('MAX')"
-              @click="onMaxClick"
-            />
-          </div>
-
-          <div class="row q-mb-sm q-mx-sm" v-if="redeemablePoints">
-            {{ redeemablePointsBalance }}
-            {{ `${pointsType === 'rfp' ? 'rp' : pointsType}`.toUpperCase() }}
-            {{ $t('Remaining') }}
-          </div>
-
-          <div class="text-body1 q-mb-sm">
-            <span>{{ $t('YouWillReceive') }}:</span><br/>
-            <span class="row q-ml-md">
-              {{ pointsToRedeem }} PTC
-            </span>
-          </div>
-
-          <div class="row full-width justify-evenly">
-            <template v-if="isSending">
-              <progress-loader
-                
-                :isTight="true"
-                class="q-mb-md"
-              />
+        </template>
+        <template v-else>
+          <q-btn
+            rounded
+            outline
+            class="button button-text-primary action-btn"
+            :class="getDarkModeClass(darkMode)"
+            :label="$t('Cancel')"
+            v-close-popup
+          />
+          <q-btn
+            rounded
+            class="button action-btn redeem-btn"
+            :class="{ 'animate-pulse': isRedeemReady }"
+            :label="$t('Redeem')"
+            :disable="!isRedeemReady"
+            :loading="isSending"
+            @click="executeSecurityChecking"
+          >
+            <template v-slot:loading>
+              <q-spinner-dots color="white" />
             </template>
-            <template v-else>
-              <q-btn
-                rounded
-                outline
-                class="button button-text-primary"
-                :class="getDarkModeClass(darkMode)"
-                :label="$t('Cancel')"
-                v-close-popup
-              />
-              <q-btn
-                rounded
-                class="button"
-                :label="$t('Convert')"
-                :disable="
-                  pointsBalance < 0 ||
-                  Number(pointsToRedeem) === 0 ||
-                  (redeemablePoints && redeemablePointsBalance < 0)
-                "
-                @click="executeSecurityChecking"
-              />
-            </template>
-          </div>
-        </q-tab-panel>
-      </q-tab-panels>
-
+          </q-btn>
+        </template>
+      </div>
     </q-card>
 
+    <!-- Success Celebration Overlay -->
+    <teleport to="body">
+      <div v-if="showCelebration" class="celebration-overlay" @click="closeCelebration">
+        <canvas ref="confettiCanvas" class="confetti-canvas"></canvas>
+        <div class="celebration-content text-center">
+          <q-icon name="celebration" size="64px" color="warning" class="celebration-icon" />
+          <div class="text-h4 text-weight-bold text-white q-mt-md">
+            {{ $t('RedemptionSuccessful', 'Redemption Successful!') }}
+          </div>
+          <div class="text-subtitle1 text-white q-mt-sm">
+            {{ pointsToRedeem }} {{ $t('Redeemed', 'points redeemed') }}
+          </div>
+          <q-btn
+            rounded
+            color="white"
+            text-color="primary"
+            class="q-mt-lg"
+            :label="$t('Awesome', 'Awesome!')"
+            @click="closeCelebration"
+          />
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Custom Keyboard -->
     <custom-keyboard
       :custom-keyboard-state="customKeyboardState"
       v-on:addKey="setAmount"
       v-on:makeKeyAction="makeKeyAction"
     />
 
+    <!-- PIN Dialog -->
     <pin-dialog
       v-model:pin-dialog-action="pinDialogAction"
       v-on:nextAction="onSecurityCheckSuccess"
     />
 
+    <!-- Biometric Warning -->
     <biometric-warning-attempt :warning-attempts="warningAttemptsStatus" />
   </q-dialog>
 </template>
 
 <script>
-import { NativeBiometric } from 'capacitor-native-biometric'
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
-import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
-import {
-  generateReceivingAddress,
-  getDerivationPathForWalletType
-} from 'src/utils/address-generation-utils.js'
-import {
-  convertPoints,
-  getKeyPairFromWalletMnemonic,
-  getWalletTokenAddress,
-  processPointsRedemption
-} from 'src/utils/engagementhub-utils/rewards'
-import { parseKey } from 'src/utils/custom-keyboard-utils'
-import { getWallet } from 'src/utils/send-page-utils'
+import { loadWallet } from 'src/wallet'
+import { markRaw } from '@vue/reactivity'
+import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { raiseNotifyError } from 'src/utils/notify-utils'
+import { parseKey } from 'src/utils/custom-keyboard-utils'
+import { NativeBiometric } from 'capacitor-native-biometric'
+import { fetchTokensList } from 'src/wallet/cauldron/tokens'
+import { getChangeAddress } from 'src/utils/send-page-utils'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
+import { formatWithLocale, parseFiatCurrency } from 'src/utils/denomination-utils'
+import { LIFT_TOKEN_CATEGORY, LIFT_TOKEN_DECIMALS } from 'src/utils/subscription-utils'
+import {
+  getLiftConversionRatio,
+  getRewardsSwapContractDetails,
+  getWalletTokenAddress,
+  processPromoTokensSwap,
+  recordPointsRedemption
+} from 'src/utils/engagementhub-utils/rewards'
 
-import CustomKeyboard from 'src/components/CustomKeyboard.vue'
-import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
+import confetti from 'canvas-confetti'
+
 import PinDialog from 'src/components/pin/index.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
+import BiometricWarningAttempt from 'src/components/authOption/biometric-warning-attempt.vue'
 
 import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
 
@@ -290,38 +387,61 @@ export default {
   name: 'RedeemPointsDialog',
 
   props: {
-    points: { type: Number, default: 0 },
-    pointsType: { type: String, default: '' },
-    pointsDivisor: { type: Number, default: 0 },
     promoId: { type: Number, default: -1 },
-    address: { type: String, default: '' },
-    redeemablePoints: { type: Number, default: null }
+    promoType: { type: String, default: '' },
+    promoBytes: { type: String, default: '' },
+    redeemedPoints: { type: Number, default: null },
+    maxRedeemable: { type: Number, default: null }
   },
 
   components: {
-    CustomKeyboard,
-    BiometricWarningAttempt,
     PinDialog,
+    CustomKeyboard,
     ProgressLoader,
-    KeyboardTooltip
-  },
-  setup() {
-    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
-    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
+    ErrorCard,
+    BiometricWarningAttempt,
   },
 
   data () {
     return {
+      // UI State
       pointsToRedeem: '0',
       customKeyboardState: 'dismiss',
-      pointsBalance: 0,
-      redeemablePointsBalance: 0,
+      isLoading: true,
+      loadingError: null,
+      isSending: false,
+      isPointsAnimating: false,
+      displayPoints: 0,
+      showCelebration: false,
+      isCalculatingQuickAmount: false,
+      activeQuickAmount: null,
+      liftConversionRate: 0,
+      displayAdditionalRedeemText: false,
+      
+      // Security
       isSecurityCheckSuccess: false,
       warningAttemptsStatus: 'dismiss',
       pinDialogAction: '',
-      isSending: false,
+      
+      // Data
       contract: null,
-      redeemTab: 'swap' // swap | convert
+      contractPoints: 0,
+      originalPoints: 0,
+      tokenAddress: '',
+      quickAmounts: [25, 50, 75, 100],
+      wallet: null,
+      rewardsSwapContractAddress: null,
+      rewardsSwapContractBytecode: null,
+
+      // Unmount flag to prevent memory leaks
+      isUnmounted: false,
+      priceError: null,
+
+      // Cauldron API price storage
+      liftBchPriceValue: null,
+      liftUsdPriceValue: null,
+      cauldronPriceIntervalId: null,
+      celebrationIntervalId: null
     }
   },
 
@@ -332,202 +452,798 @@ export default {
     theme () {
       return this.$store.getters['global/theme']
     },
-    singlePointConversion () {
-      return convertPoints(1, this.pointsDivisor)
+    // User's selected fiat currency
+    selectedCurrency () {
+      return this.$store.getters['market/selectedCurrency']
     },
-    pointsConvertion () {
-      return convertPoints(Number(this.pointsToRedeem), this.pointsDivisor)
+
+    animatedPoints () {
+      // Computed property showing remaining points after entered amount
+      return Math.max(0, this.contractPoints - Number(this.pointsToRedeem || 0))
+    },
+    redeemablePoints () {
+      if (this.redeemedPoints !== null && this.maxRedeemable !== null)
+        return this.maxRedeemable - this.redeemedPoints
+      return null
+    },
+    liftToReceive () {
+      if (!this.liftConversionRate) return 0
+      return this.pointsToRedeem / this.liftConversionRate
+    },
+    hasValidationError () {
+      const amount = Number(this.pointsToRedeem || 0)
+      if (amount <= 0) return false
+      if (amount > this.contractPoints) return true
+      if (this.redeemablePoints && amount > this.redeemablePoints) return true
+      return false
+    },
+    validationErrorMessage () {
+      const amount = Number(this.pointsToRedeem || 0)
+      if (amount > this.contractPoints) {
+        return this.$t('BalanceExceeded', 'Amount exceeds available balance')
+      }
+      if (this.redeemablePoints && amount > this.redeemablePoints) {
+        return this.$t('PromoLimitExceeded', 'Amount exceeds promo limit')
+      }
+      return ''
+    },
+    promoProgressValue () {
+      if (!this.redeemablePoints) return 0
+      const redeemed = Number(this.pointsToRedeem || 0)
+      return Math.min(redeemed / this.redeemablePoints, 1)
+    },
+    promoProgressColor () {
+      if (this.promoLimitExceeded) return 'negative'
+      if (this.promoProgressValue > 0.8) return 'warning'
+      return 'positive'
+    },
+    promoLimitExceeded () {
+      if (!this.redeemablePoints) return false
+      return Number(this.pointsToRedeem || 0) > this.redeemablePoints
+    },
+    isRedeemReady () {
+      const amount = Number(this.pointsToRedeem || 0)
+      return amount > 0 && !this.hasValidationError && !this.isSending
+    },
+    walletBalance() {
+      const asset = this.$store.getters['assets/getAssets'][0]
+      return asset?.spendable || 0
+    },
+    // Get LIFT price in user's selected fiat currency
+    liftFiatPrice () {
+      if (!this.selectedCurrency?.symbol || !this.liftBchPriceValue) return null
+
+      // Get BCH price in user's fiat from store (for fiat conversion rates)
+      const bchToFiat = this.$store.getters['market/getAssetPrice']('bch', this.selectedCurrency.symbol)
+
+      if (!bchToFiat) return null
+
+      // Convert: LIFT price (in BCH) × BCH price (in fiat) = LIFT price in fiat
+      return this.liftBchPriceValue * bchToFiat
+    },
+
+    // Calculate remaining LIFT amount from animated points
+    remainingLiftAmount () {
+      if (!this.liftConversionRate || this.liftConversionRate === 0) return 0
+      return this.animatedPoints / this.liftConversionRate
+    },
+
+    // Calculate fiat value of remaining LIFT
+    remainingLiftFiatValue () {
+      const price = this.liftFiatPrice
+      if (!price || price === 0) return 0
+      return price * this.remainingLiftAmount
+    },
+
+    // Format remaining LIFT amount with proper decimals
+    formattedRemainingLift () {
+      if (this.remainingLiftAmount === 0) return '0'
+      const hasFraction = this.remainingLiftAmount % 1 !== 0
+      return formatWithLocale(
+        this.remainingLiftAmount,
+        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
+      )
+    },
+
+    // Format to be received LIFT amount with proper decimals
+    formattedLiftToReceive () {
+      if (this.liftToReceive === 0) return '0'
+      const hasFraction = this.liftToReceive % 1 !== 0
+      return formatWithLocale(
+        this.liftToReceive,
+        { min: hasFraction ? LIFT_TOKEN_DECIMALS : 0, max: LIFT_TOKEN_DECIMALS }
+      )
+    },
+
+    // Format remaining fiat value
+    formattedRemainingFiat () {
+      if (this.remainingLiftFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
+      if (!this.remainingLiftFiatValue) return '--'
+      return parseFiatCurrency(this.remainingLiftFiatValue, this.selectedCurrency?.symbol)
+    },
+
+    // Calculate fiat value of LIFT to be received
+    liftToReceiveFiatValue () {
+      const price = this.liftFiatPrice
+      if (!price || price === 0) return 0
+      return price * this.liftToReceive
+    },
+
+    // Format fiat value of LIFT to be received
+    formattedLiftToReceiveFiat () {
+      if (this.liftToReceiveFiatValue === 0) return `0 ${this.selectedCurrency?.symbol}`
+      if (!this.liftToReceiveFiatValue) return '--'
+      return parseFiatCurrency(this.liftToReceiveFiatValue, this.selectedCurrency?.symbol)
+    },
+  },
+
+  watch: {
+    // Watch computed animatedPoints and animate displayPoints toward it
+    animatedPoints (newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.animateDisplayPoints(oldVal, newVal)
+      }
     }
   },
 
   async mounted () {
-    this.computeBalance()
-    const keyPair = await getKeyPairFromWalletMnemonic()
-    this.contract = new PromoContract(this.pointsType, keyPair.pubKey)
+    Promise.allSettled([
+      this.initWallet(),
+      this.initializeData(),
+      this.fetchRewardsSwapContractDetails(),
+      // Fetch LIFT token price from Cauldron API
+      this.fetchLiftPriceFromCauldron()
+    ])
+    
+    // Start polling Cauldron prices (every 60 seconds)
+    this.startCauldronPricePolling()
+  },
+
+  beforeUnmount () {
+    // Set flag to prevent interval creation after unmount
+    this.isUnmounted = true
+    // Cleanup Cauldron price polling interval
+    if (this.cauldronPriceIntervalId != null) {
+      clearInterval(this.cauldronPriceIntervalId)
+    }
+    // Cleanup celebration interval if active
+    if (this.celebrationIntervalId != null) {
+      clearInterval(this.celebrationIntervalId)
+    }
   },
 
   methods: {
     getDarkModeClass,
-    computeBalance () {
-      this.pointsBalance = this.points - Number(this.pointsToRedeem)
-      if (this.redeemablePoints) {
-        this.redeemablePointsBalance = this.redeemablePoints - Number(this.pointsToRedeem)
-      }
-    },
-    onMaxClick () {
-      this.pointsToRedeem = '' + this.points
-      this.computeBalance()
-    },
-    onKeyboardInput (e) {
-      e.preventDefault()
-      this.showKeyboardTooltip()
-    },
-    setAmount (key) {
-      this.hideKeyboardTooltip()
-      const vm = this
 
-      const currentPoints = vm.pointsToRedeem
-      const currentCaret = vm.$refs['points-input'].nativeEl.selectionStart
-
-      vm.$refs['points-input'].nativeEl.focus({ focusVisible: true })
-      vm.pointsToRedeem = parseKey(key, currentPoints, currentCaret, null)
-      vm.computeBalance()
+    async initWallet () {
+      const walletIndex = this.$store.getters['global/getWalletIndex']
+      const wallet = await loadWallet('BCH', walletIndex)
+      this.wallet = markRaw(wallet)
     },
-    makeKeyAction (action) {
-      this.hideKeyboardTooltip()
-      const vm = this
 
-      if (action === 'backspace') {
-        vm.$refs['points-input'].nativeEl.focus({ focusVisible: true })
-        try {
-          vm.pointsToRedeem = vm.pointsToRedeem.slice(0, -1)
-        } catch {
-          vm.pointsToRedeem = 0
+    async fetchLiftPriceFromCauldron () {
+      try {
+        this.priceError = null
+
+        const tokens = await fetchTokensList({ token_id: LIFT_TOKEN_CATEGORY })
+        
+        if (tokens && tokens.length > 0) {
+          const liftToken = tokens[0]
+          // Format prices according to Cauldron's approach: price / 10^(8 - decimals)
+          this.liftBchPriceValue = liftToken.price_now 
+            ? liftToken.price_now / Math.pow(10, 8)
+            : null
+          this.liftUsdPriceValue = liftToken.price_now_usd
+            ? liftToken.price_now_usd / Math.pow(10, 8 - LIFT_TOKEN_DECIMALS)
+            : null
+        } else {
+          this.liftBchPriceValue = null
+          this.liftUsdPriceValue = null
+          this.priceError = 'LIFT token not found on Cauldron'
         }
-        if (vm.pointsToRedeem.length === 0) vm.pointsToRedeem = '0'
-      } else if (action === 'delete') {
-        vm.$refs['points-input'].nativeEl.focus({ focusVisible: true })
-        vm.pointsToRedeem = '0'
-      } else vm.customKeyboardState = 'dismiss'
-
-      vm.computeBalance()
-    },
-    executeSecurityChecking () {
-      const vm = this
-
-      if (!vm.isSecurityCheckSuccess) {
-        setTimeout(() => {
-          if (vm.$store.getters['global/preferredSecurity'] === 'pin') {
-            vm.pinDialogAction = 'VERIFY'
-          } else vm.verifyBiometric()
-        }, 500)
-      } else {
-        vm.redeemPoints()
+      } catch (error) {
+        console.error('Error fetching LIFT price from Cauldron:', error)
+        this.priceError = 'Unable to fetch LIFT price from Cauldron'
+        this.liftBchPriceValue = null
+        this.liftUsdPriceValue = null
       }
     },
-    verifyBiometric () {
-      const vm = this
 
+    startCauldronPricePolling () {
+      // Prevent creating interval if component is unmounting/unmounted
+      if (this.isUnmounted) return
+
+      // Clear any existing interval
+      if (this.cauldronPriceIntervalId != null) {
+        clearInterval(this.cauldronPriceIntervalId)
+      }
+
+      // Poll every 60 seconds
+      this.cauldronPriceIntervalId = setInterval(() => {
+        this.fetchLiftPriceFromCauldron()
+      }, 60 * 1000)
+    },
+    
+    // Initialization
+    async initializeData () {
+      this.isLoading = true
+      this.loadingError = null
+      
+      await this.fetchContractPoints()
+
+      // fetch LIFT conversion ratio
+      this.liftConversionRate = await getLiftConversionRatio()
+      
+      // Store original total for display
+      this.originalPoints = this.contractPoints
+      // Get token address
+      this.tokenAddress = await getWalletTokenAddress(true)
+      // Set initial display points (no animation on first load)
+      this.displayPoints = this.contractPoints
+
+      this.isLoading = false
+    },
+    async fetchContractPoints () {
+      try {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        this.contract = new PromoContract(userPubkey, this.promoBytes)
+        this.contractPoints = await this.contract.getTokenBalance()
+      } catch (error) {
+        console.error('Error initializing redeem dialog:', error)
+        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
+      }
+    },
+    async fetchRewardsSwapContractDetails () {
+      const resp = await getRewardsSwapContractDetails()
+      if (resp) {
+        this.rewardsSwapContractAddress = resp.token_address
+        this.rewardsSwapContractBytecode = resp.bytecode
+      } else {
+        console.error('Error fetching rewards swap contract address.')
+        this.loadingError = this.$t('FailedToLoadPoints', 'Failed to load points data. Please try again later.')
+      }
+    },
+    
+    // Animation Methods
+    animateDisplayPoints (start, end, duration = 300) {
+      this.isPointsAnimating = true
+      const startTime = performance.now()
+      
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const easeOut = 1 - Math.pow(1 - progress, 3)
+        
+        this.displayPoints = Math.floor(start + (end - start) * easeOut)
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          this.isPointsAnimating = false
+        }
+      }
+      
+      requestAnimationFrame(animate)
+    },
+    
+    // Amount Input Methods
+    setAmount (key) {
+      // Clear active quick amount button on manual input
+      this.activeQuickAmount = null
+      
+      const currentPoints = this.pointsToRedeem
+      const currentCaret = this.$refs['points-input']?.nativeEl?.selectionStart || 0
+
+      this.$refs['points-input']?.nativeEl?.focus({ focusVisible: true })
+      this.pointsToRedeem = parseKey(key, currentPoints, currentCaret, null)
+    },
+    
+    makeKeyAction (action) {
+      if (action === 'backspace') {
+        this.$refs['points-input']?.nativeEl?.focus({ focusVisible: true })
+        try {
+          this.pointsToRedeem = this.pointsToRedeem.slice(0, -1)
+        } catch {
+          this.pointsToRedeem = '0'
+        }
+        if (this.pointsToRedeem.length === 0) {
+          this.pointsToRedeem = '0'
+          this.activeQuickAmount = null
+        }
+      } else if (action === 'delete') {
+        this.activeQuickAmount = null
+        this.$refs['points-input']?.nativeEl?.focus({ focusVisible: true })
+        this.pointsToRedeem = '0'
+      } else {
+        this.customKeyboardState = 'dismiss'
+      }
+    },
+    
+    setQuickAmount (percent) {
+      this.isCalculatingQuickAmount = true
+      
+      setTimeout(() => {
+        const maxAmount = this.redeemablePoints 
+          ? Math.min(this.contractPoints, this.redeemablePoints)
+          : this.contractPoints
+        
+        const amount = Math.floor(maxAmount * (percent / 100))
+        this.pointsToRedeem = String(amount)
+        this.activeQuickAmount = percent
+        this.isCalculatingQuickAmount = false
+      }, 150)
+    },
+    
+    copyTokenAddress () {
+      if (navigator.clipboard && this.tokenAddress) {
+        navigator.clipboard.writeText(this.tokenAddress)
+        this.$q.notify({
+          type: 'positive',
+          message: this.$t('AddressCopied', 'Address copied to clipboard'),
+          timeout: 1500,
+          position: 'bottom'
+        })
+      }
+    },
+    
+    // Security Methods
+    executeSecurityChecking () {
+      if (this.isSecurityCheckSuccess) {
+        this.redeemPoints()
+      } else {
+        setTimeout(() => {
+          if (this.$store.getters['global/preferredSecurity'] === 'pin') {
+            this.pinDialogAction = 'VERIFY'
+          } else {
+            this.verifyBiometric()
+          }
+        }, 300)
+      }
+    },
+    
+    verifyBiometric () {
       NativeBiometric.verifyIdentity({
-        reason: vm.$t('NativeBiometricReason2'),
-        title: vm.$t('SecurityAuthentication'),
-        subtitle: vm.$t('NativeBiometricSubtitle'),
+        reason: this.$t('NativeBiometricReason2'),
+        title: this.$t('SecurityAuthentication'),
+        subtitle: this.$t('NativeBiometricSubtitle'),
         description: ''
       })
         .then(() => {
-          // Authentication successful
-          vm.customKeyboardState = 'dismiss'
+          this.customKeyboardState = 'dismiss'
           setTimeout(() => {
-            vm.onSecurityCheckSuccess('proceed')
-          }, 1000)
+            this.onSecurityCheckSuccess('proceed')
+          }, 500)
         })
         .catch((error) => {
-          // Failed to authenticate
-          vm.warningAttemptsStatus = 'dismiss'
-          if (error.message.includes(vm.$t('MaxAttempts'))) {
-            vm.warningAttemptsStatus = 'show'
-          } else if (error.message.includes(vm.$t('AuthenticationFailed'))) {
-            vm.verifyBiometric()
-          } else vm.isSecurityCheckSuccess = false
+          this.warningAttemptsStatus = 'dismiss'
+          if (error.message.includes(this.$t('MaxAttempts'))) {
+            this.warningAttemptsStatus = 'show'
+          } else if (error.message.includes(this.$t('AuthenticationFailed'))) {
+            this.verifyBiometric()
+          } else {
+            this.isSecurityCheckSuccess = false
+          }
         })
     },
+    
     onSecurityCheckSuccess (action) {
       this.pinDialogAction = ''
       if (action === 'proceed') this.redeemPoints()
     },
-    async redeemPoints () {
-      this.isSending = true
-
-      const keyPair = await getKeyPairFromWalletMnemonic()
-      if (this.redeemTab === 'swap') {
-        const txId = await this.contract.redeemPromoTokenToBch(
-          Number(this.pointsToRedeem), getWallet('bch').walletHash,
-          this.address, keyPair.privKey
-        )
-  
-        if (txId) {
-          // Generate BCH address dynamically
-          const addressIndex = this.$store.getters['global/getLastAddressIndex']('bch')
-          const validAddressIndex = typeof addressIndex === 'number' && addressIndex >= 0 ? addressIndex : 0
-          const bchAddress = await generateReceivingAddress({
-            walletIndex: this.$store.getters['global/getWalletIndex'],
-            derivationPath: getDerivationPathForWalletType('bch'),
-            addressIndex: validAddressIndex,
-            isChipnet: this.$store.getters['global/isChipnet']
-          })
-          if (!bchAddress) {
-            throw new Error(this.$t('FailedToGenerateAddress') || 'Failed to generate address')
-          }
-          
-          // call to engagement-hub to process swapping
-          const data = {
-            tx_id: txId,
-            amount: Number(this.pointsToRedeem),
-            address: bchAddress,
-            token_address: await getWalletTokenAddress(),
-            promo: this.pointsType,
-            id: this.promoId
-          }
-  
-          const isSuccessful = await processPointsRedemption(data)
     
-          if (isSuccessful) {
-            this.$q.notify({
-              type: 'positive',
-              timeout: 3000,
-              message: this.$t('SwaptoBCHSuccess')
-            })
-            this.$refs.dialogRef.hide()
-          } else {
-            raiseNotifyError(this.$t('SwaptoBCHError'))
-          }
-        } else {
-          raiseNotifyError(this.$t('SwaptoBCHError'))
+    // Redemption Process
+    async redeemPoints (retries=0) {
+      this.isSending = true
+      this.customKeyboardState = 'dismiss'
+
+      let fee = 0
+      let notifyMessage = ''
+
+      try {
+        if (!this.wallet?.BCH) {
+          throw new Error('Failed to load BCH wallet.')
         }
-      } else if (this.redeemTab === 'convert') {
-        const txId = await this.contract.unlockPromoToken(
-          keyPair.privKey, await getWalletTokenAddress(), Number(this.pointsToRedeem)
+        const wif = await this.wallet.BCH.getPrivateKey('0/0')
+        
+        // call contract to swap promo tokens to LIFT
+        const redeemResp = await this.contract.redeemPoints(
+          wif,
+          this.rewardsSwapContractAddress,
+          this.pointsToRedeem,
+          this.rewardsSwapContractBytecode
         )
-
-        if (txId) {
-          this.$q.notify({
-            type: 'positive',
-            timeout: 3000,
-            message: this.$t('ConvertToTokensSuccess')
-          })
-          this.$refs.dialogRef.hide()
-        } else {
-          raiseNotifyError(this.$t('ConvertToTokensError'))
+        if (redeemResp.error !== '') {
+          fee = Number(redeemResp.fee)
+          throw new Error(redeemResp.error)
         }
-      }
 
+        const swapResp = await processPromoTokensSwap({
+          tx_id: redeemResp.txid,
+          redeemed_points: this.pointsToRedeem,
+          user_ct_address: this.tokenAddress,
+          promo_contract_address: this.contract.contract.tokenAddress,
+          promo_contract_bytecode: this.contract.contract.bytecode
+        })
+
+        if (swapResp?.error) throw new Error(swapResp?.error)
+
+        // call API for recording points redemption
+        const recordResp = await recordPointsRedemption({
+            promo_type: this.promoType,
+            promo_id: this.promoId,
+            redeemed_points: this.pointsToRedeem,
+            lift_received: this.liftToReceive,
+            tx_id: swapResp.tx_id,
+            month_max: this.maxRedeemable
+        })
+        if (recordResp?.error) throw new Error(recordResp?.error)
+
+        // success call
+        this.showSuccessCelebration()
+        // Update contract points and animate to new remaining balance
+        const redeemedAmount = Number(this.pointsToRedeem)
+        this.contractPoints = this.contractPoints - redeemedAmount
+        this.animateDisplayPoints(this.displayPoints, this.contractPoints, 500)
+      } catch (error) {
+        console.error('Redemption error:', error.message)
+
+        // OutputSatoshisTooSmallError; 3 retries before stopping
+        if (error.message.includes('which is less than the required minimum') && retries < 3) {
+          const feeBch = fee / 10 ** 8
+          if (this.walletBalance < feeBch) {
+            notifyMessage = 'Failed to redeem points. Ensure that your wallet has enough BCH balance before trying again.'
+          } else {
+            this.displayAdditionalRedeemText = true
+            // send small balance from user's wallet to PromoContract
+            const changeAddress = await getChangeAddress('bch')
+            await getWalletByNetwork(this.wallet, 'bch').sendBch(
+              undefined,
+              '',
+              changeAddress,
+              null,
+              undefined,
+              [{
+                address: this.contract.contract.address,
+                amount: feeBch,
+                tokenAmount: undefined
+              }],
+              undefined
+            )
+            // sleep for 2 seconds to resolve UTXOs after sending to PromoContract
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            // call this method again
+            retries++
+            await this.redeemPoints(retries)
+          }
+        // other errors
+        } else {
+          notifyMessage = 'Failed to redeem points. Please try again later.'
+        }
+        
+        if (notifyMessage !== '') raiseNotifyError(notifyMessage)
+      } finally {
+        this.isSending = false
+        this.displayAdditionalRedeemText = false
+      }
+    },
+    
+    // Celebration
+    showSuccessCelebration () {
+      this.showCelebration = true
+      
+      this.$nextTick(() => {
+        const canvas = this.$refs.confettiCanvas
+        if (canvas) {
+          const myConfetti = confetti.create(canvas, { resize: true, useWorker: false })
+          
+          // Launch multiple bursts
+          const duration = 3000
+          const animationEnd = Date.now() + duration
+          const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 }
+
+          const randomInRange = (min, max) => Math.random() * (max - min) + min
+
+          this.celebrationIntervalId = setInterval(() => {
+            const timeLeft = animationEnd - Date.now()
+
+            if (timeLeft <= 0) {
+              return clearInterval(this.celebrationIntervalId)
+            }
+
+            const particleCount = 50 * (timeLeft / duration)
+            
+            myConfetti({
+              ...defaults,
+              particleCount,
+              origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+            })
+            myConfetti({
+              ...defaults,
+              particleCount,
+              origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+            })
+          }, 250)
+        }
+      })
+    },
+    
+    closeCelebration () {
+      if (this.celebrationIntervalId) {
+        clearInterval(this.celebrationIntervalId)
+        this.celebrationIntervalId = null
+      }
+      this.showCelebration = false
+      clearInterval(this.cauldronPriceIntervalId)
+      this.$emit('hide')
+    },
+    
+    // Dialog Lifecycle
+    onDialogShow () {
+      this.resetForm()
+      this.initializeData()
+    },
+    
+    onDialogHide () {
+      this.customKeyboardState = 'dismiss'
+      this.showCelebration = false
+    },
+    
+    resetForm () {
+      this.pointsToRedeem = '0'
+      this.isSecurityCheckSuccess = false
       this.isSending = false
+      this.showCelebration = false
     }
   }
 }
 </script>
 
-<style lang="scss">
-.q-field--dark.q-field--error {
-  .text-negative,
-  .q-field__messages,
-  .q-field__label,
-  .q-field__control.text-negative {
-    color: #e57373 !important
+<style lang="scss" scoped>
+.points-hero-section {
+  .points-display-container {
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    
+    &.bg-dark-3 {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .animated-points {
+      transition: all 0.3s ease;
+      
+      &.animate {
+        transform: scale(1.1);
+        text-shadow: 0 0 20px rgba(59, 123, 246, 0.5);
+      }
+    }
   }
 }
 
-.max-button {
-  min-height: unset;
-  padding: 2px 8px;
-  border: 1px solid;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #3b7bf6;
+.promo-limit-section {
+  .promo-progress-bar {
+    transition: all 0.5s ease;
+    
+    &.exceeded {
+      animation: pulse-red 1s ease-in-out infinite;
+    }
+  }
+}
 
-  &.dark {
-    color: #6fa8ff;
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.token-address-card {
+  border-radius: 12px;
+  
+  .token-address-box {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+    
+    &.dark {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+}
+
+.amount-input-card {
+  border-radius: 12px;
+  
+  .amount-input {
+    :deep(.q-field__control) {
+      border-radius: 12px;
+    }
+  }
+}
+
+.quick-amount-btn {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.redeem-preview {
+  .preview-card {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    
+    &.pulse-animation {
+      animation: gentle-pulse 2s ease-in-out infinite;
+      border-color: var(--q-positive);
+    }
+  }
+  
+  .preview-icon-container {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4caf50, #8bc34a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@keyframes gentle-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+}
+
+.action-btn {
+  min-width: 120px;
+  transition: all 0.2s ease;
+}
+
+.redeem-btn {
+  &.animate-pulse {
+    animation: btn-pulse 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes btn-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(59, 123, 246, 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 0 8px rgba(59, 123, 246, 0);
+  }
+}
+
+// Celebration Overlay
+.celebration-overlay {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .confetti-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .celebration-content {
+    position: relative;
+    z-index: 10001;
+    animation: celebration-pop 0.5s ease-out;
+    
+    .celebration-icon {
+      animation: icon-bounce 1s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes celebration-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes icon-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+// Skeleton styles
+.skeleton-container {
+  :deep(.q-skeleton) {
+    background: rgba(0, 0, 0, 0.1);
+    
+    &.dark {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
+
+// Dark mode specific adjustments
+.dark {
+  .token-address-box {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+// Sticky header and scrollable content styles
+.dialog-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: transparent;
+  padding-bottom: 8px;
+}
+
+.scrollable-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
+  margin-right: -4px;
+  
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Sticky footer styles
+.dialog-footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: transparent;
+  padding-top: 8px;
+}
+
+// Dark mode scrollbar
+.dark .scrollable-content {
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 }
 

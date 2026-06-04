@@ -1,132 +1,46 @@
 <template>
   <div class="header-nav-wrapper">
-    <template v-if="rewardsPage === ''">
-      <div
-        ref="header-nav"
-        class="pt-header row no-wrap items-center"
-        :style="headerNavStyle"
-        :class="getDarkModeClass(darkMode)"
-      >
-        <div class="pt-header-left col-auto row items-center">
-          <router-link
-            :to="backTo"
-            class="pt-arrow-left-link"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-            @click.prevent.stop="onClick">
-            <span class="material-icons">
-                arrow_back
-            </span>
-          </router-link>
-        </div>
-        <div class="pt-header-title col">
-          <p
-            ref="header-title"
-            class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-            v-on-long-press="onLongPressTitle"
-          >
-            <span class="pt-header-title-text">{{ title }}</span>
-            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
-              <slot name="title-append" />
-            </span>
-          </p>
-        </div>
-        <div v-if="route.path?.startsWith('/apps/multisig')" style="position: absolute; right: 0px; ">
-          <q-btn
-            icon="more_horiz"
-            flat 
-          >
-          <q-menu anchor="bottom left" self="top right">
-            <q-item clickable to="/apps/multisig">
-              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-                <div class="flex items-center q-gutter-x-sm">
-                  <q-icon name="mdi-home-export-outline"></q-icon><div>{{ $t('MultisigWallets', {}, 'Multisig Wallets') }}</div>
-                </div>
-              </q-item-section>
-            </q-item>
-            <q-item clickable to="/apps/wallet-connect">
-              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-                <div class="flex items-center q-gutter-x-sm">
-                  <q-icon name="mdi-connection"></q-icon><div>{{ $t('OpenWalletConnectApp', {}, 'Open Wallet Connect App') }}</div>
-                </div>
-              </q-item-section>
-            </q-item>
-            <q-item clickable to="/apps">
-              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-                <div class="flex items-center q-gutter-x-sm">
-                  <q-icon name="mdi-apps"></q-icon><div>{{ $t('GoToApps', {}, 'Go To Apps') }}</div>
-                </div>
-              </q-item-section>
-            </q-item>
-            <q-separator></q-separator>
-            <q-item clickable to="/">
-              <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
-                <div class="flex items-center q-gutter-x-sm">
-                  <q-icon name="mdi-exit-to-app"></q-icon><div>{{ $t('Exit') }}</div>
-                </div>
-              </q-item-section>
-            </q-item>
-          </q-menu>
-        </q-btn>
-        </div>
-        <div class="pt-header-right col-auto row items-center justify-end">
-          <slot name="top-right-menu">&nbsp;</slot>
-        </div>
+    <div
+      ref="header-nav"
+      class="pt-header row no-wrap items-center"
+      :style="headerNavStyle"
+      :class="getDarkModeClass(darkMode)"
+    >
+      <div class="pt-header-left col-auto row items-center">
+        <router-link
+          :to="backTo"
+          class="pt-arrow-left-link"
+          :class="{'text-grad': darkMode}"
+          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          @click.prevent.stop="onClick">
+          <span class="material-icons">
+              arrow_back
+          </span>
+        </router-link>
       </div>
-    </template>
-
-    <template v-else>
-      <div
-        ref="header-nav"
-        class="row no-wrap pt-header justify-between items-center"
-        :style="headerNavStyle"
-        :class="{'pt-card-3': darkMode}"
-      >
-        <div class="pt-header-left col-auto row items-center">
-          <router-link
-            :to="backTo"
-            class="pt-arrow-left-link"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-            @click.prevent.stop="onClick">
-            <span class="material-icons">
-                arrow_back
-            </span>
-          </router-link>
-        </div>
-        <div class="pt-header-title col">
-          <p
-            ref="header-title"
-            class="text-h5 text-uppercase text-center q-my-none"
-            :class="{'text-grad': darkMode}"
-            :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
-            v-on-long-press="onLongPressTitle"
-          >
-            <span class="pt-header-title-text">{{ title }}</span>
-            <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
-              <slot name="title-append" />
-            </span>
-          </p>
-        </div>
-        <div class="pt-header-right col-auto q-mr-sm">
-          <q-btn
-            round
-            class="button"
-            icon="question_mark"
-            size="sm"
-            @click="openRewardsHelpDialog"
-          />
-        </div>
+      <div class="pt-header-title col">
+        <p
+          ref="header-title"
+          class="text-h5 text-uppercase text-center q-my-none"
+          :class="{'text-grad': darkMode}"
+          :style="{'margin-top': $q.platform.is.ios ? '-5px' : '0'}"
+          v-on-long-press="onLongPressTitle"
+        >
+          <span class="pt-header-title-text text-weight-bold">{{ title }}</span>
+          <span v-if="$slots['title-append']" class="pt-header-title-append q-ml-xs">
+            <slot name="title-append" />
+          </span>
+        </p>
       </div>
-    </template>
+      <div class="pt-header-right col-auto row items-center justify-center">
+        <slot name="top-right-menu">&nbsp;</slot>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import { vOnLongPress } from '@vueuse/components'
-import HelpDialog from 'src/components/rewards/dialogs/HelpDialog.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useRoute } from 'vue-router'
 export default {
@@ -146,14 +60,7 @@ export default {
     backnavpath: {
       type: [String, Object],
       default: ''
-    },
-    rewardsPage: {
-      type: String,
-      default: ''
     }
-  },
-  components: {
-    HelpDialog,
   },
   emits: ['click', 'long-press-title'],
   data () {
@@ -246,12 +153,6 @@ export default {
         this.$router.go(-1)
       }
       this.$emit('click')
-    },
-    openRewardsHelpDialog () {
-      this.$q.dialog({
-        component: HelpDialog,
-        componentProps: { page: this.rewardsPage }
-      })
     },
     onLongPressTitle () {
       this.$emit('long-press-title')

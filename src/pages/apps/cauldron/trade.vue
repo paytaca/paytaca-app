@@ -355,6 +355,7 @@ import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
+import { hexToRef } from 'src/utils/reference-id-utils'
 import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { ExchangeLab } from '@cashlab/cauldron';
 import { binToHex } from '@bitauth/libauth';
@@ -370,6 +371,8 @@ import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
 import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
+import { processCauldronPoints } from 'src/utils/engagementhub-utils/rewards';
+import { raiseNotifySuccess } from 'src/utils/notify-utils';
 
 /**
  * Typedefs
@@ -1059,6 +1062,8 @@ export default defineComponent({
         })
         dialog.update({ message: $t('LoadingWallet') })
         const {bchWallet, libuathWallet} = await loadWalletForTrade();
+        const addressSet = await bchWallet.getAddressSetAt(0);
+        const bchAddress = addressSet.receiving;
 
         dialog.update({ message: $t('FetchingUtxos') })
         const bchUtxos = await bchWallet.getUtxos()
@@ -1120,6 +1125,26 @@ export default defineComponent({
             decimals: _tokenData?.bcmr?.token?.decimals || 0,
             imageUrl: _tokenData?.bcmr?.uris?.icon || '',
           }
+        }
+
+        const ref_id = hexToRef(broadcastResult?.data?.txid?.substring(0, 6));
+        const bch_spent = _isBuyingToken ? unitsSold : unitsBought;
+
+        // Placeholder Rewards API call
+        const pointsResp = await processCauldronPoints({
+          bch_address: bchAddress,
+          tx_id: broadcastResult?.data?.txid,
+          ref_id,
+          bch_spent: Number.parseFloat(formatAmount(bch_spent, 8)),
+        })
+
+        if (pointsResp) {
+          raiseNotifySuccess(
+            `Congratulations! You have earned points for this Cauldron transaction!<br><br>Check your points balance in the Rewards app.`,
+						3000, 'bottom', 'mdi-party-popper'
+          )
+        } else {
+          console.error('An error occured while processing Cauldron points.')
         }
 
         const attributeData = {
