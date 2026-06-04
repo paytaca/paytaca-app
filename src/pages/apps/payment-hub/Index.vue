@@ -58,8 +58,19 @@
         >
           <q-card-section class="q-pa-md">
             <div class="row items-center">
-              <div class="store-icon-wrapper q-mr-md">
-                <q-icon name="storefront" size="2em" :color="darkMode ? 'white' : 'pt-primary1'" />
+              <div class="store-icon-wrapper q-mr-md overflow-hidden">
+                <q-img 
+                  v-if="store.logo_url" 
+                  :src="store.logo_url" 
+                  style="width: 2.5em; height: 2.5em;" 
+                  fit="contain" 
+                />
+                <q-img 
+                  v-else 
+                  src="~assets/paytaca_payment_hub_logo.png" 
+                  style="width: 2.5em; height: 2.5em;" 
+                  fit="contain" 
+                />
               </div>
 
               <div class="col">
@@ -201,10 +212,11 @@ function openStoreInfoDialog(storeData) {
       $q.loading.show()
       if (data.id) {
         // Update existing store
-        await hub.value.renameStore(data.id, data.name)
+        await hub.value.updateStore(data.id, data)
       } else {
         // Create new store
-        await hub.value.createStore(data.name, hubWalletData.value.id)
+        data.wallet_id = hubWalletData.value.id
+        await hub.value.createStore(data)
       }
       await refreshPage()
     } catch (error) {

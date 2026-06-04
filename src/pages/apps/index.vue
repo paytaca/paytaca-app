@@ -331,10 +331,10 @@ export default {
         {
           id: 'payment-hub',
           name: this.$t('PaymentHub', {}, 'Payment Hub'),
-          description: this.$t('Apps.PaymentHub.Description', {}, 'Manage stores and invoices.'),
-          iconName: 'point_of_sale',
+          description: this.$t('Apps.PaymentHub.Description', {}, 'Manage Payment Hub Stores, API Keys, and Invoices.'),
+          iconName: 'img:paytaca_payment_hub_logo_bg.png',
           path: '/apps/payment-hub/',
-          iconStyle: 'font-size: 4em',
+          iconStyle: 'width: 100%; height: 100%;',
           active: !this.$store.getters['global/isChipnet']
         },
         {

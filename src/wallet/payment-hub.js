@@ -278,6 +278,9 @@ export class PaymentHub {
 
   // --- Stores Section ---
 
+  /**
+   * Lists all stores associated with the current wallet.
+   */
   async listStores() {
     const response = await backend.get('/stores/', {
       params: { wallet_hash: this.wallet.BCH.walletHash },
@@ -287,10 +290,22 @@ export class PaymentHub {
     return response.data.results || response.data
   }
 
-  async createStore(name, walletId) {
+  /**
+   * Creates a new store.
+   * @param {Object} storeData - The store configuration data.
+   */
+  async createStore(storeData) {
     const response = await backend.post('/stores/', {
-      name: name,
-      wallet_id: walletId
+      wallet_id: storeData.wallet_id,
+      name: storeData.name,
+      webhook_url: storeData.webhook_url,
+      webhook_secret: storeData.webhook_secret,
+      default_currency: storeData.default_currency,
+      website_url: storeData.website_url,
+      logo_url: storeData.logo_url,
+      support_email: storeData.support_email,
+      invoice_expiration_minutes: storeData.invoice_expiration_minutes,
+      underpayment_tolerance_percent: storeData.underpayment_tolerance_percent
     }, {
       authorize: true,
       wallet: this.wallet
@@ -311,14 +326,12 @@ export class PaymentHub {
   }
 
   /**
-   * Renames an existing store.
+   * Updates an existing store's settings.
    * @param {String} storeId - The UUID of the store.
-   * @param {String} newName - The new name for the store.
+   * @param {Object} updateData - The settings to update.
    */
-  async renameStore(storeId, newName) {
-    const response = await backend.patch(`/stores/${storeId}`, {
-      name: newName
-    }, {
+  async updateStore(storeId, updateData) {
+    const response = await backend.patch(`/stores/${storeId}`, updateData, {
       authorize: true,
       wallet: this.wallet
     })

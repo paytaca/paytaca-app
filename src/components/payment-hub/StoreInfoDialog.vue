@@ -1,43 +1,51 @@
 <template>
-  <q-dialog ref="dialogRef" @hide="onDialogHide">
-    <q-card class="q-dialog-plugin br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <q-card-section>
-        <div class="text-h6">{{ storeData?.id ? $t('EditStore', {}, 'Edit Store') : $t('AddStore', {}, 'Add Store') }}</div>
-      </q-card-section>
+  <q-dialog ref="dialogRef" @hide="onDialogHide" no-backdrop-dismiss seamless class="no-click-outside">
+    <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 500px; max-width: 90vw;">
+      <div class="row no-wrap items-center justify-center q-pl-md">
+        <div class="text-h6 q-space q-mt-sm">
+          {{ storeData?.id ? $t('EditStore', {}, 'Edit Store') : $t('AddStore', {}, 'Add Store') }}
+          <span v-if="storeData?.id" class="text-grey">
+            #{{ storeData?.id }}
+          </span>
+        </div>
+        <q-btn
+          flat
+          padding="sm"
+          icon="close"
+          class="close-button"
+          v-close-popup
+        />
+      </div>
 
-      <q-card-section class="q-pt-none">
-        <q-input
-          v-model="form.name"
-          :label="$t('StoreName', {}, 'Store Name')"
-          outlined
-          dense
-          autofocus
-          @keyup.enter="onOKClick"
+      <q-card-section class="q-gutter-y-sm">
+        <StoreInfoForm 
+          ref="storeForm" 
+          :store-data="storeData" 
+          @cancel="onDialogCancel" 
+          @saved="onDialogOK" 
         />
       </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn flat :label="$t('Cancel')" color="grey" @click="onCancelClick" />
-        <q-btn unelevated rounded :label="$t('OK')" color="pt-primary1" @click="onOKClick" />
-      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import StoreInfoForm from './StoreInfoForm.vue'
 
 const props = defineProps({
   storeData: {
     type: Object,
     default: () => ({})
-  }
+  },
+  modelValue: Boolean
 })
 
-defineEmits([
+const $emit = defineEmits([
+  'update:modelValue',
   ...useDialogPluginComponent.emits
 ])
 
@@ -45,26 +53,21 @@ const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginC
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const form = reactive({
-  name: ''
-})
+const storeForm = ref(null)
 
-onMounted(() => {
-  if (props.storeData?.name) {
-    form.name = props.storeData.name
+/**
+ * Handle modelValue for seamless usage if needed
+ */
+const innerVal = ref(props.modelValue)
+watch(innerVal, () => $emit('update:modelValue', innerVal.value))
+watch(() => props.modelValue, (val) => { innerVal.value = val })
+
+/**
+ * Reset form when dialog opens/closes if needed
+ */
+watch(() => props.modelValue, (val) => {
+  if (val) {
+    storeForm.value?.resetForm()
   }
 })
-
-function onOKClick() {
-  // TODO: Add logic to save store (create/update)
-  // This is where you would call your API to save the store data
-  onDialogOK({
-    ...props.storeData,
-    name: form.name
-  })
-}
-
-function onCancelClick() {
-  onDialogCancel()
-}
 </script>
