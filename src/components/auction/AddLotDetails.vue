@@ -27,7 +27,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val && val.trim().length > 0 || 'Lot name is required' ]"
               />
             </div>
@@ -44,7 +44,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => !!val || 'Please select a lot type' ]"
               />
             </div>
@@ -63,7 +63,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -86,7 +86,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -109,7 +109,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price ceiling' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -130,7 +130,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -153,9 +153,13 @@
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
               @rejected="onRejected"
-              lazy-rules
-              
-            ><!-- :rules="[ val => val && val.length > 0 || 'Please upload at least 1 image' ]" -->
+              @update:model-value="onModelUpdate"
+              lazy-rules hide-bottom-space
+              :rules="[
+                val => val && val.length > 0 || 'Please upload at least 1 image',
+                val => !val || val.length <= 3 || 'Max 3 images only', () => !hasFileOverload || 'Max 3 images only'
+              ]"
+            >
               <template v-slot:prepend>
                 <q-icon name="attach_file" />
               </template>
@@ -164,7 +168,7 @@
                 <q-icon 
                   name="close" 
                   class="cursor-pointer" 
-                  @click.stop.prevent="lotImages = null" 
+                  @click.stop.prevent="clearImages"
                 />
               </template>
             </q-file>
@@ -217,10 +221,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const lotName = ref('Lot Title')
 const lotType = ref('Physical')
-const lotTypeOptions = [
-  'Physical',
-  'Digital'
-]
+const lotTypeOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0.002)
 const priceThreshold = ref(0.002)
 const priceDrop = ref(0.0005)
@@ -232,11 +233,25 @@ const onToggleAddLot = () => {
   isToggledAddLot.value = !isToggledAddLot.value
 }
 
+const hasFileOverload = ref(false)
+
 const onRejected = (rejectedEntries) => {
-  $q.notify({
-    type: 'negative',
-    message: `${rejectedEntries.length} file(s) did not overcome validation constraints (Max 3 images, invalid format)`
-  })
+  if (rejectedEntries.some(entry => entry.failedPropValidation === 'max-files')) {
+    hasFileOverload.value = true
+  }
+}
+
+const onModelUpdate = (newFiles) => {
+  if (newFiles && newFiles.length <= 3) {
+    hasFileOverload.value = false
+  } else if (newFiles && newFiles.length > 3) {
+    hasFileOverload.value = true
+  }
+}
+
+const clearImages = () => {
+  lotImages.value = []
+  hasFileOverload.value = false
 }
 
 const toggleCurrency = (isFiat) => {
@@ -244,6 +259,11 @@ const toggleCurrency = (isFiat) => {
 }
 
 const addLot = () => {
+  let generatedUrls = []
+  if (lotImages.value && lotImages.value.length > 0) {
+    generatedUrls = lotImages.value.map(file => URL.createObjectURL(file))
+  }
+
   const payload = {
     title: lotName.value,
     type: lotType.value,
@@ -251,9 +271,9 @@ const addLot = () => {
     threshold: priceThreshold.value || 0,
     price_drop: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
-    imageUrl: lotImages.value && lotImages.value.length > 0 
-      ? URL.createObjectURL(lotImages.value[0]) 
-      : null
+    
+    imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
+    imageUrls: generatedUrls
   }
 
   emit('add-lot', payload)
@@ -266,12 +286,12 @@ const addLot = () => {
     timeout: 3000
   })
   
-  // lotName.value = ''
-  // estimatedPrice.value = null
-  // priceFloor.value = null
-  // priceCeiling.value = null
-  // priceDrop.value = 0.0005
-  // lotImages.value = []
+  lotName.value = ''
+  estimatedPrice.value = null
+  priceFloor.value = null
+  priceCeiling.value = null
+  priceDrop.value = 0.0005
+  lotImages.value = []
 }
 </script>
 

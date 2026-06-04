@@ -28,7 +28,7 @@
             class="pt-card text-bow" 
             :class="getDarkModeClass(darkMode)"
           >
-            <q-img :src="lot.imageUrl || noImage" ratio="1">
+            <q-img :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" ratio="1">
               <template v-slot:loading>
                 <q-skeleton height="100%" width="100%" square />
               </template>
@@ -104,6 +104,19 @@
       <div ref="productScrollSentinel" style="height: 1px; width: 100%;"></div>
       -->
     </div>
+
+    <EditLotDetails 
+      v-model:isToggledEditLot="isToggledEdit"
+      :auctionType="auctionType"
+      :lot-data="selectedLot"
+      @update-lot="handleLotUpdate"
+    />
+
+    <ConfirmDeleteDialog
+      v-model:isToggledDeleteLot="isToggledDelete"
+      :lotName="selectedLot?.title"
+      @confirm-delete="handleLotDelete"
+    />
   </div>
 </template>
 
@@ -119,6 +132,7 @@ import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AddAuctionDetails from 'src/components/auction/AddAuctionDetails.vue'
 import AddLotDetails from 'src/components/auction/AddLotDetails.vue'
 import EditLotDetails from 'src/components/auction/EditLotDetails.vue'
+import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
@@ -129,23 +143,47 @@ const auctionType = ref('English Auction')
 const lots = ref([])
 
 const isLotEmpty = computed(() => lots.value.length === 0)
+const isToggledEdit = ref(false)
+const isToggledDelete = ref(false)
+const selectedLot = ref(null)
+let activeEditIndex = null
+let activeDeleteIndex = null
 
 const handleNewLot = (lotData) => {
   lots.value.push(lotData)
 }
 
 const editLotDetails = (lot, index) => {
-  $q.notify({
-    type: 'positive',
-    message: 'Lot edited!',
-    timeout: 3000
-  })
+  activeEditIndex = index
+  selectedLot.value = JSON.parse(JSON.stringify(lot))
+  isToggledEdit.value = true
+}
+
+const handleLotUpdate = (updatedLotData) => {
+  if (activeEditIndex !== null) {
+    lots.value[activeEditIndex] = updatedLotData
+  }
+  isToggledEdit.value = false
 }
 
 const deleteLot = (lot, index) => {
+  activeDeleteIndex = index
+  selectedLot.value = lot
+  isToggledDelete.value = true
+}
+
+const handleLotDelete = () => {
+  if (activeDeleteIndex !== null && activeDeleteIndex >= 0) {
+    lots.value.splice(activeDeleteIndex, 1)
+  }
+  
+  isToggledDelete.value = false
+  activeDeleteIndex = null
+  selectedLot.value = null
+
   $q.notify({
     type: 'positive',
-    message: 'Lot deleted!',
+    message: 'Lot deleted successfully!',
     timeout: 3000
   })
 }

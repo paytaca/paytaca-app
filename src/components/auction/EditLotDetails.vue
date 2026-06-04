@@ -1,7 +1,11 @@
 <template>
-  <q-dialog v-model="isToggledAddLot" position="bottom">
+  <q-dialog
+    :model-value="isToggledEditLot"
+    @update:model-value="$emit('update:isToggledEditLot', $event)"
+    position="bottom"
+  >
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
-      <q-form @submit="addLot">
+      <q-form @submit.prevent="saveLot">
         <q-card-section>
           <div class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
@@ -15,7 +19,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val && val.trim().length > 0 || 'Lot name is required' ]"
               />
             </div>
@@ -32,7 +36,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => !!val || 'Please select a lot type' ]"
               />
             </div>
@@ -51,7 +55,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -74,7 +78,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -97,7 +101,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price ceiling' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -118,7 +122,7 @@
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules
+                lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
@@ -141,9 +145,9 @@
               debounce="500"
               :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
               @rejected="onRejected"
-              lazy-rules
-              
-            ><!-- :rules="[ val => val && val.length > 0 || 'Please upload at least 1 image' ]" -->
+              lazy-rules hide-bottom-space
+              :rules="[ val => (val && val.length > 0) || currentImageUrls.length > 0 || 'Please upload at least 1 image' ]"
+            >
               <template v-slot:prepend>
                 <q-icon name="attach_file" />
               </template>
@@ -152,7 +156,7 @@
                 <q-icon 
                   name="close" 
                   class="cursor-pointer" 
-                  @click.stop.prevent="lotImages = null" 
+                  @click.stop.prevent="lotImages = []" 
                 />
               </template>
             </q-file>
@@ -172,7 +176,7 @@
               type="submit"
               color="primary"
               text-color="white"
-              label="Add Lot"
+              label="Save Changes"
               class="q-px-xl"
             />
           </div>
@@ -184,38 +188,42 @@
 
 <script setup>
 import { useQuasar } from 'quasar'
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed } from 'vue'
 import { useStore } from 'vuex'
 
-defineProps({
+const props = defineProps({
   auctionType: {
     type: String,
     required: true,
     default: 'English Auction'
+  },
+  isToggledEditLot: {
+    type: Boolean,
+    required: true
+  },
+  lotData: {
+    type: Object,
+    default: null
   }
 })
 
-const emit = defineEmits(['add-lot'])
+const emit = defineEmits(['update:isToggledEditLot', 'update-lot'])
 
 const $q = useQuasar()
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const lotName = ref('Lot Title')
+const lotName = ref('')
 const lotType = ref('Physical')
-const lotTypeOptions = [
-  'Physical',
-  'Digital'
-]
-const estimatedPrice = ref(0.002)
-const priceThreshold = ref(0.002)
-const priceDrop = ref(0.0005)
+const lotTypeOptions = ['Physical', 'Digital']
+const estimatedPrice = ref(0)
+const priceThreshold = ref(0)
+const priceDrop = ref(0)
 const lotImages = ref([])
 const isFiatUsed = ref(false)
 
-const isToggledAddLot = ref(false)
+const currentImageUrls = ref([])
 
 const onRejected = (rejectedEntries) => {
   $q.notify({
@@ -228,35 +236,54 @@ const toggleCurrency = (isFiat) => {
   // Code block for converting user input money to its equivalent currency
 }
 
-const addLot = () => {
-  const payload = {
+watch(() => props.lotData, (newLot) => {
+  if (newLot) {
+    lotName.value = newLot.title || ''
+    lotType.value = newLot.type || 'Physical'
+    estimatedPrice.value = newLot.estimatedPrice || 0
+    priceThreshold.value = newLot.threshold || 0
+    priceDrop.value = newLot.price_drop || 0
+    isFiatUsed.value = newLot.isFiatUsed || false
+    
+    if (Array.isArray(newLot.imageUrls)) {
+      currentImageUrls.value = [...newLot.imageUrls]
+    } else if (newLot.imageUrl) {
+      currentImageUrls.value = [newLot.imageUrl]
+    } else {
+      currentImageUrls.value = []
+    }
+
+    lotImages.value = []
+  }
+}, { immediate: true })
+
+const saveLot = () => {
+  let finalImages = [...currentImageUrls.value]
+
+  if (lotImages.value && lotImages.value.length > 0) {
+    finalImages = lotImages.value.map(file => URL.createObjectURL(file))
+  }
+
+  const updatedPayload = {
+    ...props.lotData,
     title: lotName.value,
     type: lotType.value,
     estimatedPrice: estimatedPrice.value,
     threshold: priceThreshold.value || 0,
     price_drop: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
-    imageUrl: lotImages.value && lotImages.value.length > 0 
-      ? URL.createObjectURL(lotImages.value[0]) 
-      : null
+    
+    imageUrl: finalImages.length > 0 ? finalImages[0] : null,
+    imageUrls: finalImages
   }
 
-  emit('add-lot', payload)
-
-  isToggledAddLot.value = false
+  emit('update-lot', updatedPayload)
 
   $q.notify({
     type: 'positive',
-    message: 'Lot added!',
+    message: 'Lot modified!',
     timeout: 3000
   })
-  
-  // lotName.value = ''
-  // estimatedPrice.value = null
-  // priceFloor.value = null
-  // priceCeiling.value = null
-  // priceDrop.value = 0.0005
-  // lotImages.value = []
 }
 </script>
 
