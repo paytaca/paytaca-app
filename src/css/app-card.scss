@@ -606,6 +606,7 @@ animation: float 6s ease-in-out infinite;
 	backdrop-filter: blur(16px) saturate(180%);
 	-webkit-backdrop-filter: blur(16px) saturate(180%);
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
 }
 
 .content-box-dark {
@@ -618,6 +619,7 @@ animation: float 6s ease-in-out infinite;
 	backdrop-filter: blur(16px) saturate(180%);
 	-webkit-backdrop-filter: blur(16px) saturate(180%);
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
 }
 
 .disabled-merchant {
