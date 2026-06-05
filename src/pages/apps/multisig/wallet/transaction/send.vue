@@ -171,7 +171,7 @@
           </q-page>
         </q-page-container>
       </q-pull-to-refresh>
-      <div class="sticky-bottom-actions" v-if="customKeyboardState !== 'show'">
+      <div class="sticky-bottom-actions" v-if="customKeyboardState !== 'show' && !showQrScanner">
         <q-btn
           :loading="isCreatingProposal"
           style="width: 100%; filter: opacity((100%))"

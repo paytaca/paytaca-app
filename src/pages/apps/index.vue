@@ -40,6 +40,12 @@
               class="beta-badge"
               :label="$t('Beta').toLocaleUpperCase()"
             />
+            <div
+              v-if="app.id === 'chat' && chatUnreadCount > 0"
+              class="app-unread-badge"
+            >
+              {{ chatUnreadCountLabel }}
+            </div>
           </div>
           <p
             class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
@@ -213,6 +219,16 @@ export default {
           smartBCHOnly: false
         },
         {
+          id: 'chat',
+          name: this.$t('Chat'),
+          description: this.$t('Apps.Chat.Description', {}, 'Private and group messaging over Nostr.'),
+          iconName: 'chat',
+          path: '/apps/chat',
+          iconStyle: 'font-size: 4em',
+          active: true,
+          beta: true
+        },
+        {
           id: 'gifts',
           name: this.$t('Gifts'),
           description: this.$t('Apps.Gifts.Description', {}, 'Create and redeem BCH gifts.'),
@@ -231,6 +247,16 @@ export default {
           active: !this.$store.getters['global/isChipnet']
         },
         {
+          id: 'rewards',
+          name: 'Rewards',
+          description: 'Rewards',
+          iconName: 'stars',
+          path: '/apps/rewards',
+          iconStyle: 'font-size: 4em',
+          active: !this.$store.getters['global/isChipnet'],
+          smartBCHOnly: false
+        },
+        {
           id: 'multisig',
           name: this.$t('MultisigWallets', {}, 'Multisig Wallets'),
           description: this.$t('Apps.MultisigWallets.Description', {}, 'Create and manage multi-signature wallets for extra security.'),
@@ -238,8 +264,7 @@ export default {
           path: '/apps/multisig',
           active: true,
           iconStyle: 'font-size: 4em',
-          beta: true,
-          betaMessage: this.$t('MultisigWalletsBetaMessage', {}, 'Multisig Wallets is currently in beta. This feature allows you to create and manage multi-signature wallets that require multiple signatures for transactions. Please note that this is an experimental feature and may have limitations.')
+          beta: true
         },
         {
           id: 'cauldron',
@@ -370,6 +395,12 @@ export default {
       if (theme === 'glassmorphic-green') return 'green-6'
       if (theme === 'glassmorphic-gold') return 'amber-7'
       return 'blue-6'
+    },
+    chatUnreadCount () {
+      return this.$store.getters['nostrChat/getTotalUnreadCount'] || 0
+    },
+    chatUnreadCountLabel () {
+      return this.chatUnreadCount > 99 ? '99+' : String(this.chatUnreadCount)
     }
   },
   methods: {
@@ -598,8 +629,8 @@ export default {
         return
       }
       
-      // If app is beta, show dialog first
-      if (app.beta) {
+      // If app has a beta message, show warning dialog first
+      if (app.beta && app.betaMessage) {
         this.$q.dialog({
           component: BetaAppDialog,
           componentProps: {
@@ -611,7 +642,7 @@ export default {
           this.$router.push(app.path)
         })
       } else {
-        // Non-beta apps open directly
+        // Apps without beta message open directly
         this.$router.push(app.path)
       }
     },
@@ -791,14 +822,35 @@ export default {
   
   .beta-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 9px;
     font-weight: 700;
     padding: 2px 6px;
     border-radius: 8px;
     z-index: 10;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .app-unread-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+    z-index: 11;
   }
   
   .relative-position {

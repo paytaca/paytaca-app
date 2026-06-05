@@ -227,7 +227,7 @@ export default {
     return {
       notifsList: [],
       checkboxList: null,
-      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'EP'],
+      notifsTypes: ['MP', 'CB', 'AH', 'RP', 'TR', 'NF', 'EP', 'RW'],
 
       isLoading: false,
       isCheckboxClicked: false,
@@ -391,6 +391,9 @@ export default {
               url: urlArray
             }
           })
+          break
+        } case 'RW': {
+          vm.$router.push({ name: 'app-rewards' })
           break
         } default:
           break
