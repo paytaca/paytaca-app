@@ -1,195 +1,88 @@
-import axios from 'axios'
-import {
-  decodeCashAddress,
-} from 'bitauth-libauth-v3'
-import { generateAuthCredentialsForFirstSignerWithPrivateKey, generateAuthCredentialsForXPub } from 'src/utils/multisig-utils'
-import { watchtowerUtxoToCommonUtxo } from 'src/utils/utxo-utils'
-import Watchtower from 'src/lib/watchtower'
+import { getMultisigWorker } from '../../workers/index';
 
-const projectId = {
-  mainnet: process.env.WATCHTOWER_PROJECT_ID,
-  chipnet: process.env.WATCHTOWER_CHIP_PROJECT_ID
-}
-
-export async function uploadWallet ({ commit, getters, rootGetters }, multisigWallet ) {
-  
-  const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-    multisigWallet,
-    walletVault: rootGetters['global/getVault'] 
-  })
-
-  const response = await axios.post(`${rootGetters['global/getWatchtowerBaseUrl']}/api/multisig/wallets/`, multisigWallet, { headers: { ...authCredentials } })
-  if (response?.data?.id) {
-    commit('updateWallet', { oldMultisigWallet: multisigWallet, newMultisigWallet: response.data })
-  }
-  return response?.data
-}
-
-
+// No runtime validation - worker is internal API, only store action calls it.
+// Trust callers, validate at boundaries if needed. Prevents code smell.
 
 /**
- * !!! Sync wallet with Watchtower  
+ * @param {Object} payload
+ * @param {Object} payload.multisigWallet - The multisig wallet object
+ * @param {string} payload.multisigWallet.walletHash - Wallet hash
+ * @param {number} [payload.addressDiscoveryGapLimit] - Gap limit (positive integer)
+ * @param {Object} [payload.options] - Override options
+ * @param {string} payload.options.watchtowerBaseUrl - Watchtower URL (required)
+ * @param {number} payload.options.gapLimit - Gap limit (> 0)
+ * @param {number} [payload.options.minimumNumberOfAddresses] - Min addresses (>= 0)
+ * @param {string} payload.options.network - 'mainnet' | 'testnet'
+ * @param {boolean} [payload.options.fullScan]
+ * @param {boolean} [payload.options.applyRateLimit]
+ * @param {Function} onProgress - Callback(workerProgress)
  */
-export async function syncWallet ({ commit, rootGetters },  wallet ) {
+export async function discoverAddresses({ commit, state, rootState, rootGetters }, payload) {
 
-  const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-    signers: wallet.signers,
-    walletVault: rootGetters['global/getVault'] 
-  })
-  
-  const response = await axios.post(`${rootGetters['global/getWatchtowerBaseUrl']}/api/multisig/wallets/${wallet.getWalletHash()}/sync/`, wallet, { headers: { ...authCredentials } })
-  
-  return response.data
+    
+    // Wallet hash is used as the worker id of the address discovery worker
+    let workerId = payload.multisigWallet.walletHash
+
+    try {
+        const worker = getMultisigWorker();
+        const network = rootState.global.isChipnet ? 'chipnet': 'mainnet'
+        
+        const onProgress = (workerProgress) => {  
+            if (!state.workers?.[workerProgress.id]) {
+                commit('addWorker', {
+                    id: workerProgress.id,
+                    status: 'started'
+                })
+            }
+            // Save progress
+            if (workerProgress.success) {
+                commit('updateWalletLastUsedDepositAddressIndex', { 
+                    wallet: payload.multisigWallet,
+                    lastUsedDepositAddressIndex: workerProgress.lastUsedDepositAddressIndex,
+                    network
+                })
+                commit('updateWalletLastUsedChangeAddressIndex', { 
+                    wallet: payload.multisigWallet,
+                    lastUsedChangeAddressIndex: workerProgress.lastUsedChangeAddressIndex,
+                    network
+                })
+            }
+        }
+
+        const options = {
+            watchtowerBaseUrl: rootGetters['global/getWatchtowerBaseUrl'],
+            gapLimit: payload.addressDiscoveryGapLimit || state.settings.addressDiscoveryGapLimit || 20,
+            network: rootState.global.isChipnet ? 'chipnet': 'mainnet',
+            fullScan: payload.fullScan !== false ? true : false
+        }
+
+        const workerResult = await worker.startAddressDiscovery(
+            payload.multisigWallet, 
+            payload.options || options,
+            onProgress
+        );
+        
+        if (workerResult.success) {
+            commit('updateWalletLastUsedDepositAddressIndex', { 
+                wallet: payload.multisigWallet,
+                lastUsedDepositAddressIndex: workerResult.lastUsedDepositAddressIndex,
+                network
+            })
+            commit('updateWalletLastUsedChangeAddressIndex', { 
+                wallet: payload.multisigWallet,
+                lastUsedChangeAddressIndex: workerResult.lastUsedChangeAddressIndex,
+                network
+            })
+            commit('removeWorker', workerResult.id)
+        }
+
+    } catch (error) {
+        if (workerId) {
+            commit('updateWorkerStatus', { id: workerId, status: 'error', error: error }) 
+        }
+    } 
 }
 
-
-export async function fetchWallets ({ commit, rootGetters }, { xpub }) {
-  const authCredentials = await generateAuthCredentialsForXPub({ 
-    xpub,
-    walletVault: rootGetters['global/getVault'] 
-  })
-  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  const response = await axios.get(`${watchtower}/api/multisig/wallets/?xpub=${xpub}`, { headers: { ...authCredentials } })
-  response?.data?.forEach((multisigWallet) => {
-    commit('saveWallet', multisigWallet)
-  })
-  return response.data
+export async function cleanupWorker() {    
+    getMultisigWorker().stop();
 }
-
-export async function deleteWallet ({ commit, rootGetters }, { multisigWallet, sync }) {
-  
-  const signers = structuredClone(multisigWallet.signers)
-  
-  commit('deleteWallet', { multisigWallet })
-
-  const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-    signers,
-    walletVault: rootGetters['global/getVault'] 
-  })
-  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  if (sync) {
-    await axios.delete(
-      `${watchtower}/api/multisig/wallets/${multisigWallet.id}/`,
-      { headers: { ...authCredentials } }
-    )
-  }
-}
-
-export function deleteAllWallets ({ commit }) {
-  commit('deleteAllWallets')
-  // TODO: mutate watchtower
-}
-/**
- * request is a wallet connect session request
- */
-export function walletConnectSignTransactionRequest ({ commit }, { address, sessionRequest }) {
-  commit('walletConnectSignTransactionRequest', { address, sessionRequest })
-}
-
-
-export async function broadcastTransaction ({ commit, rootGetters, dispatch }, { multisigWallet, multisigTransaction }) {
-  const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-    multisigWallet,
-    walletVault: rootGetters['global/getVault'] 
-  })
-  const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-  const response = await axios.post(
-    `${watchtower}/api/multisig/transaction-proposals/${multisigTransaction.id}/broadcast/`,
-    {},
-    { headers: { 'Content-Type': 'application/json', ...authCredentials } }
-  )
-  if (response.data?.success || response.data?.error?.includes('txn-already-known') || response.data?.error?.includes('txn-already-in-mempool')) {
-    commit('updateTransactionBroadcastStatus', { id: multisigTransaction.id, broadcastStatus: 'done' })
-    commit('updateTransactionTxid', { id: multisigTransaction.id, txid: response.data?.txid})
-    dispatch('deleteTransactionById', { id: multisigTransaction.id, multisigWallet, sync: false })
-  }
-  return response
-}
-
-export async function fetchWalletUtxos ({ commit, rootGetters }, cashAddress) {
-  const decoded = decodeCashAddress(cashAddress)
-  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
-  const response = await watchtower.getMultisigWalletUtxos(cashAddress)
-  const utxos = response.data?.map((utxo) => watchtowerUtxoToCommonUtxo(utxo))
-  commit('updateWalletUtxos', { walletAddress: cashAddress, utxos })
-  return utxos
-}
-// --------------------
-export async function savePst ({ commit }, { pst, sync = false }) {
-  console.log('Dispatching', pst)
-  commit('savePst', pst)
-  if (sync) {
-    const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-      multisigWallet,
-      walletVault: rootGetters['global/getVault'] 
-    })
-    console.log('Auth Credentials', authCredentials)
-    if (authCredentials) {
-      const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-      const response = await axios.post(
-        `${watchtower}/api/multisig/psts/`,
-        pst,
-        { headers: { 'Content-Type': 'application/json', ...authCredentials } }
-      )
-      if (response.data?.id) {
-        commit('updatePstId', { unsignedTransactionHash: pst.unsignedTransactionHash, newId: response.data.id })
-      }
-    }
-  }
-  return pst
-}
-
-export async function deletePsbt ({ commit }, { pst, sync = false }) {
-  commit('deletePst', pst)
-  if (sync) {
-    const authCredentials = await generateAuthCredentialsForFirstSignerWithPrivateKey({ 
-      multisigWallet,
-      walletVault: rootGetters['global/getVault'] 
-    })
-    console.log('Auth Credentials', authCredentials)
-    if (authCredentials) {
-      const watchtower = rootGetters['global/getWatchtowerBaseUrl']
-      const response = await axios.delete(
-        `${watchtower}/api/multisig/psts/${pst.unsignedTransactionHash}`,
-        { headers: { 'Content-Type': 'application/json', ...authCredentials } }
-      )
-    }
-  }
-  return pst
-}
-
-export async function subscribeWalletAddress ({ rootGetters }, address) {
-  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
-  return await watchtower.subscribeAddress(address)
-}
-
-export async function subscribeWalletAddressIndex ({ rootGetters }, { wallet, addressIndex, type = 'pair' }) {
-  const walletHash = wallet.getWalletHash()
-  const receiveAddress = wallet.getDepositAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
-  const changeAddress = wallet.getChangeAddress(addressIndex, wallet.cashAddressNetworkPrefix).address
-  
-  let addresses = {}
-  
-  if (type === 'pair') {
-    changeAddress.receiving = receiveAddress
-    changeAddress.change = changeAddress
-  }
-
-  if (type === 'deposit') {
-    addresses.receiving = receiveAddress
-  }
-  
-  if (type === 'change') {
-    addresses.change = changeAddress
-  }
-  
-  const watchtower = new Watchtower(rootGetters['global/isChipnet'])
-
-  return await watchtower.subscribe({
-    projectId: projectId[rootGetters['global/isChipnet'] ? 'chipnet' : 'mainnet'],
-    walletHash,
-    addresses,
-    addressIndex
-  })
-}
-

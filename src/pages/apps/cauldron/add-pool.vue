@@ -267,6 +267,9 @@ export default defineComponent({
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    
+    // Wallet index for detecting wallet switches
+    const walletIndex = computed(() => $store.getters['global/getWalletIndex']);
 
     /** @type {import('vue').Ref<import('src/wallet/cauldron/tokens').CauldronTokenData>} */
     const selectedToken = ref()
@@ -480,6 +483,29 @@ export default defineComponent({
       satoshis: 0n,
       tokenData: { category: '', name: '', decimals: 0, symbol: '', imageUrl: '' },
     })
+
+    // Watch for wallet switching - reset all local state when wallet changes
+    watch(walletIndex, (newIndex, oldIndex) => {
+      if (oldIndex === undefined) return; // Skip initial value
+      
+      // Reset completed pool state
+      completedPoolData.value = {
+        txid: '',
+        tokenUnits: 0n,
+        satoshis: 0n,
+        tokenData: { category: '', name: '', decimals: 0, symbol: '', imageUrl: '' },
+      };
+      
+      // Reset input amounts
+      tokenAmount.value = '';
+      bchAmount.value = '';
+      
+      // Reset token balance (will be refreshed)
+      selectedTokenBalance.value = 0n;
+      
+      // Refresh balances for new wallet
+      updateBalance();
+    });
 
     async function addLiquidityPool() {
       let dialog

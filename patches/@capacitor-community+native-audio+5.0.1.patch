@@ -71,7 +71,7 @@ index caacec3..663270d 100644
          do {
 -            try self.session.setCategory(AVAudioSession.Category.playback)
 -            try self.session.setActive(false)
-+            try self.session.setCategory(AVAudioSession.Category.playback, options: .mixWithOthers)
++            try self.session.setCategory(AVAudioSession.Category.ambient, options: .mixWithOthers)
          } catch {
              print("Failed to set session category")
          }
@@ -83,7 +83,7 @@ index caacec3..663270d 100644
 +                    try self.session.setCategory(AVAudioSession.Category.playback, options: [.mixWithOthers, .duckOthers])
                  } else {
 -                    try self.session.setCategory(AVAudioSession.Category.ambient)
-+                    try self.session.setCategory(AVAudioSession.Category.playback, options: .mixWithOthers)
++                    try self.session.setCategory(AVAudioSession.Category.ambient, options: .mixWithOthers)
                  }
              } catch {
                  print("Failed to set setCategory audio")

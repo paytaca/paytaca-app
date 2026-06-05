@@ -439,18 +439,7 @@ async function recoverWallet(index, save=false) {
         }
     }
 
-    // sbch wallet info creation, skipped wallet subscription,
-    // will assume it's already subscribed if it's being recovered
-    const walletTypeInfo = {
-        type: 'sbch',
-    }
-    if (save) store.commit('global/updateWallet', walletTypeInfo)
-    const walletSnapshot = {
-        walletHash: walletTypeInfo.walletHash,
-        derivationPath: walletTypeInfo.derivationPath,
-        lastAddress: walletTypeInfo.lastAddress
-    }
-    bchWalletsInfo['sbch'] = walletSnapshot
+    // Legacy network-specific support removed: no additional wallet info created for it
 
     // const walletHashes = [
     //     wallet.BCH.walletHash,

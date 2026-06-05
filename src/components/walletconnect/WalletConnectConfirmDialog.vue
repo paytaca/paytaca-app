@@ -1,14 +1,14 @@
 <template>
   <q-dialog ref="dialog" @hide="onDialogHide" persistent seamless>
     <q-card class="q-dialog-plugin br-15 q-pb-xs pt-card" :class="getDarkModeClass(darkMode)">
-      <q-card-section class="text-black">
+      <q-card-section :class="getDarkModeClass(darkMode)">
         <div class="text-grad">Connect to this site?</div>
         <div class="row items-start justify-start no-wrap q-gutter-x-sm">
           <div>
             <div class="row text-h6 text-bow" :class="getDarkModeClass(darkMode)">
               {{ parsedPeerMeta.name }}
             </div>
-            <div v-if="parsedPeerMeta.url" class="row text-caption" :class="[darkMode ? 'text-grey' : 'text-black']">
+            <div v-if="parsedPeerMeta.url" class="row text-caption" :class="getDarkModeClass(darkMode, 'text-grey', 'text-grey-8')">
               {{ parsedPeerMeta.url }}
             </div>
           </div>

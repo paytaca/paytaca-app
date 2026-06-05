@@ -37,21 +37,35 @@ function getCountryCode () {
   return Store.getters['global/country'].code
 }
 
+function getCountry () {
+  return Store.getters['global/country']
+}
+
 function getLocale () {
-  const countryCode = getCountryCode().toLowerCase()
+  const country = getCountry()
+  
+  // Defensive check for country code
+  if (!country || !country.code) {
+    return 'en-US' // Fallback to US English locale
+  }
+  
+  const countryCode = country.code.toLowerCase()
   let currentLocale
 
-  // conditional check because some countries (like Argentina,
-  // maybe others yet to be identified) does not follow the proper
-  // locale separator when using country code
-  // check if country code is equal to Argentina
-  if (countryCode === 'ar') {
-    // use locale from language/i18n
-    const localeCandidate = i18n?.global?.locale
-    if (typeof localeCandidate === 'string') {
-      currentLocale = localeCandidate
-    } else if (localeCandidate && typeof localeCandidate === 'object' && 'value' in localeCandidate) {
-      currentLocale = localeCandidate.value || 'en-us'
+  // If the country has a language field defined, use it to construct the locale
+  // (e.g., "en" + "CA" = "en-CA"). This ensures proper locale formatting.
+  // Otherwise, fall back to using the country code directly.
+  if (country.language) {
+    // If language contains a hyphen (e.g., "es-ar", "pt-br", "zh-cn"):
+    // - Extract the base language code (the part before the hyphen)
+    // - Concatenate with the country code to form proper locale (e.g., "es-ar" + "AR" = "es-AR")
+    // - This ensures we use the correct i18n translation ("es-ar") but proper locale formatting ("es-AR")
+    // Otherwise, construct locale from language + country code (e.g., "en" + "CA" = "en-CA")
+    if (country.language.includes('-')) {
+      const baseLanguage = country.language.split('-')[0]
+      currentLocale = `${baseLanguage}-${countryCode.toUpperCase()}`
+    } else {
+      currentLocale = `${country.language}-${countryCode.toUpperCase()}`
     }
   } else {
     // use locale from country code
@@ -86,14 +100,33 @@ function escapeRegExp (s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-export function formatWithLocale (value, { min, max } = {}) {
+export function formatWithLocale (value, { min, max, preserveTrailingDecimals } = {}) {
   const currentLocale = getLocale()
 
   const options = {}
   if (typeof min === 'number') options.minimumFractionDigits = min
   if (typeof max === 'number') options.maximumFractionDigits = max
-  
-  return Number(value).toLocaleString(currentLocale, options)
+
+  // This preserves trailing zeroes in decimals
+  // Without this, "4123.0000" would give "4,123", instead of "4,123.000" or
+  // "1234.3200" => Now returns "1,234.3200"
+  // "1234." => Now returns "1,234."
+  let trailingDecimal = '';
+  if (preserveTrailingDecimals && typeof value === 'string') {
+    const decimalPart = value.split('.')[1];
+    const fractionLength = decimalPart ? decimalPart.length : 0
+    if (value.endsWith('.')) {
+      trailingDecimal = getLocaleSeparators().decimal;
+    }
+    if (typeof options.minimumFractionDigits !== 'number' || options.minimumFractionDigits < fractionLength) {
+      options.minimumFractionDigits = fractionLength;
+      if (options.maximumFractionDigits < options.minimumFractionDigits) {
+        options.minimumFractionDigits = options.maximumFractionDigits;
+      }
+    }
+  }
+
+  return Number(value).toLocaleString(currentLocale, options) + trailingDecimal;
 }
 
 export function parseLocaleNumber (value) {
@@ -117,13 +150,15 @@ export function parseLocaleNumber (value) {
 
 export function parseAssetDenomination (denomination, asset, isInput = false, subStringMax = 0, maxFractionDigitsOverride = null) {
   const balanceCheck = asset.balance ?? 0
-  const isBCH = asset.symbol === 'BCH' || asset.symbol === 'sBCH'
+  // Treat BCH symbol as BCH. Legacy network-specific support removed; normalize to BCH.
+  const isBCH = asset.symbol === 'BCH'
   let newBalance = ''
   let symbol = ''
 
   if (isBCH) {
     // fallback condition for translated 'DEEM'
     const { convert, decimal } = getDenomDecimals(denomination)
+    const normalizedDenom = normalizeDenomination(denomination)
     let calculatedBalance = ''
 
     if (isInput) {
@@ -131,7 +166,14 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
     } else {
       calculatedBalance = (balanceCheck * convert).toFixed(decimal)
     }
-    newBalance = formatWithLocale(calculatedBalance, { max: decimal })
+    
+    // For BCH denomination (not mBCH or sats), always show full 8 decimals for easier comparison
+    if (normalizedDenom === 'BCH' && !isInput) {
+      newBalance = formatWithLocale(calculatedBalance, { min: 8, max: 8 })
+    } else {
+      newBalance = formatWithLocale(calculatedBalance, { max: decimal })
+    }
+    
     if (subStringMax > 0) newBalance = newBalance.substring(0, subStringMax)
     symbol = getDenominationDisplayLabel(denomination)
   } else {
@@ -149,6 +191,92 @@ export function parseAssetDenomination (denomination, asset, isInput = false, su
 
   if (asset.excludeSymbol) return `${newBalance}`
   else return `${newBalance} ${symbol}`.trim()
+}
+
+/**
+ * Splits a formatted BCH amount into significant digits and trailing zeros
+ * for rendering with different styles (e.g., graying out trailing zeros).
+ * 
+ * @param {string} formattedAmount - The formatted amount string (e.g., "1,234.56780000")
+ * @param {string} denomination - The denomination (BCH, mBCH, sats)
+ * @param {string} symbol - Optional symbol to include (default: '')
+ * @returns {Object} { main: string, trailingZeros: string, symbol: string }
+ * 
+ * Example:
+ * splitBchAmount("0.91801000 BCH", "BCH", "BCH")
+ * => { main: "0.91801", trailingZeros: "000", symbol: "BCH" }
+ */
+export function splitBchAmount (formattedAmount, denomination, symbol = '') {
+  const normalizedDenom = normalizeDenomination(denomination)
+  
+  // Only split trailing zeros for BCH denomination (not mBCH or sats)
+  if (normalizedDenom !== 'BCH') {
+    return { main: formattedAmount, trailingZeros: '', symbol }
+  }
+  
+  // Remove symbol from the formatted amount if present
+  let numericPart = formattedAmount.replace(/\s*BCH\s*/i, '').trim()
+  
+  // Find the decimal separator
+  const { decimal } = getLocaleSeparators()
+  const parts = numericPart.split(decimal)
+  
+  if (parts.length === 1) {
+    // No decimal part
+    return { main: numericPart, trailingZeros: '', symbol }
+  }
+  
+  const integerPart = parts[0]
+  const decimalPart = parts[1] || ''
+  
+  // Find trailing zeros in decimal part
+  const match = decimalPart.match(/^(\d*?)+(0+)$/)
+  if (match && match[2]) {
+    const significantDecimals = match[1]
+    const trailingZeros = match[2]
+    const mainPart = significantDecimals 
+      ? `${integerPart}${decimal}${significantDecimals}`
+      : integerPart
+    return { 
+      main: mainPart, 
+      trailingZeros: trailingZeros, 
+      symbol 
+    }
+  }
+  
+  // No trailing zeros
+  return { 
+    main: numericPart, 
+    trailingZeros: '', 
+    symbol 
+  }
+}
+
+/**
+ * Formats a BCH amount with trailing zeros grayed out using HTML/CSS.
+ * Returns an HTML string suitable for v-html directive.
+ * 
+ * @param {string} formattedAmount - The formatted amount string
+ * @param {string} denomination - The denomination (BCH, mBCH, sats)
+ * @param {string} symbol - Optional symbol to include
+ * @returns {string} HTML string with styled trailing zeros
+ * 
+ * Example:
+ * formatBchAmountWithGrayZeros("0.91801000", "BCH", "BCH")
+ * => '0.91801<span style="opacity: 0.4">000</span> BCH'
+ */
+export function formatBchAmountWithGrayZeros (formattedAmount, denomination, symbol = '') {
+  const { main, trailingZeros, symbol: sym } = splitBchAmount(formattedAmount, denomination, symbol)
+  
+  let result = main
+  if (trailingZeros) {
+    result += `<span style="opacity: 0.4">${trailingZeros}</span>`
+  }
+  if (sym) {
+    result += ` ${sym}`
+  }
+  
+  return result
 }
 
 /**

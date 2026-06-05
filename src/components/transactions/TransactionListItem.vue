@@ -42,7 +42,7 @@
             {{ asset?.name || 'NFT' }}
           </div>
           <template v-else>
-            <div class="amount-primary">
+            <div class="amount-primary" v-bch-amount="{ denomination: denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination }">
               {{
                 `${parseAssetDenomination(
                   denomination === $t('DEEM') || denomination === 'BCH' ? denominationTabSelected : denomination, {

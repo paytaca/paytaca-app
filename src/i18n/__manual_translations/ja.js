@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "重要な注意事項",
   "Insufficient balance": "残高不足",
   "Invalid amount": "無効な金額",
-  SmartBCHDeprecated: "SmartBCHは非推奨",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Paytacaに接続",
   "Required number of signers": "必要な署名者の数",
   "Total number of signers": "署名者の総数",
@@ -185,4 +185,3 @@ export default {
   PaytacaWebsiteDescription: "{paytacaWebsite} にアクセスしてください",
   
 }
-

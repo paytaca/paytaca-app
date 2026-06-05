@@ -67,6 +67,30 @@
             </q-card-section>
           </q-card>
         </div>
+
+        <!-- Push Notifications Reset Card -->
+        <div class="col-12 col-md-6 q-pa-sm" v-if="$q.platform.is.mobile">
+          <q-card 
+            class="debug-menu-card cursor-pointer" 
+            :class="getDarkModeClass(darkMode)"
+            @click="$router.push('/apps/debug/push-notifications-reset')"
+          >
+            <q-card-section>
+              <div class="row items-center q-gutter-md">
+                <q-icon name="notifications_active" size="48px" :color="toggleColor" />
+                <div class="col">
+                  <div class="text-h6 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                    {{ $t('PushNotificationsReset', {}, 'Push Notifications Reset') }}
+                  </div>
+                  <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-7'">
+                    {{ $t('PushNotificationsResetDescription', {}, 'Force re-registration of push notification token') }}
+                  </div>
+                </div>
+                <q-icon name="chevron_right" size="24px" />
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
       </div>
     </div>
   </div>

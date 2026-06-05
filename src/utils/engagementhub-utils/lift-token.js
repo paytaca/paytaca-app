@@ -39,16 +39,34 @@ const ORACLE_RELAY = process.env.ORACLE_RELAY || "oracles.generalprotocols.com";
 // ================================
 
 export function initializeVestingContract(buyerPubkey, liftTokenId, adminPubkey, lockupEnd, amount) {
+  if (!isEvenHex(buyerPubkey)) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+  if (!isEvenHex(liftTokenId)) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+  if (amount === null || amount === undefined || typeof amount !== 'number' || !Number.isFinite(amount) || !Number.isInteger(amount) || amount < 0) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+  const lockupTimestamp = new Date(lockupEnd).getTime()
+  if (Number.isNaN(lockupTimestamp)) {
+    throw new Error('FailedToInitializeVestingContract')
+  }
+
   const provider = new ElectrumNetworkProvider('mainnet')
   const contractParams = [
-    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')), // buyer pubkey hash
-    changeEndianness(liftTokenId), // LIFT token ID
-    adminPubkey, // admin pubkey
-    BigInt(convertDateToBlockHeight(lockupEnd)), // lockup end
-    BigInt(amount), // total LIFT tokens purchased
+    bchjs.Crypto.hash160(Buffer.from(buyerPubkey, 'hex')),
+    changeEndianness(liftTokenId),
+    adminPubkey,
+    BigInt(convertDateToBlockHeight(lockupEnd)),
+    BigInt(amount),
   ]
 
   return new Contract(VestingContractArtifact, contractParams, { provider })
+}
+
+function isEvenHex(value) {
+  return typeof value === 'string' && value.length > 0 && value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value)
 }
 
 // ================================
@@ -118,6 +136,12 @@ export function convertDateToBlockHeight(date) {
   const btcGenesisBlock = 1231006505;
   const dateTimestamp = Math.floor(new Date(date).getTime() / 1000);
 
+  if (Number.isNaN(dateTimestamp)) {
+    throw new Error(
+      "Date stamp cannot be before the date of BTC genesis block."
+    );
+  }
+
   if (dateTimestamp < btcGenesisBlock) {
     throw new Error(
       "Date stamp cannot be before the date of BTC genesis block."
@@ -126,6 +150,51 @@ export function convertDateToBlockHeight(date) {
 
   const secondsSinceGenesis = dateTimestamp - btcGenesisBlock;
   return Math.floor(secondsSinceGenesis / 600);
+}
+
+// ================================
+// Price calculation utilities for purchase objects
+// ================================
+
+/**
+ * Returns the discounted price (amount actually paid) for a purchase.
+ * For single-partial-purchase reservations with a discount, prefers the
+ * server-provided discounted_amount over client-side usd_paid.
+ * @param {Object} purchase - Purchase object with purchase_more_details and purchase_partial_details
+ * @returns {number} The discounted USD price
+ */
+export function getDiscountedPriceUsd(purchase) {
+  if (
+    Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
+    purchase.purchase_more_details.reservation_partial_purchase?.length === 1
+  ) {
+    return Number.parseFloat(purchase.purchase_more_details.discounted_amount)
+  }
+
+  return purchase.purchase_partial_details.usd_paid
+}
+
+/**
+ * Returns the original price (before discount) for a purchase.
+ * For single-partial-purchase reservations with a discount, prefers the
+ * server-provided reserved_amount_usd over client-side reverse-calculation.
+ * @param {Object} purchase - Purchase object with purchase_more_details and purchase_partial_details
+ * @returns {number} The original USD price before discount
+ */
+export function getOriginalPriceUsd(purchase) {
+  if (
+    Number.parseFloat(purchase.purchase_more_details.discount) > 0 &&
+    purchase.purchase_more_details.reservation_partial_purchase?.length === 1
+  ) {
+    return Number.parseFloat(purchase.purchase_more_details.reserved_amount_usd)
+  }
+
+  const discount = Number.parseFloat(purchase.purchase_more_details?.discount || 0)
+  const usdPaid = purchase.purchase_partial_details?.usd_paid || 0
+  if (discount > 0 && usdPaid > 0) {
+    return usdPaid / (1 - discount / 100)
+  }
+  return 0
 }
 
 // ================================
@@ -280,11 +349,28 @@ export async function executePurchaseFlow(params) {
   }
 
   // Get address path and pubkey
-  const addressPath = await getAddressPath(buyerAddress)
+  let addressPath
+  try {
+    addressPath = await getAddressPath(buyerAddress)
+  } catch (error) {
+    console.error('Failed to get address path from watchtower:', error)
+    throw new Error('FailedToGetAddressPath')
+  }
+
   const walletIndex = getStoreGetter('global/getWalletIndex')
-  const { loadLibauthHdWallet } = await import('src/wallet')
-  const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
-  const pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+  if (!walletIndex && walletIndex !== 0) {
+    throw new Error('WalletUnavailable')
+  }
+
+  let pubkeyHex
+  try {
+    const { loadLibauthHdWallet } = await import('src/wallet')
+    const libauthWallet = await loadLibauthHdWallet(walletIndex, false)
+    pubkeyHex = libauthWallet.getPubkeyAt(addressPath).toString('hex')
+  } catch (error) {
+    console.error('Failed to load wallet or get pubkey:', error)
+    throw new Error('FailedToGenerateAddress')
+  }
 
   // Get contract data
   const idPubkeyData = await getIdAndPubkeyApi()

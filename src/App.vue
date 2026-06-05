@@ -807,8 +807,7 @@ export default {
     // Note: Removed autoGenerateAddress calls - no longer needed since balances
     // are fetched via wallet hash API (cashtokens/fungible) instead of individual addresses
 
-    // Forcibly disable SmartBCH, in preparation for future deprecation
-    this.$store.commit('global/disableSmartBCH')
+    // Legacy feature flag removed; no-op (handled by removal in store)
 
     const index = vm.$store.getters['global/getWalletIndex']
     const mnemonic = await getMnemonic(index)
@@ -876,7 +875,18 @@ export default {
       this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
 
       if (this.$q.platform.is.mobile) {
-        this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+        this._nostrPushListener = notification => {
+          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+        }
+        this.$pushNotifications?.events?.addEventListener('pushNotificationReceived', this._nostrPushListener)
+
+        this.subscribePushNotifications()
+      } else if (this.$pushNotifications?.events) {
+        // On web/PWA, show in-app notification since system push is not available
+        this._nostrPushListener = notification => {
           if (notification?.title || notification?.body) {
             this.$q.notify({
               color: 'brandblue',
@@ -890,17 +900,20 @@ export default {
               ]
             })
           }
-        })
-
-        this.subscribePushNotifications()
+          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+        }
+        this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)
       }
       this.resubscribeAddresses(mnemonic)
     }
 
     if (vm.$q.platform.is.bex) {
       if (vm.$refs?.container?.style?.display) vm.$refs.container.style.display = 'none'
-      document.body.style.width = '375px'
-      document.body.style.minHeight = '700px'
+      document.body.style.width = '390px'
+      document.body.style.minHeight = '844px'
       document.body.style.margin = '0 auto'
 
       vm.$q.bex.on('bex.paytaca.send', event => {
@@ -975,6 +988,10 @@ export default {
     if (this.androidInsetResizeHandler) {
       window.removeEventListener('resize', this.androidInsetResizeHandler)
       this.androidInsetResizeHandler = null
+    }
+    if (this._nostrPushListener) {
+      this.$pushNotifications?.events?.removeEventListener('pushNotificationReceived', this._nostrPushListener)
+      this._nostrPushListener = null
     }
   },
   created () {

@@ -8,7 +8,7 @@
 		<!-- <div class="text-primary" style="padding-top: 100px">Transaction List</div> -->
 
 		<!-- <asset-list class="asset-list" :key="assetListKey" :assets="assets"/> -->
-		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '375px' : '100%', margin: '0 auto'}">
+		<div ref="fixedSection" class="fixed-container" :style="{width: $q.platform.is.bex ? '390px' : '100%', margin: '0 auto'}">
 			<!-- {{ formatBalance(selectedAsset) }} -->
 			<!-- <div class="row q-mt-xs q-pb-md">
               <div class="col text-white" @click="selectBch">
@@ -286,23 +286,7 @@ export default {
 	        if (item && item.id !== 'bch') return item
 	      })
 	    },
-	    // SmartBCH assets removed
-	    // assets () {
-	    //   const vm = this
-	    //   if (vm.selectedNetwork === 'sBCH') return this.smartchainAssets
-	      
-	    //   if (vm.stablehedgeView) {
-	    //     return vm.$store.getters['stablehedge/tokenBalancesAsAssets']
-	    //   }
-
-	    //   return vm.mainchainAssets.filter(token => {
-	    //     const assetId = token.id?.split?.('/')?.[0]
-	    //     return (
-	    //       vm.isCashToken && assetId === 'ct' ||
-	    //       !vm.isCashToken && assetId === 'slp'
-	    //     )
-	    //   })
-	    // },
+    // Legacy network-specific assets removed — asset resolution treats network assets under BCH conventions
 	    assets () {
 	      const vm = this
 

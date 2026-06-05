@@ -459,13 +459,8 @@ export function enableSLP (state) {
   }
 }
 
-/**
- * Forcibly disable SmartBCH support (deprecated feature)
- * SmartBCH network is no longer supported in preparation for future deprecation
- */
-export function disableSmartBCH (state) {
-  state.enableSmartBCH = false
-}
+// Legacy feature removed; legacy mutation deleted.
+
 
 export function updateWallet (state, details) {
   const wallet = getWalletData(state, details)
@@ -475,9 +470,6 @@ export function updateWallet (state, details) {
   wallet.lastAddress = details.lastAddress
   wallet.lastChangeAddress = details.lastChangeAddress
   wallet.lastAddressIndex = details.lastAddressIndex
-  wallet.connectedAddress = details.connectedAddress ?? wallet.connectedAddress
-  wallet.connectedAddressIndex = details.connectedAddressIndex ?? wallet.connectedAddressIndex
-  wallet.connectedSites = details.connectedSites ?? wallet.connectedSites
 }
 
 export function setLanguage (state, language) {
@@ -494,6 +486,9 @@ export function setLanguage (state, language) {
 export function setCountry (state, data) {
   state.country.name = data.country.name
   state.country.code = data.country.code
+  if (data.country.language) {
+    state.country.language = data.country.language
+  }
   // Removed PayHero theme forcing for HK - use selected theme
   const incomingDenom = data.denomination === 'Satoshis' ? 'sats' : data.denomination
   state.denomination = !['BCH', 'mBCH', 'sats'].includes(incomingDenom) ? 'BCH' : incomingDenom
@@ -502,25 +497,16 @@ export function setCountry (state, data) {
     if (!state.vault[state.walletIndex].settings) {
       state.vault[state.walletIndex].settings = getDefaultWalletSettings()
     }
-    state.vault[state.walletIndex].settings.country = {
+    const countryData = {
       name: data.country.name,
       code: data.country.code
     }
+    if (data.country.language) {
+      countryData.language = data.country.language
+    }
+    state.vault[state.walletIndex].settings.country = countryData
     state.vault[state.walletIndex].settings.denomination = state.denomination
   }
-}
-
-export function setConnectedAddress (state, details) {
-  const wallet = getWalletData(state, details)
-
-  wallet.connectedAddress = details.connectedAddress
-  wallet.connectedAddressIndex = details.connectedAddressIndex
-}
-
-export function setConnectedSites (state, details) {
-  const wallet = getWalletData(state, details)
-
-  wallet.connectedSites = details.connectedSites
 }
 
 export function setWalletSubscribed (state, details) {
@@ -627,6 +613,16 @@ export function setTheme (state, theme) {
   }
 }
 
+export function setCurrency (state, currency) {
+  // Save to vault - currency getter prioritizes vault over market state
+  if (state.vault && state.vault[state.walletIndex]) {
+    if (!state.vault[state.walletIndex].settings) {
+      state.vault[state.walletIndex].settings = getDefaultWalletSettings()
+    }
+    state.vault[state.walletIndex].settings.currency = currency
+  }
+}
+
 export function setWalletLastAddressAndIndex(state, lastAddressAndIndex) {
   if (state.isChipnet) {
     state.chipnet__wallets.bch.lastAddressAndIndex = lastAddressAndIndex
@@ -692,3 +688,6 @@ export function setIsUnlocked (state, value) {
   state.isUnlocked = Boolean(value)
 }
 
+export function setPreviousRoute (state, path) {
+  state.previousRoute = path
+}

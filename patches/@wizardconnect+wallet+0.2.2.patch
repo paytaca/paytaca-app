@@ -1,0 +1,48 @@
+diff --git a/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js b/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js
+index 65729ae..3a39ea7 100644
+--- a/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js
++++ b/node_modules/@wizardconnect/wallet/dist/wallet-connection-manager.js
+@@ -111,23 +111,35 @@ export class WalletConnectionManager extends EventEmitter {
+     }
+     doDisconnect(connectionId, sendMessage) {
+         const conn = this.connections.get(connectionId);
++
+         if (!conn)
+             return;
++
++        const clean = () => {
++            for (const seq of conn.signSequences) {
++                this.activeSignSequences.delete(seq);
++            }
++            clearInterval(conn.notificationProcessor ?? undefined);
++            conn.cleanup();
++            this.connections.delete(connectionId);
++            this.emit("connectionsChanged");
++        }
++
+         if (sendMessage && conn.client) {
+             const disconnectMsg = {
+                 action: RelayMsgAction.Disconnect,
+                 reason: DisconnectReason.UserDisconnect,
+                 time: Math.floor(Date.now() / 1000),
+             };
+-            conn.client.relay(disconnectMsg).catch(() => { });
++            conn.client.relay(disconnectMsg)
++                .then((res) => {
++                    clean()
++                })
++                .catch(() => { clean() });
++
++        } else {
++            clean()
+         }
+-        for (const seq of conn.signSequences) {
+-            this.activeSignSequences.delete(seq);
+-        }
+-        clearInterval(conn.notificationProcessor ?? undefined);
+-        conn.cleanup();
+-        this.connections.delete(connectionId);
+-        this.emit("connectionsChanged");
+     }
+     /**
+      * Get all connection states (for UI/Redux).

@@ -311,7 +311,7 @@ export default {
       // Test site: https://example.walletconnect.org/
       // use `chainId: 1`
       // const chainId = 1
-      // SmartBCH support removed
+      // Legacy network-specific behavior removed; chain-based auto-approval disabled
       const chainId = null
       const accounts = []
 
@@ -493,8 +493,8 @@ export default {
     acceptCallRequest (callRequest) {
       if (!callRequest || !callRequest.payload) return Promise.reject()
 
-      // SmartBCH support removed
-      return Promise.reject(new Error('SmartBCH not supported'))
+      // Chain-based auto-approval is not supported
+      return Promise.reject(new Error('Chain-based auto-approval not supported'))
         .then(response => {
           this.removeCallRequest(callRequest)
           return Promise.resolve(response)
@@ -540,7 +540,8 @@ export default {
       const vm = this
       return getMnemonic(vm.$store.getters['global/getWalletIndex'])
         .then(function (mnemonic) {
-          vm.wallet = markRaw(new Wallet(mnemonic, 'sBCH'))
+          // Legacy network-specific initialization removed; initialize BCH wallet
+          vm.wallet = markRaw(new Wallet(mnemonic, 'bch'))
         })
     }
   },

@@ -251,11 +251,11 @@
                     <q-skeleton type="text" width="150px" class="q-mx-auto" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('TradeFee') }} (0.03%)</div>
+                    <div>{{ $t('TradeFee') }} (0.3%)</div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
-                    <div>{{ $t('PlatformFee') }} (0.03%)</div>
+                    <div>{{ $t('PlatformFee') }} (0.3%)</div>
                     <q-skeleton type="text" width="80px" style="height: 1.5em;" />
                   </div>
                   <div class="row items-center justify-between text-caption text-grey">
@@ -348,20 +348,21 @@
 </template>
 <script>
 // import { getMockPoolTracker, mockFetchTokensList } from 'src/wallet/cauldron/mock';
-import { CauldronPoolTracker } from 'src/wallet/cauldron/pool';
+import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker';
 import { fetchTokensList } from 'src/wallet/cauldron/tokens';
 import { attemptTrade, createInputAndOutput, getEntriesSize, adjustSupply, adjustDemand, testTradeResult } from 'src/wallet/cauldron/transact';
 import { watchtowerUtxosToSpendableCoins } from 'src/wallet/cauldron/utils';
 
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerLink } from 'src/utils/send-page-utils'
+import { hexToRef } from 'src/utils/reference-id-utils'
 import { useCauldronValueFormatters } from 'src/composables/cauldron/ui-helpers';
 import { ExchangeLab } from '@cashlab/cauldron';
 import { binToHex } from '@bitauth/libauth';
 import { debounce, useQuasar } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex'
-import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted } from "vue";
+import { reactive, ref, computed, defineComponent, watch, onMounted, onUnmounted, nextTick } from "vue";
 import HeaderNav from 'src/components/header-nav'
 import SecurityCheckDialog from 'src/components/SecurityCheckDialog.vue';
 import DragSlide from 'src/components/drag-slide.vue';
@@ -370,6 +371,8 @@ import CauldronHeaderMenu from 'src/components/cauldron/CauldronHeaderMenu.vue';
 import TokenSelectDialog from 'src/components/cauldron/TokenSelectDialog.vue';
 import LiftTokenDexComingSoonDialog from 'src/components/subscription/LiftTokenDexComingSoonDialog.vue'
 import { LIFT_TOKEN_CATEGORY } from 'src/utils/subscription-utils'
+import { processCauldronPoints } from 'src/utils/engagementhub-utils/rewards';
+import { raiseNotifySuccess } from 'src/utils/notify-utils';
 
 /**
  * Typedefs
@@ -397,17 +400,26 @@ export default defineComponent({
     const $q = useQuasar();
     const $store = useStore();
     const darkMode = computed(() => $store.getters['darkmode/getStatus']);
+    const exlab = new ExchangeLab();
+    exlab.setDefaultPreferredTokenOutputBCHAmount(1000n);
+    
+    // Wallet index for detecting wallet switches
+    const walletIndex = computed(() => $store.getters['global/getWalletIndex']);
 
     // const poolTracker = reactive(getMockPoolTracker());
-    const poolTracker = reactive(new CauldronPoolTracker());
+    const poolTracker = reactive(new MultiCauldronPoolTracker());
     const useFilteredPools = ref(false);
     const updatingPool = ref(false);
-    poolTracker.on('pool-updated', () => updateTradeResult())
+    poolTracker.on('pool-updated', ({ tokenId }) => {
+      if (tokenId === selectedToken.value?.token_id) {
+        updateTradeResult()
+      }
+    })
     poolTracker.on('error', (error) => console.error('Error from pool tracker:', error))
     
     async function onSelectedTokenUpdate() {
       if (!selectedToken.value?.token_id) return;
-      if (poolTracker.subscribedTokenId === selectedToken.value.token_id) return
+      if (poolTracker.isSubscribed(selectedToken.value.token_id)) return
       updatingPool.value = true;
       return poolTracker.subscribeToken(selectedToken.value.token_id)
         .finally(() => {
@@ -558,8 +570,11 @@ export default defineComponent({
     const tradeResult = ref()
     const tradeResultError = ref('');
     const updateTradeResult = debounce(() => {
-      const poolV0List = useFilteredPools.value ? poolTracker.getFilteredPools() : poolTracker.microPools;
-      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
+      const tokenId = selectedToken.value?.token_id;
+      const poolV0List = useFilteredPools.value 
+        ? poolTracker.getFilteredPools(tokenId) 
+        : poolTracker.getPoolsForToken(tokenId);
+      const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === tokenId)
       if (!amountInUnits.value || !selectedToken.value || !arePoolsCorrect) {
         tradeResult.value = null;
         isRecomputingTrade.value = false;
@@ -573,6 +588,7 @@ export default defineComponent({
           return;
         }
         let result = attemptTrade({
+          exlab,
           pools: poolV0List,
           isBuyingToken: isBuyingToken.value,
           demand: isSupplyMode.value ? 0n : amountInUnits.value,
@@ -581,11 +597,11 @@ export default defineComponent({
 
         if (!isSupplyMode.value && amountInUnits.value != result.summary.demand) {
           const adjustAmount = amountInUnits.value - result.summary.demand;
-          const adjustedTradeResult = adjustDemand({ tradeResult: result, amount: adjustAmount });
+          const adjustedTradeResult = adjustDemand({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         } else if (isSupplyMode.value && result.summary.supply != amountInUnits.value) {
           const adjustAmount = amountInUnits.value - result.summary.supply;
-          const adjustedTradeResult = adjustSupply({ tradeResult: result, amount: adjustAmount });
+          const adjustedTradeResult = adjustSupply({ exlab, tradeResult: result, amount: adjustAmount });
           if (adjustedTradeResult) result = adjustedTradeResult;
         }
 
@@ -627,7 +643,7 @@ export default defineComponent({
     
     const isLiquidityAvailable = computed(() => {
       if (!selectedToken.value) return false;
-      const poolV0List = poolTracker.microPools;
+      const poolV0List = poolTracker.getPoolsForToken(selectedToken.value.token_id);
       if (!poolV0List || poolV0List.length === 0) return false;
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id);
       return arePoolsCorrect;
@@ -652,6 +668,7 @@ export default defineComponent({
           price = poolTracker.parseRate(tradeResult.value.summary.rate, tokenDecimals, isBuyingToken.value);
         } else {
           price = poolTracker.getPriceFromPools({
+            tokenId: selectedToken.value.token_id,
             isBuyingToken: isBuyingToken.value,
             tokenDecimals: tokenDecimals,
           });
@@ -846,7 +863,7 @@ export default defineComponent({
     const bchBalanceSats = computed(() => {
       const assets = $store.getters['assets/getAssets'];
       const bchAsset = assets?.find(asset => asset?.id === 'bch');
-      const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.balance || 0) * 10 ** 8));
+      const bchBalanceSats = BigInt(Math.floor(Number(bchAsset?.spendable || 0) * 10 ** 8));
       return bchBalanceSats;
     })
 
@@ -854,7 +871,7 @@ export default defineComponent({
     async function updateBalance() {
       const { bchWallet } = await loadWalletForTrade();
       const bchBalanceFetch = bchWallet.getBalance().then(response => {
-        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance })
+        $store.commit('assets/updateAssetBalance', { id: 'bch', balance: response.balance, spendable: response.spendable })
       })
 
       const tokenId = selectedToken.value?.token_id
@@ -878,6 +895,43 @@ export default defineComponent({
       return Promise.all([bchBalanceFetch, tokenBalanceFetch])
     }
 
+    // Watch for wallet switching - reset all local state when wallet changes
+    watch(walletIndex, async (newIndex, oldIndex) => {
+      if (oldIndex === undefined) return; // Skip initial value
+      
+      // Reset completed trade state
+      completedTradeData.value = {
+        txid: '',
+        tradeType: '',
+        unitsSold: 0n,
+        unitsBought: 0n,
+        tokenData: { category: '', name: '', decimals: 0, symbol: '', imageUrl: '' },
+      };
+      
+      // Reset input state
+      amountInput.value = 0;
+      amountInputString.value = '';
+      tradeResult.value = null;
+      tradeResultError.value = '';
+      
+      // Reset token balance (will be refreshed)
+      selectedTokenBalance.value = 0n;
+      
+      // Reconnect pool tracker if a token is selected
+      if (selectedToken.value?.token_id) {
+        updatingPool.value = true;
+        poolTracker.cleanup();
+        await nextTick();
+        poolTracker.subscribeToken(selectedToken.value.token_id)
+          .finally(() => {
+            updatingPool.value = false;
+          });
+      }
+      
+      // Refresh balances for new wallet
+      updateBalance();
+    });
+
 
     const maxAmount = ref(0n);
     const formattedMaxAmount = computed(() => {
@@ -891,7 +945,7 @@ export default defineComponent({
     })
 
     const updateMaxAmount = debounce(() => {
-      const poolV0List = poolTracker.microPools
+      const poolV0List = poolTracker.getPoolsForToken(selectedToken.value?.token_id)
       const arePoolsCorrect = poolV0List.every(pool => pool.output.token.token_id === selectedToken.value?.token_id)
       if (!arePoolsCorrect || !poolV0List.length) {
         maxAmount.value = 0n
@@ -920,6 +974,7 @@ export default defineComponent({
       }
 
       const tradeResult = attemptTrade({
+        exlab,
         pools: poolV0List,
         isBuyingToken: isBuyingToken.value,
         supply: baseSupply,
@@ -931,7 +986,11 @@ export default defineComponent({
         maxAmount.value = tradeResult.summary.demand - 1n;
       }
     })
-    poolTracker.on('pool-updated', () => updateMaxAmount())
+    poolTracker.on('pool-updated', ({ tokenId }) => {
+      if (tokenId === selectedToken.value?.token_id) {
+        updateMaxAmount()
+      }
+    })
     watch(() => [bchBalanceSats.value, selectedTokenBalance.value, isBuyingToken.value, isSupplyMode.value], () => {
       updateMaxAmount()
     })
@@ -1003,6 +1062,8 @@ export default defineComponent({
         })
         dialog.update({ message: $t('LoadingWallet') })
         const {bchWallet, libuathWallet} = await loadWalletForTrade();
+        const addressSet = await bchWallet.getAddressSetAt(0);
+        const bchAddress = addressSet.receiving;
 
         dialog.update({ message: $t('FetchingUtxos') })
         const bchUtxos = await bchWallet.getUtxos()
@@ -1024,7 +1085,6 @@ export default defineComponent({
           platformFee: _platformFee
         })
 
-        const exlab = new ExchangeLab()
         const txFeePerByte = 1n;
         const tradeTxBuildResult = exlab.createTradeTx(
           _tradeResult.entries,
@@ -1065,6 +1125,26 @@ export default defineComponent({
             decimals: _tokenData?.bcmr?.token?.decimals || 0,
             imageUrl: _tokenData?.bcmr?.uris?.icon || '',
           }
+        }
+
+        const ref_id = hexToRef(broadcastResult?.data?.txid?.substring(0, 6));
+        const bch_spent = _isBuyingToken ? unitsSold : unitsBought;
+
+        // Placeholder Rewards API call
+        const pointsResp = await processCauldronPoints({
+          bch_address: bchAddress,
+          tx_id: broadcastResult?.data?.txid,
+          ref_id,
+          bch_spent: Number.parseFloat(formatAmount(bch_spent, 8)),
+        })
+
+        if (pointsResp) {
+          raiseNotifySuccess(
+            `Congratulations! You have earned points for this Cauldron transaction!<br><br>Check your points balance in the Rewards app.`,
+						3000, 'bottom', 'mdi-party-popper'
+          )
+        } else {
+          console.error('An error occured while processing Cauldron points.')
         }
 
         const attributeData = {

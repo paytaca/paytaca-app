@@ -1,5 +1,7 @@
 import * as wizardConnectService from 'src/wallet/wizardconnect/service'
+import Watchtower from 'src/lib/watchtower'
 import { Notify } from 'quasar'
+import { ensureBuffer } from 'src/wallet/wizardconnect/advance-subscription'
 
 function getStorageKey(walletHash) {
   if (!walletHash) return null
@@ -59,11 +61,11 @@ function serializeConnection (id, conn) {
   }
 }
 
-export async function init ({ commit, dispatch, rootGetters }) {
+export async function init ({ commit, dispatch, rootGetters, state }) {
   const walletIndex = rootGetters['global/getWalletIndex'] || 0
   const isChipnet = rootGetters['global/isChipnet'] || false
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
-  
+
   wizardConnectService.setWalletConfig(walletIndex, isChipnet, walletHash)
 
   let manager
@@ -84,6 +86,11 @@ export async function init ({ commit, dispatch, rootGetters }) {
       connectionId,
       data: serializeConnection(connectionId, conn)
     })
+    
+    // When a connection becomes active, ensure buffer
+    if (conn.status?.status === 'connected') {
+      dispatch('ensureAddressBuffer')
+    }
   })
 
   manager.off('connectionsChanged');
@@ -108,8 +115,14 @@ export async function init ({ commit, dispatch, rootGetters }) {
     dispatch('handleRemoteDisconnect', { connectionId, reason, message })
   })
 
-  // Clear stale pending requests from previous session
-  commit('clearPendingRequests')
+  // Only clear stale state on a true fresh session (app start / no existing
+  // connections). Re-inits triggered by pull-to-refresh or page navigation
+  // must NOT wipe active pending requests / processed keys.
+  const isFreshSession = Object.keys(state.connections || {}).length === 0
+  if (isFreshSession) {
+    commit('clearPendingRequests')
+    commit('clearProcessedKeys')
+  }
 
   // Restore saved connections for this wallet
   const savedUris = loadSavedUris(walletHash)
@@ -124,12 +137,24 @@ export async function init ({ commit, dispatch, rootGetters }) {
   // Sync initial connection state
   const connections = serializeConnections(manager.getConnections())
   commit('setConnections', connections)
+  
+  // Start periodic buffer check if we have active connections
+  if (Object.keys(connections).length > 0) {
+    dispatch('startPeriodicBufferCheck')
+  }
+  
+  // Initial buffer check
+  dispatch('ensureAddressBuffer')
+  
   return manager;
 }
 
 export function reset ({ commit }) {
+  commit('clearBufferCheckInterval')
+  commit('clearBufferCheckTimeout')
   wizardConnectService.reset()
   commit('clearPendingRequests')
+  commit('clearProcessedKeys')
   commit('setConnections', {})
 }
 
@@ -137,7 +162,7 @@ export async function pair ({ commit, state, rootGetters }, { uri }) {
   if (!uri) throw new Error('URI is required')
   const normalizedUri = uri.trim()
   const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash || null
-  const connectionId = wizardConnectService.connect(normalizedUri)
+  const connectionId = await wizardConnectService.connect(normalizedUri)
   addSavedUri(walletHash, normalizedUri)
   return connectionId
 }
@@ -150,15 +175,21 @@ export async function disconnect ({ commit, state, rootGetters }, { connectionId
   }
   wizardConnectService.disconnect(connectionId)
   commit('removeConnection', connectionId)
+  commit('removeProcessedKeysForConnection', connectionId)
 }
 
 export async function handleSignRequest ({ commit, state }, pending) {
   const sequence = pending.request?.sequence
-  const cancelledKey = `${pending.connectionId}:${sequence}`
+  const key = `${pending.connectionId}:${sequence}`
 
   // Check if this request was already cancelled (race condition)
-  if (state.cancelledKeys.includes(cancelledKey)) {
-    commit('removeCancelledKey', cancelledKey)
+  if (state.cancelledKeys.includes(key)) {
+    commit('removeCancelledKey', key)
+    return
+  }
+
+  // Ignore if already approved/rejected so reconnects don't re-prompt
+  if (state.processedKeys.includes(key)) {
     return
   }
 
@@ -171,12 +202,28 @@ export async function handleSignRequest ({ commit, state }, pending) {
   })
 }
 
-export async function approveRequestWithData ({ commit }, { connectionId, sequence, transactionJson }) {
+export async function approveRequestWithData ({ commit, dispatch, rootGetters }, { connectionId, sequence, transactionJson }) {
   commit('removePendingRequest', { connectionId, sequence })
+  commit('addProcessedKey', `${connectionId}:${sequence}`)
   try {
     const request = JSON.parse(transactionJson)
     const signedTxHex = await wizardConnectService.signRequest(request)
+
+    const isChipnet = rootGetters['global/isChipnet'] || false
+    const watchtower = new Watchtower(isChipnet)
+
+    if (request.transaction?.broadcast === true) {
+      watchtower.BCH.broadcastTransaction(signedTxHex).catch(err => {
+        console.log('WizardConnect: wallet-side broadcast (redundant) failed or tx already known:', err)
+      })
+    }
+    
     await wizardConnectService.sendSignResponse(connectionId, sequence, signedTxHex)
+    
+    // After transaction, check buffer (delayed to allow backend to process)
+    setTimeout(() => {
+      dispatch('ensureAddressBuffer')
+    }, 2000)
   } catch (err) {
     console.error('WizardConnect: sign error:', err)
     try {
@@ -189,6 +236,7 @@ export async function approveRequestWithData ({ commit }, { connectionId, sequen
 
 export async function rejectRequest ({ commit }, { connectionId, sequence }) {
   commit('removePendingRequest', { connectionId, sequence })
+  commit('addProcessedKey', `${connectionId}:${sequence}`)
   try {
     await wizardConnectService.sendSignError(connectionId, sequence, 'User rejected')
   } catch {
@@ -203,6 +251,7 @@ export function handleSignCancelled ({ commit, state }, { connectionId, sequence
   )
   if (exists) {
     commit('removePendingRequest', { connectionId, sequence })
+    commit('addProcessedKey', key)
   } else {
     commit('addCancelledKey', key)
   }
@@ -215,6 +264,7 @@ export function handleRemoteDisconnect ({ commit, state, rootGetters }, { connec
     removeSavedUri(walletHash, connection.uri)
   }
   commit('removeConnection', connectionId)
+  commit('removeProcessedKeysForConnection', connectionId)
 
   // Remove any pending requests for this connection
   const pending = state.pendingRequests.filter(r => r.connectionId === connectionId)
@@ -228,4 +278,72 @@ export function handleRemoteDisconnect ({ commit, state, rootGetters }, { connec
     color: 'info',
     icon: 'mdi-connection'
   })
+}
+
+/**
+ * Ensure advance subscription buffer is maintained
+ */
+export async function ensureAddressBuffer ({ rootGetters, state }) {
+  console.log('[WizardConnect] ensureAddressBuffer called')
+  
+  // Only run if we have active connections
+  if (!state.connections || Object.keys(state.connections).length === 0) {
+    console.log('[WizardConnect] No active connections, skipping buffer check')
+    return
+  }
+  
+  const isChipnet = rootGetters['global/isChipnet'] || false
+  const walletHash = rootGetters['global/getWallet']?.('bch')?.walletHash
+  
+  console.log('[WizardConnect] Buffer check - walletHash:', walletHash, 'isChipnet:', isChipnet)
+  
+  if (!walletHash) {
+    console.log('[WizardConnect] No wallet hash, skipping buffer check')
+    return
+  }
+  
+  try {
+    const watchtower = new Watchtower(isChipnet)
+    const hdNodes = await wizardConnectService.ensureHdNodes()
+    
+    if (!hdNodes) {
+      console.warn('[WizardConnect] Could not get HD nodes for buffer check')
+      return
+    }
+    
+    console.log('[WizardConnect] HD nodes ready, calling ensureBuffer...')
+    
+    const prefix = isChipnet ? 'bchtest' : 'bitcoincash'
+    const result = await ensureBuffer(watchtower, walletHash, hdNodes, prefix)
+    
+    if (result.success && result.subscribed > 0) {
+      console.log(`[WizardConnect] ${result.message}`)
+    }
+  } catch (err) {
+    console.error('[WizardConnect] Buffer check failed:', err)
+  }
+}
+
+/**
+ * Start periodic buffer check (every 30 seconds)
+ */
+export function startPeriodicBufferCheck ({ commit, dispatch, state }) {
+  // Clear any existing interval
+  commit('clearBufferCheckInterval')
+  
+  const intervalId = setInterval(() => {
+    // Only check if there are active connections
+    if (state.connections && Object.keys(state.connections).length > 0) {
+      dispatch('ensureAddressBuffer')
+    }
+  }, 30000) // 30 seconds
+  
+  commit('setBufferCheckInterval', intervalId)
+}
+
+/**
+ * Stop periodic buffer check
+ */
+export function stopPeriodicBufferCheck ({ commit }) {
+  commit('clearBufferCheckInterval')
 }

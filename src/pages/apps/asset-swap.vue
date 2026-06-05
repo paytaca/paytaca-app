@@ -6,37 +6,7 @@
       class="apps-header"
     />
 
-    <q-tabs
-      active-color="brandblue"
-      
-      class="col-12 q-px-sm q-pb-md q-pt-lg pp-fcolor q-mx-md"
-      v-model="selectedNetwork"
-      style="padding-bottom: 16px;"
-      :style="{ 'margin-top': $q.platform.is.ios ? '10px' : '-35px'}"
-    >
-      <q-tab
-        name="BCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        disable
-        label="BCH"
-      >
-        <q-popup-proxy>
-          <q-banner
-            class="q-pa-md br-15 text-center pt-card-2 text-bow"
-            :class="getDarkModeClass(darkMode)"
-          >
-            {{ $t(isHongKong(currentCountry) ? 'SmartSwapBchSoonPoints' : 'SmartSwapBchSoonTokens') }}
-          </q-banner>
-        </q-popup-proxy>
-      </q-tab>
-      <q-tab
-        name="sBCH"
-        class="network-selection-tab"
-        :class="getDarkModeClass(darkMode)"
-        label="SmartBCH"
-      />
-    </q-tabs>
+    <!-- Deprecated network support removed: Asset swap currently targets BCH -->
 
     <SmartSwapForm
       :darkMode="darkMode"
@@ -59,7 +29,7 @@ export default {
   },
   data () {
     return {
-      selectedNetwork: 'sBCH'
+      selectedNetwork: 'BCH'
     }
   },
   computed: {

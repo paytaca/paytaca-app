@@ -1,8 +1,12 @@
 import {
+  bigIntToCompactUint,
+  binToBase64,
   binToHex,
   decodePrivateKeyWif,
   lockingBytecodeToCashAddress,
   secp256k1,
+  utf8ToBin,
+  hash256,
 } from 'bitauth-libauth-v3'
 import { Core } from '@walletconnect/core'
 import { WalletKit } from '@reown/walletkit'
@@ -285,7 +289,7 @@ export async function disconnectAllSessions() {
   if (!web3WalletInstance) return
 
   const sessions = web3WalletInstance.getActiveSessions()
-  const disconnectPromises = Object.keys(sessions).map(async (topic) => {
+  const sessionsDisconnectionPromises = Object.keys(sessions).map(async (topic) => {
     try {
       await web3WalletInstance.disconnectSession({
         topic,
@@ -296,7 +300,14 @@ export async function disconnectAllSessions() {
     }
   })
 
-  await Promise.all(disconnectPromises)
+  const pairings = web3WalletInstance.core.pairing.getPairings();
+  const pairingsDisconnectionPromises = pairings.map((pairing) =>
+    web3WalletInstance.core.pairing.disconnect({ 
+      topic: pairing.topic 
+    }).catch(e => console.warn(`Pairing ${pairing.topic} already gone`))
+  );
+
+  await Promise.all([...sessionsDisconnectionPromises, ...pairingsDisconnectionPromises]);
   stopPollingForCancellationRequest()
 }
 
@@ -333,9 +344,38 @@ export function parseSessionRequest(sessionRequest) {
   return parsedSessionRequest
 }
 
-export async function signMessage(message, wif='') {
-  const signatureBase64 = bchjs.BitcoinCash.signMessageWithPrivKey(wif, message)
-  return Buffer.from(signatureBase64, 'base64').toString('hex')
+export function signMessage(message, wif='') {
+    const decodedPrivateKeyWif = decodePrivateKeyWif(wif);
+    if (typeof decodedPrivateKeyWif === 'string') {
+      throw new Error(`Invalid WIF: ${decodedPrivateKeyWif}`);
+    }
+    const privateKey = decodedPrivateKeyWif.privateKey;
+    
+    const isCompressed = !decodedPrivateKeyWif.type.endsWith('Uncompressed'); 
+    const prefixStr = "Bitcoin Signed Message:\n";
+    const prefixBin = utf8ToBin(prefixStr);
+    // Intentionally hardcoding length for hardcoded prefixStr, will change if refactored using dynamic prefix.
+    const prefixLenBin = new Uint8Array([0x18]); 
+    const messageBin = utf8ToBin(message);
+    const messageLenBin = bigIntToCompactUint(BigInt(messageBin.length));
+  
+    const preImage = new Uint8Array([
+      ...prefixLenBin,
+      ...prefixBin,
+      ...messageLenBin,
+      ...messageBin
+    ]);
+  
+    const preImageHash = hash256(preImage);
+    // Note: Standard Bitcoin message signing historically relies strictly on ECDSA.
+    const sigObj = secp256k1.signMessageHashRecoverableCompact(privateKey, preImageHash);
+    if (typeof sigObj === 'string') {
+      throw new Error(`Signing failed: ${sigObj}`);
+    }
+    // Legacy format requires adding 27 for uncompressed keys, 31 for compressed keys
+    const headerByte = sigObj.recoveryId + (isCompressed ? 31 : 27);
+    const compactSignature = new Uint8Array([headerByte, ...sigObj.signature]);
+    return binToBase64(compactSignature);
 }
 
 export async function signBchTransaction(transaction, sourceOutputsUnpacked, wif='') {

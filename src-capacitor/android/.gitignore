@@ -94,3 +94,11 @@ capacitor-cordova-android-plugins
 
 # Copied web assets
 app/src/main/assets/public
+
+# Eclipse / IDE specific files
+.project
+.classpath
+.settings/
+app/.project
+app/.classpath
+app/.settings/

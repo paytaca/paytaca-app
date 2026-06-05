@@ -4,7 +4,7 @@
       <div class="row items-start">
         <div class="col">
           <template v-if="sessionType==='proposal'">
-              <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"> 
+                <PeerInfo :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic" :dark-mode="darkMode"> 
                 <template v-slot:name> 
                   <div class="row flex items-center">
                     <span>{{ peerMetadata?.name || 'App'}} {{ $t('WantsToConnect', {}, 'wants to connect') }}. </span>
@@ -13,10 +13,10 @@
               </PeerInfo>
           </template>
           <template v-if="sessionType==='active'">
-              <PeerInfo  :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic"/>
+              <PeerInfo  :metadata="peerMetadata" :session-id="session.id" :session-topic="session.topic" :dark-mode="darkMode"/>
           </template>
           <template v-if="sessionType==='request'">
-              <PeerInfo  :metadata="peerMetadata" :session-id="!hideSessionId && session?.id" :session-topic="!hideTopic && session?.topic"> 
+              <PeerInfo  :metadata="peerMetadata" :session-id="!hideSessionId && session?.id" :session-topic="!hideTopic && session?.topic" :dark-mode="darkMode"> 
                 <template v-slot:name> 
                   <div class="row items-center">
                     <div v-if="session?.params?.request?.params?.userPrompt" class="text-bold col-auto">
@@ -29,16 +29,16 @@
                 </template>
                 <template v-slot:url>
                   <div class="row">
-                    <div class="col-12 text-light session-info-attribute-url">
+                    <div class="col-12 session-info-attribute-url" :class="getDarkModeClass(darkMode)">
                       {{ $t('OriginLabel', {}, 'Origin:') }} <span style="word-break: break-all;">{{ session.verifyContext?.verified?.origin }}</span>
                     </div>
-                    <div class="col-12 text-light session-info-attribute">
+                    <div class="col-12 session-info-attribute" :class="getDarkModeClass(darkMode)">
                       {{ $t('MethodLabel', {}, 'Method:') }} {{ session.params?.request?.method }}
                     </div>
-                    <div v-if="!hideSessionId" class="col-12 text-light session-info-attribute">
+                    <div v-if="!hideSessionId" class="col-12 session-info-attribute" :class="getDarkModeClass(darkMode)">
                       Sid: {{ session?.id}}
                     </div>
-                    <div v-if="!hideTopic" class="col-12 text-light session-info-attribute">
+                    <div v-if="!hideTopic" class="col-12 session-info-attribute" :class="getDarkModeClass(darkMode)">
                       {{ $t('TopicLabel', {}, 'Topic:') }} {{session.session?.topic?.replace(session.session.topic.slice(3, session.session.topic.length - 6), '...') }}
                     </div>
                   </div>
@@ -412,8 +412,8 @@ async function copyCurrentAddress() {
   right: 0;
   bottom: 0;
   left: 0;
-  background-color: rgb(253,253,253, .023);
-  border: 1px solid #80808038;
+  background-color: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(128, 128, 128, 0.22);
   border-radius: 15px;
   pointer-events: none;
 }
@@ -495,5 +495,13 @@ async function copyCurrentAddress() {
 .expand-btn .q-icon {
   font-size: 28px;
   font-weight: bold;
+}
+</style>
+
+<style lang="scss">
+/* Dark mode overrides for session card backgrounds */
+.wallet-connect-container.dark .session-info-flat:after {
+  background-color: rgba(253, 253, 253, 0.023);
+  border: 1px solid rgba(128, 128, 128, 0.22);
 }
 </style>

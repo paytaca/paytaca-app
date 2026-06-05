@@ -20,6 +20,8 @@ export default function () {
         }
       }
       */
-    ]
+    ],
+    // Session requests (sign/transaction requests) for display on home page pending section
+    sessionRequests: []
   }
 }

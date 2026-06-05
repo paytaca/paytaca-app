@@ -26,7 +26,7 @@
               {{getNetwork(deposit)}}
             </q-item-label> -->
           </q-item-section>
-          <q-item-section>
+          <q-item-section style="position: relative;">
             <q-input
               dense
               filled
@@ -35,10 +35,12 @@
               v-model="shiftAmount"
               :readonly="readonlyState"
               @focus="openCustomKeyboard(true)"
+              @keydown="onKeyboardInput"
               @update:modelValue="function(){
                   updateConvertionRate()
                 }"              
             />
+            <KeyboardTooltip v-if="showTooltip" :dark-mode="darkMode" :key="'tip-' + tipCounter" />
             <q-item-label
               class="text-right q-mt-sm"
               caption
@@ -230,6 +232,8 @@ import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import QrScanner from 'src/components/qr-scanner.vue'
 import { debounce } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import KeyboardTooltip from 'src/components/KeyboardTooltip.vue'
+import { useKeyboardTooltip } from 'src/composables/useKeyboardTooltip'
 import { bus } from 'src/wallet/event-bus.js'
 import { isConformingNamespaces } from '@walletconnect/utils'
 import {
@@ -245,7 +249,12 @@ export default {
     RampDisplayConfirmation,
     RampDepositInfo,
     CustomKeyboard,
-    QrScanner
+    QrScanner,
+    KeyboardTooltip
+  },
+  setup() {
+    const { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip } = useKeyboardTooltip()
+    return { showTooltip, tipCounter, showKeyboardTooltip, hideKeyboardTooltip }
   },
   data () {
     return {
@@ -305,6 +314,10 @@ export default {
       //   state: { details: jsonString}
       // })
     },
+    onKeyboardInput (e) {
+      e.preventDefault()
+      this.showKeyboardTooltip()
+    },
     openCustomKeyboard (state) {
       this.readonlyState = state
 
@@ -341,9 +354,11 @@ export default {
           }
         }
         this.shiftAmount = finalAmount
+        this.hideKeyboardTooltip()
         this.updateConvertionRate()        
     },
     makeKeyAction (action) {
+      this.hideKeyboardTooltip()
       if (action === 'backspace') {
         // Backspace
         this.shiftAmount = String(this.shiftAmount).slice(0, -1)
@@ -964,4 +979,5 @@ export default {
       opacity: 1;
     }
   }
+
 </style>

@@ -12,7 +12,7 @@
           <template v-slot:header>
             <div class="send-option-header full-width row items-center justify-between">
               <div class="send-option-title">
-                <div class="text-subtitle1 text-weight-medium" :class="getDarkModeClass(darkMode)">
+                <div class="text-subtitle1 text-weight-medium text-bow" :class="getDarkModeClass(darkMode)">
                   {{ $t('InitiateNewSession') }}
                 </div>
               </div>
@@ -26,7 +26,7 @@
           </template>
 
           <div class="q-px-lg q-pb-lg">
-            <div class="text-caption q-mb-md" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
+            <div class="text-caption q-mb-md text-bow" :class="getDarkModeClass(darkMode)" style="opacity: 0.7">
               {{ $t('WcScanOrPasteURL') }}
             </div>
             <div class="row q-gutter-sm">
@@ -151,7 +151,7 @@
           </div>
         </div>
         <div class="row">
-          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm">
+          <div v-if="activeSessionsCount > 0" class="col-xs-12 text-bold q-px-sm q-mt-md q-mb-sm text-bow" :class="getDarkModeClass(darkMode)">
             <span class="text-h6">{{ $t('ConnectedApps', {}, 'Connected Apps') }}</span>
             <q-badge v-if="activeSessionsCount > 0" color="green" class="q-ml-sm">
               {{ activeSessionsCount }}
@@ -232,14 +232,6 @@ import SelectAddressForSessionDialog from './SelectAddressForSessionDialog.vue'
 import SessionRequestDialog from './SessionRequestDialog.vue'
 import NewSessionDialog from './NewSessionDialog.vue'
 import ManualAddressEntryDialog from './ManualAddressEntryDialog.vue'
-import {
-  // createMultisigTransactionFromWCSessionRequest,
-  // generateTransactionHash,
-  // getRequiredSignatures,
-  // getStatusUrl,
-  // getTotalSigners,
-  isMultisigWalletSynced
-} from 'src/lib/multisig'
 import { useMultisigHelpers } from 'src/composables/multisig/helpers'
 import { APP_VERSION, compareAppVersions } from 'src/utils/version-control'
 const $emit = defineEmits([
@@ -413,7 +405,7 @@ const loadActiveSessions = async ({ showLoading } = { showLoading: true }) => {
   try {
     if (web3Wallet.value) {
       const chainIdFilter = isChipnet.value ? CHAINID_CHIPNET : CHAINID_MAINNET
-      const sessions = await web3Wallet.value.getActiveSessions()
+      const sessions = web3Wallet.value.getActiveSessions()
       activeSessions.value = Object.fromEntries(
         Object.entries(sessions).filter(([topicKey, sessionValue]) => {
           return sessionValue.namespaces?.bch?.chains?.includes(chainIdFilter)
@@ -486,12 +478,35 @@ const loadSessionRequests = async ({ showLoading } = { showLoading: true }) => {
       sessionRequests.value = requests.filter((sessionRequest) => { // Remove whitelisted methods
         return !whitelistedMethods.includes(sessionRequest.params.request.method)
       })
+
+      // Sync to Vuex store for home page pending section display
+      syncSessionRequestsToStore()
     }
   } catch (error) {
     console.log(error)
   } finally {
     loading.value = ''
   }
+}
+
+/**
+ * Sync session requests to Vuex store for display on home page pending section
+ * Serializes the requests to avoid storing non-serializable objects
+ */
+const syncSessionRequestsToStore = () => {
+  const serialized = sessionRequests.value.map(req => ({
+    id: req.id,
+    topic: req.topic,
+    params: req.params,
+    verifyContext: req.verifyContext,
+    // Include session peer metadata for display
+    session: req.session ? {
+      peer: {
+        metadata: req.session.peer?.metadata
+      }
+    } : null
+  }))
+  $store.commit('walletconnect/setSessionRequests', serialized)
 }
 
 /**
@@ -598,7 +613,7 @@ const mapSessionTopicWithAddressLocal = async (activeSessions, walletAddresses, 
   const multisigMap = new Map()
   if (multisigWallets?.length) {
     multisigWallets.forEach(wallet => {
-      const fullAddress = wallet?.address
+      const fullAddress = wallet?.getDepositAddress(0).address
       // Skip if address is missing or invalid
       if (!fullAddress || typeof fullAddress !== 'string') {
         return
@@ -1074,17 +1089,16 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
       addressSelection.unshift(lastUsedAddress)
     }
     addressSelection = addressSelection.slice(0, 5)
-    const { selectedWalletAddress, isMultisig } = await new Promise((resolve, reject) => {
+    const selected = await new Promise((resolve, reject) => {
       $q.dialog({
         component: SelectAddressForSessionDialog,
         componentProps: {
           peerId: `${sessionProposal?.id}`,
-          // peerMeta: sessionProposal?.proposer?.metadata,
+          peerMeta: sessionProposal?.proposer?.metadata,
           sessionProposal: sessionProposal,
           darkMode: darkMode.value,
           walletAddresses: addressSelection,
-          // multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
-          // multisigWallets: [],
+          multisigWallets: supportP2SHMultisig ? multisigWallets.value : [],
           lastUsedWalletAddress: lastUsedWalletAddress
         }
       })
@@ -1103,8 +1117,10 @@ const openAddressSelectionDialog = async (sessionProposal, supportP2SHMultisig) 
         })
         // .onDismiss(() => reject())
     })
-    return { selectedWalletAddress, isMultisig }
-  } catch (error) {}
+    return { selectedWalletAddress: selected.selectedWalletAddress, isMultisig: selected.isMultisig }
+  } catch (error) {
+    console.log('ERROR',error)
+  }
 }
 
 const rejectSessionProposal = async (sessionProposal) => {
@@ -1169,6 +1185,11 @@ const approveSessionProposal = async (sessionProposal) => {
   sessionTopicWalletAddressMapping.value[sessionProposal.pairingTopic] = selectedAddress
   delete processingSession.value[sessionProposal.pairingTopic]
   processingSession.value[sessionProposal.pairingTopic] = 'Connecting'
+  let account = selectedAddress.address
+  if (selectedAddress.signers) {
+    // Is Multisig Wallet
+    account = selectedAddress.getDepositAddress(0).address
+  } 
   try {
     const chains = [
       $store.getters['global/isChipnet'] ? CHAINID_CHIPNET : CHAINID_MAINNET
@@ -1185,7 +1206,7 @@ const approveSessionProposal = async (sessionProposal) => {
         events: [
           'addressesChanged'
         ],
-        accounts: [`bch:${selectedAddress.address}`]
+        accounts: [`bch:${account}`]
       }
     }
     const approvedNamespaces = buildApprovedNamespaces({
@@ -1220,67 +1241,81 @@ const approveSessionProposal = async (sessionProposal) => {
     processingSession.value[sessionProposal.pairingTopic] = ''
     await saveConnectedApp(session)
     const deffered = [loadSessionProposals(), $store.dispatch('global/loadWalletConnectedApps')]
-    const isMultisigWallet = Boolean(selectedAddress.template)
+    const isMultisigWallet = Boolean(selectedAddress.signers)
     if (isMultisigWallet) {
       const multisigWallet = selectedAddress
-      if (!isMultisigWalletSynced(multisigWallet)) {
-        deffered.push($store.dispatch('multisig/uploadWallet', multisigWallet))
+      if (!multisigWallet.id) { 
+        deffered.push(multisigWallet.upload())
       }
+      deffered.push(multisigWallet.wcSaveSession(session))
     }
-    Promise.all(deffered)
+    Promise.allSettled(deffered)
   } finally {
     processingSession.value[sessionProposal.pairingTopic] = ''
   }
 }
 
 const respondToSignTransactionRequest = async (sessionRequest) => {
+  
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   if (sessionRequest?.params?.request?.method === 'bch_signTransaction' || sessionRequest?.params?.request?.method === 'bch_signTransactionP2SHMultisig') {
+    const loadingKey = 'wc-sign-transaction'
     try {
       const wallet = sessionTopicWalletAddressMapping.value?.[sessionRequest.topic]
-      // if (wallet.template) { // Account with active session is a multisig wallet
-      //   const multisigTransaction = createMultisigTransactionFromWCSessionRequest({
-      //     sessionRequest,
-      //     addressIndex: wallet.lockingData?.hdKeys?.addressIndex || 0
-      //   })
-      //   const unsignedTransactionHash = generateTransactionHash(multisigTransaction)
-      //   await $store.dispatch('multisig/createTransaction', {
-      //     multisigWallet: wallet,
-      //     multisigTransaction
-      //   })
-      //   await web3Wallet.value.respondSessionRequest({
-      //     topic: sessionRequest.topic,
-      //     response: {
-      //       id: sessionRequest.id,
-      //       jsonrpc: '2.0',
-      //       result: {
-      //         status: 'accepted',
-      //         walletType: 'p2shMultisig',
-      //         walletLockingType: 'p2shMultisig',
-      //         walletSpec: {
-      //           m: getRequiredSignatures(wallet.template),
-      //           n: getTotalSigners(wallet.template),
-      //           sigAlgo: 'schnorr'
-      //         },
-      //         message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
-      //         statusUrl: getStatusUrl({ unsignedTransactionHash, chipnet: isChipnet.value }),
-      //         txid: unsignedTransactionHash,
-      //         unsignedHash: unsignedTransactionHash,
-      //         txidIsUnsignedHash: true
-      //       }
-      //     }
-      //   })
-      //   return $router.push({
-      //     name: 'app-multisig-wallet-transaction-view',
-      //     params: {
-      //       address: wallet.address,
-      //       hash: unsignedTransactionHash
-      //     },
-      //     query: {
-      //       backnavpath: '/apps/wallet-connect'
-      //     }
-      //   })
-      // }
+      if (wallet.signers) {
+
+        $q.loading.show({ group: loadingKey, message: $t('ProcessingRequest') })
+        const proposal = await wallet.wcCreateProposal(sessionRequest)
+        proposal.setStore(wallet.options?.store)
+        let statusUrl = `https://watchtower.cash/api/multisig/proposals/${proposal.unsignedTransactionHash}/status/`
+
+        if (isChipnet.value) {
+          `https://chipnet.watchtower.cash/api/multisig/proposals/${proposal.unsignedTransactionHash}/status/`
+        }
+
+        $q.loading.show({ group: loadingKey, message: $t('SendingResponse') })
+
+        await web3Wallet.value.respondSessionRequest({
+          topic: sessionRequest.topic,
+          response: {
+            id: sessionRequest.id,
+            jsonrpc: '2.0',
+            result: {
+              status: 'accepted',
+              walletType: 'p2shMultisig',
+              walletLockingType: 'p2shMultisig',
+              walletSpec: {
+                m: proposal.wallet.m,
+                n: proposal.wallet.signers.length,
+                sigAlgo: 'schnorr'
+              },
+              message: `${sessionRequest.params?.request?.params?.userPrompt} proposal created`,
+              txid: proposal.unsignedTransactionHash,
+              unsignedHash: proposal.unsignedTransactionHash,
+              txidIsUnsignedHash: true,
+              statusUrl
+            }
+          }
+        })
+
+        $q.loading.show({ group: loadingKey, message: $t('ProcessingTransactionProposal') })
+
+        await proposal.save({ sync: true })
+
+        $q.loading.show({ group: loadingKey, message: $t('LoadingTransactionProposal') })
+
+        return $router.push({
+          name: 'app-multisig-wallet-pst-view',
+          params: {
+            wallethash: proposal.wallet.walletHash,
+            unsignedtransactionhash: proposal.unsignedTransactionHash
+          },
+          query: {
+            backnavpath: '/apps/wallet-connect'
+          }
+        })
+      }
+      
       if (!wallet?.wif) {
         return await new Promise((resolve, reject) => {
           $q.dialog({
@@ -1291,6 +1326,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           })
         })
       }
+
       response.result = await signBchTransaction(
         sessionRequest.params.request.params.transaction,
         sessionRequest.params.request.params.sourceOutputs,
@@ -1304,9 +1340,26 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
           response.result = undefined
         }
       }
+
       processingSession.value[sessionRequest.topic] = 'Confirming request'
+
+      if (!response.result) delete response.result
+      if (!response.error) delete response.error
+      
+      await web3Wallet.value.respondSessionRequest({
+        topic: sessionRequest.topic, response
+      })
+
+      if (!sessionRequest.error) {
+        sessionRequest.confirmed = true
+      }
+
+      delete processingSession.value[sessionRequest.topic]
+      
+      await delay(2)
+      await loadSessionRequests()
+
     } catch (err) {
-      console.log('🚀 ~ respondToSignTransactionRequest ~ err:', err)
       response.error = {
         code: -32603,
         reason: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
@@ -1314,18 +1367,7 @@ const respondToSignTransactionRequest = async (sessionRequest) => {
       sessionRequest.error = true
       processingSession.value[sessionRequest.topic] = 'Sending error response'
     } finally {
-      if (!response.result) delete response.result
-      if (!response.error) delete response.error
-      console.log(sessionRequest?.params?.request?.method, 'response', response);
-      await web3Wallet.value.respondSessionRequest({
-        topic: sessionRequest.topic, response
-      })
-      if (!sessionRequest.error) {
-        sessionRequest.confirmed = true
-      }
-      delete processingSession.value[sessionRequest.topic]
-      await delay(3)
-      await loadSessionRequests()
+      $q.loading.hide(loadingKey)
     }
   }
 }
@@ -1334,22 +1376,26 @@ const respondToSignMessageRequest = async (sessionRequest) => {
   if (!['personal_sign', 'bch_signMessage'].includes(sessionRequest.params.request.method)) return
   const response = { id: sessionRequest.id, jsonrpc: '2.0', result: undefined, error: undefined }
   try {
-    const signingAddress = sessionRequest.params?.request?.params?.account
     const connectedAddressForTopic = sessionTopicWalletAddressMapping.value[sessionRequest.topic]
-    if (!connectedAddressForTopic?.address || signingAddress !== connectedAddressForTopic.address) {
-      response.error = { code: -32603, message: 'Account has no active session' }
+    if (!connectedAddressForTopic?.address) {
+      throw new Error('Account has no active session')
     }
+    const expectedAccount = sessionRequest.session?.namespaces?.bch?.accounts?.[0]
+    const expectedSignerAddress = expectedAccount ? expectedAccount.replace('bch:', '') : ''
+    if (expectedSignerAddress && expectedSignerAddress !== connectedAddressForTopic.address) {
+      throw new Error(`Expected signing address doesn't match session address`)
+    }
+
     const message = sessionRequest.params?.request?.params?.message
     if (message == undefined) {
-      response.error = { code: -32603, message: 'Message parameter is mandatory' }
+      throw new Error('Message parameter is mandatory')
     }
-    response.result = await signMessage(message, connectedAddressForTopic.wif)
+    response.result = signMessage(message, connectedAddressForTopic.wif)
     processingSession.value[sessionRequest.topic] = 'Confirming request'
   } catch (err) {
-    console.error('🚀 ~ respondToSignMessageRequest ~ err:', err)
     response.error = {
       code: -32603,
-      message: err?.name === 'SignBCHTransactionError' ? err?.message : 'Unknown error'
+      message: err?.message || 'Unknown error'
     }
     sessionRequest.error = true
     processingSession.value[sessionRequest.topic] = 'Sending error response'
@@ -1647,6 +1693,7 @@ const refreshComponent = async (showLoading = true) => {
 watch(
   [() => activeSessions.value, () => walletAddresses.value, () => multisigWallets.value],
   ([newActiveSessions, newWalletAddresses, newMultisigWallets]) => {
+
     // Execute async mapping operation (non-blocking)
     // The function uses Watchtower API for on-demand lookups, so it's already optimized
     // Still defer slightly to allow UI to remain responsive during initialization
@@ -1694,6 +1741,9 @@ watch(
       // show old-wallet sessions as belonging to the new wallet.
       sessionTopicWalletAddressMapping.value = {}
 
+      // Clear session requests from Vuex store (for home page pending section)
+      $store.commit('walletconnect/clearSessionRequests')
+
       // Refresh walletAddresses for the new wallet. The fallback mapper
       // (mapSessionTopicWithAddressLocal) uses walletAddresses to match session
       // accounts; without refreshing, stale addresses from the previous wallet
@@ -1725,7 +1775,6 @@ watch(
   async (newValue, oldValue) => {
     // Only handle if network actually changed and component is mounted
     if (oldValue !== undefined && newValue !== oldValue && web3Wallet.value) {
-      console.log(`Network changed from ${oldValue ? 'chipnet' : 'mainnet'} to ${newValue ? 'chipnet' : 'mainnet'}`)
 
       // IMPORTANT: Disconnect all WalletConnect sessions when switching networks
       // Sessions are network-specific and cannot be reused across networks
@@ -1738,6 +1787,9 @@ watch(
 
       // Clear all mappings
       sessionTopicWalletAddressMapping.value = {}
+
+      // Clear session requests from Vuex store (for home page pending section)
+      $store.commit('walletconnect/clearSessionRequests')
 
       // Reload active sessions (should be empty after disconnect)
       await loadActiveSessions({ showLoading: false })
@@ -1826,5 +1878,21 @@ defineExpose({
 }
 .transition-transform {
   transition: transform 0.3s ease;
+}
+.scan-option-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+</style>
+
+<style lang="scss">
+.wallet-connect-container.dark .scan-option-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+.wallet-connect-container.dark .scan-option-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 </style>

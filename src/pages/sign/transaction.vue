@@ -221,11 +221,10 @@ export default defineComponent({
     },
 
     async sign () {
-      const result = this.assetId === "sbch" ?
-        await this.signSmartBCH() :
-        await this.signBCH()
+      // Deprecated network removed: always sign with BCH
+      const result = await this.signBCH()
 
-      if (result === undefined) {
+      if (!result) {
         return;
       }
 
@@ -256,7 +255,8 @@ export default defineComponent({
       const txTemplate = {...this.tx} as TransactionTemplateFixed<typeof compiler>;
 
       const mnemonic = await getMnemonic((this as any).$store.getters['global/getWalletIndex'])
-      const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
+      // Legacy network-specific signing support removed; always treat signing network as BCH for compatibility
+      const network = {bch: "BCH", slp: "BCH"}[this.assetId]
       const wallet = new Wallet(mnemonic, network)
 
       // decode private key for current signer
@@ -357,7 +357,8 @@ export default defineComponent({
     },
 
     async signSmartBCH () {
-      return undefined;
+      // Deprecated network removed — fallback to BCH signing for compatibility
+      return await this.signBCH()
     },
 
     async cancel () {

@@ -24,6 +24,17 @@
             <q-icon name="search" color="grey-5" />
           </template>
         </q-input>
+        <div class="row items-center">
+          <q-space/>
+          <q-checkbox
+            v-model="tokensFilterOpts.hasBalanceOnly"
+            left-label
+            :label="$t('HasBalance')"
+            color="pt-primary1"
+            :disable="fetchingTokens"
+            @update:model-value="debouncedFetchTokens"
+          />
+        </div>
       </q-card-section>
       <q-card-section class="q-pt-none" style="max-height:50vh;overflow-y:auto;">
         <q-slide-transition>
@@ -50,6 +61,9 @@
             <q-item-section>
               <q-item-label>{{ token?.bcmr?.token?.symbol || $t('Unknown') }}</q-item-label>
               <q-item-label caption>{{ token?.bcmr?.name || '' }}</q-item-label>
+            </q-item-section>
+            <q-item-section v-if="getTokenBalance(token)" side top>
+              <q-item-label caption>{{ getTokenBalance(token) }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item-label v-if="!searchQuery && tokensList?.length" class="text-caption text-center text-grey">
@@ -96,6 +110,7 @@ export default defineComponent({
     const fetchingTokens = ref(false);
     const searchQuery = ref('');
     const tokensFilterOpts = ref({
+      hasBalanceOnly: false,
       by: 'score',
       order: 'desc',
       q: '',
@@ -107,6 +122,16 @@ export default defineComponent({
         limit: opts?.limit || 20,
         offset: opts?.offset || undefined,
       });
+
+      if (tokensFilterOpts.value.hasBalanceOnly) {
+        filterOpts.token_id = $store.getters['assets/getAssets']
+          .filter(asset => asset?.balance > 0)
+          .map(asset => asset?.id)
+          .filter(assetId => typeof assetId === 'string' && /ct\/[a-fA-F0-9]{64}/.test(assetId))
+          .map(assetId => assetId.replace('ct/', ''))
+          .filter((e, i, l) => l.indexOf(e) === i)
+          .join(',');
+      }
 
       return fetchTokensList(filterOpts)
         .then((tokens) => {
@@ -134,6 +159,17 @@ export default defineComponent({
       // Reset search when token is selected
       searchQuery.value = '';
       tokensFilterOpts.value.q = '';
+    }
+
+    function getTokenBalance(token) {
+      const tokenId = token.token_id;
+      const assetId = `ct/${tokenId}`;
+      const asset = $store.getters['assets/getAsset'](assetId)
+      const balance = asset[0]?.balance
+      if (!Number.isFinite(balance)) return ''
+
+      const decimals = parseInt(token?.bcmr?.token?.decimals) || 0;
+      return (balance / 10 ** decimals).toFixed(decimals);
     }
 
     // Fetch tokens when dialog opens
@@ -166,7 +202,9 @@ export default defineComponent({
       fetchingTokens,
       fetchTokens,
       searchQuery,
+      tokensFilterOpts,
       debouncedFetchTokens,
+      getTokenBalance,
       getDarkModeClass,
     };
   },

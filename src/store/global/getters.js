@@ -67,9 +67,6 @@ export function enableSLP (state) {
   return state.enableSLP
 }
 
-export function enableSmartBCH (state) {
-  return state.enableSmartBCH
-}
 
 export function getAddress (state) {
   return function (walletType) {
@@ -289,27 +286,6 @@ export function getDefaultAssetLogo () {
     }
 
     return canvas.toDataURL('image/png')
-  }
-}
-
-export function getConnectedAddress (state) {
-  return function (walletType) {
-    const walletData = getWalletData(state, walletType)
-    return walletData.connectedAddress
-  }
-}
-
-export function getConnectedAddressIndex (state) {
-  return function (walletType) {
-    const walletData = getWalletData(state, walletType)
-    return walletData.connectedAddressIndex
-  }
-}
-
-export function getConnectedSites (state) {
-  return function (walletType) {
-    const walletData = getWalletData(state, walletType)
-    return walletData.connectedSites
   }
 }
 
