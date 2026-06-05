@@ -91,19 +91,14 @@ export default {
     async loadAddresses() {
       // Load wallets
       const mnemonic = await getMnemonic(this.$store.getters['global/getWalletIndex'])
-      const network = {bch: "BCH", slp: "BCH", sbch: "sBCH"}[this.assetId]
+      const network = {bch: "BCH", slp: "BCH"}[this.assetId]
       const wallet = new Wallet(mnemonic, network)
       this.wallet = markRaw(wallet)
-      if (this.assetId === 'sbch') {
-        await this.wallet.sBCH.getOrInitWallet();
-        this.addresses = [this.wallet.sBCH._wallet.address]
-      } else {
-        const addresses = [];
-        for (let i = 0; i <= this.lastAddressIndex; i++) {
-          addresses.push((await this.wallet.BCH.getAddressSetAt(i)).receiving);
-        }
-        this.addresses = [...addresses];
+      const addresses = [];
+      for (let i = 0; i <= this.lastAddressIndex; i++) {
+        addresses.push((await this.wallet.BCH.getAddressSetAt(i)).receiving);
       }
+      this.addresses = [...addresses];
     }
   },
 

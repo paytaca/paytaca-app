@@ -12,6 +12,42 @@
         @click="stopScan"
       />
       <ScannerUI />
+
+      <!-- Bottom scanner controls -->
+      <div class="scanner-bottom-controls">
+        <!-- Zoom controls — horizontal -->
+        <div class="scanner-zoom-controls">
+          <q-btn
+            icon="remove"
+            round
+            dense
+            color="white"
+            text-color="black"
+            @click="zoomOut"
+          />
+          <q-btn
+            icon="add"
+            round
+            dense
+            color="white"
+            text-color="black"
+            class="q-ml-sm"
+            @click="zoomIn"
+          />
+        </div>
+
+        <!-- Torch control -->
+        <div class="scanner-torch-control q-ml-md">
+          <q-btn
+            :icon="torchOn ? 'flash_on' : 'flash_off'"
+            round
+            dense
+            :color="torchOn ? 'yellow' : 'white'"
+            text-color="black"
+            @click="toggleTorch"
+          />
+        </div>
+      </div>
     </div>
 
     <div v-show="val && !isMobile" class="scanner-container">
@@ -31,7 +67,8 @@
       <template v-else>
         <qrcode-stream
           v-if="val"
-          :camera="frontCamera ? 'front': 'auto'"
+          :constraints="cameraConstraints"
+          :formats="['qr_code']"
           @detect="onScannerDecode"
           @camera-on="onScannerInit"
           @error="onCameraError"
@@ -56,7 +93,10 @@ export default {
   data () {
     return {
       val: this.modelValue,
-      error: ''
+      error: '',
+      zoomLevel: 0,
+      zoomStep: 5,
+      torchOn: false
     }
   },
   props: {
@@ -73,6 +113,13 @@ export default {
   computed: {
     isMobile() {
       return this.$q.platform.is.mobile || this.$q.platform.is.android || this.$q.platform.is.ios
+    },
+    cameraConstraints () {
+      return {
+        facingMode: this.frontCamera ? 'user' : 'environment',
+        width: { min: 640, ideal: 1920, max: 3840 },
+        height: { min: 480, ideal: 1080, max: 2160 }
+      }
     }
   },
   watch: {
@@ -91,19 +138,27 @@ export default {
     }
   },
   methods: {
-    stopScan () {
+    async stopScan () {
       this.$emit('input', false)
       this.$emit('update:model-value', false)
       BarcodeScanner.showBackground()
       BarcodeScanner.stopScan()
       this.adjustComponentsClasslist(false)
+      if (this.torchOn) {
+        try { await BarcodeScanner.disableTorch() } catch (e) {}
+      }
+      if (this.zoomLevel > 0) {
+        try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+      }
+      this.zoomLevel = 0
+      this.torchOn = false
 
       if (this.$route?.name === 'transaction-send') this.$router.push({ path: '/send/select-asset' })
     },
     async prepareScanner () {
       const status = await this.checkPermission()
       if (status) {
-        BarcodeScanner.prepare()
+        await BarcodeScanner.prepare()
         this.scanBarcode()
       } else {
         this.$emit('input', false)
@@ -118,10 +173,55 @@ export default {
       if (res.content) {
         BarcodeScanner.showBackground()
         this.adjustComponentsClasslist(false)
+        if (this.torchOn) {
+          try { await BarcodeScanner.disableTorch() } catch (e) {}
+        }
+        if (this.zoomLevel > 0) {
+          try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+        }
+        this.zoomLevel = 0
+        this.torchOn = false
         this.$emit('decode', res.content)
       } else {
         this.adjustComponentsClasslist(false)
+        if (this.torchOn) {
+          try { await BarcodeScanner.disableTorch() } catch (e) {}
+        }
+        if (this.zoomLevel > 0) {
+          try { await BarcodeScanner.setZoom({ zoom: 0 }) } catch (e) {}
+        }
+        this.zoomLevel = 0
+        this.torchOn = false
         this.$emit('input', false)
+      }
+    },
+    async zoomIn () {
+      this.zoomLevel += this.zoomStep
+      try {
+        await BarcodeScanner.setZoom({ zoom: this.zoomLevel })
+      } catch (err) {
+        console.error('Zoom in failed:', err)
+      }
+    },
+    async zoomOut () {
+      this.zoomLevel = Math.max(0, this.zoomLevel - this.zoomStep)
+      try {
+        await BarcodeScanner.setZoom({ zoom: this.zoomLevel })
+      } catch (err) {
+        console.error('Zoom out failed:', err)
+      }
+    },
+    async toggleTorch () {
+      try {
+        this.torchOn = !this.torchOn
+        if (this.torchOn) {
+          await BarcodeScanner.enableTorch()
+        } else {
+          await BarcodeScanner.disableTorch()
+        }
+      } catch (err) {
+        console.error('Toggle torch failed:', err)
+        this.torchOn = false
       }
     },
     async checkPermission () {
@@ -318,5 +418,30 @@ export default {
 .visibility-visible {
   visibility: visible;
   position: fixed !important;
+}
+.scanner-bottom-controls {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 2022;
+}
+.scanner-zoom-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 24px;
+  padding: 6px 10px;
+}
+.scanner-torch-control {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 24px;
+  padding: 6px 10px;
 }
 </style>

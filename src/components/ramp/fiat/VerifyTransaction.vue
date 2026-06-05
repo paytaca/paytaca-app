@@ -3,56 +3,81 @@
     class="q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-lg">
-      <div class="sm-font-size q-pb-xs q-ml-xs">{{ $t('Arbiter') }}</div>
-      <q-input
-        class="q-pb-xs md-font-size"
-        readonly
-        dense
-        filled
-        :dark="darkMode"
-        :label="data?.arbiter?.address"
-        v-model="data.arbiter.name">
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractAddress') }}</div>
-      <q-input class="q-pb-xs" readonly dense filled :dark="darkMode" v-model="contract.address">
-        <template v-slot:append>
-          <div v-if="contract.address" @click="copyToClipboard(contract.address)">
-            <q-icon size="sm" name='o_content_copy' color="blue-grey-6"/>
-          </div>
-        </template>
-      </q-input>
-      <div class="sm-font-size q-py-xs q-ml-xs">{{ $t('ContractBalance') }}</div>
-      <q-input
-        class="q-pb-xs md-font-size"
-        readonly
-        dense
-        filled
-        :loading="!balanceLoaded || retryBalance(contract.balance)"
-        :dark="darkMode"
-        v-model="contract.balance">
-        <template v-slot:append>
-          <span>BCH</span>
-        </template>
-      </q-input>
-      <div class="sm-font-size q-pl-sm q-py-xs">{{ $t('TransactionId') }}</div>
-      <q-input
-        filled
-        dense
-        :readonly="txidLoaded && transactionId?.length > 0"
-        :dark="darkMode"
-        :loading="!txidLoaded && !transactionId"
-        v-model="transactionId"
-        @click="copyToClipboard(transactionId)"
-        class="q-mb-md">
-      </q-input>
-      <div v-if="errorMessage" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
+      
+      <!-- Contract Information Section -->
+      <div class="section-wrapper">
+        <div class="section-header" @click="toggleContractInfo">
+          <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
+            {{ $t('ContractInformation', {}, 'Contract Information') }}
+          </p>
+          <q-icon 
+            :name="showContractInfo ? 'expand_less' : 'expand_more'" 
+            size="sm" 
+            color="blue-grey-6"
+            class="q-mr-sm" />
+        </div>
+        <q-list v-show="showContractInfo" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+          <!-- Arbiter -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('Arbiter') }}</q-item-label>
+              <q-item-label class="payment-detail-text">{{ data?.arbiter?.name }}</q-item-label>
+              <q-item-label caption class="text-caption q-mt-xs text-grey">{{ data?.arbiter?.address }}</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <!-- Contract Address -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('ContractAddress') }}</q-item-label>
+              <q-item-label class="payment-detail-text ellipsis">{{ contract?.address }}</q-item-label>
+            </q-item-section>
+            <q-item-section side v-if="contract?.address">
+              <div class="row q-gutter-xs">
+                <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(contract?.address)"/>
+              </div>
+            </q-item-section>
+          </q-item>
+
+          <!-- Contract Balance -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
+              <q-item-label class="payment-detail-text">
+                <span v-if="balanceLoaded">{{ contract?.balance }} BCH</span>
+                <q-skeleton v-else type="text" width="100px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <!-- Transaction ID -->
+          <q-item>
+            <q-item-section>
+              <q-item-label caption class="text-caption">{{ $t('TransactionId') }}</q-item-label>
+              <q-item-label class="payment-detail-text ellipsis">
+                <span v-if="txidLoaded && transactionId">{{ transactionId }}</span>
+                <q-skeleton v-else type="text" width="200px" height="20px" />
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side v-if="transactionId">
+              <q-btn flat dense round size="sm" icon="content_copy" color="blue-grey-6" @click="copyToClipboard(transactionId)"/>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
+      <div v-if="autoRetrying" class="info-box q-mx-xs q-my-sm" :class="darkMode ? 'info-box-dark' : 'info-box-light'">
+        <q-spinner size="1.2em" class="q-pr-xs"/>
+        <span class="q-ml-xs text-italic">{{ $t('RetryingXofY', { current: autoRetryCount, total: maxAutoRetries }, `Retrying ${autoRetryCount}/${maxAutoRetries}...`) }}</span>
+      </div>
+      <div v-if="errorMessage && !autoRetrying" class="warning-box q-mx-xs q-my-sm" :class="darkMode ? 'warning-box-dark' : 'warning-box-light'">
         <q-icon name="error" size="1.2em" class="q-pr-xs"/>{{ errorMessage }}
       </div>
       <div v-if="showRetryBtn" class="row q-mb-md">
         <q-btn
           rounded
           :loading="loading"
-          :disable="disableBtn"
+          :disable="disableBtn || autoRetrying"
           :label="$t('Retry')"
           class="col q-mx-lg button"
           @click="submitAction">
@@ -73,7 +98,7 @@ export default {
       loading: true,
       contract: {
         balance: null,
-        address: ' '
+        address: ''
       },
       transactionId: '',
       disableBtn: true,
@@ -83,7 +108,12 @@ export default {
       txidLoaded: false,
       balanceLoaded: false,
       errorDialogActive: false,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
+      autoRetryCount: 0,
+      maxAutoRetries: 3,
+      autoRetryDelay: 2000,
+      autoRetrying: false,
+      showContractInfo: false
     }
   },
   emits: ['back', 'success', 'verifying'],
@@ -103,7 +133,17 @@ export default {
   },
   computed: {
     showRetryBtn () {
-      return this.txidLoaded && this.balanceLoaded && !this.hideBtn
+      return this.txidLoaded &&
+             this.balanceLoaded &&
+             !this.hideBtn &&
+             !this.autoRetrying &&
+             this.autoRetryCount >= this.maxAutoRetries
+    },
+    autoRetryMessage () {
+      if (this.autoRetrying && this.autoRetryCount <= this.maxAutoRetries) {
+        return this.$t('RetryingXofY', { current: this.autoRetryCount, total: this.maxAutoRetries }, `Retrying ${this.autoRetryCount}/${this.maxAutoRetries}...`)
+      }
+      return null
     }
   },
   async mounted () {
@@ -116,6 +156,9 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    toggleContractInfo () {
+      this.showContractInfo = !this.showContractInfo
+    },
     async loadTransactionId () {
       if (!this.transactionId) {
         this.transactionId = this.$store.getters['ramp/getOrderTxid'](this.data?.orderId, this.data?.action)
@@ -127,12 +170,19 @@ export default {
       this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(this.fetchContractBalance())
+      this.fetchContract().then(() => {
+        // Only fetch balance after contract address is loaded
+        if (this.contract?.address) {
+          this.fetchContractBalance()
+        }
+      })
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
         if (!this.data?.escrow) return 0
-        this.data?.escrow?.getBalance(this.contract.address)
+        // Use the escrow contract's own address by not passing any parameter
+        // The RampContract will use its internally generated address
+        this.data?.escrow?.getBalance()
           .then(balance => {
             this.contract.balance = balance
             this.balanceLoaded = true
@@ -156,6 +206,10 @@ export default {
         backend.get(`/ramp-p2p/order/${vm.data?.orderId}/contract/`, { authorize: true })
           .then(response => {
             vm.contract = response.data
+            // If API doesn't return address, use the escrow contract's address
+            if (!vm.contract?.address && vm.data?.escrow) {
+              vm.contract.address = vm.data.escrow.getAddress()
+            }
             resolve(response.data)
           })
           .catch(error => {
@@ -168,41 +222,76 @@ export default {
       const vm = this
       const body = { txid: this.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
-        .then(() => {
-          this.$emit('success')
-        })
-        .catch(error => {
-          vm.errorMessage = error.response?.data?.error
-          vm.hideBtn = false
-          vm.disableBtn = false
-          vm.loading = false
-        })
-      vm.verifyingTx = false
+
+      try {
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-release/`, body, { authorize: true })
+        // Success - emit success event
+        vm.$emit('success')
+      } catch (error) {
+        vm.verifyingTx = false
+        vm.errorMessage = error.response?.data?.error || 'Verification failed'
+
+        // Attempt auto-retry
+        await vm.attemptAutoRetry(vm.verifyRelease)
+      }
     },
     async verifyEscrow () {
       const vm = this
       const body = { txid: vm.transactionId }
       vm.verifyingTx = true
-      await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
-        .then(() => {
-          this.$emit('success')
-        })
-        .catch(error => {
-          if (error.response?.data?.error === 'txid is required') {
-            vm.errorMessage = 'Transaction ID is required for verification'
-          }
+
+      try {
+        await backend.post(`/ramp-p2p/order/${vm.data?.orderId}/verify-escrow/`, body, { authorize: true })
+        // Success - emit success event
+        vm.$emit('success')
+      } catch (error) {
+        vm.verifyingTx = false
+
+        if (error.response?.data?.error === 'txid is required') {
+          vm.errorMessage = 'Transaction ID is required for verification'
+          vm.autoRetrying = false
           vm.hideBtn = false
           vm.disableBtn = false
           vm.loading = false
-        })
-      vm.verifyingTx = false
+        } else {
+          // Other errors - attempt auto-retry
+          vm.errorMessage = error.response?.data?.error || 'Verification failed'
+          await vm.attemptAutoRetry(vm.verifyEscrow)
+        }
+      }
+    },
+    async attemptAutoRetry (verifyFunction) {
+      const vm = this
+
+      // Check if we can still auto-retry
+      if (vm.autoRetryCount < vm.maxAutoRetries) {
+        vm.autoRetryCount++
+        vm.autoRetrying = true
+        vm.errorMessage = vm.autoRetryMessage || vm.$t('RetryingVerification', {}, 'Retrying verification...')
+
+        // Wait for the fixed delay
+        await vm.delay(vm.autoRetryDelay)
+
+        // Attempt verification again
+        await verifyFunction.call(vm)
+      } else {
+        // Exhausted all auto-retries, show manual retry button
+        vm.autoRetrying = false
+        vm.hideBtn = false
+        vm.disableBtn = false
+        vm.errorMessage = vm.$t('VerificationFailedRetries', {}, 'Verification failed after multiple attempts. Please try again.')
+      }
     },
     submitAction () {
       const vm = this
+
+      // Reset auto-retry counter when manually clicking retry
+      vm.autoRetryCount = 0
+      vm.autoRetrying = false
       vm.hideBtn = true
       vm.errorMessage = null
       vm.loading = true
+
       switch (vm.data?.action) {
         case 'ESCROW':
           vm.verifyEscrow()
@@ -315,5 +404,83 @@ export default {
   background-color: #333; /* Dark mode background color */
   color: #fff; /* Text color for dark mode */
   border: 1px solid #fb672d; /* Border color */
+}
+.info-box {
+  padding: 10px;
+  border-radius: 5px;
+}
+.info-box-light {
+  background-color: #e3f2fd; /* Light blue background */
+  border: 1px solid #2196f3; /* Blue border */
+  color: #1976d2; /* Blue text */
+}
+.info-box-dark {
+  background-color: #1e3a5f; /* Dark blue background */
+  border: 1px solid #64b5f6; /* Light blue border */
+  color: #bbdefb; /* Light blue text */
+}
+
+// Section Title (matching PaymentConfirmation.vue)
+.section-title {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  
+  &.dark {
+    color: #e0e2e5;
+  }
+  &.light {
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// Section Header (clickable to toggle contract info)
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 0 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  &.dark:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+// Card Styling (matching PaymentConfirmation.vue)
+.pt-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// Payment Info List
+.payment-info-list {
+  .q-item {
+    padding: 16px 20px;
+    min-height: 60px;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+  }
+  
+  &.dark .q-item:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
+.payment-detail-text {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 4px;
 }
 </style>

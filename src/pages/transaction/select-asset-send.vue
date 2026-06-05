@@ -68,7 +68,7 @@
                 >
                   {{ asset.name }}
                 </p>
-                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')">
+                <p class="q-ma-none amount-text" :class="getDarkModeClass(darkMode, '', 'text-grad')" v-bch-amount="{ denomination }">
                   {{ parseAssetDenomination(denomination, asset, false, 16) }}
                 </p>
               </div>

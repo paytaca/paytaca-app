@@ -34,6 +34,10 @@ export default function () {
   })
 
   Router.beforeEach(async (to, from, next) => {
+    if (from.path && from.path !== to.path) {
+      store.commit('global/setPreviousRoute', from.path)
+    }
+
     // Check if app is locked and user is trying to access a protected route
     const lockAppEnabled = store.getters['global/lockApp']
     

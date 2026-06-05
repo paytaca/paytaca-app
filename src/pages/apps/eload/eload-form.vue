@@ -48,6 +48,15 @@
 				</div>
 			</q-card>
 
+			<div v-if="purchaseOrderId" class="q-mt-md">
+				<q-btn
+					class="full-width button"
+					rounded
+					label="Check Order Status"
+					@click="goToOrderStatus()"
+				/>
+			</div>
+
 			<div class="q-mt-md">
 				<q-btn
 					class="full-width button"
@@ -445,6 +454,7 @@ export default {
 			addressTouched: false,
 			purchaseSuccess: false,
 			purchaseTxid: '',
+			purchaseOrderId: '',
 			phpBchRate: null,
 			phpBchPriceQuoteId: null,
 			phpBchRateLoading: false,
@@ -938,6 +948,7 @@ export default {
 				// Mark this payload as successfully prepared. This must be set only on success;
 				// otherwise, a failed request could block watcher-triggered retries.
 				vm.txnPrepareKey = key
+				vm.purchaseOrderId = result?.data?.id || ''
 				vm.clearTxnPrepareAutoRetry()
 				return true
 			} catch (error) {
@@ -1071,9 +1082,17 @@ export default {
 				window.open(url, '_blank', 'noopener')
 			}
 		},
+		goToOrderStatus () {
+			if (!this.purchaseOrderId) return
+			this.$router.push({
+				name: 'eload-service-order-details',
+				params: { orderId: this.purchaseOrderId }
+			})
+		},
 		resetPurchase () {
 			this.purchaseSuccess = false
 			this.purchaseTxid = ''
+			this.purchaseOrderId = ''
 			this.buying = false
 
 			// Reset prepared txn state

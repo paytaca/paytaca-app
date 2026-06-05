@@ -187,7 +187,7 @@ export default {
   ImportantNotes: "重要提示",
   "Insufficient balance": "餘額不足",
   "Invalid amount": "無效金額",
-  SmartBCHDeprecated: "SmartBCH已棄用",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "連接到Paytaca",
   "Required number of signers": "所需簽名者數量",
   "Total number of signers": "簽名者總數",

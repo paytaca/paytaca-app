@@ -1,5 +1,5 @@
 import { ExchangeLab } from '@cashlab/cauldron';
-import { SpendableCoinType } from '@cashlab/common';
+import { SpendableCoinType, NATIVE_BCH_TOKEN_ID } from '@cashlab/common';
 import { privateKeyToP2pkhLockingBytecode } from '@cashlab/common/libauth.js';
 import { decodePrivateKeyWif, hexToBin } from '@bitauth/libauth';
 import { i18n } from 'src/boot/i18n';
@@ -19,9 +19,27 @@ export function cauldronManageArtifactWithPkh(pkhHex, ){
   return constructedArtifact
 }
 
+/**
+ * @param {import('./pool-tracker').ApiPool}
+ * @returns {MicroPool}
+ */
+export function apiPoolToMicroPool(pool) {
+  return {
+    pool_id: pool.pool_id,
+    pkh: pool.owner_pkh,
+    is_withdrawn: false,
+    spent_utxo_hash: '',
+    new_utxo_hash: pool.txid,
+    new_utxo_txid: pool.txid,
+    new_utxo_n: pool.tx_pos,
+    token_id: pool.token_id,
+    sats: pool.sats,
+    token_amount: pool.tokens,
+  }
+}
 
 /**
- * @param {import('./pool').MicroPool} pool
+ * @param {import('./pool-tracker').MicroPool} pool
  */
 export function microPoolToPoolV0(pool) {
  const pool0_params = { withdraw_pubkey_hash: hexToBin(pool.pkh) };  
@@ -77,6 +95,29 @@ export function watchtowerUtxosToSpendableCoins(opts) {
       },
     }
   })
+}
+
+/**
+ * 
+ * Used to be in send.ts but moved here since used by other functions outside send.ts
+ * @param {import("@cashlab/cauldron").PoolTrade} poolTrade 
+ * @returns {import("cashscript").Output}
+ */
+export function poolTradeToCashscriptOutput(poolTrade) {
+  // Calculate how much satoshis or token is added or deducted
+  const isSupplyingBch = poolTrade.supply_token_id == NATIVE_BCH_TOKEN_ID;
+  const satoshisDelta = isSupplyingBch ? poolTrade.supply : poolTrade.demand * -1n;
+  const tokenDelta = isSupplyingBch ? poolTrade.demand * -1n : poolTrade.supply;
+
+  const poolOutput = poolTrade.pool.output;
+  return {
+    to: poolOutput.locking_bytecode,
+    amount: poolOutput.amount + satoshisDelta,
+    token: {
+      amount: poolOutput.token.amount + tokenDelta,
+      category: poolOutput.token.token_id,
+    }
+  };
 }
 
 export function parseCauldronSwapAttribute(value='') {

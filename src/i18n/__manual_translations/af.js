@@ -170,7 +170,7 @@ export default {
   ImportantNotes: "Belangrike notas",
   "Insufficient balance": "Onvoldoende balans",
   "Invalid amount": "Ongeldige bedrag",
-  SmartBCHDeprecated: "SmartBCH verouderd",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Koppel aan Paytaca",
   "Required number of signers": "Vereiste aantal ondertekenaars",
   "Total number of signers": "Totale aantal ondertekenaars",
@@ -181,4 +181,3 @@ export default {
   TotalLIFT: "Totale LIFT",
   UnpaidLift: "Onbetaalde LIFT",
 }
-

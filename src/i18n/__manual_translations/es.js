@@ -2,8 +2,7 @@ export default {
   AboutTheApp: "Acerca de la app",
   AdSnapshot: "Foto de anuncio",
   AddCommentHere: "Agrega comentario aquí...",
-  Add_SEP20_Point: "Agregar punto sep20",
-  Add_SEP20_Token: "Agregar token sep20",
+  // SEP20 translations removed (deprecated)
   Add_SEP721_Token: "Agregar token sep721",
   Add_Type1_Point: "Agregar punto tipo 1 SLP",
   AddressScan: "Escaneo de dirección",
@@ -269,7 +268,7 @@ export default {
   ImportantNotes: "Notas importantes",
   "Insufficient balance": "Saldo insuficiente",
   "Invalid amount": "Cantidad inválida",
-  SmartBCHDeprecated: "SmartBCH obsoleto",
+  SmartBCHDeprecated: "Deprecated network",
   "Connect to Paytaca": "Conectar a Paytaca",
   "Required number of signers": "Número requerido de firmantes",
   "Total number of signers": "Número total de firmantes",

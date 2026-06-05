@@ -77,7 +77,7 @@
                 @selectstart.prevent
               />
             </q-avatar>
-            <div class="amount-label-ss">{{ displayAmountText }}</div>
+            <div class="amount-label-ss" v-bch-amount="{ denomination: displayDenomination }">{{ displayAmountText }}</div>
           </div>
           <div v-if="!isNft && displayFiatAmount !== null && displayFiatAmount !== undefined" class="amount-fiat-label-ss row items-center justify-center">
             <span>{{ parseFiatCurrency(displayFiatAmount, selectedMarketCurrency) }}</span>
@@ -100,11 +100,24 @@
 
           <div v-if="txFee !== null && !Number.isNaN(txFee) && txFee > 0" class="amount-fee-ss text-caption q-mt-sm">
             <div class="text-grey">{{ $t('NetworkFee') }}</div>
-            {{ txFeeFormatted }}
+            <span v-bch-amount="{ denomination: displayDenomination }">{{ txFeeFormatted }}</span>
             <template v-if="txFeeInFiat !== null && !Number.isNaN(txFeeInFiat)">
               ({{ formatTxFeeInFiat(txFeeInFiat) }})
             </template>
           </div>
+        </div>
+
+        <div v-if="walletHistoryCount > 1" class="q-mt-md q-mb-lg text-center">
+          <q-btn
+            no-caps
+            rounded
+            outline
+            color="pt-primary1"
+            :label="$t('ViewAllAssets', {}, 'View All Assets')"
+            icon="list"
+            @click="goToTransactionSummary"
+            class="view-all-assets-btn"
+          />
         </div>
 
         <!-- NFT Image Display -->
@@ -153,8 +166,7 @@
                 </div>
               </template>
             </q-img>
-            <!-- View in Collectibles Button -->
-            <div class="q-mt-md q-mb-sm">
+            <div v-if="isReceivedNft" class="q-mt-md q-mb-sm">
               <q-btn
                 no-caps
                 rounded
@@ -425,6 +437,7 @@ import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
 import { NativeAudio } from '@capacitor-community/native-audio'
 import { Capacitor } from '@capacitor/core'
+import AudioMode from 'src/utils/audio-mode'
 import html2canvas from 'html2canvas'
 import SaveToGallery from 'src/utils/save-to-gallery'
 import paytacaLogoHorizontal from '../../assets/paytaca_logo_horizontal.png'
@@ -452,6 +465,7 @@ export default {
       denominationTabSelected: 'BCH',
       loadError: '',
       tx: null,
+      walletHistoryCount: 0,
       isLoading: false,
       retryCount: 0,
       maxRetries: 7,
@@ -466,6 +480,7 @@ export default {
       keypair: null,
       usingWebsocketData: false, // Track if we're using websocket data as fallback
       backgroundFetchActive: false, // Track if background fetch is active
+      newTxEffectsPlayed: false, // Track if confetti/audio has been played for this new tx
       displayRawAttributes: false,
       favorites: [],
       addingToFavorites: false,
@@ -496,6 +511,11 @@ export default {
     explorerLink () {
       return getExplorerLink(this.transactionId || '')
     },
+    displayDenomination () {
+      return (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
+        ? this.denominationTabSelected
+        : this.$store.getters['global/denomination']
+    },
     displayAmountText () {
       if (!this.tx) return ''
       
@@ -505,10 +525,7 @@ export default {
         return this.nftName || this.tx.asset?.name || 'NFT'
       }
       
-      const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
-        ? this.denominationTabSelected
-        : this.$store.getters['global/denomination']
-      return `${parseAssetDenomination(denom, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
+      return `${parseAssetDenomination(this.displayDenomination, { ...this.tx.asset, balance: Math.abs(Number(this.tx.amount)) })}`
     },
     hasHistoricalPrice () {
       if (!this.tx) return false
@@ -644,10 +661,7 @@ export default {
     },
     txFeeFormatted() {
       if (this.txFee === null || Number.isNaN(this.txFee)) return '';
-      const denom = (this.denominationTabSelected === this.$t('DEEM') || this.denominationTabSelected === 'BCH')
-        ? this.denominationTabSelected
-        : this.$store.getters['global/denomination']
-      return parseAssetDenomination(denom, { id: 'bch', symbol: 'BCH', balance: this.txFee })
+      return parseAssetDenomination(this.displayDenomination, { id: 'bch', symbol: 'BCH', balance: this.txFee })
     },
     isBchTransaction () {
       if (!this.tx || !this.tx.asset) return false
@@ -691,6 +705,9 @@ export default {
       }
       return false
     },
+    isReceivedNft () {
+      return this.isNft && this.tx && this.tx.record_type === 'incoming'
+    },
     nftTokenId () {
       if (!this.isNft || !this.tx) return null
       // Extract category from token field
@@ -733,6 +750,14 @@ export default {
         const commitmentAttr = this.tx.attributes.find(attr => attr.key === 'commitment')
         if (commitmentAttr && commitmentAttr.value) {
           commitment = commitmentAttr.value
+        }
+      }
+
+      // If not found, try route query
+      if (!commitment) {
+        const queryCommitment = this.$route?.query?.commitment
+        if (queryCommitment) {
+          commitment = queryCommitment
         }
       }
       
@@ -827,6 +852,16 @@ export default {
     backNavPath () {
       // Return the appropriate back path based on where we came from
       const fromParam = this.$route?.query?.from
+      if (fromParam === 'chat') {
+        const roomId = this.$route?.query?.roomId
+        if (roomId) {
+          return {
+            name: 'app-chat-conversation',
+            params: { roomId },
+          }
+        }
+        return '/apps/chat'
+      }
       if (fromParam === 'transactions') {
         // Preserve the original assetID from query params if it exists
         // This ensures we return to the same filter (e.g., "all" or specific asset)
@@ -842,12 +877,24 @@ export default {
           query: { assetID: assetId }
         }
       }
+      if (['app-rewards-transaction-history', 'user-rewards'].includes(fromParam)) {
+        return -1
+      }
       if (fromParam?.includes('apps/multisig')) { 
         return {
           path: this.$route?.query?.from,
           query: { asset: this.$route?.query?.asset }
         }
       }
+
+      if (fromParam === 'summary') {
+        return {
+          name: 'transaction-summary',
+          params: { txid: this.txid },
+          query: { assetIds: this.$route?.query?.summaryAssetIds }
+        }
+      }
+
       return '/'
     },
     canAddToAddressBook () {
@@ -966,12 +1013,16 @@ export default {
         this.loadMemo()
         this.loadFavorites()
         this.fetchTokenPrice()
+        this.fetchWalletHistoryCount()
         // Launch confetti if this is a new transaction
         // Wait for DOM to be fully rendered before triggering
         if (isNewTransaction) {
           this.waitForRenderAndLaunchConfetti()
         }
       })
+      // Fetch complete transaction data from API in background
+      // to populate fields missing from the preloaded object (e.g. tx_fee)
+      this.startBackgroundFetch()
       return
     }
 
@@ -1029,6 +1080,7 @@ export default {
       if (newTx && newTx.txid && (!oldTx || oldTx.txid !== newTx.txid)) {
         this.$nextTick(() => {
           this.loadMemo()
+          this.fetchWalletHistoryCount()
         })
       }
       // Fetch NFT metadata when transaction changes and it's an NFT
@@ -1138,6 +1190,42 @@ export default {
     hexToRef (hex6) {
       return hexToRefUtil(hex6)
     },
+    async fetchWalletHistoryCount() {
+      /**
+       * Checks from backend if the current txid has more than one wallet histories,
+       * this is an indicator to show a button that redirects to transaction summary
+       */
+      const effectiveWalletHash = this.walletHash || this.$store.getters['global/getWallet']('bch')?.walletHash
+      const effectiveTxid = this.txid || this.$route?.params?.txid
+      if (!effectiveWalletHash || !effectiveTxid) {
+        this.walletHistoryCount = -1;
+        return;
+      }
+
+      const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet']);
+      const url = `${baseUrl}/history/wallet/${encodeURIComponent(effectiveWalletHash)}/`
+      const params = { txids: effectiveTxid, all: true, page_size: 1 };
+      const { data } = await axios.get(url, { params });
+      this.walletHistoryCount = data.num_pages;
+    },
+    async goToTransactionSummary () {
+      const txid = this.txid || this.$route?.params?.txid
+      if (!txid) return
+
+
+      let backNavQueryData;
+      try {
+        backNavQueryData = btoa(JSON.stringify(this.$route.query));
+      } catch (error) {
+        console.error(error);
+      }
+
+      this.$router.push({
+        name: 'transaction-summary',
+        params: { txid },
+        query: { from: 'detail', backNavQueryData },
+      })
+    },
     async fetchAndShow (retryAttempt = 0) {
       this.isLoading = true
       this.loadError = ''
@@ -1213,6 +1301,7 @@ export default {
             }
             this.loadFavorites()
             this.fetchTokenPrice()
+            this.fetchWalletHistoryCount();
             // Launch confetti if this is a new transaction
             // Wait for DOM to be fully rendered before triggering
             if (isNewTransaction) {
@@ -1243,6 +1332,7 @@ export default {
               this.loadMemo()
               this.loadFavorites()
               this.fetchTokenPrice()
+              this.fetchWalletHistoryCount()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -1277,6 +1367,7 @@ export default {
               
               this.$nextTick(() => {
                 this.loadMemo()
+                this.fetchWalletHistoryCount()
                 if (isNewTransaction) {
                   this.waitForRenderAndLaunchConfetti()
                 }
@@ -1315,6 +1406,7 @@ export default {
             this.loadMemo()
             this.loadFavorites()
             this.fetchTokenPrice()
+            this.fetchWalletHistoryCount()
             if (isNewTransaction) {
               this.waitForRenderAndLaunchConfetti()
             }
@@ -1353,6 +1445,7 @@ export default {
             
             this.$nextTick(() => {
               this.loadMemo()
+              this.fetchWalletHistoryCount()
               if (isNewTransaction) {
                 this.waitForRenderAndLaunchConfetti()
               }
@@ -1437,6 +1530,7 @@ export default {
               this.loadMemo()
               this.loadFavorites()
               this.fetchTokenPrice()
+              this.fetchWalletHistoryCount()
             })
           } else {
             // Not found yet, retry with exponential backoff
@@ -1679,28 +1773,42 @@ export default {
       }
     },
     async fetchNftMetadata () {
-      // Only fetch if it's an NFT and we have token ID
       if (!this.isNft) return
-      // Don't fetch if already fetching or if we already have the image
       if (this.fetchingNftMetadata || this.nftImageUrl) return
 
       this.fetchingNftMetadata = true
       try {
-        const tokenId = this.nftTokenId
-        if (!tokenId) {
+        const category = this.nftTokenId
+        if (!category) {
           this.fetchingNftMetadata = false
           return
         }
 
-        // Fetch NFT metadata from BCMR
-        const response = await axios.get(`https://bcmr.paytaca.com/api/tokens/${tokenId}/`)
+        const commitment = this.nftCommitment
+        let url = `tokens/${category}/`
+        if (commitment) {
+          url = `tokens/${category}/${commitment}/`
+        }
+
+        const response = await getBcmrBackend().get(url)
         const metadata = response?.data
 
-        if (metadata?.token?.uris?.icon) {
-          this.nftImageUrl = metadata.token.uris.icon
+        if (commitment && metadata?.type_metadata?.uris) {
+          const typeUris = metadata.type_metadata.uris
+          const imageUrl = typeUris.icon || typeUris.image || typeUris.asset
+          if (imageUrl) {
+            this.nftImageUrl = this.appendIpfsGatewayToken(convertIpfsUrl(imageUrl))
+          }
+          if (metadata.type_metadata.name) {
+            this.nftName = metadata.type_metadata.name
+          }
+        } else if (metadata?.uris?.icon) {
+          this.nftImageUrl = this.appendIpfsGatewayToken(convertIpfsUrl(metadata.uris.icon))
+        } else if (metadata?.token?.uris?.icon) {
+          this.nftImageUrl = this.appendIpfsGatewayToken(convertIpfsUrl(metadata.token.uris.icon))
         }
-        if (metadata?.token?.name) {
-          this.nftName = metadata.token.name
+        if (!this.nftName) {
+          this.nftName = metadata?.type_metadata?.name || metadata?.name || metadata?.token?.name || null
         }
       } catch (error) {
         console.error('[TransactionDetail] Error fetching NFT metadata:', error)
@@ -1797,11 +1905,7 @@ export default {
         // Initialize custom list if needed (same as asset list page)
         if (!customList || 'error' in customList || Object.keys(customList).length === 0) {
           const assetIDs = assets.map((asset) => asset.id)
-          if (selectedNetwork === 'BCH') {
-            await assetSettings.initializeCustomList(assetIDs, [])
-          } else {
-            await assetSettings.initializeCustomList([], assetIDs)
-          }
+          await assetSettings.initializeCustomList(assetIDs)
           customList = await assetSettings.fetchCustomList()
         }
         
@@ -2034,6 +2138,18 @@ export default {
     goBack () {
       // Check if we came from transactions page
       const fromParam = this.$route?.query?.from
+      if (fromParam === 'chat') {
+        const roomId = this.$route?.query?.roomId
+        if (roomId) {
+          this.$router.push({
+            name: 'app-chat-conversation',
+            params: { roomId },
+          })
+        } else {
+          this.$router.push('/apps/chat')
+        }
+        return
+      }
       if (fromParam === 'transactions') {
         // Preserve the original assetID from query params if it exists
         // This ensures we return to the same filter (e.g., "all" or specific asset)
@@ -2188,12 +2304,15 @@ export default {
         typeLabel.textContent = isReceived ? 'Received' : 'Sent'
         amountContainer.appendChild(typeLabel)
 
+        const amountLen = amount.length
+        const amtFontSize = amountLen > 18 ? 28 : amountLen > 15 ? 34 : amountLen > 12 ? 42 : 48
         const amountValue = document.createElement('div')
         amountValue.style.cssText = `
-          font-size: 48px;
+          font-size: ${amtFontSize}px;
           font-weight: 800;
           color: white;
           letter-spacing: -1px;
+          white-space: nowrap;
           margin-bottom: ${fiatAmount ? '12px' : '0'};
         `
         amountValue.textContent = amount
@@ -2669,6 +2788,14 @@ export default {
         }
       }
     },
+    appendIpfsGatewayToken (url) {
+      if (typeof url !== 'string') return url
+      if (url.startsWith('https://ipfs.paytaca.com/ipfs')) {
+        const separator = url.includes('?') ? '&' : '?'
+        return url + separator + 'pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+      }
+      return url
+    },
     async preloadAudio () {
       console.log('[NativeAudio] preloadAudio started')
       // Configure NativeAudio to not take audio focus, allowing other apps
@@ -2728,6 +2855,19 @@ export default {
                                (window.location.search && window.location.search.includes('new=true'))
       console.log('[NativeAudio] isNewTransaction:', isNewTransaction, 'query:', query)
       if (!isNewTransaction) return
+
+      // Respect DND/silent mode on native platforms
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { isSilentOrDnd } = await AudioMode.isSilentOrDnd()
+          if (isSilentOrDnd) {
+            console.log('[NativeAudio] skipping sound - device is in silent/DND mode')
+            return
+          }
+        } catch (e) {
+          console.warn('[NativeAudio] could not check audio mode:', e)
+        }
+      }
       
       try {
         // Ensure audio is preloaded before playing
@@ -2793,6 +2933,10 @@ export default {
       })
     },
     async launchConfetti () {
+      // Only play confetti and audio once per transaction
+      if (this.newTxEffectsPlayed) return
+      this.newTxEffectsPlayed = true
+
       // Play sound for new transaction (non-blocking - don't wait for it)
       // Ensure audio is ready by waiting for next frame (allows preload to complete)
       requestAnimationFrame(() => {

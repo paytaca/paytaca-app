@@ -10,11 +10,11 @@
       class="apps-header"
     />
     <div class="row justify-center">
-      <div class="col-xs-12 col-sm-8 q-px-xs">
+      <div class="col-xs-12 q-px-xs">
         <template v-if="wallet">
-            <div class="row q-gutter-y-lg">
+            <div class="row q-gutter-y-sm">
               <div class="col-xs-12">
-                <q-card id="bch-card" class="q-ma-md" style="border-radius: 15px;">
+                <q-card id="bch-card" class="q-ma-sm br-15" style="color:white">
                   <q-card-section>
                     <div class="row q-gutter-y-md">
                       <div class="col-xs-12 flex items-center justify-center q-gutter-x-sm">
@@ -31,10 +31,18 @@
                         <div class="text-bold" style="font-size: larger;">{{ assetHeaderName }}</div>                
                       </div>
                       <div class="col-xs-12 text-center">
-                        <div :class="getDarkModeClass(darkMode)">{{ $t('Balance') }}</div>
-                        <div class="items-center justify-center q-gutter-x-sm">
-                          <span style="font-size: 2em">{{ balance !== undefined ? balance : "..." }}</span>
+                        <div class="text-white">{{ $t('Balance') }}</div>
+                        <div v-if="route.query.asset === 'bch'" class="items-center justify-center q-gutter-x-sm">
+                          <span style="font-size: 2em">
+                            {{ balance !== undefined ? balance : "..." }}
+                          </span>
                           <div>{{ assetPrice? `=${assetPrice}` : '' }}</div>
+                        </div>
+                        <div v-else class="items-center justify-center q-gutter-x-sm">
+                          <span style="font-size: 2em">
+
+                            {{ Big(balance ?? 0).div(`1e${assetTokenIdentity?.token?.decimals || 0}`) }}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -46,54 +54,27 @@
                 <q-btn flat dense no-caps @click="showWalletReceiveDialog" class="tile" v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="send_and_archive" class="col-12" color="primary"></q-icon>
+                      <q-avatar>
+                        <q-img src="app-receive.svg" height="24px" width="24px"></q-img>
+                      </q-avatar>
                       <div class="col-12 tile-label">{{ $t('Deposit') }}</div>
                     </div>
                   </template>
                 </q-btn>
-                <q-btn flat dense no-caps @click="send" class="tile" v-close-popup>
+                <q-btn @click="send" class="tile" :disable="!balance" flat dense no-caps  v-close-popup>
                   <template v-slot:default>
                     <div class="row justify-center">
-                      <q-icon name="send" class="col-12" color="primary" style="position:relative">
-                        <q-badge color="red" v-if="transactions?.length > 0" style="margin-right: 20px;" floating>
-                        {{ transactions?.length }}
-                        </q-badge>
-                      </q-icon>
+                      <q-avatar>
+                        <q-img src="app-send.svg" height="24px" width="24px"></q-img>
+                      </q-avatar>
                       <div class="col-12 tile-label">{{ $t('Send') }}</div>
                     </div>
                   </template>
-                  
                 </q-btn>
               </div>
             </div>
             <q-list>
               <q-separator spaced inset />
-              <q-item>
-                <q-item-section>
-                  <q-item-label>
-                    <div class="flex items-center">
-                      <q-icon name="wallet"></q-icon><span class="q-ml-xs">
-                        <span v-if="route.query.asset === 'bch'">
-                          {{ $t('AssetId') }}
-                        </span>
-                        <span v-else>
-                          {{ $t('TokenId') }}
-                        </span>
-                      </span>
-                    </div>
-                  </q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                 <q-item-label class="flex flex-wrap items-center">
-                   <span v-if="route.query.asset === 'bch'">
-                    BCH
-                  </span>
-                   <span v-else>
-                    {{ shortenString(route.query.asset, 20)}}<CopyButton :text="route.query.asset"/>
-                   </span>
-                 </q-item-label>
-                </q-item-section>
-              </q-item>
               <q-item v-if="wallet">
                 <q-item-section>
                   <q-item-label>
@@ -108,6 +89,45 @@
                  </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item v-if="route.query.asset !== 'bch'" dense>
+                <q-item-section>
+                  <q-item-label>
+                    <div class="flex items-center">
+                      <q-icon name="token"></q-icon>
+                      <span class="q-ml-xs">
+                        {{ $t('TokenId') }}
+                      </span>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                 <q-item-label class="flex flex-wrap items-center">
+                   <span>
+                    {{ shortenString(route.query.asset, 20)}}<CopyButton :text="route.query.asset"/>
+                   </span>
+                 </q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-item v-if="route.query.asset !== 'bch'" dense>
+                <q-item-section>
+                  <q-item-label>
+                    <div class="flex items-center">
+                      <q-icon name="mdi-numeric"></q-icon>
+                      <span class="q-ml-xs">
+                        {{ $t('Decimals' ) }}
+                      </span>
+                    </div>
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                 <q-item-label class="flex flex-wrap items-center">
+                   <span>
+                    {{ assetTokenIdentity?.token?.decimals || '?'}}
+                   </span>
+                 </q-item-label>
+                </q-item-section>
+              </q-item>
+              
               <q-separator spaced inset />
             </q-list>
             <TransactionListItemSkeleton v-if="historyLoading"/>
@@ -121,19 +141,6 @@
               <template v-else>
                 <div class="col-12 row br-15 pt-card" :class="getDarkModeClass(darkMode)"
                   :style="`background-color: ${darkMode ? '' : '#dce9e9 !important;'}`" >
-                    <!-- <button
-                      v-for="(transactionFilterOpt, index) in transactionsFilterOpts" :key="index"
-                      class="btn-custom q-mt-none"
-                      :class="[
-                        darkMode ? 'text-light' : 'text-dark', 
-                        `btn-${transactionFilterOpt.value}`,
-                        {'active-transaction-btn border': transactionsFilter == transactionFilterOpt?.value },
-                      ]"
-                      @click="setTransactionsFilter(transactionFilterOpt.value)"
-                    >
-                      {{ transactionFilterOpt?.label }}
-                    </button> -->
-                    
                     <q-btn 
                       class="btn-custom q-mt-none col-4"
                       :class="[
@@ -212,6 +219,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
+import Big from 'big.js'
 import { CashAddressNetworkPrefix } from 'bitauth-libauth-v3'
 import HeaderNav from 'components/header-nav'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -219,6 +227,7 @@ import {
   shortenString,
   MultisigWallet
 } from 'src/lib/multisig'
+import { parseFiatCurrency } from 'src/utils/denomination-utils'
 import WalletReceiveDialog from 'components/multisig/WalletReceiveDialog.vue'
 import TransactionListItemSkeleton from 'components/transactions/TransactionListItemSkeleton.vue'
 import CopyButton from 'components/CopyButton.vue'
@@ -257,7 +266,7 @@ const historyQoutePrice = computed(() => {
     if (!amount || !marketPrices) return ''
     const price = marketPrices[currency]
     if (price === undefined || price === null || isNaN(price)) return ''
-    return `${amount * price} ${currency}`  
+    return parseFiatCurrency(amount * price, currency)
   }
 })
 const historyLoading = ref(false)
@@ -269,7 +278,8 @@ const historyRecordTypeMap = {
 } 
 
 const {
-  getAssetTokenIdentity 
+  getAssetTokenIdentity,
+  multisigCoordinationServer
 } = useMultisigHelpers()
 
 const darkMode = computed(() => {
@@ -284,15 +294,19 @@ const wallet = computed(() => {
       store: $store,
       provider: new WatchtowerNetworkProvider({
         network: $store.getters['global/isChipnet'] ? WatchtowerNetwork.chipnet: WatchtowerNetwork.mainnet 
-      })
+      }),
+      coordinationServer: multisigCoordinationServer
     })
   }
   return null
 })
 
-const psbts = computed(() => {
+const proposals = computed(() => {
   return $store.getters['multisig/getPsbtsByWalletHash'](route.params.wallethash)
 })
+
+const proposalsFromServer = ref([])
+
 
 const assetHeaderName = computed(() => {
   if (route.query.asset === 'bch') return 'BCH'
@@ -317,11 +331,16 @@ const assetPrice = computed(() => {
   }
 })
 
-const send = () => {
-  if (psbts && psbts.value?.length > 0) {
+const send = async () => {
+  
+  if (wallet.value.isOnline() && (!proposals || proposals.value.length === 0)) {
+    proposalsFromServer.value = await wallet.value?.fetchProposals()
+  }
+  
+  if (proposals && proposals.value?.length > 0 || proposalsFromServer.value?.length > 0) {
     $q.dialog({
       title: $t('NotAllowed'),
-      message: $t('TransactionProposalPending', { count: psbts.value?.length }, `You have ${psbts.value?.length} transaction proposal pending. This feature doesn't support creating of tx proposal while there's atleast 1 pending! This will change in the future.`),
+      message: $t('TransactionProposalPending', { count: proposals.value?.length || proposalsFromServer.value?.length }),
       class: `pt-card br-15 text-bow ${getDarkModeClass(darkMode.value)}`,
       ok: {
         rounded: true,
@@ -422,6 +441,7 @@ const refreshPage = async (done) => {
     if (done) done()
   }
 }
+
 
 onMounted(async () => {
   const tokenCategory = route.query.asset !== 'bch'? route.query.asset : '' 

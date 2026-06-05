@@ -337,6 +337,11 @@ export default {
               id: rsvp.id,
               public_key: pubkeyHex,
             });
+
+            // update public key of reservation in reservations list
+            // this is done so that the public key will be populated
+            // immediately once the user finalizes their reservations
+            rsvp.public_key = pubkeyHex
           }
 
           if (rsvp_payload.length > 0) {

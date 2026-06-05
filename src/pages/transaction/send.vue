@@ -309,15 +309,12 @@
                     class="q-expansion-item-recipient"
                     v-model="expandedItems[`R${index + 1}`]"
                     :class="getDarkModeClass(darkMode)"
+                    :label="`${$t('Recipient')} #${index + 1}`"
+                    :header-class="[
+                      inputExtras[index].incorrectAddress ? 'expansion-item-error' : '',
+                      'q-px-none',
+                    ]"
                   >
-                    <template v-slot:header>
-                      <span
-                        :class="inputExtras[index].incorrectAddress ? 'expansion-item-error' : ''"
-                      >
-                        {{ `${$t('Recipient')} #${index + 1}` }}
-                      </span>
-                    </template>
-
                     <SendPageForm
                       :recipient="recipients[index]"
                       :inputExtras="inputExtras[index]"
@@ -325,22 +322,25 @@
                       :index="index"
                       :showQrScanner="showQrScanner"
                       :computingMax="computingMax"
+                      :calculatingCauldronTrade="calculatingCauldronTrade"
                       :selectedAssetMarketPrice="selectedAssetMarketPrice"
                       :isNFT="isNFT"
-                      :currentWalletBalance="currentWalletBalance"
+                      :currentWalletBalance="currentWalletBalances[index].balance"
+                      :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                      :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                      :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
                       :currentSendPageCurrency="currentSendPageCurrency"
                       :setMaximumSendAmount="setMaximumSendAmount"
                       :defaultSelectedFtChangeAddress="userSelectedChangeAddress"
                       :walletType="walletType"
                       @on-qr-scanner-click="onQRScannerClick"
                       @on-input-focus="onInputFocus"
-                      @on-balance-exceeded="onBalanceExceeded"
                       @on-recipient-input="onRecipientInput"
                       @on-empty-recipient="onEmptyRecipient"
                       @on-selected-denomination-change="onSelectedDenomination"
                       @on-qr-uploader-click="onQRUploaderClick"
                       @on-selected-change-address="onUserSelectedChangeAddress"
-                      :key="generateKeys(index)"
+                      @on-cauldron-toggle="onCauldronToggle"
                       ref="sendPageRef"
                     />
 
@@ -362,19 +362,21 @@
                     :computingMax="computingMax"
                     :selectedAssetMarketPrice="selectedAssetMarketPrice"
                     :isNFT="isNFT"
-                    :currentWalletBalance="currentWalletBalance"
+                    :currentWalletBalance="currentWalletBalances[index].balance"
+                    :currentWalletBalanceAssetId="currentWalletBalances[index].assetId"
+                    :cauldronErrorMessage="resolveCauldronTradePrepErrorMessageFromIndex(index)"
+                    :cauldronStatusMessage="getPoolTrackerStatus(index)?.statusMessage"
                     :currentSendPageCurrency="currentSendPageCurrency"
                     :setMaximumSendAmount="setMaximumSendAmount"
                     :walletType="walletType"
                     @on-qr-scanner-click="onQRScannerClick"
                     @on-input-focus="onInputFocus"
-                    @on-balance-exceeded="onBalanceExceeded"
                     @on-recipient-input="onRecipientInput"
                     @on-empty-recipient="onEmptyRecipient"
                     @on-selected-denomination-change="onSelectedDenomination"
                     @on-qr-uploader-click="onQRUploaderClick"
                     @on-selected-change-address="onUserSelectedChangeAddress"
-                    :key="generateKeys(index)"
+                    @on-cauldron-toggle="onCauldronToggle"
                     ref="sendPageRef"
                   />
                 </template>
@@ -388,6 +390,14 @@
                 </div>
               </div>
             </form>
+          </div>
+
+          <div v-if="isCauldronSend && tradeResults.some(Boolean)" class="q-px-lg">
+            <CauldronSendSummary
+              :recipients="recipients"
+              :inputExtras="inputExtras"
+              :tradeResults="tradeResults"
+            />
           </div>
 
           <CustomKeyboard 
@@ -427,7 +437,11 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { parsePaymentUri } from 'src/wallet/payment-uri'
 import Watchtower from 'watchtower-cash-js'
 import WatchtowerExtended from 'src/lib/watchtower'
-import { generateReceivingAddress, getDerivationPathForWalletType, generateAddressSetWithoutSubscription } from 'src/utils/address-generation-utils'
+import {
+  generateReceivingAddress,
+  getDerivationPathForWalletType,
+  generateAddressSetWithoutSubscription
+} from 'src/utils/address-generation-utils'
 import { toTokenAddress } from 'src/utils/crypto'
 import axios from 'axios'
 import {
@@ -449,10 +463,7 @@ import {
   formatWithLocaleSelective
 } from 'src/utils/custom-keyboard-utils'
 import * as sendPageUtils from 'src/utils/send-page-utils'
-import {
-  processCashinPoints,
-  processOnetimePoints
-} from 'src/utils/engagementhub-utils/rewards'
+import { processMerchantOtcPoints } from 'src/utils/engagementhub-utils/rewards'
 import { updateAssetBalanceOnLoad } from 'src/utils/asset-utils'
 import { raiseNotifyError } from 'src/utils/notify-utils'
 
@@ -470,6 +481,11 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import { hexToRef } from 'src/utils/reference-id-utils'
+import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
+import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
+import { executeSendWithCauldron, prepareSendWithCauldron, CauldronSendError, calculateMaxSpendableForCauldron, TradePrepErrorCode } from 'src/wallet/cauldron/send'
+import { debounce } from 'quasar'
 
 const erc721IdRegexp = /erc721\/(0x[0-9a-f]{40}):(\d+)/i
 const SEND_SUCCESS_PENDING_KEY = 'paytaca-send-success-pending'
@@ -492,7 +508,8 @@ export default {
     LoadingWalletDialog,
     Pin,
     BiometricWarningAttempt,
-    SendSuccessPage
+    SendSuccessPage,
+    CauldronSendSummary,
   },
 
   props: {
@@ -580,9 +597,12 @@ export default {
         error: '',
         decodedContent: ''
       },
+
+      currentRecipientIndex: 0,
       recipients: [{
         amount: '',
         fiatAmount: '',
+        cauldronAmount: '',
         fixedAmount: false,
         recipientAddress: '',
         paymentAckMemo: ''
@@ -598,11 +618,26 @@ export default {
         isLegacyAddress: false,
         isWalletAddress: false,
         cashbackData: null,
-        incorrectAddress: false
+        incorrectAddress: false,
+        cauldron: {
+          enable: false,
+          token: null,
+          amountFormatted: '0',
+        }
       }],
+      currentWalletBalances: [{ balance: 0, assetId: '' }],
       expandedItems: {},
       pinDialogAction: '',
       warningAttemptsStatus: 'dismiss',
+
+      calculatingCauldronTrade: false,
+      poolTracker: new MultiCauldronPoolTracker({
+        reconnectionOpts: { enable: true, baseInterval: 3000, exponentialBackoff: 1.25, maxAttempts: 10 },
+      }),
+      /** @type {(import("@cashlab/cauldron").TradeResult | undefined)[]} */
+      tradeResults: [],
+      /** @type {(import("src/wallet/cauldron/send").TradePrepErrorCode | undefined)[]} */
+      cauldronTradePrepErrors: [],
 
       /** @type {Wallet} */
       wallet: null,
@@ -621,15 +656,12 @@ export default {
       customKeyboardState: 'dismiss',
       sliderStatus: false,
       showQrScanner: false,
-      balanceExceeded: false,
       computingMax: false,
       paymentCurrency: null,
       selectedDenomination: 'BCH',
       payloadAmount: 0,
-      currentRecipientIndex: 0,
       totalAmountSent: 0,
       totalFiatAmountSent: 0,
-      currentWalletBalance: 0,
       isLegacyAddress: false,
       isWalletAddress: false,
       userSelectedChangeAddress: '',
@@ -668,6 +700,9 @@ export default {
       if (this.isScrolledToBottom) return true
 
       return false
+    },
+    isFungibleCashtoken() {
+      return this.asset?.id?.startsWith?.('ct/') && this.asset?.is_nft;
     },
     isNFT () {
       if (erc721IdRegexp.test(this.assetId)) return true
@@ -721,6 +756,11 @@ export default {
     },
     showSlider () {
       if (this.sliderStatus && this.isNFT && !this.sending) return true
+
+      if (this.calculatingCauldronTrade) {
+        if (this.inputExtras.some(extra => extra?.cauldron?.enable)) return false;
+      }
+
       return (
         !this.sending && this.sliderStatus &&
         // check if amount is greater than zero
@@ -805,6 +845,9 @@ export default {
     // Get asset from store reactively to ensure balance updates are reflected
     storeAsset () {
       return sendPageUtils.getAsset(this.assetId, this.symbol)
+    },
+    isCauldronSend() {
+      return this.inputExtras.some(extra => extra?.cauldron?.enable);
     }
   },
 
@@ -824,9 +867,6 @@ export default {
           if (!amount || amount <= 0) return
 
           this.recipients[i].fiatAmount = this.convertToFiatAmount(amount)
-          this.recipients[i].amount = sendPageUtils.convertFiatToSelectedAsset(
-            this.recipients[i].fiatAmount, this.selectedAssetMarketPrice
-          )
           this.inputExtras[i].fiatFormatted = formatWithLocale(
             this.recipients[i].fiatAmount, this.decimalObj(true)
           )
@@ -850,6 +890,10 @@ export default {
     'storeAsset.yield' (yieldData) {
       if (yieldData === undefined) return
       this.asset = { ...this.asset, yield: yieldData }
+    },
+    'storeAsset.decimals' (decimals) {
+      if (decimals === undefined) return
+      this.asset = { ...this.asset, decimals }
     },
     // Keep displayed balance in sync with BCH spendable/balance updates
     'asset.spendable' () {
@@ -1030,12 +1074,57 @@ export default {
      * Pass state so TransactionDetail can show the tx immediately without waiting for watchtower.
      * @param {string} txid - Transaction id
      * @param {{ timestamp?: number, amount?: number }} [opts] - Optional timestamp and amount overrides
-     * @returns {{ query: object, state: { tx: object, fromWebsocket: true } }}
+     * @returns {{ route: '', query: object, state: { tx: object, fromWebsocket: true } }}
      */
     buildTransactionDetailState (txid, opts = {}) {
       const timestamp = opts.timestamp ?? Date.now()
       const amount = opts.amount ?? Math.abs(this.totalAmountSent || 0)
-      const asset = this.asset || sendPageUtils.getAsset(this.assetId, this.symbol)
+
+      // Extract assetIds used to supply the send transaction
+      const assetIds = this.inputExtras
+        .map(extra => {
+          // If not cauldron, the usual send that asset used to send is the asset being sent
+          if (!extra?.cauldron?.enable) return this.assetId;
+
+          // If cauldron enabled, bch is used to send cashtokens
+          if (this.assetId !== 'bch' && this.assetId?.startsWith?.('ct/')) return 'bch'
+
+          // At this point it assumes it is cauldron enabled and bch is being sent
+          if (!extra.cauldron?.token?.token_id) return '';
+          return `ct/${extra.cauldron?.token?.token_id}`;
+        })
+        .filter(Boolean)
+        .filter((assetId, index, list) => list.indexOf(assetId) === index)
+
+      // Determine if we need summary page (multiple assets involved)
+      const useSummaryPage = assetIds.length > 1
+
+      if (useSummaryPage) {
+        // Use transaction-summary page for multiple assets
+        const query = {
+          from: 'send',
+          assetIds: assetIds.join(','),
+          new: 'true'
+        }
+        // Add recipient address for "Add to Address Book" feature
+        if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
+          query.recipient = this.recipients[0].recipientAddress
+        }
+
+        if (this.commitment) {
+          query.commitment = this.commitment
+        }
+
+        return {
+          route: 'transaction-summary',
+          query,
+          state: { fromWebsocket: true }
+        }
+      }
+
+      // Single asset - use transaction-detail as before
+      const effectiveAssetId = assetIds[0];
+      const asset = sendPageUtils.getAsset(effectiveAssetId, this.symbol) || this.asset;
       const sendTx = {
         txid,
         record_type: 'outgoing',
@@ -1045,20 +1134,30 @@ export default {
         date_created: timestamp,
         _fromWebsocket: true
       }
+      if (this.commitment) {
+        sendTx.token = { commitment: this.commitment }
+      }
       const query = {
         from: 'send-page',
-        assetID: this.assetId || 'bch',
+        assetID: effectiveAssetId,
         new: 'true'
       }
       // Add recipient address for "Add to Address Book" feature
       if (this.recipients?.length === 1 && this.recipients[0]?.recipientAddress) {
         query.recipient = this.recipients[0].recipientAddress
       }
-      const assetId = this.assetId || ''
-      if (assetId.startsWith('ct/') || assetId.startsWith('slp/')) {
-        query.category = assetId.split('/')[1]
+
+      // Only add category for token assets
+      const shouldAddCategory = effectiveAssetId.startsWith('ct/') || effectiveAssetId.startsWith('slp/')
+      if (shouldAddCategory) {
+        query.category = effectiveAssetId.split('/')[1]
+      }
+
+      if (this.commitment) {
+        query.commitment = this.commitment
       }
       return {
+        route: 'transaction-detail',
         query,
         state: { tx: sendTx, fromWebsocket: true }
       }
@@ -1388,9 +1487,9 @@ export default {
         this.showSendSuccess()
       } else {
         // Redirect to transaction detail with state so it can show tx before watchtower indexes
-        const { query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
+        const { route, query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
         this.$router.push({
-          name: 'transaction-detail',
+          name: route,
           params: { txid },
           query,
           state
@@ -1447,34 +1546,56 @@ export default {
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       currentInputExtras.setMax = true
       
-      if (this.asset.id === 'bch') {
-        currentRecipient.amount = this.asset.spendable
-        currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
-        
-        currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
-        )
-        currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
-        )
+      if (currentInputExtras.cauldron.enable) {
+        const isBch = this.asset.id === 'bch';
+        const assetId = isBch ? `ct/${currentInputExtras.cauldron?.token?.token_id}` : 'bch';
+        const asset = sendPageUtils.getAsset(assetId);
+        console.debug('[SetMax]', { isBch, assetId, asset });
+
+        const tokenId = isBch ? currentInputExtras.cauldron?.token?.token_id : this.asset.id.replace('ct/', '');
+        const pools = this.poolTracker.getPoolsForToken(tokenId);
+        currentRecipient.cauldronAmount = calculateMaxSpendableForCauldron(asset, pools);
+
+        currentInputExtras.cauldron.amountFormatted = currentRecipient.cauldronAmount;
+        console.debug('[SetMax] currentRecipient', {...currentRecipient});
+        console.debug('[SetMax] currentInputExtras.cauldron', { ...currentInputExtras.cauldron });
+
+        currentRecipient.amount = '';
+        currentRecipient.fiatAmount = '';
+        currentInputExtras.amountFormatted = '';
+        currentInputExtras.fiatFormatted = '';
       } else {
-        if (this.asset?.id?.startsWith('ct/')) {
-          currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
+        if (this.asset.id === 'bch') {
+          currentRecipient.amount = this.asset.spendable
+          currentRecipient.fiatAmount = this.convertToFiatAmount(this.asset.spendable)
+          
+          currentInputExtras.amountFormatted = formatWithLocale(
+            currentRecipient.amount, this.decimalObj(false)
+          )
+          currentInputExtras.fiatFormatted = formatWithLocale(
+            currentRecipient.fiatAmount, this.decimalObj(true)
+          )
         } else {
-          currentRecipient.amount = this.asset?.balance || 0
+          if (this.asset?.id?.startsWith('ct/')) {
+            currentRecipient.amount = (this.asset?.balance || 0) / (10 ** (this.asset?.decimals || 0))
+          } else {
+            currentRecipient.amount = this.asset?.balance || 0
+          }
+          currentInputExtras.amountFormatted = currentRecipient.amount
         }
-        currentInputExtras.amountFormatted = currentRecipient.amount
       }
 
       // remove recipients except for the one where MAX was clicked
       const remainingRecipient = this.recipients.filter((_a, i) => i === this.currentRecipientIndex)
       const remainingInputExtras = this.inputExtras.filter((_a, i) => i === this.currentRecipientIndex)
+      const currentWalletBalances = this.currentWalletBalances.filter((_a, i) => i === this.currentRecipientIndex)
 
       this.recipients = remainingRecipient
       this.inputExtras = remainingInputExtras
+      this.currentWalletBalances = currentWalletBalances;
       this.currentRecipientIndex = 0
       this.expandedItems = { R1: true }
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance()
       this.sliderStatus = true
     },
 
@@ -1483,6 +1604,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      currentInputExtras.setMax = false;
 
       let caret = null
       if (this.focusedInputField === 'fiat')
@@ -1502,7 +1625,8 @@ export default {
       if (this.focusedInputField === 'fiat') {
         currentRecipient.fiatAmount = currentAmount
         currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-          currentAmount, this.selectedAssetMarketPrice
+          currentAmount, this.selectedAssetMarketPrice,
+          this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
         )
       } else if (this.focusedInputField === 'bch') {
         currentRecipient.amount = currentAmount
@@ -1520,14 +1644,16 @@ export default {
         )
       } else {
         currentInputExtras.fiatFormatted = formatWithLocale(
-          currentRecipient.fiatAmount, this.decimalObj(true)
+          currentRecipient.fiatAmount,
+          { ...this.decimalObj(true), preserveTrailingDecimals: true },
         )
         currentInputExtras.amountFormatted = formatWithLocale(
-          currentRecipient.amount, this.decimalObj(false)
+          currentRecipient.amount,
+          { ...this.decimalObj(false), preserveTrailingDecimals: true },
         )
       }
 
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance();
       sendPageUtils.addRemoveInputFocus(
         this.currentRecipientIndex, this.focusedInputField
       )
@@ -1537,6 +1663,8 @@ export default {
       const currentRecipient = this.recipients[this.currentRecipientIndex]
       const currentInputExtras = this.inputExtras[this.currentRecipientIndex]
       const currentRefs = this.$refs.sendPageRef[this.currentRecipientIndex].$refs
+
+      currentInputExtras.setMax = false;
 
       let amountCaretPosition = currentRefs.amountInput.nativeEl.selectionStart - 1
       if (amountCaretPosition >= currentRecipient.amount.length)
@@ -1553,7 +1681,8 @@ export default {
               currentRecipient.fiatAmount, fiatCaretPosition
             )
             currentRecipient.amount = sendPageUtils.convertFiatToSelectedAsset(
-              currentRecipient.fiatAmount, this.selectedAssetMarketPrice
+              currentRecipient.fiatAmount, this.selectedAssetMarketPrice,
+              this.assetId === 'bch' ? 8 : (this.asset?.decimals ?? 0)
             )
           } else if (this.focusedInputField === 'bch' && amountCaretPosition > -1) {
             currentRecipient.amount = adjustSplicedAmount(
@@ -1563,17 +1692,13 @@ export default {
           }
   
           currentInputExtras.fiatFormatted = formatWithLocale(
-            currentRecipient.fiatAmount, this.decimalObj(true)
+            currentRecipient.fiatAmount,
+            { ...this.decimalObj(true), preserveTrailingDecimals: true },
           )
           currentInputExtras.amountFormatted = formatWithLocale(
-            currentRecipient.amount, this.decimalObj(false)
+            currentRecipient.amount,
+            { ...this.decimalObj(false), preserveTrailingDecimals: true },
           )
-
-          if (
-            this.focusedInputField === 'fiat' &&
-            String(currentRecipient.fiatAmount).split('.').length === 2 &&
-            String(currentRecipient.fiatAmount).split('.')[1] === ''
-          ) currentInputExtras.fiatFormatted += getLocaleSeparators().decimal
         } catch {
           currentRecipient.fiatAmount = ''
           currentRecipient.amount = ''
@@ -1599,8 +1724,18 @@ export default {
         sendPageUtils.addRemoveInputFocus(this.currentRecipientIndex, '')
       }
 
-      this.adjustWalletBalance()
+      this.updateCauldronAndRemainingBalance();
     },
+
+    /**
+     * This function is meant to ensure `this.adjustWalletBalance()` doesnt run on stale data.
+     * In the future, some asynchronous merchanism for updating amounts (like cauldron's trade calculations) might be added,
+     * might want to change names later on if functionality expands
+     */
+    updateCauldronAndRemainingBalance: debounce(function () {
+      this.prepareCauldronTrade();
+      this.adjustWalletBalance();
+    }, 500),
 
     // add/remove recipient
     addAnotherRecipient () {
@@ -1610,6 +1745,7 @@ export default {
         this.recipients.push({
           amount: '',
           fiatAmount: '',
+          cauldronAmount: '',
           fixedAmount: false,
           recipientAddress: '',
           paymentAckMemo: ''
@@ -1624,8 +1760,11 @@ export default {
           isBip21: false,
           isLegacyAddress: false,
           cashbackData: null,
-          incorrectAddress: false
+          incorrectAddress: false,
+          cauldron: { enable: false, token: null, amountFormatted: '' },
         })
+        this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
+        this.adjustWalletBalance();
         for (let i = 1; i <= recipientsLength; i++) {
           this.expandedItems[`R${i}`] = false
         }
@@ -1716,6 +1855,7 @@ export default {
     },
     async handleSubmit () {
       const vm = this
+      const hasCauldronEnabled = vm.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
       const toSendData = vm.recipients
 
       // check if total amount being sent is greater than current wallet amount
@@ -1726,7 +1866,12 @@ export default {
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(8)
 
-        if (Number(totalAmount) > vm.asset.balance) {
+        const decimals = vm.assetId === 'bch' ? 8 : (vm.asset?.decimals ?? 0)
+        const comparableBalance = vm.assetId === 'bch'
+          ? vm.asset.balance
+          : (Number(vm.asset?.balance) || 0) / (10 ** decimals)
+
+        if (Number(totalAmount) > comparableBalance && !hasCauldronEnabled) {
           raiseNotifyError(vm.$t('TotalAmountError'))
           return
         }
@@ -1742,6 +1887,39 @@ export default {
           .reduce((acc, curr) => acc + curr, 0)
           .toFixed(2)
       } else vm.totalFiatAmountSent = Number(vm.convertToFiatAmount(vm.totalAmountSent))
+
+      // Check if send will require cauldron trade
+      // this condition will trigger early exit of the main function
+      // Placed here to include calculation `totalFiatAmountSent` and `totalAmountSend`, although;
+      // this data will be lacking since there's potentially bch & one or more cashtokens actually sent
+      if (hasCauldronEnabled) {
+        console.debug('[CauldronSend] Executing send', {
+          asset: vm.asset,
+          recipients: vm.recipients,
+          inputExtras: vm.inputExtras,
+          tradeResults: vm.tradeResults,
+          bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+        })
+
+        try {
+          vm.sending = true
+          vm.sliderStatus = false;
+          const broadcastResult = await executeSendWithCauldron({
+            asset: vm.asset,
+            recipients: vm.recipients,
+            inputExtras: vm.inputExtras,
+            tradeResults: vm.tradeResults,
+            bchWallet: getWalletByNetwork(vm.wallet, 'bch'),
+          });
+          vm.submitPromiseResponseHandler(broadcastResult, vm.walletType);
+        } catch(error) {
+          vm.handleCauldronError(error);
+        } finally {
+          vm.sending = false;
+          vm.sliderStatus = true;
+        }
+        return;
+      }
 
       let token = null // bch token
       let toSendBchRecipients = []
@@ -1892,7 +2070,8 @@ export default {
             const tokenAmount = (vm.commitment && vm.capability) ? 0 : sendData.amount
             token = {
               tokenId: tokenId,
-              commitment: vm.commitment || undefined,
+              // empty-string is valid for an NFT commitment so should not be collapsed to undefined
+              commitment: vm.commitment ?? undefined,
               capability: vm.capability || undefined,
               txid: vm.$route.query.txid,
               vout: vm.$route.query.vout
@@ -1951,9 +2130,9 @@ export default {
               vm.showSendSuccess()
             } else {
               // Redirect to transaction detail with state so it can show tx before watchtower indexes
-              const { query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
+              const { route, query, state } = vm.buildTransactionDetailState(txId, { timestamp: vm.txTimestamp })
               vm.$router.push({
-                name: 'transaction-detail',
+                name: route,
                 params: { txid: txId },
                 query,
                 state
@@ -1977,11 +2156,6 @@ export default {
     },
     onQRScannerClick (value) {
       this.showQrScanner = value
-    },
-    onBalanceExceeded (value) {
-      try {
-        this.inputExtras[this.currentRecipientIndex].balanceExceeded = value
-      } catch { }
     },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
@@ -2015,16 +2189,203 @@ export default {
       this.userSelectedChangeAddress = changeAddress
     },
 
+    // ========= cauldron related ==========
+    onCauldronToggle (cauldronData) {
+      this.currentRecipientIndex = cauldronData.index;
+      console.debug(this.currentRecipientIndex, cauldronData)
+      this.inputExtras[this.currentRecipientIndex].cauldron = {
+        enable: cauldronData.enable,
+        token: cauldronData.token,
+        amountFormatted: cauldronData.amountFormatted || '',
+      }
+      if (!cauldronData.enable) {
+        this.inputExtras[this.currentRecipientIndex].cauldron.amountFormatted = '';
+        this.recipients[this.currentRecipientIndex].cauldronAmount = '';
+      }
+
+      let tokenId
+      if (this.asset.id === 'bch') tokenId = cauldronData.token?.token_id;
+      else if (this.asset.id.startsWith('ct/') && !this.isNFT) tokenId = this.asset.id.replace('ct/', '');
+
+      if (tokenId) {
+        this.calculatingCauldronTrade = true;
+        this.poolTracker.subscribeToken(tokenId);
+        setTimeout(() => this.checkCauldronPoolsForFallback(), 15_000);
+
+        // This could be added in `mounted`. But for readability, placed here to be close to related code
+        // this.poolTracker.cleanup() is in `unmounted` since can't find a way to do it here
+        if (!this._poolTrackerUpdateHooked) {
+          this.poolTracker.on('pool-updated', () => this.updateCauldronAndRemainingBalance());
+          this._poolTrackerUpdateHooked = true;
+        }
+      }
+
+      if (this.inputExtras[this.currentRecipientIndex].setMax) {
+        // This function calls `updateCauldronAndRemainingBalance` as well
+        this.setMaximumSendAmount();
+      } else {
+        this.updateCauldronAndRemainingBalance();
+      }
+    },
+    checkCauldronPoolsForFallback() {
+      console.debug('[CauldronFallback] Checking');
+      for (var index = 0; index < this.inputExtras.length; index++) {
+        const status = this.getPoolTrackerStatus(index);
+        if (!status) continue;
+        console.debug('[CauldronFallback]', { ...status, index });
+
+        if (status.shouldSubscribe) {
+          this.poolTracker.subscribeToken(status.tokenId);
+        }
+
+        if (status.shouldFallback) {
+          if (!this.poolTracker.getPoolsForToken(status.tokenId).length) {
+            this.poolTracker.updatePoolsViaAPI(status.tokenId);
+          }
+        }
+      }
+    },
+    prepareCauldronTrade() {
+      this.checkCauldronPoolsForFallback();
+      const hasCauldron = this.inputExtras.some(inputExtra => inputExtra.cauldron.enable);
+      if (!hasCauldron) {
+        this.tradeResults = [];
+        this.calculatingCauldronTrade = false;
+        return;
+      }
+
+      this.calculatingCauldronTrade = true;
+      console.trace('Preparing cauldron trade', this.asset, this.recipients, this.inputExtras, this.poolTracker.getTokenPoolsMap());
+
+      // This function is passed for cauldron enabled recipients with supply mode(i.e. setMax)
+      // Since supply mode sets the amount & fiatAmount using cauldronAmount
+      const amountToFiat = (amount) => {
+        const fiatAmount = this.convertToFiatAmount(amount);
+        const fiatFormatted = formatWithLocale(fiatAmount, this.decimalObj(true));
+        return { fiatAmount, fiatFormatted };
+      }
+
+      // This function actually modifies the passed parameters: recipients, inputExtras
+      // And returns it
+      const { recipients, inputExtras, tradeResults, tradeErrors } = prepareSendWithCauldron(
+        this.asset,
+        this.recipients,
+        this.inputExtras,
+        this.poolTracker.getTokenPoolsMap(),
+        amountToFiat,
+      );
+
+      console.debug('[CauldronSendPrepare]', { recipients, inputExtras, tradeResults, tradeErrors });
+      this.tradeResults = tradeResults;
+      this.cauldronTradePrepErrors = tradeErrors;
+      this.calculatingCauldronTrade = !this.inputExtras.every((inputExtra, index) => {
+        if (!inputExtra.cauldron.enable) return true;
+        return Boolean(this.tradeResults[index]);
+      });
+    },
+    /**
+     * @param {CauldronSendError} error
+     */
+    handleCauldronError(error) {
+      console.debug('CauldronError', error);
+      const isCauldronError = error instanceof CauldronSendError;
+      console.debug('CauldronError', isCauldronError);
+      if (!isCauldronError) throw error;
+
+      const code = error.code;
+      if (code == CauldronSendError.MISSING_RECIPIENT) {
+        // Some recipients have missing address
+        raiseNotifyError(this.$t('EmptyRecipient'));
+      } else if (code == CauldronSendError.INVALID_ADDRESS) {
+        // Some recipients have invalid address
+        raiseNotifyError(this.$t('InvalidAddress'));
+      } else if (code == CauldronSendError.INSUFFICIENT_BALANCE) {
+        // It's either BCH or token that's lacking balance
+        let errorMessage = this.$t('InsufficientBalance');
+        if (error.message) errorMessage += ': ' + error.message;
+        raiseNotifyError(errorMessage);
+      } else if (code == CauldronSendError.INVALID_ASSET) {
+        // Some of the supply or demand asset is not a bch or cashtoken asset
+        raiseNotifyError(this.$t('InvalidAssetError'));
+      } else {
+        // A fallback case for unknown errors
+        let errorMessage = String(error?.message ?? error);
+        if (errorMessage) errorMessage = ': ' + errorMessage;
+        raiseNotifyError(this.$t('UnknownError') + errorMessage);
+      }
+    },
+    getPoolTrackerStatus(index) {
+      if (!this.inputExtras[index]?.cauldron?.enable) return;
+
+      let tokenId = '';
+      if (this.assetId === 'bch') {
+        tokenId = this.inputExtras[index]?.cauldron?.token?.token_id;
+      } else if (this.assetId.startsWith('ct/')) {
+        tokenId = this.assetId.replace('ct/', '');
+      }
+
+      if (!tokenId) return;
+
+      const isSubscribed = this.poolTracker.isSubscribed(tokenId);
+      const isPending = this.poolTracker.isPending(tokenId);
+      const isFetchingFromApi = this.poolTracker.isFetchingPoolsFromApi(tokenId);
+      let status = this.poolTracker.getConnectionState();
+
+      const shouldSubscribe = !isSubscribed && !isPending;
+      let shouldFallback = false;
+
+      // Fallback trigger conditions:
+      if (status === 'disconnected') shouldFallback = true
+      if (status === 'reconnecting') shouldFallback = this.poolTracker.getReconnectAge() > 15_000;
+
+      let statusMessage = '';
+      
+      if (isFetchingFromApi) statusMessage = this.$t('FetchingLiquidityPools');
+      if (status === 'connected' && isPending) statusMessage = this.$t('SubscribingToPoolUpdates');
+      if (status === 'reconnecting') statusMessage = this.$t('PoolTrackerReconnecting');
+      if (status === 'disconnected') statusMessage = this.$t('PoolTrackerDisconnected');
+
+      return { status, shouldFallback, shouldSubscribe, tokenId, statusMessage };
+    },
+    resolveCauldronTradePrepErrorMessageFromIndex(index) {
+      const errorCode = this.cauldronTradePrepErrors[index];
+      if (!errorCode) return '';
+
+      if (errorCode === TradePrepErrorCode.InsufficientLiquidity) {
+        return this.$t('InsufficientLiquidity');
+      }
+
+      if (errorCode === TradePrepErrorCode.MissingPools) {
+        const tokenId = this.assetId === 'bch' ? this.inputExtras[index].cauldron?.token?.token_id : this.assetId.replace('ct/', '');
+        if (this.poolTracker.getSubscribedTokenIds().includes(tokenId)) {
+          return this.$t('NoLiquidity');
+        }
+      }
+
+      if (errorCode === TradePrepErrorCode.InvalidAmount) {
+        if (!this.recipients[index].cauldronAmount) {
+          // Assuming no errors to be consistent with this page's behavior where empty amount shows no error
+          return '';
+        }
+        return this.$t('InvalidAmount');
+      }
+
+      if (errorCode === TradePrepErrorCode.InvalidTrade) {
+        return this.$t('InvalidTradeResultForSend')
+      }
+
+      if (errorCode === TradePrepErrorCode.UnknownError) {
+        return this.$t('UnknownError');
+      }
+
+      return '';
+    },
+
+
     // ========== util methods ==========
     // getters
     currentSendPageCurrency () {
       return this.paymentCurrency ?? this.selectedMarketCurrency
-    },
-    generateKeys (index) {
-      const keys = []
-      keys.push(...Object.entries(this.recipients[index]))
-      keys.push(...Object.entries(this.inputExtras[index]))
-      return keys
     },
 
     // setters
@@ -2045,9 +2406,31 @@ export default {
       return sendPageUtils.convertToFiatAmount(amount, this.selectedAssetMarketPrice)
     },
     adjustWalletBalance () {
-      this.currentWalletBalance = sendPageUtils.adjustWalletBalance(
-        this.asset, this.recipients.map(a => Number(a.amount))
+      const amountsData = this.recipients.map((recipient, index) => {
+        const data = {
+          ...recipient,
+          cauldronEnabled: this.inputExtras[index]?.cauldron?.enable,
+          cauldronTokenId: this.inputExtras[index]?.cauldron?.token?.token_id ,
+        }
+        if (!this.inputExtras[index]?.cauldron?.enable) {
+          data.cauldronAmount = '';
+          data.cauldronTokenId = '';
+        }
+        return data
+      })
+      console.debug('Adjusting wallet balances', amountsData);
+      this.currentWalletBalances = sendPageUtils.adjustWalletBalances(
+        this.asset,
+        amountsData,
       )
+
+      // Auto check balance exceeded when adjusting wallet balances
+      // Exceeded balances are dependent on remaining balances
+      this.inputExtras.forEach((extra, index) => {
+        extra.balanceExceeded =  this.currentWalletBalances[index].balance < 0;
+      })
+
+      console.debug('Wallet balances', this.currentWalletBalances);
     },
 
     // address checking/validation
@@ -2136,30 +2519,29 @@ export default {
           vm.showSendSuccess()
         } else {
           // Redirect to transaction detail with state so it can show tx before watchtower indexes
-          const { query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
+          const { route, query, state } = vm.buildTransactionDetailState(result.txid, { timestamp: vm.txTimestamp })
           vm.$router.push({
-            name: 'transaction-detail',
+            name: route,
             params: { txid: result.txid },
             query,
             state
           })
-        }
-
-        // Handle points in background (non-blocking) – do not delay success feedback
-        if (!vm.assetId?.startsWith?.('ct/')) {
-          Promise.all([
-            processCashinPoints({ bch_address: sendPageUtils.getWallet('bch')?.lastAddress }),
-            processOnetimePoints({
-              bch_address: sendPageUtils.getWallet('bch')?.lastAddress,
-              ref_id: result.txid.substring(0, 6)
-            })
-          ]).then(([cashinResp, onetimePointsResp]) => {
-            if (cashinResp || onetimePointsResp) {
+          
+          // Handle points in background (non-blocking) – do not delay success feedback
+          processMerchantOtcPoints({
+            ref_id: hexToRef(result.txid.substring(0, 6)),
+            tx_id: result.txid,
+            customer_address: sendPageUtils.getWallet('bch')?.lastAddress,
+            merchant_address: this.recipients[0].recipientAddress
+          }).then(resp => {
+            if (resp) {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  hasReceivedCashinPoints: cashinResp,
-                  hasReceivedOneTimePoints: onetimePointsResp
+                  isFirstSevenTx: resp.is_first_seven_tx,
+                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
+                  isMerchantOtcTx: true,
+                  merchantName: resp.merchant_name ?? ''
                 }
               })
             }
@@ -2178,7 +2560,12 @@ export default {
       this.inputExtras[this.currentRecipientIndex].isWalletAddress = isWalletAddress
     },
     decimalObj (isFiat) {
-      return { min: 0, max: isFiat ? 4 : getDenomDecimals(this.selectedDenomination).decimal }
+      if (isFiat) return { min: 0, max: 4 }
+      if (this.assetId === 'bch') {
+        return { min: 0, max: getDenomDecimals(this.selectedDenomination).decimal }
+      }
+      const tokenDecimals = this.asset?.decimals ?? 0
+      return { min: 0, max: tokenDecimals || 8 }
     },
 
     // ========== other wallets methods ==========
@@ -2499,7 +2886,6 @@ export default {
 
   async mounted () {
     const vm = this
-
     vm.updateNetworkDiff()
     
     // Check if asset data was passed from select-asset page
@@ -2593,6 +2979,11 @@ export default {
         // Best-effort: load CT metadata so decimals/name/logo are accurate for deep links.
         if (vm.assetId?.startsWith?.('ct/')) {
           vm.$store.dispatch('assets/getAssetMetadata', vm.assetId)
+            .then(metadata => {
+              if (metadata && Number.isFinite(metadata.decimals)) {
+                vm.asset = { ...vm.asset, decimals: metadata.decimals, symbol: metadata.symbol || vm.asset.symbol, name: metadata.name || vm.asset.name, logo: metadata.logo || vm.asset.logo }
+              }
+            })
             .catch(() => {}) // best-effort only
         }
       } catch (e) {
@@ -2674,6 +3065,8 @@ export default {
     if (container) {
       container.removeEventListener('scroll', this.handleScroll)
     }
+
+    this.poolTracker.cleanup();
   },
 
   created () {

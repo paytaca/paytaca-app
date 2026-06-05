@@ -129,6 +129,10 @@ module.exports = defineConfig((ctx) => {
         if (cfg?.output?.publicPath && !cfg?.output?.publicPath.endsWith('/')) {
           cfg.output.publicPath += '/'
         }
+        
+        if (ctx.mode?.capacitor || ctx.mode?.cordova) {
+          cfg.output.publicPath = 'auto'
+        }
 
         cfg.module.rules.push({
           test: /\.cash$/, // Adjust the file extension as needed
@@ -250,7 +254,14 @@ module.exports = defineConfig((ctx) => {
         type: 'http', // https | http
       },
       port: 9000,
-      open: true // opens browser window automatically
+      open: true, // opens browser window automatically
+      client: {
+        overlay: {
+          errors: false,
+          warnings: false,
+          runtimeErrors: false
+        }
+      }
     },
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework

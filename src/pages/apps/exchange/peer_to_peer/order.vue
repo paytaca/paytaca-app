@@ -1,5 +1,5 @@
 <template>
-    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/orders" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="getBackNavigationPath" class="header-nav" />
     
     <!-- Skeleton Loader -->
     <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
@@ -493,6 +493,8 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
+import { processRampCashinPoints } from 'src/utils/engagementhub-utils/rewards'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 export default {
   data () {
@@ -553,6 +555,7 @@ export default {
       showStatusHistory: false,
       noticeType: 'info',
       showNoticeDialog: false,
+      rewardNotified: false,
 
       // Tabs
       activeTab: 'details',
@@ -750,27 +753,38 @@ export default {
       // If there is a closure timestamp, only allow sending during the grace period.
       return this.isChatEnabled && this.chatGraceCountdownActive
     },
-    headerTitle () {
-      switch (this.state) {
-        case 'order-confirm-decline':
-        case 'standby-view':
-          if (this.order?.status?.value === 'CNF') {
-            return 'Escrow Pending'
-          } else {
-            const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
-            // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
-            return formattedStatus || this.order?.status?.label || ''
-          }
-        case 'escrow-bch':
-          return 'Escrow bch'
-        case 'tx-confirmation':
-          return `verifying ${this.verifyAction}`
-        case 'payment-confirmation':
-          return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
-        default:
-          return ''
-      }
-    },
+     headerTitle () {
+       switch (this.state) {
+         case 'order-confirm-decline':
+         case 'standby-view':
+           if (this.order?.status?.value === 'CNF') {
+             return 'Escrow Pending'
+           } else {
+             const formattedStatus = this.formatOrderStatus(this.order?.status?.value)
+             // Fallback to label if formatOrderStatus returns empty (unknown status) or if status value is missing
+             return formattedStatus || this.order?.status?.label || ''
+           }
+         case 'escrow-bch':
+           return 'Escrow bch'
+         case 'tx-confirmation':
+           return `verifying ${this.verifyAction}`
+         case 'payment-confirmation':
+           return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
+         default:
+           return ''
+       }
+     },
+getBackNavigationPath () {
+        console.log('Source param:', this.$route.query.source)
+        // If we came from the home page (pending orders), go back there
+        if (this.$route.query.source === 'home') {
+          console.log('Routing back to home page with name: transaction-index')
+          return { name: 'transaction-index' }
+        }
+        // Default back path to orders list
+        console.log('Routing back to orders list')
+        return '/apps/exchange/peer-to-peer/orders'
+      },
     escrowTransferData () {
       return {
         order: this.order,
@@ -2183,7 +2197,33 @@ export default {
           break
         }
         case 'RFN': // Refunded
-        case 'RLS': // Released
+          this.clearStoredTxids(this.order?.id)
+          state = this.getDefaultState()
+          this.reloadChildComponents()
+          break
+        case 'RLS': // Released - Order completed successfully
+          // Trigger reward API for buyer only
+          if (this.userTraderType === 'BUYER' && !this.rewardNotified) {
+            const buyerAddress = this.contract?.addresses?.buyer
+            const txid = this.$store.getters['ramp/getOrderTxid'](this.order.id, 'RELEASE')
+            
+            if (buyerAddress && txid) {
+              const pointsResp = await processRampCashinPoints({
+                bch_address: buyerAddress,
+                is_ramp: true,
+                ref_id: hexToRef(txid.substring(0, 6)),
+                tx_id: txid
+              })
+
+              if (pointsResp) {
+                this.rewardNotified = true
+                this.noticeType = 'success'
+                this.errorMessage = 'Congratulations!<br><br>You have earned points for this P2P Ramp purchase!<br><br>Check your points balance in the Rewards app.'
+                this.showNoticeDialog = true
+              }
+            }
+          }
+          
           this.clearStoredTxids(this.order?.id)
           state = this.getDefaultState()
           this.reloadChildComponents()

@@ -5,73 +5,54 @@
     :style="{bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))'}"
   >
     <div class="col row justify-evenly footer-btn-container q-ml-sm q-mr-sm q-gutter-xs">
-      <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ path: '/' }">
-          <q-icon class="default-text-color mb-2" size="30px">
-            <svg>
-              <use xlink:href="app-home.svg#icon"></use>
-            </svg>
-          </q-icon>
-        </router-link>
-        <br>
-        <span 
-          id="home-button"
-          @click="$router.push('/')">{{ $t('Home') }}</span>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push('/')">
+        <div class="default-text-color footer-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <span id="home-button">{{ $t('Home') }}</span>
       </button>
-      <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'transaction-list', query: { assetID: 'all' } }">
-          <q-icon name="receipt_long" class="default-text-color mb-2" size="30px">
-            <!-- <svg>
-              <use xlink:href="app-send.svg#icon"></use>
-            </svg> -->
-          </q-icon>
-        </router-link>
-        <br>
-        <span 
-          id="send-button"
-          @click="$router.push({ name: 'transaction-list', query: { assetID: 'all' } })">TX</span>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'transaction-list', query: { assetID: 'all' } })">
+        <div class="default-text-color footer-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2z"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="13" y2="12"/></svg>
+        </div>
+        <span id="send-button">TX</span>
       </button>
       <div style="width: 50px;"></div>
-      <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'apps-dashboard' }">
-          <q-icon class="default-text-color mb-2" size="30px">
-            <svg>
-              <use xlink:href="apps.svg#icon"></use>
-            </svg>
-          </q-icon>
-        </router-link>
-        <br>
-        <span 
-          id="apps-button"
-          @click="$router.push({ name: 'apps-dashboard' })" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'apps-dashboard' })">
+        <div class="default-text-color footer-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <span id="apps-button" class="ellipsis-2-lines">{{ $t('Apps') }}</span>
       </button>
-      <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'app-settings' }">
-          <q-icon name="settings" class="default-text-color mb-2" size="30px">
-          </q-icon>
-        </router-link>
-        <br>
-        <span 
-          id="settings-button"
-          @click="$router.push({ name: 'app-settings' })">{{ $t('Settings') }}</span>
+      <button class="footer-icon-btn" :class="getDarkModeClass()" @click="$router.push({ name: 'app-settings' })">
+        <div class="default-text-color footer-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <span id="settings-button">{{ $t('Settings') }}</span>
       </button>
     </div>
 
     <div id="qr-button" @click="$router.push({ name: 'qr-reader' })">
       <button class="footer-icon-btn" :class="getDarkModeClass()">
-        <router-link :to="{ name: 'qr-reader' }">
-          <q-icon class="default-text-color" size="30px">
-            <svg>
-              <use xlink:href="app-qr.svg#icon"></use>
-            </svg>
-          </q-icon>
-        </router-link>
+        <div class="default-text-color footer-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="4" height="4" rx="0.5"/><line x1="22" y1="14" x2="22" y2="18"/><line x1="18" y1="22" x2="22" y2="22"/><line x1="22" y1="22" x2="22" y2="18"/><line x1="18" y1="14" x2="22" y2="14"/><rect x="5" y="5" width="2" height="2" rx="0.25"/><rect x="17" y="5" width="2" height="2" rx="0.25"/><rect x="5" y="17" width="2" height="2" rx="0.25"/></svg>
+        </div>
       </button>
-      <br>
-      <span 
+      <span
         id="qr-reader-button"
-        :class="getDarkModeClass()" @click="$router.push({ name: 'qr-reader' })">{{ 'QR' }}</span>
+        :class="getDarkModeClass()">{{ 'QR' }}</span>
     </div>
+
+    <transition name="chat-pop">
+      <div v-if="totalUnreadCount > 0" class="floating-chat-icon" :class="getDarkModeClass()" @click.stop="$router.push({ name: 'app-chat', query: { from: 'home' } })">
+        <div class="chat-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <span class="chat-badge">{{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}</span>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -84,6 +65,15 @@ export default {
       lastScrollY: 0,
       isFooterHidden: false,
       scrollThreshold: 50
+    }
+  },
+  computed: {
+    totalUnreadCount () {
+      try {
+        return this.$store.getters['nostrChat/getTotalUnreadCount'] || 0
+      } catch (e) {
+        return 0
+      }
     }
   },
   methods: {
@@ -185,21 +175,18 @@ export default {
       justify-content: center;
       gap: 2px;
 
-      a {
+      .footer-icon-wrap {
         display: flex;
-        justify-content: center;
         align-items: center;
-        width: 100%;
-        color: inherit;
-        text-decoration: none;
-      }
+        justify-content: center;
+        width: 24px;
+        height: 24px;
 
-      br {
-        display: none;
-      }
-
-      :deep(.q-icon) {
-        line-height: 1;
+        svg {
+          width: 24px;
+          height: 24px;
+          display: block;
+        }
       }
 
       span {
@@ -210,7 +197,7 @@ export default {
         font-size: 11px;
         line-height: 1.15;
         white-space: normal;
-        overflow-wrap: break-word; // only breaks long words when needed
+        overflow-wrap: break-word;
         word-break: normal;
       }
     }
@@ -250,21 +237,19 @@ export default {
       align-items: center;
       justify-content: center;
       padding: 0;
-      
-      a {
+
+      .footer-icon-wrap {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-      
-      :deep(.q-icon) {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        margin: 0;
+        width: 24px;
+        height: 24px;
+
+        svg {
+          width: 24px;
+          height: 24px;
+          display: block;
+        }
       }
     }
     button {
@@ -278,9 +263,6 @@ export default {
       justify-content: center;
       padding: 0;
     }
-    br {
-      display: none;
-    }
     span {
       font-size: 12px;
     }
@@ -293,5 +275,115 @@ export default {
     transform: translateX(-50%) translateY(120px);
     opacity: 0;
     pointer-events: none;
+  }
+
+  .floating-chat-icon {
+    position: absolute;
+    z-index: 99;
+    right: 16px;
+    bottom: 75px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--q-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    animation: chat-attention 4s ease-in-out infinite;
+
+    .chat-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+
+      svg {
+        width: 22px;
+        height: 22px;
+        display: block;
+      }
+    }
+
+    .chat-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      background: #ff4444;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    &:active {
+      transform: scale(0.9);
+    }
+  }
+
+  .floating-chat-icon.dark {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .chat-pop-enter-active {
+    animation: chat-pop-in 0.25s ease-out;
+  }
+  .chat-pop-leave-active {
+    animation: chat-pop-in 0.2s ease-in reverse;
+  }
+
+  @keyframes chat-pop-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    70% {
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes chat-attention {
+    0%, 60% {
+      transform: rotate(0deg) scale(1);
+    }
+    62% {
+      transform: rotate(-8deg) scale(1.08);
+    }
+    64% {
+      transform: rotate(8deg) scale(1.08);
+    }
+    66% {
+      transform: rotate(-6deg) scale(1.08);
+    }
+    68% {
+      transform: rotate(6deg) scale(1.08);
+    }
+    70% {
+      transform: rotate(-3deg) scale(1.08);
+    }
+    72% {
+      transform: rotate(3deg) scale(1.05);
+    }
+    74% {
+      transform: rotate(0deg) scale(1);
+    }
+    100% {
+      transform: rotate(0deg) scale(1);
+    }
   }
 </style>

@@ -1,5 +1,6 @@
 // import { WalletConnectionManager } from '@wizardconnect/wallet'
 import { mnemonicToSeedSync } from 'bip39'
+import { toUint8Array, toBigInt } from '@wizardconnect/core'
 import {
   deriveHdPrivateNodeFromSeed,
   deriveHdPrivateNodeChild,
@@ -13,7 +14,7 @@ import {
   decodeTransaction,
 } from 'bitauth-libauth-v3'
 import { getMnemonic } from 'src/wallet/index'
-import { parseExtendedJson, signBchTransaction } from 'src/wallet/bch-sign'
+import { signBchTransaction } from 'src/wallet/bch-sign'
 
 const seedCache = new Map()
 const relayKeyCache = new Map()
@@ -30,7 +31,7 @@ function getPrefix() {
   return _isChipnet ? 'bchtest' : 'bitcoincash'
 }
 
-async function ensureHdNodes() {
+export async function ensureHdNodes() {
   if (_hdNodes) return _hdNodes
 
   const mnemonic = await getMnemonic(_walletIndex)
@@ -61,7 +62,7 @@ function getHdChainForIndex(nodes, childIndex) {
 function createAdapter(nodes) {
   return {
     walletName: 'Paytaca',
-    walletIcon: 'https://www.paytaca.com/paytaca-icon.png',
+    walletIcon: 'https://www.paytaca.com/favicon.png',
 
     getRelayPrivateKey(uri) {
       const cacheKey = uri
@@ -148,9 +149,9 @@ export function reset() {
   _hdNodes = null
 }
 
-export function connect(uri) {
-  if (!_manager) throw new Error('Manager not initialized')
-  return _manager.connect(uri)
+export async function connect(uri) {
+  const manager = await getManager()
+  return manager.connect(uri)
 }
 
 export function disconnect(connectionId) {
@@ -167,13 +168,96 @@ export function disconnectAll() {
 }
 
 export async function sendSignResponse(connectionId, sequence, signedTxHex) {
-  if (!_manager) throw new Error('Manager not initialized')
-  await _manager.sendSignResponse(connectionId, sequence, signedTxHex)
+  const manager = await getManager()
+  await manager.sendSignResponse(connectionId, sequence, signedTxHex)
 }
 
 export async function sendSignError(connectionId, sequence, errorMessage) {
-  if (!_manager) throw new Error('Manager not initialized')
-  await _manager.sendSignError(connectionId, sequence, errorMessage)
+  const manager = await getManager()
+  await manager.sendSignError(connectionId, sequence, errorMessage)
+}
+
+/**
+ * Hydrate a source output from the wire per the hdwalletv1 spec.
+ *
+ * Uint8Array fields may arrive as plain hex strings (emitted by the reference
+ * sourceOutputToRelay serializer) or as extended JSON (`<Uint8Array: 0x...>`).
+ * BigInts arrive as extended JSON (`<bigint: Xn>`). The toUint8Array
+ * helper from @wizardconnect/core handles Uint8Array deserialization.
+ * BigInt values are parsed using toBigInt from @wizardconnect/core.
+ *
+ * Zero-length placeholder unlockingBytecode is dropped — downstream compiler
+ * logic treats an absent property as a placeholder.
+ */
+function hydrateSourceOutput(so) {
+  const hasUnlocking =
+    so.unlockingBytecode !== undefined &&
+    so.unlockingBytecode !== '' &&
+    so.unlockingBytecode?.length !== 0
+  return {
+    outpointTransactionHash: toUint8Array(so.outpointTransactionHash),
+    outpointIndex: so.outpointIndex,
+    sequenceNumber: so.sequenceNumber,
+    valueSatoshis: toBigInt(so.valueSatoshis),
+    lockingBytecode: toUint8Array(so.lockingBytecode),
+    ...(hasUnlocking && { unlockingBytecode: toUint8Array(so.unlockingBytecode) }),
+    ...(so.token && { token: hydrateToken(so.token) }),
+    ...(so.contract && { contract: hydrateContract(so.contract) }),
+  }
+}
+
+function hydrateToken(token) {
+  return {
+    category: toUint8Array(token.category),
+    amount: toBigInt(token.amount),
+    ...(token.nft && { nft: hydrateNft(token.nft) }),
+  }
+}
+
+function hydrateNft(nft) {
+  return {
+    ...(nft.capability !== undefined && { capability: nft.capability }),
+    ...(nft.commitment !== undefined && { commitment: toUint8Array(nft.commitment) }),
+  }
+}
+
+/**
+ * Hydrate a raw contract field from a sign request source output.
+ *
+ * Part of WcSignTransactionRequest (@bch-wc2/interfaces), carried inside the
+ * WizardConnect sign_transaction_request message.
+ * Protocol: https://gitlab.com/riftenlabs/lib/wizardconnect/-/blob/master/docs/protocol.md
+ *
+ * Present on source outputs that are contract UTXOs (e.g. a Cauldron pool) rather
+ * than plain P2PKH outputs. The libauth transaction compiler needs all three fields
+ * to reconstruct and sign contract input, a partial or invalid object throws.
+ * Returns undefined when absent so callers can spread the result conditionally.
+ *
+ * abiFunction: { name: string, inputs: AbiInput[] } is passed through as-is.
+ * redeemScript: hex string or Uint8Array (extended JSON `<Uint8Array: 0x...>` also accepted).
+ * artifact: plain object is passed through as-is.
+ */
+function hydrateContract(contract) {
+  if (!contract) return undefined
+  if (typeof contract !== 'object' || Array.isArray(contract)) {
+    throw new Error(`hydrateContract: expected plain object, got ${Array.isArray(contract) ? 'array' : typeof contract}`)
+  }
+
+  const { abiFunction, redeemScript, artifact } = contract
+
+  if (typeof abiFunction !== 'object' || Array.isArray(abiFunction) || abiFunction === null || typeof abiFunction.name !== 'string' || !abiFunction.name.trim()) {
+    throw new Error(`hydrateContract: abiFunction must be an object with a non-empty name string`)
+  }
+  if ((typeof redeemScript !== 'string' && !(redeemScript instanceof Uint8Array)) || redeemScript.length === 0) {
+    throw new Error(`hydrateContract: redeemScript must be a non-empty string or Uint8Array, got ${
+      typeof redeemScript === 'string' || redeemScript instanceof Uint8Array ? 'empty' : typeof redeemScript
+    }`)
+  }
+  if (typeof artifact !== 'object' || Array.isArray(artifact) || artifact === null) {
+    throw new Error(`hydrateContract: artifact must be a plain object`)
+  }
+
+  return { abiFunction, redeemScript: toUint8Array(redeemScript), artifact }
 }
 
 /**
@@ -186,18 +270,7 @@ export async function signRequest(request) {
   const transaction = decodeTransaction(hexToBin(txHex))
   if (typeof transaction === 'string') throw new Error('Failed to decode transaction: ' + transaction)
 
-  // sourceOutputs may contain extended JSON strings like "<Uint8Array: 0x...>" and "<bigint: ...>"
-  // Always re-stringify then parse to ensure proper deserialization of binary/bigint values
-  const rawSourceOutputs = parseExtendedJson(JSON.stringify(request.transaction.sourceOutputs))
-
-  // Strip only zero-length placeholder unlockingBytecode; preserve CashScript template data
-  const sourceOutputs = rawSourceOutputs.map(so => {
-    if (so.unlockingBytecode && so.unlockingBytecode.length === 0) {
-      const { unlockingBytecode, ...rest } = so
-      return rest
-    }
-    return so
-  })
+  const sourceOutputs = request.transaction.sourceOutputs.map(hydrateSourceOutput)
 
   const prefix = getPrefix()
 

@@ -18,6 +18,7 @@ import com.paytaca.app.plugins.PushNotificationSettingsPlugin;
 import com.paytaca.app.plugins.DeepLinkHelperPlugin;
 import com.paytaca.app.plugins.SaveToGalleryPlugin;
 import com.paytaca.app.plugins.ScreenshotSecurityPlugin;
+import com.paytaca.app.plugins.AudioModePlugin;
 
 public class MainActivity extends BridgeActivity {
   @Override
@@ -27,6 +28,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(DeepLinkHelperPlugin.class);
     registerPlugin(SaveToGalleryPlugin.class);
     registerPlugin(ScreenshotSecurityPlugin.class);
+    registerPlugin(AudioModePlugin.class);
 
     // CapacitorV3 to V4 upgrade required to move this after registerPlugin()
     super.onCreate(savedInstanceState);

@@ -44,3 +44,20 @@ export function clearCallRequests (state) {
 export function setAddressDisplayFormatSetting (state, addressDisplayFormat /* 'tokenaddr' | 'cashaddr'*/) {
   state.settings.addressDisplayFormat = addressDisplayFormat
 }
+
+/**
+ * Set session requests (sign/transaction requests) for display on home page
+ * @param {Object} state
+ * @param {Array} requests - Array of session request objects
+ */
+export function setSessionRequests (state, requests) {
+  state.sessionRequests = requests || []
+}
+
+/**
+ * Clear all session requests (used on wallet/network switch)
+ * @param {Object} state
+ */
+export function clearSessionRequests (state) {
+  state.sessionRequests = []
+}

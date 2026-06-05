@@ -30,7 +30,6 @@ export default function () {
     autoGenerateAddress: true,
     enableStablhedge: false,
     enableSLP: false,
-    enableSmartBCH: false, // SmartBCH is deprecated and forcibly disabled
     wallets: {
       bch: {
         walletHash: '',
@@ -143,6 +142,7 @@ export default function () {
      * isUnlocked tracks if user has successfully authenticated in current session
      * Not persisted to localStorage
      */
-    isUnlocked: false
+    isUnlocked: false,
+    previousRoute: null
   }
 }

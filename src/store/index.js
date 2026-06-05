@@ -18,6 +18,7 @@ import stablehedge from './stablehedge'
 import multisig from './multisig'
 import subscription from './subscription'
 import wizardconnect from './wizardconnect'
+import nostrChat from './nostr-chat'
 import card from './card'
 
 // const vuexLocal = new VuexPersistence({
@@ -288,6 +289,7 @@ export const Store = createStore({
     multisig,
     subscription,
     wizardconnect,
+    nostrChat,
     card
   },
 

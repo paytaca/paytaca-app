@@ -205,7 +205,7 @@ export default {
         })
     },
     async getTransactions (page = 1, opts = { scrollToBottom: false, txSearchReference: null, txids: null, append: false }) {
-      // SmartBCH support removed
+    // Legacy network-specific references removed; using BCH endpoints and unified asset handling
       return this.getBchTransactions(page, opts)
     },
     getBchTransactions (page, opts = { scrollToBottom: false, append: false }) {
