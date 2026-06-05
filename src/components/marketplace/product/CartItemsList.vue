@@ -79,7 +79,7 @@
           <div v-else style="white-space: nowrap;"> x {{ cartItem?.quantity }}</div>
         </div>
         <div class="col-3 q-pa-xs text-right">
-          {{ round(cartItem?.variant?.markupPrice * cartItem.quantity, 2) }} {{ currency }}
+          {{ formatPrice(cartItem?.finalAmount) }} {{ currency }}
         </div>
       </div>
       <div v-if="cartItem?.addons?.length" class="text-grey q-pl-lg">{{ $t('Addons') }}:</div>
@@ -104,7 +104,7 @@
 </template>
 <script>
 import { Cart, CartItem } from 'src/marketplace/objects'
-import { round } from 'src/marketplace/utils';
+import { formatPrice, round } from 'src/marketplace/utils';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils';
 import { useStore } from 'vuex';
 import { debounce, useQuasar } from 'quasar';
@@ -186,6 +186,7 @@ export default defineComponent({
       removeItemConfirm,
 
       round,
+      formatPrice,
       getDarkModeClass,
     }
   }
