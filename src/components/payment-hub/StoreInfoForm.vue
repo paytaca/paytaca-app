@@ -125,7 +125,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useStore } from 'vuex'
 
 const props = defineProps({
   storeData: {
@@ -136,14 +137,15 @@ const props = defineProps({
 
 const $emit = defineEmits(['cancel', 'saved'])
 
+const $store = useStore()
 const formRef = ref(null)
 
-const currencyOptions = [
-  { label: 'USD', value: 'USD' },
-  { label: 'PHP', value: 'PHP' },
-  { label: 'BCH', value: 'BCH' },
-  { label: 'EUR', value: 'EUR' }
-]
+const currencyOptions = computed(() => {
+  return $store.getters['market/currencyOptions'].map(c => ({
+    label: `${String(c.symbol).toUpperCase()} - ${c.name}`,
+    value: String(c.symbol).toUpperCase()
+  }))
+})
 
 const form = reactive({
   name: '',
@@ -157,6 +159,9 @@ const form = reactive({
 })
 
 onMounted(() => {
+  // Ensure currency options are loaded
+  $store.dispatch('market/updateSupportedCurrencies', { force: false })
+
   if (props.storeData) {
     Object.keys(form).forEach(key => {
       if (key === 'logo') {
