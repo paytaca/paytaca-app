@@ -39,7 +39,7 @@
       </div>
 
       <div class="row items-start justify-start q-mb-md">
-        <!--<div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
+        <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <q-skeleton height="200px" />
             <q-card-section class="q-py-sm">
@@ -47,9 +47,9 @@
               <q-skeleton type="text" width="40%" class="q-mt-xs" />
             </q-card-section>
           </q-card>
-        </div>-->
+        </div>
 
-        <div v-for="auction in filteredItems" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+        <div v-else v-for="auction in filteredItems" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
