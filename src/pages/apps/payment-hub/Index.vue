@@ -73,8 +73,8 @@
                 />
               </div>
 
-              <div class="col">
-                <div class="text-h6 text-weight-medium">{{ store.name }}</div>
+              <div class="col overflow-hidden">
+                <div class="text-h6 text-weight-medium ellipsis">{{ store.name }}</div>
                 <div class="text-caption text-grey">ID: #{{ store.id }}</div>
               </div>
 

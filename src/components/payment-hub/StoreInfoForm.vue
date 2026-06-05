@@ -159,6 +159,12 @@ const form = reactive({
 onMounted(() => {
   if (props.storeData) {
     Object.keys(form).forEach(key => {
+      if (key === 'logo') {
+        // Never populate the file picker (form.logo) with a string URL
+        // form.logo should only ever be a File or null
+        return
+      }
+
       if (key === 'logo_url') {
         // 'logo_url' is write-only. We populate our input from the 
         // returned 'logo' field if it looks like an external URL.
@@ -177,9 +183,16 @@ async function onSubmit() {
   if (isValid) {
     const result = { ...props.storeData, ...form }
     
-    // Clean up to ensure we don't send empty strings or nulls
-    if (!form.logo) delete result.logo
-    if (!form.logo_url) delete result.logo_url
+    // Strict separation: 
+    // 1. 'logo' must be a File object if present
+    if (!(form.logo instanceof File)) {
+      delete result.logo
+    }
+
+    // 2. 'logo_url' must be a non-empty string if present
+    if (!form.logo_url) {
+      delete result.logo_url
+    }
     
     $emit('saved', result)
   }

@@ -14,15 +14,20 @@
     <div class="q-pa-md" :class="darkMode ? 'bg-grey-9' : 'bg-grey-1'">
       <div class="row items-center q-col-gutter-md">
         <div class="col-auto">
-          <q-avatar size="100px" rounded class="bg-white shadow-2">
+          <q-avatar size="100px" rounded>
             <q-img v-if="storeData?.logo" :src="storeData.logo" fit="contain" />
             <q-img v-else src="~assets/paytaca_payment_hub_logo.png" fit="contain" />
           </q-avatar>
         </div>
-        <div class="col">
-          <div class="row items-center">
-            <div class="text-h5 text-weight-bold">{{ storeData?.name || storeName }}</div>
-            <q-btn flat round dense icon="edit" size="sm" class="q-ml-sm text-grey" @click="editStore" />
+        <div class="col overflow-hidden">
+          <div class="row items-center no-wrap">
+            <div class="text-h5 text-weight-bold ellipsis">
+              {{ storeData?.name || storeName }}
+              <q-tooltip v-if="(storeData?.name || storeName)?.length > 20">
+                {{ storeData?.name || storeName }}
+              </q-tooltip>
+            </div>
+            <q-btn flat round dense icon="edit" size="sm" class="q-ml-sm text-grey flex-shrink-0" @click="editStore" />
           </div>
           <div class="text-caption text-grey">ID: {{ storeId }}</div>
           
