@@ -16,60 +16,27 @@
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row items-center q-pa-sm">
+      <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">Auctions</div>
-        <q-btn
-          flat
-          rounded
-          icon="settings"
-          padding="xs"
-          size="sm"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-        />
+        <q-select
+          outlined
+          dense
+          v-model="auctionType"
+          :options="auctionTypeOptions"
+          emit-value
+          map-options
+          autocomplete="off"
+          color="pt-primary1"
+          debounce="500"
+          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          class="q-ml-sm"
+          style="width: 135px;"
+        >
+          <template v-slot:prepend>
+            <q-icon name="filter_list" size="xs" />
+          </template>
+        </q-select>
         <q-space/>
-      </div>
-
-      <div class="q-mx-xs q-mb-md row items-center justify-around gap-sm">
-        <q-btn
-          :outline="selectedAuctionType !== 'English'"
-          :color="selectedAuctionType == 'English' ? 'pt-primary1' : ''"
-          color="pt-primary1"
-          rounded
-          padding="sm md"
-          no-caps
-          icon="gavel"
-          label="English Auction"
-          style="min-width:150px;"
-          @click="filterAuctionItems('English')"
-        />
-        
-        <q-btn
-          :outline="selectedAuctionType !== 'Dutch'"
-          :color="selectedAuctionType == 'Dutch' ? 'pt-primary1' : ''"
-          color="pt-primary1"
-          rounded
-          padding="sm md"
-          no-caps
-          icon="gavel"
-          label="Dutch Auction"
-          style="min-width:150px;"
-          @click="filterAuctionItems('Dutch')"
-        />
-      </div>
-      <div class="flex justify-center q-mb-md">
-        <q-btn
-          :outline="selectedAuctionType !== 'All'"
-          :color="selectedAuctionType == 'All' ? 'pt-primary1' : ''"
-          color="pt-primary1"
-          rounded
-          padding="sm md"
-          no-caps
-          icon="gavel"
-          label="All Auctions"
-          style="min-width:150px;"
-          @click="filterAuctionItems('All')" 
-        />
       </div>
 
       <div class="row items-start justify-start q-mb-md">
@@ -131,7 +98,7 @@
 import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -142,6 +109,9 @@ import noImage from 'src/assets/no-image.svg'
 const $q = useQuasar()
 const $store = useStore()
 
+const auctionType = ref($store.state.auction?.filters?.auctionType || 'All');
+const auctionTypeOptions = ['English', 'Dutch', 'All']
+
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = computed(() => $store.state.auction?.isLoading || false)
 const selectedAuctionType = computed(() => $store.state.auction?.filters?.auctionType || 'All')
@@ -149,9 +119,9 @@ const filteredItems = computed(() => $store.getters['auction/processedItems'])
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 
-const filterAuctionItems = (type = 'All') => {
-  $store.dispatch('auction/filterAuctionItems', type)
-}
+watch(auctionType, (newType) => {
+  $store.dispatch('auction/filterAuctionItems', newType)
+})
 
 const refresh = async (done) => {
   await $store.dispatch('auction/refreshCatalog')

@@ -42,57 +42,27 @@
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row items-center q-pa-sm">
+      <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">Lot Items</div>
-        <q-btn
-          flat
-          rounded
-          icon="settings"
-          padding="xs"
-          size="sm"
-          class="button button-text-primary"
-          :class="getDarkModeClass(darkMode)"
-          @click="() => openStorefrontListOptsForm()"
-        />
-        <q-space/>
+        <q-select
+          outlined
+          dense
+          v-model="lotType"
+          :options="lotTypeOptions"
+          emit-value
+          map-options
+          autocomplete="off"
+          color="pt-primary1"
+          debounce="500"
+          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          class="q-ml-sm"
+          style="width: 135px;"
+        >
+          <template v-slot:prepend>
+            <q-icon name="filter_list" size="xs" />
+          </template>
+        </q-select>
       </div>
-      <div class="q-mx-xs q-mb-md row items-center justify-around">
-        <!--CHANGE THE ICONS WITHIN THE FILTER BUTTONS-->
-        <q-btn
-          rounded
-          padding="xs md"
-          no-caps label="Physical"
-          icon="delivery_dining"
-          style="min-width:100px;"
-          :outline="selectedLotType !== 'Physical'"
-          :color="selectedLotType == 'Physical' ? 'pt-primary1' : ''"
-          color="pt-primary1"
-          @click="filterLotItems('Physical')"
-        />
-        <q-btn
-          rounded
-          padding="xs md"
-          no-caps label="Digital"
-          icon="computer"
-          style="min-width:100px;"
-          :outline="selectedLotType !== 'Digital'"
-          :color="selectedLotType == 'Digital' ? 'pt-primary1' : ''"
-          color="pt-primary1"
-          @click="filterLotItems('Digital')"
-        />
-        <q-btn
-          rounded
-          padding="xs md"
-          no-caps label="All"
-          icon="filter_list_off"
-          style="min-width:50px;"
-          :outline="selectedLotType !== 'All'"
-          :color="selectedLotType == 'All' ? 'pt-primary1' : ''"
-          color="pt-primary1"
-          @click="filterLotItems('All')"
-        />
-      </div>
-
 
       <div>        
         <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
@@ -176,7 +146,6 @@ import { useRoute } from 'vue-router'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
-import { consolidateToReserveUtxo } from 'src/wallet/stablehedge/transaction'
 
 const props = defineProps({
   auctionId: {
@@ -195,7 +164,8 @@ const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
 
-const selectedLotType = ref('All')
+const lotType = ref('All')
+const lotTypeOptions = ['Physical', 'Digital', 'All']
 
 const auction = computed(() => {
   const listings = $store.getters['auction/processedItems'] || []
@@ -210,8 +180,8 @@ const filteredLots = computed(() => {
   
   let targetLots = auction.value.lots
   
-  if (selectedLotType.value !== 'All') {
-    targetLots = targetLots.filter(lot => lot.category === selectedLotType.value)
+  if (lotType.value !== 'All') {
+    targetLots = targetLots.filter(lot => lot.category === lotType.value)
   }
   
   if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
@@ -228,10 +198,6 @@ const filteredLots = computed(() => {
 
   return targetLots
 })
-
-const filterLotItems = (type) => {
-  selectedLotType.value = type
-}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
