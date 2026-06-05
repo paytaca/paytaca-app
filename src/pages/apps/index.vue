@@ -196,7 +196,7 @@ export default {
           path: '/apps/auction',
           iconStyle: 'width:100%; height: 100%;',
           active: !this.$store.getters['global/isChipnet'],
-          //beta: true
+          beta: true
         },
         {
           id: 'eload-service',
