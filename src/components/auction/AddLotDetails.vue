@@ -288,8 +288,7 @@ const addLot = () => {
   
   lotName.value = ''
   estimatedPrice.value = null
-  priceFloor.value = null
-  priceCeiling.value = null
+  priceThreshold.value = null
   priceDrop.value = 0.0005
   lotImages.value = []
 }
