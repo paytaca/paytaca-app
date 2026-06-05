@@ -113,7 +113,7 @@
               
               <div class="row items-center text-caption no-wrap q-mb-xs">
                 <q-icon name="location_on" size="xs" class="q-mr-xs" />
-                <div class="ellipsis">{{ auction.location }}</div>
+                <div class="ellipsis">{{ auction.location || "None" }}</div>
               </div>
 
               <div class="text-caption">
@@ -131,7 +131,7 @@
 import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
+import { computed } from 'vue'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -141,65 +141,21 @@ import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
 const $store = useStore()
+
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
-const auctionDetails = [
-  {
-    id: 1,
-    title: "Prime Commercial Lot - Downtown Area",
-    location: "Tacloban City, Leyte",
-    type: "English",
-    startDate: "2026-05-28",
-    endDate: "2026-07-01",
-  },
-  {
-    id: 2,
-    title: "Heavy Construction Equipment Surplus (Excavators & Trucks)",
-    location: "Ormoc City, Leyte",
-    type: "Dutch",
-    startDate: "2026-06-15",
-    endDate: "2026-06-22",
-  },
-  {
-    id: 3,
-    title: "Vintage Luxury Watch Collection (Rolex, Omega, Patek)",
-    location: "Metro Manila",
-    type: "English",
-    startDate: "2026-05-01",
-    endDate: "2026-05-15",
-  },
-  {
-    id: 4,
-    title: "Sealed Container of Mixed Electronic Goods & Laptops",
-    location: "Cebu City, Cebu",
-    type: "Dutch",
-    startDate: "2026-05-25",
-    endDate: "2026-06-05",
-  },
-  {
-    id: 5,
-    title: "Agricultural Tractors and Milling Machinery",
-    location: "Baybay City, Leyte",
-    type: "English",
-    startDate: "2026-07-10",
-    endDate: "2026-07-20",
-  }
-]
-
-let filteredItems = ref([...auctionDetails])
-const selectedAuctionType = ref('All')
+const isLoading = computed(() => $store.state.auction?.isLoading || false)
+const selectedAuctionType = computed(() => $store.state.auction?.filters?.auctionType || 'All')
+const filteredItems = computed(() => $store.getters['auction/processedItems'])
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 
-const filterAuctionItems = (type='All') => {
-  filteredItems.value = (type === 'All') ? [...auctionDetails] : [...auctionDetails].filter(auction => auction.type === type)
-  selectedAuctionType.value = type;
+const filterAuctionItems = (type = 'All') => {
+  $store.dispatch('auction/filterAuctionItems', type)
 }
 
-const refresh = (done) => {
-  setTimeout(() => {
-    done()
-  }, 1000)
+const refresh = async (done) => {
+  await $store.dispatch('auction/refreshCatalog')
+  done()
 }
 </script>
 

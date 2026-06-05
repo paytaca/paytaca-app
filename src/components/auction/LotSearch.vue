@@ -10,6 +10,7 @@
       placeholder="Search lot"
       color="pt-primary1"
       debounce="500"
+      @update:model-value="handleSearch"
       :class="getDarkModeClass(darkMode)"
     >
       <template v-slot:append>
@@ -21,14 +22,28 @@
 
 <script setup>
 import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
-import { useRouter } from "vue-router";
 import { useStore } from "vuex";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
-const $store = useStore()
-const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const $store = useStore();
+const darkMode = computed(() => $store.getters['darkmode/getStatus']);
 
-const inputVal = ref('')
-const lastSearch = ref('')
-const loading = ref(false)
+const inputVal = ref('');
+const loading = ref(false);
+
+const handleSearch = (val) => {
+  loading.value = true;
+  
+  $store.commit('auction/setLotSearchQuery', val || '');
+  
+  setTimeout(() => {
+    loading.value = false;
+  }, 150);
+};
+
+watch(inputVal, (newVal) => {
+  if (!newVal) {
+    handleSearch('');
+  }
+});
 </script>

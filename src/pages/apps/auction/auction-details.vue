@@ -9,21 +9,26 @@
 
     <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row q-px-sm justify-center">
-        <!-- 1-img auction -->
         <q-img :src="collection?.imageUrl || noImage" width="340px" height="350px" />
-        <!-- auction title -->
         <div class="flex column padding q-pl-md q-mr-auto q-mt-md">
-          <div class="text-h5 q-mr-xs">{{ auctionFront?.name || 'N/A'}}</div>
-          <span class="q-mr-xs">Auctioneer: {{ auctionFront?.auctioneer || 'N/A'}}</span>
-          <span class="q-mr-xs">Auctioneer Rating: {{ auctionFront?.rating || 'N/A'}}</span>
-          <span class="q-mr-xs q-mb-lg">Posted On: {{ auctionFront?.datePosted || 'N/A'}}</span>
-          <span class="q-mr-xs">Auction Type: {{ auctionFront?.type || 'N/A'}}</span>
+          <div class="text-h5 q-mr-xs">{{ auction?.title || 'N/A' }}</div>
+          <span class="q-mr-xs">Auctioneer: {{ auction?.auctioneer || 'N/A' }}</span>
+          <span class="q-mr-xs">Auctioneer Rating: {{ auction?.rating || 'N/A' }}</span>
+          <span class="q-mr-xs q-mb-lg">Posted On: {{ auction?.datePosted || 'N/A' }}</span>
+          <span class="q-mr-xs">Auction Type: {{ auction?.type || 'N/A' }}</span>
           <span class="q-mr-xs">Auction Status:</span>
-          <q-btn class="q-mb-lg" style="background-color: #097000;" :label="auctionFront?.status || 'N/A' "/>
-          <span class="q-mr-xs">Description:</span>
-          <span class="q-mr-xs q-mb-lg q-space">{{ auctionFront?.description || 'N/A' }}</span>
-          <span class="q-mr-xs">Start Date: {{ auctionFront?.startDate || 'N/A'}}</span>
-          <span class="q-mr-xs">End Date: {{ auctionFront?.endDate || 'N/A'}}</span>
+          <q-btn
+            class="q-mb-lg text-white text-bold" 
+            :style="auction.isOpen ?  'background-color: #097000;' : 'background-color: #c10015;'" 
+            style="width: fit-content; padding: 2px 10px;"
+            :label="auction.isOpen ? 'Active Open' : 'Closed'"
+            flat
+            dense
+          />
+          <span class="q-mr-xs text-bold">Description:</span>
+          <span class="q-mr-xs q-mb-lg q-space">{{ auction?.description || 'N/A' }}</span>
+          <span class="q-mr-xs">Start Date: {{ auction?.startDate || 'N/A' }}</span>
+          <span class="q-mr-xs">End Date: {{ auction?.endDate || 'N/A' }}</span>
         </div>
       </div>
     </div>
@@ -110,11 +115,11 @@
           -->
 
           <!-- Actual products -->
-          <div v-for="lot in filteredLots" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <div v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card 
               class="pt-card text-bow cursor-pointer" 
               :class="getDarkModeClass(darkMode)"
-              @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: $route.params.auctionId, lotId: lot.id }})"
+              @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: auctionId, lotId: lot.id }})"
             >
               <q-img :src="noImage" ratio="1">
                 <template v-slot:loading>
@@ -123,27 +128,27 @@
               </q-img>
               <q-card-section>
                 <div class="q-mb-xs bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-                  <q-icon :name="lot.type === 'Physical' ? 'delivery_dining' : 'computer'" size="sm" />
-                  <q-badge
-                    :label="lot.type"
-                    class="text-bold"
-                    flat
-                    color="transparent"
-                  />
-                </div>
+                <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
+                <q-badge
+                  :label="lot.category"
+                  class="text-bold"
+                  flat
+                  color="transparent"
+                />
+              </div>
                 <div class="row items-center">
-                  <div class="q-space text-body1 ellipsis text-bold">{{lot.name}}</div>
+                  <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
                   <q-chip
                     dense
-                    :color="lot.is_sold ? 'red' : 'green'" text-color="white"
-                    class="q-pa-md"
+                    :color="lot.isSold ? 'red' : 'green'" text-color="white"
+                    class="q-pa-sm"
                   >
-                  Bidding {{ lot.is_sold ? 'Closed' : 'Open' }}
+                    {{ lot.isSold ? 'Closed' : 'Open' }}
                   </q-chip>
                 </div>
-                <div>Lot {{ lot.lot_num }}</div>
-                <div>Est. {{ lot.est_price }}</div>
-                <div>{{ lot.high_bid}}  ({{ lot.num_bids }} bids)</div>
+                <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
+                <div class="text-subtitle2 text-bold text-positive q-mt-xs">Est: {{ lot.estimatedAmt.toFixed(8) }} BCH</div>
+                <div class="text-caption text-grey-7">Min Bid: {{ lot.thresholdBid.toFixed(8) }} BCH</div>
               </q-card-section>
             </q-card>
           </div>
@@ -169,8 +174,18 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+
+// Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
+import { consolidateToReserveUtxo } from 'src/wallet/stablehedge/transaction'
+
+const props = defineProps({
+  auctionId: {
+    type: [String, Number],
+    required: true
+  }
+})
 
 defineOptions({
   directives: {
@@ -178,50 +193,47 @@ defineOptions({
   }
 })
 
-const lots = [
-  {
-    id: 11,
-    name: 'lot1',
-    type: 'Physical',
-    is_sold: false,
-    lot_num: 1,
-    est_price: '₱1000',
-    high_bid: '₱950',
-    num_bids: 0
-  }, 
-  {
-    id: 12,
-    name: 'Thingymajig',
-    type: 'Physical',
-    is_sold: false,
-    lot_num: '2',
-    est_price: '₱1000',
-    high_bid: '₱950',
-    num_bids: 3
-  },
-  {
-    id: 13,
-    name: 'Another thingy',
-    type: 'Digital',
-    is_sold: true,
-    lot_num: '3',
-    est_price: '₱1000',
-    high_bid: '₱950',
-    num_bids: 11
-  }
-]
-
-const filteredLots = ref([...lots])
-const selectedLotType = ref('All')
-
-const filterLotItems = (type='All') => {
-  filteredLots.value = (type === 'All') ? [...lots] : [...lots].filter(auction => auction.type === type)
-  selectedLotType.value = type;
-}
-
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
+
+const selectedLotType = ref('All')
+
+const auction = computed(() => {
+  const listings = $store.getters['auction/processedItems'] || []
+  return listings.find(item => item.id === Number(props.auctionId))
+})
+
+const lotSearchQuery = computed(() => $store.state.auction?.lotSearchQuery || '')
+
+const filteredLots = computed(() => {
+  console.log(auction.value.lots)
+  if (!auction.value || !auction.value.lots) return []
+  
+  let targetLots = auction.value.lots
+  
+  if (selectedLotType.value !== 'All') {
+    targetLots = targetLots.filter(lot => lot.category === selectedLotType.value)
+  }
+  
+  if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
+    const query = lotSearchQuery.value.toLowerCase().trim()
+    
+    targetLots = targetLots.filter(lot => {
+      return (
+        lot.title.toLowerCase().includes(query) ||
+        lot.description.toLowerCase().includes(query) ||
+        lot.id.toString().includes(query)
+      )
+    })
+  }
+
+  return targetLots
+})
+
+const filterLotItems = (type) => {
+  selectedLotType.value = type
+}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from

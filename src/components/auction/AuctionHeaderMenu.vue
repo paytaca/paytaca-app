@@ -39,20 +39,16 @@ import { computed, defineComponent } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 
-const $router = useRouter()
-
 export default defineComponent({
   name: 'AuctionHeaderMenu',
   setup() {
     const $store = useStore()
+    const $router = useRouter()
+    
     const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
-    // const customer = computed(() => $store.getters['marketplace/customer'])
 
     return {
       darkMode,
-
-    //   customer,
       getDarkModeClass,
     }
   },
