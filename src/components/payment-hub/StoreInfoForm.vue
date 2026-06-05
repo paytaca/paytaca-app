@@ -164,19 +164,13 @@ onMounted(() => {
 
   if (props.storeData) {
     Object.keys(form).forEach(key => {
-      if (key === 'logo') {
-        // Never populate the file picker (form.logo) with a string URL
-        // form.logo should only ever be a File or null
+      if (key === 'logo' || key === 'logo_url') {
+        // logo: never populate the file picker with a string URL (must be File or null)
+        // logo_url: always leave empty on edit to avoid sending back server URLs
         return
       }
 
-      if (key === 'logo_url') {
-        // 'logo_url' is write-only. We populate our input from the 
-        // returned 'logo' field if it looks like an external URL.
-        if (typeof props.storeData.logo === 'string' && props.storeData.logo.startsWith('http')) {
-          form.logo_url = props.storeData.logo
-        }
-      } else if (props.storeData[key] !== undefined) {
+      if (props.storeData[key] !== undefined) {
         form[key] = props.storeData[key]
       }
     })
