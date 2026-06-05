@@ -36,7 +36,6 @@
             <q-icon name="filter_list" size="xs" />
           </template>
         </q-select>
-        <q-space/>
       </div>
 
       <div class="row items-start justify-start q-mb-md">
