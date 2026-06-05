@@ -48,151 +48,97 @@
       </q-select>
     </div>
 
-    <div>
-      <div v-if="selectedActivityType.value === 'auctions'">
-        <div class="q-mx-xs q-mb-md row items-center justify-around gap-sm">
-          <q-btn
-            :outline="selectedAuctionType !== 'English'"
-            :color="selectedAuctionType == 'English' ? 'pt-primary1' : ''"
-            color="pt-primary1"
-            rounded
-            padding="sm md"
-            no-caps
-            icon="gavel"
-            label="English Auction"
-            style="min-width:160px;"
-            @click="filterAuctionItems('English')"
-          />
-          
-          <q-btn
-            :outline="selectedAuctionType !== 'Dutch'"
-            :color="selectedAuctionType == 'Dutch' ? 'pt-primary1' : ''"
-            color="pt-primary1"
-            rounded
-            padding="sm md"
-            no-caps
-            icon="gavel"
-            label="Dutch Auction"
-            style="min-width:160px;"
-            @click="filterAuctionItems('Dutch')"
-          />
-        </div>
-        <div class="flex justify-center q-mb-md">
-          <q-btn
-            :outline="selectedAuctionType !== 'All'"
-            :color="selectedAuctionType == 'All' ? 'pt-primary1' : ''"
-            color="pt-primary1"
-            rounded
-            padding="sm md"
-            no-caps
-            icon="gavel"
-            label="All Auctions"
-            style="min-width:160px;"
-            @click="filterAuctionItems('All')" 
-          />
-        </div>
-      </div>
-
-      <div v-else>
-        <div class="q-mx-xs q-mb-md row items-center justify-around gap-sm">
-          <q-btn
-            rounded
-            padding="sm md"
-            no-caps 
-            label="Physical"
-            icon="delivery_dining"
-            style="min-width:160px;"
-            :outline="selectedLotType !== 'Physical'"
-            :color="selectedLotType == 'Physical' ? 'pt-primary1' : ''"
-            color="pt-primary1"
-            @click="filterLotItems('Physical')"
-          />
-          <q-btn
-            rounded
-            padding="sm md"
-            no-caps 
-            label="Digital"
-            icon="computer"
-            style="min-width:160px;"
-            :outline="selectedLotType !== 'Digital'"
-            :color="selectedLotType == 'Digital' ? 'pt-primary1' : ''"
-            color="pt-primary1"
-            @click="filterLotItems('Digital')"
-          />
-        </div>
-        <div class="flex justify-center q-mb-md">
-          <q-btn
-            rounded
-            padding="sm md"
-            no-caps 
-            label="All"
-            icon="filter_list_off"
-            style="min-width:160px;"
-            :outline="selectedLotType !== 'All'"
-            :color="selectedLotType == 'All' ? 'pt-primary1' : ''"
-            color="pt-primary1"
-            @click="filterLotItems('All')"
-          />
-        </div>
-      </div>
-    </div>
-
     <!-- All user's AUCTIONS made -->
-    <div v-if="selectedActivityType.value === 'auctions'" class="row items-start justify-start q-mb-md q-pa-sm">
-      <!--<div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
-        <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-          <q-skeleton height="200px" />
-          <q-card-section class="q-py-sm">
-            <q-skeleton type="text" width="60%" />
-            <q-skeleton type="text" width="40%" class="q-mt-xs" />
-          </q-card-section>
-        </q-card>
-      </div>-->
-
-      <div v-for="auction in filteredAuctions" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
-        <q-card
-          class="pt-card text-bow cursor-pointer"
-          :class="getDarkModeClass(darkMode)"
-          @click="$router.push({ name: 'app-auction-details', params: { auctionId: '1' }, query: { from: 'activity' }})"
+    <div v-if="selectedActivityType.value === 'auctions'" class="q-pa-sm">
+      <div class="row items-center q-pa-sm q-mb-md">
+        <div class="text-h5 q-px-xs">My Auctions</div>
+        <q-select
+          outlined
+          dense
+          v-model="auctionType"
+          :options="auctionTypeOptions"
+          emit-value
+          map-options
+          autocomplete="off"
+          color="pt-primary1"
+          debounce="500"
+          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          class="q-ml-sm"
+          style="width: 135px;"
         >
-          <q-img 
-            :src="collection?.imageUrl || noImage"
-            ratio="1.75"
+          <template v-slot:prepend>
+            <q-icon name="filter_list" size="xs" />
+          </template>
+        </q-select>
+      </div>
+
+      <div class="row items-start justify-start q-mb-md">
+        <div v-for="auction in filteredAuctions" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+          <q-card
+            class="pt-card text-bow cursor-pointer"
+            :class="getDarkModeClass(darkMode)"
+            @click="$router.push({ name: 'app-auction-details', params: { auctionId: auction.id }, query: { from: 'activity' }})"
           >
-            <template v-slot:loading>
-              <q-skeleton height="100%" width="100%" square />
-            </template>
-          </q-img>
+            <q-img 
+              :src="collection?.imageUrl || noImage"
+              ratio="1.75"
+            >
+              <template v-slot:loading>
+                <q-skeleton height="100%" width="100%" square />
+              </template>
+            </q-img>
 
-          <q-card-section class="q-py-sm">
-            <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-              <q-icon name="gavel" size="sm" />
-              <q-badge
-                :label="`${auction.type} Auction`"
-                class="text-bold"
-                flat
-                color="transparent"
-              />
-            </div>
+            <q-card-section class="q-py-sm">
+              <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
+                <q-icon name="gavel" size="sm" />
+                <q-badge
+                  :label="`${auction.type} Auction`"
+                  class="text-bold"
+                  flat
+                  color="transparent"
+                />
+              </div>
 
-            <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
-            
-            <div class="row items-center text-caption no-wrap q-mb-xs">
-              <q-icon name="location_on" size="xs" class="q-mr-xs" />
-              <div class="ellipsis">{{ auction.location }}</div>
-            </div>
+              <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
+              
+              <div class="row items-center text-caption no-wrap q-mb-xs">
+                <q-icon name="location_on" size="xs" class="q-mr-xs" />
+                <div class="ellipsis">{{ auction.location }}</div>
+              </div>
 
-            <div class="text-caption">
-              <span class="text-weight-medium">Dates:</span> {{ formatAuctionDate(auction.startDate) }} - {{ formatAuctionDate(auction.endDate) }}
-            </div>
-          </q-card-section>
-        </q-card>
+              <div class="text-caption">
+                <span class="text-weight-medium">Dates:</span> {{ formatAuctionDate(auction.startDate) }} - {{ formatAuctionDate(auction.endDate) }}
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
       </div>
     </div>
 
     <!-- All user's BIDDINGS made -->
-    <div v-if="selectedActivityType.value === 'biddings'" class="q-pa-sm">        
-      <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
+    <div v-if="selectedActivityType.value === 'biddings'" class="q-pa-sm">    
+      <div class="row items-center q-pa-sm q-mb-md">
+        <div class="text-h5 q-px-xs">My Biddings</div>
+        <q-select
+          outlined
+          dense
+          v-model="lotType"
+          :options="lotTypeOptions"
+          emit-value
+          map-options
+          autocomplete="off"
+          color="pt-primary1"
+          debounce="500"
+          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          class="q-ml-sm"
+          style="width: 135px;"
+        >
+          <template v-slot:prepend>
+            <q-icon name="filter_list" size="xs" />
+          </template>
+        </q-select>
+      </div>
+      
       <div class="row items-start" ref="productsContainer">
         <!-- Skeleton loaders -->
           
@@ -286,29 +232,23 @@ const activityTypeOptions = [
 ]
 const selectedActivityType = computed(() => activityType)
 
-const selectedAuctionType = ref('All')
-const selectedLotType = ref('All')
-
-const filterAuctionItems = (type) => {
-  selectedAuctionType.value = type
-}
-
-const filterLotItems = (type) => {
-  selectedLotType.value = type
-}
+const auctionType = ref('All');
+const auctionTypeOptions = ['English', 'Dutch', 'All']
+const lotType = ref('All')
+const lotTypeOptions = ['Physical', 'Digital', 'All']
 
 const filteredAuctions = computed(() => {
-  if (selectedAuctionType.value === 'All') {
+  if (auctionType.value === 'All') {
     return auctionDetails
   }
-  return auctionDetails.filter(auction => auction.type === selectedAuctionType.value)
+  return auctionDetails.filter(auction => auction.type === auctionType.value)
 })
 
 const filteredLots = computed(() => {
-  if (selectedLotType.value === 'All') {
+  if (lotType.value === 'All') {
     return lotDetails
   }
-  return lotDetails.filter(lot => lot.type === selectedLotType.value)
+  return lotDetails.filter(lot => lot.type === lotType.value)
 })
 
 const refresh = (done) => {
