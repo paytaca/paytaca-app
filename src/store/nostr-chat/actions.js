@@ -1,5 +1,7 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
-import { finalizeEvent, verifyEvent, hexToBytes } from 'nostr-tools'
+// import { finalizeEvent, verifyEvent, hexToBytes } from 'nostr-tools'
+import { finalizeEvent, verifyEvent } from 'nostr-tools'
+import { hexToBytes } from '@noble/hashes/utils.js'
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
 import * as relayService from 'src/services/nostr-chat'

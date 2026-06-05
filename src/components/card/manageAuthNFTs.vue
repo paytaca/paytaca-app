@@ -195,16 +195,14 @@
           <q-item 
             v-for="merchant in filteredMerchants" 
             :key="merchant.id" 
-            class="q-px-none manage-auth-merchant-item"
+            class="q-px-none manage-auth-merchant-item clickable-merchant q-px-md"
             :class="{ 
               'disabled-merchant': genericAuthEnabled,
-              'clickable-merchant': merchant.isEnabled && !genericAuthEnabled && !selectMultipleMode,
               'glassmorphic-selected-item-light': selectMultipleMode && selectedMerchants.has(merchant.id) && !$q.dark.isActive,
               'glassmorphic-selected-item-dark': selectMultipleMode && selectedMerchants.has(merchant.id) && $q.dark.isActive
             }"
-            :clickable="merchant.isEnabled && !genericAuthEnabled && !selectMultipleMode"
-            @click="handleMerchantClick(merchant)"
-          >
+            clickable
+            @click="handleMerchantClick(merchant)">
             <!-- Checkbox for select multiple mode -->
             <q-item-section v-if="selectMultipleMode" side class="q-pr-sm">
               <q-checkbox 
@@ -218,19 +216,16 @@
               <q-tooltip 
                 v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit && !selectMultipleMode" 
                 anchor="top middle" 
-                self="bottom middle"
-              >
+                self="bottom middle">
                 Spend Limit: {{ formatSpendLimit(merchant.spendLimit) }} BCH
               </q-tooltip>
               <div 
                 class="text-weight-bold"
-                :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')"
-              >
+                :class="merchant.isEnabled ? textColor : ($q.dark.isActive ? 'text-grey-6' : 'text-grey-7')">
                 {{ merchant.name }}
                 <span 
                   v-if="merchant.isEnabled && !genericAuthEnabled && merchant.spendLimit && !selectMultipleMode" 
-                  class="text-caption text-secondary q-ml-xs"
-                >
+                  class="text-caption text-secondary q-ml-xs">
                   ({{ formatSpendLimit(merchant.spendLimit) }} BCH)
                 </span>
               </div>
@@ -251,7 +246,7 @@
                   minting done
                 </span>
                 <!-- Toggle (hidden in select multiple mode) -->
-                <q-toggle 
+                <!-- <q-toggle 
                   v-if="!selectMultipleMode"
                   v-model="merchant.has_auth_nft"
                   :disable="genericAuthEnabled || mintingMerchants.has(merchant.id)"
@@ -259,7 +254,10 @@
                     ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
                     : 'primary'"
                   @update:model-value="(val) => onMerchantToggle(merchant, val)"
-                />
+                /> -->
+                <span>
+                  {{ merchant.auth_nfts?.length > 0 ? 'Authorized' : 'Not Authorized' }} ({{ merchant.auth_nfts?.length }} NFT{{merchant.auth_nfts?.length > 1 ? "s" : ""}})
+                </span>
               </div>
             </q-item-section>
           </q-item>
@@ -316,27 +314,34 @@
     </q-dialog>
 
     <!-- Spend Limit Dialog -->
-    <q-dialog v-model="showSpendLimitDialog" persistent>
+    <q-dialog v-model="showMutateAuthDialog" persistent>
       <q-card style="min-width: 320px">
         <q-card-section>
           <div class="text-h6" :class="textColor">
-            Set Spend Limit
+            Edit Authorization NFT
           </div>
         </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <div 
-            class="q-mb-sm"
-            :class="textColor"
-          >
-            Merchant: <span class="text-weight-bold">{{ selectedMerchant?.name }}</span>
+        <q-card-section class="q-pt-none" :class="textColor">
+          <div class="q-mb-sm" :class="textColor">
+            <span class="text-weight-bold">{{ selectedMerchant?.name }}</span>
           </div>
-          <div 
-            class="q-mb-md text-caption"
-            :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'"
-          >
+          <!-- <div class="q-mb-md text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'">
             Available Balance: {{ formatBalance(card?.balance) }} BCH
-          </div>
+          </div> -->
+          <q-tabs v-model="currentNftTab" class="text-subtitle2" :dark="$q.dark.isActive">
+            <q-tab v-for="nft in selectedMerchant.auth_nfts" :key="nft.id" :name="nft.id" :label="`NFT ${nft.id}`" />
+            <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" label="No NFTs" :disable="true" />
+          </q-tabs>
+          <q-tab-panels v-model="currentNftTab" animated>
+            <q-tab-panel :name="currentNftTab">
+              <div class="text-h6">Mails</div>
+              Lorem ipsum dolor sit amet consectetur adipisicing.
+            </q-tab-panel>
+          </q-tab-panels>
+          <q-toggle 
+            left-label
+            label="Authorize"
+            v-model:model-value="selectedMerchant.authorized"/>
           <q-input
             v-model="spendLimitInput"
             type="number"
@@ -438,7 +443,7 @@ export default {
       GLOBAL_SPEND_LIMIT_BCH: '0.0017',
       merchants: [],
       showAllowAllMerchantsDialog: false,
-      showSpendLimitDialog: false,
+      showMutateAuthDialog: false,
       showLocationMapDialog: false,
       selectedMerchant: null,
       spendLimitInput: '1',
@@ -470,6 +475,7 @@ export default {
       isInitializing: false,
       lastGeolocatePosition: null,
       darkMode: this.$store.getters['darkmode/getStatus'],
+      currentNftTab: null,
     }
   },
   computed: {
@@ -900,7 +906,7 @@ export default {
     },
 
     async onMerchantToggle(merchant, enabled) {
-      // console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
+      console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
       console.log('card:', this.card)
       if (enabled) {
         merchant.spendLimit = merchant.spendLimit || '1';
@@ -912,7 +918,21 @@ export default {
         // Simulate minting delay (2 seconds)
         // await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('Issuing auth NFT for merchant:', merchant.name)
-        this.card.issueMerchantAuthToken({ merchant }).then(() => {
+        this.$q.loading.show({
+          message: `Minting auth NFT for ${merchant.name}...`,
+          spinner: 'dots',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: 'white',
+          customClass: 'manage-auth-loading',
+          delay: 300
+        });
+
+        await this.card.issueMerchantAuthToken({ 
+          merchant: {
+            id: merchant.ref_id,
+            pubkey: merchant.public_key,
+          } 
+        }).then(() => {
           console.log('Minting successful for merchant:', merchant.name)
         }).catch(err => {
           console.error('Minting failed for merchant:', merchant.name, err)
@@ -922,21 +942,23 @@ export default {
             icon: 'error',
             timeout: 4000,
           })
-        });
-        
-        // Minting complete
-        this.mintingMerchants.delete(merchant.id);
-        this.mintingMerchants = new Set(this.mintingMerchants);
-        
-        // Show success message
-        this.mintedMerchants.add(merchant.id);
-        this.mintedMerchants = new Set(this.mintedMerchants);
-        
-        // Clear success message after 2 seconds
-        setTimeout(() => {
-          this.mintedMerchants.delete(merchant.id);
+        }).finally(() => {
+          this.$q.loading.hide();
+
+          // Minting complete
+          this.mintingMerchants.delete(merchant.id);
+          this.mintingMerchants = new Set(this.mintingMerchants);
+          
+          // Show success message
+          this.mintedMerchants.add(merchant.id);
           this.mintedMerchants = new Set(this.mintedMerchants);
-        }, 2000);
+
+          // Clear success message after 2 seconds
+          setTimeout(() => {
+            this.mintedMerchants.delete(merchant.id);
+            this.mintedMerchants = new Set(this.mintedMerchants);
+          }, 2000);
+        });
       }
       
       const action = enabled ? 'enabled' : 'disabled';
@@ -949,15 +971,17 @@ export default {
     },
 
     openSpendLimitDialog(merchant) {
-      if (!merchant.isEnabled || this.genericAuthEnabled) return;
+      // if (!merchant.isEnabled || this.genericAuthEnabled) return;
       this.selectedMerchant = merchant;
       this.spendLimitInput = merchant.spendLimit || '1';
       this.spendLimitError = '';
-      this.showSpendLimitDialog = true;
+      this.currentNftTab = merchant.auth_nfts?.length > 0 ? merchant.auth_nfts[0].id : null;
+      console.log('currentNftTab set to:', this.currentNftTab)
+      this.showMutateAuthDialog = true;
     },
 
     closeSpendLimitDialog() {
-      this.showSpendLimitDialog = false;
+      this.showMutateAuthDialog = false;
       this.selectedMerchant = null;
       this.spendLimitInput = '1';
       this.spendLimitError = '';
@@ -1513,6 +1537,9 @@ export default {
       handler() {
         this.saveMerchantsOnChange();
       }
+    },
+    currentNftTab(val) {
+      console.log('Current NFT tab changed to:', val);
     }
   }
 }
