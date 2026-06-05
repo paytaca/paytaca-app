@@ -31,8 +31,47 @@
             <slot name="title-append" />
           </span>
         </p>
+        <div v-if="subtitle" class="pt-header-subtitle-text">{{ subtitle }}</div>
       </div>
-      <div class="pt-header-right col-auto row items-center justify-center">
+      <div v-if="route.path?.startsWith('/apps/multisig')" style="position: absolute; right: 0px; ">
+        <q-btn
+          icon="more_horiz"
+          flat
+        >
+        <q-menu anchor="bottom left" self="top right">
+          <q-item clickable to="/apps/multisig">
+            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+              <div class="flex items-center q-gutter-x-sm">
+                <q-icon name="mdi-home-export-outline"></q-icon><div>{{ $t('MultisigWallets', {}, 'Multisig Wallets') }}</div>
+              </div>
+            </q-item-section>
+          </q-item>
+          <q-item clickable to="/apps/wallet-connect">
+            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+              <div class="flex items-center q-gutter-x-sm">
+                <q-icon name="mdi-connection"></q-icon><div>{{ $t('OpenWalletConnectApp', {}, 'Open Wallet Connect App') }}</div>
+              </div>
+            </q-item-section>
+          </q-item>
+          <q-item clickable to="/apps">
+            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+              <div class="flex items-center q-gutter-x-sm">
+                <q-icon name="mdi-apps"></q-icon><div>{{ $t('GoToApps', {}, 'Go To Apps') }}</div>
+              </div>
+            </q-item-section>
+          </q-item>
+          <q-separator></q-separator>
+          <q-item clickable to="/">
+            <q-item-section class="text-bow" :class="getDarkModeClass(darkMode)">
+              <div class="flex items-center q-gutter-x-sm">
+                <q-icon name="mdi-exit-to-app"></q-icon><div>{{ $t('Exit') }}</div>
+              </div>
+            </q-item-section>
+          </q-item>
+        </q-menu>
+      </q-btn>
+      </div>
+      <div class="pt-header-right col-auto row items-center justify-end">
         <slot name="top-right-menu">&nbsp;</slot>
       </div>
     </div>
@@ -54,6 +93,10 @@ export default {
   },
   props: {
     title: {
+      type: String,
+      default: ''
+    },
+    subtitle: {
       type: String,
       default: ''
     },
@@ -200,6 +243,19 @@ export default {
   width: 100%;
   padding-left: 10px;
   z-index: 2;
+}
+.pt-header-title-text {
+  display: block;
+}
+.pt-header-subtitle-text {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.7;
+  margin-top: -2px;
+  text-align: center;
 }
 .pt-settings-icon {
   position: absolute;

@@ -875,7 +875,18 @@ export default {
       this.$store.dispatch('assets/saveExistingAsset', { index: this.$store.getters['global/getWalletIndex'], walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash })
 
       if (this.$q.platform.is.mobile) {
-        this.$pushNotifications.events.addEventListener('pushNotificationReceived', notification => {
+        this._nostrPushListener = notification => {
+          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+        }
+        this.$pushNotifications?.events?.addEventListener('pushNotificationReceived', this._nostrPushListener)
+
+        this.subscribePushNotifications()
+      } else if (this.$pushNotifications?.events) {
+        // On web/PWA, show in-app notification since system push is not available
+        this._nostrPushListener = notification => {
           if (notification?.title || notification?.body) {
             this.$q.notify({
               color: 'brandblue',
@@ -889,9 +900,12 @@ export default {
               ]
             })
           }
-        })
-
-        this.subscribePushNotifications()
+          // Ensure Nostr chat subscription is active when a Nostr event push arrives
+          if (notification?.data?.type === 'nostr_event') {
+            this.$store.dispatch('nostrChat/ensureSubscribed')
+          }
+        }
+        this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)
       }
       this.resubscribeAddresses(mnemonic)
     }
@@ -974,6 +988,10 @@ export default {
     if (this.androidInsetResizeHandler) {
       window.removeEventListener('resize', this.androidInsetResizeHandler)
       this.androidInsetResizeHandler = null
+    }
+    if (this._nostrPushListener) {
+      this.$pushNotifications?.events?.removeEventListener('pushNotificationReceived', this._nostrPushListener)
+      this._nostrPushListener = null
     }
   },
   created () {

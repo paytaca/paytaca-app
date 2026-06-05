@@ -18,6 +18,7 @@ import stablehedge from './stablehedge'
 import multisig from './multisig'
 import subscription from './subscription'
 import wizardconnect from './wizardconnect'
+import nostrChat from './nostr-chat'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -285,7 +286,8 @@ export const Store = createStore({
     stablehedge,
     multisig,
     subscription,
-    wizardconnect
+    wizardconnect,
+    nostrChat
   },
 
   // enable strict mode (adds overhead!)

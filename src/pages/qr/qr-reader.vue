@@ -511,12 +511,23 @@ export default {
             query: { uri: value }
           })
         } else {
-          vm.$q.notify({
-            message: vm.$t('UnidentifiedQRCode'),
-            timeout: 800,
-            color: 'red-9',
-            icon: 'mdi-qrcode-remove'
-          })
+          // Check for Nostr / npub QR codes
+          const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
+          if (nostrMatch) {
+            const npub = nostrMatch[2]
+            const backPath = vm.$route.query.backnavpath || '/apps/chat'
+            vm.$router.push({
+              path: backPath,
+              query: { npub }
+            })
+          } else {
+            vm.$q.notify({
+              message: vm.$t('UnidentifiedQRCode'),
+              timeout: 800,
+              color: 'red-9',
+              icon: 'mdi-qrcode-remove'
+            })
+          }
         }
 
         vm.paused = false
