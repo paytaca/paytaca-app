@@ -874,6 +874,14 @@ export class CartItem {
 
     return this.quantity - this.variant.availableStocks
   }
+
+  set finalAmount(value) {
+    this.$finalAmount = value;
+  }
+
+  get finalAmount() {
+    return this.$finalAmount ?? this.variant?.markupPrice * this.quantity;
+  }
 }
 
 export class Cart {
@@ -903,6 +911,7 @@ export class Cart {
    * @param {Number} data.markup_subtotal
    * @param {Object} data.customer
    * @param {Object[]} data.items
+   * @param {Object[]} data.discounts
    */
   set raw(data) {
     Object.defineProperty(this, '$raw', { enumerable: false, configurable: true, value: data })
@@ -916,6 +925,7 @@ export class Cart {
     this.markupSubtotal = data?.markup_subtotal
     this.customer = Customer.parse(data?.customer)
     this.items = data?.items?.map?.(CartItem.parse)
+    this.discounts = DiscountType.parseList(data?.discounts)
   }
 
   get hasLackingQuantity() {
