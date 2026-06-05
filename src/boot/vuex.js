@@ -8,6 +8,7 @@ import { migrateMnemonicsToWalletHash } from 'src/wallet/mnemonic-migration'
 import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
+import auctionDefaultState from 'src/store/auction/state'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
@@ -100,6 +101,11 @@ export default boot(async (obj) => {
       // Ensure wizardconnect module state is initialized
       if (!parsedState.wizardconnect || typeof parsedState.wizardconnect !== 'object') {
         parsedState.wizardconnect = wizardconnectDefaultState()
+      }
+
+      // Ensure auction module state is initialized
+      if (!parsedState.auction || typeof parsedState.auction !== 'object') {
+        parsedState.auction = auctionDefaultState()
       }
 
       // Ensure merchantActivity state is initialized (added after v0.24.0)
