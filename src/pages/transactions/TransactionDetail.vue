@@ -852,6 +852,16 @@ export default {
     backNavPath () {
       // Return the appropriate back path based on where we came from
       const fromParam = this.$route?.query?.from
+      if (fromParam === 'chat') {
+        const roomId = this.$route?.query?.roomId
+        if (roomId) {
+          return {
+            name: 'app-chat-conversation',
+            params: { roomId },
+          }
+        }
+        return '/apps/chat'
+      }
       if (fromParam === 'transactions') {
         // Preserve the original assetID from query params if it exists
         // This ensures we return to the same filter (e.g., "all" or specific asset)
@@ -866,6 +876,9 @@ export default {
           path: '/transaction/list',
           query: { assetID: assetId }
         }
+      }
+      if (['app-rewards-transaction-history', 'user-rewards'].includes(fromParam)) {
+        return -1
       }
       if (fromParam?.includes('apps/multisig')) { 
         return {
@@ -2125,6 +2138,18 @@ export default {
     goBack () {
       // Check if we came from transactions page
       const fromParam = this.$route?.query?.from
+      if (fromParam === 'chat') {
+        const roomId = this.$route?.query?.roomId
+        if (roomId) {
+          this.$router.push({
+            name: 'app-chat-conversation',
+            params: { roomId },
+          })
+        } else {
+          this.$router.push('/apps/chat')
+        }
+        return
+      }
       if (fromParam === 'transactions') {
         // Preserve the original assetID from query params if it exists
         // This ensures we return to the same filter (e.g., "all" or specific asset)

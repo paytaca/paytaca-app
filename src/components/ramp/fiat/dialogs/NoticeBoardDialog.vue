@@ -2,7 +2,7 @@
   <q-dialog v-model="showDialog" seamless position="bottom" @before-hide="onBeforeHide">
     <q-card :style="bottomMargin" style="width: 50px; margin-left: 10%; margin-right: 10%;" :class="[bgColor, darkMode ? 'text-white' : 'text-black']" class="q-mx-lg bottom-card">
       <q-bar>
-        <q-icon name="mdi-information-outline"></q-icon>
+        <q-icon :name="iconName"></q-icon>
         <div>{{ capitalize(type) }}</div>
         <q-space />
 
@@ -65,9 +65,16 @@ export default {
           return 'bg-danger'
         case 'warning':
           return 'bg-warning'
+        case 'success':
+          return 'bg-success'
         default:
           return ''
       }
+    },
+    iconName () {
+      if (this.type === 'success')
+        return 'mdi-party-popper'
+      return 'mdi-information-outline'
     }
   },
   methods: {
@@ -89,5 +96,8 @@ export default {
 <style scoped>
 .bg-danger {
   background-color: #e74c3c;
+}
+.bg-success {
+  background-color: #27ae60;
 }
 </style>

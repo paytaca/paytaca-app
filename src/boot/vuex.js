@@ -9,6 +9,7 @@ import useStore from 'src/store'
 import limitsConfig from 'src/store/subscription/limits.json'
 import wizardconnectDefaultState from 'src/store/wizardconnect/state'
 import auctionDefaultState from 'src/store/auction/state'
+import nostrChatDefaultState from 'src/store/nostr-chat/state'
 
 /**
  * Support for vuex in quasar is dropped in @quasar/app-webpack v4.x.x
@@ -101,6 +102,23 @@ export default boot(async (obj) => {
       // Ensure wizardconnect module state is initialized
       if (!parsedState.wizardconnect || typeof parsedState.wizardconnect !== 'object') {
         parsedState.wizardconnect = wizardconnectDefaultState()
+      }
+
+      // Ensure nostrChat module state is initialized
+      if (!parsedState.nostrChat || typeof parsedState.nostrChat !== 'object') {
+        parsedState.nostrChat = nostrChatDefaultState()
+      } else {
+        // Reset relays to defaults if persisted list contains known-broken relays
+        const brokenRelays = ['wss://relay.nostr.band', 'wss://inbox.nostr.wine', 'wss://relay.snort.social', 'wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.nostr.bg']
+        const currentRelays = parsedState.nostrChat.relays || []
+        const hasBroken = brokenRelays.some(r => currentRelays.includes(r))
+        if (hasBroken || currentRelays.length === 0) {
+          parsedState.nostrChat.relays = nostrChatDefaultState().relays
+        }
+        // Ensure new properties exist in persisted state
+        if (!parsedState.nostrChat.readReceipts) {
+          parsedState.nostrChat.readReceipts = {}
+        }
       }
 
       // Ensure auction module state is initialized
