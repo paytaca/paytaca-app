@@ -149,7 +149,7 @@
         </q-card>
       </div>-->
 
-      <div v-for="auction in auctionDetails" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+      <div v-for="auction in filteredAuctions" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
         <q-card
           class="pt-card text-bow cursor-pointer"
           :class="getDarkModeClass(darkMode)"
@@ -212,7 +212,7 @@
         -->
 
         <!-- Actual products -->
-        <div v-for="lot in lots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
@@ -286,6 +286,31 @@ const activityTypeOptions = [
 ]
 const selectedActivityType = computed(() => activityType)
 
+const selectedAuctionType = ref('All')
+const selectedLotType = ref('All')
+
+const filterAuctionItems = (type) => {
+  selectedAuctionType.value = type
+}
+
+const filterLotItems = (type) => {
+  selectedLotType.value = type
+}
+
+const filteredAuctions = computed(() => {
+  if (selectedAuctionType.value === 'All') {
+    return auctionDetails
+  }
+  return auctionDetails.filter(auction => auction.type === selectedAuctionType.value)
+})
+
+const filteredLots = computed(() => {
+  if (selectedLotType.value === 'All') {
+    return lotDetails
+  }
+  return lotDetails.filter(lot => lot.type === selectedLotType.value)
+})
+
 const refresh = (done) => {
   setTimeout(() => {
     done()
@@ -337,7 +362,7 @@ const auctionDetails = [
   }
 ];
 
-const lots = [
+const lotDetails = [
   {
     id: 11,
     name: 'lot1',
