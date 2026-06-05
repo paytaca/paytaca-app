@@ -25,39 +25,120 @@
     </div>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <AuctionSearch :placeholder="`Search my ${selectedActivityType}`"/>
+      <ActivitySearch :placeholder="`Search my ${selectedActivityType.value}`"/>
     </div>
 
-    <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="q-mx-xs q-mb-md row items-center justify-around">
-        <q-btn
-          :outline="selectedActivityType !== 'biddings'"
-          :color="selectedActivityType == 'biddings' ? 'pt-primary1' : ''"
-          rounded
-          padding="sm md"
-          no-caps
-          icon="monetization_on"
-          label="My Biddings"
-          style="min-width:150px;"
-          @click="filterActivityType('biddings')"
-        />
+    <div class="row justify-end q-px-md q-mb-md">
+      <q-select
+        outlined
+        dense
+        v-model="activityType"
+        :options="activityTypeOptions"
+        emit-value
+        map-options
+        autocomplete="off"
+        color="pt-primary1"
+        debounce="500"
+        :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+        style="width: 175px;"
+      >
+        <template v-slot:prepend>
+          <q-icon name="filter_list" size="xs" />
+        </template>
+      </q-select>
+    </div>
 
-        <q-btn
-          :outline="selectedActivityType !== 'auctions'"
-          :color="selectedActivityType == 'auctions' ? 'pt-primary1' : ''"
-          rounded
-          padding="sm md"
-          no-caps
-          icon="gavel"
-          label="My Auctions"
-          style="min-width:150px;"
-          @click="filterActivityType('auctions')"
-        />
+    <div>
+      <div v-if="selectedActivityType.value === 'auctions'">
+        <div class="q-mx-xs q-mb-md row items-center justify-around gap-sm">
+          <q-btn
+            :outline="selectedAuctionType !== 'English'"
+            :color="selectedAuctionType == 'English' ? 'pt-primary1' : ''"
+            color="pt-primary1"
+            rounded
+            padding="sm md"
+            no-caps
+            icon="gavel"
+            label="English Auction"
+            style="min-width:160px;"
+            @click="filterAuctionItems('English')"
+          />
+          
+          <q-btn
+            :outline="selectedAuctionType !== 'Dutch'"
+            :color="selectedAuctionType == 'Dutch' ? 'pt-primary1' : ''"
+            color="pt-primary1"
+            rounded
+            padding="sm md"
+            no-caps
+            icon="gavel"
+            label="Dutch Auction"
+            style="min-width:160px;"
+            @click="filterAuctionItems('Dutch')"
+          />
+        </div>
+        <div class="flex justify-center q-mb-md">
+          <q-btn
+            :outline="selectedAuctionType !== 'All'"
+            :color="selectedAuctionType == 'All' ? 'pt-primary1' : ''"
+            color="pt-primary1"
+            rounded
+            padding="sm md"
+            no-caps
+            icon="gavel"
+            label="All Auctions"
+            style="min-width:160px;"
+            @click="filterAuctionItems('All')" 
+          />
+        </div>
+      </div>
+
+      <div v-else>
+        <div class="q-mx-xs q-mb-md row items-center justify-around gap-sm">
+          <q-btn
+            rounded
+            padding="sm md"
+            no-caps 
+            label="Physical"
+            icon="delivery_dining"
+            style="min-width:160px;"
+            :outline="selectedLotType !== 'Physical'"
+            :color="selectedLotType == 'Physical' ? 'pt-primary1' : ''"
+            color="pt-primary1"
+            @click="filterLotItems('Physical')"
+          />
+          <q-btn
+            rounded
+            padding="sm md"
+            no-caps 
+            label="Digital"
+            icon="computer"
+            style="min-width:160px;"
+            :outline="selectedLotType !== 'Digital'"
+            :color="selectedLotType == 'Digital' ? 'pt-primary1' : ''"
+            color="pt-primary1"
+            @click="filterLotItems('Digital')"
+          />
+        </div>
+        <div class="flex justify-center q-mb-md">
+          <q-btn
+            rounded
+            padding="sm md"
+            no-caps 
+            label="All"
+            icon="filter_list_off"
+            style="min-width:160px;"
+            :outline="selectedLotType !== 'All'"
+            :color="selectedLotType == 'All' ? 'pt-primary1' : ''"
+            color="pt-primary1"
+            @click="filterLotItems('All')"
+          />
+        </div>
       </div>
     </div>
 
     <!-- All user's AUCTIONS made -->
-    <div v-if="selectedActivityType == 'auctions'" class="row items-start justify-start q-mb-md q-pa-sm">
+    <div v-if="selectedActivityType.value === 'auctions'" class="row items-start justify-start q-mb-md q-pa-sm">
       <!--<div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
         <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
           <q-skeleton height="200px" />
@@ -110,7 +191,7 @@
     </div>
 
     <!-- All user's BIDDINGS made -->
-    <div v-if="selectedActivityType == 'biddings'" class="q-pa-sm">        
+    <div v-if="selectedActivityType.value === 'biddings'" class="q-pa-sm">        
       <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
       <div class="row items-start" ref="productsContainer">
         <!-- Skeleton loaders -->
@@ -190,7 +271,7 @@ import { useRouter } from 'vue-router'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
-import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
+import ActivitySearch from 'src/components/auction/ActivitySearch.vue'
 import noImage from 'src/assets/no-image.svg'
 
 const $q = useQuasar()
@@ -198,10 +279,12 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $router = useRouter()
 
-const selectedActivityType = ref('biddings')
-const filterActivityType = (type) => {
-  selectedActivityType.value = type
-}
+const activityType = ref('biddings')
+const activityTypeOptions = [
+  { label: 'My Biddings', value: 'biddings' },
+  { label: 'My Auctions', value: 'auctions' }
+]
+const selectedActivityType = computed(() => activityType)
 
 const refresh = (done) => {
   setTimeout(() => {
