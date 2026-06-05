@@ -7,18 +7,18 @@
   >
     <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
-    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row q-px-sm justify-center">
-        <div class="column items-center">
-          <div style="width: 340px; max-width: 340px;">
-            <div class="text-h5 text-bold ellipsis q-mb-xs">
-              Lot {{ lot.id }}: {{ lot.title }}
-            </div>
-            <div class="q-mb-md text-bold text-subtitle1 text-green">
-              Highest Bid: {{ lot.thresholdBid ? lot.thresholdBid.toFixed(8) : '0.00000000' }} BCH
-            </div>
-          </div>
-          
+    <div class="q-pa-md q-pt-md text-box" :class="getDarkModeClass(darkMode)">
+      <div class="q-mb-md text-left">
+        <div class="text-h4 q-mb-sm">
+          <span class="text-bold">Lot {{ lot.id }}: </span>{{ lot.title }}
+        </div>
+        <div class="text-h6 text-bold text-green">
+          Highest Bid: {{ lot.thresholdBid ? lot.thresholdBid.toFixed(8) : '0.00000000' }} BCH
+        </div>
+      </div>
+
+      <div class="row q-col-gutter-lg">
+        <div class="column justify-center items-center col-auto" style="margin: 0 auto;">
           <q-carousel
             v-model="activeSlide"
             animated
@@ -60,31 +60,37 @@
           />
         </div>
 
-        <div class="flex column padding q-pl-md q-mr-auto q-mt-md">
-          <div class="text-h5 q-mr-xs q-mb-md">Lot Details</div>
+        <div class="column col q-mx-sm">
+          <div class="text-h6 text-bold q-mb-md text-uppercase tracking-wide">
+            Lot Details
+          </div>
 
-          <span class="q-mr-xs">Auction Title: {{ auction.title }}</span>
-          <span class="q-mr-xs">Auctioneer By: {{ auction.auctioneer || 'N/A' }}</span>
-          <span class="q-mr-xs q-mb-lg">Posted On: {{ auction.datePosted || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Auction Title:</strong> {{ auction.title }}</span>
+          <span class="q-mb-xs"><strong>Auctioneer By:</strong> {{ auction.auctioneer || 'N/A' }}</span>
+          <span class="q-mb-lg"><strong>Posted On:</strong> {{ auction.datePosted || 'N/A' }}</span>
 
-          <span class="q-mr-xs">Bidding Status:</span>
+          <span class="q-mb-xs text-weight-medium">Bidding Status:</span>
           <q-btn 
             class="q-mb-lg text-white text-bold" 
             :style="lot.isSold ? 'background-color: #c10015;' : 'background-color: #097000;'" 
             :label="lot.isSold ? 'Closed / Sold' : 'Open for Bids'"
             flat
             dense
-            style="width: fit-content; padding: 2px 10px;"
+            style="width: fit-content; padding: 2px 12px; border-radius: 4px;"
           />
           
-          <span class="q-mr-xs">Item Type: {{ lot.category }} Asset</span>
-          <span class="q-mr-xs q-mb-lg">Estimated Price: {{ lot.estimatedAmt ? lot.estimatedAmt.toFixed(8) : 'N/A' }} BCH</span>
+          <span class="q-mb-xs"><strong>Item Type:</strong> {{ lot.category }} Asset</span>
+          <span class="q-mb-lg"><strong>Estimated Price:</strong> {{ lot.estimatedAmt ? lot.estimatedAmt.toFixed(8) : 'N/A' }} BCH</span>
           
-          <span class="q-mr-xs">Auction Start: {{ auction.startDate || 'N/A' }}</span>
-          <span class="q-mr-xs q-mb-lg">Auction End: {{ auction.endDate || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Auction Start:</strong> {{ auction.startDate || 'N/A' }}</span>
+          <span class="q-mb-lg"><strong>Auction End:</strong> {{ auction.endDate || 'N/A' }}</span>
           
-          <span class="q-mr-xs text-bold">Description:</span>
-          <span class="q-mr-xs q-space">{{ lot.description || 'No additional specifications provided.' }}</span>
+          <div class="column q-mt-xs">
+            <span class="text-bold q-mb-xs">Description:</span>
+            <span class="line-height-base">
+              {{ lot.description || 'No additional specifications provided.' }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
