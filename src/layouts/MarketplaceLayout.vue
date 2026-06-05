@@ -108,6 +108,22 @@
               {{ getStorefrontCurrency(activeStorefrontCart?.storefrontId) }}
             </div>
           </div>
+          <div v-if="activeStorefrontCart?.discounts?.length"  class="row items-start no-wrap q-mx-xs q-my-md">
+            <div>{{ $t('Discounts') }}</div>
+            <q-space/>
+            <div class="text-right">
+              <div class="text-grey q-gutter-xs row wrap">
+                <q-chip
+                  v-for="discount in activeStorefrontCart?.discounts" :key="discount.id"
+                  square outline dense
+                  color="pt-primary1"
+                  class="ellipsis q-mb-none q-mr-none"
+                >
+                  {{ discount.name }}
+                </q-chip>
+              </div>
+            </div>
+          </div>
           <div v-if="activeStorefrontCart?.markupSubtotal" class="row items-center q-mx-xs q-mt-md">
             <div class="text-h6 q-space q-pr-xs">Subtotal</div>
             <div class="text-body1">
