@@ -12,16 +12,42 @@
         hide-bottom-space
       />
       
-      <div class="q-gutter-y-sm q-mt-md">
-        <q-input
-          v-model="form.logo_url"
-          :label="$t('LogoURL', {}, 'Logo URL')"
-          outlined
-          dense
-          type="url"
-          placeholder="https://..."
-        />
+      <div class="q-mt-md">
+        <div class="text-subtitle2 text-grey-7 q-mb-xs">{{ $t('StoreLogo', {}, 'Store Logo') }}</div>
+        <div class="row q-col-gutter-sm">
+          <div class="col-12 col-sm-6">
+            <q-file
+              v-model="form.logo"
+              :label="$t('UploadLogo', {}, 'Upload Image')"
+              outlined
+              dense
+              accept=".jpg, .jpeg, .png, .webp"
+              max-file-size="2048000"
+              @update:model-value="form.logo_url = ''"
+            >
+              <template v-slot:prepend>
+                <q-icon name="attach_file" />
+              </template>
+            </q-file>
+          </div>
+          <div class="col-12 col-sm-6">
+            <q-input
+              v-model="form.logo_url"
+              :label="$t('LogoURL', {}, 'External Logo URL')"
+              outlined
+              dense
+              type="url"
+              placeholder="https://..."
+              @update:model-value="form.logo = null"
+            />
+          </div>
+        </div>
+        <div class="text-caption text-grey q-mt-xs">
+          {{ $t('LogoDescription', {}, 'Upload a file or provide a URL to an image.') }}
+        </div>
+      </div>
 
+      <div class="q-gutter-y-sm q-mt-md">
         <q-input
           v-model="form.website_url"
           :label="$t('WebsiteURL', {}, 'Website URL')"
@@ -124,6 +150,7 @@ const form = reactive({
   webhook_url: '',
   default_currency: 'USD',
   website_url: '',
+  logo: null,
   logo_url: '',
   support_email: '',
   invoice_expiration_minutes: 15
@@ -132,7 +159,13 @@ const form = reactive({
 onMounted(() => {
   if (props.storeData) {
     Object.keys(form).forEach(key => {
-      if (props.storeData[key] !== undefined) {
+      if (key === 'logo_url') {
+        // 'logo_url' is write-only. We populate our input from the 
+        // returned 'logo' field if it looks like an external URL.
+        if (typeof props.storeData.logo === 'string' && props.storeData.logo.startsWith('http')) {
+          form.logo_url = props.storeData.logo
+        }
+      } else if (props.storeData[key] !== undefined) {
         form[key] = props.storeData[key]
       }
     })
@@ -142,7 +175,13 @@ onMounted(() => {
 async function onSubmit() {
   const isValid = await formRef.value.validate()
   if (isValid) {
-    $emit('saved', { ...props.storeData, ...form })
+    const result = { ...props.storeData, ...form }
+    
+    // Clean up to ensure we don't send empty strings or nulls
+    if (!form.logo) delete result.logo
+    if (!form.logo_url) delete result.logo_url
+    
+    $emit('saved', result)
   }
 }
 
@@ -154,6 +193,7 @@ function resetForm() {
   form.webhook_url = ''
   form.default_currency = 'USD'
   form.website_url = ''
+  form.logo = null
   form.logo_url = ''
   form.support_email = ''
   form.invoice_expiration_minutes = 15

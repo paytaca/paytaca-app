@@ -6,7 +6,6 @@ import {
   deriveHdPath,
   deriveHdPrivateNodeFromSeed,
   deriveHdPublicNode,
-  encodePrivateKeyWif,
 } from "@bitauth/libauth"
 import { mnemonicToSeedSync } from 'bip39'
 import { getMnemonicByHash } from 'src/wallet'
@@ -291,23 +290,29 @@ export class PaymentHub {
   }
 
   /**
-   * Creates a new store.
+   * Creates a new store. Supports both JSON and Multipart (for file uploads).
    * @param {Object} storeData - The store configuration data.
    */
   async createStore(storeData) {
-    const response = await backend.post('/stores/', {
-      wallet_id: storeData.wallet_id,
-      name: storeData.name,
-      webhook_url: storeData.webhook_url,
-      default_currency: storeData.default_currency,
-      website_url: storeData.website_url,
-      logo_url: storeData.logo_url,
-      support_email: storeData.support_email,
-      invoice_expiration_minutes: storeData.invoice_expiration_minutes
-    }, {
+    let payload = storeData
+    const config = {
       authorize: true,
-      wallet: this.wallet
-    })
+      wallet: this.wallet,
+      headers: {}
+    }
+
+    // If logo is a File/Blob, use FormData for multipart upload
+    if (storeData.logo instanceof File || storeData.logo instanceof Blob) {
+      payload = new FormData()
+      Object.keys(storeData).forEach(key => {
+        if (storeData[key] !== undefined && storeData[key] !== null) {
+          payload.append(key, storeData[key])
+        }
+      })
+      config.headers['Content-Type'] = 'multipart/form-data'
+    }
+
+    const response = await backend.post('/stores/', payload, config)
     return response.data
   }
 
@@ -329,10 +334,25 @@ export class PaymentHub {
    * @param {Object} updateData - The settings to update.
    */
   async updateStore(storeId, updateData) {
-    const response = await backend.patch(`/stores/${storeId}`, updateData, {
+    let payload = updateData
+    const config = {
       authorize: true,
-      wallet: this.wallet
-    })
+      wallet: this.wallet,
+      headers: {}
+    }
+
+    // Use FormData if a new logo file is provided
+    if (updateData.logo instanceof File || updateData.logo instanceof Blob) {
+      payload = new FormData()
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined && updateData[key] !== null) {
+          payload.append(key, updateData[key])
+        }
+      })
+      config.headers['Content-Type'] = 'multipart/form-data'
+    }
+
+    const response = await backend.patch(`/stores/${storeId}`, payload, config)
     return response.data
   }
 

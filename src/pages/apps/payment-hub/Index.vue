@@ -60,8 +60,8 @@
             <div class="row items-center">
               <div class="store-icon-wrapper q-mr-md overflow-hidden">
                 <q-img 
-                  v-if="store.logo_url" 
-                  :src="store.logo_url" 
+                  v-if="store.logo" 
+                  :src="store.logo" 
                   style="width: 2.5em; height: 2.5em;" 
                   fit="contain" 
                 />

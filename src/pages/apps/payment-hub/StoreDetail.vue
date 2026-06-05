@@ -15,7 +15,7 @@
       <div class="row items-center q-col-gutter-md">
         <div class="col-auto">
           <q-avatar size="100px" rounded class="bg-white shadow-2">
-            <q-img v-if="storeData?.logo_url" :src="storeData.logo_url" fit="contain" />
+            <q-img v-if="storeData?.logo" :src="storeData.logo" fit="contain" />
             <q-img v-else src="~assets/paytaca_payment_hub_logo.png" fit="contain" />
           </q-avatar>
         </div>
@@ -68,6 +68,8 @@
     <q-tab-panels v-model="activeTab" animated class="bg-transparent">
       <!-- API Keys Tab -->
       <q-tab-panel name="api_keys" class="q-pa-none">
+        <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
+        <div v-else style="height: 4px;"></div>
         <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
           <div class="row items-center q-mt-md q-mb-md">
             <div class="text-h6 q-mr-sm">{{ $t('APIKeys', {}, 'API Keys') }}</div>
@@ -101,7 +103,7 @@
 
           <div v-if="filteredApiKeys.length === 0" class="text-center q-mt-xl text-grey">
             <q-icon name="vpn_key" size="3em" class="q-mb-md" />
-            <div>{{ hideRevoked && apiKeys.some(k => k.revoked) ? $t('AllKeysRevoked', {}, 'All keys are revoked.') : $t('NoAPIKeys', {}, 'No API keys generated yet.') }}</div>
+            <div>{{ hideRevoked && apiKeys.some(k => k.revoked || k.has_expired) ? $t('AllKeysInactive', {}, 'All keys are revoked or expired.') : $t('NoAPIKeys', {}, 'No API keys generated yet.') }}</div>
           </div>
 
           <q-list v-else separator class="br-15 overflow-hidden border-grey-4">
@@ -148,6 +150,7 @@
 
       <!-- Settings Tab -->
       <q-tab-panel name="settings">
+        <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none q-mb-md" />
         <div class="q-gutter-y-md">
           <!-- Basic Configuration -->
           <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
@@ -238,7 +241,7 @@ const hub = ref(null)
 const storeData = ref(null)
 const apiKeys = ref([])
 const webhookPublicKey = ref('')
-const fetchingKeys = ref(false)
+const fetchingData = ref(false)
 const hideRevoked = ref(true)
 const activeTab = ref('api_keys')
 
@@ -278,7 +281,7 @@ async function initHub() {
  * Main refresh function.
  */
 async function refreshPage(done) {
-  fetchingKeys.value = true
+  fetchingData.value = true
   try {
     const paymentHub = await initHub()
     
@@ -295,7 +298,7 @@ async function refreshPage(done) {
   } catch (error) {
     console.error('Error fetching store details:', error)
   } finally {
-    fetchingKeys.value = false
+    fetchingData.value = false
     if (typeof done === 'function') done()
   }
 }
@@ -355,6 +358,17 @@ function editStore() {
     } finally {
       $q.loading.hide()
     }
+  })
+}
+
+function copyKey(key) {
+  copyToClipboard(key)
+  $q.notify({
+    message: $t('KeyCopied', {}, 'Copied to clipboard'),
+    color: 'positive',
+    icon: 'check',
+    position: 'bottom',
+    timeout: 2000
   })
 }
 
