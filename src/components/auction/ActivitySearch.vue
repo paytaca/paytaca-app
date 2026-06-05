@@ -7,7 +7,7 @@
       clearable
       v-model="searchQuery"
       autocomplete="off"
-      placeholder="Search auctions"
+      :placeholder="placeholder"
       color="pt-primary1"
       debounce="500"
       :class="getDarkModeClass(darkMode)"
@@ -76,6 +76,13 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const filteredItems = computed(() => $store.getters['auction/processedItems'])
 
 const searchQuery = ref($store.state.auction?.filters?.search || '')
+
+defineProps({
+  placeholder: {
+    type: String,
+    default: 'Search auctions'
+  }
+})
 
 function search(value) {
   loading.value = true
