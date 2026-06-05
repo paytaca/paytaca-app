@@ -22,7 +22,7 @@
             <div class="text-caption text-grey q-mb-xs">{{ $t('ExpiryDateOptional', {}, 'Expiry Date & Time (Optional)') }}</div>
             <div class="row q-col-gutter-sm">
               <div class="col-6">
-                <q-input outlined dense v-model="form.date" mask="date" :rules="['date']" placeholder="YYYY/MM/DD" hide-bottom-space>
+                <q-input outlined dense v-model="form.date" mask="date" :rules="[val => !val || /^\d{4}\/\d{2}\/\d{2}$/.test(val) || 'Invalid date']" placeholder="YYYY/MM/DD" hide-bottom-space>
                   <template v-slot:append>
                     <q-icon name="event" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -37,7 +37,7 @@
                 </q-input>
               </div>
               <div class="col-6">
-                <q-input outlined dense v-model="form.time" mask="time" :rules="['time']" placeholder="HH:mm" hide-bottom-space>
+                <q-input outlined dense v-model="form.time" mask="time" :rules="[val => !val || /^([0-1]?\d|2[0-3]):[0-5]\d$/.test(val) || 'Invalid time']" placeholder="HH:mm" hide-bottom-space>
                   <template v-slot:append>
                     <q-icon name="access_time" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">

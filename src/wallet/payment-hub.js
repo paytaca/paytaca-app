@@ -278,15 +278,20 @@ export class PaymentHub {
   // --- Stores Section ---
 
   /**
-   * Lists all stores associated with the current wallet.
+   * Lists stores associated with the current wallet. Supports pagination.
+   * @param {Object} params - Query parameters (e.g. { page: 1 })
    */
-  async listStores() {
+  async listStores(params = {}) {
+    const queryParams = { 
+      wallet_hash: this.wallet.BCH.walletHash,
+      ...params 
+    }
     const response = await backend.get('/stores/', {
-      params: { wallet_hash: this.wallet.BCH.walletHash },
+      params: queryParams,
       authorize: true,
       wallet: this.wallet
     })
-    return response.data.results || response.data
+    return response.data
   }
 
   /**
@@ -408,16 +413,21 @@ export class PaymentHub {
   // --- API Keys Section ---
 
   /**
-   * Lists all API keys for a specific store.
+   * Lists API keys for a specific store. Supports pagination.
    * @param {String} storeId - The UUID of the store.
+   * @param {Object} params - Query parameters (e.g. { page: 1 })
    */
-  async listApiKeys(storeId) {
+  async listApiKeys(storeId, params = {}) {
+    const queryParams = {
+      store_id: storeId,
+      ...params
+    }
     const response = await backend.get('/keys/', {
-      params: { store_id: storeId },
+      params: queryParams,
       authorize: true,
       wallet: this.wallet
     })
-    return response.data.results || response.data
+    return response.data
   }
 
   /**
