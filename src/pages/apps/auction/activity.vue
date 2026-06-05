@@ -89,8 +89,8 @@
             </q-img>
 
             <q-card-section class="q-py-sm">
-              <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-                <q-icon name="gavel" size="sm" />
+              <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-sm rounded-borders" style="display: inline-flex;">
+                <q-icon name="gavel" size="xs" />
                 <q-badge
                   :label="`${auction.type} Auction`"
                   class="text-bold"

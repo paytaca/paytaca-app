@@ -98,14 +98,14 @@
               </q-img>
               <q-card-section>
                 <div class="q-mb-xs bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-                <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
-                <q-badge
-                  :label="lot.category"
-                  class="text-bold"
-                  flat
-                  color="transparent"
-                />
-              </div>
+                  <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
+                  <q-badge
+                    :label="lot.category"
+                    class="text-bold"
+                    flat
+                    color="transparent"
+                  />
+                </div>
                 <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
                 <q-chip
                   dense
