@@ -38,7 +38,7 @@
       class="q-px-md q-pt-xs q-pb-md q-mt-md sticky-below-header"
       :class="$q.platform.is.ios ? 'sticky-below-header--ios' : ''"
     >
-      <LotSearch @search-change="localLotSearchQuery = $event"/>
+      <LotSearch @search-change="lotSearchQuery = $event"/>
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -174,7 +174,7 @@ const auction = computed(() => {
   return listings.find(item => item.id === Number(props.auctionId))
 })
 
-const localLotSearchQuery = ref('')
+const lotSearchQuery = ref('')
 
 const filteredLots = computed(() => {
   if (!auction.value || !auction.value.lots) return []
@@ -185,8 +185,8 @@ const filteredLots = computed(() => {
     targetLots = targetLots.filter(lot => lot.category === lotType.value)
   }
   
-  if (localLotSearchQuery.value && localLotSearchQuery.value.trim() !== '') {
-    const query = localLotSearchQuery.value.toLowerCase().trim()
+  if (localotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
+    const query = lotSearchQuery.value.toLowerCase().trim()
     
     targetLots = targetLots.filter(lot => {
       return (
