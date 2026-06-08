@@ -73,9 +73,10 @@
                   class="q-px-md q-py-xs text-subtitle2"
                   color="secondary"
                   text-color="white"
+                  style="text-wrap: auto;"
                 >
                   <q-icon name="local_activity" size="16px" class="q-mr-xs" />
-                  {{ $t('RPRedeemablePoints', { redeemedPoints: getRemainingRedeemable }) }}
+                  {{ $t('RPRedeemablePoints', { points: getRemainingRedeemable }) }}
                 </q-badge>
               </div>
   

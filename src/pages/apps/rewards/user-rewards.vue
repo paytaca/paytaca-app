@@ -405,7 +405,7 @@
                     color="white"
                   />
                   <div class="col">
-                    <span class="text-body2 text-weight-medium">{{ $t('Cashin') }}</span>
+                    <span class="text-body2 text-weight-medium">{{ $t('CashIn') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{
                         continuousPoints.cashin.points === 1 

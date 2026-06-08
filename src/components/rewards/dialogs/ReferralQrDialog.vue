@@ -85,7 +85,7 @@ export default {
 
   data () {
     return {
-      copyTooltip: 'Copy',
+      copyTooltip: this.$t('Copy'),
       copySuccess: false,
       copyFailed: false
     }
