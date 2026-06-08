@@ -162,7 +162,7 @@
           <q-card 
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: '5', lotId: lot.id }, query: { from: 'activity' }})"
+            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: auctionId, lotId: lot.id }})"
           >
             <q-img :src="noImage" ratio="1">
               <template v-slot:loading>
@@ -171,7 +171,7 @@
             </q-img>
             <q-card-section>
               <div class="q-mb-xs bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-                <q-icon :name="lot.type === 'Physical' ? 'delivery_dining' : 'computer'" size="sm" />
+                <q-icon :name="lot.type === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
                 <q-badge
                   :label="lot.type"
                   class="text-bold"
@@ -179,23 +179,21 @@
                   color="transparent"
                 />
               </div>
-              <div class="row items-center">
-                <div class="q-space text-body1 ellipsis text-bold">{{lot.name}}</div>
-                <q-chip
-                  dense
-                  :color="lot.is_sold ? 'red' : 'green'" text-color="white"
-                  class="q-pa-md"
-                >
-                Bidding {{ lot.is_sold ? 'Closed' : 'Open' }}
-                </q-chip>
-              </div>
-              <div>Lot {{ lot.lot_num }}</div>
-              <div>Est. {{ lot.est_price }}</div>
-              <div>{{ lot.high_bid}}  ({{ lot.num_bids }} bids)</div>
+              <div class="q-space text-body1 ellipsis text-bold">{{ lot.name }}</div>
+              <q-chip
+                dense
+                :color="lot.is_sold ? 'red' : 'green'" text-color="white"
+                class="q-pa-sm"
+              >
+                {{ lot.is_sold ? 'Closed' : 'Open' }}
+              </q-chip>
+              <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
+              <div class="text-subtitle2 text-bold text-positive q-mt-xs">Est: {{ lot.est_price }}</div>
+              <div class="text-caption text-grey-7">Min Bid: {{ lot.high_bid }}</div>
             </q-card-section>
           </q-card>
         </div>
-        
+
         <!-- Empty state -->
         <!--
         <div>
