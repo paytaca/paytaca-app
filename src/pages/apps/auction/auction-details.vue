@@ -109,8 +109,8 @@
                 <div>
                   <q-chip
                     dense
-                    :color="getStatusColor(getAuctionStatus(lot.startDate, lot.endDate))"
-                    :label="getAuctionStatus(lot.startDate, lot.endDate)"
+                    :color="getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))"
+                    :label="getAuctionStatus(auction.startDate, auction.endDate)"
                     text-color="white"
                     class="q-pa-sm"
                   />
