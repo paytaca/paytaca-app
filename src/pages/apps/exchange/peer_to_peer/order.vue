@@ -2219,7 +2219,7 @@ getBackNavigationPath () {
               if (pointsResp) {
                 this.rewardNotified = true
                 this.noticeType = 'success'
-                this.errorMessage = 'Congratulations!<br><br>You have earned points for this P2P Ramp purchase!<br><br>Check your points balance in the Rewards app.'
+                this.errorMessage = this.$t('RampPurchaseNotificationText')
                 this.showNoticeDialog = true
               }
             }

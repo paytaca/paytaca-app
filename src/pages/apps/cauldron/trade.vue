@@ -1140,7 +1140,7 @@ export default defineComponent({
 
         if (pointsResp) {
           raiseNotifySuccess(
-            `Congratulations! You have earned points for this Cauldron transaction!<br><br>Check your points balance in the Rewards app.`,
+            `Congratulations! You have earned points for this Cauldron transaction! Check your points balance in the Rewards app.`,
 						3000, 'bottom', 'mdi-party-popper'
           )
         } else {

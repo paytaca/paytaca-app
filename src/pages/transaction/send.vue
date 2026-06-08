@@ -2539,9 +2539,6 @@ export default {
               vm.$q.dialog({
                 component: PointsReceivedDialog,
                 componentProps: {
-                  isFirstSevenTx: resp.is_first_seven_tx,
-                  hasReceivedFirstTxBonus: resp.has_received_first_tx_bonus,
-                  isMerchantOtcTx: true,
                   merchantName: resp.merchant_name ?? ''
                 }
               })
