@@ -56,8 +56,8 @@
                 class="q-mt-md text-bold text-white"
                 style="width: 340px; background-color: var(--q-secondary);"
                 padding="md"
-                :label="lot.isSold ? 'LOT CLOSED' : 'PLACE BID'"
-                :disabled="lot.isSold"
+                label="Place Bid"
+                :disabled="lotStatus.label !== 'Open for Bids'"
                 @click="openDialog = !openDialog"
               />
             </div>
@@ -67,8 +67,8 @@
                 class="q-mt-md text-bold text-white"
                 style="width: 340px; background-color: var(--q-secondary);"
                 padding="md"
-                :label="lot.isSold ? 'LOT CLOSED' : 'BUY IT NOW'"
-                :disabled="lot.isSold"
+                label="Buy It Now"
+                :disabled="lotStatus.label !== 'Open for Bids'"
                 @click="buyItNow"
               />
             </div>
@@ -88,9 +88,9 @@
           <span class="q-mb-xs text-weight-medium">Bidding Status:</span>
           <q-btn 
             class="q-mb-lg text-white text-bold" 
-            :style="lot.isSold ? 'background-color: red;' : 'background-color: green;'" 
-            :label="lot.isSold ? 'Closed / Sold' : 'Open for Bids'"
-            flat
+            :style="`background-color: ${lotStatus.color}`"
+            :label="lotStatus.label"
+            unelevated
             dense
             style="width: fit-content; padding: 2px 12px; border-radius: 4px;"
           />
@@ -166,6 +166,8 @@ const buyItNow = () => {
 
 const handleBuyItNow = () => {
   isToggledBuyItNow.value = false
+  sessionBought.value = true
+
   $q.notify({
     type: 'positive',
     message: 'Lot bought successfully!',
@@ -190,6 +192,28 @@ const lotImages = computed(() => {
     noImage,
     noImage
   ]
+})
+
+
+
+
+const sessionBought = ref(false)
+
+const lotStatus = computed(() => {
+  if (sessionBought.value || lot.value?.isSold || lot.value?.is_sold) {
+    return { label: 'Closed (Sold)', color: 'red' }
+  }
+
+  if (auction.value.startDate && auction.value.endDate) {
+    const now = new Date()
+    const start = new Date(auction.value.startDate)
+    const end = new Date(auction.value.endDate)
+
+    if (now < start) return { label: 'Upcoming', color: 'orange' }
+    if (now > end) return { label: 'Closed', color: 'red' }
+  }
+  
+  return { label: 'Open for Bids', color: 'green' }
 })
 
 const smartBackPath = computed(() => {
