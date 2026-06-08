@@ -7,5 +7,5 @@ export function setLoading(state, loading) {
 }
 
 export function updateAuctionType(state, auctionType) {
-  state.auctionType = { ...state.auctionType, ...auctionType }
+  state.auctionType = auctionType
 }

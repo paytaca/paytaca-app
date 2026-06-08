@@ -1,19 +1,13 @@
 export const processedItems = (state) => {
   const currentListings = tempListings
-  const filters = state?.auctionType
-  if (!filters) return currentListings
+  const filter = state.auctionType
+  
+  if (filter === 'All') {
+    return currentListings
+  }
 
   return currentListings.filter(item => {
-    const searchKeyword = (filters.search || '').toLowerCase()
-    const matchesSearch = !searchKeyword || 
-      item.title.toLowerCase().includes(searchKeyword) ||
-      item.lots.some(lot => lot.title.toLowerCase().includes(searchKeyword))
-    
-    const activeTypeFilter = (filters.type || 'All').toLowerCase()
-    const matchesType = activeTypeFilter === 'all' || 
-      item.type.toLowerCase() === activeTypeFilter
-
-    return matchesSearch && matchesType
+    return item.type === filter
   })
 }
 
