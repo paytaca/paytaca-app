@@ -117,8 +117,15 @@
                 </div>
                 <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
                 <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
-                <div class="text-subtitle2 text-bold text-positive q-mt-xs">Est: {{ lot.estimatedAmt.toFixed(8) }} BCH</div>
-                <div class="text-caption text-grey-7">Min Bid: {{ lot.thresholdBid.toFixed(8) }} BCH</div>
+                <div class="text-subtitle2 text-bold text-positive q-mt-xs">
+                  Est: ₱950 
+                  <span style="opacity: 0.75;" class="text-weight-regular">({{ lot.estimatedAmt.toFixed(8) }} BCH)</span>
+                </div>
+                
+                <div class="text-caption">
+                  Min Bid: ₱950 
+                  <span class="text-weight-regular" style="opacity: 0.75;">({{ lot.thresholdBid.toFixed(8) }} BCH)</span>
+                </div>
               </q-card-section>
             </q-card>
           </div>

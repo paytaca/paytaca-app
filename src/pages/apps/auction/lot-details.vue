@@ -7,13 +7,13 @@
   >
     <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
-    <div class="q-pa-md q-pt-md text-box" :class="getDarkModeClass(darkMode)">
+    <div class="q-pa-md q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="q-mb-md text-left">
         <div class="text-h4 q-mb-sm">
           <span class="text-bold">Lot {{ lot.id }}: </span>{{ lot.title }}
         </div>
-        <div class="text-h6 text-bold text-green">
-          Highest Bid: {{ lot.thresholdBid ? lot.thresholdBid.toFixed(8) : '0.00000000' }} BCH
+        <div class="text-h6 text-bold text-positive">
+          Highest Bid: ₱950 <span style="opacity: 0.75;" class="text-weight-regular">({{ lot.thresholdBid ? lot.thresholdBid.toFixed(8) : '0.00000000' }} BCH)</span>
         </div>
       </div>
 
@@ -27,6 +27,8 @@
             infinite
             height="350px"
             class="rounded-borders shadow-1"
+            :control-color="darkMode ? 'white' : 'primary'"
+            :control-text-color="darkMode ? 'white' : 'primary'"
             style="width: 340px;"
           >
             <q-carousel-slide 
@@ -96,7 +98,7 @@
           />
           
           <span class="q-mb-xs"><strong>Item Type:</strong> {{ lot.category }} Asset</span>
-          <span class="q-mb-lg"><strong>Estimated Price:</strong> {{ lot.estimatedAmt ? lot.estimatedAmt.toFixed(8) : 'N/A' }} BCH</span>
+          <span class="q-mb-lg"><strong>Estimated Price:</strong> ₱950 <span style="opacity: 0.75;">({{ lot.estimatedAmt ? lot.estimatedAmt.toFixed(8) : 'N/A' }} BCH)</span></span>
           
           <span class="q-mb-xs"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.startDate) }}</span>
           <span class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.endDate) }}</span>
