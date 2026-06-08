@@ -25,6 +25,8 @@ import { getDarkModeClass } from "src/utils/theme-darkmode-utils";
 import { useStore } from "vuex";
 import { computed, ref, watch } from "vue";
 
+const emit = defineEmits(['search-change'])
+
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus']);
 
@@ -34,7 +36,7 @@ const loading = ref(false);
 const handleSearch = (val) => {
   loading.value = true;
   
-  $store.commit('auction/setLotSearchQuery', val || '');
+  emit('search-change', val || '')
   
   setTimeout(() => {
     loading.value = false;

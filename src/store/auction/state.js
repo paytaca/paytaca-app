@@ -46,7 +46,6 @@ export default function () {
     auctionFilters: {
       search: '',
       type: 'All'
-    },
-    lotSearchQuery: ''
+    }
   }
 }
