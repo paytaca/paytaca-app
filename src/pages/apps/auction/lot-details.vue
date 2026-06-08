@@ -50,14 +50,29 @@
             />
           </div>
           
-          <q-btn 
-            class="q-mt-md text-bold text-white"
-            style="width: 340px; background-color: var(--q-secondary);"
-            padding="md"
-            :label="lot.isSold ? 'LOT CLOSED' : 'PLACE BID'"
-            :disabled="lot.isSold"
-            @click="openDialog = !openDialog"
-          />
+          <div>
+            <div v-if="auction.type === 'English'">
+              <q-btn 
+                class="q-mt-md text-bold text-white"
+                style="width: 340px; background-color: var(--q-secondary);"
+                padding="md"
+                :label="lot.isSold ? 'LOT CLOSED' : 'PLACE BID'"
+                :disabled="lot.isSold"
+                @click="openDialog = !openDialog"
+              />
+            </div>
+
+            <div v-else>
+              <q-btn 
+                class="q-mt-md text-bold text-white"
+                style="width: 340px; background-color: var(--q-secondary);"
+                padding="md"
+                :label="lot.isSold ? 'LOT CLOSED' : 'BUY IT NOW'"
+                :disabled="lot.isSold"
+              />
+            </div>
+          </div>
+          
         </div>
 
         <div class="column col q-mx-sm">
