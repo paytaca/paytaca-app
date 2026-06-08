@@ -77,10 +77,10 @@
 
               <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
               
-              <div class="row items-center text-caption no-wrap q-mb-xs">
+              <!-- <div class="row items-center text-caption no-wrap q-mb-xs">
                 <q-icon name="location_on" size="xs" class="q-mr-xs" />
                 <div class="ellipsis">{{ auction.location || "None" }}</div>
-              </div>
+              </div> -->
 
               <div class="text-caption">
                 <span class="text-weight-medium">Dates:</span> {{ formatAuctionDate(auction.startDate) }} - {{ formatAuctionDate(auction.endDate) }}
