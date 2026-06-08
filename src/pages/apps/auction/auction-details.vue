@@ -27,8 +27,8 @@
           />
           <span class="q-mr-xs text-bold">Description:</span>
           <span class="q-mr-xs q-mb-lg q-space">{{ auction?.description || 'N/A' }}</span>
-          <span class="q-mr-xs">Start Date: {{ auction?.startDate || 'N/A' }}</span>
-          <span class="q-mr-xs">End Date: {{ auction?.endDate || 'N/A' }}</span>
+          <span class="q-mr-xs">Start Date: {{ formatAuctionDate(auction.startDate) }}</span>
+          <span class="q-mr-xs">End Date: {{ formatAuctionDate(auction.endDate) }}</span>
         </div>
       </div>
     </div>
@@ -144,6 +144,7 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useQuasar, date } from 'quasar'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -219,6 +220,8 @@ const getStatusColor = (status) => {
   if (status === 'Open') return 'green'
   return 'red'
 }
+
+const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from

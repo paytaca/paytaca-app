@@ -118,7 +118,11 @@
               </div> -->
 
               <div class="text-caption">
-                <span class="text-weight-medium">Dates:</span> {{ formatAuctionDate(auction.startDate) }} - {{ formatAuctionDate(auction.endDate) }}
+                <span class="text-weight-medium">Start Date:</span> {{ formatAuctionDate(auction.startDate) }}
+              </div>
+
+              <div class="text-caption">
+                <span class="text-weight-medium">End Date:</span> {{ formatAuctionDate(auction.endDate) }}
               </div>
             </q-card-section>
           </q-card>
@@ -373,7 +377,7 @@ const lotDetails = [
   }
 ]
 
-const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
+const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
 </script>
 
 <style scoped lang="scss">

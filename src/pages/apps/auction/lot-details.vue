@@ -98,8 +98,8 @@
           <span class="q-mb-xs"><strong>Item Type:</strong> {{ lot.category }} Asset</span>
           <span class="q-mb-lg"><strong>Estimated Price:</strong> {{ lot.estimatedAmt ? lot.estimatedAmt.toFixed(8) : 'N/A' }} BCH</span>
           
-          <span class="q-mb-xs"><strong>Auction Start:</strong> {{ auction.startDate || 'N/A' }}</span>
-          <span class="q-mb-lg"><strong>Auction End:</strong> {{ auction.endDate || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.startDate) }}</span>
+          <span class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.endDate) }}</span>
           
           <div class="column q-mt-xs">
             <span class="text-bold q-mb-xs">Description:</span>
@@ -132,7 +132,7 @@ import { useRoute } from 'vue-router'
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
-import { useQuasar } from 'quasar'
+import { useQuasar, date } from 'quasar'
 
 defineOptions({
   directives: {
@@ -215,6 +215,8 @@ const lotStatus = computed(() => {
   
   return { label: 'Open for Bids', color: 'green' }
 })
+
+const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
