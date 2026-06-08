@@ -19,9 +19,9 @@
           <span class="q-mr-xs">Auction Status:</span>
           <q-btn
             class="q-mb-lg text-white text-bold" 
-            :style="auction.isOpen ?  'background-color: #097000;' : 'background-color: #c10015;'" 
+            :style="`background-color: ${getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))}`" 
             style="width: fit-content; padding: 2px 10px;"
-            :label="auction.isOpen ? 'Active Open' : 'Closed'"
+            :label="getAuctionStatus(auction.startDate, auction.endDate)"
             flat
             dense
           />
@@ -198,6 +198,27 @@ const filteredLots = computed(() => {
 
   return targetLots
 })
+
+
+
+
+const getAuctionStatus = (startDateString, endDateString) => {
+  if (!startDateString || !endDateString) return 'Closed'
+  
+  const now = new Date()
+  const start = new Date(startDateString)
+  const end = new Date(endDateString)
+
+  if (now < start) return 'Upcoming'
+  if (now >= start && now <= end) return 'Open'
+  return 'Closed'
+}
+
+const getStatusColor = (status) => {
+  if (status === 'Upcoming') return 'orange'
+  if (status === 'Open') return 'green'
+  return 'red'
+}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from

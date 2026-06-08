@@ -72,7 +72,7 @@
           <span class="q-mb-xs text-weight-medium">Bidding Status:</span>
           <q-btn 
             class="q-mb-lg text-white text-bold" 
-            :style="lot.isSold ? 'background-color: #c10015;' : 'background-color: #097000;'" 
+            :style="lot.isSold ? 'background-color: red;' : 'background-color: green;'" 
             :label="lot.isSold ? 'Closed / Sold' : 'Open for Bids'"
             flat
             dense

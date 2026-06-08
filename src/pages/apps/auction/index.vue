@@ -75,6 +75,17 @@
                 />
               </div>
 
+              <div>
+                <q-chip
+                  dense
+                  :color="getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))"
+                  text-color="white"
+                  class="text-bold q-px-sm"
+                >
+                  {{ getAuctionStatus(auction.startDate, auction.endDate) }}
+                </q-chip>
+              </div>
+
               <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
               
               <!-- <div class="row items-center text-caption no-wrap q-mb-xs">
@@ -120,6 +131,27 @@ const formatAuctionDate = (dateString) => { return date.formatDate(dateString, '
 watch(auctionType, (newType) => {
   $store.dispatch('auction/filterAuctionItems', newType)
 })
+
+
+
+
+const getAuctionStatus = (startDateString, endDateString) => {
+  if (!startDateString || !endDateString) return 'Closed'
+  
+  const now = new Date()
+  const start = new Date(startDateString)
+  const end = new Date(endDateString)
+
+  if (now < start) return 'Upcoming'
+  if (now >= start && now <= end) return 'Open'
+  return 'Closed'
+}
+
+const getStatusColor = (status) => {
+  if (status === 'Upcoming') return 'orange'
+  if (status === 'Open') return 'green'
+  return 'red'
+}
 
 const refresh = async (done) => {
   await $store.dispatch('auction/refreshCatalog')
