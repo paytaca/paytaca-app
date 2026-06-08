@@ -113,7 +113,6 @@ const auctionTypeOptions = ['English', 'Dutch', 'All']
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = computed(() => $store.state.auction?.isLoading || false)
-const selectedAuctionType = computed(() => $store.state.auction?.filters?.auctionType || 'All')
 const filteredItems = computed(() => $store.getters['auction/processedItems'])
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
