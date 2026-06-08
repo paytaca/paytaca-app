@@ -301,6 +301,20 @@ const getStatusColor = (status) => {
   return 'red'
 }
 
+const formatBCHTrailingZeroes = (value) => {
+  if (value === undefined || value === null) {
+    return { main: '0.00', zeros: '000000' }
+  }
+  
+  const numStr = typeof value === 'number' ? value.toFixed(8) : Number(value).toFixed(8)
+  
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match[1]
+  const zeros = numStr.substring(main.length)
+  
+  return { main, zeros }
+}
+
 const refresh = (done) => {
   setTimeout(() => {
     done()

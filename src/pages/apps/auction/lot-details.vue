@@ -98,7 +98,15 @@
           />
           
           <span class="q-mb-xs"><strong>Item Type:</strong> {{ lot.category }} Asset</span>
-          <span class="q-mb-lg"><strong>Estimated Price:</strong> ₱950 <span style="opacity: 0.75;">({{ lot.estimatedAmt ? lot.estimatedAmt.toFixed(8) : 'N/A' }} BCH)</span></span>
+          <span class="q-mb-lg"><strong>Estimated Price:</strong> ₱950
+            <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+              (<span>{{ formatBCHTrailingZeroes(lot.estimatedAmt).main }}</span>
+              
+              <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                {{ formatBCHTrailingZeroes(lot.estimatedAmt).zeros }}
+              </span> BCH)
+            </span>
+          </span>
           
           <span class="q-mb-xs"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.startDate) }}</span>
           <span class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.endDate) }}</span>
@@ -219,6 +227,20 @@ const lotStatus = computed(() => {
 })
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+
+const formatBCHTrailingZeroes = (value) => {
+  if (value === undefined || value === null) {
+    return { main: '0.00', zeros: '000000' }
+  }
+  
+  const numStr = typeof value === 'number' ? value.toFixed(8) : Number(value).toFixed(8)
+  
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match[1]
+  const zeros = numStr.substring(main.length)
+  
+  return { main, zeros }
+}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from

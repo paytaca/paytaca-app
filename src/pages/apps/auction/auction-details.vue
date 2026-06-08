@@ -120,12 +120,24 @@
                 <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
                 <div class="text-subtitle2 text-bold text-positive q-mt-xs">
                   Est: ₱950 
-                  <span style="opacity: 0.75;" class="text-weight-regular">({{ lot.estimatedAmt.toFixed(8) }} BCH)</span>
+                  <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+                    (<span>{{ formatBCHTrailingZeroes(lot.estimatedAmt).main }}</span>
+                    
+                    <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                      {{ formatBCHTrailingZeroes(lot.estimatedAmt).zeros }}
+                    </span> BCH)
+                  </span>
                 </div>
                 
                 <div class="text-caption">
                   Min Bid: ₱950 
-                  <span class="text-weight-regular" style="opacity: 0.75;">({{ lot.thresholdBid.toFixed(8) }} BCH)</span>
+                  <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+                    (<span>{{ formatBCHTrailingZeroes(lot.thresholdBid).main }}</span>
+
+                    <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                      {{ formatBCHTrailingZeroes(lot.thresholdBid).zeros }}
+                    </span> BCH)
+                  </span>
                 </div>
               </q-card-section>
             </q-card>
@@ -230,6 +242,20 @@ const getStatusColor = (status) => {
 }
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+
+const formatBCHTrailingZeroes = (value) => {
+  if (value === undefined || value === null) {
+    return { main: '0.00', zeros: '000000' }
+  }
+  
+  const numStr = typeof value === 'number' ? value.toFixed(8) : Number(value).toFixed(8)
+  
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match[1]
+  const zeros = numStr.substring(main.length)
+  
+  return { main, zeros }
+}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
