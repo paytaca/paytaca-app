@@ -11,12 +11,12 @@
       <div class="row q-px-sm justify-center">
         <q-img :src="collection?.imageUrl || noImage" width="340px" height="350px" />
         <div class="flex column padding q-pl-md q-mr-auto q-mt-md">
-          <div class="text-h5 q-mr-xs">{{ auction?.title || 'N/A' }}</div>
-          <span class="q-mr-xs">Auctioneer: {{ auction?.auctioneer || 'N/A' }}</span>
-          <span class="q-mr-xs">Auctioneer Rating: {{ auction?.rating || 'N/A' }}</span>
-          <span class="q-mr-xs q-mb-lg">Posted On: {{ auction?.datePosted || 'N/A' }}</span>
-          <span class="q-mr-xs">Auction Type: {{ auction?.type || 'N/A' }}</span>
-          <span class="q-mr-xs">Auction Status:</span>
+          <div class="text-h5 q-mb-xs">{{ auction?.title || 'N/A' }}</div>
+          <span class="q-mb-xs"><strong>Auctioneer:</strong> {{ auction?.auctioneer || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Auctioneer Rating:</strong> {{ auction?.rating || 'N/A' }}</span>
+          <span class="q-mb-xs q-mb-lg"><strong>Posted On:</strong> {{ auction?.datePosted || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Auction Type:</strong> {{ auction?.type || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Auction Status:</strong></span>
           <q-btn
             class="q-mb-lg text-white text-bold" 
             :style="`background-color: ${getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))}`" 
@@ -25,10 +25,10 @@
             flat
             dense
           />
-          <span class="q-mr-xs text-bold">Description:</span>
-          <span class="q-mr-xs q-mb-lg q-space">{{ auction?.description || 'N/A' }}</span>
-          <span class="q-mr-xs">Start Date: {{ formatAuctionDate(auction.startDate) }}</span>
-          <span class="q-mr-xs">End Date: {{ formatAuctionDate(auction.endDate) }}</span>
+          <span class="q-mb-xs text-bold">Description:</span>
+          <span class="q-mb-xs q-mb-lg q-space">{{ auction?.description || 'N/A' }}</span>
+          <span class="q-mb-xs"><strong>Start Date:</strong> {{ formatAuctionDate(auction.startDate) }}</span>
+          <span class="q-mb-xs"><strong>End Date:</strong> {{ formatAuctionDate(auction.endDate) }}</span>
         </div>
       </div>
     </div>
