@@ -36,7 +36,7 @@
       <div v-if="route.path?.startsWith('/apps/multisig')" style="position: absolute; right: 0px; ">
         <q-btn
           icon="more_horiz"
-          flat 
+          flat
         >
         <q-menu anchor="bottom left" self="top right">
           <q-item clickable to="/apps/multisig">
