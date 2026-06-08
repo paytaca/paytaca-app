@@ -435,9 +435,15 @@
             <template v-if="checkout?.deliveryType === Checkout.DeliveryTypes.LOCAL_DELIVERY">
               <div v-if="checkout?.deliveryAddress?.distance" class="text-grey q-mx-xs">{{ (checkout?.deliveryAddress?.distance / 1000).toFixed(3) }} km</div>
             </template>
-            <div :class="isStorePickup ? 'line-through text-grey' : ''">
-              <div v-if="displayBch" class="text-right">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
-              <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+            <div>
+              <div :class="isStorePickup ? 'line-through text-grey' : ''">
+                <div v-if="displayBch" class="text-right">{{ checkoutAmounts.deliveryFee.bch }} BCH</div>
+                <div v-else class="text-right">{{ checkoutAmounts.deliveryFee.currency }} {{ checkoutCurrency }}</div>
+              </div>
+              <div v-if="checkoutAmounts.deliveryFeeDiscount" class="text-red-5 q-r-mt-sm">
+                <div v-if="displayBch" class="text-right">-{{ checkoutAmounts.deliveryFeeDiscount.bch }} BCH</div>
+                <div v-else class="text-right">-{{ checkoutAmounts.deliveryFeeDiscount.currency }} {{ checkoutCurrency }}</div>
+              </div>
             </div>
           </div>
           <div class="row items-start text-h6" @click="toggleAmountsDisplay">
@@ -482,7 +488,7 @@
             <div>{{ $t('Discounts') }}</div>
             <q-space/>
             <div class="text-right">
-              <div v-if="checkout.discounts" class="text-grey q-gutter-xs row wrap q-mb-sm">
+              <div v-if="checkout.discounts" class="text-grey q-gutter-xs row wrap justify-end q-mb-sm">
                 <q-chip
                   v-for="discount in checkout.discounts" :key="discount.id"
                   square outline dense
@@ -1569,6 +1575,7 @@ async function applyDiscountCode(code) {
       if (discountCodeError) {
         if (discountCodeError?.includes('does not exist')) errorMessage = 'Discount not found'
         if (discountCodeError?.includes('did not map to any line item')) errorMessage = 'No item/s to apply discount'
+        if (discountCodeError?.includes('conditions not met')) errorMessage = 'Discount conditions not met'
         else errorMessage = discountCodeError
       }
 

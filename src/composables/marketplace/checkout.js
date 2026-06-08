@@ -38,6 +38,13 @@ export function useCheckoutDetails(checkoutDataOrRef) {
       change: { currency: checkout.value?.change, bch: 0 },
     }
 
+    if (checkout.value?.payment?.deliveryFeeDiscount) {
+      data.deliveryFeeDiscount = {
+        currency: parseFloat(checkout.value?.payment?.deliveryFeeDiscount),
+        bch: 0,
+      }
+    }
+
     if (!isNaN(checkoutBchPrice.value)) {
       data.subtotal.bch = parseBch(data.subtotal.currency / checkoutBchPrice.value)
       data.deliveryFee.bch = parseBch(data.deliveryFee.currency / checkoutBchPrice.value)
@@ -45,6 +52,9 @@ export function useCheckoutDetails(checkoutDataOrRef) {
       data.totalPaymentsSent.bch = parseBch(data.totalPaymentsSent.currency / checkoutBchPrice.value)
       data.balanceToPay.bch = parseBch(data.balanceToPay.currency / checkoutBchPrice.value)
       data.change.bch = parseBch(data.change.currency / checkoutBchPrice.value)
+      if (data.deliveryFeeDiscount) {
+        data.deliveryFeeDiscount.bch = parseBch(data.deliveryFeeDiscount.currency / checkoutBchPrice.value)
+      }
     } else {
       data.subtotal.bch = null
       data.deliveryFee.bch = null

@@ -1176,6 +1176,7 @@ export class Checkout {
     this.payment = {
       bchPrice: BchPrice.parse(data?.payment?.bch_price),
       deliveryFee: data?.payment?.delivery_fee,
+      deliveryFeeDiscount: data?.payment?.delivery_fee_discount,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
       amountToken: data?.payment?.amount_token ? FungibleCashToken.parse(data?.payment?.amount_token) : null,
       deliveryFeeToken: data?.payment?.delivery_fee_token ? FungibleCashToken.parse(data?.payment?.delivery_fee_token) : null,
@@ -1185,6 +1186,12 @@ export class Checkout {
     this.totalPayments = data?.total_payments
     this.totalRefunded = data?.total_refunded
     this.discounts = DiscountType.parseList(data?.discounts)
+  }
+
+  get finalDeliveryFee() {
+    const deliveryFee = parseFloat(this.payment?.deliveryFee) || 0;
+    const deliveryFeeDiscount = this.payment?.deliveryFeeDiscount ?? 0
+    return deliveryFee - deliveryFeeDiscount
   }
 
   get totalPaymentsSent() {
@@ -1197,7 +1204,7 @@ export class Checkout {
   }
 
   get total() {
-    const total = (parseFloat(this.cart?.markupSubtotal) || 0) + (parseFloat(this.payment?.deliveryFee) || 0)
+    const total = (parseFloat(this.cart?.markupSubtotal) || 0) + this.finalDeliveryFee
     return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
@@ -1408,6 +1415,7 @@ export class Order {
     this.totalRefunded = data?.total_refunded
     this.payment = {
       deliveryFee: data?.payment?.delivery_fee,
+      deliveryFeeDiscount: data?.payment?.delivery_fee_discount,
       escrowRefundAddress: data?.payment?.escrow_refund_address,
     }
     this.cancelReason = data?.cancel_reason
@@ -1464,8 +1472,14 @@ export class Order {
     return Math.round(markupAmount * 10 ** 3) / 10 ** 3
   }
 
+  get finalDeliveryFee() {
+    const deliveryFee = parseFloat(this.payment?.deliveryFee) || 0;
+    const deliveryFeeDiscount = this.payment?.deliveryFeeDiscount ?? 0
+    return deliveryFee - deliveryFeeDiscount
+  }
+
   get total() {
-    const total = Number(this?.payment?.deliveryFee) + Number(this.markupSubtotal)
+    const total = Number(this?.finalDeliveryFee) + Number(this.markupSubtotal)
     return Math.round(total * 10 ** 3) / 10 ** 3
   }
 
