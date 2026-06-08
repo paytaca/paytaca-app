@@ -289,12 +289,14 @@ export default {
     },
 
     async onSkipButtonPressed () {
-      await processReferralCode({
-        wallet_hash: this.walletHash,
-        has_deferred_code_entering: true,
-        has_entered_code: false,
-        from_wallet_creation: this.fromCreateWallet
-      })
+      if (this.fromCreateWallet) {
+        await processReferralCode({
+          wallet_hash: this.walletHash,
+          has_deferred_code_entering: true,
+          has_entered_code: false,
+          from_wallet_creation: this.fromCreateWallet
+        })
+      }
       this.$emit('on-proceed-to-next-step')
     },
 
