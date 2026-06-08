@@ -28,7 +28,8 @@
           autocomplete="off"
           color="pt-primary1"
           debounce="500"
-          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          :bg-color="darkMode ? 'dark' : 'white'"
+          :popup-content-style="{ color: darkMode ? '#ffffff' : '#000000' }"
           class="q-ml-sm"
           style="width: 135px;"
         >
@@ -142,7 +143,7 @@ const filteredItems = computed(() => {
       )
     })
   }
-  
+
   return items
 })
 

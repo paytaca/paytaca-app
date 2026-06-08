@@ -45,11 +45,22 @@
         <template v-slot:prepend>
           <q-icon name="filter_list" size="xs" />
         </template>
+
+        <template v-slot:option="scope">
+          <q-item
+            v-bind="scope.itemProps"
+            :style="{ color: darkMode ? '#ffffff' : '#000000' }"
+          >
+            <q-item-section>
+              <q-item-label>{{ scope.opt.label }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </template>
       </q-select>
     </div>
 
     <!-- All user's AUCTIONS made -->
-    <div v-if="selectedActivityType.value === 'auctions'" class="q-pa-sm">
+    <div v-if="selectedActivityType.value === 'auctions'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">My Auctions</div>
         <q-select
@@ -62,12 +73,24 @@
           autocomplete="off"
           color="pt-primary1"
           debounce="500"
-          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          :bg-color="darkMode ? 'dark' : 'white'"
+          :popup-content-style="{ color: darkMode ? '#ffffff' : '#000000' }"
           class="q-ml-sm"
           style="width: 135px;"
         >
           <template v-slot:prepend>
             <q-icon name="filter_list" size="xs" />
+          </template>
+
+          <template v-slot:option="scope">
+            <q-item
+              v-bind="scope.itemProps"
+              :style="{ color: darkMode ? '#ffffff' : '#000000' }"
+            >
+              <q-item-section>
+                <q-item-label>{{ scope.opt }}</q-item-label>
+              </q-item-section>
+            </q-item>
           </template>
         </q-select>
       </div>
@@ -131,7 +154,7 @@
     </div>
 
     <!-- All user's BIDDINGS made -->
-    <div v-if="selectedActivityType.value === 'biddings'" class="q-pa-sm">    
+    <div v-if="selectedActivityType.value === 'biddings'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
       <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">My Biddings</div>
         <q-select
@@ -144,7 +167,8 @@
           autocomplete="off"
           color="pt-primary1"
           debounce="500"
-          :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+          :bg-color="darkMode ? 'dark' : 'white'"
+          :popup-content-style="{ color: darkMode ? '#ffffff' : '#000000' }"
           class="q-ml-sm"
           style="width: 135px;"
         >
