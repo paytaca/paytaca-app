@@ -1,9 +1,9 @@
 export async function filterAuctionItems({ commit }, type) {
-  commit('updateFilters', { auctionType: type })
+  commit('updateAuctionFilters', { type: type })
 }
 
 export async function updateSearchQuery({ commit }, query) {
-  commit('updateFilters', { search: query })
+  commit('updateAuctionFilters', { search: query })
 }
 
 export async function refreshCatalog({ commit }) {

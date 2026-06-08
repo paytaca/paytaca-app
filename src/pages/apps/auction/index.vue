@@ -119,7 +119,7 @@ import noImage from 'src/assets/no-image.svg'
 const $q = useQuasar()
 const $store = useStore()
 
-const auctionType = ref($store.state.auction?.filters?.auctionType || 'All');
+const auctionType = ref($store.state.auction?.auctionFilters?.type || 'All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])

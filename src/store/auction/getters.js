@@ -1,6 +1,6 @@
 export const processedItems = (state) => {
   const currentListings = tempListings
-  const filters = state?.filters
+  const filters = state?.auctionFilters
   if (!filters) return currentListings
 
   return currentListings.filter(item => {
@@ -9,7 +9,7 @@ export const processedItems = (state) => {
       item.title.toLowerCase().includes(searchKeyword) ||
       item.lots.some(lot => lot.title.toLowerCase().includes(searchKeyword))
     
-    const activeTypeFilter = (filters.auctionType || 'All').toLowerCase()
+    const activeTypeFilter = (filters.type || 'All').toLowerCase()
     const matchesType = activeTypeFilter === 'all' || 
       item.type.toLowerCase() === activeTypeFilter
 

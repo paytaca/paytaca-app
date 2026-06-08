@@ -43,9 +43,9 @@ export default function () {
       }
     ],
     isLoading: false,
-    filters: {
+    auctionFilters: {
       search: '',
-      auctionType: 'All'
+      type: 'All'
     },
     lotSearchQuery: ''
   }
