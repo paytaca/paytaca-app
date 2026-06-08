@@ -106,14 +106,16 @@
                     color="transparent"
                   />
                 </div>
+                <div>
+                  <q-chip
+                    dense
+                    :color="getStatusColor(getAuctionStatus(lot.startDate, lot.endDate))"
+                    :label="getAuctionStatus(lot.startDate, lot.endDate)"
+                    text-color="white"
+                    class="q-pa-sm"
+                  />
+                </div>
                 <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
-                <q-chip
-                  dense
-                  :color="lot.isSold ? 'red' : 'green'" text-color="white"
-                  class="q-pa-sm"
-                >
-                  {{ lot.isSold ? 'Closed' : 'Open' }}
-                </q-chip>
                 <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
                 <div class="text-subtitle2 text-bold text-positive q-mt-xs">Est: {{ lot.estimatedAmt.toFixed(8) }} BCH</div>
                 <div class="text-caption text-grey-7">Min Bid: {{ lot.thresholdBid.toFixed(8) }} BCH</div>

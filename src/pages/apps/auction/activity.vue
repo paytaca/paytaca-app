@@ -190,14 +190,16 @@
                   color="transparent"
                 />
               </div>
+              <div>
+                <q-chip
+                  dense
+                  :color="getStatusColor(getAuctionStatus(lot.startDate, lot.endDate))"
+                  :label="getAuctionStatus(lot.startDate, lot.endDate)"
+                  text-color="white"
+                  class="q-pa-sm"
+                />
+              </div>
               <div class="q-space text-body1 ellipsis text-bold">{{ lot.name }}</div>
-              <q-chip
-                dense
-                :color="lot.is_sold ? 'red' : 'green'" text-color="white"
-                class="q-pa-sm"
-              >
-                {{ lot.is_sold ? 'Closed' : 'Open' }}
-              </q-chip>
               <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
               <div class="text-subtitle2 text-bold text-positive q-mt-xs">Est: {{ lot.est_price }}</div>
               <div class="text-caption text-grey-7">Min Bid: {{ lot.high_bid }}</div>
@@ -341,7 +343,9 @@ const lotDetails = [
     lot_num: 1,
     est_price: '₱1000',
     high_bid: '₱950',
-    num_bids: 0
+    num_bids: 0,
+    startDate: "2026-05-01",
+    endDate: "2026-05-15",
   }, 
   {
     id: 12,
@@ -351,7 +355,9 @@ const lotDetails = [
     lot_num: '2',
     est_price: '₱1000',
     high_bid: '₱950',
-    num_bids: 3
+    num_bids: 3,
+    startDate: "2026-07-10",
+    endDate: "2026-07-20",
   },
   {
     id: 13,
@@ -361,7 +367,9 @@ const lotDetails = [
     lot_num: '3',
     est_price: '₱1000',
     high_bid: '₱950',
-    num_bids: 11
+    num_bids: 11,
+    startDate: "2026-05-28",
+    endDate: "2026-07-01",
   }
 ]
 
