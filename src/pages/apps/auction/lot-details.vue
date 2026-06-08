@@ -69,6 +69,7 @@
                 padding="md"
                 :label="lot.isSold ? 'LOT CLOSED' : 'BUY IT NOW'"
                 :disabled="lot.isSold"
+                @click="buyItNow"
               />
             </div>
           </div>
@@ -111,6 +112,10 @@
     </div>
 
     <BiddingPopup v-model="openDialog" />
+    <BuyItNowPopup
+      v-model:isToggledBuyItNow="isToggledBuyItNow"
+      @confirm-buy-it-now="handleBuyItNow"
+    />
   </q-pull-to-refresh>
 </template>
 
@@ -122,8 +127,12 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+
+// Components
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
+import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
+import { useQuasar } from 'quasar'
 
 defineOptions({
   directives: {
@@ -142,11 +151,27 @@ const props = defineProps({
   }
 })
 
-const openDialog = ref(false);
+const openDialog = ref(false)
 
-const $store = useStore();
+const $q = useQuasar()
+const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
+
+const isToggledBuyItNow = ref(false)
+
+const buyItNow = () => {
+  isToggledBuyItNow.value = true
+}
+
+const handleBuyItNow = () => {
+  isToggledBuyItNow.value = false
+  $q.notify({
+    type: 'positive',
+    message: 'Lot bought successfully!',
+    timeout: 3000
+  })
+}
 
 const auction = computed(() => {
   const listings = $store.getters['auction/processedItems'] || []
