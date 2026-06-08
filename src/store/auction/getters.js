@@ -1,6 +1,6 @@
 export const processedItems = (state) => {
   const currentListings = tempListings
-  const filters = state?.auctionFilters
+  const filters = state?.auctionType
   if (!filters) return currentListings
 
   return currentListings.filter(item => {

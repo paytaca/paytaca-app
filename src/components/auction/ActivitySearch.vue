@@ -4,7 +4,7 @@
     dense
     :loading="loading"
     clearable
-    v-model="searchQuery"
+    v-model="inputVal"
     autocomplete="off"
     :placeholder="placeholder"
     color="pt-primary1"
@@ -37,7 +37,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const filteredItems = computed(() => $store.getters['auction/processedItems'])
 
-const searchQuery = ref($store.state.auction?.auctionFilters?.search || '')
+const inputVal = ref('')
 
 defineProps({
   placeholder: {
@@ -66,7 +66,7 @@ function goToDetails(id) {
   $router.push({ name: 'app-auction-details', params: { auctionId: id }})
 }
 
-watch(() => $store.state.auction?.auctionFilters?.search, (newSearch) => {
-  searchQuery.value = newSearch || ''
-})
+// watch(() => $store.state.auction?.auctionFilters?.search, (newSearch) => {
+//   searchQuery.value = newSearch || ''
+// })
 </script>

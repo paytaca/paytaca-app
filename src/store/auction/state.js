@@ -43,9 +43,6 @@ export default function () {
       }
     ],
     isLoading: false,
-    auctionFilters: {
-      search: '',
-      type: 'All'
-    }
+    auctionType: 'All'
   }
 }

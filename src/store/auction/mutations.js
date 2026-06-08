@@ -6,6 +6,6 @@ export function setLoading(state, loading) {
   state.isLoading = loading
 }
 
-export function updateAuctionFilters(state, auctionFilters) {
-  state.auctionFilters = { ...state.auctionFilters, ...auctionFilters }
+export function updateAuctionType(state, auctionType) {
+  state.auctionType = { ...state.auctionType, ...auctionType }
 }
