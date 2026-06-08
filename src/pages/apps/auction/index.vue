@@ -12,7 +12,7 @@
     </HeaderNav>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <AuctionSearch />
+      <AuctionSearch @search-change="auctionSearchQuery = $event"/>
     </div>
 
     <div class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
@@ -124,7 +124,23 @@ const auctionTypeOptions = ['English', 'Dutch', 'All']
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = computed(() => $store.state.auction?.isLoading || false)
-const filteredItems = computed(() => $store.getters['auction/processedItems'])
+
+const auctionSearchQuery = ref('')
+const filteredItems = computed(() => {
+  let items = $store.getters['auction/processedItems']
+
+  if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
+    const query = auctionSearchQuery.value.toLowerCase().trim()
+    
+    items = items.filter(item => {
+      return (
+        item.title.toLowerCase().includes(query)
+      )
+    })
+  }
+  
+  return items
+})
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY') }
 

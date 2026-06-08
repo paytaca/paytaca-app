@@ -185,13 +185,12 @@ const filteredLots = computed(() => {
     targetLots = targetLots.filter(lot => lot.category === lotType.value)
   }
   
-  if (localotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
+  if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
     const query = lotSearchQuery.value.toLowerCase().trim()
     
     targetLots = targetLots.filter(lot => {
       return (
         lot.title.toLowerCase().includes(query) ||
-        lot.description.toLowerCase().includes(query) ||
         lot.id.toString().includes(query)
       )
     })

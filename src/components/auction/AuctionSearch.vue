@@ -4,13 +4,13 @@
     dense
     :loading="loading"
     clearable
-    v-model="searchQuery"
+    v-model="inputVal"
     autocomplete="off"
     placeholder="Search auctions"
     color="pt-primary1"
     debounce="500"
     :class="getDarkModeClass(darkMode)"
-    @update:model-value="search"
+    @update:model-value="handleSearch"
   >
     <template v-slot:append>
       <q-icon name="search"/>
@@ -25,33 +25,29 @@ import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { computed, ref, watch } from "vue";
 
+const emit = defineEmits(['search-change'])
+
 const $q = useQuasar()
 const $store = useStore()
 const $router = useRouter()
 
-const showSuggestions = ref(false)
+const inputVal = ref('');
 const loading = ref(false)
-
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const searchQuery = ref($store.state.auction?.auctionFilters?.search || '')
-
-function search(value) {
-  loading.value = true
+const handleSearch = (val) => {
+  loading.value = true;
   
-  const cleanValue = value || ''
-  $store.dispatch('auction/updateSearchQuery', cleanValue)
+  emit('search-change', val || '')
+  
+  setTimeout(() => {
+    loading.value = false;
+  }, 150);
+};
 
-  if (cleanValue.trim().length > 0) {
-    showSuggestions.value = true
-  } else {
-    showSuggestions.value = false
+watch(inputVal, (newVal) => {
+  if (!newVal) {
+    handleSearch('');
   }
-  
-  loading.value = false
-}
-
-watch(() => $store.state.auction?.auctionFilters?.search, (newSearch) => {
-  searchQuery.value = newSearch || ''
-})
+});
 </script>
