@@ -6,7 +6,7 @@
   >
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
       <q-card-section class="q-pa-md text-center">
-        <!-- <q-avatar icon="delete" color="red-1" text-color="red" size="md" class="q-mb-sm" /> -->
+        <q-avatar icon="bolt" color="red-1" text-color="red" size="md" class="q-mb-sm" />
         <div class="text-h6 text-weight-bold">Buy It Now?</div>
         
         <p class="text-caption q-mt-sm">
