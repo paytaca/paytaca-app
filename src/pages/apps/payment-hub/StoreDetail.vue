@@ -347,8 +347,8 @@ const hasNextKeysPage = ref(false)
 
 // Filter & Sort state
 const searchQuery = ref('')
-const orderBy = ref('created')
-const orderDir = ref('desc')
+const orderBy = ref(localStorage.getItem('paytaca_hub_keys_orderBy') || 'created')
+const orderDir = ref(localStorage.getItem('paytaca_hub_keys_orderDir') || 'desc')
 let searchTimeout = null
 
 /**
@@ -361,6 +361,11 @@ function setOrdering(field) {
     orderBy.value = field
     orderDir.value = field === 'created' ? 'desc' : 'asc'
   }
+
+  // Persist sorting preferences
+  localStorage.setItem('paytaca_hub_keys_orderBy', orderBy.value)
+  localStorage.setItem('paytaca_hub_keys_orderDir', orderDir.value)
+
   refreshPage()
 }
 

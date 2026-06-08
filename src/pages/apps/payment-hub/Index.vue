@@ -235,8 +235,8 @@ const hasNextPage = ref(false)
 
 // Filter & Sort state
 const searchQuery = ref('')
-const orderBy = ref('date_created')
-const orderDir = ref('desc')
+const orderBy = ref(localStorage.getItem('paytaca_hub_stores_orderBy') || 'date_created')
+const orderDir = ref(localStorage.getItem('paytaca_hub_stores_orderDir') || 'desc')
 let searchTimeout = null
 
 onMounted(() => {
@@ -253,6 +253,11 @@ function setOrdering(field) {
     orderBy.value = field
     orderDir.value = field === 'date_created' ? 'desc' : 'asc'
   }
+  
+  // Persist sorting preferences
+  localStorage.setItem('paytaca_hub_stores_orderBy', orderBy.value)
+  localStorage.setItem('paytaca_hub_stores_orderDir', orderDir.value)
+  
   refreshPage()
 }
 
