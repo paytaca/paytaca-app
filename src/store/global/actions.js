@@ -19,6 +19,9 @@ import { backend as posBackend } from 'src/wallet/pos'
 import { toTokenAddress } from 'src/utils/crypto'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 
+// Clear Token when Switching Wallet
+import { clearToken } from 'src/auction/bch-oauth'
+
 const DEFAULT_BALANCE_MAX_AGE = 60 * 1000
 const watchtower = new Watchtower()
 
@@ -388,6 +391,7 @@ export async function switchWallet (context, walletHashOrIndex) {
     // NOTE: We still need to sync the OLD wallet in the setTimeout block below
     context.commit('updateWalletIndex', index)
     context.commit('updateCurrentWallet', index)
+    await clearToken()
   }
   
   return new Promise((resolve, reject) => {
