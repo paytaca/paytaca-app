@@ -462,7 +462,7 @@ export class JSONPaymentProtocol {
    * @param {Wallet} wallet 
    */
   async prepareTransaction(wallet, changeAddress) {
-    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash'))) {
+    if (this.parsed.outputs.find(output => !output.address.startsWith('bitcoincash') && !output.address.startsWith('bchtest:'))) {
       throw JsonPaymentProtocolError('Invalid recipient address')
     }
 
