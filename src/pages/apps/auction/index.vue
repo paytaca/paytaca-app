@@ -77,11 +77,7 @@
               <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-sm rounded-borders" style="display: inline-flex;">
                 <q-icon name="gavel" size="xs" />
                 <q-badge
-                  :label="`${
-                    item?.raw?.type?.type || 
-                    (Number(auction.type_id || auction.raw?.type_id) === 1 ? 'English' : 
-                    Number(auction.type_id || auction.raw?.type_id) === 2 ? 'Dutch' : 'Standard')
-                  } Auction`"
+                  :label="`${auction.type} Auction`"
                   class="text-bold"
                   flat
                   color="transparent"
@@ -127,6 +123,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
+import { AuctionList } from 'src/auction/object.js'
 
 const $q = useQuasar()
 const $store = useStore()
@@ -144,15 +141,12 @@ onMounted(async () => {
 const auctionSearchQuery = ref('')
 const filteredItems = computed(() => {
   let items = $store.getters['auction/processedItems'] || []
+  
+  items = items.map(item => (item instanceof AuctionList ? item : AuctionList.parse(item)))
 
   if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
     const query = auctionSearchQuery.value.toLowerCase().trim()
-    
-    items = items.filter(item => {
-      return (
-        item.title?.toLowerCase().includes(query)
-      )
-    })
+    items = items.filter(item => item.title?.toLowerCase().includes(query))
   }
 
   return items

@@ -12,23 +12,28 @@
         <q-img :src="collection?.imageUrl || noImage" width="340px" height="350px" />
         <div class="flex column padding q-pl-md q-mr-auto q-mt-md">
           <div class="text-h5 q-mb-xs">{{ auction?.title || 'N/A' }}</div>
-          <span class="q-mb-xs"><strong>Auctioneer:</strong> {{ auction?.auctioneer || 'N/A' }}</span>
+          <div class="row q-mb-xs" style="max-width: 340px;"> 
+            <strong class="shrink-0 q-mr-xs">Auctioneer:</strong>
+            <span class="break-words text-left" style="word-break: break-all;">
+              {{ auction?.user_id || 'N/A' }}
+            </span>
+          </div>
           <span class="q-mb-xs"><strong>Auctioneer Rating:</strong> {{ auction?.rating || 'N/A' }}</span>
           <span class="q-mb-xs q-mb-lg"><strong>Posted On:</strong> {{ auction?.datePosted || 'N/A' }}</span>
           <span class="q-mb-xs"><strong>Auction Type:</strong> {{ auction?.type || 'N/A' }}</span>
           <span class="q-mb-xs"><strong>Auction Status:</strong></span>
           <q-btn
             class="q-mb-lg text-white text-bold" 
-            :style="`background-color: ${getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))}`" 
+            :style="`background-color: ${getAuctionStatusInfo(auction).color}`" 
             style="width: fit-content; padding: 2px 10px;"
-            :label="getAuctionStatus(auction.startDate, auction.endDate)"
+            :label="getAuctionStatusInfo(auction).label"
             flat
             dense
           />
           <span class="q-mb-xs text-bold">Description:</span>
           <span class="q-mb-xs q-mb-lg q-space">{{ auction?.description || 'N/A' }}</span>
-          <span class="q-mb-xs"><strong>Start Date:</strong> {{ formatAuctionDate(auction.startDate) }}</span>
-          <span class="q-mb-xs"><strong>End Date:</strong> {{ formatAuctionDate(auction.endDate) }}</span>
+          <span class="q-mb-xs"><strong>Start Date:</strong> {{ formatAuctionDate(auction.start_date) }}</span>
+          <span class="q-mb-xs"><strong>End Date:</strong> {{ formatAuctionDate(auction.end_date) }}</span>
         </div>
       </div>
     </div>
@@ -110,8 +115,8 @@
                 <div>
                   <q-chip
                     dense
-                    :color="getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))"
-                    :label="getAuctionStatus(auction.startDate, auction.endDate)"
+                    :color="getStatusColor(getAuctionStatus(auction.start_date, auction.end_date))"
+                    :label="getAuctionStatus(auction.start_date, auction.end_date)"
                     text-color="white"
                     class="q-pa-sm"
                   />
@@ -169,6 +174,7 @@ import { useQuasar, date } from 'quasar'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
+import { AuctionList } from 'src/auction/object.js'
 
 const props = defineProps({
   auctionId: {
@@ -192,7 +198,8 @@ const lotTypeOptions = ['Physical', 'Digital', 'All']
 
 const auction = computed(() => {
   const listings = $store.getters['auction/processedItems'] || []
-  return listings.find(item => item.id === Number(props.auctionId))
+  const found = listings.find(item => item.id === Number(props.auctionId))
+  return found instanceof AuctionList ? found : AuctionList.parse(found)
 })
 
 const lotSearchQuery = ref('')
@@ -223,22 +230,11 @@ const filteredLots = computed(() => {
 
 
 
-const getAuctionStatus = (startDateString, endDateString) => {
-  if (!startDateString || !endDateString) return 'Closed'
-  
-  const now = new Date()
-  const start = new Date(startDateString)
-  const end = new Date(endDateString)
-
-  if (now < start) return 'Upcoming'
-  if (now >= start && now <= end) return 'Open'
-  return 'Closed'
-}
-
-const getStatusColor = (status) => {
-  if (status === 'Upcoming') return 'orange'
-  if (status === 'Open') return 'green'
-  return 'red'
+const getAuctionStatusInfo = (auction) => {
+  if (auction && typeof auction.getStatus === 'function') {
+    return auction.getStatus();
+  }
+  return { label: 'NaN', color: 'purple' };
 }
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
