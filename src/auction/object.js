@@ -93,6 +93,9 @@ export class AuctionList {
     
     this.type_id = data.type_id || (data.type ? data.type.id : null);
     this.user_id = data.user_id || (data.user ? data.user.id : null);
+
+    if(data.type_id == 1) this.type = "English"
+    else this.type = "Dutch"
     
     this.lots = Array.isArray(data.lots)
       ? data.lots.map(lotObj => LotsList.parse(lotObj))
