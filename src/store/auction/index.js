@@ -6,7 +6,7 @@ import * as actions from './actions'
 export default {
   namespaced: true,
   state,
-  getters: { ...getters },
-  mutations: { ...mutations },
-  actions: { ...actions }
+  getters,
+  mutations,
+  actions
 }

@@ -1,5 +1,5 @@
-export function setListings(state, listings) {
-  state.listings = listings
+export function setListings(state, allAuctions) {
+  state.listings = allAuctions
 }
 
 export function setLoading(state, loading) {
