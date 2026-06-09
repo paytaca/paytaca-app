@@ -74,9 +74,7 @@
         <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
         <div class="row items-start" ref="productsContainer">
           <!-- Skeleton loaders -->
-           
-          <!--
-          <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <div v-if="isLoading" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <q-skeleton height="200px" square />
               <q-card-section>
@@ -88,10 +86,17 @@
               </q-card-section>
             </q-card>
           </div>
-          -->
+
+          <div v-else-if="isLotEmpty"
+            class="row flex-center q-mx-md q-mb-md rounded-borders"
+            :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+            style="min-height: 70px; width: 100%;"
+          >
+            <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Lots Matched') }}</div>
+          </div>
 
           <!-- Actual products -->
-          <div v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card 
               class="pt-card text-bow cursor-pointer" 
               :class="getDarkModeClass(darkMode)"
@@ -183,6 +188,8 @@ const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
 
+const isLoading = ref(false)
+
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 
@@ -195,6 +202,8 @@ const auction = computed(() => {
 const lots = ref([])
 
 onMounted(async () => {
+  isLoading.value = true
+
   const result = await callApi('lots/auction', props.auctionId)
 
   if (result.success) {
@@ -206,6 +215,8 @@ onMounted(async () => {
       return lot
     })
   }
+
+  isLoading.value = false;
 })
 
 const lotSearchQuery = ref('')
@@ -238,6 +249,10 @@ const getAuctionStatusInfo = (auction) => {
 }
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+
+const isLotEmpty = computed(() => {
+  return !isLoading.value && filteredLots.value.length === 0
+})
 
 const formatBCHTrailingZeroes = (value) => {
   if (value === undefined || value === null) {
