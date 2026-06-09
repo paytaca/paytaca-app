@@ -13,7 +13,10 @@
           <span class="text-bold">Lot {{ lot.id }}: </span>{{ lot.title }}
         </div>
         <div class="text-h6 text-bold text-positive">
-          Highest Bid: ₱950 <span style="opacity: 0.75;" class="text-weight-regular">({{ lot.thresholdBid ? lot.thresholdBid.toFixed(8) : '0.00000000' }} BCH)</span>
+          Highest Bid: ₱950 
+          <span style="opacity: 0.75;" class="text-weight-regular">
+            ({{ lot.threshold_bid ? lot.threshold_bid.toFixed(8) : '0.00000000' }} BCH)
+          </span>
         </div>
       </div>
 
@@ -59,7 +62,7 @@
                 style="width: 340px; background-color: var(--q-secondary);"
                 padding="md"
                 label="Place Bid"
-                :disabled="lotStatus.label !== 'Open for Bids'"
+                :disabled="lotStatus.label !== 'Open'"
                 @click="openDialog = !openDialog"
               />
             </div>
@@ -70,7 +73,7 @@
                 style="width: 340px; background-color: var(--q-secondary);"
                 padding="md"
                 label="Buy It Now"
-                :disabled="lotStatus.label !== 'Open for Bids'"
+                :disabled="lotStatus.label !== 'Open'"
                 @click="buyItNow"
               />
             </div>
@@ -100,16 +103,16 @@
           <span class="q-mb-xs"><strong>Item Type:</strong> {{ lot.category }} Asset</span>
           <span class="q-mb-lg"><strong>Estimated Price:</strong> ₱950
             <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-              (<span>{{ formatBCHTrailingZeroes(lot.estimatedAmt).main }}</span>
+              (<span>{{ formatBCHTrailingZeroes(lot.estimated_amount).main }}</span>
               
               <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                {{ formatBCHTrailingZeroes(lot.estimatedAmt).zeros }}
+                {{ formatBCHTrailingZeroes(lot.estimated_amount).zeros }}
               </span> BCH)
             </span>
           </span>
           
-          <span class="q-mb-xs"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.startDate) }}</span>
-          <span class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.endDate) }}</span>
+          <span class="q-mb-xs"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.start_date) }}</span>
+          <span class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.end_date) }}</span>
           
           <div class="column q-mt-xs">
             <span class="text-bold q-mb-xs">Description:</span>
@@ -137,12 +140,14 @@ import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useQuasar, date } from 'quasar'
+import { callApi } from 'src/auction/api'
+import { AuctionList, LotsList } from 'src/auction/object'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
-import { useQuasar, date } from 'quasar'
 
 defineOptions({
   directives: {
@@ -176,7 +181,6 @@ const buyItNow = () => {
 
 const handleBuyItNow = () => {
   isToggledBuyItNow.value = false
-  sessionBought.value = true
 
   $q.notify({
     type: 'positive',
@@ -187,12 +191,24 @@ const handleBuyItNow = () => {
 
 const auction = computed(() => {
   const listings = $store.getters['auction/processedItems'] || []
-  return listings.find(item => item.id === Number(props.auctionId))
+  const found = listings.find(item => item.id === Number(props.auctionId))
+  return found instanceof AuctionList ? found : AuctionList.parse(found)
 })
 
-const lot = computed(() => {
-  if (!auction.value || !auction.value.lots) return null
-  return auction.value.lots.find(item => item.id === Number(props.lotId))
+const lot = ref(new LotsList({}))
+
+onMounted(async () => {
+  const result = await callApi('lots', props.lotId)
+  
+  if (result.success) {
+    const parsed = LotsList.parse(result.data)
+    
+    if (auction.value) {
+      parsed.start_date = auction.value.start_date
+      parsed.end_date = auction.value.end_date
+    }
+    lot.value = parsed
+  }
 })
 
 const activeSlide = ref(0)
@@ -207,23 +223,9 @@ const lotImages = computed(() => {
 
 
 
-const sessionBought = ref(false)
-
 const lotStatus = computed(() => {
-  if (sessionBought.value || lot.value?.isSold || lot.value?.is_sold) {
-    return { label: 'Closed (Sold)', color: 'red' }
-  }
-
-  if (auction.value.startDate && auction.value.endDate) {
-    const now = new Date()
-    const start = new Date(auction.value.startDate)
-    const end = new Date(auction.value.endDate)
-
-    if (now < start) return { label: 'Upcoming', color: 'orange' }
-    if (now > end) return { label: 'Closed', color: 'red' }
-  }
-  
-  return { label: 'Open for Bids', color: 'green' }
+  if (!lot.value) return { label: 'Loading...', color: 'grey' }
+  return lot.value.getStatus()
 })
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }

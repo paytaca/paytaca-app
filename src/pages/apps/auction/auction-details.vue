@@ -115,8 +115,8 @@
                 <div>
                   <q-chip
                     dense
-                    :color="getStatusColor(getAuctionStatus(auction.start_date, auction.end_date))"
-                    :label="getAuctionStatus(auction.start_date, auction.end_date)"
+                    :color="lot.getStatus().color"
+                    :label="lot.getStatus().label"
                     text-color="white"
                     class="q-pa-sm"
                   />
@@ -124,25 +124,14 @@
                 <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
                 <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
                 <div class="text-subtitle2 text-bold text-positive q-mt-xs">
-                  Est: ₱950 
-                  <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-                    (<span>{{ formatBCHTrailingZeroes(lot.estimatedAmt).main }}</span>
-                    
-                    <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                      {{ formatBCHTrailingZeroes(lot.estimatedAmt).zeros }}
-                    </span> BCH)
-                  </span>
+                  Est: ₱{{ lot.estimated_amount }}
                 </div>
                 
-                <div class="text-caption">
-                  Min Bid: ₱950 
-                  <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-                    (<span>{{ formatBCHTrailingZeroes(lot.thresholdBid).main }}</span>
-
-                    <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                      {{ formatBCHTrailingZeroes(lot.thresholdBid).zeros }}
-                    </span> BCH)
-                  </span>
+                <div class="text-caption text-grey-7">
+                  Min Bid: {{ lot.threshold_bid }} 
+                  <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                    {{ lot.threshold_bid }}
+                  </span> BCH
                 </div>
               </q-card-section>
             </q-card>
@@ -170,11 +159,12 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
+import { callApi } from 'src/auction/api'
+import { AuctionList, LotsList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import LotSearch from 'src/components/auction/LotSearch.vue'
-import { AuctionList } from 'src/auction/object.js'
 
 const props = defineProps({
   auctionId: {
@@ -202,12 +192,26 @@ const auction = computed(() => {
   return found instanceof AuctionList ? found : AuctionList.parse(found)
 })
 
+const lots = ref([])
+
+onMounted(async () => {
+  const result = await callApi('lots/auction', props.auctionId)
+
+  if (result.success) {
+    lots.value = result.data.map(item => {
+      const lot = LotsList.parse(item)
+      
+      lot.start_date = auction.value.start_date
+      lot.end_date = auction.value.end_date
+      return lot
+    })
+  }
+})
+
 const lotSearchQuery = ref('')
 
 const filteredLots = computed(() => {
-  if (!auction.value || !auction.value.lots) return []
-  
-  let targetLots = auction.value.lots
+  let targetLots = lots.value 
   
   if (lotType.value !== 'All') {
     targetLots = targetLots.filter(lot => lot.category === lotType.value)
@@ -215,15 +219,11 @@ const filteredLots = computed(() => {
   
   if (lotSearchQuery.value && lotSearchQuery.value.trim() !== '') {
     const query = lotSearchQuery.value.toLowerCase().trim()
-    
-    targetLots = targetLots.filter(lot => {
-      return (
-        lot.title.toLowerCase().includes(query) ||
-        lot.id.toString().includes(query)
-      )
-    })
+    targetLots = targetLots.filter(lot => 
+      lot.title?.toLowerCase().includes(query) || 
+      lot.id?.toString().includes(query)
+    )
   }
-
   return targetLots
 })
 

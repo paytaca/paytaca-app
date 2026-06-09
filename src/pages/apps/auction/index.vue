@@ -77,7 +77,7 @@
               <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-sm rounded-borders" style="display: inline-flex;">
                 <q-icon name="gavel" size="xs" />
                 <q-badge
-                  :label="`${auction.type} Auction`"
+                  :label="`${auction.type}`"
                   class="text-bold"
                   flat
                   color="transparent"
