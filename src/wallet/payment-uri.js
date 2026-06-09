@@ -266,6 +266,7 @@ export class JPPSourceTypes {
   static resolve(paymentUrl) {
     try {
       let link = new URL(paymentUrl)
+      if (link.host.indexOf('localhost') >= 0) return this.BITPAY
       if (link.host.indexOf('bitcoin.com') >= 0) return this.BITCOIN_COM
       if (link.host.indexOf('bitpay') >= 0) return this.BITPAY
       if (link.host.indexOf('watchtower.cash') >= 0) return this.WATCHTOWER

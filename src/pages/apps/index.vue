@@ -350,7 +350,7 @@ export default {
           iconName: 'img:paytaca_payment_hub_logo_bg.png',
           path: '/apps/payment-hub/',
           iconStyle: 'width: 100%; height: 100%;',
-          active: !this.$store.getters['global/isChipnet'],
+          active: true,
           beta: true
         },
         {
