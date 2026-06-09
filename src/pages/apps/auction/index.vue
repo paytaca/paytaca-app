@@ -50,6 +50,14 @@
           </q-card>
         </div>
 
+        <div v-else-if="isAuctionEmpty"
+          class="row flex-center q-mx-md q-mb-md rounded-borders"
+          :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+          style="min-height: 70px; width: 100%;"
+        >
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Auctions Listed') }}</div>
+        </div>
+
         <div v-else v-for="auction in filteredItems" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow cursor-pointer"
@@ -57,7 +65,7 @@
             @click="$router.push({ name: 'app-auction-details', params: { auctionId: auction.id }})"
           >
             <q-img 
-              :src="noImage"
+              :src="auction.image || noImage"
               ratio="1.75"
             >
               <template v-slot:loading>
@@ -69,7 +77,11 @@
               <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-sm rounded-borders" style="display: inline-flex;">
                 <q-icon name="gavel" size="xs" />
                 <q-badge
-                  :label="`${auction.type} Auction`"
+                  :label="`${
+                    item?.raw?.type?.type || 
+                    (Number(auction.type_id || auction.raw?.type_id) === 1 ? 'English' : 
+                    Number(auction.type_id || auction.raw?.type_id) === 2 ? 'Dutch' : 'Standard')
+                  } Auction`"
                   class="text-bold"
                   flat
                   color="transparent"
@@ -79,27 +91,22 @@
               <div>
                 <q-chip
                   dense
-                  :color="getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))"
+                  :color="getAuctionStatusInfo(auction).color"
                   text-color="white"
                   class="text-bold q-px-sm"
                 >
-                  {{ getAuctionStatus(auction.startDate, auction.endDate) }}
+                  {{ getAuctionStatusInfo(auction).label }}
                 </q-chip>
               </div>
 
               <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
-              
-              <!-- <div class="row items-center text-caption no-wrap q-mb-xs">
-                <q-icon name="location_on" size="xs" class="q-mr-xs" />
-                <div class="ellipsis">{{ auction.location || "None" }}</div>
-              </div> -->
 
               <div class="text-caption">
-                <span class="text-weight-medium">Start Date:</span> {{ formatAuctionDate(auction.startDate) }}
+                <span class="text-weight-medium">Start Date:</span> {{ formatAuctionDate(auction.start_date) }}
               </div>
 
               <div class="text-caption">
-                <span class="text-weight-medium">End Date:</span> {{ formatAuctionDate(auction.endDate) }}
+                <span class="text-weight-medium">End Date:</span> {{ formatAuctionDate(auction.end_date) }}
               </div>
             </q-card-section>
           </q-card>
@@ -113,7 +120,7 @@
 import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -130,16 +137,20 @@ const auctionTypeOptions = ['English', 'Dutch', 'All']
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const isLoading = computed(() => $store.state.auction?.isLoading || false)
 
+onMounted(async () => {
+  await $store.dispatch('auction/refreshCatalog')
+})
+
 const auctionSearchQuery = ref('')
 const filteredItems = computed(() => {
-  let items = $store.getters['auction/processedItems']
+  let items = $store.getters['auction/processedItems'] || []
 
   if (auctionSearchQuery.value && auctionSearchQuery.value.trim() !== '') {
     const query = auctionSearchQuery.value.toLowerCase().trim()
     
     items = items.filter(item => {
       return (
-        item.title.toLowerCase().includes(query)
+        item.title?.toLowerCase().includes(query)
       )
     })
   }
@@ -147,32 +158,25 @@ const filteredItems = computed(() => {
   return items
 })
 
-const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+const isAuctionEmpty = computed(() => {
+  return !isLoading.value && filteredItems.value.length === 0
+})
+
+const getAuctionStatusInfo = (auction) => {
+  if (auction && typeof auction.getStatus === 'function') {
+    return auction.getStatus();
+  }
+  return { label: 'NaN', color: 'purple' };
+}
+
+const formatAuctionDate = (dateString) => { 
+  if (!dateString) return 'N/A'
+  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
+}
 
 watch(auctionType, (newType) => {
   $store.dispatch('auction/filterAuctionItems', newType)
 })
-
-
-
-
-const getAuctionStatus = (startDateString, endDateString) => {
-  if (!startDateString || !endDateString) return 'Closed'
-  
-  const now = new Date()
-  const start = new Date(startDateString)
-  const end = new Date(endDateString)
-
-  if (now < start) return 'Upcoming'
-  if (now >= start && now <= end) return 'Open'
-  return 'Closed'
-}
-
-const getStatusColor = (status) => {
-  if (status === 'Upcoming') return 'orange'
-  if (status === 'Open') return 'green'
-  return 'red'
-}
 
 const refresh = async (done) => {
   await $store.dispatch('auction/refreshCatalog')
