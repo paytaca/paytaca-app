@@ -1,4 +1,4 @@
-export const processedItems = (state) => {
+export function processedItems(state) {
   const currentListings = state.listings || []
   const activeTypeFilter = (state.auctionType || 'All').toLowerCase()
 
