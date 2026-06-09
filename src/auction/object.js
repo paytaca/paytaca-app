@@ -36,7 +36,10 @@ export class LotsList {
     this.date_sold = data.date_sold || null;
     this.bidding_decrement = data.bidding_decrement !== undefined ? Number(data.bidding_decrement) : 1;
     this.category_id = data.category_id || (data.category ? data.category.id : null);
+    this.category = data.category || (data.category_id === 1 ? 'Physical' : 'Digital');
     this.auction_id = data.auction_id || (data.auction ? data.auction.id : null);
+    this.start_date = data.start_date || null;
+    this.end_date = data.end_date || null;
     
     this.images = Array.isArray(data.images) 
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
@@ -49,6 +52,21 @@ export class LotsList {
     const main = match ? match[1] : numStr;
     const zeros = numStr.substring(main.length);
     return { main, zeros, full: numStr };
+  }
+
+  getStatus() {
+    if (this.is_sold) return { label: 'Sold', color: 'red' };
+    
+    if (!this.start_date || !this.end_date) return { label: 'Active', color: 'blue' };
+
+    const now = new Date().getTime();
+    const start = new Date(this.start_date.replace(' ', 'T')).getTime();
+    const end = new Date(this.end_date.replace(' ', 'T')).getTime();
+
+    if (now < start) return { label: 'Upcoming', color: 'orange' };
+    if (now >= start && now <= end) return { label: 'Open', color: 'green' };
+    
+    return { label: 'Closed', color: 'red' };
   }
 }
 
