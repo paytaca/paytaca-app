@@ -43,7 +43,7 @@
             />
           </q-carousel>
           
-          <div class="row q-col-gutter-xs justify-center q-mt-xs">
+          <div class="row q-col-gutter-sm justify-center q-mt-xs">
             <div 
               v-for="(imgSrc, index) in lotImages"
               :key="index"
