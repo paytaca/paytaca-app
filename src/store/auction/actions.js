@@ -1,4 +1,4 @@
-import { callApi } from 'src/auction/api'
+import { callAPI } from 'src/auction/api'
 import { AuctionList } from 'src/auction/object'
 
 export async function filterAuctionItems({ commit }, type) {
@@ -9,7 +9,7 @@ export async function refreshCatalog({ commit }) {
   commit('setLoading', true)
   
   try {
-    const response = await callApi('auctions', null)
+    const response = await callAPI('auctions', null)
     
     if (response && response.success && Array.isArray(response.data)) {
       const allAuctions = response.data.map(item => AuctionList.parse(item))

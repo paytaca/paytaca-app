@@ -11,6 +11,7 @@ export const backend = axios.create({
 
 /***
  * NOTES:
+  - Check repository auction-hub README for api urls
   - date formats: new Date().toISOString(),
   - images: need to be saved in a FormData object  (use this for reference: https://www.javascripttutorial.net/web-apis/javascript-formdata/)
   * @param pathname = ['auctions', 'auctions/my', 'auctions/type', 'auction-types', 'lots', 'lots/auction', 'lot-categories', 'lot-images', 'lot-images/lot', 'biddings', 'biddings/my', 'biddings/lot', 'biddings/lot-highest-bid' ] pathname in url for api 
@@ -18,14 +19,13 @@ export const backend = axios.create({
   * @param method = ['get', 'post', 'put', 'delete']; default is get 
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
-export async function callApi(pathname, id=null, method="get", payload=null) {
-  const apiURL = id ? `${bchOauth.baseURL}/${pathname}/${id}` : `${bchOauth.baseURL}/${pathname}/`
-  console.log('[callApi] apiURL = ' + apiURL);
-
+export async function callAPI(pathname, id=null, method="get", payload=null) {
+  const apiURL = id ? `${bchOauth.baseURL}/${pathname}/${id}/` : `${bchOauth.baseURL}/${pathname}/`
+  
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
     try {
       const headers = await bchOauth.getAuthHeaders()
-      console.log('[callAPI] ' + headers)
+      console.log(headers)
 
       const response = 
       (method === "get") ? await backend.get(apiURL, { headers }) : 
@@ -33,8 +33,7 @@ export async function callApi(pathname, id=null, method="get", payload=null) {
       (method === "put") ? await backend.put(apiURL, payload, { headers }) :
       await backend.delete(apiURL, { headers }) 
 
-      console.log("[callApi] Response generated")
-
+      console.log("[callAPI] Response generated.")
       return {
         success: true,
         data: response.data,
@@ -47,8 +46,8 @@ export async function callApi(pathname, id=null, method="get", payload=null) {
         continue
       }
 
+      console.log("[callAPI] Error encountered.")
       const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch'
-
       return {
         success: false,
         data: null,
@@ -56,6 +55,7 @@ export async function callApi(pathname, id=null, method="get", payload=null) {
       }
     }
   }
+  console.log("[callAPI] Maxed out retry attempts. Failed to fetch.")
 	return { success: false, data: null, error: 'Failed to fetch' }
 }
 

@@ -198,7 +198,7 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
-import { callApi } from 'src/auction/api'
+import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object.js'
 
@@ -238,13 +238,13 @@ const parseAuctionData = (data) => {
 
 const fetchAllData = async () => {
   await Promise.all([
-    callApi('auctions', Number(props.auctionId)).then(result => {
+    callAPI('auctions', Number(props.auctionId)).then(result => {
       if (result.success && result.data) {
         auction.value = parseAuctionData(result.data)
       }
     }).catch(err => console.error('Failed to update auction details:', err)),
 
-    callApi('lots/auction', props.auctionId).then(result => {
+    callAPI('lots/auction', props.auctionId).then(result => {
       if (result.success && result.data) {
         lots.value = result.data.map(item => {
           const lot = LotsList.parse(item)

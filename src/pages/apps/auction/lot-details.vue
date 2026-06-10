@@ -141,7 +141,7 @@ import { useStore } from 'vuex'
 import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
-import { callApi } from 'src/auction/api'
+import { callAPI } from 'src/auction/api'
 import { AuctionList, LotsList } from 'src/auction/object'
 
 // Components
@@ -198,7 +198,7 @@ const auction = computed(() => {
 const lot = ref(new LotsList({}))
 
 onMounted(async () => {
-  const result = await callApi('lots', props.lotId)
+  const result = await callAPI('lots', props.lotId)
   
   if (result.success) {
     const parsed = LotsList.parse(result.data)
