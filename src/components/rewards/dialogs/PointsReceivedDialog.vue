@@ -42,19 +42,16 @@
 
           <!-- Title -->
           <h5 class="q-ma-none text-h5 text-weight-bold">
-            {{ $t('PointsEarned', 'Points Earned!') }}
+            {{ $t('PointsEarned') }}
           </h5>
 
           <!-- Description texts -->
           <div class="column q-gutter-y-sm text-body1">
-            <p v-if="showBaseMessage" class="q-ma-none">
-              {{ baseMessage }}
-            </p>
-            <p v-if="showBonusMessage" class="q-ma-none">
-              {{ bonusMessage }}
+            <p class="q-ma-none">
+              {{ $t('MerchantPurchaseNotificationText', { merchantName }) }}
             </p>
             <p class="q-ma-none q-mt-sm">
-              Check out the Rewards app for a detailed breakdown of your points.
+              {{ $t('CheckRewardsAppInstructionsText') }}
             </p>
           </div>
         </div>
@@ -63,7 +60,7 @@
       <!-- Actions -->
       <q-card-actions class="q-px-md q-pb-md justify-center">
         <q-btn
-          :label="$t('ViewRewards', 'View Rewards')"
+          :label="$t('ViewRewards')"
           icon="stars"
           rounded
           class="button bg-grad button-glow"
@@ -82,9 +79,6 @@ export default {
   name: 'PointsReceivedDialog',
 
   props: {
-    isFirstSevenTx: { type: Boolean, default: false },
-    hasReceivedFirstTxBonus: { type: Boolean, default: false },
-    isMerchantOtcTx: { type: Boolean, default: false },
     merchantName: { type: String, default: '' }
   },
 
@@ -94,34 +88,6 @@ export default {
     },
     darkModeClass () {
       return this.darkMode ? 'dark' : 'light'
-    },
-    showBaseMessage () {
-      return this.isFirstSevenTx || !this.isMerchantOtcTx
-    },
-    baseMessage () {
-      return 'Congratulations! You have earned points for completing this transaction.'
-    },
-    showBonusMessage () {
-      return this.isMerchantOtcTx || (this.isFirstSevenTx && this.hasReceivedFirstTxBonus)
-    },
-    bonusMessage () {
-      if (this.isMerchantOtcTx && !this.isFirstSevenTx && !this.hasReceivedFirstTxBonus) {
-        return `Congratulations! You have earned points for transacting with our partner merchant ${this.merchantName}.`
-      }
-      
-      const parts = []
-
-      if (this.isFirstSevenTx && this.hasReceivedFirstTxBonus) {
-        parts.push('completing your very first transaction')
-      }
-
-      if (this.isMerchantOtcTx) {
-        parts.push(`transacting with our partner merchant ${this.merchantName}`)
-      }
-
-      if (parts.length === 0) return ''
-
-      return `You have also earned bonus points for ${parts.join(' and ')}.`
     }
   },
 

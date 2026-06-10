@@ -190,7 +190,7 @@ export default {
         },
         {
           id: 'eload-service',
-          name: this.$t('Eload Service'),
+          name: this.$t('EloadService'),
           description: this.$t('Apps.Eload.Description', {}, 'Buy Telco loads, Cable Subscription and Gamepins'),
           iconName: 'card_membership',
           path: '/apps/eload',
@@ -248,8 +248,8 @@ export default {
         },
         {
           id: 'rewards',
-          name: 'Rewards',
-          description: 'Rewards',
+          name: this.$t('Rewards'),
+          description: this.$t('Apps.Rewards.Description', {}, 'Keep track of points you earn as you interact with the Paytaca ecosystem.'),
           iconName: 'stars',
           path: '/apps/rewards',
           iconStyle: 'font-size: 4em',
