@@ -200,12 +200,20 @@
           </q-card>
         </div>
 
+        <div v-else-if="isMyBiddingEmpty"
+          class="row flex-center q-mx-md q-mb-md rounded-borders"
+          :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+          style="min-height: 70px; width: 100%;"
+        >
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Biddings Made') }}</div>
+        </div>
+
         <!-- Actual products -->
         <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
-            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: auctionId, lotId: lot.id }})"
+            @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: lot.auction_id, lotId: lot.id }, query: { from: 'activity' }})"
           >
             <q-img :src="noImage" ratio="1">
               <template v-slot:loading>
@@ -214,9 +222,9 @@
             </q-img>
             <q-card-section>
               <div class="q-mb-xs bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-                <q-icon :name="lot.type === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
+                <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
                 <q-badge
-                  :label="lot.type"
+                  :label="lot.category"
                   class="text-bold"
                   flat
                   color="transparent"
@@ -225,16 +233,31 @@
               <div>
                 <q-chip
                   dense
-                  :color="getStatusColor(getAuctionStatus(lot.startDate, lot.endDate))"
-                  :label="getAuctionStatus(lot.startDate, lot.endDate)"
+                  :color="getStatusColor(getAuctionStatus(lot.start_date, lot.end_date))"
+                  :label="getAuctionStatus(lot.start_date, lot.end_date)"
                   text-color="white"
                   class="q-pa-sm"
                 />
               </div>
-              <div class="q-space text-body1 ellipsis text-bold">{{ lot.name }}</div>
+              <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
               <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
-              <div class="text-subtitle2 text-bold text-positive q-mt-xs">Est: {{ lot.est_price }}</div>
-              <div class="text-caption text-grey-7">Min Bid: {{ lot.high_bid }}</div>
+              <div class="text-subtitle2 text-bold text-positive q-mt-xs">
+                Est: ₱950
+                <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+                  ({{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                    {{ lot.getFormattedBCH(lot.estimated_amount).zeros }}
+                  </span> BCH)
+                </span>
+              </div>
+              
+              <div class="text-caption text-grey-5">
+                Min Bid: ₱950
+                <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+                  ({{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                    {{ lot.getFormattedBCH(lot.threshold_bid).zeros }}
+                  </span> BCH)
+                </span>
+              </div>
             </q-card-section>
           </q-card>
         </div>
@@ -285,17 +308,39 @@ const lotTypeOptions = ['Physical', 'Digital', 'All']
 const isLoading = ref(false)
 
 const auctionDetails = ref([])
+const lotDetails = ref([])
 
-const fetchAllData = async () => {
-  await Promise.all([
-    callAPI('my-auctions').then(result => {
-      if (result.data && result.success && Array.isArray(result.data)) {
-        auctionDetails.value = result.data.map(item => parseAuctionData(item))
-      } else {
-        auctionDetails.value = parseAuctionData(result.data)
-      }
-    }).catch(err => console.error('Failed to update auction details:', err)),
-  ])
+const fetchAuctionData = async () => {
+  const result = await callAPI('my-auctions')
+
+  try {
+    if (result.data && result.success && Array.isArray(result.data)) {
+      auctionDetails.value = result.data.map(item => parseAuctionData(item))
+    } else {
+      auctionDetails.value = parseAuctionData(result.data)
+    }
+  } catch (err) {
+    console.error('Failed to update auction details:', err)
+  }
+}
+
+// Can be more optimized
+const fetchLotData = async () => {
+  const result = await callAPI('my-biddings')
+
+  try {
+    if (result.success && result.data) {
+      const lotPromises = result.data.map(async (item) => {
+        const lotResult = await callAPI('lots', item.lot_id)
+        if (!lotResult.success || !lotResult.data) return null
+        return LotsList.parse(lotResult.data)
+      })
+
+      lotDetails.value = (await Promise.all(lotPromises)).filter(Boolean)
+    }
+  } catch(err) {
+    console.error('Failed to update lots:', err)
+  }
 }
 
 const parseAuctionData = (data) => {
@@ -305,7 +350,10 @@ const parseAuctionData = (data) => {
 
 onMounted(async () => {
   isLoading.value = true
-  await fetchAllData()
+
+  if(activityType.value === 'auctions') await fetchAuctionData()
+  else await fetchLotData()
+  
   isLoading.value = false
 })
 
@@ -318,14 +366,17 @@ const filteredAuctions = computed(() => {
 
 const filteredLots = computed(() => {
   if (lotType.value === 'All') {
-    return lotDetails
+    return lotDetails.value
   }
-  return lotDetails.filter(lot => lot.type === lotType.value)
+  return lotDetails.value.filter(lot => lot.category === lotType.value)
 })
 
 watch(activityType, async (newType) => {
   isLoading.value = true
-  await fetchAllData()
+  
+  if(activityType.value === 'auctions') await fetchAuctionData()
+  else await fetchLotData()
+
   isLoading.value = false
 })
 
@@ -354,52 +405,18 @@ const isMyAuctionEmpty = computed(() => {
   return !isLoading.value && filteredAuctions.value.length === 0
 })
 
-const refresh = (done) => {
-  setTimeout(() => {
-    done()
-  }, 1000)
+const isMyBiddingEmpty = computed(() => {
+  return !isLoading.value && filteredLots.value.length === 0
+})
+
+const refresh = async (done) => {
+  isLoading.value = true
+
+  if(activityType.value === 'auctions') await fetchAuctionData()
+  else await fetchLotData()
+  
+  isLoading.value = false
 }
-
-
-
-const lotDetails = [
-  {
-    id: 11,
-    name: 'lot1',
-    type: 'Physical',
-    is_sold: false,
-    lot_num: 1,
-    est_price: '₱1000',
-    high_bid: '₱950',
-    num_bids: 0,
-    startDate: "2026-05-01",
-    endDate: "2026-05-15",
-  }, 
-  {
-    id: 12,
-    name: 'Thingymajig',
-    type: 'Physical',
-    is_sold: false,
-    lot_num: '2',
-    est_price: '₱1000',
-    high_bid: '₱950',
-    num_bids: 3,
-    startDate: "2026-07-10",
-    endDate: "2026-07-20",
-  },
-  {
-    id: 13,
-    name: 'Another thingy',
-    type: 'Digital',
-    is_sold: true,
-    lot_num: '3',
-    est_price: '₱1000',
-    high_bid: '₱950',
-    num_bids: 11,
-    startDate: "2026-05-28",
-    endDate: "2026-07-01",
-  }
-]
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
 </script>
