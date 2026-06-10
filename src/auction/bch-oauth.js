@@ -65,7 +65,7 @@ export async function deriveOAuthCredentials() {
 }
 
 // oauth: fetch stored token
-async function getStoredToken() {
+export async function getStoredToken() {
   try {
     const result = await SecureStoragePlugin.get({ key: OAUTH_TOKEN_KEY })
     return result.value
@@ -94,6 +94,7 @@ export async function clearToken() {
   }
 }
 
+// oauth: axiosFetch used for getAuthHeaders
 async function axiosFetch(url, options = {}) {
   const { method = 'GET', headers = {}, body } = options
   try {
