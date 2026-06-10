@@ -7,21 +7,21 @@
   >
     <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
-    <div class="q-pa-md q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="q-mb-md text-left">
-        <div class="text-h4 q-mb-sm">
-          <span class="text-bold">Lot {{ lot.id }}: </span>{{ lot.title }}
+    <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="q-mb-lg text-left">
+        <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
+          Lot {{ lot.id }}: <span class="text-weight-regular">{{ lot.title }}</span>
         </div>
-        <div class="text-h6 text-bold text-positive">
+        <div class="text-h6 text-weight-bold text-positive">
           Highest Bid: ₱950 
-          <span style="opacity: 0.75;" class="text-weight-regular">
+          <span style="opacity: 0.75;" class="text-weight-regular text-sm-subtitle1 q-ml-xs">
             ({{ lot.threshold_bid ? lot.threshold_bid.toFixed(8) : '0.00000000' }} BCH)
           </span>
         </div>
       </div>
 
-      <div class="row q-col-gutter-lg">
-        <div class="column justify-center items-center col-auto" style="margin: 0 auto;">
+      <div class="row q-col-gutter-y-md q-col-gutter-x-none q-col-gutter-x-sm-md q-col-gutter-x-md-xl justify-center justify-sm-start items-start">
+        <div class="col-12 col-sm-5 col-md-4 q-pr-md-lg" style="width: 100%; max-width: 380px; min-width: 280px;">
           <q-carousel
             v-model="activeSlide"
             animated
@@ -29,10 +29,9 @@
             navigation
             infinite
             height="350px"
-            class="rounded-borders shadow-1"
+            class="rounded-borders shadow-1 full-width"
             :control-color="darkMode ? 'white' : 'primary'"
             :control-text-color="darkMode ? 'white' : 'primary'"
-            style="width: 340px;"
           >
             <q-carousel-slide 
               v-for="(imgSrc, index) in lotImages" 
@@ -42,83 +41,87 @@
             />
           </q-carousel>
           
-          <div class="flex justify-between q-mt-md" style="width: 340px;">
-            <q-img 
+          <div class="row q-col-gutter-xs justify-center q-mt-xs">
+            <div 
               v-for="(imgSrc, index) in lotImages"
               :key="index"
-              :src="imgSrc" 
-              width="105px" 
-              height="105px" 
-              class="rounded-borders cursor-pointer transition-effect"
-              :style="activeSlide === index ? 'border: 2px solid var(--q-secondary); padding: 2px;' : 'opacity: 0.7;'"
-              @click="activeSlide = index"
-            />
+              class="col-4" 
+            >
+              <q-img 
+                :src="imgSrc" 
+                ratio="1"
+                style="max-width: 100%;"
+                class="rounded-borders cursor-pointer transition-effect full-width"
+                :style="activeSlide === index ? 'border: 2px solid var(--q-secondary);' : 'opacity: 0.7;'"
+                @click="activeSlide = index"
+              />
+            </div>
           </div>
           
-          <div>
+          <div class="full-width q-mt-md">
             <div v-if="auction.type === 'English'">
               <q-btn 
-                class="q-mt-md text-bold text-white"
-                style="width: 340px; background-color: var(--q-secondary);"
+                class="text-bold text-white full-width"
+                style="background-color: var(--q-secondary);"
                 padding="md"
                 label="Place Bid"
                 :disabled="lotStatus.label !== 'Open'"
                 @click="openDialog = !openDialog"
+                unelevated
               />
             </div>
 
             <div v-else>
               <q-btn 
-                class="q-mt-md text-bold text-white"
-                style="width: 340px; background-color: var(--q-secondary);"
+                class="text-bold text-white full-width"
+                style="background-color: var(--q-secondary);"
                 padding="md"
                 label="Buy It Now"
                 :disabled="lotStatus.label !== 'Open'"
                 @click="buyItNow"
+                unelevated
               />
             </div>
           </div>
-          
         </div>
 
-        <div class="column col q-mx-sm">
-          <div class="text-h6 text-bold q-mb-md text-uppercase tracking-wide">
+        <div class="col-12 col-sm col-md-7 q-mt-md q-mt-sm-none">
+          <div class="text-subtitle1 text-bold q-mb-md text-uppercase tracking-wide">
             Lot Details
           </div>
 
-          <span class="q-mb-xs"><strong>Auction Title:</strong> {{ auction.title }}</span>
-          <span class="q-mb-xs"><strong>Auctioneer By:</strong> {{ auction.auctioneer || 'N/A' }}</span>
-          <span class="q-mb-lg"><strong>Posted On:</strong> {{ auction.datePosted || 'N/A' }}</span>
+          <div class="q-mb-sm"><strong>Auction Title:</strong> {{ auction.title }}</div>
+          <div class="q-mb-sm"><strong>Auctioneer By:</strong> {{ auction.auctioneer || 'N/A' }}</div>
+          <div class="q-mb-md"><strong>Posted On:</strong> {{ auction.datePosted || 'N/A' }}</div>
 
-          <span class="q-mb-xs text-weight-medium">Bidding Status:</span>
-          <q-btn 
-            class="q-mb-lg text-white text-bold" 
-            :style="`background-color: ${lotStatus.color}`"
-            :label="lotStatus.label"
-            unelevated
-            dense
-            style="width: fit-content; padding: 2px 12px; border-radius: 4px;"
-          />
+          <div class="row items-center q-mb-md">
+            <span class="text-weight-medium q-mr-sm">Bidding Status:</span>
+            <q-btn 
+              class="text-white text-bold text-caption" 
+              :style="{ backgroundColor: lotStatus.color }"
+              :label="lotStatus.label"
+              unelevated
+              dense
+              style="width: fit-content; padding: 2px 12px; border-radius: 4px;"
+            />
+          </div>
           
-          <span class="q-mb-xs"><strong>Item Type:</strong> {{ lot.category }} Asset</span>
-          <span class="q-mb-lg"><strong>Estimated Price:</strong> ₱950
+          <div class="q-mb-sm"><strong>Item Type:</strong> {{ lot.category }} Asset</div>
+          <div class="q-mb-md">
+            <strong>Estimated Price:</strong> ₱950
             <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-              (<span>{{ formatBCHTrailingZeroes(lot.estimated_amount).main }}</span>
-              
-              <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                {{ formatBCHTrailingZeroes(lot.estimated_amount).zeros }}
-              </span> BCH)
+              ({{ formatBCHTrailingZeroes(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ formatBCHTrailingZeroes(lot.estimated_amount).zeros }}</span> BCH)
             </span>
-          </span>
+          </div>
           
-          <span class="q-mb-xs"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.start_date) }}</span>
-          <span class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.end_date) }}</span>
+          <div class="q-mb-sm"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.start_date) }}</div>
+          <div class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.end_date) }}</div>
           
           <div class="column q-mt-xs">
-            <span class="text-bold q-mb-xs">Description:</span>
-            <span class="line-height-base">
+            <div class="text-bold q-mb-xs">Description:</div>
+            <p class="text-body2 text-left" style="white-space: pre-wrap; line-height: 1.5;">
               {{ lot.description || 'No additional specifications provided.' }}
-            </span>
+            </p>
           </div>
         </div>
       </div>
