@@ -193,30 +193,47 @@ const isLoading = ref(false)
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 
-const auction = computed(() => {
-  const listings = $store.getters['auction/processedItems'] || []
-  const found = listings.find(item => item.id === Number(props.auctionId))
-  return found instanceof AuctionList ? found : AuctionList.parse(found)
-})
-
+const auction = ref([])
 const lots = ref([])
+
+const parseAuctionData = (data) => {
+  if (!data) return null
+  return data instanceof AuctionList ? data : AuctionList.parse(data)
+}
+
+const fetchAllData = async () => {
+  await Promise.all([
+    callApi('auctions', Number(props.auctionId)).then(result => {
+      if (result.success && result.data) {
+        auction.value = parseAuctionData(result.data)
+      }
+    }).catch(err => console.error('Failed to update auction details:', err)),
+
+    callApi('lots/auction', props.auctionId).then(result => {
+      if (result.success && result.data) {
+        lots.value = result.data.map(item => {
+          const lot = LotsList.parse(item)
+
+          lot.start_date = auction.value?.start_date || null
+          lot.end_date = auction.value?.end_date || null
+
+          return lot
+        })
+      }
+    }).catch(err => console.error('Failed to update lots:', err))
+  ])
+}
 
 onMounted(async () => {
   isLoading.value = true
+  
+  const auctionData = $store.getters['auction/processedItems'] || []
+  const specificAuctionData = auctionData.find(item => item.id === Number(props.auctionId))
+  auction.value = parseAuctionData(specificAuctionData)
+  
+  await fetchAllData()
 
-  const result = await callApi('lots/auction', props.auctionId)
-
-  if (result.success) {
-    lots.value = result.data.map(item => {
-      const lot = LotsList.parse(item)
-      
-      lot.start_date = auction.value.start_date
-      lot.end_date = auction.value.end_date
-      return lot
-    })
-  }
-
-  isLoading.value = false;
+  isLoading.value = false
 })
 
 const lotSearchQuery = ref('')
@@ -278,9 +295,13 @@ const smartBackPath = computed(() => {
   return '/apps/auction'
 })
 
-const refresh = (done) => {
-  setTimeout(() => {
+const refresh = async (done) => {
+  try {
+    await fetchAllData()
+  } catch (error) {
+    console.error('Failed to refresh lot details:', error)
+  } finally {
     done()
-  }, 1000)
+  }
 }
 </script>
