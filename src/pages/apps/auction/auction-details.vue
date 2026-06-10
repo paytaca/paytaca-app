@@ -161,16 +161,23 @@
                   />
                 </div>
                 <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
-                <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
+                <div class="text-caption text-grey-3 text-italic ellipsis">ID #{{ lot.id }}</div>
                 <div class="text-subtitle2 text-bold text-positive q-mt-xs">
-                  Est: ₱{{ lot.estimated_amount }}
+                  Est: ₱950
+                  <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+                    ({{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                      {{ lot.getFormattedBCH(lot.estimated_amount).zeros }}
+                    </span> BCH)
+                  </span>
                 </div>
                 
-                <div class="text-caption text-grey-7">
-                  Min Bid: {{ lot.threshold_bid }} 
-                  <span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                    {{ lot.threshold_bid }}
-                  </span> BCH
+                <div class="text-caption text-grey-5">
+                  Min Bid: ₱950
+                  <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+                    ({{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                      {{ lot.getFormattedBCH(lot.threshold_bid).zeros }}
+                    </span> BCH)
+                  </span>
                 </div>
               </q-card-section>
             </q-card>
@@ -310,20 +317,6 @@ const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction?.value.user_id
 })
-
-const formatBCHTrailingZeroes = (value) => {
-  if (value === undefined || value === null) {
-    return { main: '0.00', zeros: '000000' }
-  }
-  
-  const numStr = typeof value === 'number' ? value.toFixed(8) : Number(value).toFixed(8)
-  
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match[1]
-  const zeros = numStr.substring(main.length)
-  
-  return { main, zeros }
-}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from

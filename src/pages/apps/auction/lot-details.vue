@@ -14,8 +14,10 @@
         </div>
         <div class="text-h6 text-weight-bold text-positive">
           Highest Bid: ₱950 
-          <span style="opacity: 0.75;" class="text-weight-regular text-sm-subtitle1 q-ml-xs">
-            ({{ lot.threshold_bid ? lot.threshold_bid.toFixed(8) : '0.00000000' }} BCH)
+          <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
+            ({{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+              {{ lot.getFormattedBCH(lot.threshold_bid).zeros }}
+            </span> BCH)
           </span>
         </div>
       </div>
@@ -110,7 +112,9 @@
           <div class="q-mb-md">
             <strong>Estimated Price:</strong> ₱950
             <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-              ({{ formatBCHTrailingZeroes(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ formatBCHTrailingZeroes(lot.estimated_amount).zeros }}</span> BCH)
+              ({{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
+                {{ lot.getFormattedBCH(lot.estimated_amount).zeros }}
+              </span> BCH)
             </span>
           </div>
           
@@ -232,20 +236,6 @@ const lotStatus = computed(() => {
 })
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
-
-const formatBCHTrailingZeroes = (value) => {
-  if (value === undefined || value === null) {
-    return { main: '0.00', zeros: '000000' }
-  }
-  
-  const numStr = typeof value === 'number' ? value.toFixed(8) : Number(value).toFixed(8)
-  
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match[1]
-  const zeros = numStr.substring(main.length)
-  
-  return { main, zeros }
-}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from

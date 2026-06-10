@@ -46,8 +46,8 @@ export class LotsList {
       : [];
   }
   
-  getFormattedBch() {
-    const numStr = this.threshold_bid.toFixed(8);
+  getFormattedBCH(bch) {
+    const numStr = bch.toFixed(8);
     const match = numStr.match(/^(.*?)0*$/);
     const main = match ? match[1] : numStr;
     const zeros = numStr.substring(main.length);
