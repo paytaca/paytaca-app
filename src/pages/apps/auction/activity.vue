@@ -48,7 +48,7 @@
         </template>
       </q-select>
     </div>
-
+    
     <!-- All user's AUCTIONS made -->
     <div v-if="selectedActivityType.value === 'auctions'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm q-mb-md">
@@ -86,7 +86,25 @@
       </div>
 
       <div class="row items-start justify-start q-mb-md">
-        <div v-for="auction in filteredAuctions" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
+        <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
+          <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <q-skeleton height="200px" />
+            <q-card-section class="q-py-sm">
+              <q-skeleton type="text" width="60%" />
+              <q-skeleton type="text" width="40%" class="q-mt-xs" />
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <div v-else-if="isMyAuctionEmpty"
+          class="row flex-center q-mx-md q-mb-md rounded-borders"
+          :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+          style="min-height: 70px; width: 100%;"
+        >
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Auctions Created') }}</div>
+        </div>
+
+        <div v-else v-for="auction in filteredAuctions" :key="auction.id" class="col-6 col-sm-4 q-pa-xs">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
@@ -115,11 +133,11 @@
               <div>
                 <q-chip
                   dense
-                  :color="getStatusColor(getAuctionStatus(auction.startDate, auction.endDate))"
+                  :color="getStatusColor(getAuctionStatus(auction.start_date, auction.end_date))"
                   text-color="white"
                   class="text-bold q-px-sm"
                 >
-                  {{ getAuctionStatus(auction.startDate, auction.endDate) }}
+                  {{ getAuctionStatus(auction.start_date, auction.end_date) }}
                 </q-chip>
               </div>
 
@@ -131,11 +149,11 @@
               </div> -->
 
               <div class="text-caption">
-                <span class="text-weight-medium">Start Date:</span> {{ formatAuctionDate(auction.startDate) }}
+                <span class="text-weight-medium">Start Date:</span> {{ formatAuctionDate(auction.start_date) }}
               </div>
 
               <div class="text-caption">
-                <span class="text-weight-medium">End Date:</span> {{ formatAuctionDate(auction.endDate) }}
+                <span class="text-weight-medium">End Date:</span> {{ formatAuctionDate(auction.end_date) }}
               </div>
             </q-card-section>
           </q-card>
@@ -169,10 +187,7 @@
       </div>
       
       <div class="row items-start" ref="productsContainer">
-        <!-- Skeleton loaders -->
-          
-        <!--
-        <div class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-if="isLoading" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <q-skeleton height="200px" square />
             <q-card-section>
@@ -184,10 +199,9 @@
             </q-card-section>
           </q-card>
         </div>
-        -->
 
         <!-- Actual products -->
-        <div v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card 
             class="pt-card text-bow cursor-pointer" 
             :class="getDarkModeClass(darkMode)"
@@ -242,6 +256,8 @@ import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { callAPI } from 'src/auction/api'
+import { AuctionList, LotsList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -266,11 +282,38 @@ const auctionTypeOptions = ['English', 'Dutch', 'All']
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 
+const isLoading = ref(false)
+
+const auctionDetails = ref([])
+
+const fetchAllData = async () => {
+  await Promise.all([
+    callAPI('my-auctions').then(result => {
+      if (result.data && result.success && Array.isArray(result.data)) {
+        auctionDetails.value = result.data.map(item => parseAuctionData(item))
+      } else {
+        auctionDetails.value = parseAuctionData(result.data)
+      }
+    }).catch(err => console.error('Failed to update auction details:', err)),
+  ])
+}
+
+const parseAuctionData = (data) => {
+  if (!data) return null
+  return data instanceof AuctionList ? data : AuctionList.parse(data)
+}
+
+onMounted(async () => {
+  isLoading.value = true
+  await fetchAllData()
+  isLoading.value = false
+})
+
 const filteredAuctions = computed(() => {
   if (auctionType.value === 'All') {
-    return auctionDetails
+    return auctionDetails.value
   }
-  return auctionDetails.filter(auction => auction.type === auctionType.value)
+  return auctionDetails.value.filter(auction => auction.type === auctionType.value)
 })
 
 const filteredLots = computed(() => {
@@ -278,6 +321,12 @@ const filteredLots = computed(() => {
     return lotDetails
   }
   return lotDetails.filter(lot => lot.type === lotType.value)
+})
+
+watch(activityType, async (newType) => {
+  isLoading.value = true
+  await fetchAllData()
+  isLoading.value = false
 })
 
 
@@ -301,19 +350,9 @@ const getStatusColor = (status) => {
   return 'red'
 }
 
-const formatBCHTrailingZeroes = (value) => {
-  if (value === undefined || value === null) {
-    return { main: '0.00', zeros: '000000' }
-  }
-  
-  const numStr = typeof value === 'number' ? value.toFixed(8) : Number(value).toFixed(8)
-  
-  const match = numStr.match(/^(.*?)0*$/)
-  const main = match[1]
-  const zeros = numStr.substring(main.length)
-  
-  return { main, zeros }
-}
+const isMyAuctionEmpty = computed(() => {
+  return !isLoading.value && filteredAuctions.value.length === 0
+})
 
 const refresh = (done) => {
   setTimeout(() => {
@@ -322,49 +361,6 @@ const refresh = (done) => {
 }
 
 
-
-const auctionDetails = [
-  {
-    id: 1,
-    title: "Prime Commercial Lot - Downtown Area",
-    location: "Tacloban City, Leyte",
-    type: "English",
-    startDate: "2026-05-28",
-    endDate: "2026-07-01",
-  },
-  {
-    id: 2,
-    title: "Heavy Construction Equipment Surplus (Excavators & Trucks)",
-    location: "Ormoc City, Leyte",
-    type: "Dutch",
-    startDate: "2026-06-15",
-    endDate: "2026-06-22",
-  },
-  {
-    id: 3,
-    title: "Vintage Luxury Watch Collection (Rolex, Omega, Patek)",
-    location: "Metro Manila",
-    type: "English",
-    startDate: "2026-05-01",
-    endDate: "2026-05-15",
-  },
-  {
-    id: 4,
-    title: "Sealed Container of Mixed Electronic Goods & Laptops",
-    location: "Cebu City, Cebu",
-    type: "Sealed Bid",
-    startDate: "2026-05-25",
-    endDate: "2026-06-05",
-  },
-  {
-    id: 5,
-    title: "Agricultural Tractors and Milling Machinery",
-    location: "Baybay City, Leyte",
-    type: "English",
-    startDate: "2026-07-10",
-    endDate: "2026-07-20",
-  }
-];
 
 const lotDetails = [
   {
