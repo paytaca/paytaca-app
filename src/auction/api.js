@@ -20,7 +20,7 @@ export const backend = axios.create({
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
 export async function callAPI(pathname, id=null, method="get", payload=null) {
-  const apiURL = id ? `${bchOauth.baseURL}/${pathname}/${id}/` : `${bchOauth.baseURL}/${pathname}/`
+  const apiURL = id ? `${bchOauth.baseURL}/${pathname}/${id}` : `${bchOauth.baseURL}/${pathname}/`
   
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
     try {
