@@ -7,33 +7,67 @@
   >
     <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
-    <div class="q-pa-sm q-pt-md text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row q-px-sm justify-center">
-        <q-img :src="collection?.imageUrl || noImage" width="340px" height="350px" />
-        <div class="flex column padding q-pl-md q-mr-auto q-mt-md">
-          <div class="text-h5 q-mb-xs">{{ auction?.title || 'N/A' }}</div>
-          <div class="row q-mb-xs" style="max-width: 340px;"> 
-            <strong class="shrink-0 q-mr-xs">Auctioneer:</strong>
-            <span class="break-words text-left" style="word-break: break-all;">
+    <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <div class="row q-col-gutter-md justify-start items-start">
+        <div class="col-12 col-sm-auto flex justify-center">
+          <q-img 
+            :src="collection?.imageUrl || noImage" 
+            width="340px" 
+            height="350px" 
+            class="rounded-borders shadow-1" 
+          />
+        </div>
+
+        <div class="col-12 col-sm-auto flex column" style="max-width: 450px; min-width: 280px;">
+          <div class="text-h5 text-weight-bold q-mb-sm">
+            {{ auction?.title || 'N/A' }}
+          </div>
+          
+          <div class="row items-center q-mb-sm" style="max-width: 100%;">
+            <q-badge
+              v-if="isAuthor"
+              color="positive" 
+              class="q-pa-xs q-px-sm text-weight-bold text-no-wrap q-mr-sm"
+            >
+              <q-icon name="person" class="q-mr-xs" size="14px" />
+              You
+            </q-badge>
+
+            <strong class="q-mr-xs text-no-wrap">Auctioneer:</strong>
+            <span 
+              class="q-mr-sm q-mt-xs" 
+              style="word-break: break-word; overflow-wrap: anywhere; min-width: 0;"
+            >
               {{ auction?.user_id || 'N/A' }}
             </span>
           </div>
-          <span class="q-mb-xs"><strong>Auctioneer Rating:</strong> {{ auction?.rating || 'N/A' }}</span>
-          <span class="q-mb-xs q-mb-lg"><strong>Posted On:</strong> {{ auction?.datePosted || 'N/A' }}</span>
-          <span class="q-mb-xs"><strong>Auction Type:</strong> {{ auction?.type || 'N/A' }}</span>
-          <span class="q-mb-xs"><strong>Auction Status:</strong></span>
-          <q-btn
-            class="q-mb-lg text-white text-bold" 
-            :style="`background-color: ${getAuctionStatusInfo(auction).color}`" 
-            style="width: fit-content; padding: 2px 10px;"
-            :label="getAuctionStatusInfo(auction).label"
-            flat
-            dense
-          />
-          <span class="q-mb-xs text-bold">Description:</span>
-          <span class="q-mb-xs q-mb-lg q-space">{{ auction?.description || 'N/A' }}</span>
-          <span class="q-mb-xs"><strong>Start Date:</strong> {{ formatAuctionDate(auction.start_date) }}</span>
-          <span class="q-mb-xs"><strong>End Date:</strong> {{ formatAuctionDate(auction.end_date) }}</span>
+
+          <div class="q-mb-sm"><strong>Auctioneer Rating:</strong> {{ auction?.rating || 'N/A' }}</div>
+          <div class="q-mb-md"><strong>Posted On:</strong> {{ auction?.datePosted || 'N/A' }}</div>
+          <div class="q-mb-sm"><strong>Auction Type:</strong> {{ auction?.type || 'N/A' }}</div>
+          
+          <div class="row items-center q-gap-sm q-mb-md">
+            <strong class="q-mr-xs">Auction Status:</strong>
+            <q-btn
+              class="text-white text-bold text-caption" 
+              :style="{ 
+                backgroundColor: getAuctionStatusInfo(auction).color, 
+                width: 'fit-content', 
+                padding: '2px 10px' 
+              }" 
+              :label="getAuctionStatusInfo(auction).label"
+              flat
+              dense
+            />
+          </div>
+
+          <div class="text-bold">Description:</div>
+          <p class="q-mb-md text-left" style="white-space: pre-wrap;">
+            {{ auction?.description || 'N/A' }}
+          </p>
+          
+          <div class="q-mb-xs"><strong>Start Date:</strong> {{ formatAuctionDate(auction.start_date) }}</div>
+          <div class="q-mb-xs"><strong>End Date:</strong> {{ formatAuctionDate(auction.end_date) }}</div>
         </div>
       </div>
     </div>
@@ -165,6 +199,7 @@ import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounte
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callApi } from 'src/auction/api'
+import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object.js'
 
 // Components
@@ -269,6 +304,11 @@ const formatAuctionDate = (dateString) => { return date.formatDate(dateString, '
 
 const isLotEmpty = computed(() => {
   return !isLoading.value && filteredLots.value.length === 0
+})
+
+const isAuthor = computed(() => {
+  const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+  return walletHash === auction?.value.user_id
 })
 
 const formatBCHTrailingZeroes = (value) => {
