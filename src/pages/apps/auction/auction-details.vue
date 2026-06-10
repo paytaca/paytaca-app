@@ -244,7 +244,7 @@ const fetchAllData = async () => {
       }
     }).catch(err => console.error('Failed to update auction details:', err)),
 
-    callAPI('lots/auction', props.auctionId).then(result => {
+    callAPI('lots/auction', Number(props.auctionId)).then(result => {
       if (result.success && result.data) {
         lots.value = result.data.map(item => {
           const lot = LotsList.parse(item)
