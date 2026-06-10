@@ -14,18 +14,17 @@ export const backend = axios.create({
   - Check repository auction-hub README for api urls
   - date formats: new Date().toISOString(),
   - images: need to be saved in a FormData object  (use this for reference: https://www.javascripttutorial.net/web-apis/javascript-formdata/)
-  * @param pathname = ['auctions', 'auctions/my', 'auctions/type', 'auction-types', 'lots', 'lots/auction', 'lot-categories', 'lot-images', 'lot-images/lot', 'biddings', 'biddings/my', 'biddings/lot', 'biddings/lot-highest-bid' ] pathname in url for api 
+  * @param pathname = pathname in url for api 
   * @param id = could be pk, lot_id, etc. (specifically if we're referring to getting one item, so don't put anything if fetching multiple items)
   * @param method = ['get', 'post', 'put', 'delete']; default is get 
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
 export async function callAPI(pathname, id=null, method="get", payload=null) {
-  const apiURL = id ? `${bchOauth.baseURL}/${pathname}/${id}` : `${bchOauth.baseURL}/${pathname}/`
+  const apiURL = `${bchOauth.baseURL}/${pathname}` + (method === "get" ? (id ? `/${id}` : '') : (id ? `/${id}/` : '/'))
   
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
     try {
       const headers = await bchOauth.getAuthHeaders()
-      console.log(headers)
 
       const response = 
       (method === "get") ? await backend.get(apiURL, { headers }) : 
@@ -46,8 +45,18 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
         continue
       }
 
-      console.log("[callAPI] Error encountered.")
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch'
+      let errorMessage = "";
+      if (error.response?.status === 404) {
+        errorMessage = 'No matching data found.'
+        console.log("[callAPI] " + errorMessage)
+      } else if (error.response?.status === 403) {
+        errorMessage = 'FORBIDDEN ACCESS (must be admin user).'
+        console.log("[callAPI] " + errorMessage)
+      } else {
+        errorMessage = error.response?.data?.message || error.message || 'Failed to fetch'
+        console.error("[callAPI] Error encountered: " + errorMessage)
+      }
+    
       return {
         success: false,
         data: null,
