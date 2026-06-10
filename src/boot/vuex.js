@@ -131,6 +131,12 @@ export default boot(async (obj) => {
         }
       }
 
+      // Ensure card module state is initialized — cards are never persisted,
+      // always fetched fresh, so replaceState must not wipe out the module
+      if (!parsedState.card || typeof parsedState.card !== 'object') {
+        parsedState.card = { cards: [] }
+      }
+
       store.replaceState(parsedState)
     }
 

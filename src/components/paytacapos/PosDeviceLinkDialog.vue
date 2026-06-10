@@ -32,8 +32,7 @@
             class="full-width"
             label="Encryption Public Key"
             hint="Please enter the encryption public key of the POS device."
-            v-model="encryptionPublicKeyInput"
-          >
+            v-model="encryptionPublicKeyInput">
             <template v-slot:control>
               <span class="ellipsis" style="direction: rtl;">
                 {{ encryptionPublicKeyInput || 'Loading...' }}
@@ -56,6 +55,9 @@
               />
             </template>
           </q-input>
+          <!-- <div class="row justify-end">
+            <q-btn flat dense no-caps label="Skip"/>
+          </div> -->
         </div>
         <div v-else>
           <div class="qr-code-container">
@@ -276,6 +278,7 @@ async function generateLinkCode(opts) {
         checkExpiry: opts?.checkExpiry,
       }
     }
+    console.log('Data to generate link code:', data)
 
     generatingLinkCode.value = true
     await $store.dispatch('paytacapos/generateLinkCode', data)

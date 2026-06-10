@@ -6,12 +6,21 @@
 	max-height: 80vh;
 	display: flex;
 	flex-direction: column;
-	border-radius: 18px;
+	border-radius: 24px;
+	border: none;
 	box-shadow:
   	0 20px 40px rgba(0, 0, 0, 0.25),
   	0 0 0 1px rgba(255, 255, 255, 0.05),
   	0 0 40px rgba(33, 150, 243, 0.25);
 	overflow: hidden;
+
+  &.dark {
+    background: rgba(28, 40, 51, 0.35) !important;
+  }
+}
+
+.card-page-bg-light {
+  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
 }
 
 .view-card-dialog {
@@ -19,13 +28,8 @@
 	max-width: 90vw;
 	display: flex;
 	flex-direction: column;
-	border-radius: 18px;
+	border-radius: 24px;
 	overflow: hidden;
-}
-
-.order-card-container {
-	border-radius: 16px;
-	border: 1px dashed #1976d2;
 }
 
 .line-height-tight {
@@ -40,10 +44,13 @@
 	border-radius: 12px;
 }
 
+.br-10 {
+	border-radius: 16px;
+}
 
 .card-floating {
 animation: float 6s ease-in-out infinite;
-	border-radius: 20px;
+	border-radius: 16px;
 }
 
 @keyframes float {
@@ -180,8 +187,12 @@ animation: float 6s ease-in-out infinite;
 	width: 90%;
 	left: 5%;
 	height: 180px;
-	border-radius: 15px;
+	border-radius: 16px;
 	overflow: hidden;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12);
+	font-family: 'Rubik', sans-serif;
+	font-weight: 400;
+	letter-spacing: 0.3px;
 
 	// for swiping card events
 	user-select: none;
@@ -198,6 +209,10 @@ animation: float 6s ease-in-out infinite;
 	.stacked-card {
 		background: white;
 		border: 2px solid #9e9e9e;
+		
+		.card-info {
+			color: #000000;
+		}
 	}
 }
 
@@ -205,49 +220,87 @@ animation: float 6s ease-in-out infinite;
 	.stacked-card {
 		background: #1d1d1d;
 		border: 2px solid #424242;
+		
+		.card-info {
+			color: #ffffff;
+		}
 	}
 }
 
-// Grabbable handle at the top of each card
-.card-handle {
-	width: 100%;
-	height: 30px;
-	background: color-mix(in srgb, var(--q-primary) 25%, transparent);
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+// Card name in top-left
+.card-name-container {
+	position: absolute;
+	top: 45px;
+	left: 16px;
+	z-index: 5;
+	color: white;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	cursor: grab;
-	position: relative;
-	flex-shrink: 0;
-	
-	&:active {
-		cursor: grabbing;
-		background: color-mix(in srgb, var(--q-primary) 40%, transparent);
-	}
+	gap: 8px;
 }
 
-.handle-indicator {
-	width: 50px;
-	height: 4px;
-	background: rgba(255, 255, 255, 0.9);
-	border-radius: 3px;
-	box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+// Card chip + label in bottom-left
+.card-chip-container {
+	position: absolute;
+	bottom: 16px;
+	left: 16px;
+	z-index: 5;
+	color: white;
 }
 
-.body--light {
-	.handle-indicator {
-		background: rgba(255, 255, 255, 1);
-		box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-	}
+// Balance in bottom-left
+.card-balance-container {
+	position: absolute;
+	bottom: 24px;
+	left: 16px;
+	z-index: 5;
+	text-align: left;
+	color: white;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+// Contract address in top-right
+.card-contract-container {
+	position: absolute;
+	top: 45px;
+	right: 16px;
+	z-index: 5;
+	color: white;
+	font-size: 11px;
+	font-weight: 400;
+	letter-spacing: 0.2px;
+	opacity: 0.75;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	height: 32px;
+	display: flex;
+	align-items: center;
+}
+
+// Logo in bottom-right
+.card-logo-container {
+	position: absolute;
+	bottom: 24px;
+	right: 16px;
+	z-index: 5;
 }
 
 .card-info {
 	padding: 8px 12px;
 	background: transparent;
 	flex-shrink: 0;
+	position: relative;
+	z-index: 5;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+// Explicit title color for "My Cards" header
+.my-cards-title {
+	color: #000000 !important;
+}
+
+.body--dark .my-cards-title {
+	color: #ffffff !important;
 }
 
 .front-wallet-card {
@@ -255,7 +308,7 @@ animation: float 6s ease-in-out infinite;
 	width: 100%;
 	height: 280px;
 	bottom: 0;
-	border-radius: 25px;
+	border-radius: 16px;
 	z-index: 10;
 	background: #ffffff;
 	border: 2px solid #9e9e9e;
@@ -282,6 +335,7 @@ animation: float 6s ease-in-out infinite;
 	position: relative;
 	z-index: 12;
 	margin-top: 30px;
+	color: #000000;
 }
 
 .front-wallet-card:hover::before {
@@ -300,6 +354,10 @@ animation: float 6s ease-in-out infinite;
 	
 	.front-wallet-card::before {
 		background: #1d1d1d;
+	}
+	
+	.front-wallet-card .slot-content {
+		color: #ffffff;
 	}
 }
 
@@ -326,10 +384,142 @@ animation: float 6s ease-in-out infinite;
 	animation: swipeRightHint 2.5s ease-in-out 0.5s 3;
 }
 
+.swipe-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 200;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.5);
+	border-radius: 16px;
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+	animation: fadeIn 0.35s ease-out;
+	cursor: pointer;
+
+	.swipe-overlay-content {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 16px;
+		color: white;
+		padding: 24px 28px;
+		background: rgba(255, 255, 255, 0.08);
+		border-radius: 16px;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		min-width: 220px;
+	}
+
+	.swipe-hint-label {
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 1.5px;
+		opacity: 0.5;
+		text-transform: uppercase;
+	}
+
+	.swipe-hint-row {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+	}
+
+	.swipe-arrow-circle {
+		width: 42px;
+		height: 42px;
+		border-radius: 50%;
+		background: rgba(255, 255, 255, 0.12);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.carousel-arrows {
+		flex-direction: column;
+		gap: 0;
+		overflow: hidden;
+
+		.arrow-up {
+			animation: arrowUpDown 1.8s ease-in-out infinite;
+		}
+
+		.arrow-down {
+			animation: arrowDownUp 1.8s ease-in-out infinite;
+		}
+	}
+
+	.swipe-right-circle {
+		overflow: hidden;
+
+		.arrow-right {
+			animation: arrowSlide 1.8s ease-in-out infinite;
+		}
+	}
+
+	@keyframes arrowUpDown {
+		0%, 100% { transform: translateY(0); opacity: 0.6; }
+		30% { transform: translateY(-4px); opacity: 1; }
+		60% { transform: translateY(-4px); opacity: 1; }
+		80% { transform: translateY(0); opacity: 0.6; }
+	}
+
+	@keyframes arrowDownUp {
+		0%, 100% { transform: translateY(0); opacity: 0.6; }
+		30% { transform: translateY(4px); opacity: 1; }
+		60% { transform: translateY(4px); opacity: 1; }
+		80% { transform: translateY(0); opacity: 0.6; }
+	}
+
+	@keyframes arrowSlide {
+		0%, 100% { transform: translateX(0); opacity: 0.5; }
+		25% { transform: translateX(10px); opacity: 1; }
+		50% { transform: translateX(10px); opacity: 1; }
+		75% { transform: translateX(0); opacity: 0.5; }
+	}
+
+	.swipe-hint-title {
+		font-size: 14px;
+		font-weight: 500;
+		letter-spacing: 0.2px;
+	}
+
+	.swipe-hint-sub {
+		font-size: 11px;
+		font-weight: 400;
+		opacity: 0.6;
+		margin-top: 2px;
+	}
+
+	.swipe-hint-dismiss {
+		font-size: 10px;
+		font-weight: 400;
+		opacity: 0.35;
+		align-self: center;
+		margin-top: 4px;
+	}
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes floatSwipe {
+	0%, 100% { transform: translateY(0); }
+	50% { transform: translateY(-6px); }
+}
+
+@keyframes pulseArrow {
+	0%, 100% { transform: scale(1); opacity: 0.7; }
+	50% { transform: scale(1.1); opacity: 1; }
+}
+
 .virtual-card-container {
 	width: 100%;
 	max-width: 340px;
-	height: 190px;
+	height: 220px;
 	border-radius: 16px;
 	position: relative;
 	overflow: hidden;
@@ -409,19 +599,27 @@ animation: float 6s ease-in-out infinite;
 .content-box-light {
 	width: 100%;
 	min-height: 300px;
-	border: 2px solid #e0e0e0;
-	border-radius: 15px;
+	border: 1px solid rgba(255, 255, 255, 0.6);
+	border-radius: 16px;
 	padding: 20px;
-	background: #ffffff;
+	background: rgba(255, 255, 255, 0.25);
+	backdrop-filter: blur(16px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
 }
 
 .content-box-dark {
 	width: 100%;
 	min-height: 300px;
-	border: 2px solid #424242;
-	border-radius: 15px;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	border-radius: 16px;
 	padding: 20px;
-	background: #1d1d1d;
+	background: rgba(30, 30, 40, 0.3);
+	backdrop-filter: blur(16px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
 }
 
 .disabled-merchant {
@@ -480,7 +678,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .see-all-btn {
-  border-radius: 12px;
+  border-radius: 24px;
   background: color-mix(in srgb, var(--q-primary) 10%, transparent);
   color: var(--q-primary);
   padding: 12px 20px;
@@ -501,7 +699,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .card-grid-item {
-  border-radius: 15px;
+  border-radius: 16px;
   overflow: hidden;
   transition: all 0.2s ease;
   width: 180px;
@@ -573,11 +771,26 @@ animation: float 6s ease-in-out infinite;
 }
 
 .tab-btn {
-  border-radius: 20px !important;
+  border-radius: 24px !important;
 }
 
 .cash-in-btn {
-  border-radius: 20px;
+  border-radius: 24px;
+  padding: 10px 32px !important;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+  }
 }
 
 .tabs-container {
@@ -586,7 +799,7 @@ animation: float 6s ease-in-out infinite;
 
 .tabs-wrapper {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
   overflow-x: auto;
   padding-bottom: 4px;
   
@@ -596,12 +809,17 @@ animation: float 6s ease-in-out infinite;
 }
 
 .tab-item {
-  padding: 10px 16px;
-  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
   background: transparent;
+  min-width: 0;
   
   &:hover {
     background: color-mix(in srgb, var(--q-primary) 10%, transparent);
@@ -626,13 +844,13 @@ animation: float 6s ease-in-out infinite;
 
 .body--dark {
   .tab-item {
-    color: #9e9e9e;
-    
+    color: #ffffff;
+
     &.tab-active {
       background: color-mix(in srgb, var(--q-primary) 20%, transparent);
       color: var(--q-primary);
     }
-    
+
     &:not(.tab-active):hover {
       background: color-mix(in srgb, var(--q-primary) 15%, transparent);
       color: var(--q-primary);
@@ -641,8 +859,9 @@ animation: float 6s ease-in-out infinite;
 }
 
 .tab-label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 // Disabled tab styles
@@ -698,6 +917,12 @@ animation: float 6s ease-in-out infinite;
   padding: 40px 20px;
 }
 
+.card-order-confirmation {
+  padding: 48px 24px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
 .order-physical-card-form {
   max-width: 500px;
   margin: 0 auto;
@@ -729,7 +954,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .settings-section {
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -816,7 +1041,7 @@ animation: float 6s ease-in-out infinite;
 
 .view-cards-btn {
   transition: all 0.2s ease;
-  border-radius: 20px;
+  border-radius: 24px;
   
   &:hover {
     background: rgba(0, 0, 0, 0.05);
@@ -869,7 +1094,7 @@ animation: float 6s ease-in-out infinite;
 
 .view-cards-btn {
   transition: all 0.2s ease;
-  border-radius: 20px;
+  border-radius: 24px;
   
   &:hover {
     background: rgba(0, 0, 0, 0.05);
@@ -952,5 +1177,500 @@ animation: float 6s ease-in-out infinite;
     .feature-icon-wrapper {
       background: rgba(25, 118, 210, 0.2);
     }
+  }
+}
+
+// ====== Glassmorphic Styles for Select Multiple Mode ======
+// Using CSS custom properties for theme-aware colors
+.glassmorphic-light {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 8px 32px color-mix(in srgb, var(--q-primary) 15%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.glassmorphic-dark {
+  background: rgba(30, 30, 40, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glassmorphic-batch-bar-light {
+  background: linear-gradient(
+    135deg, 
+    color-mix(in srgb, var(--q-primary) 20%, transparent) 0%, 
+    color-mix(in srgb, var(--q-primary) 8%, transparent) 100%
+  ) !important;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--q-primary) 35%, transparent);
+  box-shadow: 
+    0 4px 24px color-mix(in srgb, var(--q-primary) 25%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.glassmorphic-batch-bar-dark {
+  background: linear-gradient(
+    135deg, 
+    color-mix(in srgb, var(--q-primary) 35%, transparent) 0%, 
+    color-mix(in srgb, var(--q-primary) 15%, transparent) 100%
+  ) !important;
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--q-primary) 40%, transparent);
+  box-shadow: 
+    0 4px 24px color-mix(in srgb, var(--q-primary) 35%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glassmorphic-selected-item-light {
+  background: color-mix(in srgb, var(--q-primary) 10%, transparent) !important;
+  border-left: 4px solid var(--q-primary);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.glassmorphic-selected-item-dark {
+  background: color-mix(in srgb, var(--q-primary) 20%, transparent) !important;
+  border-left: 4px solid var(--q-primary);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.glassmorphic-generic-toggle-light {
+  background: rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 4px 16px color-mix(in srgb, var(--q-primary) 12%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.glassmorphic-generic-toggle-dark {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+// ====== Auth NFTs Page Styles ======
+.auth-nfts-merchant-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  overflow: hidden;
+  
+  &.clickable-merchant {
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+  
+  &.authorized-glow {
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--q-positive, #21ba45) 20%, transparent);
+  }
+  
+  &.glassmorphic-light {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--q-primary) 10%, rgba(0, 0, 0, 0.05));
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.85) !important;
+      box-shadow: 0 6px 24px color-mix(in srgb, var(--q-primary) 15%, rgba(0, 0, 0, 0.08));
+    }
+  }
+  
+  &.glassmorphic-dark {
+    background: rgba(40, 40, 50, 0.6) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    
+    &:hover {
+      background: rgba(50, 50, 60, 0.75) !important;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    }
+  }
+}
+
+.auth-nfts-status-btn {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+  
+  &.active-btn {
+    background: color-mix(in srgb, var(--q-positive, #21ba45) 90%, transparent) !important;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--q-positive, #21ba45) 35%, transparent);
+    
+    &:hover {
+      background: color-mix(in srgb, var(--q-positive, #21ba45) 100%, transparent) !important;
+      box-shadow: 0 6px 16px color-mix(in srgb, var(--q-positive, #21ba45) 45%, transparent);
+    }
+  }
+}
+
+.auth-nfts-list {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--q-primary) 35%, transparent);
+    border-radius: 10px;
+    
+    &:hover {
+      background: color-mix(in srgb, var(--q-primary) 55%, transparent);
+    }
+  }
+}
+
+// ====== cards.vue styles ======
+.new-card-btn-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.plus-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skeleton-card {
+  position: absolute;
+  border-radius: 16px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.cards-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.cards-stack-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.dot-indicators {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.dot-active {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.body--light {
+  .dot {
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .dot-active {
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.card-status-badge {
+  position: relative;
+  z-index: 6;
+}
+
+.blink-badge {
+  animation: blink-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes blink-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+.auth-nfts-empty-state {
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  margin: 20px 0;
+  
+  &.glassmorphic-light {
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--q-primary) 10%, rgba(0, 0, 0, 0.05));
+  }
+  
+  &.glassmorphic-dark {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.auth-nfts-status-message {
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  &.glassmorphic-light {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--q-primary) 8%, rgba(0, 0, 0, 0.04));
+  }
+  
+  &.glassmorphic-dark {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.auth-nfts-title-container {
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  &.glassmorphic-light {
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--q-primary) 12%, rgba(0, 0, 0, 0.06));
+  }
+  
+  &.glassmorphic-dark {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.auth-nfts-search-container {
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  
+  &.glassmorphic-light {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--q-primary) 8%, rgba(0, 0, 0, 0.04));
+    background: rgba(255, 255, 255, 0.6) !important;
+  }
+  
+  &.glassmorphic-dark {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    background: rgba(40, 40, 50, 0.5) !important;
+  }
+}
+
+.auth-nfts-input {
+  .q-field__control {
+    background: transparent;
+  }
+  
+  .q-field__native {
+    color: inherit;
+  }
+}
+
+.auth-nfts-btn {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--q-primary) 30%, transparent);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--q-primary) 40%, transparent);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// ====== Manage Auth NFTs Component Styles ======
+.manage-auth-merchant-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+  margin: 4px 0;
+  
+  &.clickable-merchant {
+    cursor: pointer;
+    
+    &:hover {
+      background-color: color-mix(in srgb, var(--q-primary) 8%, transparent);
+      transform: translateX(4px);
+    }
+  }
+  
+  &.disabled-merchant {
+    opacity: 0.5;
+    filter: grayscale(60%);
+  }
+  
+  &.glassmorphic-selected-item-light,
+  &.glassmorphic-selected-item-dark {
+    transform: translateX(8px);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 20%, transparent);
+  }
+}
+
+.manage-auth-generic-toggle {
+  transition: all 0.3s ease;
+}
+
+.manage-auth-batch-bar {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 6px 28px color-mix(in srgb, var(--q-primary) 30%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+}
+
+.manage-auth-btn {
+  background: color-mix(in srgb, var(--q-primary) 90%, transparent) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 
+    0 4px 12px color-mix(in srgb, var(--q-primary) 35%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: color-mix(in srgb, var(--q-primary) 95%, black) !important;
+    transform: translateY(-1px);
+    box-shadow: 
+      0 6px 16px color-mix(in srgb, var(--q-primary) 45%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 
+      0 2px 8px color-mix(in srgb, var(--q-primary) 35%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+// Scrollbar styling for merchant list - theme aware
+.manage-auth-merchant-list {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--q-primary) 35%, transparent);
+    border-radius: 10px;
+    
+    &:hover {
+      background: color-mix(in srgb, var(--q-primary) 55%, transparent);
+    }
+  }
+}
+
+// ====== Global overrides for cards.vue ======
+html, body {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.q-layout {
+  height: 100dvh !important;
+  overflow: hidden !important;
+}
+
+.q-page-container {
+	height: 100dvh !important;
+	overflow: hidden !important;
+}
+
+// ====== Edit Card Name Dialog ======
+.edit-name-input {
+  .q-field__control {
+    background: transparent !important;
+  }
+
+  .q-field--filled .q-field__control {
+    background: transparent !important;
   }
 }

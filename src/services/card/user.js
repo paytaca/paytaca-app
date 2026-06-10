@@ -3,6 +3,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { loadWallet } from 'src/services/wallet';
 import { backend } from './backend.js';
 import Card from './card.js';
+import { bus } from 'src/wallet/event-bus.js';
 
 const TOKEN_STORAGE_KEY = 'card-auth-key'
 
@@ -190,11 +191,18 @@ export class CardUser {
      * Fetches cards linked to the authenticated user.
      * @returns {Promise<Array<Card>>}
      */
-    async fetchCards() {
+    async fetchCards({page = 1, page_size = 10, filters = {}} = {}) {
         try {
-            const response = await backend.get('/cards/');
+            const response = await backend.get('/cards/', {
+                params: {
+                    page,
+                    page_size,
+                    ...filters
+                }
+            });
+            const { results } = response.data;
             const cards = await Promise.all(
-                response.data.results.map(cardData => (
+                results.map(cardData => (
                     cardData?.contract_id
                         ? Card.createInitialized(cardData)
                         : Card.createWithWallet(cardData)
@@ -202,7 +210,7 @@ export class CardUser {
             );
             return cards;
         } catch (error) {
-            console.error('Error fetching card info:', error);
+            console.error('Error fetching cards:', error);
             throw error;
         }
     }
@@ -347,12 +355,28 @@ export class CardUser {
  * @param {object} wallet
  * @returns {Promise<CardUser>}
  */
-export async function fetchCardUser(wallet) {
+export async function fetchOrCreateCardUser(wallet) {
     try {
         const response = await backend.get(`/auth/user/${wallet.walletHash}`);
         return CardUser.createInitialized(response.data);
     } catch (error) {
         console.error('Card User fetch failed:', error.response?.status || error.message);
+        if (error.response && error.response.status === 404) {
+            console.error('Card User not found for this wallet.');
+            await clearAuthToken();
+            clearCardUserCache();
+
+            const body = {
+                wallet_hash: wallet.walletHash,
+                public_key: wallet.keypair().publicKey,
+                address_path: wallet.addressPath()
+            }
+            const response = await backend.post('/user/', body).catch(err => {
+                console.error('Failed to create Card User:', err.response?.status || err.message);
+                throw new Error('Failed to create Card User');
+            });
+            return CardUser.createInitialized(response.data);
+        }
         throw error;
     }
 }
@@ -370,7 +394,7 @@ export async function loadCardUser(forceLogin = false) {
     console.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
-        const user = await fetchCardUser(wallet);
+        const user = await fetchOrCreateCardUser(wallet);
         
         if (forceLogin || !user.is_authenticated) {
             await user.login();

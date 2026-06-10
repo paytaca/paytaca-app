@@ -20,8 +20,8 @@
 
           <q-item class="bg-grad text-white q-py-md">
             <q-item-section avatar>
-              <q-icon v-if="disable" name="lock" size="sm" class="bg-blue q-pa-sm" style="border-radius: 50%" />
-              <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-blue" style="border-radius: 50%" />
+              <q-icon v-if="disable" name="lock" size="sm" class="bg-primary q-pa-sm" style="border-radius: 50%" />
+              <q-icon v-else name="mdi-chevron-double-right" size="xl" class="bg-primary" style="border-radius: 50%" />
             </q-item-section>
             <q-item-section class="text-right">
               <h5 class="q-my-sm text-grey-4 text-uppercase" style="font-size: clamp(14px, 3.5vw, 18px);">{{ sliderText }}</h5>

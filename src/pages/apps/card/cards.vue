@@ -1,103 +1,160 @@
 <template>
-  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
-    <q-page-container>
+  <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
+    <q-page-container :class="$q.dark.isActive ? '' : 'card-page-bg-light'">
 
-      <div class="q-px-md q-mt-md">
-        <!-- SKELETON LOADER for "My Cards" title: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
-        <div class="text-subtitle1 text-weight-bold" :class="textColor">My Cards</div>
-        <q-separator class="q-mt-xs" :color="$q.dark.isActive ? 'grey-8' : 'grey-4'" />
-      </div>
-
-      <div class="flex flex-center full-width">
-        <div class="wallet-container">
-          <div
-            v-for="(card, index) in displayedCards"
-            :key="card.id"
-            class="stacked-card"
-            :class="{ 'swipe-hint': index === 0, 'is-dragging': currentCardId === card.id }"
-            :style="getCardStyle(index)"
-            @mousedown="startDrag($event, card)"
-            @touchstart="startDrag($event, card)"
-            @mousemove="onDrag($event, card)"
-            @touchmove="onDrag($event, card)"
-            @mouseup="endDrag(card)"
-            @touchend="endDrag(card)"
-            @mouseleave="endDrag(card)"
-            @keyup.right="goToCardDetails(card)"
-            tabindex="0"
-          >
-            <!-- Grabbable handle at top with info -->
-            <div class="card-handle" :class="$q.dark.isActive ? 'bg-dark' : ''">
-              <div class="handle-indicator" :class="$q.dark.isActive ? 'bg-grey-5' : ''"></div>
-            </div>
-            <!-- Card info positioned right below handle -->
-            <div class="card-info row justify-between items-center no-wrap">
-              <!-- 
-                SKELETON LOADER for card stack items when loading backend data:
-                <div v-if="loadingCards" class="full-width row justify-between">
-                  <q-skeleton type="text" width="80px" />
-                  <q-skeleton type="text" width="60px" />
-                </div>
-              -->
-              <div 
-                class="text-weight-bold text-subtitle2 ellipsis" 
-                style="max-width: 120px; font-size: 13px;"
-                :class="textColor"
-              >
-                <!-- SKELETON LOADER for card name: <q-skeleton v-if="loadingCards" type="text" width="100px" /> -->
-                {{ capitalizeFirst(card.alias) }}
-              </div>
-              <div 
-                class="text-weight-bold text-subtitle2" 
-                style="font-size: 13px;"
-                :class="textColor"
-              >
-                <!-- SKELETON LOADER for card balance: <q-skeleton v-if="loadingCards" type="text" width="70px" /> -->
-                {{ satoshiToBch(getCardBalance(card.id)?.bch) }} BCH
-                <!-- NEW: Use Card class getBchBalance() method -->
-                <!-- {{ formatBalance(card?.getBchBalance ? card.getBchBalance() : card?.balance) }} BCH -->
-              </div>
-            </div>
+      <!-- Skeleton loading state -->
+      <div v-if="!isLoaded" class="full-width">
+        <div class="q-px-md q-mt-md">
+          <q-skeleton type="text" width="120px" height="28px" />
+        </div>
+        <div class="flex flex-center full-width q-mt-lg">
+          <div class="wallet-container" style="position: relative; height: 520px;">
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="skeleton-card"
+              :style="getSkeletonCardStyle(n-1)"
+            ></div>
           </div>
-
-          <div
-            class="front-wallet-card flex flex-center cursor-pointer"
-            :class="$q.dark.isActive ? 'bg-dark' : ''"
-            @click="showCreateCardDialog = true"
-          >
-            <q-card-section class="text-center slot-content">
-              <div 
-                class="text-h6 q-mb-sm"
-                :class="textColor"
-              >
-                Add a new card
-              </div>
-              <q-icon name="add" size="56px" :color="$q.dark.isActive ? 'white' : 'dark'" />
-            </q-card-section>
-          </div>
-
-          <div 
-            v-if="subCards.length > 3"
-            class="see-all-container text-center q-mt-lg"
-          >
-            <q-btn
-              flat
-              no-caps
-              class="see-all-btn full-width"
-              @click="showAllCards"
-            >
-              <div class="row items-center no-wrap">
-                <span class="text-weight-bold">View all {{ subCards.length }} cards</span>
-                <q-icon name="expand_more" size="20px" class="q-ml-xs" />
-              </div>
-            </q-btn>
-          </div>  
         </div>
       </div>
-      
-      <!-- Create Card Dialog -->
-      <CreateCardForm v-if="showCreateCardDialog" @onClose="showCreateCardDialog=false"/>
 
+      <!-- Loaded state -->
+      <div v-else class="full-width">
+        <div class="flex flex-center full-width q-mt-sm">
+          <div class="cards-area">
+            <div class="wallet-container" @wheel="onWheel">
+              <div class="new-card-btn-container">
+                <div class="header-row">
+                  <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
+                    My Cards{{ displayedCards.length > 0 ? ' (' + displayedCards.length + ')' : '' }}
+                  </div>
+                  <div class="plus-btn-circle">
+                    <q-btn
+                      dense
+                      round
+                      flat
+                      :color="$q.dark.isActive ? 'white' : 'dark'"
+                      icon="add"
+                      size="md"
+                      @click="onOpenCreateCardForm"
+                    />
+                  </div>
+                </div>
+                <div v-if="totalBchBalance && !balancesLoading" :style="{ fontSize: '11px', fontWeight: '400', color: $q.dark.isActive ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }">
+                  {{ totalBchBalance }} BCH total
+                </div>
+              </div>
+
+              <div class="cards-stack-area">
+                <div
+                  v-for="(card, index) in displayedCards"
+                :key="card.id"
+                class="stacked-card"
+                :class="{ 'is-dragging': currentCardId === card.id }"
+                :style="getCardStyle(index)"
+                @mousedown="onPointerDown($event, card)"
+                @touchstart="onPointerDown($event, card)"
+                @keyup.right="goToCardDetails(card)"
+                tabindex="0"
+              >
+                <!-- Top-left: Card name with status -->
+                <div class="card-name-container">
+                  <div class="text-weight-medium ellipsis" style="font-size: 20px; max-width: 130px;">
+                    {{ getCardDisplayName(card) }}
+                  </div>
+                  <q-badge
+                    rounded
+                    :color="card?.isLocked ? 'negative' : 'positive'"
+                    size="xs"
+                    class="card-status-badge cursor-pointer blink-badge"
+                  >
+                    <q-tooltip>{{ card?.isLocked ? 'Locked' : 'Active' }}</q-tooltip>
+                  </q-badge>
+                </div>
+
+                <!-- Bottom-left: Balance -->
+                <div class="card-balance-container">
+                  <div v-if="balancesLoading">
+                    <q-skeleton type="text" width="70px" height="16px" />
+                  </div>
+                  <div v-else>
+                    <div :style="{ fontSize: '10px', opacity: '0.6', fontWeight: '400', letterSpacing: '0.5px' }">BALANCE</div>
+                    <div class="row items-center no-wrap" style="gap: 6px;">
+                      <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
+                        {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
+                      </div>
+                      <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
+                        <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Top-right: Contract address -->
+                <div class="card-contract-container">
+                  {{ formatContractAddress(card.cashAddress) }}
+                </div>
+
+                <!-- Bottom-right: Logo -->
+                <div class="card-logo-container">
+                  <q-img src="~assets/paytaca_logo.png" style="width: 36px;" fit="contain" />
+                </div>
+              </div>
+
+              <!-- Vertical dot indicators -->
+              <div v-if="displayedCards.length > 1" class="dot-indicators">
+                <div
+                  v-for="(_, i) in displayedCards"
+                  :key="i"
+                  class="dot"
+                  :class="{ 'dot-active': i === carouselIndex }"
+                ></div>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div
+            v-if="showSwipeHint && displayedCards.length > 0"
+            class="swipe-overlay"
+            @click="dismissSwipeHint"
+          >
+            <div class="swipe-overlay-content">
+              <div class="swipe-hint-label">GESTURES</div>
+              <div class="swipe-hint-row">
+                <div class="swipe-arrow-circle carousel-arrows">
+                  <q-icon name="expand_less" size="20px" class="arrow-up" />
+                  <q-icon name="expand_more" size="20px" class="arrow-down" />
+                </div>
+                <div>
+                  <div class="swipe-hint-title">Browse cards</div>
+                  <div class="swipe-hint-sub">Swipe up or down</div>
+                </div>
+              </div>
+              <div class="swipe-hint-row">
+                <div class="swipe-arrow-circle swipe-right-circle">
+                  <q-icon name="chevron_right" size="24px" class="arrow-right" />
+                </div>
+                <div>
+                  <div class="swipe-hint-title">View details</div>
+                  <div class="swipe-hint-sub">Swipe right</div>
+                </div>
+              </div>
+              <div class="swipe-hint-dismiss">Tap anywhere to dismiss</div>
+            </div>
+          </div>
+        </div>
+      </div>
+       
+      <!-- Create Card Dialog -->
+      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
+      <ResumeCreateCardDialog 
+        v-if="showResumeCreateCardDialog" 
+        @resumeAttempt="onResumeCardAttempt" 
+        @deleteAttempt="onDeleteCardAttempt" 
+        @cancelAttempt="onCancelCardAttempt"
+        />
     </q-page-container>
   </q-layout>
 </template>
@@ -106,16 +163,20 @@
 import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import { createCardLogic } from 'src/components/card/createCard.js';
+import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
+import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
+import { bus } from 'src/wallet/event-bus';
+import { CardStorage } from 'src/components/card/createCard.js';
 
 export default {
-  mixins: [createCardLogic],
+  mixins: [CreateCardAttemptMixin],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
     CreateCardForm,
+    ResumeCreateCardDialog
   },
 
   data () {
@@ -124,81 +185,80 @@ export default {
       isDragging: false,
       currentCardId: null,
       startX: 0,
+      startY: 0,
       currentX: 0,
-      showCreateCardDialog: false,
+      verticalDragOffset: 0,
+      gestureLock: null,
+      carouselIndex: 0,
+      wheelAccumulator: 0,
+      // showCreateCardDialog: false,
       newCardName: '',
       isMinting: false,
       // Backend data fetching disabled
       // loadingCards: true,
       // backendDataMap: {} // Map of cardId -> backend data
-      cardBalances: []
+      cardBalances: [],
+      // true while card balances are being fetched from backend
+      balancesLoading: true,
+      isLoaded: false,
+      showSwipeHint: true
     }
   },
 
   computed: {
-    displayedCards () {
-      const sorted = [...this.subCards].sort((a, b) => b.id - a.id)
-      return sorted.slice(0, 3)
+    subCards () {
+      return this.$store.getters['card/cards'] || []
     },
 
-    hiddenCount () {
-      return this.subCards.length - 3
+    sortedCards () {
+      return [...this.subCards].sort((a, b) => b.id - a.id)
+    },
+
+    displayedCards () {
+      return this.sortedCards
+    },
+
+    textColor () {
+      return this.$q.dark.isActive ? 'text-white' : 'text-black'
+    },
+
+    totalBchBalance () {
+      if (!this.cardBalances || this.cardBalances.length === 0) return null
+      const totalSats = this.cardBalances.reduce((sum, b) => sum + (Number(b.bch_balance) || 0), 0)
+      return satoshiToBch(totalSats)
     }
   },
 
   async mounted () {
     await this.loadData()
-    
-    // If no cards exist, redirect to card homepage
-    if (this.subCards.length === 0) {
-      this.$router.push({ name: 'app-card' })
+    this.isLoaded = true
+    this.$nextTick(() => {
+      window.addEventListener('touchstart', this.dismissSwipeHint, { once: true })
+      window.addEventListener('mousedown', this.dismissSwipeHint, { once: true })
+    })
+  },
+
+  watch: {
+    displayedCards (cards) {
+      if (cards.length > 0) {
+        this.carouselIndex = this.carouselIndex % cards.length
+      } else {
+        this.carouselIndex = 0
+      }
     }
-    
-    // Fetch backend data for all cards - DISABLED
-    // this.fetchCardsBackendData()
-    
-    /* NEW: Fetch real balances from backend using Card class
-     * Uncomment to enable real balance fetching:
-     * 
-     * async fetchCardBalances () {
-     *   if (this.subCards.length === 0) return
-     *   
-     *   try {
-     *     const { Card } = await import('src/services/card/card')
-     *     
-     *     for (const card of this.subCards) {
-     *       try {
-     *         const cardInstance = await Card.createInitialized(card)
-     *         
-     *         // Get BCH balance from server
-     *         const bchBalance = cardInstance.getBchBalance()
-     *         card.balance = bchBalance.toString()
-     *         
-     *         // Get Token balance
-     *         const tokenBalance = cardInstance.getTokenBalance()
-     *         console.log(`Card ${card.id} Token balance:`, tokenBalance)
-     *         
-     *         // Optionally get real-time balance from blockchain
-     *         // const contractBalance = await cardInstance.getContractBalance()
-     *         // console.log(`Card ${card.id} Contract balance:`, contractBalance)
-     *       } catch (error) {
-     *         console.error(`Error fetching balance for card ${card.id}:`, error)
-     *       }
-     *     }
-     *   } catch (error) {
-     *     console.error('Error fetching card balances:', error)
-     *   }
-     * }
-     * 
-     * // Call the method
-     * this.fetchCardBalances()
-     */
   },
 
   methods: {
     satoshiToBch,
+    dismissSwipeHint () {
+      this.showSwipeHint = false
+      window.removeEventListener('touchstart', this.dismissSwipeHint)
+      window.removeEventListener('mousedown', this.dismissSwipeHint)
+    },
+
     async loadData () {
       await this.loadCardUser()
+      await this.checkExistingCreateCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
     },
@@ -212,22 +272,31 @@ export default {
       })   
     },
 
+    async onCardCreated () {
+      await this.onCloseCreateCardForm()
+      await this.fetchCards()
+      this.fetchCardsBalance()
+    },
+
     async fetchCards () {
-      await this.user?.fetchCards().then(cards => {
-        this.subCards = cards
-      }).catch(err => {
-        console.error('Error fetching cards:', err)
-        this.subCards = []
-      })
+      return this.$store.dispatch('card/fetchCards')
     },
 
     async fetchCardsBalance () {
-      if (!this.user || this.subCards.length === 0) return
+      // show skeletons while fetching
+      this.balancesLoading = true
+
+      if (!this.user || this.subCards.length === 0) {
+        this.balancesLoading = false
+        return
+      }
 
       try {
         this.cardBalances = (await this.user.fetchCardsBalance()).results
       } catch (err) {
         console.error('Error fetching card balances:', err)
+      } finally {
+        this.balancesLoading = false
       }
     },
 
@@ -283,6 +352,22 @@ export default {
       return str.charAt(0).toUpperCase() + str.slice(1)
     },
 
+    /* Get card display name - checks localStorage first for saved name, then falls back to backend alias
+     * This ensures edited names persist across the app
+     */
+    getCardDisplayName (card) {
+      if (!card || !card.id) return 'Card'
+      
+      // Check localStorage for saved name first
+      const savedName = CardStorage.getCardProperty(card.id, 'name')
+      if (savedName) {
+        return this.capitalizeFirst(savedName)
+      }
+      
+      // Fall back to backend alias or name
+      return this.capitalizeFirst(card.alias || card.name || 'Card')
+    },
+
     /* NEW: Helper method to get card BCH balance using Card class
      * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
      * Falls back to card.balance from localStorage if method not available
@@ -307,145 +392,224 @@ export default {
       const cardId = card?.id
       const translateX = this.swipeStates[cardId] || 0
       const isDraggingThisCard = this.currentCardId === cardId
-      
-      const cardSpacing = 70
-      const totalCards = this.displayedCards.length
+      const total = this.displayedCards.length
+      const isFrontCard = index === this.carouselIndex
+      const offset = total > 1 ? (index - this.carouselIndex + total) % total : 0
+
+      const cardSpacing = 85
       const buttonHeight = 280
-      const cardHeight = 180
-      const visibleArea = 70 // handle (30px) + card info area (~40px)
-      const hiddenArea = cardHeight - visibleArea // 110px hidden behind button
-      
-      // Base position for newest card: 170px from bottom
-      const baseOffset = buttonHeight - hiddenArea
-      // As cards are added, older cards move up by 70px so their info remains visible
-      const bottomOffset = baseOffset + index * cardSpacing
+      const cardHeight = 220
+      const visibleArea = 70
+      const hiddenArea = cardHeight - visibleArea
+      const containerHeight = 520
+      const headerArea = 60
+      let baseOffset = buttonHeight - hiddenArea
+
+      if (total > 1) {
+        const maxOffset = total - 1
+        const maxBottom = containerHeight - headerArea - cardHeight
+        const requiredBottom = baseOffset + maxOffset * cardSpacing
+        if (requiredBottom > maxBottom) {
+          baseOffset = Math.max(0, maxBottom - maxOffset * cardSpacing)
+        }
+      }
+
+      const depthFactor = Math.max(0, 1 - offset * 0.3)
+      const dragOffset = isFrontCard ? (this.verticalDragOffset || 0) : (this.verticalDragOffset || 0) * depthFactor * 0.25
+      const bottomOffset = baseOffset + offset * cardSpacing + dragOffset
+
+      const scale = Math.max(0.88, 1 - offset * 0.04)
+      const tx = isFrontCard ? translateX : 0
+      const gapCompensation = offset * cardSpacing * (1 - scale) * 0.5
 
       return {
-        bottom: `${bottomOffset}px`,
-        zIndex: isDraggingThisCard ? 100 : (totalCards - index),
+        bottom: `${bottomOffset - gapCompensation}px`,
+        zIndex: total - offset,
         position: 'absolute',
         width: '90%',
         left: '5%',
-        transform: `translateX(${translateX}px)`,
-        background: this.$q.dark.isActive ? '#1d1d1d' : 'white',
-        border: this.$q.dark.isActive ? '2px solid #424242' : '2px solid #9e9e9e',
-        borderRadius: '15px',
-        height: '180px',
+        transform: `translateX(${tx}px) scale(${scale})`,
+        transformOrigin: 'center bottom',
+        background: this.$q.dark.isActive 
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        height: '220px',
+        boxShadow: isFrontCard
+          ? '0 16px 48px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1)'
+          : `0 ${4 + offset * 2}px ${12 + offset * 6}px rgba(0,0,0,${0.1 + offset * 0.04}), 0 1px 4px rgba(0,0,0,0.08)`,
         touchAction: 'none',
         userSelect: 'none',
         pointerEvents: 'auto',
         cursor: isDraggingThisCard ? 'grabbing' : 'grab',
+        color: 'white',
 
-        transition: isDraggingThisCard
-          ? 'none'
-          : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        transitionProperty: 'bottom, transform, box-shadow',
+        transitionDuration: this.isDragging ? '0.02s, 0.02s, 0.02s' : '0.4s, 0.45s, 0.35s',
+        transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1), cubic-bezier(0.34, 1.56, 0.64, 1), ease',
 
-        filter: `brightness(${1 - index * 0.1})`
+        filter: `brightness(${Math.max(0.6, 1 - offset * 0.1)})`,
+        opacity: Math.max(0.5, 1 - offset * 0.15)
       }
     },
 
-    startDrag (evt, card) {
+    getSkeletonCardStyle (index) {
+      const cardSpacing = 85
+      const buttonHeight = 280
+      const cardHeight = 220
+      const visibleArea = 70
+      const hiddenArea = cardHeight - visibleArea
+      const containerHeight = 520
+      const headerArea = 60
+      let baseOffset = buttonHeight - hiddenArea
+
+      const total = 3
+      if (total > 1) {
+        const maxOffset = total - 1
+        const maxBottom = containerHeight - headerArea - cardHeight
+        const requiredBottom = baseOffset + maxOffset * cardSpacing
+        if (requiredBottom > maxBottom) {
+          baseOffset = Math.max(0, maxBottom - maxOffset * cardSpacing)
+        }
+      }
+      const bottomOffset = baseOffset + index * cardSpacing
+
+      return {
+        bottom: `${bottomOffset}px`,
+        zIndex: 10 - index,
+        position: 'absolute',
+        width: '90%',
+        left: '5%',
+        background: this.$q.dark.isActive 
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' 
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        height: '220px',
+        pointerEvents: 'none'
+      }
+    },
+
+    onPointerDown (evt, card) {
       const cardId = card?.id
       if (!cardId) return
 
-      evt.preventDefault()
-      
       this.isDragging = true
       this.currentCardId = cardId
-      
-      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
-      this.startX = clientX
+      this.gestureLock = null
+      this.verticalDragOffset = 0
+
+      const pos = evt.touches ? evt.touches[0] : evt
+      this.startX = pos.clientX
+      this.startY = pos.clientY
       this.currentX = this.swipeStates[cardId] || 0
-      
-      // Add global event listeners for dragging outside the element
-      document.addEventListener('mousemove', this.onGlobalMove)
-      document.addEventListener('mouseup', this.onGlobalEnd)
-      document.addEventListener('touchmove', this.onGlobalMove, { passive: false })
-      document.addEventListener('touchend', this.onGlobalEnd)
+
+      const moveHandler = (e) => {
+        if (!this.isDragging) return
+        e.preventDefault()
+        const p = e.touches ? e.touches[0] : e
+        const deltaX = p.clientX - this.startX
+        const deltaY = p.clientY - this.startY
+        const absX = Math.abs(deltaX)
+        const absY = Math.abs(deltaY)
+
+        if (!this.gestureLock) {
+          if (absX > 10 || absY > 10) {
+            this.gestureLock = absX > absY * 2 ? 'horizontal' : 'vertical'
+          }
+        }
+
+        if (this.gestureLock === 'horizontal') {
+          const isFront = this.displayedCards.findIndex(c => c.id === cardId) === this.carouselIndex
+          if (isFront) {
+            this.swipeStates[cardId] = Math.max(0, this.currentX + deltaX)
+          }
+        } else if (this.gestureLock === 'vertical') {
+          const adjusted = -deltaY
+          this.verticalDragOffset = Math.max(Math.min(adjusted, 110), -110)
+        }
+      }
+
+      const endHandler = () => {
+        document.removeEventListener('mousemove', moveHandler)
+        document.removeEventListener('mouseup', endHandler)
+        document.removeEventListener('touchmove', moveHandler)
+        document.removeEventListener('touchend', endHandler)
+
+        const vOff = this.verticalDragOffset || 0
+        const isV = this.gestureLock === 'vertical'
+        const isH = this.gestureLock === 'horizontal'
+
+        this.gestureLock = null
+        this.currentCardId = null
+        this.isDragging = false
+
+        if (isV) {
+          const total = this.displayedCards.length
+          if (vOff < 0) {
+            this.carouselIndex = (this.carouselIndex + 1) % total
+          } else if (vOff > 0) {
+            this.carouselIndex = (this.carouselIndex - 1 + total) % total
+          }
+          this.verticalDragOffset = 0
+        } else if (isH) {
+          const swipeX = this.swipeStates[cardId] || 0
+          if (swipeX > 150) {
+            const c = this.displayedCards.find(c => c.id === cardId)
+            if (c) this.goToCardDetails(c)
+          } else {
+            this.swipeStates[cardId] = 0
+          }
+        } else {
+          this.verticalDragOffset = 0
+        }
+      }
+
+      document.addEventListener('mousemove', moveHandler)
+      document.addEventListener('mouseup', endHandler)
+      document.addEventListener('touchmove', moveHandler, { passive: false })
+      document.addEventListener('touchend', endHandler)
     },
 
-    onDrag (evt, card) {
-      if (!this.isDragging || this.currentCardId !== card?.id) return
+    onWheel (evt) {
       evt.preventDefault()
-      
-      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
-      const deltaX = clientX - this.startX
-      
-      // Only allow right swipe (positive delta)
-      const newX = Math.max(0, this.currentX + deltaX)
-      this.swipeStates[card.id] = newX
+
+      this.wheelAccumulator += evt.deltaY
+
+      if (this._wheelTimeout) clearTimeout(this._wheelTimeout)
+      this._wheelTimeout = setTimeout(() => {
+        this.wheelAccumulator = 0
+      }, 200)
+
+      if (Math.abs(this.wheelAccumulator) > 60) {
+        const total = this.displayedCards.length
+        if (this.wheelAccumulator > 0) {
+          this.carouselIndex = (this.carouselIndex + 1) % total
+        } else {
+          this.carouselIndex = (this.carouselIndex - 1 + total) % total
+        }
+        this.wheelAccumulator = 0
+      }
     },
 
-    onGlobalMove (evt) {
-      if (!this.isDragging || !this.currentCardId) return
-      
-      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX
-      const deltaX = clientX - this.startX
-      
-      // Only allow right swipe (positive delta)
-      const newX = Math.max(0, this.currentX + deltaX)
-      this.swipeStates[this.currentCardId] = newX
-    },
-
-    endDrag (card) {
-      if (!this.isDragging || this.currentCardId !== card?.id) return
-      
-      this.isDragging = false
-      
-      // Remove global event listeners
-      document.removeEventListener('mousemove', this.onGlobalMove)
-      document.removeEventListener('mouseup', this.onGlobalEnd)
-      document.removeEventListener('touchmove', this.onGlobalMove)
-      document.removeEventListener('touchend', this.onGlobalEnd)
-
-      const swipeX = this.swipeStates[card.id] || 0
-
-      // if swipe distance is enough, navigate
-      if (swipeX > 150) {
-        this.goToCardDetails(card)
-      }
-      else {
-        // brings card back to initial position
-        this.swipeStates[card.id] = 0
-      }
-      
-      this.currentCardId = null
-    },
-
-    onGlobalEnd () {
-      if (!this.currentCardId) return
-      
-      const swipeX = this.swipeStates[this.currentCardId] || 0
-      
-      this.isDragging = false
-      
-      // Remove global event listeners
-      document.removeEventListener('mousemove', this.onGlobalMove)
-      document.removeEventListener('mouseup', this.onGlobalEnd)
-      document.removeEventListener('touchmove', this.onGlobalMove)
-      document.removeEventListener('touchend', this.onGlobalEnd)
-
-      // if swipe distance is enough, navigate
-      if (swipeX > 150) {
-        const card = this.displayedCards.find(c => c.id === this.currentCardId)
-        if (card) this.goToCardDetails(card)
-      }
-      else {
-        // brings card back to initial position
-        this.swipeStates[this.currentCardId] = 0
-      }
-      
-      this.currentCardId = null
+    formatContractAddress (address) {
+      if (!address) return ''
+      const addr = typeof address === 'object' ? address.contractAddress : address
+      if (!addr) return ''
+      const str = String(addr)
+      if (str.length <= 9) return str
+      return str.slice(0, 16) + '...' + str.slice(-5)
     },
 
     goToCardDetails (card) {
+      console.log('goToCardDetails called with card:', card)
       if (card && card.id) {
-        this.$router.push({ name: 'card-details', query: {id: card.id} })
+        console.log('Navigating to card-details with id:', card.id)
+        this.$router.push({ name: 'card-details', params: {id: card.id} })
+          .then(() => console.log('Navigation to card-details successful'))
+          .catch(err => console.error('Navigation to card-details failed:', err))
+      } else {
+        console.warn('goToCardDetails: card or card.id is missing')
       }
-    },
-
-    showAllCards () {
-      this.$router.push({ name: 'all-cards' })
     },
 
     closeDialog () {
@@ -473,8 +637,7 @@ export default {
         raw: { alias: this.newCardName.trim() },
         balance: '0.0000', // New card has 0 BCH balance
         status: 'Active',
-        contractAddress: this.contractAddress || 'bitcoincash:qz6zvkmuawgkp9c0flg6n6pycxm2v4gksgxlqefvjw',
-        // TODO: Replace with card_instance.raw.cash_address or card_instance.raw.token_address from Card class
+        contractAddress: this.contractAddress,
         isLocked: false,
         cardReplacementStatus: 'none'
       }
@@ -503,4 +666,56 @@ export default {
 
 <style lang="scss" scoped>
   @import "src/css/app-card.scss";
+
+  .swipe-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: fadeIn 0.35s ease-out;
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  .swipe-overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    color: white;
+    padding: 24px 28px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    min-width: 220px;
+  }
+</style>
+
+<style lang="scss">
+  // Kept in sync with app-card.scss global overrides section
+  html, body {
+    overflow: hidden !important;
+    height: 100% !important;
+  }
+
+  .q-layout {
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  .q-page-container {
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+</style>
+
+<style>
+.card-page-bg-light {
+  background: color-mix(in srgb, var(--q-primary) 8%, rgba(248, 249, 253, 0.95)) !important;
+}
 </style>

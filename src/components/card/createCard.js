@@ -3,7 +3,8 @@ import { loadCardUser } from 'src/services/card/user';
 import { getMerchantList } from 'src/services/card/merchants';
 
 // CardStorage utility for localStorage CRUD operations - used for UI state persistence
-const STORAGE_KEY = 'card_ui_state';
+// NOTE: Keeping 'mock_subcards' for backward compatibility with existing cards
+const STORAGE_KEY = 'mock_subcards';
 
 export const CardStorage = {
   /**
@@ -107,7 +108,33 @@ export const CardStorage = {
    * @returns {Object|null} Updated card or null if not found
    */
   setCardProperty(cardId, property, value) {
-    return this.updateCard(cardId, { [property]: value });
+    const cards = this.getCards();
+    const index = cards.findIndex(c => String(c.id) === String(cardId));
+    
+    if (index === -1) {
+      // Card doesn't exist - create it
+      const newCard = { id: cardId, [property]: value };
+      cards.push(newCard);
+      this.saveCards(cards);
+      return newCard;
+    }
+    
+    // Card exists - update it
+    cards[index][property] = value;
+    this.saveCards(cards);
+    return cards[index];
+  },
+
+  /**
+   * Get a specific property of a card
+   * @param {string|number} cardId - Card ID
+   * @param {string} property - Property name
+   * @returns {*} Property value or null if not found
+   */
+  getCardProperty(cardId, property) {
+    const card = this.getCardById(cardId);
+    if (!card) return null;
+    return card[property] !== undefined ? card[property] : null;
   },
 };
 
@@ -132,7 +159,7 @@ export const createCardLogic = {
     heroStyle() {
       return {
         background: 'linear-gradient(135deg, #027be3 0%, #26a69a 50%, #9c27b0 100%)',
-        borderRadius: '24px',
+        borderRadius: '16px',
         minHeight: '500px',
         width: '100%',
         maxWidth: '1100px',
@@ -142,7 +169,7 @@ export const createCardLogic = {
 
     // Dark mode computed properties for UI classes
     textColor() {
-      return this.$q.dark.isActive ? 'text-white' : 'text-grey-10'
+      return this.$q.dark.isActive ? 'text-white' : 'text-black'
     },
     
     textColorGrey() {
@@ -243,17 +270,19 @@ export const createCardLogic = {
       // In production, this checks backend. For now, uses localStorage as cache
       const cards = CardStorage.getCards();
 
-      // if user has existing cards and we are at the cards home page, redirect to stackedCards.vue
+      // if user has existing cards and we are at the cards home page, redirect to card list
       if (cards.length > 0 && this.$route.name === 'app-card'){
-        this.$router.push({ name: 'stacked-cards'})
+        this.$router.push({ name: 'card-list' })
       }
     },
 
     navigateToCardDetails(card, tab = 'transactions') {
       this.$router.push({
         name: 'card-details',
-        query: { 
-          id: card.id,
+        params: { 
+          id: card.id
+        },
+        query: {
           tab: tab
         }
       })

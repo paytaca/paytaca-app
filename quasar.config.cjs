@@ -261,6 +261,14 @@ module.exports = defineConfig((ctx) => {
           warnings: false,
           runtimeErrors: false
         }
+      },
+      hot: true,
+      watchFiles: {
+        paths: ['src/**/*'],
+        options: {
+          usePolling: false,
+          aggregateTimeout: 300
+        }
       }
     },
 

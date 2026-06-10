@@ -327,11 +327,47 @@ export function generateLinkCode(context, data) {
     })
 }
 
+export async function generateNfcSetupCode(context, data) {
+  console.log('Generating NFC setup code with data:', data)
+  if (!data?.walletHash || !Number.isSafeInteger(data?.posid)) return Promise.reject()
+
+  const setup_data = {
+    wallet_hash: data?.walletHash,
+    posid: data?.posid,
+    encrypted_data: data?.encryptedData,
+    signature: data?.signature,
+  }
+
+  return posBackend.post('paytacapos/devices/generate_nfc_request_code/', setup_data, { authorize: true })
+    .then(response => {
+      if (!response?.data?.code) return Promise.reject({ response })
+      console.log('NFC setup code generated successfully:', response.data)
+      console.log('data.encryptKey:', data?.encryptKey)
+      const responseData = {
+        walletHash: data.walletHash,
+        posid: data.posid,
+        code: response.data.code,
+        expiresAt: response.data.expires,
+        encryptKey: data?.encryptKey,
+        nonce: data?.nonce,
+      }
+      return Promise.resolve(responseData)
+    })
+    .catch(error => {
+      console.error(error?.response || error)
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
+}
 
 export async function getLatestMerchantIndex (context, walletHash) {
   const url = `paytacapos/merchants/latest_index/`
   return posBackend.post(url, { wallet_hash: walletHash })
     .then(response => Promise.resolve(response))
-    .catch(err => Promise.reject(err))
+    .catch(error => {
+      console.error(error?.response || error)
+      if (error?.response?.status == 403) bus.emit('paytaca-pos-relogin')
+      return Promise.reject(error)
+    })
 }
 

@@ -19,6 +19,7 @@ import multisig from './multisig'
 import subscription from './subscription'
 import wizardconnect from './wizardconnect'
 import nostrChat from './nostr-chat'
+import card from './card'
 
 // const vuexLocal = new VuexPersistence({
 //   key: 'vuex',
@@ -247,6 +248,7 @@ export const Store = createStore({
           const value = window.localStorage.getItem(key)
           if (!value) return null
           const parsed = JSON.parse(value)
+          console.log('Parsed persisted state:', parsed)
           // Filter out undefined module states to prevent overwriting defaults
           if (parsed && typeof parsed === 'object') {
             for (const moduleName in parsed) {
@@ -287,7 +289,8 @@ export const Store = createStore({
     multisig,
     subscription,
     wizardconnect,
-    nostrChat
+    nostrChat,
+    card
   },
 
   // enable strict mode (adds overhead!)
