@@ -37,7 +37,7 @@
                   <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
                     {{ bchBalance }}
                   </div>
-                  <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
+                  <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 8px; background: rgba(255,255,255,0.15);">
                     <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                   </div>
                 </div>
@@ -125,7 +125,7 @@
               color="primary" 
               class="q-px-xl q-mt-lg text-bold"
               unelevated
-              style="border-radius: 24px"
+              rounded
               icon="open_in_new"
               @click="openOrderCardWebsite"
             />
@@ -181,15 +181,15 @@
                 label="Cancel"
                 :color="$q.dark.isActive ? 'grey-4' : 'grey-7'"
                 class="col"
-                style="border-radius: 24px;"
-                @click="showEditNameDialog = false"
-              />
-              <q-btn
-                unelevated
-                label="Save"
-                color="primary"
-                class="col bg-grad text-white"
-                style="border-radius: 24px;"
+              rounded
+              @click="showEditNameDialog = false"
+            />
+            <q-btn
+              unelevated
+              label="Save"
+              color="primary"
+              class="col bg-grad text-white"
+              rounded
                 @click="saveCardName"
               />
             </div>

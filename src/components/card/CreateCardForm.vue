@@ -257,7 +257,7 @@
         </div>
         <q-btn 
           color="primary" 
-          style="border-radius: 24px"
+          rounded
           class="q-px-xl"
           icon="refresh"
           label="Try Again" 
@@ -268,7 +268,7 @@
       <q-card-actions v-if="state === 'form'" class="q-px-lg q-pb-lg q-pt-md">
         <q-btn 
           flat 
-          style="border-radius: 24px"
+          rounded
           label="Cancel" 
           class="q-px-lg"
           color="primary" 
@@ -277,7 +277,7 @@
         <q-btn 
           label="Create Card" 
           color="primary" 
-          style="border-radius: 24px"
+          rounded
           unelevated
           class="q-px-xl"
           :disable="!inputValidation"
@@ -508,7 +508,7 @@ export default {
 }
 
 .method-btn {
-  border-radius: 12px;
+  border-radius: 24px;
   height: 70px;
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -526,7 +526,7 @@ export default {
 
 /* Method button base styles */
 .method-btn {
-  border-radius: 12px;
+  border-radius: 24px;
   height: 70px;
   transition: all 0.3s ease;
   border: 2px solid transparent;

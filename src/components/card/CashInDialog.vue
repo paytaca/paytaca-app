@@ -329,6 +329,17 @@ export default {
   border-radius: 16px;
   padding: 16px 20px;
   color: white;
+  position: relative;
+  isolation: isolate;
+}
+
+.balance-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: -1;
 }
 
 /* Deposit Card (QR + Address) */
@@ -446,12 +457,7 @@ export default {
   box-shadow: none !important;
 }
 
-:deep(.drag-slide-container) .q-item {
-  border: none !important;
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
-  border-radius: 12px !important;
-}
+
 
 :deep(.drag-slide-container) .q-item.q-item--dark {
   border: none !important;

@@ -175,7 +175,7 @@ export default {
 
   .search-input-wrapper {
     background: transparent;
-    border-radius: 20px;
+    border-radius: 14px;
     border: 1.5px solid;
     border-color: rgba(0, 0, 0, 0.12);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
