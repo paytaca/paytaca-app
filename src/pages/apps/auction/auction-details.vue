@@ -19,55 +19,78 @@
         </div>
 
         <div class="col-12 col-sm-auto flex column" style="max-width: 450px; min-width: 280px;">
-          <div class="text-h5 text-weight-bold q-mb-sm">
+          <div class="row items-center q-gutter-sm q-mb-sm">
+            <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
+              <q-icon name="gavel" size="12px" class="q-mr-xs" />
+              {{ auction.type }} Auction
+            </q-badge>
+            <q-badge
+              :color="getAuctionStatusInfo(auction).color"
+              class="q-pa-sm q-px-sm text-weight-bold"
+            >
+              {{ getAuctionStatusInfo(auction).label }}
+            </q-badge>
+          </div>
+
+          <div class="text-h5 text-weight-medium q-mb-md">
             {{ auction?.title || 'N/A' }}
           </div>
-          
-          <div class="row items-center q-mb-sm" style="max-width: 100%;">
-            <q-badge
-              v-if="isAuthor"
-              color="positive" 
-              class="q-pa-xs q-px-sm text-weight-bold text-no-wrap q-mr-sm"
-            >
-              <q-icon name="person" class="q-mr-xs" size="14px" />
-              You
-            </q-badge>
 
-            <strong class="q-mr-xs text-no-wrap">Auctioneer:</strong>
-            <span 
-              class="q-mr-sm q-mt-xs" 
-              style="word-break: break-word; overflow-wrap: anywhere; min-width: 0;"
-            >
-              {{ auction?.user_id || 'N/A' }}
-            </span>
-          </div>
-
-          <div class="q-mb-sm"><strong>Auctioneer Rating:</strong> {{ auction?.rating || 'N/A' }}</div>
-          <div class="q-mb-md"><strong>Posted On:</strong> {{ auction?.datePosted || 'N/A' }}</div>
-          <div class="q-mb-sm"><strong>Auction Type:</strong> {{ auction?.type || 'N/A' }}</div>
-          
-          <div class="row items-center q-gap-sm q-mb-md">
-            <strong class="q-mr-xs">Auction Status:</strong>
-            <q-btn
-              class="text-white text-bold text-caption" 
-              :style="{ 
-                backgroundColor: getAuctionStatusInfo(auction).color, 
-                width: 'fit-content', 
-                padding: '2px 10px' 
-              }" 
-              :label="getAuctionStatusInfo(auction).label"
-              flat
-              dense
-            />
-          </div>
+          <q-card flat bordered class="q-mb-md">
+            <q-card-section class="q-pa-sm">
+              <div class="row items-center q-py-xs">
+                <div class="text-caption col-4 q-mr-sm">
+                  <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
+                </div>
+                <div class="col row items-center q-gutter-xs">
+                  <span style="word-break: break-word; overflow-wrap: anywhere; min-width: 0;">
+                    {{ auction?.user_id || 'N/A' }}
+                  </span>
+                  <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-mr-sm">
+                    <q-icon name="star" size="10px" class="q-mr-xs" />You
+                  </q-badge>
+                </div>
+              </div>
+              <q-separator spaced="xs" />
+              <div class="row items-center q-py-xs">
+                <div class="text-caption col-4 q-mr-sm">
+                  <q-icon name="star" size="13px" class="q-mr-xs" />Rating
+                </div>
+                <span>{{ auction?.rating || 'N/A' }}</span>
+              </div>
+              <q-separator spaced="xs" />
+              <div class="row items-center q-py-xs">
+                <div class="text-caption col-4 q-mr-sm">
+                  <q-icon name="event" size="13px" class="q-mr-xs" />Posted on
+                </div>
+                <span>{{ auction?.date_posted || 'N/A' }}</span>
+              </div>
+            </q-card-section>
+          </q-card>
 
           <div class="text-bold">Description:</div>
           <p class="q-mb-md text-left" style="white-space: pre-wrap;">
             {{ auction?.description || 'N/A' }}
           </p>
-          
-          <div class="q-mb-xs"><strong>Start Date:</strong> {{ formatAuctionDate(auction.start_date) }}</div>
-          <div class="q-mb-xs"><strong>End Date:</strong> {{ formatAuctionDate(auction.end_date) }}</div>
+
+          <div class="row q-gutter-sm">
+            <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="event_available" size="12px" class="q-mr-xs" />Start date
+              </div>
+              <div class="text-body2 text-weight-medium">
+                {{ formatAuctionDate(auction?.start_date) }}
+              </div>
+            </div>
+            <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="event_busy" size="12px" class="q-mr-xs" />End date
+              </div>
+              <div class="text-body2 text-weight-medium">
+                {{ formatAuctionDate(auction?.end_date) }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -182,16 +205,8 @@
               </q-card-section>
             </q-card>
           </div>
-          
-          <!-- Empty state -->
-          <!--
-          <div>
-            {{ $t('NoProducts') }}
-          </div>
-          -->
         </div>
       </div>
-      
     </div>
   </q-pull-to-refresh>
 </template>
