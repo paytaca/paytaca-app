@@ -117,13 +117,13 @@ import { useQuasar, date } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { ref, computed, watch, onMounted } from 'vue'
+import { AuctionList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
 import AuctionSearch from 'src/components/auction/AuctionSearch.vue'
 import noImage from 'src/assets/no-image.svg'
-import { AuctionList } from 'src/auction/object.js'
 
 const $q = useQuasar()
 const $store = useStore()
