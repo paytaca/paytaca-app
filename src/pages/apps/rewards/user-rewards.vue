@@ -378,8 +378,8 @@
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{
                         continuousPoints.marketplace.points === 1 
-                          ? $t('CountPointsEarned', { points: continuousPoints.marketplace.points })
-                          : $t('CountPointEarned', { point: continuousPoints.marketplace.points })
+                          ? $t('CountPointEarned', { point: continuousPoints.marketplace.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.marketplace.points })
                       }}
                     </div>
                   </div>
@@ -387,8 +387,8 @@
                     <span class="text-body2 text-weight-bold text-primary">
                       {{ 
                         continuousPoints.marketplace.txCount === 1
-                          ? $t('CountTransactions', { txCount: continuousPoints.marketplace.txCount })
-                          : $t('CountTransaction', { txCount: continuousPoints.marketplace.txCount })
+                          ? $t('CountTransaction', { txCount: continuousPoints.marketplace.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.marketplace.txCount })
                       }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openMarketplaceHistory" />
@@ -409,8 +409,8 @@
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{
                         continuousPoints.cashin.points === 1 
-                          ? $t('CountPointsEarned', { points: continuousPoints.cashin.points })
-                          : $t('CountPointEarned', { point: continuousPoints.cashin.points })
+                          ? $t('CountPointEarned', { point: continuousPoints.cashin.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.cashin.points })
                       }}
                     </div>
                   </div>
@@ -418,8 +418,8 @@
                     <span class="text-body2 text-weight-bold text-primary">
                       {{ 
                         continuousPoints.cashin.txCount === 1
-                          ? $t('CountTransactions', { txCount: continuousPoints.cashin.txCount })
-                          : $t('CountTransaction', { txCount: continuousPoints.cashin.txCount })
+                          ? $t('CountTransaction', { txCount: continuousPoints.cashin.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.cashin.txCount })
                       }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCashinHistory" />
@@ -440,8 +440,8 @@
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{
                         continuousPoints.cauldron.points === 1 
-                          ? $t('CountPointsEarned', { points: continuousPoints.cauldron.points })
-                          : $t('CountPointEarned', { point: continuousPoints.cauldron.points })
+                          ? $t('CountPointEarned', { point: continuousPoints.cauldron.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.cauldron.points })
                       }}
                     </div>
                   </div>
@@ -449,8 +449,8 @@
                     <span class="text-body2 text-weight-bold text-primary">
                       {{ 
                         continuousPoints.cauldron.txCount === 1
-                          ? $t('CountTransactions', { txCount: continuousPoints.cauldron.txCount })
-                          : $t('CountTransaction', { txCount: continuousPoints.cauldron.txCount })
+                          ? $t('CountTransaction', { txCount: continuousPoints.cauldron.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.cauldron.txCount })
                       }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCauldronHistory" />
@@ -471,8 +471,8 @@
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                       {{
                         continuousPoints.eload.points === 1 
-                          ? $t('CountPointsEarned', { points: continuousPoints.eload.points })
-                          : $t('CountPointEarned', { point: continuousPoints.eload.points })
+                          ? $t('CountPointEarned', { point: continuousPoints.eload.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.eload.points })
                       }}
                     </div>
                   </div>
@@ -480,8 +480,8 @@
                     <span class="text-body2 text-weight-bold text-primary">
                       {{ 
                         continuousPoints.eload.txCount === 1
-                          ? $t('CountTransactions', { txCount: continuousPoints.eload.txCount })
-                          : $t('CountTransaction', { txCount: continuousPoints.eload.txCount })
+                          ? $t('CountTransaction', { txCount: continuousPoints.eload.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.eload.txCount })
                       }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openEloadHistory" />

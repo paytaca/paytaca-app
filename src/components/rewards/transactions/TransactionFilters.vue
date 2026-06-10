@@ -28,8 +28,8 @@
       <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
         {{
           displayCount === 1
-            ? $t('ShowingCountTransactions', { displayCount })
-            : $t('ShowingCountTransaction', { displayCount })
+            ? $t('ShowingCountTransaction', { displayCount })
+            : $t('ShowingCountTransactions', { displayCount })
         }}
       </div>
       

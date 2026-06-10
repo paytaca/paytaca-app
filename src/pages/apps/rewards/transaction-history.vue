@@ -47,8 +47,8 @@
               <span class="text-subtitle1 text-weight-medium">
                 {{
                   summaryStats.total_points === 1
-                    ? $t('CountPointsEarned', { points: summaryStats.total_points })
-                    : $t('CountPointEarned', { point: summaryStats.total_points })
+                    ? $t('CountPointEarned', { point: summaryStats.total_points })
+                    : $t('CountPointsEarned', { points: summaryStats.total_points })
                 }}
               </span>
             </div>
@@ -165,7 +165,7 @@ export default {
           ],
           emptyState: {
             title: 'EmptyStateMarketplaceTitle',
-            description: 'EmptyStateMarketplaceTitle'
+            description: 'EmptyStateMarketplaceBody'
           },
           errorMessage: 'MerchantHistoryError'
         },
@@ -186,7 +186,7 @@ export default {
             title: 'EmptyStateCashinTitle',
             description: 'EmptyStateCashinBody'
           },
-          errorMessage: 'MerchantHistoryError'
+          errorMessage: 'CashinHistoryError'
         },
         cauldron: {
           title: 'CauldronDexHistory',

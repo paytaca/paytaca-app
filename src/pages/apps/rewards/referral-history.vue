@@ -55,8 +55,8 @@
               <span class="text-subtitle1 text-weight-medium">
                 {{
                   summaryStats.points_earned === 1
-                    ? $t('CountPointsEarned', { points: summaryStats.points_earned })
-                    : $t('CountPointEarned', { point: summaryStats.points_earned })
+                    ? $t('CountPointEarned', { point: summaryStats.points_earned })
+                    : $t('CountPointsEarned', { points: summaryStats.points_earned })
                 }}
               </span>
             </div>
@@ -95,8 +95,8 @@
             <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
               {{
                 displayCount === 1
-                  ? $t('ShowingCountTransactions', { displayCount })
-                  : $t('ShowingCountTransaction', { displayCount })
+                  ? $t('ShowingCountTransaction', { displayCount })
+                  : $t('ShowingCountTransactions', { displayCount })
               }}
             </span>
             <q-btn
