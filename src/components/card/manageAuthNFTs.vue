@@ -241,23 +241,25 @@
                 <!-- Success message when minting done -->
                 <span
                   v-else-if="mintedMerchants.has(merchant.id)"
-                  class="text-positive text-caption"
-                >
+                  class="text-positive text-caption">
                   minting done
                 </span>
-                <!-- Toggle (hidden in select multiple mode) -->
-                <!-- <q-toggle 
-                  v-if="!selectMultipleMode"
-                  v-model="merchant.has_auth_nft"
-                  :disable="genericAuthEnabled || mintingMerchants.has(merchant.id)"
-                  :color="genericAuthEnabled 
-                    ? ($q.dark.isActive ? 'grey-6' : 'grey-5') 
-                    : 'primary'"
-                  @update:model-value="(val) => onMerchantToggle(merchant, val)"
-                /> -->
-                <span>
-                  {{ merchant.auth_nfts?.length > 0 ? 'Authorized' : 'Not Authorized' }} ({{ merchant.auth_nfts?.length }} NFT{{merchant.auth_nfts?.length > 1 ? "s" : ""}})
+                <!-- Merchant has NFTs: show authorized label -->
+                <span
+                  v-if="merchant.auth_nfts?.length > 0"
+                  class="text-caption text-positive">
+                  Authorized ({{ merchant.auth_nfts.length }} NFT{{ merchant.auth_nfts.length > 1 ? 's' : '' }})
                 </span>
+                <!-- Merchant has no NFTs: show mint toggle -->
+                <div v-else class="row items-center q-gutter-x-xs" @click.stop>
+                  <span class="text-caption" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey-7'">Enable</span>
+                  <q-toggle
+                    :model-value="false"
+                    :disable="genericAuthEnabled"
+                    color="primary"
+                    @update:model-value="(val) => onMerchantToggle(merchant, val)"
+                  />
+                </div>
               </div>
             </q-item-section>
           </q-item>
@@ -314,7 +316,7 @@
     </q-dialog>
 
     <!-- Spend Limit Dialog -->
-    <q-dialog v-model="showMutateAuthDialog" persistent>
+    <q-dialog v-model="showMutateAuthDialog">
       <q-card style="min-width: 320px">
         <q-card-section>
           <div class="text-h6" :class="textColor">
@@ -323,42 +325,82 @@
         </q-card-section>
         <q-card-section class="q-pt-none" :class="textColor">
           <div class="q-mb-sm" :class="textColor">
-            <span class="text-weight-bold">{{ selectedMerchant?.name }}</span>
+            <span class="text-weight-bold">Merchant: {{ selectedMerchant?.name }}</span>
           </div>
           <!-- <div class="q-mb-md text-caption" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey'">
             Available Balance: {{ formatBalance(card?.balance) }} BCH
           </div> -->
-          <q-tabs v-model="currentNftTab" class="text-subtitle2" :dark="$q.dark.isActive">
-            <q-tab v-for="nft in selectedMerchant.auth_nfts" :key="nft.id" :name="nft.id" :label="`NFT ${nft.id}`" />
+          <q-tabs v-model="selectedNFT.id" class="text-subtitle2" :dark="$q.dark.isActive">
+            <q-tab
+              v-for="nft in selectedMerchant.auth_nfts"
+              :key="nft.id"
+              :name="nft.id"
+              :label="`NFT ${nft.id}`"
+            />
             <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" label="No NFTs" :disable="true" />
           </q-tabs>
-          <q-tab-panels v-model="currentNftTab" animated>
-            <q-tab-panel :name="currentNftTab">
-              <div class="text-h6">Mails</div>
-              Lorem ipsum dolor sit amet consectetur adipisicing.
+          <q-tab-panels v-model="selectedNFT.id" animated>
+            <q-tab-panel :name="selectedNFT.id">
+              <q-toggle 
+                left-label
+                label="Authorize"
+                v-model:model-value="selectedNFTAuthorized"/>
+              <q-input
+                v-model="spendLimitInput"
+                type="number"
+                filled
+                :dark="$q.dark.isActive"
+                label="Spend Limit (BCH)"
+                step="0.00000001"
+                min="0"
+                :error="!!spendLimitError"
+                :error-message="spendLimitError"
+                lazy-rules
+              />
+              <div v-if="selectedAuthNFT" class="q-mt-md q-gutter-y-xs text-caption" :class="textColorGrey">
+                <div><span class="text-weight-medium">NFT ID:</span> {{ selectedAuthNFT.id }}</div>
+                <div><span class="text-weight-medium">Category:</span> {{ selectedAuthNFT.token_data?.category || 'N/A' }}</div>
+                <div><span class="text-weight-medium">Commitment:</span> {{ selectedAuthNFT.token_data?.commitment || 'N/A' }}</div>
+                <div><span class="text-weight-medium">Amount:</span> {{ selectedAuthNFT.token_data?.amount || '0' }}</div>
+                <div><span class="text-weight-medium">Global Auth:</span> {{ selectedAuthNFT.token_data?.is_global_auth ? 'Yes' : 'No' }}</div>
+                <div><span class="text-weight-medium">Spend Limit:</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token_data?.spend_limit_sats) }} BCH</div>
+              </div>
+              
             </q-tab-panel>
           </q-tab-panels>
-          <q-toggle 
-            left-label
-            label="Authorize"
-            v-model:model-value="selectedMerchant.authorized"/>
-          <q-input
-            v-model="spendLimitInput"
-            type="number"
-            filled
-            :dark="$q.dark.isActive"
-            label="Spend Limit (BCH)"
-            step="0.00000001"
-            min="0"
-            :error="!!spendLimitError"
-            :error-message="spendLimitError"
-            lazy-rules
-          />
         </q-card-section>
 
+        <q-card-actions align="between">
+          <!-- <q-btn
+            flat
+            color="negative"
+            icon="local_fire_department"
+            label="Burn Token"
+            :disable="!selectedAuthNFT"
+            @click="burnSelectedToken"
+          /> -->
+          <div class="row items-center q-gutter-sm">
+            <q-btn flat label="Cancel" color="primary" @click="closeSpendLimitDialog" />
+            <q-btn flat label="Save" color="primary" @click="submitMutation" />
+          </div>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Burn Token Confirmation Dialog -->
+    <q-dialog v-model="showBurnTokenDialog" persistent>
+      <q-card style="min-width: 320px">
+        <q-card-section>
+          <div class="text-h6" :class="textColor">Burn Authorization NFT</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <div :class="textColor">
+            Are you sure you want to burn NFT {{ selectedAuthNFT?.id }} for {{ selectedMerchant?.name }}? This action is irreversible.
+          </div>
+        </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" @click="closeSpendLimitDialog" />
-          <q-btn flat label="Save" color="primary" @click="saveSpendLimit" />
+          <q-btn flat label="Cancel" color="primary" @click="showBurnTokenDialog = false" />
+          <q-btn flat label="Burn Token" color="negative" @click="confirmBurnToken" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -427,17 +469,22 @@ import { markRaw } from 'vue';
 import { init } from 'src/store/wizardconnect/actions.js';
 import { backend } from 'src/exchange/backend.js';
 import { backend as cardBackend } from 'src/services/card/backend.js';
+import { loadWallet } from 'src/services/wallet.js';
+import { bchToSatoshi } from 'src/exchange/index.js';
+
 
 export default {
   name: 'ManageAuthNFTs',
   mixins: [createCardLogic],
   components: { GeolocateBtn },
+  inject: ['cardUser'],
   props: {
     card: { type: Object, required: true }
   },
   data() {
     return {
       search: '',
+      showBurnTokenDialog: false,
       genericAuthEnabled: false,
       // Hardcoded global spend limit: ~500 PHP worth of BCH (approximately 0.0017 BCH)
       GLOBAL_SPEND_LIMIT_BCH: '0.0017',
@@ -475,7 +522,9 @@ export default {
       isInitializing: false,
       lastGeolocatePosition: null,
       darkMode: this.$store.getters['darkmode/getStatus'],
-      currentNftTab: null,
+      selectedNFT: {
+        id: null
+      },
     }
   },
   computed: {
@@ -517,6 +566,29 @@ export default {
     },
     mapUid() {
       return `leaflet-map-${this.$.uid}`
+    },
+    selectedAuthNFT() {
+      const nfts = this.selectedMerchant?.auth_nfts || []
+      return nfts.find(nft => nft.id === this.selectedNFT.id) || null
+    },
+    selectedNFTAuthorized: {
+      get() {
+        const nft = this.selectedAuthNFT
+        if (!nft) return false
+        if (nft.token_data && typeof nft.token_data.authorized === 'boolean') {
+          return nft.token_data.authorized
+        }
+        return !!nft.authorized
+      },
+      set(value) {
+        const nft = this.selectedAuthNFT
+        if (!nft) return
+        if (nft.token_data) {
+          nft.token_data.authorized = value
+          return
+        }
+        nft.authorized = value
+      }
     }
   },
   async mounted() {
@@ -871,6 +943,12 @@ export default {
       return num.toFixed(4);
     },
 
+    formatSpendLimitFromSats(value) {
+      const sats = Number(value)
+      if (!Number.isFinite(sats) || sats < 0) return '0.0000'
+      return (sats / 100000000).toFixed(4)
+    },
+
     onGenericAuthToggle(enabled) {
       if (enabled) {
         // Show confirmation dialog before enabling
@@ -909,7 +987,7 @@ export default {
       console.log('Toggling merchant:', merchant, 'Enabled:', enabled)
       console.log('card:', this.card)
       if (enabled) {
-        merchant.spendLimit = merchant.spendLimit || '1';
+        // merchant.spendLimit = merchant.spendLimit || '1';
         
         // Start minting process
         this.mintingMerchants.add(merchant.id);
@@ -973,10 +1051,16 @@ export default {
     openSpendLimitDialog(merchant) {
       // if (!merchant.isEnabled || this.genericAuthEnabled) return;
       this.selectedMerchant = merchant;
-      this.spendLimitInput = merchant.spendLimit || '1';
       this.spendLimitError = '';
-      this.currentNftTab = merchant.auth_nfts?.length > 0 ? merchant.auth_nfts[0].id : null;
-      console.log('currentNftTab set to:', this.currentNftTab)
+      this.selectedNFT = {
+        id: merchant.auth_nfts?.length > 0 ? merchant.auth_nfts[0].id : null
+      }
+      const initialNft = merchant.auth_nfts?.find(nft => nft.id === this.selectedNFT.id)
+      const initialSpendLimitSats = initialNft?.token_data?.spend_limit_sats
+      this.spendLimitInput = initialSpendLimitSats != null
+        ? (Number(initialSpendLimitSats) / 100000000).toFixed(8)
+        : (merchant.spendLimit || '1')
+      console.log('selectedNFT set to:', this.selectedNFT)
       this.showMutateAuthDialog = true;
     },
 
@@ -987,7 +1071,7 @@ export default {
       this.spendLimitError = '';
     },
 
-    saveSpendLimit() {
+    async submitMutation() {
       const spendLimit = parseFloat(this.spendLimitInput);
 
       if (isNaN(spendLimit) || spendLimit <= 0) {
@@ -997,27 +1081,105 @@ export default {
 
       if (this.selectedMerchant) {
         this.selectedMerchant.spendLimit = spendLimit.toFixed(8);
-        
-        if (this.card && this.card.id) {
-          const card = CardStorage.getCardById(this.card.id);
-          if (card) {
-            if (!card.merchantSpendLimits) {
-              card.merchantSpendLimits = {};
-            }
-            card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
-            CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
-          }
+
+        if (this.selectedAuthNFT?.token_data) {
+          this.selectedAuthNFT.token_data.spend_limit_sats = Math.round(spendLimit * 100000000)
         }
         
-        this.$q.notify({
-          message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
-          color: 'positive',
-          icon: 'check_circle',
-          timeout: 1500
-        });
+        // if (this.card && this.card.id) {
+        //   const card = CardStorage.getCardById(this.card.id);
+        //   if (card) {
+        //     if (!card.merchantSpendLimits) {
+        //       card.merchantSpendLimits = {};
+        //     }
+        //     card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
+        //     CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
+        //   }
+        // }
+        const mutation = {
+          authorize: this.selectedNFTAuthorized,
+          spendLimitSats: bchToSatoshi(this.spendLimitInput),
+          merchant: {
+            id: this.selectedMerchant.ref_id,
+            pubkey: this.selectedMerchant.public_key,
+          },
+          broadcast: false
+        }
+        console.log('mutation:', mutation)
+        await this.card.mutateMerchantAuthToken(mutation).then(() => {
+          console.log('Mutation successful for merchant:', this.selectedMerchant.name)
+          this.$q.notify({
+            message: `Spend limit set to ${this.selectedMerchant.spendLimit} BCH for ${this.selectedMerchant.name}`,
+            color: 'positive',
+            icon: 'check_circle',
+            timeout: 1500
+          });
+        }).catch(err => {
+          console.error('Mutation failed for merchant:', this.selectedMerchant.name, err)
+          this.$q.notify({
+            message: `Failed to update auth NFT for ${this.selectedMerchant.name}`,
+            color: 'red',
+            icon: 'error',
+            timeout: 4000,
+          })
+        })
       }
 
       this.closeSpendLimitDialog();
+    },
+
+    burnSelectedToken() {
+      const merchant = this.selectedMerchant
+      const nft = this.selectedAuthNFT
+
+      if (!merchant || !nft) {
+        this.$q.notify({
+          message: 'No NFT selected to burn',
+          color: 'warning',
+          icon: 'warning',
+          timeout: 1500
+        })
+        return
+      }
+
+      this.showBurnTokenDialog = true
+    },
+
+    async confirmBurnToken() {
+      const merchant = this.selectedMerchant
+      const nft = this.selectedAuthNFT
+
+      this.showBurnTokenDialog = false
+
+      // Placeholder only: wire actual burn transaction here.
+      console.log('Burn token requested:', {
+        merchantId: merchant.id,
+        merchantName: merchant.name,
+        nftId: nft.id,
+        tokenData: nft.token_data
+      })
+
+      const tokenId = nft.token_data?.category
+      const merchantId = null//merchant.ref_id
+      console.log('Burning auth token with tokenId:', tokenId, 'merchantId:', merchantId)
+      const result = await this.card?.burnMerchantAuthToken(tokenId, merchantId)
+        .catch(err => {
+          console.error('Burning auth token failed:', err)
+          this.$q.notify({
+            message: `Failed to burn NFT ${nft.id} for ${merchant.name}`,
+            color: 'red',
+            icon: 'error',
+            timeout: 4000,
+          })
+        })
+      console.log('Burn result:', result)
+
+      this.$q.notify({
+        message: `Burn action ready for NFT ${nft.id} (${merchant.name})`,
+        color: 'warning',
+        icon: 'local_fire_department',
+        timeout: 2000
+      })
     },
 
     // Select Multiple Mode Methods
@@ -1538,8 +1700,15 @@ export default {
         this.saveMerchantsOnChange();
       }
     },
-    currentNftTab(val) {
+    selectedNFT(val) {
       console.log('Current NFT tab changed to:', val);
+    },
+    'selectedNFT.id'(val) {
+      const nft = this.selectedMerchant?.auth_nfts?.find(item => item.id === val)
+      const spendLimitSats = nft?.token_data?.spend_limit_sats
+      if (spendLimitSats != null) {
+        this.spendLimitInput = (Number(spendLimitSats) / 100000000).toFixed(8)
+      }
     }
   }
 }

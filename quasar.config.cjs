@@ -254,7 +254,7 @@ module.exports = defineConfig((ctx) => {
         type: 'http', // https | http
       },
       port: 9000,
-      open: true, // opens browser window automatically
+      open: false, // opens browser window automatically
       client: {
         overlay: {
           errors: false,
@@ -262,14 +262,7 @@ module.exports = defineConfig((ctx) => {
           runtimeErrors: false
         }
       },
-      hot: true,
-      watchFiles: {
-        paths: ['src/**/*'],
-        options: {
-          usePolling: false,
-          aggregateTimeout: 300
-        }
-      }
+      hot: true
     },
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework

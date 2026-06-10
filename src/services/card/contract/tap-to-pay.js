@@ -2,12 +2,15 @@
 
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract } from 'cashscript';
-import { defaultNetwork, TX_FEE } from './constants.js';
+import { defaultNetwork, TX_FEE } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
-import { convertCashAddressToTokenAddress, pubkeyToPkHash } from './utils.js';
-import { decodeCommitment, encodeCommitment, encodeMerchantHash } from './auth-nft.js';
-import artifact from './contract/TapToPay.json';
+import { convertCashAddressToTokenAddress, pubkeyToPkHash } from '../utils.js';
+import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
+import artifact from './TapToPay.json';
 import Watchtower from 'src/lib/watchtower/index.js';
+import { loadWallet } from 'src/services/wallet.js';
+import { pubkeyToAddress } from 'src/utils/crypto';
+import { isTokenAddress } from 'src/utils/address-utils.js';
 
 
 /**
@@ -90,18 +93,67 @@ export class TapToPay {
      * Fetches token UTXOs for the contract address.
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos () {
-        const utxos = await this.getUtxos();
-        return utxos.filter(utxo => utxo.token !== undefined);
+    async getTokenUtxos (tokenId, tokenAddress) {
+        console.log('Getting token UTXOs for tokenId:', tokenId)
+        console.log('At tokenAddress:', tokenAddress)
+        
+        if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
+            console.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
+            return []
+        }
+    
+        let result = []
+        const wallet = await loadWallet()
+        const rawWallet = await wallet.getRawWallet()
+        const response = await rawWallet.watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
+            params: {
+                is_cashtoken_nft: true
+            }}
+        )
+        result = response.data?.utxos
+        console.log('Returning token UTXOs:', result)
+        return result.map(utxo => ({
+            txid: utxo.txid,
+            token: {
+            category: utxo.tokenid,
+            amount: BigInt(utxo.amount),
+            nft: {
+                capability: utxo.capability,
+                commitment: utxo.commitment,
+            }
+            },
+            vout: utxo.vout,
+            satoshis: BigInt(utxo.value)
+        }))
     }
 
     /**
      * Fetches BCH-only UTXOs for the contract address.
      * @returns {Promise<Array>}
      */
-    async getBchUtxos () {
-        const utxos = await this.getUtxos();
-        return utxos.filter(utxo => utxo.token === undefined);
+    async getBchUtxos (amount = null) {
+        const cashAddress = this.getContract().address
+    
+        let result = []
+        const wallet = await loadWallet()
+        const rawWallet = await wallet.getRawWallet()
+        const response = await rawWallet.watchtower.BCH.getBchUtxos(cashAddress, amount)
+        console.log('>>>>>>>BCH UTXOs from Watchtower:', response)
+        result = response.data?.utxos
+        console.log('Returning BCH UTXOs:', result)
+        return result.map(utxo => ({
+            txid: utxo.txid,
+            token: {
+            category: utxo.tokenid,
+            amount: BigInt(utxo.amount),
+            nft: {
+                capability: utxo.capability,
+                commitment: utxo.commitment,
+            }
+            },
+            vout: utxo.vout,
+            satoshis: BigInt(utxo.value)
+        }))
     }
 
     /**
@@ -369,6 +421,115 @@ export class TapToPay {
         sweepResult.bch = bchSweepResult
         return sweepResult
 
+    }
+
+    // /**
+    //  * TODO: For testing
+    //  * Burns a specific authorization NFT held by the contract for a 
+    //  * given merchant and token ID.
+    //  **/
+    // async burn ({ ownerWif, tokenId, merchantId, broadcast = true }) {
+    //     const contract = this.getContract()
+    //     const ownerSig = new SignatureTemplate(ownerWif)
+    //     const ownerPk = binToHex(ownerSig.getPublicKey())
+    //     const ownerPkh = pubkeyToPkHash(ownerPk)
+
+    //     if (ownerPkh !== this.contractCreationParams.ownerPkh) {
+    //         throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
+    //     }
+
+    //     const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
+    //     console.log('--------Token UTXOs:', tokenUtxos)
+    //     const utxoToBurn = tokenUtxos.find(utxo => {
+    //         const commitment = utxo.token.nft.commitment
+    //         const { merchant: utxoMerchant } = decodeCommitment(commitment)
+    //         const matchingTokenId = utxo.token.category === tokenId
+    //         if (!merchantId) return matchingTokenId
+    //         const matchingMerchant = utxoMerchant?.id === merchantId
+    //         return matchingTokenId && matchingMerchant
+    //     })
+
+    //     console.log('--------Token UTXO to burn:', utxoToBurn)
+
+    //     if (!utxoToBurn) {
+    //         throw new Error('No matching token UTXO found to burn for the specified merchant and token ID')
+    //     }
+
+    //     // get funding utxos to cover the burn fee
+    //     const fee = parseInt(TX_FEE)
+    //     console.log('Estimated fee for burn transaction:', fee)
+    //     const wallet = await loadWallet()
+    //     const walletCashAddress = wallet.address()
+    //     console.log('Wallet cash address for funding:', walletCashAddress)
+    //     const { cumulativeValue, utxos: fundingUtxos } = await wallet.getBchUtxos(null, fee)
+    //     console.log('--------Funding UTXOs:', fundingUtxos)
+    //     const changeAmount = cumulativeValue - BigInt(fee)
+    //     console.log('--------Change amount after fee:', changeAmount)
+
+    //     let tx = contract.functions.burn(ownerPk, ownerSig)
+    //         .fromP2PKH(fundingUtxos, ownerSig)
+    //         .from(utxoToBurn)
+    //         .to(walletCashAddress, changeAmount)
+    //         .to(contract.address, 1000n)
+        
+    //     let result
+    //     try {
+    //         // Build the transaction
+    //         console.log('[burn] Building transaction...')
+    //         const txHex = await tx.build()
+            
+    //         if (broadcast) {
+    //             result = await tx.send()
+    //         } else {
+    //             result = { success: true, txHex }
+    //         }
+    //     } catch (error) {
+    //         throw error
+    //     }
+
+    //     return result
+    // }
+
+    async getUtxosFromWatchtower(amount = 0) {
+        console.log('amount---->>>:', amount)
+        const wallet = await loadWallet()
+        const result = await (new Watchtower().BCH.getBchUtxos(`wallet:${wallet.walletHash}`, amount))
+            .catch(error => {
+                console.error('!!!!!!!!!!!!!!!!!!:', error)
+                throw new Error('Failed to fetch UTXOs from Watchtower')
+            })
+        console.log('[getUtxosFromWatchtower] UTXOs from Watchtower:', result)
+        const normalizedUtxos = result.utxos.map(utxo => ({
+                    txid: utxo.tx_hash,
+                    vout: utxo.tx_pos,
+                    satoshis: utxo.value,
+                })) || []
+        return { utxos: normalizedUtxos, cumulativeValue: result.cumulativeValue }
+    }
+
+    async getTransactionFee (tx) {
+        let fee = TX_FEE
+        await tx.build()
+            .catch (error => {
+                console.error('Error building transaction to estimate fee:', error)
+                fee = this.parseSatoshisNeeded(error.message)
+                console.log('Parsed fee from error message:', fee)
+            })
+        return fee
+    }
+
+    parseSatoshisNeeded(message) {
+        const patterns = [
+        /(\d+)\s+satoshis\s+needed/i,
+        /needed\s*\((\d+)\)/i
+        ];
+
+        for (const pattern of patterns) {
+        const match = message.match(pattern);
+        if (match) return Number(match[1]);
+        }
+
+        return null;
     }
 
     /**

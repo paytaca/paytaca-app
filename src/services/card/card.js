@@ -1,6 +1,6 @@
 import AuthNftService, { encodeMerchantHash } from './auth-nft';
 import { defaultSpendLimitSats } from './constants';
-import { TapToPay } from './tap-to-pay';
+import { TapToPay } from './contract/tap-to-pay';
 import { backend } from './backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
@@ -595,6 +595,7 @@ export class Card {
         await this._waitForTransaction();
         console.log('Retrying merchant auth token issuance after creating UTXO...');
         if (retryOnFailure) {
+          console.log('retryOnFailure:', retryOnFailure)
           return this.issueMerchantAuthToken({ authorized, spendLimitSats, merchant }, false);
         }
       }
@@ -618,20 +619,30 @@ export class Card {
     this._assertWallet();
     this._assertAuthNftService();
 
+    console.log('>>>>>>Merchant:', merchant);
+    console.log('>>>>>>authorized:', authorized);
+
     if (!merchant || !merchant.id || !merchant.pubkey) {
       throw new Error('Merchant id and pubkey are required to mint merchant auth token');
     }
 
     // First get BCH UTXOs from mainnetcash wallet
-    const walletUtxos = await this.authNftService.wallet.getUtxos();
-    const bchUtxos = walletUtxos.filter(u => !u.token);
+    console.log('gettingUtxos??????')
+    // const tokenId = this.category
+    // const tokenAddress = this.wallet.tokenAddress()
+    // const tokenUtxos = await this.wallet.getTokenUtxos(tokenId, tokenAddress);
+    // console.log('>>>>>>Wallet token UTXOs:', tokenUtxos);
+    const { utxos, cumulativeValue } = await this.wallet.getBchUtxos();
+    console.log('>>>>>>Wallet BCH UTXOs:', utxos);
 
-    const availableSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis), 0n);
+    // const availableSats = utxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis), 0n);
+    const availableSats = cumulativeValue;
+    console.log('Available BCH UTXOs sats:', availableSats);
     const mintSatsRequired = this.estimateTokenOpSatsRequirement();
 
     // If utxos are enough, use them to mint the auth token
     if (availableSats < mintSatsRequired) {
-      // Otherwise, create a UTXO by sending the required satoshi to the curerent wallet's cashaddress
+      // Otherwise, create a UTXO by sending the required satoshi to the current wallet's cashaddress
       console.warn('Insufficient BCH UTXOs available in wallet for minting. Creating UTXO...');
       await this._createFundingUtxo(mintSatsRequired - availableSats + 10000n); // Adding buffer
       await this._waitForTransaction();
@@ -658,21 +669,22 @@ export class Card {
   async _issueAuthTokens() {
     this._assertAuthNftService();
 
-    const toAddress = this.raw.token_address;
-    console.log('Issuing global auth token to address:', toAddress);
-    const tokenId = this.raw.category;
-    const authNfts = await this.authNftService.getMutableTokens(tokenId);
+    const toAddress = this.tokenAddress;
+    console.log('Issuing auth token to address:', toAddress);
+    const tokenId = this.category;
+    const fromAddress = this.wallet.tokenAddress();
+    const authNfts = await this.authNftService.getMutableTokens(tokenId, fromAddress);
     console.log('Auth NFTs to be issued:', authNfts);
 
     const recipients = []
-    authNfts.forEach(nft => {
+    authNfts.forEach(utxo => {
       recipients.push({
         address: toAddress,
-        tokenId: tokenId,
-        capability: nft.token.capability,
-        commitment: nft.token.commitment,
-        amount: nft.token.amount,
-        value: nft.satoshis
+        tokenId: utxo.token?.category,
+        capability: utxo.token?.nft?.capability,
+        commitment: utxo.token?.nft?.commitment,
+        amount: utxo.token.amount,
+        value: utxo.value
       });
     }); 
     console.log('Issuing to recipients:', recipients);
@@ -736,8 +748,10 @@ export class Card {
    * @returns {Promise<Array>}
    */
   async getTokenUtxos() {
-    this._assertContract();
-    return await this.contract.getTokenUtxos();
+    this._assertWallet();
+    const tokenId = this.category;
+    const tokenAddress = this.tokenAddress
+    return await this.wallet.getTokenUtxos(tokenId, tokenAddress);
   }
 
   /**
@@ -853,6 +867,23 @@ export class Card {
     });
 
     return sweepResponse;
+  }
+
+  async burnMerchantAuthToken(tokenId, merchantId) {
+    this._assertContract();
+    this._assertWallet();
+
+    const privateKey = this.wallet.privkey();
+    const params = {
+      ownerWif: privateKey,
+      tokenId,
+      merchantId,
+      broadcast: true
+    }
+    console.log('Burning auth token with params:', params);
+    const burnResponse = await this.contract.burn(params);
+
+    return burnResponse;
   }
 
   // ==================== UTXO MANAGEMENT ====================

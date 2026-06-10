@@ -267,6 +267,8 @@ import CardSettings from 'src/components/card/CardSettings.vue'
 import L from 'leaflet'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
+import { Card } from 'src/services/card/card'
+import { computed } from 'vue'
 
 export default {
   mixins: [createCardLogic],
@@ -277,8 +279,15 @@ export default {
     CardSettings
   },
 
+  provide () {
+    return {
+      cardUser: computed(() => this.cardUser)
+    }
+  },
+
   data () {
     return {
+      cardUser: null,
       activeCard: null,
       loading: false, // Loading state while fetching card from backend
       activeTab: 'Transactions',
@@ -374,18 +383,15 @@ export default {
       const balance = parseFloat(this.activeCard?.balance) || 0
       // NEW: Use Card class method: const balance = parseFloat(this.activeCard?.getBchBalance ? this.activeCard.getBchBalance() : (this.activeCard?.balance || 0)) || 0
       return balance > 0
-    },
-    
-    activeCard () {
-      let cardId = this.$route.params?.id || this.$route.query?.id || localStorage.getItem('lastActiveCardId')
-      let card = this.$store.getters['card/getCardById'](cardId)
-      return card || null
     }
   },
 
   async mounted () {
     console.log('Mounted card.vue', 'Route path:', this.$route.path, 'Route params.id:', this.$route.params?.id, 'Route query.id:', this.$route.query?.id)
-    
+
+    // Load card user once and provide to child components
+    this.cardUser = await loadCardUser()
+
     // Wait for router to be ready
     await this.$router.isReady()
     
@@ -596,12 +602,20 @@ export default {
       
       try {
         // Using Vuex getter for localStorage access
-        let card = this.$store.getters['card/getCardById'](cardId)
+        let cardData = this.$store.getters['card/getCardById'](cardId)
         
         if (fetchFreshCard) {
           const user = await loadCardUser()
-          card = await user.fetchCardByIdentifier(cardId)
+          const fetchedCard = await user.fetchCardByIdentifier(cardId)
+          cardData = fetchedCard?.raw ? { ...fetchedCard.raw } : fetchedCard
+          if (cardData) {
+            this.$store.commit('card/updateCard', cardData)
+          }
         }
+
+        const card = cardData?.contract_id
+          ? await Card.createInitialized(cardData)
+          : await Card.createWithWallet(cardData)
 
         if (card) {
           console.log('Card:', card)

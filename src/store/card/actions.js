@@ -5,18 +5,32 @@ import { backend as posBackend } from "src/wallet/pos";
 import { Card } from 'src/services/card/card';
 import { getMerchantList } from 'src/services/card/merchants';
 
+function toPlainCard(card) {
+    if (!card) return null;
+    return card?.raw ? { ...card.raw } : { ...card };
+}
+
+async function hydrateCard(cardData) {
+    if (!cardData) return null;
+    if (cardData?.raw) return cardData;
+    return cardData?.contract_id
+        ? await Card.createInitialized(cardData)
+        : await Card.createWithWallet(cardData);
+}
+
 export async function fetchCard(context, cardId) {
     try {
         const cardUser = await loadCardUser();
         let card = await cardUser.fetchCardByIdentifier(cardId);
+        const plainCard = toPlainCard(card);
 
         let storedCard = context.state.cards.find(c => c.id === cardId);
         if (!storedCard) {
-            context.commit('addCard', card);
+            context.commit('addCard', plainCard);
         } else {
-            context.commit('updateCard', card);
+            context.commit('updateCard', plainCard);
         }
-        return card;
+        return plainCard;
     } catch (error) {
         console.error('Error in fetchCard action:', error);
         throw error;
@@ -31,8 +45,9 @@ export async function fetchCards (context, { page = 1, page_size = 10, filters =
             console.error('fetchCards returned non-array:', cards);
             throw new Error('fetchCards did not return an array');
         }
-        context.commit('setCards', cards);
-        return cards;
+        const plainCards = cards.map(toPlainCard);
+        context.commit('setCards', plainCards);
+        return plainCards;
     } catch (error) {
         console.error('Error in fetchCards action:', error);
         throw error;
@@ -41,16 +56,19 @@ export async function fetchCards (context, { page = 1, page_size = 10, filters =
 
 export async function fetchCardTransactions (context, { cardId, page = 1, page_size = 10 } = {}) {
     try {
-        let card = context.state.cards.find(c => c.id === cardId);
-        if (!card) {
+        let cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
             const cardUser = await loadCardUser();
-            card = await cardUser.fetchCardByIdentifier(cardId);
-            if (card) {
-                context.commit('addCard', card);
+            const fetchedCard = await cardUser.fetchCardByIdentifier(cardId);
+            if (fetchedCard) {
+                const plainCard = toPlainCard(fetchedCard);
+                context.commit('addCard', plainCard);
+                cardData = plainCard;
             } else {
                 throw new Error(`Card with ID ${cardId} not found`);
             }
         }
+        const card = await hydrateCard(cardData);
         let transactions = await card.getTransactions({ page, page_size });
         if (!Array.isArray(transactions)) {
             console.error('fetchCardTransactions returned non-array:', transactions);
@@ -87,11 +105,19 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
 
 export async function fetchCardBalance (context, cardId) {
     try {
-        let card = context.state.cards.find(c => c.id === cardId);
-        if (!card) {
+        let cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
             const cardUser = await loadCardUser();
-            card = await cardUser.fetchCardByIdentifier(cardId);
+            const fetchedCard = await cardUser.fetchCardByIdentifier(cardId);
+            cardData = toPlainCard(fetchedCard);
+            if (cardData) {
+                context.commit('addCard', cardData);
+            }
         }
+        if (!cardData) {
+            throw new Error(`Card with ID ${cardId} not found`);
+        }
+        const card = await hydrateCard(cardData);
         const balanceSats = await card.getBchBalance();
         const balance = satoshiToBch(balanceSats);
         context.commit('updateCardBalance', { cardId, balance });
@@ -104,16 +130,15 @@ export async function fetchCardBalance (context, cardId) {
 
 export async function updateCardLockStatus(context, { cardId, isLocked }) {
     try {
-        const card = context.state.cards.find(c => c.id === cardId);
-        if (!card) {
+        const cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
             throw new Error(`Card with ID ${cardId} not found`);
         }
+        const card = await hydrateCard(cardData);
         let updatedCard = await card.update({ is_locked: isLocked });
-        updatedCard = updatedCard?.contract_id
-                        ? await Card.createInitialized(updatedCard)
-                        : await Card.createWithWallet(updatedCard)
-        context.commit('updateCard', updatedCard);
-        return updatedCard;
+        const plainCard = toPlainCard(updatedCard);
+        context.commit('updateCard', plainCard);
+        return plainCard;
     } catch (error) {
         console.error('Error in updateCardLockStatus action:', error);
         throw error;
@@ -122,16 +147,15 @@ export async function updateCardLockStatus(context, { cardId, isLocked }) {
 
 export async function updateCardAlertsStatus(context, { cardId, isAlertsEnabled }) {
     try {
-        const card = context.state.cards.find(c => c.id === cardId);
-        if (!card) {
+        const cardData = context.state.cards.find(c => c.id === cardId);
+        if (!cardData) {
             throw new Error(`Card with ID ${cardId} not found`);
         }
+        const card = await hydrateCard(cardData);
         let updatedCard = await card.update({ is_alerts_enabled: isAlertsEnabled });
-        updatedCard = updatedCard?.contract_id
-                        ? await Card.createInitialized(updatedCard)
-                        : await Card.createWithWallet(updatedCard)
-        context.commit('updateCard', updatedCard);
-        return updatedCard;
+        const plainCard = toPlainCard(updatedCard);
+        context.commit('updateCard', plainCard);
+        return plainCard;
     } catch (error) {
         console.error('Error in updateCardAlertsStatus action:', error);
         throw error;

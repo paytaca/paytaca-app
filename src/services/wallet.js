@@ -5,6 +5,8 @@ import { loadLibauthHdWallet, loadWallet as loadBchWallet } from 'src/wallet'
 import { Store } from 'src/store'
 import { markRaw } from 'vue'
 import { minTokenValue } from './card/constants'
+import { toTokenAddress } from 'src/utils/crypto.js'
+import { isTokenAddress } from 'src/utils/address-utils.js'
 
 const DEFAULT_CHANGE_INDEX = 0
 const DEFAULT_ADDRESS_INDEX = 0
@@ -97,6 +99,16 @@ export class Wallet {
   }
 
   /**
+   * Get the token address.
+   * @param {string} [addressPath=''] - The address path.
+   * @returns {string} The token address.
+   */
+  tokenAddress (addressPath = '') {
+    const cashaddress = this.address(addressPath)
+    return toTokenAddress(cashaddress)
+  }
+
+  /**
    * Get the public key.
    * @param {string} [addressPath=''] - The address path.
    * @returns {string} The public key.
@@ -152,20 +164,55 @@ export class Wallet {
     return isValid
   }
 
-  async getBchUtxos (address = null) {
+  async getBchUtxos (address = null, amount = null) {
+    console.log(`Fetching BCH UTXOs for address: ${address}, with amount: ${amount}`)
+    let result = { cumulativeValue: 0, utxos: [] }
     const wallet = await this.getRawWallet()
     if (address) {
-      return await wallet.watchtower.BCH.getBchUtxos(address)
+      result = await wallet.watchtower.BCH.getBchUtxos(address, amount)
     }
-    return await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`)
+    result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, amount)
+    return {
+      cumulativeValue: result.cumulativeValue,
+      utxos: result.utxos.map(utxo => ({
+        txid: utxo.tx_hash,
+        vout: utxo.tx_pos,
+        satoshis: utxo.value,
+      }))
+    }
   }
 
-  async getTokenUtxos (token, address = null) {
+  async getTokenUtxos (tokenId, tokenAddress = null) {
     const wallet = await this.getRawWallet()
-    if (address) {
-      return await wallet.watchtower.BCH.getCashtokensUtxos(address, token)
+    if (!tokenAddress) tokenAddress = this.address()
+    
+    console.log('Getting token UTXOs for tokenId:', tokenId, 'at tokenAddress:', tokenAddress)
+    if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
+      console.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
+      return []
     }
-    return await wallet.watchtower.BCH.getCashtokensUtxos(`wallet:${this.walletHash}`, token)
+
+    let result = []
+    const response = await wallet.watchtower.BCH._api.get(`utxo/ct/${tokenAddress}/${tokenId}/`, {
+      params: {
+        is_cashtoken_nft: true
+      }}
+    )
+    result = response.data?.utxos
+    console.log('Returning token UTXOs:', result)
+    return result.map(utxo => ({
+      txid: utxo.txid,
+      token: {
+        category: utxo.tokenid,
+        amount: BigInt(utxo.amount),
+        nft: {
+          capability: utxo.capability,
+          commitment: utxo.commitment,
+        }
+      },
+      vout: utxo.vout,
+      value: BigInt(utxo.value)
+    }))
   }
 
   /**

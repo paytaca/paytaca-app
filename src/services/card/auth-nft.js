@@ -2,6 +2,11 @@
 import { createHash } from 'crypto';
 import { NFTCapability, TokenMintRequest, TokenSendRequest, Wallet } from 'mainnet-js';
 import { defaultSpendLimitSats, minTokenValue } from './constants';
+import { loadWallet } from 'src/services/wallet.js';
+import Watchtower from 'watchtower-cash-js'
+
+const watchtower = new Watchtower()
+const MINT_VALUE = 1000n;
 
 /**
  * Service wrapper for issuing and managing authorization NFTs using mainnet-js.
@@ -18,7 +23,8 @@ class AuthNftService {
      */
     static async initializeWithWallet(wif) {
         const service = new AuthNftService(wif);
-        service.wallet = await Wallet.fromWIF(wif);
+        service.ctWallet = await Wallet.fromWIF(wif);
+        service.wallet = await loadWallet();
         return service;
     }
 
@@ -38,9 +44,9 @@ class AuthNftService {
      * @param {string} tokenId
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos(tokenId) {
-        this._assertWallet();
-        const utxos = await this.wallet.getTokenUtxos(tokenId);
+    async getTokenUtxos(tokenId, tokenAddress) {
+        if (!tokenAddress) tokenAddress = this.wallet.tokenAddress();
+        const utxos = await this.wallet.getTokenUtxos(tokenId, tokenAddress);
         return utxos;
     }
 
@@ -49,10 +55,10 @@ class AuthNftService {
      * @param {string} tokenId
      * @returns {Promise<Array>}
      */
-    async getMutableTokens(tokenId) {
-        this._assertWallet();
-        const utxos = await this.wallet.getTokenUtxos(tokenId);
-        return utxos.filter(utxo => utxo.token.capability === 'mutable')
+    async getMutableTokens(tokenId, tokenAddress) {
+        const utxos = await this.getTokenUtxos(tokenId, tokenAddress);
+        console.log('Fetched Auth Tokens:', utxos);
+        return utxos.filter(utxo => utxo.token?.nft?.capability === 'mutable')
     }
 
     /**
@@ -61,7 +67,7 @@ class AuthNftService {
      */
     async getBalance() {
         this._assertWallet();
-        const balance = await this.wallet.getBalance();
+        const balance = await this.ctWallet.getBalance();
         return balance;
     }
 
@@ -73,11 +79,11 @@ class AuthNftService {
         this._assertWallet();
 
         // Create a genesis token
-        const response = await this.wallet.tokenGenesis({
+        const response = await this.ctWallet.tokenGenesis({
             amount: 0n,
             commitment: '',
             capability: NFTCapability.minting,
-            value: minTokenValue,
+            value: MINT_VALUE,
         });
 
         return response;
@@ -92,6 +98,7 @@ class AuthNftService {
      * @returns {Promise<Object>}
      */
     async mint({ tokenId, merchants, options }) {
+        console.log('minting auth NFTs for merchants:', merchants)
         this._assertWallet();
 
         const tokenMintRequests = [];
@@ -111,19 +118,22 @@ class AuthNftService {
 
             const commitment = encodeCommitment(commitmentData)
             tokenMintRequests.push(new TokenMintRequest({
-                cashaddr: this.wallet.cashaddr,
+                cashaddr: this.ctWallet.cashaddr,
                 capability: NFTCapability.mutable,
                 commitment: commitment,
-                value: minTokenValue
+                value: MINT_VALUE
             }));
         }
-        const response = await this.wallet.tokenMint(
+
+        console.log('Token mint requests:', tokenMintRequests);
+        console.log('Minting with wallet:', this.ctWallet);
+        const response = await this.ctWallet.tokenMint(
             tokenId,
             tokenMintRequests,
             false,
             options
         );
-        console.log(response);
+        console.log('Token mint response:', response);
         return response;
     }
 
@@ -150,7 +160,7 @@ class AuthNftService {
 
             sendRequests.push(new TokenSendRequest(data));
         }
-        const result = await this.wallet.send(sendRequests);
+        const result = await this.ctWallet.send(sendRequests);
         console.log(result);
         return result;
     }
@@ -176,7 +186,7 @@ class AuthNftService {
                 }
             })
             return {
-                address: this.wallet.cashaddr,
+                address: this.ctWallet.cashaddr,
                 tokenId: tokenId,
                 capability: NFTCapability.mutable,
                 commitment: newCommitment
@@ -228,7 +238,7 @@ class AuthNftService {
         const burnResponses = [];
         for(let i = 0; i < utxosToBurn.length; i++) {
             const element = utxosToBurn[i]
-            const burnResponse = await this.wallet.tokenBurn({
+            const burnResponse = await this.ctWallet.tokenBurn({
                 tokenId: tokenId, 
                 amount: element.amount,
                 capability: element.token.capability,
