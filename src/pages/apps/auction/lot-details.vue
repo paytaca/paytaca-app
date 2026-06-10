@@ -12,13 +12,18 @@
         <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
           Lot {{ lot.id }}: <span class="text-weight-regular">{{ lot.title }}</span>
         </div>
-        <div class="text-h6 text-weight-bold text-positive">
-          Highest Bid: ₱950 
-          <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-            ({{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-              {{ lot.getFormattedBCH(lot.threshold_bid).zeros }}
-            </span> BCH)
-          </span>
+
+        <div class="row items-center q-gutter-sm q-mb-sm">
+          <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
+            <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="12px" class="q-mr-xs" />
+            {{ lot.category }}
+          </q-badge>
+          <q-badge
+            :color="lot.getStatus().color"
+            class="q-pa-sm q-px-sm text-weight-bold"
+          >
+            {{ lot.getStatus().label }}
+          </q-badge>
         </div>
       </div>
 
@@ -87,45 +92,84 @@
           </div>
         </div>
 
-        <div class="col-12 col-sm col-md-7 q-mt-md q-mt-sm-none">
-          <div class="text-subtitle1 text-bold q-mb-md text-uppercase tracking-wide">
-            Lot Details
+        <div class="col-12 col-sm col-md-7">
+          <div class="row q-gutter-sm q-mb-md">
+            <div class="col rounded-borders q-pa-sm bg-green">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
+              </div>
+              <div class="text-weight-medium">₱950</div>
+              <div class="text-caption text-weight-medium">
+                {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+              </div>
+            </div>
+            <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
+              </div>
+              <div class="text-weight-medium">₱950</div>
+              <div class="text-caption text-weight-medium">
+                {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: 0.45 }">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+              </div>
+            </div>
           </div>
 
-          <div class="q-mb-sm"><strong>Auction Title:</strong> {{ auction.title }}</div>
-          <div class="q-mb-sm"><strong>Auctioneer By:</strong> {{ auction.auctioneer || 'N/A' }}</div>
-          <div class="q-mb-md"><strong>Posted On:</strong> {{ auction.datePosted || 'N/A' }}</div>
+          <q-card flat bordered class="q-mb-md">
+            <q-card-section class="q-pa-sm">
+              <div class="row items-center q-py-xs">
+                <div class="text-caption col-4 q-mr-sm">
+                  <q-icon name="gavel" size="13px" class="q-mr-xs" />Auction
+                </div>
+                <span>{{ auction?.title || 'N/A' }}</span>
+              </div>
+              <q-separator spaced="xs" />
+              <div class="row items-center q-py-xs">
+                <div class="text-caption col-4 q-mr-sm">
+                  <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
+                </div>
+                <div class="col row items-center q-gutter-xs">
+                  <span style="word-break: break-word; overflow-wrap: anywhere; min-width: 0;">
+                    {{ auction?.user_id || 'N/A' }}
+                  </span>
+                  <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-mr-sm">
+                    <q-icon name="star" size="10px" class="q-mr-xs" />You
+                  </q-badge>
+                </div>
+              </div>
+              <q-separator spaced="xs" />
+              <div class="row items-center q-py-xs">
+                <div class="text-caption col-4 q-mr-sm">
+                  <q-icon name="event" size="13px" class="q-mr-xs" />Posted on
+                </div>
+                <span>{{ auction?.date_posted || 'N/A' }}</span>
+              </div>
+            </q-card-section>
+          </q-card>
 
-          <div class="row items-center q-mb-md">
-            <span class="text-weight-medium q-mr-sm">Bidding Status:</span>
-            <q-btn 
-              class="text-white text-bold text-caption" 
-              :style="{ backgroundColor: lotStatus.color }"
-              :label="lotStatus.label"
-              unelevated
-              dense
-              style="width: fit-content; padding: 2px 12px; border-radius: 4px;"
-            />
-          </div>
-          
-          <div class="q-mb-sm"><strong>Item Type:</strong> {{ lot.category }} Asset</div>
-          <div class="q-mb-md">
-            <strong>Estimated Price:</strong> ₱950
-            <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-              ({{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                {{ lot.getFormattedBCH(lot.estimated_amount).zeros }}
-              </span> BCH)
-            </span>
-          </div>
-          
-          <div class="q-mb-sm"><strong>Auction Start:</strong> {{ formatAuctionDate(auction.start_date) }}</div>
-          <div class="q-mb-lg"><strong>Auction End:</strong> {{ formatAuctionDate(auction.end_date) }}</div>
-          
           <div class="column q-mt-xs">
             <div class="text-bold q-mb-xs">Description:</div>
             <p class="text-body2 text-left" style="white-space: pre-wrap; line-height: 1.5;">
               {{ lot.description || 'No additional specifications provided.' }}
             </p>
+          </div>
+          
+          <div class="row q-gutter-sm">
+            <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="event_available" size="12px" class="q-mr-xs" />Start date
+              </div>
+              <div class="text-body2 text-weight-medium">
+                {{ formatAuctionDate(auction?.start_date) }}
+              </div>
+            </div>
+            <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="event_busy" size="12px" class="q-mr-xs" />End date
+              </div>
+              <div class="text-body2 text-weight-medium">
+                {{ formatAuctionDate(auction?.end_date) }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -149,6 +193,7 @@ import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounte
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
+import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object'
 
 // Components
@@ -233,6 +278,11 @@ const lotImages = computed(() => {
 const lotStatus = computed(() => {
   if (!lot.value) return { label: 'Loading...', color: 'grey' }
   return lot.value.getStatus()
+})
+
+const isAuthor = computed(() => {
+  const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+  return walletHash === auction?.value.user_id
 })
 
 const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
