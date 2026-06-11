@@ -153,8 +153,8 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const auctionTitle = ref('')
 const auctionType = ref('English Auction')
 const auctionTypeOptions = [
-  'English Auction',
-  'Dutch Auction'
+  'English',
+  'Dutch'
 ]
 const startDate = ref('')
 const endDate = ref('');
