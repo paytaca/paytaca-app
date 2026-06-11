@@ -43,9 +43,7 @@
                   <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                 </div>
                 <div class="col row items-center q-gutter-xs">
-                  <span style="word-break: break-word; overflow-wrap: anywhere; min-width: 0;">
-                    {{ auction.getEllipsisInMiddleUserId() }}
-                  </span>
+                  <span>{{ auction.getEllipsisInMiddleUserId() }}</span>
                   <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-ml-sm">
                     <q-icon name="star" size="10px" class="q-mr-xs" />You
                   </q-badge>
