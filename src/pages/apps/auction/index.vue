@@ -64,45 +64,63 @@
             :class="getDarkModeClass(darkMode)"
             @click="$router.push({ name: 'app-auction-details', params: { auctionId: auction.id }})"
           >
-            <q-img 
-              :src="auction.image || noImage"
-              ratio="1.75"
-            >
-              <template v-slot:loading>
-                <q-skeleton height="100%" width="100%" square />
-              </template>
-            </q-img>
+            <div class="relative-position">
+              <q-img 
+                :src="noImage"
+                ratio="1.25"
+              ><!-- :src="auction.image || noImage" -->
+                <template v-slot:loading>
+                  <q-skeleton height="100%" width="100%" square />
+                </template>
+              </q-img>
+
+              <q-chip
+                dense
+                :color="getAuctionStatusInfo(auction).color"
+                text-color="white"
+                class="absolute text-caption text-weight-bold"
+                style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
+              >
+                {{ getAuctionStatusInfo(auction).label }}
+              </q-chip>
+            </div>
+            
 
             <q-card-section class="q-py-sm">
-              <div class="q-my-sm bg-primary text-white row items-center q-gutter-x-xs q-pa-sm rounded-borders" style="display: inline-flex;">
-                <q-icon name="gavel" size="xs" />
-                <q-badge
-                  :label="`${auction.type}`"
-                  class="text-bold"
-                  flat
-                  color="transparent"
-                />
-              </div>
-
-              <div>
-                <q-chip
-                  dense
-                  :color="getAuctionStatusInfo(auction).color"
-                  text-color="white"
-                  class="text-bold q-px-sm"
-                >
-                  {{ getAuctionStatusInfo(auction).label }}
-                </q-chip>
-              </div>
+              <q-chip
+                dense
+                text-color="white"
+                class="text-caption text-weight-bold bg-primary"
+                style="margin: 0; padding: 3px 8px; height: auto;"
+              >
+                <q-icon name="gavel" size="xs" class="q-mr-xs" />
+                {{ auction.type }}
+              </q-chip>
 
               <div class="text-subtitle1 text-weight-medium ellipsis-3-lines q-mb-xs">{{ auction.title }}</div>
+              
+              <q-separator spaced="sm" />
 
-              <div class="text-caption">
-                <span class="text-weight-medium">Start Date:</span> {{ formatAuctionDate(auction.start_date) }}
-              </div>
-
-              <div class="text-caption">
-                <span class="text-weight-medium">End Date:</span> {{ formatAuctionDate(auction.end_date) }}
+              <div class="column q-gutter-y-xs">
+                <div
+                  v-if="getAuctionStatusInfo(auction).label !== 'Closed'"
+                  class="row items-center q-gutter-x-xs text-caption text-weight-bold"
+                >
+                  <q-icon
+                    :name="getAuctionStatusInfo(auction).label === 'Open' ? 'event_busy' : 'event_available'"
+                    style="font-size: 11px;"
+                  />
+                  <strong class="text-bow">
+                    {{ getAuctionStatusInfo(auction).label === 'Open' ? 'Ends' : 'Starts' }}
+                  </strong>
+                  <div>
+                    {{
+                      getAuctionStatusInfo(auction).label === 'Open'
+                        ? formatAuctionDate(auction.end_date)
+                        : formatAuctionDate(auction.start_date)
+                    }}
+                  </div>
+                </div>
               </div>
             </q-card-section>
           </q-card>
