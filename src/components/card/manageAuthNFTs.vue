@@ -336,6 +336,7 @@
               :key="nft.id"
               :name="nft.id"
               :label="`NFT ${nft.id}`"
+              @click="() => { selectedNFT = nft }"
             />
             <q-tab v-if="selectedMerchant.auth_nfts.length === 0" name="no-nft" label="No NFTs" :disable="true" />
           </q-tabs>
@@ -359,11 +360,11 @@
               />
               <div v-if="selectedAuthNFT" class="q-mt-md q-gutter-y-xs text-caption" :class="textColorGrey">
                 <div><span class="text-weight-medium">NFT ID:</span> {{ selectedAuthNFT.id }}</div>
-                <div><span class="text-weight-medium">Category:</span> {{ selectedAuthNFT.token_data?.category || 'N/A' }}</div>
-                <div><span class="text-weight-medium">Commitment:</span> {{ selectedAuthNFT.token_data?.commitment || 'N/A' }}</div>
-                <div><span class="text-weight-medium">Amount:</span> {{ selectedAuthNFT.token_data?.amount || '0' }}</div>
-                <div><span class="text-weight-medium">Global Auth:</span> {{ selectedAuthNFT.token_data?.is_global_auth ? 'Yes' : 'No' }}</div>
-                <div><span class="text-weight-medium">Spend Limit:</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token_data?.spend_limit_sats) }} BCH</div>
+                <div><span class="text-weight-medium">Category:</span> {{ selectedAuthNFT.token?.category || 'N/A' }}</div>
+                <div><span class="text-weight-medium">Commitment:</span> {{ selectedAuthNFT.token?.commitment || 'N/A' }}</div>
+                <div><span class="text-weight-medium">Amount:</span> {{ selectedAuthNFT.token?.amount || '0' }}</div>
+                <div><span class="text-weight-medium">Global Auth:</span> {{ selectedAuthNFT.token?.is_global_auth ? 'Yes' : 'No' }}</div>
+                <div><span class="text-weight-medium">Spend Limit:</span> {{ formatSpendLimitFromSats(selectedAuthNFT.token?.spend_limit_sats) }} BCH</div>
               </div>
               
             </q-tab-panel>
@@ -460,16 +461,11 @@
 
 <script>
 import { createCardLogic, CardStorage } from './createCard.js'
-import { getMerchantList, getMerchantsByCity } from 'src/services/card/merchants'
+import { getMerchantsByCity } from 'src/services/card/merchants'
 import { geolocationManager } from 'src/boot/geolocation'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue';
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils.js';
-import { markRaw } from 'vue';
-import { init } from 'src/store/wizardconnect/actions.js';
-import { backend } from 'src/exchange/backend.js';
-import { backend as cardBackend } from 'src/services/card/backend.js';
-import { loadWallet } from 'src/services/wallet.js';
 import { bchToSatoshi } from 'src/exchange/index.js';
 
 
@@ -575,16 +571,16 @@ export default {
       get() {
         const nft = this.selectedAuthNFT
         if (!nft) return false
-        if (nft.token_data && typeof nft.token_data.authorized === 'boolean') {
-          return nft.token_data.authorized
+        if (nft.token && typeof nft.token.authorized === 'boolean') {
+          return nft.token.authorized
         }
         return !!nft.authorized
       },
       set(value) {
         const nft = this.selectedAuthNFT
         if (!nft) return
-        if (nft.token_data) {
-          nft.token_data.authorized = value
+        if (nft.token) {
+          nft.token.authorized = value
           return
         }
         nft.authorized = value
@@ -1086,16 +1082,6 @@ export default {
           this.selectedAuthNFT.token_data.spend_limit_sats = Math.round(spendLimit * 100000000)
         }
         
-        // if (this.card && this.card.id) {
-        //   const card = CardStorage.getCardById(this.card.id);
-        //   if (card) {
-        //     if (!card.merchantSpendLimits) {
-        //       card.merchantSpendLimits = {};
-        //     }
-        //     card.merchantSpendLimits[this.selectedMerchant.id] = this.selectedMerchant.spendLimit;
-        //     CardStorage.updateCard(this.card.id, { merchantSpendLimits: card.merchantSpendLimits });
-        //   }
-        // }
         const mutation = {
           authorize: this.selectedNFTAuthorized,
           spendLimitSats: bchToSatoshi(this.spendLimitInput),
@@ -1103,9 +1089,18 @@ export default {
             id: this.selectedMerchant.ref_id,
             pubkey: this.selectedMerchant.public_key,
           },
-          broadcast: false
+          broadcast: true
         }
-        console.log('mutation:', mutation)
+        
+        this.$q.loading.show({
+          message: `Updating auth NFT for ${this.selectedMerchant.name}...`,
+          spinner: 'dots',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: 'white',
+          customClass: 'manage-auth-loading',
+          delay: 300
+        });
+
         await this.card.mutateMerchantAuthToken(mutation).then(() => {
           console.log('Mutation successful for merchant:', this.selectedMerchant.name)
           this.$q.notify({
@@ -1122,7 +1117,9 @@ export default {
             icon: 'error',
             timeout: 4000,
           })
-        })
+        }).finally(() => {
+          this.$q.loading.hide();
+        });
       }
 
       this.closeSpendLimitDialog();
@@ -1705,7 +1702,7 @@ export default {
     },
     'selectedNFT.id'(val) {
       const nft = this.selectedMerchant?.auth_nfts?.find(item => item.id === val)
-      const spendLimitSats = nft?.token_data?.spend_limit_sats
+      const spendLimitSats = nft?.token?.spend_limit_sats
       if (spendLimitSats != null) {
         this.spendLimitInput = (Number(spendLimitSats) / 100000000).toFixed(8)
       }

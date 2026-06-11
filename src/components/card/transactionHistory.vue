@@ -60,29 +60,46 @@
       -->
       <div v-if="isLoaded && filteredTransactions.length > 0">
         <q-list separator :dark="$q.dark.isActive">
-          <q-item v-for="transaction in filteredTransactions" :key="transaction.id" class="q-px-none">
+          <q-item v-for="tx in filteredTransactions" :key="tx.id" class="q-px-none">
             <!-- SKELETON LOADER for transaction icon: <q-item-section avatar><q-skeleton type="QAvatar" size="24px" /></q-item-section> -->
             <q-item-section avatar>
-                <q-icon v-if="transaction.type === 'OUTGOING'" name="north_east" color="negative" size="xs" />
-                <q-icon v-if="transaction.type === 'INCOMING'" name="south_west" color="positive" size="xs" />
+                <q-icon v-if="tx.type === 'OUTGOING'" name="north_east" color="negative" size="xs" />
+                <q-icon v-if="tx.type === 'INCOMING'" name="south_west" color="positive" size="xs" />
             </q-item-section>
             <q-item-section>
               <div 
                 class="text-weight-bold"
                 :class="textColor">
                 <!-- SKELETON LOADER for merchant name: <q-skeleton v-if="loading" type="text" width="150px" /> -->
-                <span v-if="transaction.type === 'OUTGOING'">{{ transaction.merchant?.name }}</span>
-                <span v-if="transaction.type === 'INCOMING'">{{ transaction.is_nft ? 'NFT' : 'Cash In' }}</span>
+                <span v-if="tx.type === 'OUTGOING'">{{ tx.merchant?.name }}</span>
+                <div v-if="tx.type === 'INCOMING'">
+                  
+                  <div v-if="tx.is_token">
+                    <div v-if="tx.merchant">
+                      <span>{{ tx.merchant?.name }} Auth NFT</span>
+                    </div>
+                    <div v-else-if="tx.token?.is_global_auth">
+                       <span>Global NFT</span>
+                    </div>
+                  </div>
+                  <div v-else>
+                    <span>Cash In</span>                     
+                  </div>
+                </div>
               </div>
                <!-- SKELETON LOADER for date: <q-skeleton v-if="loading" type="text" width="80px" height="12px" /> -->
-               <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ transaction.created_at }}</div>
+               <div class="text-caption text-weight-bold" :class="$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'">{{ tx.created_at }}</div>
             </q-item-section>
             <q-item-section side>
               <!-- SKELETON LOADER for amount: <q-skeleton v-if="loading" type="text" width="70px" /> -->
-              <div v-if="!transaction.is_nft" class="text-weight-bold" :class="transaction.type === 'OUTGOING' ? 'text-negative' : 'text-positive'">
-                <span v-if="transaction.type === 'OUTGOING'">-</span>
-                <span v-if="transaction.type === 'INCOMING'">+</span>
-                <span>{{ transaction.amount }} BCH</span>
+              
+              <div v-if="tx.is_token" class="q-mx-md text-positive">
+                <span v-if="tx.token_action">{{ tx.token_action }}</span>
+              </div>
+              <div v-else class="text-weight-bold" :class="tx.type === 'OUTGOING' ? 'text-negative' : 'text-positive'">
+                <span v-if="tx.type === 'OUTGOING'">-</span>
+                <span v-if="tx.type === 'INCOMING'">+</span>
+                <span>{{ tx.amount }} BCH</span>
               </div>
             </q-item-section>
           </q-item>

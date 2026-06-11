@@ -853,9 +853,11 @@ export class Card {
 
   /**
    * Sweeps the card's BCH balance to an external address
+   * @param {Object} options - Sweep options
+   * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
    * @returns {Promise<Object>}
    */
-  async sweep() {
+  async sweep(opts = { broadcast: true }) {
     this._assertContract();
     this._assertWallet();
 
@@ -863,7 +865,7 @@ export class Card {
     const sweepResponse = await this.contract.sweep({
       ownerWif: privateKey,
       toAddress: this.wallet.address(),
-      broadcast: true
+      broadcast: opts.broadcast
     });
 
     return sweepResponse;

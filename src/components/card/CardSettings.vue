@@ -378,9 +378,10 @@ export default {
     }
   },
   computed: {
-    hasCardBalance() {
-      const balance = parseFloat(this.activeCard?.balance) || 0
-      return balance > 0
+    async hasCardBalance() {
+      let balance = 0
+      balance = await this.activeCard?.getBchBalance()
+      return parseFloat(balance) > 0
     },
     replacementReasons () {
       return [
@@ -447,11 +448,19 @@ export default {
         });
       }
     },
-    handleSweepFunds () {
+    async handleSweepFunds () {
+      console.log('Initiating sweep funds process...')
       if (!this.activeCard) return
 
-      const balance = parseFloat(this.activeCard?.balance) || 0
+      this.$q.loading.show({
+        message: 'Sweeping funds, please wait...',
+        spinner: 'dots',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        delay: 200
+      })
 
+      const balance = parseFloat(await this.activeCard?.getBchBalance()) || 0
+      
       if (balance <= 0) {
         this.$q.notify({
           message: 'No funds to sweep',
@@ -463,18 +472,25 @@ export default {
         return
       }
 
-      CardStorage.setCardProperty(this.activeCard.id, 'balance', '0')
-      if (this.activeCard) {
-        this.activeCard.balance = '0'
-      }
-
-      this.$q.notify({
-        message: `Successfully swept ${balance} BCH to your wallet`,
-        color: 'positive',
-        icon: 'check_circle',
-        position: 'top'
+      await this.activeCard.sweep({ broadcast: true }).then(result => {
+        console.log('Sweep successful:', result)
+        this.$q.notify({
+          message: `Successfully swept ${balance} BCH to your wallet`,
+          color: 'positive',
+          icon: 'check_circle',
+          position: 'top'
+        })
+      }).catch((error) => {
+        console.error('Error sweeping funds:', error)
+        this.$q.notify({
+          message: 'Failed to sweep funds. Please try again.',
+          color: 'negative',
+          position: 'top',
+          timeout: 2000
+        })
       })
 
+      this.$q.loading.hide()
       this.showSweepFundsDialog = false
     },
     handleDeleteCard () {

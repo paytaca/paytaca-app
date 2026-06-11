@@ -12,17 +12,16 @@ import { loadWallet } from 'src/services/wallet.js';
 import { pubkeyToAddress } from 'src/utils/crypto';
 import { isTokenAddress } from 'src/utils/address-utils.js';
 
-
 /**
  * Reverses a hex string by byte (2-char) pairs.
  *
  * Used to flip the on-chain token category endianness when matching
  * authorization NFT UTXOs in `mutate()`.
  *
- * @param {string} [hex=''] - Hex string to reverse.
+ * @param {string} hex - Hex string to reverse.
  * @returns {string} Reversed hex string; returns input when empty or invalid.
  */
-function reverseHex(hex = '') {
+function reverseHex(hex) {
   if (!hex) return hex;
   const pairs = hex.match(/.{1,2}/g);
   return pairs ? pairs.reverse().join('') : hex;
@@ -91,6 +90,8 @@ export class TapToPay {
 
     /**
      * Fetches token UTXOs for the contract address.
+     * @param {string} tokenId - Token category ID to filter UTXOs.
+     * @param {string} tokenAddress - Token address to query for UTXOs.
      * @returns {Promise<Array>}
      */
     async getTokenUtxos (tokenId, tokenAddress) {
@@ -112,48 +113,60 @@ export class TapToPay {
         )
         result = response.data?.utxos
         console.log('Returning token UTXOs:', result)
-        return result.map(utxo => ({
+        return result?.map(utxo => ({
             txid: utxo.txid,
             token: {
-            category: utxo.tokenid,
-            amount: BigInt(utxo.amount),
-            nft: {
-                capability: utxo.capability,
-                commitment: utxo.commitment,
-            }
+                category: utxo.tokenid,
+                amount: BigInt(utxo.amount),
+                nft: {
+                    capability: utxo.capability,
+                    commitment: utxo.commitment,
+                }
             },
             vout: utxo.vout,
             satoshis: BigInt(utxo.value)
-        }))
+        })) || []
     }
 
     /**
      * Fetches BCH-only UTXOs for the contract address.
+     * @param {number} [amount=0] - Optional minimum cumulative amount of BCH UTXOs to fetch.
      * @returns {Promise<Array>}
      */
-    async getBchUtxos (amount = null) {
+    async getBchUtxos (amount = 0) {
         const cashAddress = this.getContract().address
-    
-        let result = []
+        console.log('getBchUtxos for cashAddress:', cashAddress)
         const wallet = await loadWallet()
         const rawWallet = await wallet.getRawWallet()
-        const response = await rawWallet.watchtower.BCH.getBchUtxos(cashAddress, amount)
-        console.log('>>>>>>>BCH UTXOs from Watchtower:', response)
-        result = response.data?.utxos
-        console.log('Returning BCH UTXOs:', result)
-        return result.map(utxo => ({
-            txid: utxo.txid,
-            token: {
-            category: utxo.tokenid,
-            amount: BigInt(utxo.amount),
-            nft: {
-                capability: utxo.capability,
-                commitment: utxo.commitment,
-            }
-            },
-            vout: utxo.vout,
-            satoshis: BigInt(utxo.value)
-        }))
+        const { cumulativeValue, utxos } = await rawWallet.watchtower.BCH.getBchUtxos(cashAddress, amount)
+        console.log('>>>>>>>BCH UTXOs from Watchtower:', utxos)
+        console.log('Returning BCH UTXOs:', utxos)
+        return {
+            cumulativeValue,
+            utxos: utxos?.map(utxo => ({
+                txid: utxo.tx_hash,
+                vout: utxo.tx_pos,
+                satoshis: BigInt(utxo.value)
+            })) || []
+        }
+    }
+
+    /**
+     * Fetches funding UTXOs for the wallet's cash address.
+     * @param {number} amount - Optional minimum cumulative amount of BCH UTXOs to fetch.
+     * @returns {Promise<{cumulativeValue: bigint, utxos: Array}>}
+     */
+    async getFundingUtxos (amount = 0) {
+        const wallet = await loadWallet()
+        const walletCashAddress = wallet.address()
+        const changeAddress = wallet.changeAddress()
+
+        console.log('Wallet funding cashAddress:', walletCashAddress)
+        console.log('Wallet funding changeAddress:', changeAddress)
+
+        const { cumulativeValue, utxos } = await wallet.getBchUtxos(walletCashAddress, parseInt(amount))
+        console.log('Funding UTXOs:', utxos)
+        return { cumulativeValue, utxos, changeAddress };
     }
 
     /**
@@ -175,13 +188,24 @@ export class TapToPay {
         const senderSig = new SignatureTemplate(senderWif)
         const senderPk = senderSig.getPublicKey()
         const senderPkh = pubkeyToPkHash(senderPk)
+        const changeAddress = pubkeyToAddress(senderPk, defaultNetwork)
 
         if (senderPkh !== this.contractCreationParams.ownerPkh) {
             throw new Error('Sender public key hash does not match the owner public key hash');
         }
 
-        const utxos = await contract.getUtxos()
-        const bchUtxos = utxos.filter(utxo => utxo.token == undefined)
+        const tokenId = reverseHex(this.contractCreationParams.authCategory)
+        const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
+
+        const fee = TX_FEE
+        const { cumulativeValue, utxos: bchUtxos } = await this.getFundingUtxos(fee)
+        const changeAmount = cumulativeValue - BigInt(fee)
+        console.log('changeAmount:', changeAmount)
+        console.log('changeAddress:', changeAddress)
+        console.log('tokenAddress:', contract.tokenAddress)
+        console.log('tokenId (authCategory):', tokenId)
+        console.log('?????tokenUtxos:', tokenUtxos)
+        console.log('?????_bchUtxos:', bchUtxos)
 
         // Helper to safely convert numbers/strings to BigInt
         const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
@@ -194,18 +218,25 @@ export class TapToPay {
             })
             return hex;
         })
+        console.log('merchantHashes for mutations:', merchantHashes)
 
         // Filter UTXOs to only those matching the token category and merchant hashes
-        const tokenCategory = this.contractCreationParams.authCategory
-        const utxosToMutate = utxos.filter(utxo => {
+        const utxosToMutate = tokenUtxos.filter(utxo => {
             if (utxo.token?.nft?.commitment) {
                 const commitment = utxo.token?.nft?.commitment
                 const { hash } = decodeCommitment(commitment)
-                return utxo.token.category === tokenCategory && merchantHashes.includes(hash)
+                console.log('Decoded commitment hash:', hash)
+                console.log('UTXO token category:', utxo.token.category)
+                return (
+                    utxo.token.category === tokenId && 
+                    merchantHashes.includes(hash)
+                )
             } else {
                 return false
             }
         })
+
+        console.log('utxosToMutate:', utxosToMutate)
 
         // Prepare the outputs for the mutations
         const outputs = []
@@ -236,8 +267,11 @@ export class TapToPay {
                 merchant: mutation.merchant
             }
 
+            console.log('newCommitmentData:', newCommitmentData)
+
             // Encode the new commitment
             const newCommitment = encodeCommitment(newCommitmentData)
+            console.log('newCommitment:', newCommitment)
 
             // Prepare the output rewriting the commitment
             const output = {
@@ -256,6 +290,8 @@ export class TapToPay {
             // Add the output to the outputs array
             outputs.push(output)
         }
+
+        console.log('outputs:', outputs)
 
         // Prepare the token inputs for mutation,
         // normalizing the input UTXOs to expected format
@@ -287,27 +323,31 @@ export class TapToPay {
             return normalized
         })
 
+        console.log('tokenInputs:', tokenInputs)
+
         // Prepare the BCH inputs
         const bchInputs = bchUtxos.map((input) => {
+            console.log('input??:', input)
             const normalized = { 
                 ...input, 
                 satoshis: toBigInt(input.satoshis),
                 txid: input.txid,
                 vout: input.vout
             }
+            console.log('normalized:', normalized)
             return normalized
         })
 
-        // Combine token and BCH inputs
-        const combinedInputs = [...tokenInputs, ...bchInputs]
-
+        console.log('bchInputs:', bchInputs)
         if (outputs.length === 0) {
             throw new Error('No valid mutations to process. No outputs were generated.')
         }
 
         // Prepare the contract transaction from the combined inputs and outputs
         const tx = contract.functions.mutate(senderPk, senderSig)
-            .from(combinedInputs)
+            .fromP2PKH(bchInputs, senderSig)
+            .from(tokenInputs)
+            .to(changeAddress, changeAmount)
             .to(outputs)
         
         let result
@@ -316,9 +356,10 @@ export class TapToPay {
             // Build the transaction
             console.log('[mutate] Building transaction...')
             const txHex = await tx.build()
-            
+            console.log('[mutate] Built transaction hex:', txHex)
+
             if (broadcast) {
-                result = await tx.send()
+                result = await this.broadcastTransaction(txHex)
             } else {
                 result = { success: true, txHex }
             }
@@ -326,6 +367,7 @@ export class TapToPay {
             throw error
         }
 
+        console.log('[mutate] Transaction result:', result)
         return result
     }
 
@@ -341,8 +383,6 @@ export class TapToPay {
     async sweep ({ ownerWif, toAddress, broadcast = false }) {
 
         const contract = this.getContract()
-        const tokenAddr = convertCashAddressToTokenAddress(toAddress)
-
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
         const ownerPkh = pubkeyToPkHash(ownerPk)
@@ -352,75 +392,62 @@ export class TapToPay {
         }
 
         const sweepResult = {}
-        let utxos = await contract.getUtxos()
-        let bchUtxos = utxos.filter(utxo => utxo.token == undefined)
-        const tokenUtxos = utxos.filter(utxo => utxo.token !== undefined)
-
-        if (tokenUtxos.length > 0) {
-            const tokenOutputs = tokenUtxos.map(utxo => {
-                return {
-                    to: tokenAddr,
-                    amount: utxo.satoshis,
-                    token: utxo.token
-                }
-            })
-            const inputs = [...tokenUtxos, ...bchUtxos]
-
-            const tokenSweepTx = contract.functions.sweep(ownerPk, ownerSig)
-                .from(inputs)
-                .to(tokenOutputs)
-            
-            let tokenSweepResult
-            if (broadcast) {
-                console.log('[sweep] Broadcasting transaction')
-                tokenSweepResult = await tokenSweepTx.send()
-            } else {
-                console.log('[sweep] Building transaction')
-                tokenSweepResult = await tokenSweepTx.build()
-            }
-
-            sweepResult.cashtokens = tokenSweepResult
-        }
-        
         const hardcodedFee = TX_FEE
+        const { cumulativeValue: sweepAmount, utxos: bchUtxos } = await this.getBchUtxos()
+        const { cumulativeValue: fundingAmount, utxos: fundingUtxos, changeAddress } = await this.getFundingUtxos(hardcodedFee)
+        const changeAmount = fundingAmount - BigInt(hardcodedFee)
+        
+        console.log('===========sweepAmount:', sweepAmount)
+        console.log('===========bchUtxos:', bchUtxos)
+        console.log('===========fundingAmount:', fundingAmount)
+        console.log('===========fundingUtxos:', fundingUtxos)
 
-        // Refresh UTXOs after token sweep
-        utxos = await contract.getUtxos()
-        bchUtxos = utxos.filter(utxo => utxo.token == undefined)
-
-        const balance = bchUtxos.reduce((acc, utxo) => acc + utxo.satoshis, 0n)
-        if (balance <= BigInt(hardcodedFee)) {
-            sweepResult.bch = { success: false, message: 'Insufficient BCH balance to sweep after fee.' }
+        if (fundingAmount < BigInt(hardcodedFee)) {
+            sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
             return sweepResult
         }
 
-        const amountToSend = balance - BigInt(hardcodedFee)
+        // Helper to safely convert numbers/strings to BigInt
+        const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
-        const outputs = [
-            {
-                to: toAddress,
-                amount: amountToSend
+        const bchInputs = bchUtxos.map(utxo => {
+            const normalized = { 
+                ...utxo, 
+                satoshis: toBigInt(utxo.satoshis),
+                txid: utxo.txid,
+                vout: utxo.vout
             }
-        ]
+            return normalized
+        })
 
-        const bchSweepTx = contract.functions
+        console.log('Normalized bchInputs for sweep:', bchInputs)
+
+        const tx = contract.functions
             .sweep(ownerPk, ownerSig)
-            .withHardcodedFee(hardcodedFee)
-            .from(bchUtxos)
-            .to(outputs)        
-        
-        let bchSweepResult
-        if (broadcast) {
-            console.log('[sweep] Broadcasting transaction')
-            bchSweepResult = await bchSweepTx.send()
-        } else {
-            console.log('[sweep] Building transaction')
-            bchSweepResult = await bchSweepTx.build()
+            .fromP2PKH(fundingUtxos, ownerSig)
+            .from(bchInputs)
+            .to(changeAddress, changeAmount)
+            .to(toAddress, sweepAmount)
+
+        let result
+        try {
+            // Build the transaction
+            console.log('[sweep] Building transaction...')
+            const txHex = await tx.build()
+            console.log('[sweep] Built transaction hex:', txHex)
+
+            if (broadcast) {
+                result = await this.broadcastTransaction(txHex)
+            } else {
+                result = { success: true, txHex }
+            }
+
+        } catch (error) {
+            throw error
         }
 
-        sweepResult.bch = bchSweepResult
-        return sweepResult
-
+        console.log('[sweep] Sweep result:', result)
+        return result
     }
 
     // /**
@@ -539,7 +566,6 @@ export class TapToPay {
      */
     async broadcastTransaction(txHex) {
         console.log('[broadcastTransaction] Broadcasting transaction')
-        const tx = await (new Watchtower().broadcastTx(txHex))
-        return tx
+        return await (new Watchtower().broadcastTx(txHex))
     }
 }

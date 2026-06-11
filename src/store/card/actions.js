@@ -90,8 +90,9 @@ export async function fetchCardTransactions (context, { cardId, page = 1, page_s
                 name: merchants.find(merchant => merchant.id === tx.merchant?.ref_id)?.name || 'Unknown Merchant',
             } : null,
             amount: satoshiToBch(tx.value),
-            is_nft: tx.is_nft,
-            token_data: tx.token_data,
+            is_token: tx.is_token,
+            token_action: tx.token_action,
+            token: tx.token,
             created_at: (new Date(tx.created_at)).toLocaleString(), // Format timestamp for display
         }));
         console.log('Formatted transactions:', transactions);

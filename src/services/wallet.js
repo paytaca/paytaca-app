@@ -89,12 +89,32 @@ export class Wallet {
   }
 
   /**
+   * Get the change address path.
+   * @returns {string} The change address path.
+   */
+  changeAddressPath () {
+    return `1/${this.addressIndex}`
+  }
+
+  /**
    * Get the address.
    * @param {string} [addressPath=''] - The address path.
    * @returns {string} The address.
    */
   address (addressPath = '') {
     if (!addressPath) addressPath = this.addressPath()
+    return this.libauthWallet.getAddressAt({ path: addressPath })
+  }
+
+  /**
+   * Get the change address.
+   * @returns {string} The change address.
+   */
+  changeAddress () {
+    // const rawWallet = this.getRawWallet()
+    // const addressSet = rawWallet.getAddressSetAt(this.addressIndex)
+    // return addressSet.change
+    const addressPath = this.changeAddressPath()
     return this.libauthWallet.getAddressAt({ path: addressPath })
   }
 
