@@ -1,6 +1,6 @@
 import { placeholder } from "@cashscript/utils";
-import { SignatureAlgorithm, SignatureTemplate } from "cashscript";
-import { createInputScript, getInputSize } from "cashscript/dist/utils";
+import { SignatureAlgorithm, SignatureTemplate, Output } from "cashscript";
+import { createInputScript, getInputSize, getOutputSize } from "cashscript/dist/utils";
 
 /**
  * Taken directly from Transaction class' fee calculation
@@ -32,4 +32,24 @@ function signaturePlaceholder(sigTemplate) {
 
 function isSignatureTemplate(obj) {
   return obj instanceof SignatureTemplate
+}
+
+/**
+ * Compute the network fee of a contract transaction.
+ * @param {Transaction} tx the transaction used to compute the input size
+ * @param {Output[]} outputs the outputs of the transaction
+ * @param {number} inputLen the length of the input
+ * @param {number} outputLen the length of the output
+ * @param {number} feeRate the fee rate to be used for the computation (default 1 sats/byte)
+ * @returns the computed contract network fee
+ */
+export function computeContractFee(tx, outputs, inputLen, outputLen, feeRate=1) {
+  const inputSize = calculateInputSize(tx)
+
+  let outputSize = 0
+  for (const output of outputs) {
+    outputSize += getOutputSize(output)
+  }
+
+  return BigInt(Math.floor(((inputSize * inputLen) + (outputSize * outputLen) + 10) * feeRate))
 }

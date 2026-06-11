@@ -218,6 +218,7 @@ export default {
         const value = addressValidation?.valid ? addressValidation.address : _value
         
         const isStreaming = normalizedValue.startsWith('ur:crypto-mofnwallet') || normalizedValue.startsWith('ur:crypto-psbt')
+        const nostrMatch = String(value || '').match(/^(nostr:)?(npub1[a-z0-9]{58,})$/i)
 
         if (!isStreaming) {
           vm.paused = true
@@ -235,7 +236,7 @@ export default {
           return
         }
 
-        if (value.includes('://paytaca.com')) {
+        if (value.includes('gifts.paytaca.com')) {
           vm.$router.push({ name: 'claim-gift', query: { code: value } })
         } else if (extractWifFromUrl(value)) {
           vm.$router.push({ name: 'app-sweep', query: { w: extractWifFromUrl(value) } })
@@ -256,15 +257,10 @@ export default {
           
           if (vm.urDecoder.isComplete()) {
             vm.paused = true 
-            console.log('COMPLETE')
-            
             const ur = vm.urDecoder.resultUR()
             const base64 = binToBase64(Buffer.from(ur.cbor, 'base64'))
             const decoded = cborDecode(base64ToBin(base64))
             const wallet = MultisigWallet.import(decoded)
-            
-            console.log('WALLET', wallet)
-            
             wallet.setStore(vm.$store)
             wallet.save()
             vm.$router.push({ name: 'app-multisig-wallet-view', params: { wallethash: wallet.getWalletHash() } })
@@ -313,6 +309,13 @@ export default {
           }
         } else if (value.toLowerCase().startsWith('wiz://')) {
           vm.$router.push({ name: 'app-wizard-connect', query: { uri: value } })
+        } else if (nostrMatch) {
+          const npub = nostrMatch[2]
+            const backPath = vm.$route.query.backnavpath || '/apps/chat'
+            vm.$router.push({
+              path: backPath,
+              query: { npub }
+            })
         } else {
           if (!vm.progress) {
             vm.$q.notify({ message: vm.$t('UnidentifiedQRCode'), timeout: 800, color: 'red-9', icon: 'mdi-qrcode-remove' })

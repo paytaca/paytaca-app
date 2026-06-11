@@ -1,0 +1,606 @@
+<template>
+  <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
+    <header-nav
+      class="apps-header"
+      :title="`RF ${$t('Promo')}`"
+    >
+      <template #top-right-menu v-if="!isLoading && !pointsError && !dataError">
+        <q-btn
+          round
+          class="button"
+          icon="question_mark"
+          size="sm"
+          @click="isHelpActive = true"
+        />
+      </template>
+    </header-nav>
+
+    <div
+      class="q-px-md q-pt-md"
+      :style="{ 'padding-top': $q.platform.is.ios ? '0px' : '0px' }"
+    >
+      <!-- Hero Section: Total Points with Redeemable Limit -->
+      <q-card
+        class="q-mb-lg hero-card"
+        :class="getDarkModeClass(darkMode)"
+        flat
+      >
+        <q-card-section class="text-center q-py-lg">
+          <!-- Loading State -->
+          <template v-if="isLoading">
+            <q-skeleton type="text" width="150px" height="48px" class="q-mx-auto q-mb-sm" />
+            <q-skeleton type="text" width="100px" height="20px" class="q-mx-auto q-mb-md" />
+            <q-skeleton type="QBtn" width="160px" height="44px" class="q-mx-auto q-mb-sm" />
+            <q-skeleton type="QBtn" width="160px" height="44px" class="q-mx-auto" />
+          </template>
+
+          <!-- Error State -->
+          <error-card
+            v-else-if="!isLoading && pointsError"
+            :is-points-card="true"
+            :is-rewards-home-page="false"
+            :error-text="pointsError"
+            @on-retry="loadData()"
+          />
+
+          <!-- Loaded State -->
+          <template v-else>
+            <div class="card-help-highlight">
+              <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('YouCurrentlyHave') }}
+              </div>
+  
+              <div
+                class="row flex-center q-mb-sm points-display"
+                :class="{ 'animate-points': animatedPoints > 0 }"
+              >
+                <span class="text-h3 text-bold text-primary">
+                  {{ animatedPoints }}
+                </span>
+                <span
+                  class="text-h5 text-weight-bold q-ml-xs"
+                  :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
+                >
+                  {{ $t('PointsLower') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Redeemable Points Badge and Progress -->
+            <div class="card-help-highlight">
+              <div class="q-mb-md">
+                <q-badge
+                  class="q-px-md q-py-xs text-subtitle2"
+                  color="secondary"
+                  text-color="white"
+                  style="text-wrap: auto;"
+                >
+                  <q-icon name="local_activity" size="16px" class="q-mr-xs" />
+                  {{ $t('RPRedeemablePoints', { points: getRemainingRedeemable }) }}
+                </q-badge>
+              </div>
+  
+              <!-- Progress Bar for Redeemable Points -->
+              <div class="q-mx-auto q-mb-lg" style="max-width: 280px;">
+                <div class="row justify-between text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                  <span>{{ $t('MonthlyLimit') }}</span>
+                  <span>
+                    {{ $t(
+                        'PercentageUsed',
+                        { 
+                          percent: Math.round(redeemedPoints / rpMax * 100),
+                          points: redeemedPoints
+                        }
+                      ) }}
+                  </span>
+                </div>
+                <q-linear-progress
+                  :value="redeemedPoints / rpMax"
+                  color="primary"
+                  class="rounded-borders"
+                  size="8px"
+                  track-color="secondary"
+                />
+              </div>
+            </div>
+
+            <q-btn
+              rounded
+              size="lg"
+              class="button redeem-btn q-mb-md card-help-highlight"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('RedeemPoints')"
+              :disable="points === 0 || getRemainingRedeemable <= 0"
+              @click="openRedeemPointsDialog"
+            />
+            <br/>
+            <q-btn
+              rounded
+              outline
+              size="md"
+              class="button button-text-primary q-mb-sm card-help-highlight"
+              :style="{ minWidth: '200px' }"
+              :class="getDarkModeClass(darkMode)"
+              :label="$t('ViewRedeemHistory')"
+              @click="openRedeemHistoryDialog"
+            />
+            <br/>
+            <q-btn
+              rounded
+              outline
+              size="md"
+              class="button button-text-primary referral-btn card-help-highlight"
+              :label="$t('ShowReferralQr')"
+              @click="openReferralQrDialog"
+            />
+          </template>
+        </q-card-section>
+      </q-card>
+
+      <!-- Error state for data -->
+      <error-card
+        v-if="dataError"
+        :is-points-card="false"
+        :is-rewards-home-page="false"
+        :error-text="dataError"
+        @on-retry="loadData()"
+      />
+
+      <!-- Referral Status Section -->
+      <template v-else>
+        <div class="section-header row items-center justify-between q-mb-sm card-help-highlight">
+          <div class="row items-center">
+            <q-icon name="group" size="md" class="q-mr-sm" color="primary" />
+            <span class="text-h6">{{ $t('ReferralStatus') }}</span>
+          </div>
+          <q-btn
+            v-if="!isLoading"
+            flat
+            color="primary"
+            size="sm"
+            icon-right="chevron_right"
+            :label="$t('ViewAll')"
+            @click="$router.push(`/apps/rewards/referral-history/${rpId}`)"
+          />
+        </div>
+
+        <!-- Loading Skeletons for Referral Stats -->
+        <template v-if="isLoading">
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="40px" height="32px" class="q-mx-auto" />
+              <q-skeleton type="text" width="50px" height="16px" class="q-mx-auto" />
+            </div>
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="40px" height="32px" class="q-mx-auto" />
+              <q-skeleton type="text" width="60px" height="16px" class="q-mx-auto" />
+            </div>
+            <div class="col-4 text-center">
+              <q-skeleton type="text" width="40px" height="32px" class="q-mx-auto" />
+              <q-skeleton type="text" width="50px" height="16px" class="q-mx-auto" />
+            </div>
+          </div>
+
+          <achievement-card v-for="n in 3" :key="`skeleton-referral-${n}`">
+            <template #achievement-card-content>
+              <q-card-section>
+                <div class="row items-center q-gutter-md">
+                  <q-skeleton type="circle" size="40px" />
+                  <div class="col">
+                    <q-skeleton type="text" width="60%" height="20px" class="q-mb-xs" />
+                    <q-skeleton type="text" width="40%" height="16px" />
+                  </div>
+                </div>
+              </q-card-section>
+            </template>
+          </achievement-card>
+        </template>
+
+        <!-- Referral List -->
+        <template v-else>
+          <!-- Referral Stats -->
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col-4 text-center">
+              <div class="text-h6 text-weight-bold text-primary">{{ totalReferralsCount }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('Total') }}
+              </div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-h6 text-weight-bold text-positive">{{ completedReferralsCount }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('Completed') }}
+              </div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-h6 text-weight-bold text-warning">{{ pendingReferralsCount }}</div>
+              <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                {{ $t('Pending') }}
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="referralsList.length > 0" class="q-mx-sm q-mt-sm q-gutter-y-sm">
+            <q-intersection once transition="jump-up" v-for="(item, index) in displayReferralsList" :key="index">
+              <achievement-card>
+                <template #achievement-card-content>
+                  <q-card-section class="q-py-md">
+                    <div class="row items-center q-gutter-sm">
+                      <achievement-icon
+                        :complete="item.has_transacted"
+                        :dark-mode-class="getDarkModeClass(darkMode)"
+                      />
+                      <div class="col">
+                        <div class="row items-center">
+                          <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
+                            {{ formatWalletHashDisplay(item.wallet_hash) }}
+                          </div>
+                          <q-btn
+                            flat
+                            dense
+                            round
+                            size="xs"
+                            icon="content_copy"
+                            class="copy-hash-btn"
+                            @click="copyWalletHash(item.wallet_hash)"
+                          />
+                        </div>
+                        <div class="row items-center" style="line-break: anywhere;">
+                          <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
+                            {{ formatDateLocaleRelative(item.date_created, false) }}
+                          </span>
+                        </div>
+                        <div class="row items-center q-mt-xs">
+                          <q-badge
+                            v-if="item.has_transacted"
+                            dense
+                            color="positive"
+                            :label="$t('Transacted')"
+                            class="q-px-sm q-py-xs text-caption text-black"
+                          />
+                          <q-badge
+                            v-else
+                            dense
+                            color="warning"
+                            :label="$t('Pending')"
+                            class="q-px-sm q-py-xs text-caption text-black"
+                          />
+                        </div>
+                      </div>
+                      <points-badge
+                        :complete="item.has_transacted"
+                        :dark-mode-class="getDarkModeClass(darkMode)"
+                        :points="10"
+                      />
+                    </div>
+                  </q-card-section>
+                </template>
+              </achievement-card>
+            </q-intersection>
+          </div>
+
+          <!-- Empty State -->
+          <q-card
+            v-else
+            class="empty-state-card q-pa-lg text-center"
+            :class="getDarkModeClass(darkMode, 'text-grey-6', 'text-grey-8')"
+            flat
+          >
+            <q-icon name="group_off" size="48px" class="q-mb-md" />
+            <div class="text-subtitle1 q-mb-sm">
+              {{ $t('ReferralStatusWarningTitle') }}
+            </div>
+            <div class="text-body2">
+              {{ $t('ReferralStatusWarningBody') }}
+            </div>
+          </q-card>
+        </template>
+      </template>
+    </div>
+  </div>
+
+  <help-card v-model="isHelpActive" :page="'rp'" />
+</template>
+
+<script>
+import { formatDateLocaleRelative } from 'src/utils/time'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
+import {
+  Promos,
+  PromosBytes,
+  getRfPromoData,
+  createRfPromoData,
+  updateRfPromoData,
+  getRpMaxRedeemable,
+  updateUserPromoData,
+} from 'src/utils/engagementhub-utils/rewards'
+
+import HeaderNav from 'src/components/header-nav.vue'
+import PointsBadge from 'src/components/rewards/PointsBadge.vue'
+import HelpCard from 'src/components/rewards/cards/HelpCard.vue'
+import ErrorCard from 'src/components/rewards/cards/ErrorCard.vue'
+import AchievementIcon from 'src/components/rewards/AchievementIcon.vue'
+import AchievementCard from 'src/components/rewards/cards/AchievementCard.vue'
+import ReferralQrDialog from 'src/components/rewards/dialogs/ReferralQrDialog.vue'
+import RedeemPointsDialog from 'src/components/rewards/dialogs/RedeemPointsDialog.vue'
+import RedeemHistoryDialog from 'src/components/rewards/dialogs/RedeemHistoryDialog.vue'
+
+import PromoContract from 'src/utils/rewards-utils/contracts/PromoContract'
+
+export default {
+  name: 'RFPromo',
+
+  components: {
+    HeaderNav,
+    PointsBadge,
+    HelpCard,
+    ErrorCard,
+    AchievementIcon,
+    AchievementCard,
+  },
+
+  props: {
+    id: { type: String, default: '-1' },
+    address: { type: String, default: '' }
+  },
+
+  data () {
+    return {
+      Promos,
+      
+      isLoading: false,
+      isHelpActive: false,
+      rpId: -1,
+      points: 0,
+      animatedPoints: 0,
+      pointsDivisor: 0,
+      redeemedPoints: 0,
+      referralCode: '',
+      rpContract: null,
+      pointsError: '',
+      dataError: '',
+      rpMax: 0,
+
+      referralsList: [],
+      referralsOverallStats: {}
+    }
+  },
+
+  computed: {
+    darkMode () {
+      return this.$store.getters['darkmode/getStatus']
+    },
+    theme () {
+      return this.$store.getters['global/theme']
+    },
+    getRemainingRedeemable () {
+      return this.rpMax - this.redeemedPoints
+    },
+    totalReferralsCount () {
+      return this.referralsOverallStats?.total ?? 0
+    },
+    completedReferralsCount () {
+      return this.referralsOverallStats?.completed ?? 0
+    },
+    pendingReferralsCount () {
+      return this.referralsOverallStats?.pending ?? 0
+    },
+    displayReferralsList () {
+      return this.referralsList.slice(0, 5)
+    }
+  },
+
+  async mounted () {
+    await this.loadData()
+  },
+
+  methods: {
+    getDarkModeClass,
+    formatDateLocaleRelative,
+
+    async loadData () {
+      this.isLoading = true
+
+      this.rpId = Number(this.$route.params.id || -1)
+
+      // initialize RP Promo Contract and retrieve points
+      try {
+        const walletIndex = this.$store.getters['global/getWalletIndex']
+        const userPubkey = await getAddress0_0PublicKey(walletIndex)
+        this.rpContract = new PromoContract(userPubkey, PromosBytes.RP)
+        if (this.rpId === -1) await this.rpContract.subscribeAddress()
+        this.points = await this.rpContract.getTokenBalance()
+        this.animatePointsCounter()
+      } catch (error) {
+        console.error(error)
+        this.pointsError = this.$t('PointsLoadError')
+      }
+
+      // fetch and load data
+      let rpData = null
+      if (this.rpId === -1) {
+        // open help dialog
+        this.isHelpActive = true
+
+        // new user; create and update necessary data
+        rpData = await createRfPromoData()
+        this.rpId = rpData.id
+        this.$router.replace({ params: { id: String(rpData.id) } })
+        Promise.allSettled([
+          updateUserPromoData({ rp: rpData.id }),
+          updateRfPromoData(rpData.id, {
+            contract_ct_address: this.rpContract.contract.tokenAddress
+          })
+        ])
+      } else {
+        rpData = await getRfPromoData(this.rpId)
+      }
+
+      if (rpData && Object.keys(rpData).length > 0) {
+        this.rpMax = await getRpMaxRedeemable()
+        this.redeemedPoints = rpData.redeemed_points
+        this.referralCode = rpData.referral_code
+        this.referralsList = (rpData.rp_referrals || []).sort((a, b) => {
+          return new Date(b.date_created) - new Date(a.date_created)
+        })
+        this.referralsOverallStats = rpData.rp_referrals_overall_stats
+      } else {
+        this.dataError = this.$t('DataLoadError')
+      }
+
+      this.isLoading = false
+    },
+
+    formatWalletHashDisplay (walletHash) {
+      const length = walletHash.length
+      const prefix = walletHash.substring(0, 5)
+      const suffix = walletHash.substring(length - 5, length)
+      return `${prefix}...${suffix}`
+    },
+
+    copyWalletHash (hash) {
+      this.$copyText(hash)
+      this.$q.notify({
+        color: 'blue-9',
+        message: this.$t('CopiedToClipboard'),
+        icon: 'mdi-clipboard-check',
+        timeout: 200
+      })
+    },
+
+    animatePointsCounter () {
+      const duration = 1000
+      const start = 0
+      const end = this.points
+      const startTime = performance.now()
+
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const easeOut = 1 - Math.pow(1 - progress, 3)
+        
+        this.animatedPoints = Math.floor(start + (end - start) * easeOut)
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        }
+      }
+      
+      requestAnimationFrame(animate)
+    },
+
+    openReferralQrDialog () {
+      this.$q.dialog({
+        component: ReferralQrDialog,
+        componentProps: {
+          code: this.referralCode,
+          promoId: this.rpId,
+          promoType: Promos.RFPROMO,
+          referralType: 'Friend'
+        }
+      })
+    },
+    openRedeemPointsDialog () {
+      this.$q.dialog({
+        component: RedeemPointsDialog,
+        componentProps: {
+          promoId: this.rpId,
+          promoType: Promos.RFPROMO,
+          promoBytes: PromosBytes.RP,
+          redeemedPoints: this.redeemedPoints,
+          maxRedeemable: this.rpMax
+        }
+      }).onDismiss(async () => {
+        this.isLoading = true
+        this.points = await this.rpContract.getTokenBalance()
+        this.animatePointsCounter()
+        this.isLoading = false
+      })
+    },
+    openRedeemHistoryDialog () {
+      this.$q.dialog({
+        component: RedeemHistoryDialog,
+        componentProps: {
+          promo: Promos.RFPROMO,
+          promoId: this.rpId
+        }
+      })
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.hero-card {
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(59, 123, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid rgba(59, 123, 246, 0.15);
+
+  &.dark {
+    background: linear-gradient(135deg, rgba(59, 123, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+  }
+}
+
+.points-display {
+  transition: transform 0.3s ease;
+  
+  &.animate-points {
+    animation: points-pop 0.4s ease-out;
+  }
+}
+
+@keyframes points-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.redeem-btn {
+  min-width: 200px;
+  font-weight: 600;
+  
+  &:not(:disabled) {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+}
+
+.referral-btn {
+  min-width: 200px;
+  font-weight: 500;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6), 0 0 0 0 rgba(139, 92, 246, 0.4); 
+  }
+  50% { 
+    box-shadow: 0 0 25px 3px rgba(139, 92, 246, 0.5), 0 0 40px 6px rgba(139, 92, 246, 0.3); 
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+}
+
+.empty-state-card {
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  
+  &.dark {
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+  }
+}
+
+.copy-hash-btn {
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+</style>

@@ -254,7 +254,14 @@ module.exports = defineConfig((ctx) => {
         type: 'http', // https | http
       },
       port: 9000,
-      open: true // opens browser window automatically
+      open: true, // opens browser window automatically
+      client: {
+        overlay: {
+          errors: false,
+          warnings: false,
+          runtimeErrors: false
+        }
+      }
     },
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-framework

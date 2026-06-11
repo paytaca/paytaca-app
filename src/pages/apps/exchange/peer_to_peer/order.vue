@@ -493,6 +493,8 @@ import TradeInfoCard from 'src/components/ramp/fiat/TradeInfoCard.vue'
 import AdSnapshotDialog from 'src/components/ramp/fiat/dialogs/AdSnapshotDialog.vue'
 import UserProfileDialog from 'src/components/ramp/fiat/dialogs/UserProfileDialog.vue'
 import ContractProgressDialog from 'src/components/ramp/fiat/dialogs/ContractProgressDialog.vue'
+import { processRampCashinPoints } from 'src/utils/engagementhub-utils/rewards'
+import { hexToRef } from 'src/utils/reference-id-utils'
 
 export default {
   data () {
@@ -553,6 +555,7 @@ export default {
       showStatusHistory: false,
       noticeType: 'info',
       showNoticeDialog: false,
+      rewardNotified: false,
 
       // Tabs
       activeTab: 'details',
@@ -2194,7 +2197,34 @@ getBackNavigationPath () {
           break
         }
         case 'RFN': // Refunded
-        case 'RLS': // Released
+          this.clearStoredTxids(this.order?.id)
+          state = this.getDefaultState()
+          this.reloadChildComponents()
+          break
+        case 'RLS': // Released - Order completed successfully
+          // Trigger reward API for buyer only
+          if (this.userTraderType === 'BUYER' && !this.rewardNotified) {
+            const buyerAddress = this.contract?.addresses?.buyer
+            const txid = this.$store.getters['ramp/getOrderTxid'](this.order.id, 'RELEASE')
+            
+            if (buyerAddress && txid) {
+              const pointsResp = await processRampCashinPoints({
+                bch_address: buyerAddress,
+                is_ramp: true,
+                ref_id: hexToRef(txid.substring(0, 6)),
+                tx_id: txid,
+                bch_spent: satoshiToBch(this.order.trade_amount)
+              })
+
+              if (pointsResp) {
+                this.rewardNotified = true
+                this.noticeType = 'success'
+                this.errorMessage = this.$t('RampPurchaseNotificationText')
+                this.showNoticeDialog = true
+              }
+            }
+          }
+          
           this.clearStoredTxids(this.order?.id)
           state = this.getDefaultState()
           this.reloadChildComponents()
