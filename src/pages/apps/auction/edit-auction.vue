@@ -171,6 +171,7 @@
 <script setup>
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
+import { useRoute } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch } from 'vue'
 import { callAPI } from 'src/auction/api'
@@ -189,6 +190,7 @@ import noImage from 'src/assets/no-image.svg'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const $route = useRoute()
 
 const dataLoaded = ref(false)
 const auctionType = ref('English Auction')
@@ -208,28 +210,34 @@ const parseAuctionData = (data) => {
   return data instanceof AuctionList ? data : AuctionList.parse(data)
 }
 
-const fetchAllData = async () => {
-  try {
-    const result = await callAPI('auctions', Number(props.auctionId))
-    if (result.success && result.data) {
-      const parsedAuction = parseAuctionData(result.data)
-      auction.value = parsedAuction
+const auctionForm = ref({
+  title: '',
+  type: 'English',
+  start_date: '',
+  end_date: '',
+  description: '',
+  image: null
+})
 
-      auctionForm.value = {
-        title: parsedAuction.title || '',
-        type: parsedAuction.type || 'English Auction',
-        start_date: formatToDateTimeLocal(parsedAuction.start_date),
-        end_date: formatToDateTimeLocal(parsedAuction.end_date),
-        description: parsedAuction.description || '',
-        image: parsedAuction.image || null
-      }
+const prefillFormState = (sourceData) => {
+  const parsedAuction = parseAuctionData(sourceData)
+  auction.value = parsedAuction
+  auctionType.value = parsedAuction?.type || 'English'
 
-      dataLoaded.value = true
-    }
-  } catch (err) {
-    console.error('Failed to update auction details:', err)
+  auctionForm.value = {
+    title: parsedAuction.title || '',
+    type: parsedAuction.type || 'English Auction',
+    start_date: formatToDateTimeLocal(parsedAuction.start_date),
+    end_date: formatToDateTimeLocal(parsedAuction.end_date),
+    description: parsedAuction.description || '',
+    image: parsedAuction.image || null
   }
+}
 
+const fetchAllData = async () => {
+  prefillFormState(history.state.auctionData)
+  dataLoaded.value = true
+  
   try {
     const result = await callAPI('lots/auction', Number(props.auctionId))
     if (result.success && result.data) {
@@ -244,15 +252,6 @@ const fetchAllData = async () => {
     console.error('Failed to update lots:', err)
   }
 }
-
-const auctionForm = ref({
-  title: '',
-  type: 'English Auction',
-  start_date: '',
-  end_date: '',
-  description: '',
-  image: null
-})
 
 const formatToDateTimeLocal = (dateString) => {
   if (!dateString) return ''
