@@ -25,7 +25,7 @@
     </div>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <ActivitySearch :placeholder="`Search my ${selectedActivityType.value}`"/>
+      <ActivitySearch :placeholder="`Search my ${activityType}`"/>
     </div>
 
     <div class="row justify-end q-px-md q-mb-md">
@@ -50,7 +50,7 @@
     </div>
     
     <!-- All user's AUCTIONS made -->
-    <div v-if="selectedActivityType.value === 'auctions'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
+    <div v-if="activityType === 'My Auctions'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">My Auctions</div>
         <q-select
@@ -175,7 +175,7 @@
     </div>
 
     <!-- All user's BIDDINGS made -->
-    <div v-if="selectedActivityType.value === 'biddings'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
+    <div v-if="activityType === 'My Biddings'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
       <div class="row items-center q-pa-sm q-mb-md">
         <div class="text-h5 q-px-xs">My Biddings</div>
         <q-select
@@ -306,12 +306,11 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $router = useRouter()
 
-const activityType = ref('biddings')
+const activityType = ref($store.state.auction?.activityType || 'My Biddings')
 const activityTypeOptions = [
-  { label: 'My Biddings', value: 'biddings' },
-  { label: 'My Auctions', value: 'auctions' }
+  'My Biddings',
+  'My Auctions'
 ]
-const selectedActivityType = computed(() => activityType)
 
 const auctionType = ref('All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
@@ -332,7 +331,7 @@ const fetchAuctionData = async () => {
     } else {
       auctionDetails.value = parseAuctionData(result.data)
     }
-    console.log(auctionDetails.value)
+    
   } catch (err) {
     console.error('Failed to update auction details:', err)
   }
@@ -365,7 +364,7 @@ const parseAuctionData = (data) => {
 onMounted(async () => {
   isLoading.value = true
 
-  if(activityType.value === 'auctions') await fetchAuctionData()
+  if(activityType.value === 'My Auctions') await fetchAuctionData()
   else await fetchLotData()
   
   isLoading.value = false
@@ -387,11 +386,13 @@ const filteredLots = computed(() => {
 
 watch(activityType, async (newType) => {
   isLoading.value = true
-  
-  if(activityType.value === 'auctions') await fetchAuctionData()
+
+  if(newType === 'My Auctions') await fetchAuctionData()
   else await fetchLotData()
 
   isLoading.value = false
+
+  $store.dispatch('auction/filterActivities', newType)
 })
 
 
@@ -433,7 +434,7 @@ const isMyBiddingEmpty = computed(() => {
 const refresh = async (done) => {
   isLoading.value = true
 
-  if(activityType.value === 'auctions') await fetchAuctionData()
+  if(activityType.value === 'My Auctions') await fetchAuctionData()
   else await fetchLotData()
   
   isLoading.value = false

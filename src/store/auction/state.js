@@ -2,6 +2,7 @@ export default function () {
   return {
     listings: [],
     isLoading: false,
-    auctionType: 'All'
+    auctionType: 'All',
+    activityType: 'My Biddings'
   }
 }

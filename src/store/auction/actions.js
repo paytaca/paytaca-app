@@ -5,6 +5,10 @@ export async function filterAuctionItems({ commit }, type) {
   commit('updateAuctionType', type)
 }
 
+export async function filterActivities({ commit }, type) {
+  commit('updateActivityType', type)
+}
+
 export async function refreshCatalog({ commit }) {
   commit('setLoading', true)
   
