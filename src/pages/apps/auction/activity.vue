@@ -223,53 +223,61 @@
 
         <!-- Actual products -->
         <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
-          <q-card 
-            class="pt-card text-bow cursor-pointer" 
+          <q-card
+            class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
             @click="$router.push({ name: 'app-auction-lot-details', params: { auctionId: lot.auction_id, lotId: lot.id }, query: { from: 'activity' }})"
           >
-            <q-img :src="noImage" ratio="1">
-              <template v-slot:loading>
-                <q-skeleton height="100%" width="100%" square />
-              </template>
-            </q-img>
-            <q-card-section>
-              <div class="q-mb-xs bg-primary text-white row items-center q-gutter-x-xs q-pa-xs rounded-borders" style="display: inline-flex;">
-                <q-icon :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'" size="sm" />
-                <q-badge
-                  :label="lot.category"
-                  class="text-bold"
-                  flat
-                  color="transparent"
+            <div class="relative-position">
+              <q-img
+                :src="lot.images?.[0] || noImage"
+                ratio="1.25"
+              >
+                <template v-slot:loading>
+                  <q-skeleton height="100%" width="100%" square />
+                </template>
+              </q-img>
+
+              <q-chip
+                dense
+                :color="lot.getStatus().color"
+                text-color="white"
+                class="absolute text-caption text-weight-bold"
+                style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
+              >
+                {{ lot.getStatus().label }}
+              </q-chip>
+            </div>
+
+            <q-card-section class="q-py-sm">
+              <q-chip
+                dense
+                text-color="white"
+                class="text-caption text-weight-bold bg-primary"
+                style="margin: 0; padding: 3px 8px; height: auto;"
+              >
+                <q-icon
+                  :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
+                  size="xs"
+                  class="q-mr-xs"
                 />
+                {{ lot.category }}
+              </q-chip>
+
+              <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs">
+                {{ lot.title }}
               </div>
-              <div>
-                <q-chip
-                  dense
-                  :color="getStatusColor(getAuctionStatus(lot.start_date, lot.end_date))"
-                  :label="getAuctionStatus(lot.start_date, lot.end_date)"
-                  text-color="white"
-                  class="q-pa-sm"
-                />
-              </div>
-              <div class="q-space text-body1 ellipsis text-bold">{{ lot.title }}</div>
-              <div class="text-caption text-grey text-italic ellipsis">ID #{{ lot.id }}</div>
-              <div class="text-subtitle2 text-bold text-positive q-mt-xs">
-                Est: ₱950
-                <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-                  ({{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                    {{ lot.getFormattedBCH(lot.estimated_amount).zeros }}
-                  </span> BCH)
-                </span>
-              </div>
+
+              <q-separator spaced="sm" />
               
-              <div class="text-caption text-grey-5">
-                Min Bid: ₱950
-                <span style="opacity: 0.75;" class="text-weight-regular q-ml-xs">
-                  ({{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">
-                    {{ lot.getFormattedBCH(lot.threshold_bid).zeros }}
-                  </span> BCH)
-                </span>
+              <div class="row items-center justify-between q-mb-xs">
+                <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Current Bid</span>
+                <div class="row items-baseline q-gutter-x-xs">
+                  <span class="text-weight-medium" style="font-size: 12px;">₱900.00</span>
+                  <span class="text-caption" style="opacity: 0.65;">
+                    {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                  </span>
+                </div>
               </div>
             </q-card-section>
           </q-card>
@@ -346,7 +354,16 @@ const fetchLotData = async () => {
       const lotPromises = result.data.map(async (item) => {
         const lotResult = await callAPI('lots', item.lot_id)
         if (!lotResult.success || !lotResult.data) return null
-        return LotsList.parse(lotResult.data)
+
+        const lot = LotsList.parse(lotResult.data)
+        
+        const auctionResult = await callAPI('auctions', lot.auction_id)
+        if (auctionResult.success && auctionResult.data) {
+          lot.start_date = auctionResult.data.start_date || null
+          lot.end_date = auctionResult.data.end_date || null
+        }
+
+        return lot
       })
 
       lotDetails.value = (await Promise.all(lotPromises)).filter(Boolean)
