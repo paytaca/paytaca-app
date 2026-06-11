@@ -18,7 +18,7 @@
           />
         </div>
 
-        <div class="col-12 col-sm-auto flex column" style="max-width: 450px; min-width: 280px;">
+        <div v-if="auction" class="col-12 col-sm-auto flex column" style="max-width: 450px; min-width: 280px;">
           <div class="row items-center q-gutter-sm q-mb-sm">
             <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
               <q-icon name="gavel" size="12px" class="q-mr-xs" />
@@ -36,35 +36,40 @@
             {{ auction?.title || 'N/A' }}
           </div>
 
-          <q-card flat bordered class="q-mb-md">
-            <q-card-section class="q-pa-sm">
+          <q-card flat bordered class="q-mb-md self-start full-width">
+            <q-card-section class="q-pa-sm q-pb-none">
               <div class="row items-center q-py-xs">
                 <div class="text-caption col-4 q-mr-sm">
                   <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                 </div>
                 <div class="col row items-center q-gutter-xs">
                   <span style="word-break: break-word; overflow-wrap: anywhere; min-width: 0;">
-                    {{ auction?.user_id || 'N/A' }}
+                    {{ auction.getEllipsisInMiddleUserId() }}
                   </span>
-                  <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-mr-sm">
+                  <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-ml-sm">
                     <q-icon name="star" size="10px" class="q-mr-xs" />You
                   </q-badge>
                 </div>
               </div>
-              <q-separator spaced="xs" />
+
+              <q-separator />
+
               <div class="row items-center q-py-xs">
                 <div class="text-caption col-4 q-mr-sm">
                   <q-icon name="star" size="13px" class="q-mr-xs" />Rating
                 </div>
                 <span>{{ auction?.rating || 'N/A' }}</span>
               </div>
-              <q-separator spaced="xs" />
+
+              <q-separator />
+
               <div class="row items-center q-py-xs">
                 <div class="text-caption col-4 q-mr-sm">
                   <q-icon name="event" size="13px" class="q-mr-xs" />Posted on
                 </div>
                 <span>{{ auction?.date_posted || 'N/A' }}</span>
               </div>
+
             </q-card-section>
           </q-card>
 
@@ -91,6 +96,13 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div v-else class="col-12 col-sm-auto flex column q-gutter-y-sm" style="max-width: 450px; min-width: 280px;">
+          <q-skeleton type="rect" width="160px" height="24px" />
+          <q-skeleton type="rect" width="80%" height="32px" />
+          <q-skeleton type="rect" height="100px" />
+          <q-skeleton type="rect" height="60px" />
         </div>
       </div>
     </div>
@@ -250,7 +262,7 @@ const isLoading = ref(false)
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 
-const auction = ref([])
+const auction = ref(null)
 const lots = ref([])
 
 const parseAuctionData = (data) => {
@@ -259,26 +271,28 @@ const parseAuctionData = (data) => {
 }
 
 const fetchAllData = async () => {
-  await Promise.all([
-    callAPI('auctions', Number(props.auctionId)).then(result => {
-      if (result.success && result.data) {
-        auction.value = parseAuctionData(result.data)
-      }
-    }).catch(err => console.error('Failed to update auction details:', err)),
+  try {
+    const result = await callAPI('auctions', Number(props.auctionId))
+    if (result.success && result.data) {
+      auction.value = parseAuctionData(result.data)
+    }
+  } catch (err) {
+    console.error('Failed to update auction details:', err)
+  }
 
-    callAPI('lots/auction', Number(props.auctionId)).then(result => {
-      if (result.success && result.data) {
-        lots.value = result.data.map(item => {
-          const lot = LotsList.parse(item)
-
-          lot.start_date = auction.value?.start_date || null
-          lot.end_date = auction.value?.end_date || null
-
-          return lot
-        })
-      }
-    }).catch(err => console.error('Failed to update lots:', err))
-  ])
+  try {
+    const result = await callAPI('lots/auction', Number(props.auctionId))
+    if (result.success && result.data) {
+      lots.value = result.data.map(item => {
+        const lot = LotsList.parse(item)
+        lot.start_date = auction.value?.start_date || null
+        lot.end_date = auction.value?.end_date || null
+        return lot
+      })
+    }
+  } catch (err) {
+    console.error('Failed to update lots:', err)
+  }
 }
 
 onMounted(async () => {

@@ -125,19 +125,28 @@ export class AuctionList {
       return { label: 'Closed', color: 'red' };
     }
 
-    const formatIso = (str) => typeof str === 'string' ? str.replace(' ', 'T') : str;
+    const formatIso = (str) => typeof str === 'string' ? str.replace(' ', 'T') : str
 
     const nowTime = new Date().getTime();
-    const startTime = new Date(formatIso(this.start_date)).getTime();
-    const endTime = new Date(formatIso(this.end_date)).getTime();
+    const startTime = new Date(formatIso(this.start_date)).getTime()
+    const endTime = new Date(formatIso(this.end_date)).getTime()
     
     if (nowTime < startTime) {
-      return { label: 'Upcoming', color: 'orange' };
+      return { label: 'Upcoming', color: 'orange' }
     }
     if (nowTime >= startTime && nowTime <= endTime) {
-      return { label: 'Open', color: 'green' };
+      return { label: 'Open', color: 'green' }
     }
     
-    return { label: 'Closed', color: 'red' };
+    return { label: 'Closed', color: 'red' }
+  }
+
+  getEllipsisInMiddleUserId() {
+    if (!this.user_id || this.user_id.length <= 7 + 7) return this.user_id
+    
+    const start = this.user_id.substring(0, 7)
+    const end = this.user_id.substring(this.user_id.length - 7)
+    
+    return `${start}........${end}`
   }
 }
