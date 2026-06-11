@@ -146,7 +146,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update:auction-form', 'submit-auction'])
 
-const auctionTypeOptions = ['English Auction', 'Dutch Auction']
+const auctionTypeOptions = [
+  'English',
+  'Dutch'
+]
 const auctionDescriptionMaxChar = 1500
 
 const form = computed({
