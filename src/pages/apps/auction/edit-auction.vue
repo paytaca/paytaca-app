@@ -66,61 +66,67 @@
     <div>
       <div v-if="dataLoaded" class="row items-start" ref="productsContainer">
         <div v-for="(lot, index) in lots" :key="index" class="col-6 col-sm-4 col-md-3 q-pa-sm">
-          <q-card 
-            class="pt-card text-bow" 
-            :class="getDarkModeClass(darkMode)"
-          >
-            <q-img :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" ratio="1">
-              <template v-slot:loading>
-                <q-skeleton height="100%" width="100%" square />
-              </template>
-            </q-img>
+          <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <div style="position: relative;">
+              <q-img 
+                :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" 
+                ratio="1"
+              >
+                <template v-slot:loading>
+                  <q-skeleton height="100%" width="100%" square />
+                </template>
+              </q-img>
 
-            <q-card-section>
-              <div class="q-mb-xs">
-                <q-badge
-                  color="primary"
+              <div style="position: absolute; top: 8px; left: 8px;">
+                <q-chip
+                  dense
                   text-color="white"
-                  :label="lot.type"
-                  class="text-bold q-pa-sm"
-                />
+                  class="text-caption text-weight-bold bg-primary"
+                  style="margin: 0; padding: 3px 8px; height: auto;"
+                >
+                  <q-icon
+                    :name="lot.category === 'Digital' ? 'computer' : 'delivery_dining'"
+                    size="xs"
+                    class="q-mr-xs"
+                  />
+                  {{ lot.category }}
+                </q-chip>
               </div>
+            </div>
 
-              <div class="row items-center">
-                <div class="q-space text-body1 ellipsis text-bold">{{ lot.title || 'Untitled Lot' }}</div>
-              </div>
+            <div>
+              <q-card-section>
+                <div class="text-subtitle1 text-bold ellipsis">{{ lot.title }}</div>
+                <div class="text-caption">Estimated: {{ lot.estimated_amount }} BCH</div>
 
-              <div class="row items-center q-mb-xs">
-                <div class="q-space text-caption">Estimated Price: {{ lot.estimatedPrice }}</div>
-              </div>
+                <div v-if="auctionType === 'English'" class="text-caption">
+                  <div>Floor/Reserve: {{ lot.threshold_bid }} BCH</div>
+                </div>
 
-              <div v-if="auctionType === 'English Auction'">
-                <div>Floor/Reserve: Php {{ lot.threshold }}</div>
-              </div>
+                <div v-else-if="auctionType === 'Dutch'" class="text-caption">
+                  <div>Ceiling Price: {{ lot.threshold_bid }} BCH</div>
+                  <div class="text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
+                </div>
 
-              <div v-else-if="auctionType === 'Dutch Auction'">
-                <div>Ceiling Price: {{ lot.threshold }} BCH</div>
-                <div class="text-caption text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
-              </div>
+                <div class="row q-my-sm">
+                  <q-btn
+                    icon="edit"
+                    class="q-pa-sm"
+                    size="sm"
+                    color="green"
+                    @click="editLotDetails(lot, index)"
+                  />
 
-              <div class="row q-my-sm">
-                <q-btn
-                  icon="edit"
-                  class="q-pa-sm"
-                  size="sm"
-                  color="green"
-                  @click="editLotDetails(lot, index)"
-                />
-
-                <q-btn
-                  icon="delete"
-                  class="q-pa-sm q-ml-sm"
-                  size="sm"
-                  color="red"
-                  @click="deleteLot(lot, index)"
-                />
-              </div>
-            </q-card-section>
+                  <q-btn
+                    icon="delete"
+                    class="q-pa-sm q-ml-sm"
+                    size="sm"
+                    color="red"
+                    @click="deleteLot(lot, index)"
+                  />
+                </div>
+              </q-card-section>
+            </div>
           </q-card>
         </div>
         

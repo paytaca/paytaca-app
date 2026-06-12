@@ -48,19 +48,61 @@
 
           <div v-else v-for="(lot, index) in lots" :key="index" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-              <q-img :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" ratio="1">
+              <q-img 
+                :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" 
+                ratio="1"
+                style="position: relative;"
+              >
                 <template v-slot:loading>
                   <q-skeleton height="100%" width="100%" square />
                 </template>
+
+                <div style="position: absolute;">
+                  <q-chip
+                    dense
+                    text-color="white"
+                    class="text-caption text-weight-bold bg-primary"
+                    style="margin: 0; padding: 3px 8px; height: auto;"
+                  >
+                    <q-icon
+                      :name="lot.type === 'Digital' ? 'computer' : 'delivery_dining'"
+                      size="xs"
+                      class="q-mr-xs"
+                    />
+                    {{ lot.type }}
+                  </q-chip>
+                </div>
               </q-img>
 
               <q-card-section>
                 <div class="text-subtitle1 text-bold ellipsis">{{ lot.title }}</div>
                 <div class="text-caption">Estimated: {{ lot.estimatedPrice }} BCH</div>
-                
-                <div class="row q-mt-sm justify-end">
-                  <q-btn flat round size="sm" color="green" icon="edit" @click="editLotDetails(lot, index)" />
-                  <q-btn flat round size="sm" color="red" icon="delete" @click="deleteLot(lot, index)" />
+
+                <div v-if="auctionType === 'English'" class="text-caption">
+                  <div>Floor/Reserve: {{ lot.threshold }} BCH</div>
+                </div>
+
+                <div v-else-if="auctionType === 'Dutch'" class="text-caption">
+                  <div>Ceiling Price: {{ lot.threshold }} BCH</div>
+                  <div class="text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
+                </div>
+
+                <div class="row q-my-sm">
+                  <q-btn
+                    icon="edit"
+                    class="q-pa-sm"
+                    size="sm"
+                    color="green"
+                    @click="editLotDetails(lot, index)"
+                  />
+
+                  <q-btn
+                    icon="delete"
+                    class="q-pa-sm q-ml-sm"
+                    size="sm"
+                    color="red"
+                    @click="deleteLot(lot, index)"
+                  />
                 </div>
               </q-card-section>
             </q-card>
