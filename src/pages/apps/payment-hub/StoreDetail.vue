@@ -318,7 +318,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { useQuasar, copyToClipboard, openURL } from 'quasar'
@@ -358,6 +358,7 @@ const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_keys_orderBy') || 'created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_keys_orderDir') || 'desc')
 let searchTimeout = null
+let pollingInterval = null
 
 /**
  * Handles ordering toggles.
@@ -397,15 +398,26 @@ const filteredApiKeys = computed(() => {
 
 onMounted(() => {
   refreshPage()
+  pollingInterval = setInterval(() => {
+    if (keysPage.value === 1) {
+      refreshPage(undefined, true)
+    }
+  }, 20000)
+})
+
+onBeforeUnmount(() => {
+  if (pollingInterval) clearInterval(pollingInterval)
 })
 
 /**
  * Initializes the Hub interface for this specific store view.
  */
-async function initHub() {
-  $q.loading.show({
-    message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
-  })
+async function initHub(isBackground = false) {
+  if (!isBackground) {
+    $q.loading.show({
+      message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
+    })
+  }
   try {
     if (!wallet.value) {
       wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
@@ -415,18 +427,20 @@ async function initHub() {
     }
     return hub.value
   } finally {
-    $q.loading.hide()
+    if (!isBackground) $q.loading.hide()
   }
 }
 
 /**
  * Main refresh function.
  */
-async function refreshPage(done) {
-  fetchingData.value = true
-  keysPage.value = 1
+async function refreshPage(done, isBackground = false) {
+  if (!isBackground) {
+    fetchingData.value = true
+    keysPage.value = 1
+  }
   try {
-    const paymentHub = await initHub()
+    const paymentHub = await initHub(isBackground)
     
     // Fetch full store metadata
     storeData.value = await paymentHub.getStore(storeId.value)
@@ -448,13 +462,13 @@ async function refreshPage(done) {
     webhookPublicKey.value = keyData?.public_key || ''
 
     // Refresh invoices list
-    if (invoiceListRef.value) {
+    if (invoiceListRef.value && !isBackground) {
       invoiceListRef.value.refreshList()
     }
   } catch (error) {
     console.error('Error fetching store details:', error)
   } finally {
-    fetchingData.value = false
+    if (!isBackground) fetchingData.value = false
     if (typeof done === 'function') done()
   }
 }

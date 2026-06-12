@@ -152,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
@@ -185,11 +185,51 @@ const statusFilter = ref('ALL')
 const searchQuery = ref('')
 const tempSearchQuery = ref('')
 const showSearchDialog = ref(false)
+let pollingInterval = null
+let expirationCheckInterval = null
 
 onMounted(async () => {
   await initHub()
   refreshList()
+  pollingInterval = setInterval(() => {
+    if (currentPage.value === 1 && !searchQuery.value) {
+      refreshList(true)
+    }
+  }, 15000)
+  
+  // Local timer to automatically mark pending invoices as expired
+  expirationCheckInterval = setInterval(checkExpirations, 1000)
 })
+
+onBeforeUnmount(() => {
+  if (pollingInterval) clearInterval(pollingInterval)
+  if (expirationCheckInterval) clearInterval(expirationCheckInterval)
+})
+
+function checkExpirations() {
+  if (!invoices.value || invoices.value.length === 0) return
+  
+  const now = new Date()
+  let hasChanges = false
+  
+  invoices.value.forEach(invoice => {
+    if (invoice.status === 'PENDING' && invoice.expires) {
+      const expiryDate = new Date(invoice.expires)
+      if (now >= expiryDate) {
+        invoice.status = 'EXPIRED'
+        hasChanges = true
+      }
+    }
+  })
+  
+  // If we're filtering by status, we might need to refresh the list to apply filters correctly
+  if (hasChanges && statusFilter.value !== 'ALL') {
+    // Small delay to allow user to see the state change before it disappears due to filter
+    setTimeout(() => {
+      refreshList(true)
+    }, 2000)
+  }
+}
 
 async function initHub() {
   const walletIndex = $store.getters['global/getWalletIndex']
@@ -197,10 +237,12 @@ async function initHub() {
   hub.value = new PaymentHub(wallet)
 }
 
-async function refreshList() {
+async function refreshList(isBackground = false) {
   if (!hub.value) return
-  loading.value = true
-  currentPage.value = 1
+  if (!isBackground) {
+    loading.value = true
+    currentPage.value = 1
+  }
   try {
     const params = {
       page: 1,
@@ -215,7 +257,7 @@ async function refreshList() {
   } catch (error) {
     console.error('Error fetching invoices:', error)
   } finally {
-    loading.value = false
+    if (!isBackground) loading.value = false
   }
 }
 

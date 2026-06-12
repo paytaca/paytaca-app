@@ -206,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
@@ -238,9 +238,19 @@ const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_stores_orderBy') || 'date_created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_stores_orderDir') || 'desc')
 let searchTimeout = null
+let pollingInterval = null
 
 onMounted(() => {
   refreshPage()
+  pollingInterval = setInterval(() => {
+    if (currentPage.value === 1) {
+      refreshPage(undefined, true)
+    }
+  }, 20000)
+})
+
+onBeforeUnmount(() => {
+  if (pollingInterval) clearInterval(pollingInterval)
 })
 
 /**
@@ -274,10 +284,12 @@ function onSearch() {
 /**
  * Initializes the wallet and Payment Hub interface.
  */
-async function initHub() {
-  $q.loading.show({
-    message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
-  })
+async function initHub(isBackground = false) {
+  if (!isBackground) {
+    $q.loading.show({
+      message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
+    })
+  }
   try {
     if (!wallet.value) {
       wallet.value = await loadWallet('BCH', $store.getters['global/getWalletIndex'])
@@ -287,30 +299,34 @@ async function initHub() {
       hub.value = new PaymentHub(wallet.value)
     }
 
-    // Check if wallet is already registered on the hub
-    let registration = await hub.value.checkRegistration()
-    
-    // Auto-register if not found
-    if (!registration) {
-      console.log('Wallet not registered on Payment Hub. Registering now...')
-      registration = await hub.value.registerWallet()
+    if (!hubWalletData.value) {
+      // Check if wallet is already registered on the hub
+      let registration = await hub.value.checkRegistration()
+      
+      // Auto-register if not found
+      if (!registration) {
+        console.log('Wallet not registered on Payment Hub. Registering now...')
+        registration = await hub.value.registerWallet()
+      }
+      
+      hubWalletData.value = registration
     }
-    
-    hubWalletData.value = registration
     return hub.value
   } finally {
-    $q.loading.hide()
+    if (!isBackground) $q.loading.hide()
   }
 }
 
 /**
  * Main refresh function.
  */
-async function refreshPage(done) {
-  fetchingStores.value = true
-  currentPage.value = 1
+async function refreshPage(done, isBackground = false) {
+  if (!isBackground) {
+    fetchingStores.value = true
+    currentPage.value = 1
+  }
   try {
-    const paymentHub = await initHub()
+    const paymentHub = await initHub(isBackground)
     
     // Construct ordering string
     const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
@@ -325,12 +341,14 @@ async function refreshPage(done) {
     hasNextPage.value = !!data.next
   } catch (error) {
     console.error('Payment Hub Error:', error)
-    $q.notify({
-      type: 'negative',
-      message: $t('PaymentHubError', {}, 'Failed to connect to Payment Hub')
-    })
+    if (!isBackground) {
+      $q.notify({
+        type: 'negative',
+        message: $t('PaymentHubError', {}, 'Failed to connect to Payment Hub')
+      })
+    }
   } finally {
-    fetchingStores.value = false
+    if (!isBackground) fetchingStores.value = false
     if (typeof done === 'function') done()
   }
 }
