@@ -116,7 +116,7 @@
           >
             <div class="relative-position">
               <q-img 
-                :src="noImage"
+                :src="auction?.image || noImage"
                 ratio="1.25"
               ><!-- :src="auction.image || noImage" -->
                 <template v-slot:loading>

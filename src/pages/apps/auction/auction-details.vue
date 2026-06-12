@@ -11,7 +11,7 @@
       <div class="row q-col-gutter-md justify-start items-start">
         <div class="col-12 col-sm-auto flex justify-center">
           <q-img 
-            :src="collection?.imageUrl || noImage" 
+            :src="auction?.image || noImage" 
             width="340px" 
             height="350px" 
             class="rounded-borders shadow-1" 
