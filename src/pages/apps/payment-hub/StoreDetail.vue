@@ -71,25 +71,24 @@
         <q-separator :dark="darkMode" />
 
         <!-- Sticky Section Header for Invoices -->
-        <div v-if="activeTab === 'invoices'" class="row no-wrap items-center q-px-sm">
-          <div class="col overflow-hidden">
-            <q-tabs
-              v-model="invoiceStatusFilter"
-              dense
-              no-caps
-              class="text-grey"
-              active-color="pt-primary1"
-              indicator-color="pt-primary1"
-              align="left"
-            >
-              <q-tab name="ALL" :label="$t('All')" class="status-tab q-px-sm" />
-              <q-tab name="PENDING" :label="$t('Pending')" class="status-tab q-px-sm" />
-              <q-tab name="PAID" :label="$t('Paid')" class="status-tab q-px-sm" />
-              <q-tab name="EXPIRED" :label="$t('Expired')" class="status-tab q-px-sm" />
-              <q-tab name="CANCELLED" :label="$t('Cancelled')" class="status-tab q-px-sm" />
-            </q-tabs>
-          </div>
-          <div class="col-auto q-pl-sm q-pr-sm">
+        <div v-if="activeTab === 'invoices'" class="row no-wrap items-center q-px-md">
+          <q-tabs
+            v-model="invoiceStatusFilter"
+            dense
+            no-caps
+            class="text-grey col"
+            active-color="pt-primary1"
+            indicator-color="pt-primary1"
+            align="justify"
+            narrow-indicator
+          >
+            <q-tab name="ALL" :label="$t('All')" />
+            <q-tab name="PENDING" :label="$t('Pending')" />
+            <q-tab name="PAID" :label="$t('Paid')" />
+            <q-tab name="EXPIRED" :label="$t('Expired')" />
+            <q-tab name="CANCELLED" :label="$t('Cancelled')" />
+          </q-tabs>
+          <div class="col-auto q-pl-sm">
             <q-btn
               flat
               round
@@ -193,18 +192,20 @@
     </q-header>
 
     <q-page-container>
-      <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
-        <q-pull-to-refresh @refresh="refreshPage">
-          <q-tab-panels v-model="activeTab" animated class="bg-transparent">
+      <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'" class="column no-wrap">
+        <q-pull-to-refresh @refresh="refreshPage" class="col column no-wrap">
+          <q-tab-panels v-model="activeTab" animated swipeable infinite class="bg-transparent col" style="min-height: 70vh;">
             <!-- Invoices Tab -->
             <q-tab-panel name="invoices" class="q-pa-none">
-              <InvoiceList 
-                ref="invoiceListRef" 
-                :store-id="storeId"
-                :status-filter="invoiceStatusFilter"
-                :search-query="invoiceSearchQuery"
-                @clear-search="clearInvoiceSearch"
-              />
+              <div v-touch-swipe.horizontal="handleInvoiceStatusSwipe" class="col column no-wrap">
+                <InvoiceList 
+                  ref="invoiceListRef" 
+                  :store-id="storeId"
+                  :status-filter="invoiceStatusFilter"
+                  :search-query="invoiceSearchQuery"
+                  @clear-search="clearInvoiceSearch"
+                />
+              </div>
             </q-tab-panel>
 
             <!-- API Keys Tab -->
@@ -439,6 +440,19 @@ function applyInvoiceSearch() {
 function clearInvoiceSearch() {
   invoiceSearchQuery.value = ''
   tempInvoiceSearchQuery.value = ''
+}
+
+const invoiceStatuses = ['ALL', 'PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
+function handleInvoiceStatusSwipe(details) {
+  const currentIndex = invoiceStatuses.indexOf(invoiceStatusFilter.value)
+  
+  if (details.direction === 'left' && currentIndex < invoiceStatuses.length - 1) {
+    // Swipe left (finger moving right-to-left) -> Next status
+    invoiceStatusFilter.value = invoiceStatuses[currentIndex + 1]
+  } else if (details.direction === 'right' && currentIndex > 0) {
+    // Swipe right (finger moving left-to-right) -> Previous status
+    invoiceStatusFilter.value = invoiceStatuses[currentIndex - 1]
+  }
 }
 
 // API Key Filter & Sort state
