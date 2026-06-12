@@ -66,29 +66,39 @@
               </div>
             </div>
             
-            <div class="full-width q-mt-md">
-              <div v-if="auction.type === 'English'">
-                <q-btn 
-                  class="text-bold text-white full-width"
-                  style="background-color: var(--q-secondary);"
-                  padding="md"
-                  label="Place Bid"
-                  :disabled="lotStatus.label !== 'Open'"
-                  @click="openDialog = !openDialog"
-                  unelevated
-                />
+            <div class="q-mt-md">
+              <div v-if="!isAuthor" class="full-width">
+                <div v-if="auction.type === 'English'">
+                  <q-btn 
+                    class="text-bold text-white full-width"
+                    style="background-color: var(--q-secondary);"
+                    padding="md"
+                    label="Place Bid"
+                    :disabled="lotStatus.label !== 'Open'"
+                    @click="openDialog = !openDialog"
+                    unelevated
+                  />
+                </div>
+
+                <div v-else>
+                  <q-btn 
+                    class="text-bold text-white full-width"
+                    style="background-color: var(--q-secondary);"
+                    padding="md"
+                    label="Buy It Now"
+                    :disabled="lotStatus.label !== 'Open'"
+                    @click="buyItNow"
+                    unelevated
+                  />
+                </div>
               </div>
 
-              <div v-else>
-                <q-btn 
-                  class="text-bold text-white full-width"
-                  style="background-color: var(--q-secondary);"
-                  padding="md"
-                  label="Buy It Now"
-                  :disabled="lotStatus.label !== 'Open'"
-                  @click="buyItNow"
-                  unelevated
-                />
+              <div v-else
+                class="row flex-center full-width rounded-borders"
+                :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+                style="min-height: 50px; width: 100%;"
+              >
+                <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('You are the author of this auction.') }}</div>
               </div>
             </div>
           </div>
@@ -191,8 +201,6 @@
 </template>
 
 <script setup>
-
-import noImage from 'src/assets/no-image.svg'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
@@ -207,6 +215,7 @@ import { AuctionList, LotsList } from 'src/auction/object'
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
+import noImage from 'src/assets/no-image.svg'
 
 defineOptions({
   directives: {
