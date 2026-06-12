@@ -347,6 +347,38 @@ const handleLotDelete = () => {
     timeout: 3000
   })
 }
+
+
+
+const validateAuctionDates = () => {
+  const { start_date, end_date } = auctionForm.value
+
+  if (!start_date || !end_date) {
+    $q.notify({ type: 'negative', message: 'Please set both start and end dates.' })
+    return false
+  }
+
+  const start = new Date(start_date)
+  const end = new Date(end_date)
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    $q.notify({ type: 'negative', message: 'Invalid date format.' })
+    return false
+  }
+
+  if (end <= start) {
+    $q.notify({ type: 'negative', message: 'End date must be after start date.' })
+    return false
+  }
+
+  const diffHours = (end - start) / (1000 * 60 * 60)
+  if (diffHours < 24) {
+    $q.notify({ type: 'negative', message: 'Auction must run for at least 24 hours.' })
+    return false
+  }
+
+  return true
+}
 </script>
 
 <style scoped lang="scss">

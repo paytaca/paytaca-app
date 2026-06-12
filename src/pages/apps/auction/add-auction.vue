@@ -108,7 +108,7 @@
                     </div>
 
                     <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
-                    
+
                     <div class="text-negative">
                       Drops by: ₱950
                       <span class="text-weight-medium" style="opacity: 0.65;">
@@ -230,6 +230,8 @@ const handleLotDelete = () => {
 }
 
 const handleCreateAuction = async () => {
+  if (!validateAuctionDates()) return
+  
   if (lots.value.length === 0) {
     $q.notify({
       type: 'warning',
@@ -326,6 +328,36 @@ const getFormattedBCH = (bch) => {
   const main = match ? match[1] : numStr;
   const zeros = numStr.substring(main.length);
   return { main, zeros, full: numStr };
+}
+
+const validateAuctionDates = () => {
+  const { start_date, end_date } = auctionForm.value
+
+  if (!start_date || !end_date) {
+    $q.notify({ type: 'negative', message: 'Please set both start and end dates.' })
+    return false
+  }
+
+  const start = new Date(start_date)
+  const end = new Date(end_date)
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    $q.notify({ type: 'negative', message: 'Invalid date format.' })
+    return false
+  }
+
+  if (end <= start) {
+    $q.notify({ type: 'negative', message: 'End date must be after start date.' })
+    return false
+  }
+
+  const diffHours = (end - start) / (1000 * 60 * 60)
+  if (diffHours < 24) {
+    $q.notify({ type: 'negative', message: 'Auction must run for at least 24 hours.' })
+    return false
+  }
+
+  return true
 }
 </script>
 
