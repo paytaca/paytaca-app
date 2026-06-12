@@ -71,7 +71,7 @@
             </div>
           </div>
 
-          <div v-if="auctionType === 'English Auction'" class="row q-col-gutter-md q-px-md q-mb-md">
+          <div v-if="auctionType === 'English'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
               <label class="text-md text-weight-bold block q-mb-xs">Price Floor</label>
               <q-input
@@ -94,7 +94,7 @@
             </div>
           </div>
 
-          <div v-if="auctionType === 'Dutch Auction'" class="row q-col-gutter-md q-px-md q-mb-md">
+          <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
               <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
               <q-input
@@ -175,6 +175,21 @@
           </div>
 
           <div class="q-px-md q-mb-md">
+            <label class="text-md text-weight-bold block q-mb-xs">Description</label>
+            <q-input
+              type="textarea"
+              outlined
+              dense
+              v-model="lotDescription"
+              placeholder="Enter lot description"
+              color="pt-primary1"
+              :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+              lazy-rules hide-bottom-space
+              :rules="[ val => val && val.trim().length > 0 || 'Lot description is required' ]"
+            />
+          </div>
+
+          <div class="q-px-md q-mb-md">
             <q-checkbox 
               v-model="isFiatUsed" 
               label="Use Fiat currency"
@@ -209,7 +224,7 @@ defineProps({
   auctionType: {
     type: String,
     required: true,
-    default: 'English Auction'
+    default: 'English'
   }
 })
 
@@ -226,6 +241,7 @@ const estimatedPrice = ref(0.002)
 const priceThreshold = ref(0.002)
 const priceDrop = ref(0.0005)
 const lotImages = ref([])
+const lotDescription = ref('')
 const isFiatUsed = ref(false)
 
 const isToggledAddLot = ref(false)
@@ -269,11 +285,14 @@ const addLot = () => {
     type: lotType.value,
     estimatedPrice: estimatedPrice.value,
     threshold: priceThreshold.value || 0,
-    price_drop: priceDrop.value || 0,
+    priceDrop: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
+    description: lotDescription.value,
     
     imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
-    imageUrls: generatedUrls
+    imageUrls: generatedUrls,
+
+    rawFiles: lotImages.value ? [...lotImages.value] : []
   }
 
   emit('add-lot', payload)
@@ -291,6 +310,7 @@ const addLot = () => {
   priceThreshold.value = null
   priceDrop.value = 0.0005
   lotImages.value = []
+  lotDescription.value = ''
 }
 </script>
 

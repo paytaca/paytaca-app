@@ -163,6 +163,21 @@
           </div>
 
           <div class="q-px-md q-mb-md">
+            <label class="text-md text-weight-bold block q-mb-xs">Description</label>
+            <q-input
+              type="textarea"
+              outlined
+              dense
+              v-model="lotDescription"
+              placeholder="Enter lot description"
+              color="pt-primary1"
+              :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+              lazy-rules hide-bottom-space
+              :rules="[ val => val && val.trim().length > 0 || 'Lot description is required' ]"
+            />
+          </div>
+
+          <div class="q-px-md q-mb-md">
             <q-checkbox 
               v-model="isFiatUsed" 
               label="Use Fiat currency"
@@ -221,6 +236,7 @@ const estimatedPrice = ref(0)
 const priceThreshold = ref(0)
 const priceDrop = ref(0)
 const lotImages = ref([])
+const lotDescription = ref('')
 const isFiatUsed = ref(false)
 
 const currentImageUrls = ref([])
@@ -244,6 +260,7 @@ watch(() => props.lotData, (newLot) => {
     priceThreshold.value = newLot.threshold || 0
     priceDrop.value = newLot.price_drop || 0
     isFiatUsed.value = newLot.isFiatUsed || false
+    lotDescription.value = newLot.description || ''
     
     if (Array.isArray(newLot.imageUrls)) {
       currentImageUrls.value = [...newLot.imageUrls]
@@ -272,6 +289,7 @@ const saveLot = () => {
     threshold: priceThreshold.value || 0,
     price_drop: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
+    description: lotDescription.value,
     
     imageUrl: finalImages.length > 0 ? finalImages[0] : null,
     imageUrls: finalImages
