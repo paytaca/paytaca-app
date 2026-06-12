@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="sticky-header-container" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']" style="min-height: 100vh;">
+  <q-layout view="lHh Lpr lFf" class="sticky-header-container" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']">
     <q-header class="shadow-2" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
       <HeaderNav
         :title="storeData?.name || storeName || $t('StoreDetails')"
@@ -69,6 +69,40 @@
           <q-tab name="settings" :label="$t('Settings')" />
         </q-tabs>
         <q-separator :dark="darkMode" />
+
+        <!-- Sticky Section Header for Invoices -->
+        <div v-if="activeTab === 'invoices'" class="row no-wrap items-center q-px-sm">
+          <div class="col overflow-hidden">
+            <q-tabs
+              v-model="invoiceStatusFilter"
+              dense
+              no-caps
+              class="text-grey"
+              active-color="pt-primary1"
+              indicator-color="pt-primary1"
+              align="left"
+            >
+              <q-tab name="ALL" :label="$t('All')" class="status-tab q-px-sm" />
+              <q-tab name="PENDING" :label="$t('Pending')" class="status-tab q-px-sm" />
+              <q-tab name="PAID" :label="$t('Paid')" class="status-tab q-px-sm" />
+              <q-tab name="EXPIRED" :label="$t('Expired')" class="status-tab q-px-sm" />
+              <q-tab name="CANCELLED" :label="$t('Cancelled')" class="status-tab q-px-sm" />
+            </q-tabs>
+          </div>
+          <div class="col-auto q-pl-sm q-pr-sm">
+            <q-btn
+              flat
+              round
+              dense
+              icon="search"
+              :color="invoiceSearchQuery ? 'pt-primary1' : 'grey'"
+              @click="showInvoiceSearchDialog = true"
+            >
+              <q-badge v-if="invoiceSearchQuery" color="red" floating circular />
+            </q-btn>
+          </div>
+        </div>
+        <q-separator v-if="activeTab === 'invoices'" :dark="darkMode" />
 
         <!-- Sticky Section Header (only for API Keys) -->
         <div v-if="activeTab === 'api_keys'" class="q-px-md q-pt-sm q-pb-md">
@@ -164,7 +198,13 @@
           <q-tab-panels v-model="activeTab" animated class="bg-transparent">
             <!-- Invoices Tab -->
             <q-tab-panel name="invoices" class="q-pa-none">
-              <InvoiceList ref="invoiceListRef" :store-id="storeId" />
+              <InvoiceList 
+                ref="invoiceListRef" 
+                :store-id="storeId"
+                :status-filter="invoiceStatusFilter"
+                :search-query="invoiceSearchQuery"
+                @clear-search="clearInvoiceSearch"
+              />
             </q-tab-panel>
 
             <!-- API Keys Tab -->
@@ -314,6 +354,39 @@
         </q-pull-to-refresh>
       </q-page>
     </q-page-container>
+
+    <!-- Invoice Search Dialog -->
+    <q-dialog v-model="showInvoiceSearchDialog" position="top">
+      <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ $t('SearchInvoices') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <q-input
+            v-model="tempInvoiceSearchQuery"
+            outlined
+            rounded
+            dense
+            :placeholder="$t('SearchByMemoTxidId')"
+            autofocus
+            @keyup.enter="applyInvoiceSearch"
+          >
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pt-none">
+          <q-btn flat :label="$t('Clear')" color="grey" @click="clearInvoiceSearch" v-close-popup />
+          <q-btn unelevated rounded :label="$t('Search')" color="pt-primary1" @click="applyInvoiceSearch" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-layout>
 </template>
 
@@ -353,7 +426,22 @@ const keysPage = ref(1)
 const hasNextKeysPage = ref(false)
 const invoiceListRef = ref(null)
 
-// Filter & Sort state
+// Invoice Filter & Search state
+const invoiceStatusFilter = ref('ALL')
+const invoiceSearchQuery = ref('')
+const tempInvoiceSearchQuery = ref('')
+const showInvoiceSearchDialog = ref(false)
+
+function applyInvoiceSearch() {
+  invoiceSearchQuery.value = tempInvoiceSearchQuery.value
+}
+
+function clearInvoiceSearch() {
+  invoiceSearchQuery.value = ''
+  tempInvoiceSearchQuery.value = ''
+}
+
+// API Key Filter & Sort state
 const searchQuery = ref('')
 const orderBy = ref(localStorage.getItem('paytaca_hub_keys_orderBy') || 'created')
 const orderDir = ref(localStorage.getItem('paytaca_hub_keys_orderDir') || 'desc')

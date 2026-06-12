@@ -1,42 +1,5 @@
 <template>
   <div class="invoice-list-container">
-    <!-- Controls: Status Filter & Search -->
-    <div class="row no-wrap items-center q-px-md q-py-sm sticky-controls" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
-      <div class="col overflow-hidden">
-        <q-tabs
-          v-model="statusFilter"
-          dense
-          no-caps
-          inline-label
-          class="text-grey"
-          active-color="pt-primary1"
-          indicator-color="transparent"
-          align="left"
-          @update:model-value="onFilterChange"
-        >
-          <q-tab name="ALL" :label="$t('All')" class="status-tab" />
-          <q-tab name="PENDING" :label="$t('Pending')" class="status-tab" />
-          <q-tab name="PAID" :label="$t('Paid')" class="status-tab" />
-          <q-tab name="EXPIRED" :label="$t('Expired')" class="status-tab" />
-          <q-tab name="CANCELLED" :label="$t('Cancelled')" class="status-tab" />
-        </q-tabs>
-      </div>
-      <div class="col-auto q-pl-sm">
-        <q-btn
-          flat
-          round
-          dense
-          icon="search"
-          :color="searchQuery ? 'pt-primary1' : 'grey'"
-          @click="showSearchDialog = true"
-        >
-          <q-badge v-if="searchQuery" color="red" floating circular />
-        </q-btn>
-      </div>
-    </div>
-
-    <q-separator :dark="darkMode" />
-
     <!-- List -->
     <div class="q-px-md q-pb-md">
       <div v-if="loading && !invoices.length" class="text-center q-mt-xl">
@@ -55,7 +18,7 @@
           color="pt-primary1"
           :label="$t('ClearSearch')"
           class="q-mt-md"
-          @click="clearSearch"
+          @click="$emit('clear-search')"
         />
       </div>
 
@@ -116,43 +79,11 @@
         </q-infinite-scroll>
       </div>
     </div>
-
-    <!-- Search Dialog -->
-    <q-dialog v-model="showSearchDialog" position="top">
-      <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
-        <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('SearchInvoices') }}</div>
-          <q-space />
-          <q-btn icon="close" flat round dense v-close-popup />
-        </q-card-section>
-
-        <q-card-section>
-          <q-input
-            v-model="tempSearchQuery"
-            outlined
-            rounded
-            dense
-            :placeholder="$t('SearchByMemoTxidId')"
-            autofocus
-            @keyup.enter="applySearch"
-          >
-            <template v-slot:append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-pt-none">
-          <q-btn flat :label="$t('Clear')" color="grey" @click="clearSearch" v-close-popup />
-          <q-btn unelevated rounded :label="$t('Search')" color="pt-primary1" @click="applySearch" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useQuasar } from 'quasar'
 import ago from 's-ago'
@@ -165,8 +96,18 @@ const props = defineProps({
   storeId: {
     type: String,
     required: true
+  },
+  statusFilter: {
+    type: String,
+    default: 'ALL'
+  },
+  searchQuery: {
+    type: String,
+    default: ''
   }
 })
+
+const emit = defineEmits(['clear-search'])
 
 const $store = useStore()
 const $q = useQuasar()
@@ -180,11 +121,6 @@ const currentPage = ref(1)
 const hasNextPage = ref(false)
 const hub = ref(null)
 
-// Filter & Search
-const statusFilter = ref('ALL')
-const searchQuery = ref('')
-const tempSearchQuery = ref('')
-const showSearchDialog = ref(false)
 let pollingInterval = null
 let expirationCheckInterval = null
 
@@ -192,7 +128,7 @@ onMounted(async () => {
   await initHub()
   refreshList()
   pollingInterval = setInterval(() => {
-    if (currentPage.value === 1 && !searchQuery.value) {
+    if (currentPage.value === 1 && !props.searchQuery) {
       refreshList(true)
     }
   }, 15000)
@@ -204,6 +140,14 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (pollingInterval) clearInterval(pollingInterval)
   if (expirationCheckInterval) clearInterval(expirationCheckInterval)
+})
+
+// Watch for prop changes to refresh the list
+watch(() => props.statusFilter, () => {
+  refreshList()
+})
+watch(() => props.searchQuery, () => {
+  refreshList()
 })
 
 function checkExpirations() {
@@ -223,7 +167,7 @@ function checkExpirations() {
   })
   
   // If we're filtering by status, we might need to refresh the list to apply filters correctly
-  if (hasChanges && statusFilter.value !== 'ALL') {
+  if (hasChanges && props.statusFilter !== 'ALL') {
     // Small delay to allow user to see the state change before it disappears due to filter
     setTimeout(() => {
       refreshList(true)
@@ -246,8 +190,8 @@ async function refreshList(isBackground = false) {
   try {
     const params = {
       page: 1,
-      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
-      search: searchQuery.value || undefined,
+      status: props.statusFilter === 'ALL' ? undefined : props.statusFilter,
+      search: props.searchQuery || undefined,
       network: isChipnet.value ? 'test' : 'main',
       ordering: '-date_created'
     }
@@ -271,8 +215,8 @@ async function onLoadMore(index, done) {
     currentPage.value++
     const params = {
       page: currentPage.value,
-      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
-      search: searchQuery.value || undefined,
+      status: props.statusFilter === 'ALL' ? undefined : props.statusFilter,
+      search: props.searchQuery || undefined,
       network: isChipnet.value ? 'test' : 'main',
       ordering: '-date_created'
     }
@@ -286,21 +230,6 @@ async function onLoadMore(index, done) {
   } finally {
     done()
   }
-}
-
-function onFilterChange() {
-  refreshList()
-}
-
-function applySearch() {
-  searchQuery.value = tempSearchQuery.value
-  refreshList()
-}
-
-function clearSearch() {
-  searchQuery.value = ''
-  tempSearchQuery.value = ''
-  refreshList()
 }
 
 function formatTimeAgo(date) {
@@ -345,14 +274,6 @@ defineExpose({
 <style lang="scss" scoped>
 .invoice-list-container {
   min-height: 200px;
-}
-.sticky-controls {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-.status-tab {
-  min-width: 80px;
 }
 .border-grey-4 {
   border: 1px solid rgba(128, 128, 128, 0.2);
