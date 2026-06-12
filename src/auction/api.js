@@ -30,6 +30,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
       (method === "get") ? await backend.get(apiURL, { headers }) : 
       (method === "post") ? await backend.post(apiURL, payload, { headers }) :
       (method === "put") ? await backend.put(apiURL, payload, { headers }) :
+      (method === "patch") ? await backend.patch(apiURL, payload, { headers }) :
       await backend.delete(apiURL, { headers }) 
 
       console.log("[callAPI] Response generated.")
@@ -53,7 +54,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null) {
         errorMessage = 'FORBIDDEN ACCESS (must be admin user).'
         console.log("[callAPI] " + errorMessage)
       } else {
-        errorMessage = error.response?.data?.message || error.message || 'Failed to fetch'
+        errorMessage = error.response?.data?.detail || error.response?.data?.message || JSON.stringify(error.response?.data) || error.message || 'Failed to fetch'
         console.error("[callAPI] Error encountered: " + errorMessage)
       }
     
