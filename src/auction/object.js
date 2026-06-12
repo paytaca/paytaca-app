@@ -68,6 +68,21 @@ export class LotsList {
     
     return { label: 'Closed', color: 'red' };
   }
+
+  getLotStatus(startDate, endDate) {
+    if (this.is_sold) return { label: 'Sold', color: 'red' };
+    
+    if (!startDate || !endDate) return { label: 'Active', color: 'blue' };
+
+    const now = new Date().getTime();
+    const start = new Date(startDate.replace(' ', 'T')).getTime();
+    const end = new Date(endDate.replace(' ', 'T')).getTime();
+
+    if (now < start) return { label: 'Upcoming', color: 'orange' };
+    if (now >= start && now <= end) return { label: 'Open', color: 'green' };
+    
+    return { label: 'Closed', color: 'red' };
+  }
 }
 
 export class AuctionList {
