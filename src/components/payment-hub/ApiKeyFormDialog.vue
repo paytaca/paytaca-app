@@ -3,23 +3,23 @@
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
       <q-form ref="formRef" @submit="onOKClick">
         <q-card-section>
-          <div class="text-h6">{{ $t('CreateKey', {}, 'Create API Key') }}</div>
+          <div class="text-h6">{{ $t('CreateKey') }}</div>
         </q-card-section>
 
         <q-card-section class="q-pt-none q-gutter-y-md">
           <q-input
             v-model="form.name"
-            :label="$t('KeyName', {}, 'Key Name (e.g. Mobile App)') + ' *'"
+            :label="$t('KeyName') + ' *'"
             outlined
             dense
             autofocus
             lazy-rules
-            :rules="[val => !!val || $t('Required', {}, 'Required')]"
+            :rules="[val => !!val || $t('Required')]"
             hide-bottom-space
           />
           
           <div>
-            <div class="text-caption text-grey q-mb-xs">{{ $t('ExpiryDateOptional', {}, 'Expiry Date & Time (Optional)') }}</div>
+            <div class="text-caption text-grey q-mb-xs">{{ $t('ExpiryDateOptional') }}</div>
             <div class="row q-col-gutter-sm">
               <div class="col-6">
                 <q-input outlined dense v-model="form.date" mask="date" :rules="[val => !val || /^\d{4}\/\d{2}\/\d{2}$/.test(val) || 'Invalid date']" placeholder="YYYY/MM/DD" hide-bottom-space>
@@ -57,7 +57,7 @@
 
         <q-card-actions align="right">
           <q-btn flat :label="$t('Cancel')" color="grey" @click="onCancelClick" />
-          <q-btn unelevated rounded :label="$t('Create', {}, 'Create')" color="pt-primary1" type="submit" />
+          <q-btn unelevated rounded :label="$t('Create')" color="pt-primary1" type="submit" />
         </q-card-actions>
       </q-form>
     </q-card>

@@ -2,7 +2,7 @@
   <q-layout view="lHh Lpr lFf" class="sticky-header-container" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']" style="min-height: 100vh;">
     <q-header class="shadow-2" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
       <HeaderNav
-        :title="$t('PaymentHub', {}, 'Payment Hub')"
+        :title="$t('PaymentHub')"
         backnavpath="/apps"
         class="header-nav apps-header"
       />
@@ -10,9 +10,9 @@
       <div class="q-px-md q-pt-sm q-pb-md">
         <!-- Header Section -->
         <div class="row items-center q-mb-md">
-          <div class="text-h5 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Stores', {}, 'Stores') }}</div>
+          <div class="text-h5 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Stores') }}</div>
           <q-btn flat round dense icon="help" color="grey" size="sm" @click="showHelpDialog">
-            <q-tooltip>{{ $t('Help', {}, 'Help') }}</q-tooltip>
+            <q-tooltip>{{ $t('Help') }}</q-tooltip>
           </q-btn>
           <q-space/>
           <q-btn
@@ -22,7 +22,7 @@
             size="md"
             @click="openStoreInfoDialog()"
           >
-            <q-tooltip>{{ $t('AddStore', {}, 'Add Store') }}</q-tooltip>
+            <q-tooltip>{{ $t('AddStore') }}</q-tooltip>
           </q-btn>
         </div>
 
@@ -34,7 +34,7 @@
               dense
               rounded
               outlined
-              :placeholder="$t('SearchStores', {}, 'Search stores...')"
+              :placeholder="$t('SearchStores')"
               :bg-color="darkMode ? 'pt-dark' : 'white'"
               :dark="darkMode"
               @update:model-value="onSearch"
@@ -55,7 +55,7 @@
             >
               <q-menu class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
                 <q-list style="min-width: 150px;">
-                  <q-item-label header>{{ $t('SortBy', {}, 'Sort By') }}</q-item-label>
+                  <q-item-label header>{{ $t('SortBy') }}</q-item-label>
                   <q-item clickable v-close-popup @click="setOrdering('name')">
                     <q-item-section avatar><q-icon name="title" /></q-item-section>
                     <q-item-section>{{ $t('Name') }}</q-item-section>
@@ -65,7 +65,7 @@
                   </q-item>
                   <q-item clickable v-close-popup @click="setOrdering('date_created')">
                     <q-item-section avatar><q-icon name="event" /></q-item-section>
-                    <q-item-section>{{ $t('DateCreated', {}, 'Date Created') }}</q-item-section>
+                    <q-item-section>{{ $t('DateCreated') }}</q-item-section>
                     <q-item-section side v-if="orderBy === 'date_created'">
                       <q-icon :name="orderDir === 'asc' ? 'arrow_upward' : 'arrow_downward'" color="pt-primary1" />
                     </q-item-section>
@@ -101,13 +101,13 @@
               <!-- Case 1: No stores in database at all -->
               <div v-if="!searchQuery">
                 <q-icon name="store" size="4em" class="text-grey q-mb-md" />
-                <div class="text-h6 text-grey q-mb-xs">{{ $t('NoStores', {}, 'No Stores') }}</div>
-                <div class="text-body2 text-grey q-mb-lg">{{ $t('NoRecords', {}, 'No records') }}</div>
+                <div class="text-h6 text-grey q-mb-xs">{{ $t('NoStores') }}</div>
+                <div class="text-body2 text-grey q-mb-lg">{{ $t('NoRecords') }}</div>
                 <q-btn
                   unelevated
                   rounded
                   color="pt-primary1"
-                  :label="$t('AddStore', {}, 'Add Store')"
+                  :label="$t('AddStore')"
                   icon="add"
                   class="button"
                   @click="openStoreInfoDialog()"
@@ -116,13 +116,13 @@
               <!-- Case 2: No stores matching the search query -->
               <div v-else>
                 <q-icon name="search_off" size="4em" class="text-grey q-mb-md" />
-                <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults', {}, 'No Results') }}</div>
-                <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSearchMatches', {}, 'No stores match your search.') }}</div>
+                <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults') }}</div>
+                <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSearchMatches') }}</div>
                 <q-btn
                   flat
                   rounded
                   color="pt-primary1"
-                  :label="$t('ClearSearch', {}, 'Clear Search')"
+                  :label="$t('ClearSearch')"
                   @click="searchQuery = ''; onSearch()"
                 />
               </div>
@@ -287,7 +287,7 @@ function onSearch() {
 async function initHub(isBackground = false) {
   if (!isBackground) {
     $q.loading.show({
-      message: $t('ConnectingToPaymentHub', {}, 'Connecting to Payment Hub...')
+      message: $t('ConnectingToPaymentHub')
     })
   }
   try {
@@ -344,7 +344,7 @@ async function refreshPage(done, isBackground = false) {
     if (!isBackground) {
       $q.notify({
         type: 'negative',
-        message: $t('PaymentHubError', {}, 'Failed to connect to Payment Hub')
+        message: $t('PaymentHubError')
       })
     }
   } finally {
@@ -403,7 +403,7 @@ function openStoreInfoDialog(storeData) {
       }
       await refreshPage()
     } catch (error) {
-      $q.notify({ type: 'negative', message: $t('ErrorSavingStore', {}, 'Error saving store') })
+      $q.notify({ type: 'negative', message: $t('ErrorSavingStore') })
     } finally {
       $q.loading.hide()
     }
@@ -426,7 +426,7 @@ function goToStorePage(store) {
  */
 function showHelpDialog() {
   $q.dialog({
-    title: $t('PaymentHubStores', {}, 'Payment Hub Stores'),
+    title: $t('PaymentHubStores'),
     message: `
       <div class="text-body2">
         <p>A <strong>Store</strong> in the Payment Hub represents a single business unit or application that accepts Bitcoin Cash payments.</p>
@@ -449,8 +449,8 @@ function showHelpDialog() {
  */
 function confirmDeleteStore(store) {
   $q.dialog({
-    title: $t('DeleteStore', {}, 'Delete Store'),
-    message: $t('DeleteStoreConfirm', { name: store.name }, `Are you sure you want to delete '${store.name}'?`),
+    title: $t('DeleteStore'),
+    message: $t('DeleteStoreConfirm', { name: store.name }),
     ok: { label: $t('Delete'), color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
@@ -460,7 +460,7 @@ function confirmDeleteStore(store) {
       await hub.value.deleteStore(store.id)
       await refreshPage()
     } catch (error) {
-      $q.notify({ type: 'negative', message: $t('ErrorDeletingStore', {}, 'Error deleting store') })
+      $q.notify({ type: 'negative', message: $t('ErrorDeletingStore') })
     } finally {
       $q.loading.hide()
     }

@@ -41,12 +41,12 @@
     <div class="q-px-md q-pb-md">
       <div v-if="loading && !invoices.length" class="text-center q-mt-xl">
         <q-spinner color="pt-primary1" size="3em" />
-        <p class="text-grey q-mt-md">{{ $t('LoadingInvoices', {}, 'Loading invoices...') }}</p>
+        <p class="text-grey q-mt-md">{{ $t('LoadingInvoices') }}</p>
       </div>
 
       <div v-else-if="!invoices.length" class="text-center q-mt-xl">
         <q-icon name="receipt_long" size="4em" class="text-grey q-mb-md" />
-        <div class="text-h6 text-grey">{{ $t('NoInvoices', {}, 'No Invoices') }}</div>
+        <div class="text-h6 text-grey">{{ $t('NoInvoices') }}</div>
         <div class="text-body2 text-grey">{{ searchQuery ? $t('NoSearchMatches') : $t('NoRecords') }}</div>
         <q-btn
           v-if="searchQuery"
@@ -93,7 +93,7 @@
               <!-- Middle: Memo -->
               <q-item-section>
                 <div class="text-body1 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)">
-                  {{ invoice.memo || $t('NoMemo', {}, 'No memo') }}
+                  {{ invoice.memo || $t('NoMemo') }}
                 </div>
               </q-item-section>
 
@@ -121,7 +121,7 @@
     <q-dialog v-model="showSearchDialog" position="top">
       <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
         <q-card-section class="row items-center q-pb-none">
-          <div class="text-h6">{{ $t('SearchInvoices', {}, 'Search Invoices') }}</div>
+          <div class="text-h6">{{ $t('SearchInvoices') }}</div>
           <q-space />
           <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
@@ -132,7 +132,7 @@
             outlined
             rounded
             dense
-            :placeholder="$t('SearchByMemoTxidId', {}, 'Search by Memo, TXID, ID...')"
+            :placeholder="$t('SearchByMemoTxidId')"
             autofocus
             @keyup.enter="applySearch"
           >

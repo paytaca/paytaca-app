@@ -2,7 +2,7 @@
   <q-dialog ref="dialogRef" @hide="onDialogHide">
     <q-card class="br-15 pt-card-2 text-bow" :class="getDarkModeClass(darkMode)" style="width: 500px; max-width: 95vw;">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ $t('InvoiceDetails', {}, 'Invoice Details') }}</div>
+        <div class="text-h6">{{ $t('InvoiceDetails') }}</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
@@ -43,7 +43,7 @@
         <!-- Memo -->
         <div class="q-mb-md">
           <div class="text-subtitle2 text-grey">{{ $t('Memo') }}</div>
-          <div class="text-body1">{{ invoice.memo || $t('NoMemo', {}, 'No memo') }}</div>
+          <div class="text-body1">{{ invoice.memo || $t('NoMemo') }}</div>
         </div>
 
         <q-separator class="q-my-md" :dark="darkMode" />
@@ -51,24 +51,24 @@
         <!-- Timestamps -->
         <div class="row q-col-gutter-md q-mb-md">
           <div class="col-6">
-            <div class="text-caption text-grey">{{ $t('DateCreated', {}, 'Date Created') }}</div>
+            <div class="text-caption text-grey">{{ $t('DateCreated') }}</div>
             <div class="text-body2">{{ formatDate(invoice.date_created) }}</div>
           </div>
           <div class="col-6">
             <template v-if="invoice.status === 'PAID'">
-              <div class="text-caption text-grey">{{ $t('DatePaid', {}, 'Date Paid') }}</div>
+              <div class="text-caption text-grey">{{ $t('DatePaid') }}</div>
               <div class="text-body2 text-green-7">{{ formatDate(invoice.date_paid) }}</div>
             </template>
             <template v-else-if="invoice.status === 'CANCELLED'">
-              <div class="text-caption text-grey">{{ $t('DateCancelled', {}, 'Date Cancelled') }}</div>
+              <div class="text-caption text-grey">{{ $t('DateCancelled') }}</div>
               <div class="text-body2 text-red">{{ formatDate(invoice.date_cancelled) }}</div>
             </template>
             <template v-else-if="invoice.status === 'EXPIRED'">
-              <div class="text-caption text-grey">{{ $t('DateExpired', {}, 'Date Expired') }}</div>
+              <div class="text-caption text-grey">{{ $t('DateExpired') }}</div>
               <div class="text-body2 text-red">{{ formatDate(invoice.date_expired) }}</div>
             </template>
             <template v-else>
-              <div class="text-caption text-grey">{{ $t('ExpiryDate', {}, 'Expiry Date') }}</div>
+              <div class="text-caption text-grey">{{ $t('ExpiryDate') }}</div>
               <div class="text-body2">{{ formatDate(invoice.expires) }}</div>
             </template>
           </div>
@@ -76,7 +76,7 @@
 
         <!-- TX ID (if paid) -->
         <div v-if="invoice.tx_id" class="q-mb-md">
-          <div class="text-caption text-grey">{{ $t('TransactionId', {}, 'Transaction ID') }}</div>
+          <div class="text-caption text-grey">{{ $t('TransactionId') }}</div>
           <div class="row no-wrap items-center">
             <div class="text-body2 ellipsis q-mr-xs font-mono">{{ invoice.tx_id }}</div>
             <CopyButton :text="invoice.tx_id" />
@@ -98,7 +98,7 @@
 
         <!-- Outputs -->
         <div>
-          <div class="text-subtitle2 text-grey q-mb-sm">{{ $t('Recipients', {}, 'Recipients') }} ({{ invoice.outputs?.length || 0 }})</div>
+          <div class="text-subtitle2 text-grey q-mb-sm">{{ $t('Recipients') }} ({{ invoice.outputs?.length || 0 }})</div>
           <q-list bordered class="br-10 overflow-hidden">
             <q-item v-for="(output, idx) in invoice.outputs" :key="idx" class="q-py-sm">
               <q-item-section>

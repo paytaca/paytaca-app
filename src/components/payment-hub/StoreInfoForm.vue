@@ -3,22 +3,22 @@
     <div class="q-gutter-y-sm">
       <q-input
         v-model="form.name"
-        :label="$t('StoreName', {}, 'Store Name') + ' *'"
+        :label="$t('StoreName') + ' *'"
         outlined
         dense
         autofocus
         lazy-rules
-        :rules="[val => !!val || $t('Required', {}, 'Required')]"
+        :rules="[val => !!val || $t('Required')]"
         hide-bottom-space
       />
       
       <div class="q-mt-md">
-        <div class="text-subtitle2 text-grey-7 q-mb-xs">{{ $t('StoreLogo', {}, 'Store Logo') }}</div>
+        <div class="text-subtitle2 text-grey-7 q-mb-xs">{{ $t('StoreLogo') }}</div>
         <div class="row q-col-gutter-sm">
           <div class="col-12 col-sm-6">
             <q-file
               v-model="form.logo"
-              :label="$t('UploadLogo', {}, 'Upload Image')"
+              :label="$t('UploadLogo')"
               outlined
               dense
               accept=".jpg, .jpeg, .png, .webp"
@@ -33,7 +33,7 @@
           <div class="col-12 col-sm-6">
             <q-input
               v-model="form.logo_url"
-              :label="$t('LogoURL', {}, 'External Logo URL')"
+              :label="$t('LogoURL')"
               outlined
               dense
               type="url"
@@ -43,14 +43,14 @@
           </div>
         </div>
         <div class="text-caption text-grey q-mt-xs">
-          {{ $t('LogoDescription', {}, 'Upload a file or provide a URL to an image.') }}
+          {{ $t('LogoDescription') }}
         </div>
       </div>
 
       <div class="q-gutter-y-sm q-mt-md">
         <q-input
           v-model="form.website_url"
-          :label="$t('WebsiteURL', {}, 'Website URL')"
+          :label="$t('WebsiteURL')"
           outlined
           dense
           type="url"
@@ -59,7 +59,7 @@
 
         <q-input
           v-model="form.support_email"
-          :label="$t('SupportEmail', {}, 'Support Email')"
+          :label="$t('SupportEmail')"
           outlined
           dense
           type="email"
@@ -68,7 +68,7 @@
         <q-select
           v-model="form.default_currency"
           :options="currencyOptions"
-          :label="$t('DefaultCurrency', {}, 'Default Currency')"
+          :label="$t('DefaultCurrency')"
           outlined
           dense
           emit-value
@@ -76,11 +76,11 @@
         />
 
         <q-separator class="q-my-sm" />
-        <div class="text-subtitle2 text-grey-7">{{ $t('WebhookSettings', {}, 'Webhook Settings') }}</div>
+        <div class="text-subtitle2 text-grey-7">{{ $t('WebhookSettings') }}</div>
 
         <q-input
           v-model="form.webhook_url"
-          :label="$t('WebhookURL', {}, 'Webhook URL')"
+          :label="$t('WebhookURL')"
           outlined
           dense
           type="url"
@@ -88,13 +88,13 @@
         />
 
         <q-separator class="q-my-sm" />
-        <div class="text-subtitle2 text-grey-7">{{ $t('AdvancedSettings', {}, 'Advanced Settings') }}</div>
+        <div class="text-subtitle2 text-grey-7">{{ $t('AdvancedSettings') }}</div>
 
         <div class="row q-col-gutter-sm">
           <div class="col-12">
             <q-input
               v-model.number="form.invoice_expiration_minutes"
-              :label="$t('ExpiryMinutes', {}, 'Invoice Expiry (min)')"
+              :label="$t('ExpiryMinutes')"
               outlined
               dense
               type="number"
@@ -108,7 +108,7 @@
       <q-btn
         flat
         color="grey"
-        :label="$t('Cancel', {}, 'Cancel')"
+        :label="$t('Cancel')"
         class="col"
         @click="$emit('cancel')"
       />
@@ -116,7 +116,7 @@
         unelevated
         rounded
         color="pt-primary1"
-        :label="storeData?.id ? $t('Update', {}, 'Update') : $t('Set', {}, 'Set')"
+        :label="storeData?.id ? $t('Update') : $t('Set')"
         class="col"
         type="submit"
       />
