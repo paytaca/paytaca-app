@@ -63,7 +63,7 @@
             </div>
           </div>
 
-          <div v-if="auctionType === 'English Auction'" class="row q-col-gutter-md q-px-md q-mb-md">
+          <div v-if="auctionType === 'English'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
               <label class="text-md text-weight-bold block q-mb-xs">Price Floor</label>
               <q-input
@@ -86,7 +86,7 @@
             </div>
           </div>
 
-          <div v-if="auctionType === 'Dutch Auction'" class="row q-col-gutter-md q-px-md q-mb-md">
+          <div v-if="auctionType === 'Dutch" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
               <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
               <q-input
