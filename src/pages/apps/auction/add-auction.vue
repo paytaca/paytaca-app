@@ -143,8 +143,18 @@
       </div>
     </q-form>
 
-    <EditLotDetails v-model:isToggledEditLot="isToggledEdit" :lotData="selectedLot" @update-lot="handleLotUpdate" />
-    <ConfirmDeleteDialog v-model="isToggledDelete" :title="selectedLot?.title" @confirm-delete="handleLotDelete" />
+    <EditLotDetails 
+      v-model:isToggledEditLot="isToggledEdit" 
+      :lotData="selectedLot" 
+      :auctionType="auctionType"
+      @update-lot="handleLotUpdate" 
+    />
+    
+    <ConfirmDeleteDialog 
+      v-model:isToggledDeleteLot="isToggledDelete" 
+      :lotName="selectedLot?.title" 
+      @confirm-delete="handleLotDelete" 
+    />
   </div>
 </template>
 
@@ -160,9 +170,9 @@ import { Store } from 'src/store'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
-import AddAuctionDetails from 'src/components/auction/AddAuctionDetails.vue'
-import AddLotDetails from 'src/components/auction/AddLotDetails.vue'
-import EditLotDetails from 'src/components/auction/EditLotDetails.vue'
+import AddAuctionDetails from 'src/components/auction/AddAuction/AddAuctionDetails.vue'
+import AddLotDetails from 'src/components/auction/AddAuction/AddLotDetails.vue'
+import EditLotDetails from 'src/components/auction/AddAuction/EditLotDetails.vue'
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 
@@ -202,6 +212,7 @@ const editLotDetails = (lot, index) => {
 
 const handleLotUpdate = (updatedLotData) => {
   if (activeEditIndex !== null) {
+    updatedLotData.priceDrop = updatedLotData.price_drop ?? updatedLotData.priceDrop
     lots.value[activeEditIndex] = updatedLotData
   }
   isToggledEdit.value = false
@@ -279,7 +290,7 @@ const handleCreateAuction = async () => {
       lotFormData.append('category_id', lot.type === 'Physical' ? 1 : 2)
       lotFormData.append('estimated_amount', lot.estimatedPrice || 0)
       lotFormData.append('threshold_bid', lot.threshold || 0)
-      lotFormData.append('bidding_decrement', lot.price_drop || 0)
+      lotFormData.append('bidding_decrement', lot.priceDrop || lot.price_drop || 0)
 
       const lotResult = await callAPI('lots', null, 'post', lotFormData)
 
