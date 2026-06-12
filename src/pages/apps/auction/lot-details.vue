@@ -42,10 +42,10 @@
               :control-text-color="darkMode ? 'white' : 'primary'"
             >
               <q-carousel-slide 
-                v-for="(imgSrc, index) in lotImages" 
+                v-for="(img, index) in lotImages" 
                 :key="index" 
                 :name="index" 
-                :img-src="imgSrc"
+                :img-src="img"
               />
             </q-carousel>
             
@@ -261,23 +261,19 @@ onMounted(async () => {
   
   if (result.success) {
     const parsed = LotsList.parse(result.data)
-    
-    if (auction.value) {
-      parsed.start_date = auction.value.start_date
-      parsed.end_date = auction.value.end_date
-    }
     lot.value = parsed
+    
+    const imageResult = await callAPI(`lot-images/lot/${props.lotId}`, 'get')
+    if (imageResult.success && Array.isArray(imageResult.data)) {
+      lotImages.value = imageResult.data.map(item => item.image)
+    }
   }
 })
 
 const activeSlide = ref(0)
-const lotImages = computed(() => {
-  return [
-    noImage,
-    noImage,
-    noImage
-  ]
-})
+const lotImages = ref([])
+
+
 
 
 
