@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="sticky-header-container" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']">
+  <q-layout view="lHh Lpr lFf" :class="[getDarkModeClass(darkMode), darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page']">
     <q-header class="shadow-2" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
       <HeaderNav
         :title="storeData?.name || storeName || $t('StoreDetails')"
