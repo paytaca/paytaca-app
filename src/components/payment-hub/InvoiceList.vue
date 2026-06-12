@@ -1,0 +1,318 @@
+<template>
+  <div class="invoice-list-container">
+    <!-- Controls: Status Filter & Search -->
+    <div class="row no-wrap items-center q-px-md q-py-sm sticky-controls" :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
+      <div class="col overflow-hidden">
+        <q-tabs
+          v-model="statusFilter"
+          dense
+          no-caps
+          inline-label
+          class="text-grey"
+          active-color="pt-primary1"
+          indicator-color="transparent"
+          align="left"
+          @update:model-value="onFilterChange"
+        >
+          <q-tab name="ALL" :label="$t('All')" class="status-tab" />
+          <q-tab name="PENDING" :label="$t('Pending')" class="status-tab" />
+          <q-tab name="PAID" :label="$t('Paid')" class="status-tab" />
+          <q-tab name="EXPIRED" :label="$t('Expired')" class="status-tab" />
+          <q-tab name="CANCELLED" :label="$t('Cancelled')" class="status-tab" />
+        </q-tabs>
+      </div>
+      <div class="col-auto q-pl-sm">
+        <q-btn
+          flat
+          round
+          dense
+          icon="search"
+          :color="searchQuery ? 'pt-primary1' : 'grey'"
+          @click="showSearchDialog = true"
+        >
+          <q-badge v-if="searchQuery" color="red" floating circular />
+        </q-btn>
+      </div>
+    </div>
+
+    <q-separator :dark="darkMode" />
+
+    <!-- List -->
+    <div class="q-px-md q-pb-md">
+      <div v-if="loading && !invoices.length" class="text-center q-mt-xl">
+        <q-spinner color="pt-primary1" size="3em" />
+        <p class="text-grey q-mt-md">{{ $t('LoadingInvoices', {}, 'Loading invoices...') }}</p>
+      </div>
+
+      <div v-else-if="!invoices.length" class="text-center q-mt-xl">
+        <q-icon name="receipt_long" size="4em" class="text-grey q-mb-md" />
+        <div class="text-h6 text-grey">{{ $t('NoInvoices', {}, 'No Invoices') }}</div>
+        <div class="text-body2 text-grey">{{ searchQuery ? $t('NoSearchMatches') : $t('NoRecords') }}</div>
+        <q-btn
+          v-if="searchQuery"
+          flat
+          rounded
+          color="pt-primary1"
+          :label="$t('ClearSearch')"
+          class="q-mt-md"
+          @click="clearSearch"
+        />
+      </div>
+
+      <div v-else class="q-pt-md">
+        <q-infinite-scroll @load="onLoadMore" :offset="250" :disable="!hasNextPage">
+          <q-list separator class="br-15 overflow-hidden border-grey-4">
+            <q-item
+              v-for="invoice in invoices"
+              :key="invoice.invoice_id"
+              clickable
+              v-ripple
+              class="q-py-md"
+              @click="showInvoiceDetail(invoice)"
+            >
+              <!-- Left Side: Status + Icon + Time -->
+              <q-item-section side top style="width: 110px;" class="flex-shrink-0">
+                <div class="row items-center no-wrap q-gutter-x-xs">
+                  <q-icon 
+                    :name="getStatusIcon(invoice.status)" 
+                    :color="getStatusColor(invoice.status)" 
+                    size="18px" 
+                  />
+                  <div 
+                    class="text-caption text-weight-bold" 
+                    :class="`text-${getStatusColor(invoice.status)}`"
+                  >
+                    {{ invoice.status }}
+                  </div>
+                </div>
+                <div class="text-caption text-grey q-mt-xs">
+                  {{ formatTimeAgo(invoice.date_updated) }}
+                </div>
+              </q-item-section>
+
+              <!-- Middle: Memo -->
+              <q-item-section>
+                <div class="text-body1 text-weight-medium ellipsis-2-lines" :class="getDarkModeClass(darkMode)">
+                  {{ invoice.memo || $t('NoMemo', {}, 'No memo') }}
+                </div>
+              </q-item-section>
+
+              <!-- Right Side: Amounts -->
+              <q-item-section side top class="text-right">
+                <div class="text-subtitle2 text-weight-bold" :class="getDarkModeClass(darkMode)">
+                  {{ invoice.total_bch }} BCH
+                </div>
+                <div class="text-caption text-grey">
+                  {{ invoice.total_fiat }}
+                </div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+          <template v-slot:loading>
+            <div class="row justify-center q-my-md">
+              <q-spinner-dots color="pt-primary1" size="40px" />
+            </div>
+          </template>
+        </q-infinite-scroll>
+      </div>
+    </div>
+
+    <!-- Search Dialog -->
+    <q-dialog v-model="showSearchDialog" position="top">
+      <q-card class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ $t('SearchInvoices', {}, 'Search Invoices') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <q-input
+            v-model="tempSearchQuery"
+            outlined
+            rounded
+            dense
+            :placeholder="$t('SearchByMemoTxidId', {}, 'Search by Memo, TXID, ID...')"
+            autofocus
+            @keyup.enter="applySearch"
+          >
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pt-none">
+          <q-btn flat :label="$t('Clear')" color="grey" @click="clearSearch" v-close-popup />
+          <q-btn unelevated rounded :label="$t('Search')" color="pt-primary1" @click="applySearch" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { useQuasar } from 'quasar'
+import ago from 's-ago'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { PaymentHub } from 'src/wallet/payment-hub'
+import { loadWallet } from 'src/wallet'
+import InvoiceDetailDialog from './InvoiceDetailDialog.vue'
+
+const props = defineProps({
+  storeId: {
+    type: String,
+    required: true
+  }
+})
+
+const $store = useStore()
+const $q = useQuasar()
+const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const isChipnet = computed(() => $store.getters['global/isChipnet'])
+
+// API State
+const invoices = ref([])
+const loading = ref(false)
+const currentPage = ref(1)
+const hasNextPage = ref(false)
+const hub = ref(null)
+
+// Filter & Search
+const statusFilter = ref('ALL')
+const searchQuery = ref('')
+const tempSearchQuery = ref('')
+const showSearchDialog = ref(false)
+
+onMounted(async () => {
+  await initHub()
+  refreshList()
+})
+
+async function initHub() {
+  const walletIndex = $store.getters['global/getWalletIndex']
+  const wallet = await loadWallet('BCH', walletIndex)
+  hub.value = new PaymentHub(wallet)
+}
+
+async function refreshList() {
+  if (!hub.value) return
+  loading.value = true
+  currentPage.value = 1
+  try {
+    const params = {
+      page: 1,
+      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
+      search: searchQuery.value || undefined,
+      network: isChipnet.value ? 'test' : 'main',
+      ordering: '-date_created'
+    }
+    const data = await hub.value.listInvoices(props.storeId, params)
+    invoices.value = data.results || []
+    hasNextPage.value = !!data.next
+  } catch (error) {
+    console.error('Error fetching invoices:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onLoadMore(index, done) {
+  if (!hasNextPage.value || loading.value) {
+    done()
+    return
+  }
+
+  try {
+    currentPage.value++
+    const params = {
+      page: currentPage.value,
+      status: statusFilter.value === 'ALL' ? undefined : statusFilter.value,
+      search: searchQuery.value || undefined,
+      network: isChipnet.value ? 'test' : 'main',
+      ordering: '-date_created'
+    }
+    const data = await hub.value.listInvoices(props.storeId, params)
+    if (data.results?.length) {
+      invoices.value.push(...data.results)
+    }
+    hasNextPage.value = !!data.next
+  } catch (error) {
+    console.error('Error loading more invoices:', error)
+  } finally {
+    done()
+  }
+}
+
+function onFilterChange() {
+  refreshList()
+}
+
+function applySearch() {
+  searchQuery.value = tempSearchQuery.value
+  refreshList()
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  tempSearchQuery.value = ''
+  refreshList()
+}
+
+function formatTimeAgo(date) {
+  if (!date) return ''
+  return ago(new Date(date))
+}
+
+function getStatusIcon(status) {
+  switch (status) {
+    case 'PAID': return 'check_circle'
+    case 'PENDING': return 'schedule'
+    case 'EXPIRED': return 'event_busy'
+    case 'CANCELLED': return 'cancel'
+    default: return 'help'
+  }
+}
+
+function getStatusColor(status) {
+  switch (status) {
+    case 'PAID': return 'green'
+    case 'PENDING': return 'orange'
+    case 'EXPIRED': return 'grey'
+    case 'CANCELLED': return 'red'
+    default: return 'grey'
+  }
+}
+
+function showInvoiceDetail(invoice) {
+  $q.dialog({
+    component: InvoiceDetailDialog,
+    componentProps: {
+      invoiceId: invoice.invoice_id
+    }
+  })
+}
+
+defineExpose({
+  refreshList
+})
+</script>
+
+<style lang="scss" scoped>
+.invoice-list-container {
+  min-height: 200px;
+}
+.sticky-controls {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.status-tab {
+  min-width: 80px;
+}
+.border-grey-4 {
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+</style>

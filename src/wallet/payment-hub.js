@@ -459,4 +459,36 @@ export class PaymentHub {
     })
     return response.data
   }
+
+  // --- Invoices Section ---
+
+  /**
+   * Lists invoices for a specific store. Supports pagination and filtering.
+   * @param {String} storeId - The UUID of the store.
+   * @param {Object} params - Query parameters (e.g. { status: 'PAID', page: 1, network: 'main' })
+   */
+  async listInvoices(storeId, params = {}) {
+    const queryParams = {
+      store_id: storeId,
+      ...params
+    }
+    const response = await backend.get('/invoices/', {
+      params: queryParams,
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Retrieves full details for a specific invoice.
+   * @param {String} invoiceId - The UUID or Short ID of the invoice.
+   */
+  async getInvoice(invoiceId) {
+    const response = await backend.get(`/invoices/${invoiceId}`, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
 }

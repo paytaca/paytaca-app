@@ -64,6 +64,7 @@
           align="justify"
           narrow-indicator
         >
+          <q-tab name="invoices" :label="$t('Invoices', {}, 'Invoices')" />
           <q-tab name="api_keys" :label="$t('APIKeys', {}, 'API Keys')" />
           <q-tab name="settings" :label="$t('Settings', {}, 'Settings')" />
         </q-tabs>
@@ -161,6 +162,11 @@
       <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'">
         <q-pull-to-refresh @refresh="refreshPage">
           <q-tab-panels v-model="activeTab" animated class="bg-transparent">
+            <!-- Invoices Tab -->
+            <q-tab-panel name="invoices" class="q-pa-none">
+              <InvoiceList ref="invoiceListRef" :store-id="storeId" />
+            </q-tab-panel>
+
             <!-- API Keys Tab -->
             <q-tab-panel name="api_keys" class="q-pa-none">
               <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
@@ -321,6 +327,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
+import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
@@ -341,9 +348,10 @@ const apiKeys = ref([])
 const webhookPublicKey = ref('')
 const fetchingData = ref(false)
 const hideInactive = ref(true)
-const activeTab = ref('api_keys')
+const activeTab = ref('invoices')
 const keysPage = ref(1)
 const hasNextKeysPage = ref(false)
+const invoiceListRef = ref(null)
 
 // Filter & Sort state
 const searchQuery = ref('')
@@ -438,6 +446,11 @@ async function refreshPage(done) {
     // Fetch Webhook Public Key
     const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
     webhookPublicKey.value = keyData?.public_key || ''
+
+    // Refresh invoices list
+    if (invoiceListRef.value) {
+      invoiceListRef.value.refreshList()
+    }
   } catch (error) {
     console.error('Error fetching store details:', error)
   } finally {
@@ -496,14 +509,24 @@ function showHelpDialog() {
     title: $t('APIUsage', {}, 'API Usage'),
     message: `
       <div class="q-mb-md text-body2">
-        To generate a receiving address for this store, use the following endpoint:
+        To create an invoice for this store using Mode A (Automated), use the following endpoint:
       </div>
       <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption q-mb-md overflow-hidden text-black" style="word-break: break-all;">
-        GET /api/stores/${storeId.value}/generate-address
+        POST /api/invoices/
       </div>
       <div class="q-mb-sm text-weight-medium text-caption">Headers:</div>
+      <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption q-mb-md text-black" style="word-break: break-all;">
+        Authorization: Api-Key &lt;YOUR_SECRET_KEY&gt;<br>
+        Content-Type: application/json
+      </div>
+      <div class="q-mb-sm text-weight-medium text-caption">Body:</div>
       <div class="font-mono bg-grey-3 q-pa-sm br-5 text-caption text-black" style="word-break: break-all;">
-        Authorization: Api-Key &lt;YOUR_SECRET_KEY&gt;
+        {<br>
+        &nbsp;&nbsp;"amount": "10.50",<br>
+        &nbsp;&nbsp;"currency": "USD",<br>
+        &nbsp;&nbsp;"memo": "Order #123",<br>
+        &nbsp;&nbsp;"redirect_url": "https://yoursite.com/done"<br>
+        }
       </div>
     `,
     html: true,
