@@ -65,7 +65,7 @@
 
     <div>
       <div v-if="dataLoaded" class="row items-start" ref="productsContainer">
-        <div v-for="(lot, index) in lots" :key="index" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-for="lot in visibleLots" :key="lot._uuid" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <div style="position: relative;">
               <q-img 
@@ -103,7 +103,7 @@
                 <div class="text-caption">
                   Estimated: ₱950
                   <span class="text-weight-medium">
-                    {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+                    {{ getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
                   </span>
                 </div>
 
@@ -113,7 +113,7 @@
                   <div>
                     Floor/Reserve: ₱950
                     <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                      {{ getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
                     </span>
                   </div>
                 </div>
@@ -122,7 +122,7 @@
                   <div>
                     Ceiling Price: ₱950
                     <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                      {{ getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
                     </span>
                   </div>
                   
@@ -131,7 +131,7 @@
                   <div class="text-negative">
                     Drops by: ₱950 per 10 minutes
                     <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH
+                      {{ getFormattedBCH(lot.bidding_decrement).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH
                     </span>
                   </div>
                 </div>
@@ -142,7 +142,7 @@
                     class="q-pa-sm"
                     size="sm"
                     color="green"
-                    @click="editLotDetails(lot, index)"
+                    @click="editLotDetails(lot)"
                   />
 
                   <q-btn
@@ -150,7 +150,7 @@
                     class="q-pa-sm q-ml-sm"
                     size="sm"
                     color="red"
-                    @click="deleteLot(lot, index)"
+                    @click="deleteLot(lot)"
                   />
                 </div>
               </q-card-section>
@@ -205,11 +205,10 @@
 <script setup>
 import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
-import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch } from 'vue'
 import { callAPI } from 'src/auction/api'
-import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object.js'
 
 // Components
@@ -224,7 +223,7 @@ import noImage from 'src/assets/no-image.svg'
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-const $route = useRoute()
+const $router = useRouter()
 
 const dataLoaded = ref(false)
 const auctionType = ref('English Auction')
@@ -279,6 +278,9 @@ const fetchAllData = async () => {
         const lot = LotsList.parse(item)
         lot.start_date = auction.value?.start_date || null
         lot.end_date = auction.value?.end_date || null
+        
+        lot._uuid = generateLocalId()
+        lot._status = 'unchanged' 
         return lot
       })
     }
@@ -301,51 +303,147 @@ onMounted(async () => {
 
 
 
-
-const isLotEmpty = computed(() => lots.value.length === 0)
+let localIdCounter = 0
+const generateLocalId = () => `local_${localIdCounter++}`
+const visibleLots = computed(() => lots.value.filter(lot => lot._status !== 'deleted'))
+const isLotEmpty = computed(() => visibleLots.value.length === 0)
 const isToggledEdit = ref(false)
 const isToggledDelete = ref(false)
 const selectedLot = ref(null)
-let activeEditIndex = null
-let activeDeleteIndex = null
 
 const handleNewLot = (lotData) => {
+  lotData._uuid = generateLocalId()
+  lotData._status = 'new'
   lots.value.push(lotData)
 }
 
-const editLotDetails = (lot, index) => {
-  activeEditIndex = index
+const editLotDetails = (lot) => {
   selectedLot.value = JSON.parse(JSON.stringify(lot))
   isToggledEdit.value = true
 }
 
 const handleLotUpdate = (updatedLotData) => {
-  if (activeEditIndex !== null) {
-    lots.value[activeEditIndex] = updatedLotData
+  const index = lots.value.findIndex(l => l._uuid === updatedLotData._uuid)
+  if (index !== -1) {
+    if (lots.value[index]._status !== 'new') {
+      updatedLotData._status = 'edited'
+    }
+    lots.value[index] = updatedLotData
   }
   isToggledEdit.value = false
 }
 
-const deleteLot = (lot, index) => {
-  activeDeleteIndex = index
+const deleteLot = (lot) => {
   selectedLot.value = lot
   isToggledDelete.value = true
 }
 
 const handleLotDelete = () => {
-  if (activeDeleteIndex !== null && activeDeleteIndex >= 0) {
-    lots.value.splice(activeDeleteIndex, 1)
+  const index = lots.value.findIndex(l => l._uuid === selectedLot.value._uuid)
+  
+  if (index !== -1) {
+    if (lots.value[index]._status === 'new') {
+      lots.value.splice(index, 1)
+    } else {
+      lots.value[index]._status = 'deleted'
+    }
   }
   
   isToggledDelete.value = false
-  activeDeleteIndex = null
   selectedLot.value = null
+}
 
-  $q.notify({
-    type: 'positive',
-    message: 'Lot deleted successfully!',
-    timeout: 3000
-  })
+const handleUpdateAuction = async () => {
+  if (!validateAuctionDates()) return
+  
+  $q.loading.show({ message: 'Saving auction and lot updates...' })
+  
+  try {
+    const auctionFormData = new FormData()
+    auctionFormData.append('title', auctionForm.value.title)
+    auctionFormData.append('type_id', auctionForm.value.type === 'English' ? 1 : 2)
+    auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
+    auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
+    auctionFormData.append('description', auctionForm.value.description)
+    if (auctionForm.value.image instanceof File) {
+      auctionFormData.append('image', auctionForm.value.image)
+    }
+    
+    await callAPI('auctions', props.auctionId, 'patch', auctionFormData)
+    
+    const deletedLots = lots.value.filter(l => l._status === 'deleted')
+    const editedLots = lots.value.filter(l => l._status === 'edited')
+    const newLots = lots.value.filter(l => l._status === 'new')
+    
+    for (const lot of deletedLots) {
+      if (lot.id) {
+        await callAPI('lots', lot.id, 'delete')
+      }
+    }
+    
+    for (const lot of editedLots) {
+      const editFormData = new FormData()
+      editFormData.append('title', lot.title)
+      editFormData.append('description', lot.description || '')
+      editFormData.append('category_id', lot.category_id)
+      editFormData.append('estimated_amount', lot.estimated_amount)
+      editFormData.append('threshold_bid', lot.threshold_bid)
+      editFormData.append('bidding_decrement', lot.bidding_decrement)
+      
+      await callAPI('lots', lot.id, 'patch', editFormData)
+      
+      if (lot.rawFiles && lot.rawFiles.length > 0) {
+        const existingImages = await callAPI(`lot-images/lot/${lot.id}`, null, 'get')
+        
+        if (existingImages.success && existingImages.data) {
+          for (const img of existingImages.data) {
+            await callAPI('lot-images', img.id, 'delete')
+          }
+        }
+        
+        for (const file of lot.rawFiles) {
+          const imgData = new FormData()
+          imgData.append('lot_id', lot.id)
+          imgData.append('image', file)
+          await callAPI('lot-images', null, 'post', imgData)
+        }
+      }
+    }
+    
+    for (const lot of newLots) {
+      const addFormData = new FormData()
+      addFormData.append('auction_id', props.auctionId)
+      addFormData.append('title', lot.title)
+      addFormData.append('description', lot.description || '')
+      addFormData.append('category_id', lot.category_id)
+      addFormData.append('estimated_amount', lot.estimated_amount)
+      addFormData.append('threshold_bid', lot.threshold_bid)
+      addFormData.append('bidding_decrement', lot.bidding_decrement)
+      
+      const newLotRes = await callAPI('lots', null, 'post', addFormData)
+      
+      if (newLotRes.success && newLotRes.data?.id) {
+        const newLotId = newLotRes.data.id
+        
+        for (const file of (lot.rawFiles || [])) {
+          const imgData = new FormData()
+          imgData.append('lot_id', newLotId)
+          imgData.append('image', file)
+          await callAPI('lot-images', null, 'post', imgData)
+        }
+      }
+    }
+
+    $q.notify({ type: 'positive', message: 'All changes saved successfully!' })
+    
+    $router.push('/apps/auction/activity')
+    
+  } catch (error) {
+    $q.notify({ type: 'negative', message: 'Failed to update database.' })
+    console.error(error)
+  } finally {
+    $q.loading.hide()
+  }
 }
 
 
@@ -378,6 +476,15 @@ const validateAuctionDates = () => {
   }
 
   return true
+}
+
+const getFormattedBCH = (bch) => {
+  const value = typeof bch === 'number' ? bch : parseFloat(bch) || 0;
+  const numStr = value.toFixed(8);
+  const match = numStr.match(/^(.*?)0*$/);
+  const main = match ? match[1] : numStr;
+  const zeros = numStr.substring(main.length);
+  return { main, zeros, full: numStr };
 }
 </script>
 

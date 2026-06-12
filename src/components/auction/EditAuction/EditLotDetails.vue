@@ -255,10 +255,10 @@ const toggleCurrency = (isFiat) => {
 watch(() => props.lotData, (newLot) => {
   if (newLot) {
     lotName.value = newLot.title || ''
-    lotType.value = newLot.type || 'Physical'
-    estimatedPrice.value = newLot.estimatedPrice || 0
-    priceThreshold.value = newLot.threshold || 0
-    priceDrop.value = newLot.price_drop || 0
+    lotType.value = newLot.category || newLot.type || 'Physical'
+    estimatedPrice.value = newLot.estimated_amount || newLot.estimatedPrice || 0
+    priceThreshold.value = newLot.threshold_bid || newLot.threshold || 0
+    priceDrop.value = newLot.bidding_decrement || newLot.price_drop || 0
     isFiatUsed.value = newLot.isFiatUsed || false
     lotDescription.value = newLot.description || ''
     
@@ -284,24 +284,22 @@ const saveLot = () => {
   const updatedPayload = {
     ...props.lotData,
     title: lotName.value,
-    type: lotType.value,
-    estimatedPrice: estimatedPrice.value,
-    threshold: priceThreshold.value || 0,
-    price_drop: priceDrop.value || 0,
+    category: lotType.value,
+    category_id: lotType.value === 'Physical' ? 1 : 2,
+    estimated_amount: estimatedPrice.value,
+    threshold_bid: priceThreshold.value || 0,
+    bidding_decrement: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
     
     imageUrl: finalImages.length > 0 ? finalImages[0] : null,
-    imageUrls: finalImages
+    imageUrls: finalImages,
+    rawFiles: lotImages.value ? [...lotImages.value] : (props.lotData.rawFiles || [])
   }
 
   emit('update-lot', updatedPayload)
 
-  $q.notify({
-    type: 'positive',
-    message: 'Lot modified!',
-    timeout: 3000
-  })
+  $q.notify({ type: 'positive', message: 'Lot updated locally!', timeout: 3000 })
 }
 </script>
 

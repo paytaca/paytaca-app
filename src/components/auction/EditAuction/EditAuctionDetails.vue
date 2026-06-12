@@ -90,17 +90,20 @@
         </div>
 
         <div class="q-px-md q-mb-md">
-          <label class="text-md text-weight-bold block q-mb-xs">Insert Image</label>
+          <label class="text-md text-weight-bold block q-mb-xs">Auction Image</label>
+          
+          <div v-if="typeof form.image === 'string'" class="q-mb-sm">
+            <q-img :src="form.image" style="max-width: 150px; border-radius: 8px;" />
+            <div class="text-caption text-grey">Current image (upload a new file to replace)</div>
+          </div>
+
           <q-file
             accept=".jpg, .jpeg, .png"
             outlined dense
             v-model="form.image"
-            autocomplete="off"
-            placeholder="Enter lot name"
+            :label="typeof form.image === 'string' ? 'Change Image' : 'Choose File'"
             color="pt-primary1"
-            debounce="500"
             :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-            lazy-rules hide-bottom-space
           >
             <template v-slot:prepend><q-icon name="attach_file" /></template>
             <template v-slot:append v-if="form.image">

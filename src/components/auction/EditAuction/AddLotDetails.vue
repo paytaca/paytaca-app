@@ -279,19 +279,19 @@ const addLot = () => {
   if (lotImages.value && lotImages.value.length > 0) {
     generatedUrls = lotImages.value.map(file => URL.createObjectURL(file))
   }
-
+  
   const payload = {
     title: lotName.value,
-    type: lotType.value,
-    estimatedPrice: estimatedPrice.value,
-    threshold: priceThreshold.value || 0,
-    priceDrop: priceDrop.value || 0,
+    category: lotType.value,
+    category_id: lotType.value === 'Physical' ? 1 : 2,
+    estimated_amount: estimatedPrice.value,
+    threshold_bid: priceThreshold.value || 0,
+    bidding_decrement: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
     
     imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
     imageUrls: generatedUrls,
-
     rawFiles: lotImages.value ? [...lotImages.value] : []
   }
 
@@ -299,15 +299,11 @@ const addLot = () => {
 
   isToggledAddLot.value = false
 
-  $q.notify({
-    type: 'positive',
-    message: 'Lot added!',
-    timeout: 3000
-  })
+  $q.notify({ type: 'positive', message: 'Lot added to layout!', timeout: 3000 })
   
-  lotName.value = ''
-  estimatedPrice.value = null
-  priceThreshold.value = null
+  lotName.value = 'Lot Title'
+  estimatedPrice.value = 0.002
+  priceThreshold.value = 0.002
   priceDrop.value = 0.0005
   lotImages.value = []
   lotDescription.value = ''
