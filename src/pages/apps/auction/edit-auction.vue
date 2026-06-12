@@ -97,15 +97,43 @@
             <div>
               <q-card-section>
                 <div class="text-subtitle1 text-bold ellipsis">{{ lot.title }}</div>
-                <div class="text-caption">Estimated: {{ lot.estimated_amount }} BCH</div>
+
+                <q-separator class="q-my-sm" :dark="$q.dark.isActive" />
+
+                <div class="text-caption">
+                  Estimated: ₱950
+                  <span class="text-weight-medium">
+                    {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+                  </span>
+                </div>
+
+                <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
 
                 <div v-if="auctionType === 'English'" class="text-caption">
-                  <div>Floor/Reserve: {{ lot.threshold_bid }} BCH</div>
+                  <div>
+                    Floor/Reserve: ₱950
+                    <span class="text-weight-medium" style="opacity: 0.65;">
+                      {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                    </span>
+                  </div>
                 </div>
 
                 <div v-else-if="auctionType === 'Dutch'" class="text-caption">
-                  <div>Ceiling Price: {{ lot.threshold_bid }} BCH</div>
-                  <div class="text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
+                  <div>
+                    Ceiling Price: ₱950
+                    <span class="text-weight-medium" style="opacity: 0.65;">
+                      {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                    </span>
+                  </div>
+                  
+                  <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
+                    
+                  <div class="text-negative">
+                    Drops by: ₱950 per 10 minutes
+                    <span class="text-weight-medium" style="opacity: 0.65;">
+                      {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH
+                    </span>
+                  </div>
                 </div>
 
                 <div class="row q-my-sm">

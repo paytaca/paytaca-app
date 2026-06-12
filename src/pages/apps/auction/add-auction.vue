@@ -48,16 +48,17 @@
 
           <div v-else v-for="(lot, index) in lots" :key="index" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-              <q-img 
-                :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" 
-                ratio="1"
-                style="position: relative;"
-              >
-                <template v-slot:loading>
-                  <q-skeleton height="100%" width="100%" square />
-                </template>
+              <div style="position: relative;">
+                <q-img 
+                  :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" 
+                  ratio="1"
+                >
+                  <template v-slot:loading>
+                    <q-skeleton height="100%" width="100%" square />
+                  </template>
+                </q-img>
 
-                <div style="position: absolute;">
+                <div style="position: absolute; top: 8px; left: 8px;">
                   <q-chip
                     dense
                     text-color="white"
@@ -72,39 +73,70 @@
                     {{ lot.type }}
                   </q-chip>
                 </div>
-              </q-img>
+              </div>
 
-              <q-card-section>
-                <div class="text-subtitle1 text-bold ellipsis">{{ lot.title }}</div>
-                <div class="text-caption">Estimated: {{ lot.estimatedPrice }} BCH</div>
+              <div>
+                <q-card-section>
+                  <div class="text-subtitle1 text-bold ellipsis">{{ lot.title }}</div>
 
-                <div v-if="auctionType === 'English'" class="text-caption">
-                  <div>Floor/Reserve: {{ lot.threshold }} BCH</div>
-                </div>
+                  <q-separator class="q-my-sm" :dark="$q.dark.isActive" />
 
-                <div v-else-if="auctionType === 'Dutch'" class="text-caption">
-                  <div>Ceiling Price: {{ lot.threshold }} BCH</div>
-                  <div class="text-negative">Drops by: {{ lot.price_drop }} BCH per 10 minutes</div>
-                </div>
+                  <div class="text-caption">
+                    Estimated: ₱950
+                    <span class="text-weight-medium">
+                      {{ getFormattedBCH(lot.estimatedPrice).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.estimatedPrice).zeros }}</span> BCH
+                    </span>
+                  </div>
 
-                <div class="row q-my-sm">
-                  <q-btn
-                    icon="edit"
-                    class="q-pa-sm"
-                    size="sm"
-                    color="green"
-                    @click="editLotDetails(lot, index)"
-                  />
+                  <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
 
-                  <q-btn
-                    icon="delete"
-                    class="q-pa-sm q-ml-sm"
-                    size="sm"
-                    color="red"
-                    @click="deleteLot(lot, index)"
-                  />
-                </div>
-              </q-card-section>
+                  <div v-if="auctionType === 'English'" class="text-caption">
+                    <div>
+                      Floor/Reserve: ₱950
+                      <span class="text-weight-medium" style="opacity: 0.65;">
+                        {{ getFormattedBCH(lot.threshold).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold).zeros }}</span> BCH
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-else-if="auctionType === 'Dutch'" class="text-caption">
+                    <div>
+                      Ceiling Price: ₱950
+                      <span class="text-weight-medium" style="opacity: 0.65;">
+                        {{ getFormattedBCH(lot.threshold).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold).zeros }}</span> BCH
+                      </span>
+                    </div>
+
+                    <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
+                    
+                    <div class="text-negative">
+                      Drops by: ₱950
+                      <span class="text-weight-medium" style="opacity: 0.65;">
+                        {{ getFormattedBCH(lot.priceDrop).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.priceDrop).zeros }}</span> BCH
+                      </span>
+                      per 10 minutes
+                    </div>
+                  </div>
+
+                  <div class="row q-my-sm">
+                    <q-btn
+                      icon="edit"
+                      class="q-pa-sm"
+                      size="sm"
+                      color="green"
+                      @click="editLotDetails(lot, index)"
+                    />
+
+                    <q-btn
+                      icon="delete"
+                      class="q-pa-sm q-ml-sm"
+                      size="sm"
+                      color="red"
+                      @click="deleteLot(lot, index)"
+                    />
+                  </div>
+                </q-card-section>
+              </div>
             </q-card>
           </div>
         </div>
@@ -284,6 +316,16 @@ const handleCreateAuction = async () => {
   } finally {
     $q.loading.hide()
   }
+}
+
+
+
+const getFormattedBCH = (bch) => {
+  const numStr = bch.toFixed(8);
+  const match = numStr.match(/^(.*?)0*$/);
+  const main = match ? match[1] : numStr;
+  const zeros = numStr.substring(main.length);
+  return { main, zeros, full: numStr };
 }
 </script>
 
