@@ -15,7 +15,7 @@
             <div v-if="user" class="q-mt-lg q-pt-md">
                 <div class="text-center q-pt-none">
                     <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-                    <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }}</div>
+                    <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }} <q-badge v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="REPORTED" /></div>
                 </div>
                 <!-- User Stats -->
                 <div class="row justify-center q-px-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
@@ -176,9 +176,11 @@
         </div>
     </q-card>
     </q-dialog>
+    <ReportDialog v-model="showReportDialog" @submit="handleReportSubmit" @back="showReportDialog = false"/>
   </template>
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
+import ReportDialog from 'src/components/ramp/fiat/dialogs/ReportDialog.vue'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -209,7 +211,8 @@ export default {
       loadingAds: false,
       showUserProfile: true,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
-      reportSubmitted: false
+      reportSubmitted: false,
+      showReportDialog: false
     }
   },
   props: {
@@ -221,7 +224,8 @@ export default {
   },
   emits: ['back'],
   components: {
-    ProgressLoader
+    ProgressLoader,
+    ReportDialog
   },
   watch: {
     activeTab (value) {
@@ -405,24 +409,15 @@ export default {
       bus.emit('handle-request-error', error)
     },
     confirmReportUser () {
-      const vm = this
-      this.$q.dialog({
-        title: vm.$t('ReportUser'),
-        message: vm.$t('ReportUserConfirm'),
-        cancel: true,
-        ok: {
-          label: vm.$t('ReportUser'),
-          color: 'red-8',
-          flat: true
-        }
-      }).onOk(() => {
-        vm.reportUser()
-      })
+      this.showReportDialog = true
     },
-    async reportUser () {
+    async handleReportSubmit (reason) {
+      await this.reportUser(reason)
+    },
+    async reportUser (reason) {
       const vm = this
       try {
-        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, {}, { authorize: true })
+        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, { reason }, { authorize: true })
         vm.reportSubmitted = true
         vm.$q.notify({
           type: 'positive',

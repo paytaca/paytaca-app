@@ -59,6 +59,7 @@
               <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
               <div class="text-weight-bold lg-font-size q-pt-sm">
                 <span id="target-name">{{ user.name }}</span>
+                <q-badge class="q-ml-xs" v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="REPORTED" />
                 <q-icon
                 class="q-ml-xs"
                 size="1em"
@@ -316,6 +317,7 @@
   </div>
   <AddPaymentMethods ref="addPaymentMethods" v-if="$route.query?.edit === 'payments'" :type="'Profile'"/>
   <MiscDialogs ref="misc" v-if="editNickname" :type="'editNickname'" v-on:back="editNickname = false" v-on:submit="updateUserName"/>
+  <ReportDialog v-model="showReportDialog" @submit="handleReportSubmit" @back="showReportDialog = false"/>
 </template>
 <script>
 import HeaderNav from 'src/components/header-nav.vue'
@@ -323,6 +325,7 @@ import MiscDialogs from 'src/components/ramp/fiat/dialogs/MiscDialogs.vue'
 import AddPaymentMethods from 'src/components/ramp/fiat/AddPaymentMethods.vue'
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import FeedbackDialog from 'src/components/ramp/fiat/dialogs/FeedbackDialog.vue'
+import ReportDialog from 'src/components/ramp/fiat/dialogs/ReportDialog.vue'
 import { updateChatIdentity } from 'src/exchange/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
@@ -336,6 +339,7 @@ export default {
     AddPaymentMethods,
     ProgressLoader,
     FeedbackDialog,
+    ReportDialog,
     HeaderNav
   },
   data () {
@@ -365,7 +369,8 @@ export default {
       previousRoute: null,
       errorDialogActive: false,
       wallet: null,
-      reportSubmitted: false
+      reportSubmitted: false,
+      showReportDialog: false
     }
   },
   props: {
@@ -669,24 +674,15 @@ export default {
       }
     },
     confirmReportUser () {
-      const vm = this
-      this.$q.dialog({
-        title: vm.$t('ReportUser'),
-        message: vm.$t('ReportUserConfirm'),
-        cancel: true,
-        ok: {
-          label: vm.$t('ReportUser'),
-          color: 'red-8',
-          flat: true
-        }
-      }).onOk(() => {
-        vm.reportUser()
-      })
+      this.showReportDialog = true
     },
-    async reportUser () {
+    async handleReportSubmit (reason) {
+      await this.reportUser(reason)
+    },
+    async reportUser (reason) {
       const vm = this
       try {
-        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, {}, { authorize: true })
+        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, { reason }, { authorize: true })
         vm.reportSubmitted = true
         vm.$q.notify({
           type: 'positive',

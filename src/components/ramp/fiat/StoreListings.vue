@@ -140,6 +140,7 @@
                             {{ userNameView(listing.owner?.name) }}
                           </span>
                           <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
+                          <q-badge class="q-mx-xs" v-if="isReported(listing.owner?.reported_at)" rounded size="xs" color="red" label="REPORTED" />
                         </div>
                         <div class="row" :class="{ 'reported-greyed': isReported(listing.owner?.reported_at) }">
                           <q-rating
