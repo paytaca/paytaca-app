@@ -62,6 +62,21 @@
                     </span>
                 </div>
             </div>
+            <!-- Report User -->
+            <div class="row q-mx-lg q-px-md q-pt-sm" v-if="!user?.self">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('ReportUser')"
+                :color="reportSubmitted ? 'grey-5' : 'red-8'"
+                :disable="reportSubmitted"
+                class="q-space q-mx-md button"
+                size="sm"
+                icon="flag"
+                @click="confirmReportUser"
+              >
+              </q-btn>
+            </div>
             <div class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode)" :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
                 <button class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}" @click="activeTab = 'reviews'"> {{ $t('REVIEWS') }} </button>
                 <button v-if="!user?.self" class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}" @click="activeTab = 'ads'">ADS</button>
@@ -193,7 +208,8 @@ export default {
       adsPageNumber: 1,
       loadingAds: false,
       showUserProfile: true,
-      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100)
+      minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (90 + 120) : this.$q.screen.height - (60 + 100),
+      reportSubmitted: false
     }
   },
   props: {
@@ -383,6 +399,45 @@ export default {
     },
     handleRequestError (error) {
       bus.emit('handle-request-error', error)
+    },
+    confirmReportUser () {
+      const vm = this
+      this.$q.dialog({
+        title: vm.$t('ReportUser'),
+        message: vm.$t('ReportUserConfirm'),
+        cancel: true,
+        ok: {
+          label: vm.$t('ReportUser'),
+          color: 'red-8',
+          flat: true
+        }
+      }).onOk(() => {
+        vm.reportUser()
+      })
+    },
+    async reportUser () {
+      const vm = this
+      try {
+        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, {}, { authorize: true })
+        vm.reportSubmitted = true
+        vm.$q.notify({
+          type: 'positive',
+          message: vm.$t('ReportUserSuccess'),
+          position: 'bottom',
+          timeout: 3000
+        })
+      } catch (error) {
+        if (error.response?.status === 409) {
+          vm.reportSubmitted = true
+          vm.$q.notify({ type: 'info', message: vm.$t('ReportUserAlreadyReported'), position: 'bottom' })
+        } else if (error.response?.status === 403) {
+          vm.$q.notify({ type: 'warning', message: vm.$t('ReportUserTradeRequired'), position: 'bottom' })
+        } else if (error.response?.status === 400) {
+          vm.$q.notify({ type: 'warning', message: vm.$t('ReportUserSelfError'), position: 'bottom' })
+        } else {
+          vm.handleRequestError(error)
+        }
+      }
     }
   }
 }

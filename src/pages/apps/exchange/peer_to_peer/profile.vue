@@ -101,6 +101,21 @@
               </q-btn>
             </div> -->
 
+            <!-- Report User -->
+            <div class="row q-mx-lg q-px-md q-pt-md" v-if="!user?.self">
+              <q-btn
+                rounded
+                no-caps
+                :label="$t('ReportUser')"
+                :color="reportSubmitted ? 'grey-5' : 'red-8'"
+                :disable="reportSubmitted"
+                class="q-space q-mx-md button"
+                icon="flag"
+                @click="confirmReportUser"
+              >
+              </q-btn>
+            </div>
+
             <!-- User Stats -->
             <div class="row justify-center q-px-sm q-pt-sm">
               <q-rating
@@ -349,7 +364,8 @@ export default {
       pageName: null,
       previousRoute: null,
       errorDialogActive: false,
-      wallet: null
+      wallet: null,
+      reportSubmitted: false
     }
   },
   props: {
@@ -646,9 +662,49 @@ export default {
           }
         })
       }
+      }
+    },
+    confirmReportUser () {
+      const vm = this
+      this.$q.dialog({
+        title: vm.$t('ReportUser'),
+        message: vm.$t('ReportUserConfirm'),
+        cancel: true,
+        ok: {
+          label: vm.$t('ReportUser'),
+          color: 'red-8',
+          flat: true
+        }
+      }).onOk(() => {
+        vm.reportUser()
+      })
+    },
+    async reportUser () {
+      const vm = this
+      try {
+        await backend.post(`/ramp-p2p/peer/${vm.user.id}/report/`, {}, { authorize: true })
+        vm.reportSubmitted = true
+        vm.$q.notify({
+          type: 'positive',
+          message: vm.$t('ReportUserSuccess'),
+          position: 'bottom',
+          timeout: 3000
+        })
+      } catch (error) {
+        const errorMsg = error.response?.data?.error
+        if (error.response?.status === 409) {
+          vm.reportSubmitted = true
+          vm.$q.notify({ type: 'info', message: vm.$t('ReportUserAlreadyReported'), position: 'bottom' })
+        } else if (error.response?.status === 403) {
+          vm.$q.notify({ type: 'warning', message: vm.$t('ReportUserTradeRequired'), position: 'bottom' })
+        } else if (error.response?.status === 400 && errorMsg) {
+          vm.$q.notify({ type: 'warning', message: errorMsg, position: 'bottom' })
+        } else {
+          vm.showErrorDialog(vm.$t('ReportUserTradeRequired'))
+        }
+      }
     }
   }
-}
 </script>
 <style lang="scss" scoped>
   .xs-font-size {
