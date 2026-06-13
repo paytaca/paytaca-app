@@ -1783,6 +1783,7 @@ export default {
   PriceTimestamp: "Price Timestamp",
   PriceType: "Price Type",
   PriceValueHint: "Fixed prices do not change",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PrimaryContactNumber: "Primary contact number",
   PrivateKey: "Private Key",
   PrivateKeyCopiedToClipboard: "Private key copied to clipboard",

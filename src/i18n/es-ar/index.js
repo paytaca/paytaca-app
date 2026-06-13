@@ -1769,6 +1769,7 @@ export default {
   PriceStartsAt: "El precio comienza en",
   PriceTimestamp: "Marca de tiempo del precio",
   PriceType: "Tipo de precio",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "Los precios fijos no cambian.",
   PrimaryContactNumber: "Número de contacto principal",
   PrivateKey: "Clave privada",

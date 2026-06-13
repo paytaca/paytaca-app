@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "Цена начинается от",
   PriceTimestamp: "Временная метка цены",
   PriceType: "Тип цены",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "Фиксированные цены не меняются",
   PrimaryContactNumber: "Основной контактный номер",
   PrivateKey: "Закрытый ключ",

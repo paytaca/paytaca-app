@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "Prijs begint bij",
   PriceTimestamp: "Prijs tijdstempel",
   PriceType: "Prijstype",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "Vaste prijzen veranderen niet",
   PrimaryContactNumber: "Primary contact number",
   PrivateKey: "Privésleutel",

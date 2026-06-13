@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "Farashin yana farawa a",
   PriceTimestamp: "Tambarin Farashin",
   PriceType: "Nau'in Farashin",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "Kafaffen farashin ba sa canzawa",
   PrimaryContactNumber: "Lambar tuntuɓar farko",
   PrivateKey: "Keɓaɓɓen Maɓalli",

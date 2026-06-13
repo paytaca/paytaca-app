@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "가격은 다음에서 시작됩니다",
   PriceTimestamp: "가격 타임스탬프",
   PriceType: "가격 유형",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "고정 가격은 변하지 않습니다",
   PrimaryContactNumber: "기본 연락처",
   PrivateKey: "개인 키",

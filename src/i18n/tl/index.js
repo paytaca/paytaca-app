@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "Nagsisimula ang presyo sa",
   PriceTimestamp: "Presyo ng Timestamp",
   PriceType: "Uri ng Presyo",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "Ang mga nakapirming presyo ay hindi nagbabago",
   PrimaryContactNumber: "Pangunahing numero ng contact",
   PrivateKey: "Pribadong Susi",

@@ -1769,6 +1769,7 @@ export default {
   PriceStartsAt: "價格起始於",
   PriceTimestamp: "價格時間戳",
   PriceType: "價格類型",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "固定價格不變",
   PrimaryContactNumber: "主要聯繫電話",
   PrivateKey: "私鑰",

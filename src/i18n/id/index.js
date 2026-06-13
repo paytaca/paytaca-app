@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "Harga mulai dari",
   PriceTimestamp: "Stempel Waktu Harga",
   PriceType: "Jenis Harga",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "Harga tetap tidak berubah",
   PrimaryContactNumber: "Nomor kontak utama",
   PrivateKey: "Kunci Pribadi",

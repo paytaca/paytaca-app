@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "السعر يبدأ من",
   PriceTimestamp: "الطابع الزمني للسعر",
   PriceType: "نوع السعر",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "الأسعار الثابتة لا تتغير",
   PrimaryContactNumber: "رقم الاتصال الأساسي",
   PrivateKey: "مفتاح خاص",

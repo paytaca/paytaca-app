@@ -175,12 +175,13 @@
                 />
                 <span
                   v-else-if="pricePercentage !== null"
-                  class="sm-font-size q-ml-xs text-weight-bold"
+                  class="sm-font-size q-ml-xs text-weight-bold cursor-pointer"
                   :class="{
                     'text-green': isPriceUp,
                     'text-red': isPriceDown
                   }">
                   {{ isPriceUp ? '+' : '' }}{{ pricePercentage }}%
+                  <q-tooltip>{{ $t('PriceVsMarketTooltip') }}</q-tooltip>
                 </span>
               </div>
               <div v-if="type === 'order'">

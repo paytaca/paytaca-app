@@ -1768,6 +1768,7 @@ export default {
   PriceStartsAt: "価格は～から始まります",
   PriceTimestamp: "価格タイムスタンプ",
   PriceType: "価格タイプ",
+  PriceVsMarketTooltip: "Percentage difference from the current market price",
   PriceValueHint: "固定価格は変わりません",
   PrimaryContactNumber: "主な連絡先番号",
   PrivateKey: "秘密鍵",
