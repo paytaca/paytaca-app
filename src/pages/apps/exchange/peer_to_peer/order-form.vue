@@ -55,7 +55,7 @@
         <!-- Form Body -->
         <div v-if="isloaded">
           <div class="q-mx-lg q-py-md text-h5 text-center text-weight-bold lg-font-size text-grad">
-            {{ ad?.trade_type === 'SELL' ? 'BUY BCH WITH' : 'SELL BCH FOR'}} {{ ad?.fiat_currency?.symbol }}
+            {{ ad?.trade_type === 'SELL' ? 'Buy BCH With' : 'Sell BCH For'}} {{ ad?.fiat_currency?.symbol }}
           </div>
           <q-scroll-area ref="scrollTargetRef" :style="`height: ${minHeight}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">
             <div class="q-mx-md q-mb-sm">
@@ -149,7 +149,7 @@
                       dense
                       :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
-                      :label="$t('MIN')"
+                      :label="$t('Min', {}, 'Min')"
                       @click="updateInput(max=false, min=true)"/>
                     <q-btn
                       class="sm-font-size button button-text-primary"
@@ -157,7 +157,7 @@
                       flat
                       :disable="!hasArbiters || createOrdersEnabled === false || isZeroTradeLimits()"
                       :class="getDarkModeClass(darkMode)"
-                      :label="$t('MAX')"
+                      :label="$t('Max', {}, 'Max')"
                       @click="updateInput(max=true, min=false)"/>
                   </div>
                 </div>
@@ -205,7 +205,7 @@
                   unelevated
                   no-caps
                   size="lg"
-                  :label="ad?.trade_type === 'SELL' ? $t('BUY') : $t('SELL')"
+                  :label="ad?.trade_type === 'SELL' ? $t('Buy', {}, 'Buy') : $t('Sell', {}, 'Sell')"
                   class="full-width q-py-sm text-weight-bold bg-grad button"
                   @click="submit()">
                 </q-btn>

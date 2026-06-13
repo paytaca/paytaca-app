@@ -160,7 +160,7 @@
       }"
       @ok="onSecurityOk"
       @cancel="onSecurityCancel"
-      text="Swipe To Escrow"
+      text="Swipe to Escrow"
     />
   </div>
 </template>

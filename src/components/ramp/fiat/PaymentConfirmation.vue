@@ -67,7 +67,7 @@
     <!-- Payment Methods Section -->
     <div class="section-wrapper">
       <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
-        {{ $t('PAYMENTMETHODS') }}
+        {{ $t('PaymentMethods', {}, 'Payment Methods') }}
       </p>
       <div class="text-center q-px-md q-mb-md instruction-text" :class="getDarkModeClass(darkMode)">
         <span v-if="data?.type === 'buyer'">{{ order.is_cash_in ? 'You selected this payment method' : 'Upload your proof of payment for the method you used' }}</span>

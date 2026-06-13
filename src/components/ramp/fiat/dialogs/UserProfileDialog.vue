@@ -15,7 +15,7 @@
             <div v-if="user" class="q-mt-lg q-pt-md">
                 <div class="text-center q-pt-none">
                     <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-                    <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }} <q-badge v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="REPORTED" /></div>
+                    <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }} <q-badge v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="Reported" /></div>
                 </div>
                 <!-- User Stats -->
                 <div class="row justify-center q-px-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
@@ -78,8 +78,8 @@
               </q-btn>
             </div>
             <div class="row q-mb-sm br-15 text-center pt-card btn-transaction md-font-size" :class="getDarkModeClass(darkMode)" :style="`background-color: ${darkMode ? '' : '#f2f3fc !important;'}`">
-                <button class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}" @click="activeTab = 'reviews'"> {{ $t('REVIEWS') }} </button>
-                <button v-if="!user?.self" class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}" @click="activeTab = 'ads'">ADS</button>
+                <button class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': user.self === false && activeTab === 'reviews'}" @click="activeTab = 'reviews'"> {{ $t('Reviews', {}, 'Reviews') }} </button>
+                <button v-if="!user?.self" class="col-grow br-15 btn-custom fiat-tab q-mt-none" :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}" @click="activeTab = 'ads'">{{ $t('Ads', {}, 'Ads') }}</button>
             </div>
             <q-scroll-area :style="`height: ${minHeight - 260}px`" style="overflow-y:auto;">
                 <!-- Reviews tab -->

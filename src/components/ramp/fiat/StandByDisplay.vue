@@ -88,7 +88,7 @@
         </div>
         <!-- Payment methods -->
         <div v-if="showSelectedPaymentMethod" class="q-px-xs q-pt-sm">
-          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">PAYMENT METHODS</div>
+          <div class="md-font-size q-pb-xs q-pl-sm text-center text-weight-bold">Payment Methods</div>
             <div class="text-center sm-font-size q-mx-md q-mb-sm">
             <span v-if="userType === 'buyer'">You selected the following payment methods</span>
             <span v-if="userType === 'seller'">The buyer selected the following payment methods</span>

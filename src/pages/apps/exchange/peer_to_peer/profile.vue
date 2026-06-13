@@ -64,7 +64,7 @@
                 size="1em"
                 color="green"
                 name="circle"/>
-                <q-badge class="q-ml-xs" v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="REPORTED" />
+                <q-badge class="q-ml-xs" v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="Reported" />
                 <q-icon
                   @click="editNickname = true"
                   v-if="user?.self"
@@ -179,14 +179,14 @@
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': user?.self === false && activeTab === 'reviews'}"
             @click="activeTab = 'reviews'">
-            {{ $t('REVIEWS') }}
+            {{ $t('Reviews', {}, 'Reviews') }}
           </button>
           <button
             v-if="!user?.self"
             class="col-grow br-15 btn-custom fiat-tab q-mt-none"
             :class="{'dark': darkMode, 'active-btn': activeTab === 'ads'}"
             @click="activeTab = 'ads'">
-            {{ $t('ADS') }}
+            {{ $t('Ads', {}, 'Ads') }}
           </button>
         </div>
         <q-scroll-area :style="`height: ${!user?.self ? minHeight - 240 : minHeight - 280}px`" style="overflow-y:auto;" class="scroll-y" @touchstart.native="preventPull">

@@ -18,7 +18,7 @@
                   size="1em"
                   :color="onlineStatusColor(counterparty)"
                   :name="onlineStatusColor(counterparty) === 'orange' ? 'bedtime' : 'circle'"/>
-                  <q-badge class="q-ml-xs" v-if="isReported(counterparty?.reported_at)" rounded size="xs" color="red" label="REPORTED" />
+                  <q-badge class="q-ml-xs" v-if="isReported(counterparty?.reported_at)" rounded size="xs" color="red" label="Reported" />
                 </div>
                 <div class="row" :class="{ 'reported-greyed': isReported(counterparty?.reported_at) }">
                   <q-rating
@@ -75,7 +75,7 @@
       <div v-else>
         <div class="row justify-between no-wrap">
           <div class="col-auto">
-            <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('BUYER') : $t('SELLER') }}</div>
+            <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('Buyer') : $t('Seller') }}</div>
             <div class="row justify-end">
                 <div class="col q-py-none">
                     <div style="max-width: 200px; overflow-x: auto;">
@@ -113,7 +113,7 @@
             </div>
           </div>
           <div class="col-auto text-right">
-            <div class="sm-font-size">{{ ad.trade_type === 'SELL' ? $t('SELLER') : $t('BUYER') }}</div>
+            <div class="sm-font-size">{{ ad.trade_type === 'SELL' ? $t('Seller') : $t('Buyer') }}</div>
             <div class="row justify-end q-py-none">
               <div style="max-width: 125px; overflow-x: auto;">
                 <q-btn
@@ -168,7 +168,7 @@
                 <span class="sm-font-size q-ml-xs">/BCH </span>
               </div>
               <div v-if="type === 'order'">
-                <div class="xs-font-size q-mb-sm">{{ $t('AMOUNT', {}, 'AMOUNT') }}</div>
+                <div class="xs-font-size q-mb-sm">{{ $t('Amount', {}, 'Amount') }}</div>
                 <div>
                   <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                     {{ tradeAmountBCH }}
@@ -296,15 +296,15 @@ export default {
       switch (order.trade_type) {
         case 'BUY':
           if (order.owner.name === this.userInfo.name) {
-            return 'BUYING FROM'
+            return 'Buying From'
           } else {
-            return 'SELLING TO'
+            return 'Selling To'
           }
         case 'SELL':
           if (order.owner.name === this.userInfo.name) {
-            return 'SELLING TO'
+            return 'Selling To'
           } else {
-            return 'BUYING FROM'
+            return 'Buying From'
           }
       }
     },
