@@ -506,6 +506,7 @@ export default {
         order: null,
         chat: null
       },
+      wsFetchingOrder: false,
       state: '',
       isloaded: false,
       confirmType: '',
@@ -1005,7 +1006,7 @@ getBackNavigationPath () {
       try {
         const vm = this
         await vm.fetchOrder()
-        if (vm.order.contract) {
+        if (vm.order.contract && !vm.escrowContract) {
           await vm.generateContract()
         }
         await vm.fetchAd()
@@ -2030,13 +2031,12 @@ getBackNavigationPath () {
 
     async generateContract (shouldReloadChildren = false) {
       const vm = this
+      if (vm.escrowContract && !shouldReloadChildren) return
+
       await vm.fetchFees()
       await vm.fetchContract()
       
-      // Skip if no contract data, but allow regeneration if shouldReloadChildren is true
-      // (happens when websocket receives contract updates after initial load)
       if (!vm.contract) return
-      if (vm.escrowContract && !shouldReloadChildren) return
       
       const publicKeys = vm.contract.pubkeys
       const addresses = vm.contract.addresses
@@ -2519,11 +2519,16 @@ getBackNavigationPath () {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          await this.fetchOrder()
-          if (message?.contract_address) {
-            // Regenerate contract and reload children to update contract balance
-            await this.generateContract(true)
-            this.escrowTransferKey++
+          if (this.wsFetchingOrder) return
+          this.wsFetchingOrder = true
+          try {
+            await this.fetchOrder()
+            if (message?.contract_address) {
+              await this.generateContract(true)
+              this.escrowTransferKey++
+            }
+          } finally {
+            this.wsFetchingOrder = false
           }
         } else {
           if ((message?.action === 'ESCROW' || message?.action === 'RELEASE') &&
