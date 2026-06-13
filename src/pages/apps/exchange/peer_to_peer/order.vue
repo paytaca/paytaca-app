@@ -507,6 +507,7 @@ export default {
         chat: null
       },
       wsFetchingOrder: false,
+      loadingData: false,
       state: '',
       isloaded: false,
       confirmType: '',
@@ -794,7 +795,8 @@ getBackNavigationPath () {
         arbiter: this.order?.arbiter,
         contractAddress: this.contract?.address,
         transferAmount: this.transferAmount,
-        fees: this.fees
+        fees: this.fees,
+        contractBalance: this.contractBalance
       }
     },
     verifyTransactionData () {
@@ -1003,6 +1005,8 @@ getBackNavigationPath () {
     },
 
     async loadData () {
+      if (this.loadingData) return
+      this.loadingData = true
       try {
         const vm = this
         await vm.fetchOrder()
@@ -1019,6 +1023,8 @@ getBackNavigationPath () {
         vm.isloaded = true
       } catch (error) {
         console.error(error)
+      } finally {
+        this.loadingData = false
       }
     },
 
@@ -2424,7 +2430,7 @@ getBackNavigationPath () {
     },
 
     async refreshPage (done) {
-      if (this.sendingBch || this.verifyingTx) {
+      if (this.sendingBch || this.verifyingTx || this.loadingData) {
         if (done) done()
         return
       }
