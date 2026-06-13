@@ -765,9 +765,9 @@ export default {
              return formattedStatus || this.order?.status?.label || ''
            }
          case 'escrow-bch':
-           return 'Escrow bch'
-         case 'tx-confirmation':
-           return `verifying ${this.verifyAction}`
+            return 'Escrow BCH'
+          case 'tx-confirmation':
+            return `Verifying ${this.verifyAction.charAt(0) + this.verifyAction.slice(1).toLowerCase()}`
          case 'payment-confirmation':
            return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
          default:
