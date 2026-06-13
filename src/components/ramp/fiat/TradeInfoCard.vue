@@ -166,8 +166,15 @@
                     {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size q-ml-xs">/BCH </span>
+                <q-skeleton
+                  v-if="marketPriceLoading"
+                  type="text"
+                  width="40px"
+                  class="q-ml-xs inline-block"
+                  style="vertical-align: middle;"
+                />
                 <span
-                  v-if="pricePercentage !== null"
+                  v-else-if="pricePercentage !== null"
                   class="sm-font-size q-ml-xs text-weight-bold"
                   :class="{
                     'text-green': isPriceUp,
@@ -248,6 +255,10 @@ export default {
     marketPrice: {
       type: Number,
       default: 0
+    },
+    marketPriceLoading: {
+      type: Boolean,
+      default: false
     },
     type: {
       type: String,

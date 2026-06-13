@@ -63,6 +63,7 @@
                 :order="order"
                 :ad="ad"
                 :market-price="marketPrice"
+                :market-price-loading="marketPriceLoading"
                 type="ad"
                 @view-peer="onViewPeer"
                 @view-reviews="showReviews=true"/>
@@ -359,6 +360,7 @@ export default {
         is_posted: false
       },
       marketPrice: 0,
+      marketPriceLoading: true,
       arbitersAvailable: [],
       arbiterAuthRequired: false,
       previousRoute: null,
@@ -1018,6 +1020,7 @@ export default {
         const price = parseFloat(message.price)
         if (price) {
           this.marketPrice = price
+          this.marketPriceLoading = false
           this.fetchAd()
         }
       })
