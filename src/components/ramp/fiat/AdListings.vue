@@ -104,15 +104,6 @@
                             {{ listing.price_type }}
                           </span><br>
                           <div class="row q-gutter-md">
-                            <span>
-                              {{
-                                $t(
-                                  'TradeCount',
-                                  { count: listing.trade_count },
-                                  `${ listing.trade_count } trades`
-                                )
-                              }}
-                            </span>
                             <span class="text-green">
                               {{
                                 $t(

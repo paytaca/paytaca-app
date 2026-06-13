@@ -154,16 +154,6 @@
                           <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                         </div>
                         <div class="sm-font-size">
-                          <span>
-                            {{
-                              $t(
-                                'TradeCount',
-                                { count: listing.owner?.trade_count },
-                                `${ listing.owner?.trade_count || 0 } trades`
-                              )
-                            }}
-                          </span>
-                          <span> (</span>
                           <span class="text-green">
                             {{
                               $t(
@@ -173,7 +163,7 @@
                               )
                             }}
                           </span>
-                          <span>, </span>
+                          <span> &middot; </span>
                           <span class="text-red">
                             {{
                               $t(
@@ -183,7 +173,7 @@
                               )
                             }}
                           </span>
-                          <span>)  </span>
+                          <span> &middot; </span>
                           <span>
                             {{
                               $t(

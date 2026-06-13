@@ -31,16 +31,6 @@
                     </span>
                 </div>
                 <div class="text-center sm-font-size q-pt-sm">
-                    <span>
-                      {{
-                        $t(
-                          'TradeCount',
-                          { count: user.trade_count },
-                          `${ user.trade_count || 0 } trades`
-                        )
-                      }}
-                    </span>
-                    <span> (</span>
                     <span class="text-green">
                       {{
                         $t(
@@ -50,7 +40,7 @@
                         )
                       }}
                     </span>
-                    <span>, </span>
+                    <span> &middot; </span>
                     <span class="text-red">
                       {{
                         $t(
@@ -60,7 +50,7 @@
                         )
                       }}
                     </span>
-                    <span>)  </span>
+                    <span> &middot; </span>
                     <span>
                       {{
                         $t(

@@ -123,16 +123,6 @@
             </span>
             </div>
             <div class="text-center sm-font-size q-pt-sm">
-                <span>
-                {{
-                  $t(
-                    'TradeCount',
-                    { count: user.trade_count },
-                    `${ user.trade_count || 0 } trades`
-                  )
-                }}
-              </span>
-              <span> (</span>
               <span class="text-green">
                 {{
                   $t(
@@ -142,7 +132,7 @@
                   )
                 }}
               </span>
-              <span>, </span>
+              <span> &middot; </span>
               <span class="text-red">
                 {{
                   $t(
@@ -152,7 +142,7 @@
                   )
                 }}
               </span>
-              <span>)  </span>
+              <span> &middot; </span>
                 <span>
                 {{
                   $t(
@@ -233,15 +223,6 @@
                   <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
                     <div class="sm-font-size q-mr-sm">
-                      <span class="q-mr-sm">
-                        {{
-                          $t(
-                            'TradeCount',
-                            { count: ad.owner?.trade_count },
-                            `${ ad.owner?.trade_count || 0 } trades`
-                          )
-                        }}
-                      </span>
                       <span class="text-green q-mr-sm">
                         {{
                           $t(
