@@ -1017,6 +1017,13 @@ getBackNavigationPath () {
         await vm.fetchFeedback()
         await vm.fetchStatusList() // Load status history
         vm.ensureChatCloseCountdownTimer()
+        
+        // Fetch unread count before potentially switching to chat tab
+        const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
+        if (escrowedStatuses.includes(vm.order?.status?.value)) {
+          await vm.fetchChatUnread(vm.chatRef)
+        }
+        
         if (this.notifType === 'new_message') { 
           this.activeTab = 'chat'
         }
@@ -1982,39 +1989,31 @@ getBackNavigationPath () {
         console.warn('Order ID is missing from route params, skipping fetchOrder')
         return
       }
-      const url = `/ramp-p2p/order/${orderId}/`
-      await backend.get(url, { authorize: true })
-        .then(response => {
-          vm.order = response.data
-          vm.handleNewStatus(vm.order.status)
-          vm.updateOrderReadAt()
-          const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-          const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-          vm.chatRef = chatRef
-          if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
-            updateOrderChatSessionRef(vm.order.id, chatRef)
-            fetchChatSession(chatRef)
-              .catch(error => {
-                if (error.response?.status === 404 && vm.order?.id) {
-                  vm.createGroupChat(vm.order.id, chatRef)
-                } else if (error.response?.status === 403) {
-                  // 403 means chat identity not ready - silently ignore
-                  // Don't call handleRequestError for chat-related 403s
-                } else {
-                  this.handleRequestError(error)
-                }
-              })
-          }
-          
-          // Fetch unread count from chat members (only if chat is enabled)
-          const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
-          if (escrowedStatuses.includes(vm.order?.status?.value)) {
-            vm.fetchChatUnread(chatRef)
-          }
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
+      try {
+        const url = `/ramp-p2p/order/${orderId}/`
+        const response = await backend.get(url, { authorize: true })
+        vm.order = response.data
+        await vm.handleNewStatus(vm.order.status)
+        vm.updateOrderReadAt()
+        const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
+        const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        vm.chatRef = chatRef
+        if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
+          updateOrderChatSessionRef(vm.order.id, chatRef)
+          fetchChatSession(chatRef)
+            .catch(error => {
+              if (error.response?.status === 404 && vm.order?.id) {
+                vm.createGroupChat(vm.order.id, chatRef)
+              } else if (error.response?.status === 403) {
+                // 403 means chat identity not ready - silently ignore
+              } else {
+                this.handleRequestError(error)
+              }
+            })
+        }
+      } catch (error) {
+        this.handleRequestError(error)
+      }
     },
 
     async fetchChatUnread (chatRef) {
@@ -2157,7 +2156,7 @@ getBackNavigationPath () {
 
     handleNewStatus (newStatus) {
       this.updateStatus(newStatus)
-      this.updateStateByStatus(newStatus?.value)
+      return this.updateStateByStatus(newStatus?.value)
     },
 
     updateStatus (newStatus) {
