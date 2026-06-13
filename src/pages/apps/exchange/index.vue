@@ -1,6 +1,6 @@
 <template>
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
-    <router-view v-if="isloaded" :key="$route.path"></router-view>
+    <router-view v-if="isloaded" :key="$route.name"></router-view>
     
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">

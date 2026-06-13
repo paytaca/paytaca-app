@@ -1,6 +1,6 @@
 <template>
   <div>
-    <router-view :key="$route.path"></router-view>
+    <router-view :key="$route.name"></router-view>
     <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
     <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
     <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
