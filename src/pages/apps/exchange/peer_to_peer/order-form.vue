@@ -62,6 +62,7 @@
               <TradeInfoCard
                 :order="order"
                 :ad="ad"
+                :market-price="marketPrice"
                 type="ad"
                 @view-peer="onViewPeer"
                 @view-reviews="showReviews=true"/>

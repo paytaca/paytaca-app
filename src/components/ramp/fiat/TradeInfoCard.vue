@@ -166,6 +166,15 @@
                     {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size q-ml-xs">/BCH </span>
+                <span
+                  v-if="pricePercentage !== null"
+                  class="sm-font-size q-ml-xs text-weight-bold"
+                  :class="{
+                    'text-green': isPriceUp,
+                    'text-red': isPriceDown
+                  }">
+                  {{ isPriceUp ? '+' : '' }}{{ pricePercentage }}%
+                </span>
               </div>
               <div v-if="type === 'order'">
                 <div class="xs-font-size q-mb-sm">{{ $t('Amount', {}, 'Amount') }}</div>
@@ -236,6 +245,10 @@ export default {
   props: {
     order: Object,
     ad: Object,
+    marketPrice: {
+      type: Number,
+      default: 0
+    },
     type: {
       type: String,
       default: 'ad'
@@ -273,6 +286,17 @@ export default {
         counterparty = this.order?.owner
       }
       return counterparty
+    },
+    pricePercentage () {
+      if (!this.marketPrice || !this.ad?.price) return null
+      const diff = ((this.ad.price - this.marketPrice) / this.marketPrice) * 100
+      return diff.toFixed(1)
+    },
+    isPriceUp () {
+      return this.pricePercentage > 0
+    },
+    isPriceDown () {
+      return this.pricePercentage < 0
     }
   },
   methods: {
