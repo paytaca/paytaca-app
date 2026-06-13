@@ -2489,6 +2489,8 @@ export default {
   Trade: "Comercio",
   TradeAmount: "Monto comercial",
   TradeCount: "{count} operaciones",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Tarifa comercial",
   TradeLimit: "Límite comercial",
   TradeQuantity: "Cantidad comercial",

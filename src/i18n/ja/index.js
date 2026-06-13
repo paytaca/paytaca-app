@@ -2485,6 +2485,8 @@ export default {
   Trade: "貿易",
   TradeAmount: "取引額",
   TradeCount: "{count} 件の取引",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "取引手数料",
   TradeLimit: "取引限度額",
   TradeQuantity: "取引数量",

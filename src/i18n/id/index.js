@@ -2485,6 +2485,8 @@ export default {
   Trade: "Perdagangan",
   TradeAmount: "Jumlah Perdagangan",
   TradeCount: "{count} perdagangan",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Biaya Perdagangan",
   TradeLimit: "Batas Perdagangan",
   TradeQuantity: "Kuantitas Perdagangan",

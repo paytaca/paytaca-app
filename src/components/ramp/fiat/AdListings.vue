@@ -113,6 +113,24 @@
                                 )
                               }}
                             </span>
+                            <span class="text-green">
+                              {{
+                                $t(
+                                  'TradesCompleted',
+                                  { count: listing.completed_trades },
+                                  `${ listing.completed_trades || 0 } completed`
+                                )
+                              }}
+                            </span>
+                            <span class="text-red">
+                              {{
+                                $t(
+                                  'TradesFailed',
+                                  { count: listing.failed_trades },
+                                  `${ listing.failed_trades || 0 } failed`
+                                )
+                              }}
+                            </span>
                             <span>
                               {{
                                 $t(

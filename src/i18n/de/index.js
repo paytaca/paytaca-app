@@ -2486,6 +2486,8 @@ export default {
   Trade: "Handel",
   TradeAmount: "Handelsbetrag",
   TradeCount: "{count} Transaktionen",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Handelsgebühr",
   TradeLimit: "Handelslimit",
   TradeQuantity: "Handelsmenge",

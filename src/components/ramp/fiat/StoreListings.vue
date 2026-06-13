@@ -154,7 +154,7 @@
                           <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                         </div>
                         <div class="sm-font-size">
-                          <span class="q-mr-sm">
+                          <span>
                             {{
                               $t(
                                 'TradeCount',
@@ -163,7 +163,28 @@
                               )
                             }}
                           </span>
-                          <span class="q-ml-sm">
+                          <span> (</span>
+                          <span class="text-green">
+                            {{
+                              $t(
+                                'TradesCompleted',
+                                { count: listing.owner?.completed_trades },
+                                `${ listing.owner?.completed_trades || 0 } completed`
+                              )
+                            }}
+                          </span>
+                          <span>, </span>
+                          <span class="text-red">
+                            {{
+                              $t(
+                                'TradesFailed',
+                                { count: listing.owner?.failed_trades },
+                                `${ listing.owner?.failed_trades || 0 } failed`
+                              )
+                            }}
+                          </span>
+                          <span>)  </span>
+                          <span>
                             {{
                               $t(
                                 'CompletionPercentage',

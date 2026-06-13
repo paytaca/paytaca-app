@@ -2489,6 +2489,8 @@ export default {
   Trade: "貿易",
   TradeAmount: "交易金額",
   TradeCount: "{count} 筆交易",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "交易費",
   TradeLimit: "交易限額",
   TradeQuantity: "交易數量",

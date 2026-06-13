@@ -2485,6 +2485,8 @@ export default {
   Trade: "Ciniki",
   TradeAmount: "Adadin ciniki",
   TradeCount: "{count} cinikai",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Kudin ciniki",
   TradeLimit: "Iyakar ciniki",
   TradeQuantity: "Yawan ciniki",

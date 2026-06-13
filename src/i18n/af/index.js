@@ -2485,6 +2485,8 @@ export default {
   Trade: "Handel",
   TradeAmount: "Handelsbedrag",
   TradeCount: "{count} ambagte",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Handelsfooi",
   TradeLimit: "Handelsbeperking",
   TradeQuantity: "Handelshoeveelheid",

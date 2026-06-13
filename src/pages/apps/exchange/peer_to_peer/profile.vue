@@ -132,9 +132,27 @@
                   )
                 }}
               </span>
-              &nbsp;&nbsp;
-                <span>|</span>
-              &nbsp;&nbsp;
+              <span> (</span>
+              <span class="text-green">
+                {{
+                  $t(
+                    'TradesCompleted',
+                    { count: user.completed_trades },
+                    `${ user.completed_trades || 0 } completed`
+                  )
+                }}
+              </span>
+              <span>, </span>
+              <span class="text-red">
+                {{
+                  $t(
+                    'TradesFailed',
+                    { count: user.failed_trades },
+                    `${ user.failed_trades || 0 } failed`
+                  )
+                }}
+              </span>
+              <span>)  </span>
                 <span>
                 {{
                   $t(
@@ -219,17 +237,35 @@
                         {{
                           $t(
                             'TradeCount',
-                            { count: ad.trade_count },
-                            `${ ad.trade_count || 0 } trades`
+                            { count: ad.owner?.trade_count },
+                            `${ ad.owner?.trade_count || 0 } trades`
                           )
                         }}
                       </span>
-                      <span class="q-ml-sm">
+                      <span class="text-green q-mr-sm">
+                        {{
+                          $t(
+                            'TradesCompleted',
+                            { count: ad.owner?.completed_trades },
+                            `${ ad.owner?.completed_trades || 0 } completed`
+                          )
+                        }}
+                      </span>
+                      <span class="text-red q-mr-sm">
+                        {{
+                          $t(
+                            'TradesFailed',
+                            { count: ad.owner?.failed_trades },
+                            `${ ad.owner?.failed_trades || 0 } failed`
+                          )
+                        }}
+                      </span>
+                      <span>
                         {{
                           $t(
                             'CompletionPercentage',
-                            { percentage: formatCompletionRate(ad.completion_rate) },
-                            `${ formatCompletionRate(ad.completion_rate) }% completion`
+                            { percentage: formatCompletionRate(ad.owner?.completion_rate) },
+                            `${ formatCompletionRate(ad.owner?.completion_rate) }% completion`
                           )
                         }}
                       </span><br>

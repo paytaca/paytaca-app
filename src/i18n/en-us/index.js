@@ -2510,6 +2510,8 @@ export default {
   Trade: "Trade",
   TradeAmount: "Trade Amount",
   TradeCount: "{count} trades",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Trade Fee",
   TradeLimit: "Trade Limit",
   TradeQuantity: "Trade Quantity",

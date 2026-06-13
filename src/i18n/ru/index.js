@@ -2485,6 +2485,8 @@ export default {
   Trade: "Торговля",
   TradeAmount: "Сумма сделки",
   TradeCount: "{count} сделок",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Торговая комиссия",
   TradeLimit: "Торговый лимит",
   TradeQuantity: "Количество сделок",

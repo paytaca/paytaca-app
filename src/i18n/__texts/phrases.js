@@ -2220,6 +2220,8 @@ const phrases = {
       AdIdNo: "Ad #{ID}",
       ReviewCount: "{count} review(s)",
       TradeCount: "{count} trades",
+      TradesCompleted: "{count} completed",
+      TradesFailed: "{count} failed",
       CompletionPercentage: "{percentage}% completion",
       RatingValue: "({rating} rating)",
       PaymentTypeUnsupported: "{currency} does not support this payment type.",

@@ -2485,6 +2485,8 @@ export default {
   Trade: "التجارة",
   TradeAmount: "مبلغ التجارة",
   TradeCount: "{count} الصفقات",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "رسوم التجارة",
   TradeLimit: "حد التجارة",
   TradeQuantity: "كمية التجارة",

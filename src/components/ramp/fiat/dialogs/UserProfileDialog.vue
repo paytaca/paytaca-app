@@ -40,9 +40,27 @@
                         )
                       }}
                     </span>
-                    &nbsp;&nbsp;
-                    <span>|</span>
-                    &nbsp;&nbsp;
+                    <span> (</span>
+                    <span class="text-green">
+                      {{
+                        $t(
+                          'TradesCompleted',
+                          { count: user.completed_trades },
+                          `${ user.completed_trades || 0 } completed`
+                        )
+                      }}
+                    </span>
+                    <span>, </span>
+                    <span class="text-red">
+                      {{
+                        $t(
+                          'TradesFailed',
+                          { count: user.failed_trades },
+                          `${ user.failed_trades || 0 } failed`
+                        )
+                      }}
+                    </span>
+                    <span>)  </span>
                     <span>
                       {{
                         $t(

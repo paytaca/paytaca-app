@@ -2485,6 +2485,8 @@ export default {
   Trade: "Trade",
   TradeAmount: "Halaga ng Kalakal",
   TradeCount: "{count} mga kalakalan",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "Bayad sa Kalakalan",
   TradeLimit: "Limit sa Kalakalan",
   TradeQuantity: "Dami ng Trade",

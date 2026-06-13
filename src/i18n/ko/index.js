@@ -2485,6 +2485,8 @@ export default {
   Trade: "무역",
   TradeAmount: "거래금액",
   TradeCount: "{count} 거래",
+  TradesCompleted: "{count} completed",
+  TradesFailed: "{count} failed",
   TradeFee: "거래 수수료",
   TradeLimit: "거래 한도",
   TradeQuantity: "거래 수량",
