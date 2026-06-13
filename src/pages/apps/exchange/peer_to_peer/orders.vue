@@ -4,7 +4,7 @@
       <OrderListings :key="orderListingsKey" />
     </div>
     <div v-else>
-      <router-view :key="$route.path"></router-view>
+      <router-view :key="$route.params.order"></router-view>
     </div>
   </template>
 <script>
