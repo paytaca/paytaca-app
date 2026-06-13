@@ -18,7 +18,7 @@
                     <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }}</div>
                 </div>
                 <!-- User Stats -->
-                <div class="row justify-center q-px-sm" :class="{ 'reported-blur': isReported(user.reported_at) }">
+                <div class="row justify-center q-px-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
                     <q-rating readonly :model-value="user.rating ? user.rating : 0" :v-model="user.rating" size="1.2em" color="yellow-9" icon="star"/>
                     <span class="q-mx-sm sm-font-size">
                       {{
@@ -30,7 +30,7 @@
                       }}
                     </span>
                 </div>
-                <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-blur': isReported(user.reported_at) }">
+                <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
                     <span class="text-green">
                       {{
                         $t(
@@ -499,8 +499,8 @@ export default {
     padding-top: 2px;
     font-weight: 500;
   }
-  .reported-blur {
-    filter: blur(4px);
+  .reported-greyed {
+    filter: grayscale(1);
     opacity: 0.4;
     user-select: none;
     pointer-events: none;

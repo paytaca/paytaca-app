@@ -141,7 +141,7 @@
                           </span>
                           <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                         </div>
-                        <div class="row" :class="{ 'reported-blur': isReported(listing.owner?.reported_at) }">
+                        <div class="row" :class="{ 'reported-greyed': isReported(listing.owner?.reported_at) }">
                           <q-rating
                             readonly
                             :model-value="listing.owner.rating ? listing.owner.rating : 0"
@@ -153,7 +153,7 @@
                             />
                           <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
                         </div>
-                        <div class="sm-font-size" :class="{ 'reported-blur': isReported(listing.owner?.reported_at) }">
+                        <div class="sm-font-size" :class="{ 'reported-greyed': isReported(listing.owner?.reported_at) }">
                           <span class="text-green">
                             {{
                               $t(
@@ -734,8 +734,8 @@ export default {
     z-index: 1;
     left: 10px;
   }
-  .reported-blur {
-    filter: blur(4px);
+  .reported-greyed {
+    filter: grayscale(1);
     opacity: 0.4;
     user-select: none;
     pointer-events: none;
