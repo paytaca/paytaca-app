@@ -18,8 +18,9 @@
                   size="1em"
                   :color="onlineStatusColor(counterparty)"
                   :name="onlineStatusColor(counterparty) === 'orange' ? 'bedtime' : 'circle'"/>
+                  <q-badge class="q-ml-xs" v-if="isReported(counterparty?.reported_at)" rounded size="xs" color="red" label="REPORTED" />
                 </div>
-                <div class="row">
+                <div class="row" :class="{ 'reported-greyed': isReported(counterparty?.reported_at) }">
                   <q-rating
                   readonly
                   :model-value="counterparty?.rating || 0"
@@ -30,6 +31,37 @@
                   icon-half="star_half"
                   @click="onViewReviews"/>
                   <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
+                </div>
+                <div class="sm-font-size" :class="{ 'reported-greyed': isReported(counterparty?.reported_at) }">
+                  <span class="text-green">
+                    {{
+                      $t(
+                        'TradesCompleted',
+                        { count: counterparty?.completed_trades },
+                        `${ counterparty?.completed_trades || 0 } completed`
+                      )
+                    }}
+                  </span>
+                  <span> &middot; </span>
+                  <span class="text-red">
+                    {{
+                      $t(
+                        'TradesFailed',
+                        { count: counterparty?.failed_trades },
+                        `${ counterparty?.failed_trades || 0 } failed`
+                      )
+                    }}
+                  </span>
+                  <span> &middot; </span>
+                  <span>
+                    {{
+                      $t(
+                        'CompletionPercentage',
+                        { percentage: formatCompletionRate(counterparty?.completion_rate) },
+                        `${ formatCompletionRate(counterparty?.completion_rate) }% completion`
+                      )
+                    }}
+                  </span>
                 </div>
                 <div v-if="counterparty && counterparty?.last_online_at && counterparty?.is_online === false" class="row xs-font-size text-grey">
                   Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}
@@ -284,6 +316,13 @@ export default {
     },
     onViewReviews () {
       this.$emit('view-reviews')
+    },
+    isReported (reportedAt) {
+      if (!reportedAt) return false
+      return Date.now() - new Date(reportedAt).getTime() < 24 * 60 * 60 * 1000
+    },
+    formatCompletionRate (value) {
+      return Math.floor(value).toString()
     }
   }
 }
@@ -303,5 +342,11 @@ export default {
   }
   .subtext {
     opacity: .5;
+  }
+  .reported-greyed {
+    filter: grayscale(1);
+    opacity: 0.4;
+    user-select: none;
+    pointer-events: none;
   }
 </style>

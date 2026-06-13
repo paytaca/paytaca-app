@@ -59,12 +59,12 @@
               <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
               <div class="text-weight-bold lg-font-size q-pt-sm">
                 <span id="target-name">{{ user.name }}</span>
-                <q-badge class="q-ml-xs" v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="REPORTED" />
                 <q-icon
                 class="q-ml-xs"
                 size="1em"
                 color="green"
                 name="circle"/>
+                <q-badge class="q-ml-xs" v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="REPORTED" />
                 <q-icon
                   @click="editNickname = true"
                   v-if="user?.self"
