@@ -117,7 +117,7 @@
             </div>
 
             <!-- User Stats -->
-            <div class="row justify-center q-px-sm q-pt-sm">
+            <div class="row justify-center q-px-sm q-pt-sm" :class="{ 'reported-blur': isReported(user.reported_at) }">
               <q-rating
                 readonly
                 :model-value="user.rating ? user.rating : 0"
@@ -137,7 +137,7 @@
               }}
             </span>
             </div>
-            <div class="text-center sm-font-size q-pt-sm">
+            <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-blur': isReported(user.reported_at) }">
               <span class="text-green">
                 {{
                   $t(
@@ -237,7 +237,7 @@
                 <q-item-section>
                   <div class="q-py-sm" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
-                    <div class="sm-font-size q-mr-sm">
+                    <div class="sm-font-size q-mr-sm" :class="{ 'reported-blur': isReported(ad.owner?.reported_at) }">
                       <span class="text-green q-mr-sm">
                         {{
                           $t(
@@ -618,6 +618,10 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
+    isReported (reportedAt) {
+      if (!reportedAt) return false
+      return Date.now() - new Date(reportedAt).getTime() < 24 * 60 * 60 * 1000
+    },
     formattedCurrency (value, currency) {
       return formatCurrency(value, currency)
     },
@@ -792,5 +796,11 @@ export default {
   .q-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .reported-blur {
+    filter: blur(4px);
+    opacity: 0.4;
+    user-select: none;
+    pointer-events: none;
   }
 </style>

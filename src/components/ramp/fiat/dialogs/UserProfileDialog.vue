@@ -18,7 +18,7 @@
                     <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }}</div>
                 </div>
                 <!-- User Stats -->
-                <div class="row justify-center q-px-sm">
+                <div class="row justify-center q-px-sm" :class="{ 'reported-blur': isReported(user.reported_at) }">
                     <q-rating readonly :model-value="user.rating ? user.rating : 0" :v-model="user.rating" size="1.2em" color="yellow-9" icon="star"/>
                     <span class="q-mx-sm sm-font-size">
                       {{
@@ -30,7 +30,7 @@
                       }}
                     </span>
                 </div>
-                <div class="text-center sm-font-size q-pt-sm">
+                <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-blur': isReported(user.reported_at) }">
                     <span class="text-green">
                       {{
                         $t(
@@ -394,6 +394,10 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value).toString()
     },
+    isReported (reportedAt) {
+      if (!reportedAt) return false
+      return Date.now() - new Date(reportedAt).getTime() < 24 * 60 * 60 * 1000
+    },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
     },
@@ -494,5 +498,11 @@ export default {
   .col-transaction {
     padding-top: 2px;
     font-weight: 500;
+  }
+  .reported-blur {
+    filter: blur(4px);
+    opacity: 0.4;
+    user-select: none;
+    pointer-events: none;
   }
   </style>
