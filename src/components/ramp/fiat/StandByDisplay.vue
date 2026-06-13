@@ -578,6 +578,10 @@ export default {
     },
     async fetchContractBalance () {
       const vm = this
+      if (vm.data?.contractBalance != null) {
+        vm.contractBalance = vm.data.contractBalance.toString()
+        return
+      }
       if (this.data?.escrow) {
         await vm.data?.escrow?.getBalance(vm.data?.contractAddress, true)
           .then(balance => {

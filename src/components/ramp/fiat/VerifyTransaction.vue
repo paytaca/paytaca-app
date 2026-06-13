@@ -179,6 +179,12 @@ export default {
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
+        if (this.data?.contractBalance != null) {
+          this.contract.balance = this.data.contractBalance
+          this.balanceLoaded = true
+          resolve(this.data.contractBalance)
+          return
+        }
         if (!this.data?.escrow) return 0
         // Use the escrow contract's own address by not passing any parameter
         // The RampContract will use its internally generated address

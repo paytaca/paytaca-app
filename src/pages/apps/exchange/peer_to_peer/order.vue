@@ -518,6 +518,7 @@ export default {
       order: null,
       feedback: null,
       escrowContract: null,
+      contractBalance: null,
       contract: {
         address: null,
         addresses: []
@@ -572,6 +573,7 @@ export default {
       chatIdentity: null,
       keypair: {},
       chatMembers: [],
+      chatMembersRaw: null,
       chatPubkeys: [],
       sendingMessage: false,
       addingNewMessage: false,
@@ -803,7 +805,8 @@ getBackNavigationPath () {
           address: this.contract.addresses.arbiter
         },
         action: this.verifyAction,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        contractBalance: this.contractBalance
       }
     },
     standByDisplayData () {
@@ -820,7 +823,8 @@ getBackNavigationPath () {
         feedback: this.feedback,
         contractAddress: this.contract.address,
         arbiter: arbiter,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        contractBalance: this.contractBalance
       }
     },
     paymentConfirmationData () {
@@ -834,7 +838,8 @@ getBackNavigationPath () {
           address: this.contract.addresses.arbiter
         },
         errors: this.errorMessages,
-        escrow: this.escrowContract
+        escrow: this.escrowContract,
+        contractBalance: this.contractBalance
       }
     },
     transferAmount () {
@@ -1087,8 +1092,9 @@ getBackNavigationPath () {
         await this.loadKeyPair()
         await this.loadChatIdentity()
 
-        // Fetch chat members
-        const members = await fetchChatMembers(this.chatRef).catch(() => [])
+        // Fetch chat members (use cached from fetchChatUnread if available)
+        const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef).catch(() => [])
+        this.chatMembersRaw = null
         if (members?.length) {
           this.chatMembers = members.map(member => ({
             id: member.chat_identity.id,
@@ -2016,6 +2022,7 @@ getBackNavigationPath () {
         
         this.unreadChatCount = userMember?.unread_count || 0
         this.hasUnread = this.unreadChatCount > 0
+        this.chatMembersRaw = response
       }).catch(error => {
         console.error('Error fetching chat unread:', error?.response || error)
       })
@@ -2173,6 +2180,7 @@ getBackNavigationPath () {
         case 'ESCRW_PN': { // Escrow Pending
           await this.generateContract()
           const balance = await this.escrowContract?.getBalance()
+          this.contractBalance = balance
 
           kwargs.orderId = order?.id
           kwargs.contractBalance = balance
@@ -2190,7 +2198,8 @@ getBackNavigationPath () {
           break
         case 'PD': { // Paid
           kwargs.orderId = order?.id
-          kwargs.contractBalance = await this.escrowContract?.getBalance()
+          this.contractBalance = await this.escrowContract?.getBalance()
+          kwargs.contractBalance = this.contractBalance
           state = this.getPaidState(kwargs)
           confirmType = this.getConfirmTypeByTradeType(kwargs)
           if (state === 'tx-confirmation') this.verifyTransactionKey++
