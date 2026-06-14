@@ -85,7 +85,7 @@
           }}</div>
       </div>
       <q-pull-to-refresh :scroll-target="scrollTarget" @refresh="refreshData">
-        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto; padding-bottom: ${state === 'form' ? '180px' : '20px'};`" class="scroll-y" @touchstart="preventPull">
+        <div ref="scrollTarget" :style="`height: ${scrollHeight}px; overflow-y:auto; padding-bottom: 20px;`" class="scroll-y" @touchstart="preventPull">
           <div class="q-mx-sm q-mb-sm">
             <TradeInfoCard
               :order="order"
