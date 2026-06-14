@@ -53,8 +53,8 @@
                       class="q-pa-sm"
                       rounded
                       color="blue-grey-6"
-                      :outline="!(selectedReasons.includes(reason))"
-                      @click="updateAppealReasons(reason)"
+                      :outline="selectedReason !== reason"
+                      @click="selectedReason = reason"
                       v-for="reason in reasonOpts" :key="reason" >
                       {{ reason }}
                     </q-badge>
@@ -67,7 +67,7 @@
               flat
               :label="$t('Submit')"
               class="md-font-size"
-              :disable="!selectedAppealType || selectedReasons.length === 0"
+              :disable="!selectedAppealType || !selectedReason"
               @click="submitAppeal()"
               v-close-popup
             />
@@ -89,7 +89,7 @@ export default {
       darkMode: this.$store.getters['darkmode/getStatus'],
       showAppealConfirmation: true,
       showAppealForm: false,
-      selectedReasons: [],
+      selectedReason: null,
       selectedAppealType: null,
       appealTypeOpts: [
         {
@@ -136,7 +136,7 @@ export default {
       const data = {
         order_id: vm.order.id,
         type: vm.selectedAppealType?.value,
-        reasons: vm.selectedReasons
+        reasons: [vm.selectedReason]
       }
       // This endpoint is used by peers (buyer/seller). Force peer token to avoid
       // the backend client heuristic incorrectly selecting the arbiter token.
@@ -191,16 +191,7 @@ export default {
       this.showAppealConfirmation = false
       this.showAppealForm = true
     },
-    updateAppealReasons (reason) {
-      if (this.selectedReasons.includes(reason)) {
-        const index = this.selectedReasons.indexOf(reason)
-        if (index > -1) {
-          this.selectedReasons.splice(index, 1)
-        }
-      } else {
-        this.selectedReasons.push(reason)
-      }
-    }
+
   }
 }
 </script>
