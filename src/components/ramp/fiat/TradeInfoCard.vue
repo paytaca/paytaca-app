@@ -358,7 +358,7 @@ export default {
       return Date.now() - new Date(reportedAt).getTime() < 24 * 60 * 60 * 1000
     },
     formatCompletionRate (value) {
-      return Math.floor(value).toString()
+      return Math.floor(value || 0).toString()
     }
   }
 }

@@ -621,7 +621,7 @@ export default {
       this.$emit('select-listing', ad)
     },
     formatCompletionRate (value) {
-      return Math.floor(value).toString()
+      return Math.floor(value || 0).toString()
     },
     isReported (reportedAt) {
       if (!reportedAt) return false

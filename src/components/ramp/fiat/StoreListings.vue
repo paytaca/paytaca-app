@@ -620,7 +620,7 @@ export default {
       await this.$router.push({ name: 'p2p-store-form', params: { ad: listing.id } })
     },
     formatCompletionRate (value) {
-      return Math.floor(value).toString()
+      return Math.floor(value || 0).toString()
     },
     isReported (reportedAt) {
       if (!reportedAt) return false

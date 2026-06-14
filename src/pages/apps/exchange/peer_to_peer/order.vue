@@ -1020,6 +1020,7 @@ getBackNavigationPath () {
         }
         await vm.fetchAd()
         await vm.fetchFeedback()
+        vm.fetchCounterpartyTradeStats()
         await vm.fetchStatusList() // Load status history
         vm.ensureChatCloseCountdownTimer()
         
@@ -2092,6 +2093,26 @@ getBackNavigationPath () {
         .catch(error => {
           this.handleRequestError(error)
         })
+    },
+
+    async fetchCounterpartyTradeStats () {
+      const counterparty = this.order?.is_ad_owner ? this.order?.owner : this.ad?.owner
+      if (!counterparty?.id) return
+      if (counterparty.completed_trades != null) return
+      try {
+        const response = await backend.get(`/ramp-p2p/peer/${counterparty.id}/`, { authorize: true })
+        const data = response.data
+        if (data) {
+          this.$set(counterparty, 'completed_trades', data.completed_trades || 0)
+          this.$set(counterparty, 'failed_trades', data.failed_trades || 0)
+          this.$set(counterparty, 'completion_rate', data.completion_rate || 0)
+          if (data.reported_at) {
+            this.$set(counterparty, 'reported_at', data.reported_at)
+          }
+        }
+      } catch (error) {
+        this.handleRequestError(error)
+      }
     },
 
     async fetchFeedback () {
