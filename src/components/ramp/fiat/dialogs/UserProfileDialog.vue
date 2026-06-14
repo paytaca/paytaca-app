@@ -21,6 +21,7 @@
                   :clickable-name="false"
                   :show-online-status="false"
                   :show-last-online="false"
+                  centered
                 />
             </div>
             <!-- Report User -->

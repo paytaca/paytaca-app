@@ -1,6 +1,6 @@
 <template>
-  <div class="peer-info" :class="{ 'peer-info--right-aligned': alignRight }">
-    <div v-if="showName" class="peer-info__name-row" :class="{ 'reported-greyed': isReported }">
+  <div class="peer-info" :class="{ 'peer-info--right-aligned': alignRight, 'text-center': centered }">
+    <div v-if="showName" class="peer-info__name-row" :class="{ 'reported-greyed': isReported, 'justify-center': centered }">
       <q-btn
         v-if="clickableName"
         flat
@@ -33,7 +33,7 @@
       color="red"
       label="Reported"
     />
-    <div v-if="showRating" class="row" :class="[alignRight ? 'justify-end' : '', { 'reported-greyed': isReported }]">
+    <div v-if="showRating" class="row" :class="[alignRight ? 'justify-end' : '', centered ? 'justify-center' : '', { 'reported-greyed': isReported }]">
       <q-rating
         readonly
         :model-value="peer?.rating || 0"
@@ -115,6 +115,10 @@ export default {
       default: true
     },
     alignRight: {
+      type: Boolean,
+      default: false
+    },
+    centered: {
       type: Boolean,
       default: false
     },
