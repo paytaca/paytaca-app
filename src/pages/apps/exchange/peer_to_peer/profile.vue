@@ -140,33 +140,15 @@
             </div>
             <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
               <span class="text-green">
-                {{
-                  $t(
-                    'TradesCompleted',
-                    { count: user.completed_trades },
-                    `${ user.completed_trades || 0 } completed`
-                  )
-                }}
+                {{ $t('TradesCompleted', { count: user.completed_trades ?? 0 }) }}
               </span>
               <span> &middot; </span>
               <span class="text-red">
-                {{
-                  $t(
-                    'TradesFailed',
-                    { count: user.failed_trades },
-                    `${ user.failed_trades || 0 } failed`
-                  )
-                }}
+                {{ $t('TradesFailed', { count: user.failed_trades ?? 0 }) }}
               </span>
               <span> &middot; </span>
                 <span>
-                {{
-                  $t(
-                    'CompletionPercentage',
-                    { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
-                    `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
-                  )
-                }}
+                {{ $t('CompletionPercentage', { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : '0' }) }}
               </span>
             </div>
           </div>
@@ -240,31 +222,13 @@
                     <q-badge rounded :color="ad.trade_type === 'SELL'? 'blue': 'red'">{{ ad.trade_type }}</q-badge>
                     <div class="sm-font-size q-mr-sm" :class="{ 'reported-greyed': isReported(ad.owner?.reported_at) }">
                       <span class="text-green q-mr-sm">
-                        {{
-                          $t(
-                            'TradesCompleted',
-                            { count: ad.owner?.completed_trades },
-                            `${ ad.owner?.completed_trades || 0 } completed`
-                          )
-                        }}
+                        {{ $t('TradesCompleted', { count: ad.owner?.completed_trades ?? 0 }) }}
                       </span>
                       <span class="text-red q-mr-sm">
-                        {{
-                          $t(
-                            'TradesFailed',
-                            { count: ad.owner?.failed_trades },
-                            `${ ad.owner?.failed_trades || 0 } failed`
-                          )
-                        }}
+                        {{ $t('TradesFailed', { count: ad.owner?.failed_trades ?? 0 }) }}
                       </span>
                       <span>
-                        {{
-                          $t(
-                            'CompletionPercentage',
-                            { percentage: formatCompletionRate(ad.owner?.completion_rate) },
-                            `${ formatCompletionRate(ad.owner?.completion_rate) }% completion`
-                          )
-                        }}
+                        {{ $t('CompletionPercentage', { percentage: formatCompletionRate(ad.owner?.completion_rate) }) }}
                       </span><br>
                     </div>
                     <span

@@ -116,6 +116,7 @@
               :key="tradeInfoCardKey"
               :order="order"
               :ad="ad"
+              :counterparty-peer-data="counterpartyPeerData"
               type="order"
               @view-ad="showAdSnapshot=true"
               @view-peer="onViewPeer"
@@ -520,6 +521,7 @@ export default {
 
       ad: null,
       order: null,
+      counterpartyPeerData: null,
       feedback: null,
       escrowContract: null,
       contractBalance: null,
@@ -2096,19 +2098,23 @@ getBackNavigationPath () {
     },
 
     async fetchCounterpartyTradeStats () {
-      const counterparty = this.order?.is_ad_owner ? this.order?.owner : this.ad?.owner
+      const order = this.order
+      if (!order?.members) return
+
+      const user = this.$store.getters['ramp/getUser']
+      if (!user?.id) return
+
+      const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
       if (!counterparty?.id) return
-      if (counterparty.completed_trades != null) return
+
+      // Skip if we already have the peer data
+      if (this.counterpartyPeerData) return
+
       try {
         const response = await backend.get(`/ramp-p2p/peer/${counterparty.id}/`, { authorize: true })
         const data = response.data
         if (data) {
-          this.$set(counterparty, 'completed_trades', data.completed_trades || 0)
-          this.$set(counterparty, 'failed_trades', data.failed_trades || 0)
-          this.$set(counterparty, 'completion_rate', data.completion_rate || 0)
-          if (data.reported_at) {
-            this.$set(counterparty, 'reported_at', data.reported_at)
-          }
+          this.counterpartyPeerData = data
         }
       } catch (error) {
         this.handleRequestError(error)

@@ -32,33 +32,15 @@
                 </div>
                 <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
                     <span class="text-green">
-                      {{
-                        $t(
-                          'TradesCompleted',
-                          { count: user.completed_trades },
-                          `${ user.completed_trades || 0 } completed`
-                        )
-                      }}
+                      {{ $t('TradesCompleted', { count: user.completed_trades ?? 0 }) }}
                     </span>
                     <span> &middot; </span>
                     <span class="text-red">
-                      {{
-                        $t(
-                          'TradesFailed',
-                          { count: user.failed_trades },
-                          `${ user.failed_trades || 0 } failed`
-                        )
-                      }}
+                      {{ $t('TradesFailed', { count: user.failed_trades ?? 0 }) }}
                     </span>
                     <span> &middot; </span>
                     <span>
-                      {{
-                        $t(
-                          'CompletionPercentage',
-                          { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : 0 },
-                          `${ user.completion_rate ? user.completion_rate.toFixed(1) : 0 }% completion`
-                        )
-                      }}
+                      {{ $t('CompletionPercentage', { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : '0' }) }}
                     </span>
                 </div>
             </div>

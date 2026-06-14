@@ -156,33 +156,15 @@
                         </div>
                         <div class="sm-font-size" :class="{ 'reported-greyed': isReported(listing.owner?.reported_at) }">
                           <span class="text-green">
-                            {{
-                              $t(
-                                'TradesCompleted',
-                                { count: listing.owner?.completed_trades },
-                                `${ listing.owner?.completed_trades || 0 } completed`
-                              )
-                            }}
+                            {{ $t('TradesCompleted', { count: listing.owner?.completed_trades ?? 0 }) }}
                           </span>
                           <span> &middot; </span>
                           <span class="text-red">
-                            {{
-                              $t(
-                                'TradesFailed',
-                                { count: listing.owner?.failed_trades },
-                                `${ listing.owner?.failed_trades || 0 } failed`
-                              )
-                            }}
+                            {{ $t('TradesFailed', { count: listing.owner?.failed_trades ?? 0 }) }}
                           </span>
                           <span> &middot; </span>
                           <span>
-                            {{
-                              $t(
-                                'CompletionPercentage',
-                                { percentage: formatCompletionRate(listing.owner?.completion_rate) },
-                                `${ formatCompletionRate(listing.owner?.completion_rate) }% completion`
-                              )
-                            }}
+                            {{ $t('CompletionPercentage', { percentage: formatCompletionRate(listing.owner?.completion_rate) }) }}
                           </span><br>
                         </div>
                         <span

@@ -34,33 +34,15 @@
                 </div>
                 <div class="sm-font-size" :class="{ 'reported-greyed': isReported(counterparty?.reported_at) }">
                   <span class="text-green">
-                    {{
-                      $t(
-                        'TradesCompleted',
-                        { count: counterparty?.completed_trades },
-                        `${ counterparty?.completed_trades || 0 } completed`
-                      )
-                    }}
+                    {{ $t('TradesCompleted', { count: counterparty?.completed_trades ?? 0 }) }}
                   </span>
                   <span> &middot; </span>
                   <span class="text-red">
-                    {{
-                      $t(
-                        'TradesFailed',
-                        { count: counterparty?.failed_trades },
-                        `${ counterparty?.failed_trades || 0 } failed`
-                      )
-                    }}
+                    {{ $t('TradesFailed', { count: counterparty?.failed_trades ?? 0 }) }}
                   </span>
                   <span> &middot; </span>
                   <span>
-                    {{
-                      $t(
-                        'CompletionPercentage',
-                        { percentage: formatCompletionRate(counterparty?.completion_rate) },
-                        `${ formatCompletionRate(counterparty?.completion_rate) }% completion`
-                      )
-                    }}
+                    {{ $t('CompletionPercentage', { percentage: formatCompletionRate(counterparty?.completion_rate) }) }}
                   </span>
                 </div>
                 <div v-if="counterparty && counterparty?.last_online_at && counterparty?.is_online === false" class="row xs-font-size text-grey">
@@ -253,6 +235,10 @@ export default {
   props: {
     order: Object,
     ad: Object,
+    counterpartyPeerData: {
+      type: Object,
+      default: null
+    },
     marketPrice: {
       type: Number,
       default: 0
@@ -293,9 +279,12 @@ export default {
       return String(amount).replace(/[^\d.,-]/g, '')
     },
     counterparty () {
-      let counterparty = this.ad?.owner
-      if (this.order?.is_ad_owner) {
-        counterparty = this.order?.owner
+      const order = this.order
+      const user = this.userInfo
+      if (!order?.members || !user?.id) return null
+      const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
+      if (this.counterpartyPeerData) {
+        return { ...counterparty, ...this.counterpartyPeerData }
       }
       return counterparty
     },
