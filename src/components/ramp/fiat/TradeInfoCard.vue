@@ -194,10 +194,9 @@ export default {
         return counterparty
       }
       const owner = this.ad?.owner
-      if (owner && this.counterpartyPeerData) {
-        return { ...owner, ...this.counterpartyPeerData }
-      }
-      return owner || null
+      const result = (owner && this.counterpartyPeerData) ? { ...owner, ...this.counterpartyPeerData } : (owner || null)
+      console.log('[TradeInfoCard counterparty] ad.owner:', owner, 'peerData:', this.counterpartyPeerData, 'result:', result)
+      return result
     },
     pricePercentage () {
       if (!this.marketPrice || !this.ad?.price) return null

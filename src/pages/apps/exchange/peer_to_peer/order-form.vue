@@ -656,13 +656,17 @@ export default {
     async fetchAdOwnerPeerData () {
       if (this.adOwnerPeerData) return
       const ownerId = this.ad?.owner?.id
+      console.log('[fetchAdOwnerPeerData] ad.owner:', this.ad?.owner)
+      console.log('[fetchAdOwnerPeerData] ownerId:', ownerId)
       if (!ownerId) return
       try {
         const response = await backend.get(`/ramp-p2p/peer/${ownerId}/`, { authorize: true })
+        console.log('[fetchAdOwnerPeerData] response:', response.data)
         if (response.data) {
           this.adOwnerPeerData = response.data
         }
       } catch (error) {
+        console.error('[fetchAdOwnerPeerData] error:', error)
         this.handleRequestError(error)
       }
     },
