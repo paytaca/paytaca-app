@@ -24,15 +24,15 @@
         :color="onlineStatusColor"
         :name="onlineStatusColor === 'orange' ? 'bedtime' : 'circle'"
       />
-      <q-badge
-        v-if="showReportedBadge && isReported"
-        class="q-ml-xs"
-        rounded
-        size="xs"
-        color="red"
-        label="Reported"
-      />
     </div>
+    <q-badge
+      v-if="showReportedBadge && isReported"
+      class="q-ml-xs"
+      rounded
+      size="xs"
+      color="red"
+      label="Reported"
+    />
     <div v-if="showRating" class="row" :class="[alignRight ? 'justify-end' : '', { 'reported-greyed': isReported }]">
       <q-rating
         readonly
