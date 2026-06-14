@@ -19,11 +19,29 @@ export const backend = axios.create({
   * @param method = ['get', 'post', 'put', 'delete']; default is get 
   * @param payload = object containing the data for post/put (not needed for get/delete)
 */
-export async function callAPI(pathname, id=null, method="get", payload=null) {
-  const apiURL = `${bchOauth.baseURL}/${pathname}` + (method === "get" ? (id ? `/${id}` : '') : (id ? `/${id}/` : '/'))
-  
+export async function callAPI(pathname, id=null, method="get", payload=null, args) {
+  let apiURL = `${bchOauth.baseURL}/`
+
+  if (Array.isArray(pathname)) { // other list apis
+    for (let i = 0; i < pathname.length; i++) {
+      apiURL += `${pathname[i]}/`
+      if(id?.[i] != null) apiURL += `${id[i]}/`
+    }
+  } else { // GENERAL FORMAT
+    apiURL += `${pathname}/` // list, post
+    if (id != null) { 
+      apiURL += `${id}/`  // retrieve
+      if (method === "put" || method === "patch")     // update, partial_update
+        apiURL += `update/`
+      else if (method === "delete")  // destroy
+        apiURL += `delete/`
+    }
+  } 
+  console.log(apiURL)
+
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
     try {
+      bchOauth.clearToken()
       const headers = await bchOauth.getAuthHeaders()
 
       const response = 
