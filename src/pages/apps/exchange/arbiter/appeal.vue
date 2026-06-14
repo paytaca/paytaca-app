@@ -1,5 +1,9 @@
 <template>
-  <HeaderNav :title="`Ramp Appeals`" :backnavpath="previousRoute" class="header-nav" />
+  <HeaderNav :title="`Ramp Appeals`" :backnavpath="previousRoute" class="header-nav">
+    <template #top-right-menu>
+      <q-btn flat round dense icon="o_account_circle" size="md" color="primary" @click="$router.push({ name: 'arbiter-profile' })" />
+    </template>
+  </HeaderNav>
   
   <!-- Skeleton Loading State -->
   <div v-if="!isloaded || !escrowContract" class="q-mx-md q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
@@ -231,7 +235,10 @@ export default {
       previousRoute: null,
       sendingBch: false,
       verifyingTx: false,
-      transactions: []
+      transactions: [],
+      _fetchAppealLastTime: 0,
+      _fetchAppealInProgress: false,
+      _loadingData: false
     }
   },
   emits: ['back', 'updatePageName'],
@@ -351,11 +358,17 @@ export default {
       this.txid = txid
     },
     async loadData () {
-      await this.fetchAppeal()
-      this.isloaded = true
-      await Promise.all([this.fetchOrder(), this.fetchContract(), this.fetchFees(), this.fetchAdSnapshot(), this.fetchTransactions()])
-      this.generateContract()
-      this.fetchChatUnread(this.order?.chat_session_ref)
+      if (this._loadingData) return
+      this._loadingData = true
+      try {
+        await this.fetchAppeal('loadData')
+        this.isloaded = true
+        await Promise.all([this.fetchOrder(), this.fetchContract(), this.fetchFees(), this.fetchAdSnapshot(), this.fetchTransactions()])
+        this.generateContract()
+        this.fetchChatUnread(this.order?.chat_session_ref)
+      } finally {
+        this._loadingData = false
+      }
     },
     reloadChildComponents () {
       this.appealDetailKey++
@@ -386,7 +399,7 @@ export default {
           })
       })
     },
-    async fetchAppeal () {
+    async fetchAppeal (caller = 'unknown') {
       const vm = this
       const orderId = this.$route.params?.order
       if (!orderId) {
@@ -394,16 +407,23 @@ export default {
         this.loading = false
         return
       }
-      // Arbiter-side endpoint; force arbiter token explicitly.
-      await backend.get(`/ramp-p2p/order/${orderId}/appeal/`, { authorize: 'arbiter' })
-        .then(response => {
-          vm.appeal = response.data.appeal
-          vm.loading = false
-        })
-        .catch(error => {
-          this.handleRequestError(error)
-          this.loading = false
-        })
+      const now = Date.now()
+      if (caller === 'websocket' && vm._fetchAppealLastTime && now - vm._fetchAppealLastTime < 10000) {
+        return
+      }
+      if (vm._fetchAppealInProgress) return
+      vm._fetchAppealInProgress = true
+      try {
+        const response = await backend.get(`/ramp-p2p/order/${orderId}/appeal/`, { authorize: 'arbiter' })
+        vm._fetchAppealLastTime = Date.now()
+        vm.appeal = response.data.appeal
+        vm.loading = false
+      } catch (error) {
+        this.handleRequestError(error)
+        this.loading = false
+      } finally {
+        vm._fetchAppealInProgress = false
+      }
     },
     async fetchTransactions () {
       const orderId = this.$route.params?.order || this.appeal?.order?.id
@@ -565,7 +585,7 @@ export default {
       this.websocketManager.watchtower.subscribeToMessages(async (message) => {
         bus.emit('verify-tx', message)
         if (message?.success) {
-          await this.fetchAppeal()
+          await this.fetchAppeal('websocket')
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false

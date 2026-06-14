@@ -1,6 +1,10 @@
 <template>
   <div v-if="$route.name === 'arbiter-appeals'">
-    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav" />
+    <HeaderNav :title="`P2P Ramp`" backnavpath="/apps" class="header-nav">
+      <template #top-right-menu>
+        <q-btn flat round dense icon="o_account_circle" size="md" color="primary" @click="$router.push({ name: 'arbiter-profile' })" />
+      </template>
+    </HeaderNav>
     <AppealListing :key="appealListingKey" />
   </div>
   <div v-else>
