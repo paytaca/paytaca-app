@@ -62,6 +62,7 @@
               <TradeInfoCard
                 :order="order"
                 :ad="ad"
+                :counterparty-peer-data="adOwnerPeerData"
                 :market-price="marketPrice"
                 :market-price-loading="marketPriceLoading"
                 type="ad"
@@ -346,6 +347,7 @@ export default {
       fees: null,
       amountError: null,
       order: null,
+      adOwnerPeerData: null,
       openDialog: false,
       openReviews: false,
       dialogType: '',
@@ -527,6 +529,7 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
+      vm.fetchAdOwnerPeerData()
       // Only fetch arbiters if ad was successfully loaded with fiat_currency
       if (vm.ad && vm.ad.fiat_currency) {
         await vm.fetchArbiters()
@@ -649,6 +652,19 @@ export default {
         .catch(error => {
           this.handleRequestError(error)
         })
+    },
+    async fetchAdOwnerPeerData () {
+      if (this.adOwnerPeerData) return
+      const ownerId = this.ad?.owner?.id
+      if (!ownerId) return
+      try {
+        const response = await backend.get(`/ramp-p2p/peer/${ownerId}/`, { authorize: true })
+        if (response.data) {
+          this.adOwnerPeerData = response.data
+        }
+      } catch (error) {
+        this.handleRequestError(error)
+      }
     },
     async createOrder () {
       const vm = this

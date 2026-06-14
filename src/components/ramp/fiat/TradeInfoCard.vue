@@ -193,7 +193,11 @@ export default {
         }
         return counterparty
       }
-      return this.ad?.owner || null
+      const owner = this.ad?.owner
+      if (owner && this.counterpartyPeerData) {
+        return { ...owner, ...this.counterpartyPeerData }
+      }
+      return owner || null
     },
     pricePercentage () {
       if (!this.marketPrice || !this.ad?.price) return null
