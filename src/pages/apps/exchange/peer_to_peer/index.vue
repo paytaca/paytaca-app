@@ -85,7 +85,8 @@ export default {
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
   },  
-  async mounted () {    
+  async mounted () {
+    console.log('[p2p/index.vue] mounted(), route:', this.$route.name, this.$route.fullPath)
     await this.loadWallet()
     
     // Ensure wallet state is initialized before accessing getters

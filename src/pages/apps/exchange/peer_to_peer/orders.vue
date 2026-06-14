@@ -23,6 +23,7 @@ export default {
     }
   },
   created () {
+    console.log('[orders.vue] created(), route:', this.$route.name, this.$route.fullPath)
     bus.on('relogged', this.refreshPage)
   },
   methods: {
@@ -55,7 +56,7 @@ export default {
     }
   },
   mounted () {
-    console.log('Query', this.$route.query)
+    console.trace('[orders.vue] mounted(), route:', this.$route.name, this.$route.fullPath)
     if ('order_id' in this.$route.query) {
       this.$router.push({ 
         name: 'p2p-order', 
@@ -63,6 +64,10 @@ export default {
         query: this.$route.query
       })
     }
+  },
+  beforeUnmount () {
+    console.log('[orders.vue] beforeUnmount(), route:', this.$route.name)
+    bus.off('relogged', this.refreshPage)
   }
 }
 </script>

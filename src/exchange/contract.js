@@ -27,6 +27,8 @@ export class RampContract {
     this.fees = fees
     this.network = 'chipnet'
     if (!isChipnet) this.network = 'mainnet'
+    this._getBalancePromise = null
+    this._getBalanceKey = null
     this.initialize()
   }
 
@@ -95,7 +97,29 @@ export class RampContract {
       console.error('Contract address is empty or undefined')
       return 0
     }
-    
+
+    // Deduplicate concurrent getBalance calls for the same address
+    const cacheKey = address
+    if (this._getBalancePromise && this._getBalanceKey === cacheKey) {
+      console.log('[RampContract.getBalance] Returning cached promise for', address)
+      return this._getBalancePromise
+    }
+    this._getBalanceKey = cacheKey
+    console.trace('[RampContract.getBalance] New request for', address)
+
+    this._getBalancePromise = this._fetchBalance(address, retry)
+    try {
+      const result = await this._getBalancePromise
+      return result
+    } finally {
+      if (this._getBalanceKey === cacheKey) {
+        this._getBalancePromise = null
+        this._getBalanceKey = null
+      }
+    }
+  }
+
+  async _fetchBalance (address, retry) {
     let balance = 0
     let watchtowerErrored = false
     try {

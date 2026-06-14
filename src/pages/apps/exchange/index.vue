@@ -76,6 +76,7 @@ export default {
   },
   watch: {
     $route (to, from) {
+      console.log('[exchange/index.vue] $route watcher:', from.fullPath, '->', to.fullPath)
       if (from.path.includes('apps/exchange')) {        
         if ('ad_id' in to.query) {
           this.$router?.push({ name: 'p2p-store', query: to.query })
@@ -84,11 +85,13 @@ export default {
     },
     continue (val) {
       if (val) {
+        console.log('[exchange/index.vue] continue watcher fired, route:', this.$route.name, this.$route.fullPath)
         this.goToMainPage()
       }
     }
   },
   async mounted () {
+    console.trace('[exchange/index.vue] mounted() called, isloaded:', this.isloaded, 'route:', this.$route.name)
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
       this.appDisabled = !appEnabled
@@ -133,6 +136,7 @@ export default {
           // Store user in Vuex for use by other components
           this.$store.commit('ramp/updateUser', response.data)
           this.continue = true
+          console.log('[exchange/index.vue] getUser success, setting continue=true, isloaded=true, route:', this.$route.name)
           // Set isloaded earlier - don't wait for version check
           this.isloaded = true
         })
@@ -142,6 +146,7 @@ export default {
           } else {
             console.error(error.response || error)
           }
+          console.log('[exchange/index.vue] getUser error, setting isloaded=true, route:', this.$route.name)
           // Set isloaded even on error so UI can render
           this.isloaded = true
         })

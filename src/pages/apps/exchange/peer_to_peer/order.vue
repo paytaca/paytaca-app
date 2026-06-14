@@ -507,6 +507,8 @@ export default {
         chat: null
       },
       wsFetchingOrder: false,
+      _fetchOrderLastTime: 0,
+      _fetchOrderInProgress: false,
       loadingData: false,
       state: '',
       isloaded: false,
@@ -966,11 +968,13 @@ getBackNavigationPath () {
     bus.on('new-message', this.onNewMessage)
   },
   async mounted () {
+    console.trace('[order.vue] mounted() called')
     await this.loadData()
     this.setupWebSocket()
     this.ensureChatCloseCountdownTimer()
   },
   beforeUnmount () {
+    console.log('[order.vue] beforeUnmount() called')
     this.closeWSConnection()
 
     if (this.chatCloseCountdownIntervalId) {
@@ -1005,11 +1009,12 @@ getBackNavigationPath () {
     },
 
     async loadData () {
+      console.log('[order.vue] loadData() called, loadingData:', this.loadingData)
       if (this.loadingData) return
       this.loadingData = true
       try {
         const vm = this
-        await vm.fetchOrder()
+        await vm.fetchOrder('loadData')
         if (vm.order.contract && !vm.escrowContract) {
           await vm.generateContract()
         }
@@ -1982,16 +1987,27 @@ getBackNavigationPath () {
       return formatDate(date, true)
     },
 
-    async fetchOrder () {
+    async fetchOrder (caller = 'unknown') {
       const vm = this
       const orderId = this.$route.params?.order
       if (!orderId) {
         console.warn('Order ID is missing from route params, skipping fetchOrder')
         return
       }
+      const now = Date.now()
+      if (caller === 'websocket' && vm._fetchOrderLastTime && now - vm._fetchOrderLastTime < 10000) {
+        console.log(`[fetchOrder] Websocket cooldown active, skipping call from: ${caller}`)
+        return
+      }
+      if (vm._fetchOrderInProgress) {
+        console.log(`[fetchOrder] Already in progress, skipping call from: ${caller}`)
+        return
+      }
+      vm._fetchOrderInProgress = true
       try {
         const url = `/ramp-p2p/order/${orderId}/`
         const response = await backend.get(url, { authorize: true })
+        vm._fetchOrderLastTime = Date.now()
         vm.order = response.data
         await vm.handleNewStatus(vm.order.status)
         vm.updateOrderReadAt()
@@ -2013,6 +2029,8 @@ getBackNavigationPath () {
         }
       } catch (error) {
         this.handleRequestError(error)
+      } finally {
+        vm._fetchOrderInProgress = false
       }
     },
 
@@ -2155,14 +2173,13 @@ getBackNavigationPath () {
     },
 
     handleNewStatus (newStatus) {
-      this.updateStatus(newStatus)
-      return this.updateStateByStatus(newStatus?.value)
-    },
-
-    updateStatus (newStatus) {
-      if (!newStatus || this.status === newStatus) return
+      if (!newStatus) return
+      const newValue = newStatus?.value || newStatus
+      const currentValue = this.status?.value || this.status
+      if (currentValue === newValue && this.status) return
       this.status = newStatus
       this.order.status = newStatus
+      return this.updateStateByStatus(newValue)
     },
 
     async updateStateByStatus (status = this.status.value) {
@@ -2444,7 +2461,7 @@ getBackNavigationPath () {
     onVerifyTxSuccess () {
       this.sendingBch = false
       this.verifyingTx = false
-      this.fetchOrder()
+      this.fetchOrder('onVerifyTxSuccess')
     },
 
     onSendingBCH (sending) {
@@ -2506,7 +2523,7 @@ getBackNavigationPath () {
 
     onEscrowSuccess (txid) {
       this.txid = txid
-      this.fetchOrder()
+      this.fetchOrder('onEscrowSuccess')
     },
 
     setupWebSocket () {
@@ -2527,7 +2544,7 @@ getBackNavigationPath () {
           if (this.wsFetchingOrder) return
           this.wsFetchingOrder = true
           try {
-            await this.fetchOrder()
+            await this.fetchOrder('websocket')
             if (message?.contract_address) {
               await this.generateContract(true)
               this.escrowTransferKey++
