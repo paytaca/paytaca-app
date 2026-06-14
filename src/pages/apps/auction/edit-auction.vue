@@ -272,7 +272,7 @@ const fetchAllData = async () => {
   dataLoaded.value = true
   
   try {
-    const result = await callAPI('lots/auction', Number(props.auctionId))
+    const result = await callAPI('lots-by-auction', Number(props.auctionId))
     if (result.success && result.data) {
       lots.value = result.data.map(item => {
         const lot = LotsList.parse(item)
@@ -393,7 +393,7 @@ const handleUpdateAuction = async () => {
       await callAPI('lots', lot.id, 'patch', editFormData)
       
       if (lot.rawFiles && lot.rawFiles.length > 0) {
-        const existingImages = await callAPI(`lot-images/lot/${lot.id}`, null, 'get')
+        const existingImages = await callAPI(`lot-images-by-lot`, lot.id, 'get')
         
         if (existingImages.success && existingImages.data) {
           for (const img of existingImages.data) {

@@ -13,7 +13,7 @@ export async function refreshCatalog({ commit }) {
   commit('setLoading', true)
   
   try {
-    const response = await callAPI('auctions', null)
+    const response = await callAPI('auctions')
     
     if (response && response.success && Array.isArray(response.data)) {
       const allAuctions = response.data.map(item => AuctionList.parse(item))

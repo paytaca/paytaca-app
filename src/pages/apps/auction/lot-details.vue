@@ -266,13 +266,14 @@ const auction = computed(() => {
 const lot = ref(null)
 
 onMounted(async () => {
+  console.log("props.lotId = " + props.lotId)
   const result = await callAPI('lots', props.lotId)
   
   if (result.success) {
     const parsed = LotsList.parse(result.data)
     lot.value = parsed
     
-    const imageResult = await callAPI(`lot-images/lot/${props.lotId}`, 'get')
+    const imageResult = await callAPI(`lot-images-by-lot`, props.lotId, 'get')
     if (imageResult.success && Array.isArray(imageResult.data)) {
       lotImages.value = imageResult.data.map(item => item.image)
     }

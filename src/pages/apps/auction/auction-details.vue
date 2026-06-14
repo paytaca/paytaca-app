@@ -287,7 +287,7 @@ const fetchAllData = async () => {
   }
 
   try {
-    const result = await callAPI('lots/auction', Number(props.auctionId))
+    const result = await callAPI('lots-by-auction', Number(props.auctionId))
     if (result.success && result.data) {
       lots.value = result.data.map(item => {
         const lot = LotsList.parse(item)
