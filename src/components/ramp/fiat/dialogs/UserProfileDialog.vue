@@ -15,34 +15,13 @@
             <div v-if="user" class="q-mt-lg q-pt-md">
                 <div class="text-center q-pt-none">
                     <q-icon size="4em" name='o_account_circle' :color="darkMode ? 'blue-grey-1' : 'blue-grey-6'"/>
-                    <div class="text-weight-bold lg-font-size q-pt-sm">{{ user.name }} <q-badge v-if="isReported(user.reported_at)" rounded size="xs" color="red" label="Reported" /></div>
                 </div>
-                <!-- User Stats -->
-                <div class="row justify-center q-px-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
-                    <q-rating readonly :model-value="user.rating ? user.rating : 0" :v-model="user.rating" size="1.2em" color="yellow-9" icon="star"/>
-                    <span class="q-mx-sm sm-font-size">
-                      {{
-                        $t(
-                          'RatingValue',
-                          { rating: user.rating ? user.rating?.toFixed(1) : 0 },
-                          `(${ user.rating ? user.rating?.toFixed(1) : 0 } rating)`
-                        )
-                      }}
-                    </span>
-                </div>
-                <div class="text-center sm-font-size q-pt-sm" :class="{ 'reported-greyed': isReported(user.reported_at) }">
-                    <span class="text-green">
-                      {{ $t('TradesCompleted', { count: user.completed_trades ?? 0 }) }}
-                    </span>
-                    <span> &middot; </span>
-                    <span class="text-red">
-                      {{ $t('TradesFailed', { count: user.failed_trades ?? 0 }) }}
-                    </span>
-                    <span> &middot; </span>
-                    <span>
-                      {{ $t('CompletionPercentage', { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : '0' }) }}
-                    </span>
-                </div>
+                <PeerInfo
+                  :peer="user"
+                  :clickable-name="false"
+                  :show-online-status="false"
+                  :show-last-online="false"
+                />
             </div>
             <!-- Report User -->
             <div class="row q-mx-lg q-px-md q-pt-sm" v-if="!user?.self">
@@ -163,6 +142,7 @@
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import ReportDialog from 'src/components/ramp/fiat/dialogs/ReportDialog.vue'
+import PeerInfo from 'src/components/ramp/fiat/PeerInfo.vue'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -207,7 +187,8 @@ export default {
   emits: ['back'],
   components: {
     ProgressLoader,
-    ReportDialog
+    ReportDialog,
+    PeerInfo
   },
   watch: {
     activeTab (value) {
@@ -380,9 +361,6 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value || 0).toString()
     },
-    isReported (reportedAt) {
-      if (!reportedAt) return false
-      return Date.now() - new Date(reportedAt).getTime() < 24 * 60 * 60 * 1000
     },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
@@ -475,11 +453,5 @@ export default {
   .col-transaction {
     padding-top: 2px;
     font-weight: 500;
-  }
-  .reported-greyed {
-    filter: grayscale(1);
-    opacity: 0.4;
-    user-select: none;
-    pointer-events: none;
   }
   </style>
