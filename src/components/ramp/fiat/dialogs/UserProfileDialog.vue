@@ -361,7 +361,6 @@ export default {
     formatCompletionRate (value) {
       return Math.floor(value || 0).toString()
     },
-    },
     appealCooldown (appealCooldownChoice) {
       return getAppealCooldown(appealCooldownChoice)
     },

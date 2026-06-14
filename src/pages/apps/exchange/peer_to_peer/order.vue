@@ -2107,14 +2107,13 @@ getBackNavigationPath () {
       const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
       if (!counterparty?.id) return
 
-      // Skip if we already have the peer data
       if (this.counterpartyPeerData) return
 
       try {
         const response = await backend.get(`/ramp-p2p/peer/${counterparty.id}/`, { authorize: true })
         const data = response.data
         if (data) {
-          this.counterpartyPeerData = data
+          this.counterpartyPeerData = { ...data }
         }
       } catch (error) {
         this.handleRequestError(error)
