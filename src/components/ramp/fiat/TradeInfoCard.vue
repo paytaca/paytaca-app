@@ -186,12 +186,14 @@ export default {
     counterparty () {
       const order = this.order
       const user = this.userInfo
-      if (!order?.members || !user?.id) return null
-      const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
-      if (this.counterpartyPeerData) {
-        return { ...counterparty, ...this.counterpartyPeerData }
+      if (order?.members && user?.id) {
+        const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
+        if (this.counterpartyPeerData) {
+          return { ...counterparty, ...this.counterpartyPeerData }
+        }
+        return counterparty
       }
-      return counterparty
+      return this.ad?.owner || null
     },
     pricePercentage () {
       if (!this.marketPrice || !this.ad?.price) return null
