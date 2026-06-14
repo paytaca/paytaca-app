@@ -529,7 +529,7 @@ export default {
       const vm = this
       vm.isloaded = false
       await vm.fetchAd()
-      vm.fetchAdOwnerPeerData()
+      await vm.fetchAdOwnerPeerData()
       // Only fetch arbiters if ad was successfully loaded with fiat_currency
       if (vm.ad && vm.ad.fiat_currency) {
         await vm.fetchArbiters()
