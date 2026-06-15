@@ -148,7 +148,7 @@
               </span>
               <span> &middot; </span>
                 <span>
-                {{ $t('CompletionPercentage', { percentage: user.completion_rate ? user.completion_rate.toFixed(1) : '0' }) }}
+                {{ $t('CompletionPercentage', { percentage: formatCompletionRate(user.completion_rate) }) }}
               </span>
             </div>
           </div>
