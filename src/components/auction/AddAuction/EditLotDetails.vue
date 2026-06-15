@@ -211,7 +211,7 @@ const props = defineProps({
   auctionType: {
     type: String,
     required: true,
-    default: 'English Auction'
+    default: 'English'
   },
   isToggledEditLot: {
     type: Boolean,
