@@ -18,6 +18,7 @@ export class LotsList {
    * @param {String} data.description
    * @param {Number|String} data.estimated_amount
    * @param {Number|String} data.threshold_bid
+   * @param {Number|String} data.starting_price
    * @param {Boolean} data.is_sold
    * @param {String|null} data.date_sold
    * @param {Number} data.bidding_decrement
@@ -32,6 +33,7 @@ export class LotsList {
     this.description = data.description || "";
     this.estimated_amount = data.estimated_amount !== undefined ? Number(data.estimated_amount) : 0.00000000;
     this.threshold_bid = data.threshold_bid !== undefined ? Number(data.threshold_bid) : 0.00000000;
+    this.starting_price = data.starting_price !== undefined ? Number(data.starting_price) : 0.00000000;
     this.is_sold = !!data.is_sold;
     this.date_sold = data.date_sold || null;
     this.bidding_decrement = data.bidding_decrement !== undefined ? Number(data.bidding_decrement) : 1;
