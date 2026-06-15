@@ -171,7 +171,7 @@
             >
               <div class="relative-position">
                 <q-img
-                  :src="lot.images?.[0] || noImage"
+                  :src="lot.image"
                   ratio="1.25"
                 >
                   <template v-slot:loading>
@@ -289,12 +289,31 @@ const fetchAllData = async () => {
   try {
     const result = await callAPI('lots-by-auction', Number(props.auctionId))
     if (result.success && result.data) {
-      lots.value = result.data.map(item => {
-        const lot = LotsList.parse(item)
-        lot.start_date = auction.value?.start_date || null
-        lot.end_date = auction.value?.end_date || null
-        return lot
-      })
+      lots.value = await Promise.all(
+        result.data.map(async (item) => {
+          const lot = LotsList.parse(item)
+          lot.start_date = auction.value?.start_date || null
+          lot.end_date = auction.value?.end_date || null
+          
+          try {
+            const imageResult = await callAPI('lot-images-by-lot', lot.id, 'get')
+            if (imageResult.success && Array.isArray(imageResult.data) && imageResult.data.length > 0) {
+              const firstImageRecord = imageResult.data[0]
+              
+              lot.image = typeof firstImageRecord === 'object' && firstImageRecord !== null 
+                ? (firstImageRecord.image || '') 
+                : firstImageRecord
+            } else {
+              lot.image = noImage
+            }
+          } catch (imgErr) {
+            console.error(`Failed to fetch images for lot ${lot.id}:`, imgErr)
+            lot.image = noImage
+          }
+
+          return lot
+        })
+      )
     }
   } catch (err) {
     console.error('Failed to update lots:', err)
