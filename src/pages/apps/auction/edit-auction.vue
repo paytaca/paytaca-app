@@ -277,15 +277,25 @@ const fetchAllData = async () => {
   try {
     const result = await callAPI('lots-by-auction', Number(props.auctionId))
     if (result.success && result.data) {
-      lots.value = result.data.map(item => {
+      lots.value = await Promise.all(result.data.map(async item => {
         const lot = LotsList.parse(item)
         lot.start_date = auction.value?.start_date || null
         lot.end_date = auction.value?.end_date || null
-        
         lot._uuid = generateLocalId()
-        lot._status = 'unchanged' 
+        lot._status = 'unchanged'
+
+        // Fetch images
+        const imgResult = await callAPI('lot-images-by-lot', lot.id, 'get')
+        if (imgResult.success && Array.isArray(imgResult.data)) {
+          lot.imageUrls = imgResult.data.map(i => i.image)
+          lot.imageUrl = lot.imageUrls[0] || null
+        } else {
+          lot.imageUrls = lot.images || []
+          lot.imageUrl = lot.imageUrls[0] || null
+        }
+
         return lot
-      })
+      }))
     }
   } catch (err) {
     console.error('Failed to update lots:', err)
