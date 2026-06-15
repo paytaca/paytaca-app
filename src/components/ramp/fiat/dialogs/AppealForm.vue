@@ -144,7 +144,7 @@ export default {
         .then(response => {
           bus.emit('update-status', response.data.status?.status)
         })
-        .then(vm.addArbiterToChat())
+        .then(() => vm.addArbiterToChat())
         .catch(error => {
           if (error.response) {
             console.error(error.response)
@@ -161,11 +161,11 @@ export default {
       const vm = this
       const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
       const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
-      vm.fetchOrderMembers(vm.order.id)
+      return vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
           const arbiterMembers = arbiter.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-          updateChatMembers(chatRef, arbiterMembers)
+          return updateChatMembers(chatRef, arbiterMembers)
         })
     },
     fetchOrderMembers (orderId) {

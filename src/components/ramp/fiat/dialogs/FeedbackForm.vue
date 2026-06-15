@@ -214,7 +214,6 @@ export default {
           vm.appealed = true
         })
         .catch(error => {
-          console.log(error.response)
           if (error.response) {
             if (error.response.status === 400) {
               if (error.response?.data?.error.includes('no appeal')) {
@@ -313,7 +312,6 @@ export default {
       }
       backend.post(url, body, { authorize: true })
         .then(response => {
-          console.log(response.data)
           vm.feedback = response.data
 
           if (!vm.appealed) {
@@ -349,7 +347,6 @@ export default {
 
         backend.post(arbiterUrl, arbiterBody, { authorize: true })
           .then(response => {
-            console.log(response.data)
             vm.arbiterFeedback = response.data
 
             vm.$emit('submit', vm.feedback)
@@ -379,7 +376,6 @@ export default {
         this.timer = distance + 1
 
         if (distance < 0) {
-          console.log()
           clearInterval(x)
           this.$refs.dialog.hide()
         }

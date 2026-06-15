@@ -195,7 +195,6 @@ export default {
       }
       const owner = this.ad?.owner
       const result = (owner && this.counterpartyPeerData) ? { ...owner, ...this.counterpartyPeerData } : (owner || null)
-      console.log('[TradeInfoCard counterparty] ad.owner:', owner, 'peerData:', this.counterpartyPeerData, 'result:', result)
       return result
     },
     pricePercentage () {

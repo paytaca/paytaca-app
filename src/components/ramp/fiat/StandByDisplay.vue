@@ -591,7 +591,6 @@ export default {
       await backend.get(`/ramp-p2p/order/${vm.data?.order?.id}/appeal/`, { authorize: 'peer' })
         .then(response => {
           vm.appeal = response.data?.appeal
-          console.log('appeal:', vm.appeal)
         })
         .catch(error => {
           this.handleRequestError(error)
