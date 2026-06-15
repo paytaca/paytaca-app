@@ -8,7 +8,7 @@
     <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
     <div>
-      <div v-if="lot" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <div v-if="lot && auction" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
         <div class="q-mb-lg text-left">
           <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
             Lot {{ lot.id }}: <span class="text-weight-regular">{{ lot.title }}</span>
@@ -68,7 +68,7 @@
             
             <div class="q-mt-md">
               <div v-if="!isAuthor" class="full-width">
-                <div v-if="auction.type === 'English'">
+                <div v-if="auction?.type === 'English'">
                   <q-btn 
                     class="text-bold text-white full-width"
                     style="background-color: var(--q-secondary);"
@@ -139,7 +139,7 @@
                     <q-icon name="person" size="13px" class="q-mr-xs" />Auctioneer
                   </div>
                   <div class="col row items-center q-gutter-xs">
-                    <span>{{ auction.getEllipsisInMiddleUserId() }}</span>
+                    <span>{{ auction?.getEllipsisInMiddleUserId ? auction.getEllipsisInMiddleUserId() : 'N/A' }}</span>
                     <q-badge v-if="isAuthor" color="positive" class="q-px-xs q-mr-sm">
                       <q-icon name="star" size="10px" class="q-mr-xs" />You
                     </q-badge>
@@ -204,7 +204,7 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { vElementVisibility } from '@vueuse/components'
 import { useStore } from 'vuex'
-import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted, watchEffect, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue' 
 import { useRoute } from 'vue-router'
 import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
@@ -215,7 +215,6 @@ import { AuctionList, LotsList } from 'src/auction/object'
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
-import noImage from 'src/assets/no-image.svg'
 
 defineOptions({
   directives: {
@@ -235,13 +234,17 @@ const props = defineProps({
 })
 
 const openDialog = ref(false)
-
 const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
 
 const isToggledBuyItNow = ref(false)
+const activeSlide = ref(0)
+const lotImages = ref([])
+
+const lot = ref(null)
+const auction = ref(null)
 
 const buyItNow = () => {
   isToggledBuyItNow.value = true
@@ -249,7 +252,6 @@ const buyItNow = () => {
 
 const handleBuyItNow = () => {
   isToggledBuyItNow.value = false
-
   $q.notify({
     type: 'positive',
     message: 'Lot bought successfully!',
@@ -257,13 +259,16 @@ const handleBuyItNow = () => {
   })
 }
 
-const auction = computed(() => {
-  const listings = $store.getters['auction/processedItems'] || []
-  const found = listings.find(item => item.id === Number(props.auctionId))
-  return found instanceof AuctionList ? found : AuctionList.parse(found)
-})
-
-const lot = ref(null)
+const fetchAuction = async () => {
+  try {
+    const result = await callAPI('auctions', Number(props.auctionId))
+    if (result.success && result.data) {
+      auction.value = AuctionList.parse(result.data)
+    }
+  } catch (error) {
+    console.error('Failed to update auction details:', error)
+  }
+}
 
 const fetchLot = async () => {
   const result = await callAPI('lots', props.lotId)
@@ -277,42 +282,37 @@ const fetchLot = async () => {
   }
 }
 
-onMounted(async () => {
-  await fetchLot()
-})
+const loadPageData = async () => {
+  await Promise.all([
+    fetchLot(),
+    fetchAuction()
+  ])
+}
 
-const activeSlide = ref(0)
-const lotImages = ref([])
-
-
-
-
-
-
-const lotStatus = computed(() => {
-  if (!lot.value) return { label: 'Loading...', color: 'grey' }
-  return lot.value.getStatus()
-})
+watch(() => [props.lotId, props.auctionId], async () => {
+  await loadPageData()
+}, { immediate: true })
 
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
-  return walletHash === auction?.value.user_id
+  return walletHash === auction.value?.user_id
 })
 
-const formatAuctionDate = (dateString) => { return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') }
+const formatAuctionDate = (dateString) => { 
+  if (!dateString) return 'N/A'
+  return date.formatDate(dateString, 'MMM DD, YYYY hh:mm A') 
+}
 
 const smartBackPath = computed(() => {
   const sourceContext = $route.query.from
-
   if (sourceContext === 'activity') {
     return '/apps/auction/activity'
   }
-
-  return `/apps/auction/${$route.params.auctionId}`
+  return `/apps/auction/${props.auctionId}`
 })
 
 const refresh = async (done) => {
-  await fetchLot()
+  await loadPageData()
   done()
 }
 </script>
