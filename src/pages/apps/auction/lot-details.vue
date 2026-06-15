@@ -104,28 +104,27 @@
           </div>
  
           <div class="col-12 col-sm col-md-7">
-            <div class="row q-gutter-sm q-mb-md">
-              <div class="col rounded-borders q-pa-sm bg-green">
-                <div class="text-caption q-mb-xs">
-                  <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
-                </div>
-                <div class="text-weight-medium">₱950</div>
-                <div class="text-caption text-weight-medium">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
-                </div>
+            <div class="col rounded-borders q-pa-sm q-mb-md bg-green">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
               </div>
-              <div class="col rounded-borders q-pa-sm" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
-                <div class="text-caption q-mb-xs">
-                  <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
-                </div>
-                <div class="text-weight-medium">₱950</div>
-                <div class="text-caption text-weight-medium">
-                  {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
-                </div>
+              <div class="text-weight-medium">₱950</div>
+              <div class="text-caption text-weight-medium">
+                {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+              </div>
+            </div>
+
+            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-primary">
+              <div class="text-caption q-mb-xs">
+                <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
+              </div>
+              <div class="text-weight-medium">₱950</div>
+              <div class="text-caption text-weight-medium">
+                {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
               </div>
             </div>
  
-            <div v-if="auction?.type === 'Dutch'" class="col-12 rounded-borders q-pa-sm q-mb-md" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-primary">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
@@ -139,7 +138,7 @@
                   </div>
                 </div>
                 <div class="text-right">
-                  <div class="text-caption text-grey-6">Floor</div>
+                  <div class="text-caption">Floor</div>
                   <div class="text-caption text-weight-medium">
                     {{ getFormattedBCH(dutchFloorPriceBch).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(dutchFloorPriceBch).zeros }}</span> BCH
                   </div>
