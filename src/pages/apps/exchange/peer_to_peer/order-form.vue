@@ -775,7 +775,6 @@ export default {
         })
     },
     createGroupChat (orderId, members, createdAt) {
-      console.log('createGroupChat', orderId, members, createdAt)
       const vm = this
       const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
       const _members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
@@ -1072,7 +1071,7 @@ export default {
             break
           default:
             this.showErrorDialog(`Unexpected error: ${error.response.statusText}. Please try again later.`)
-            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
+            console.error(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
     },

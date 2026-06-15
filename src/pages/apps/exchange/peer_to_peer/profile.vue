@@ -508,7 +508,6 @@ export default {
           page: vm.adsPageNumber,
           owner_id: vm.user.id
         }
-        params.to_peer = this.userId
         backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true
@@ -618,7 +617,7 @@ export default {
             this.showErrorDialog('Internal Server Error. Please try again later.')
             break
           default:
-            console.log(`Error: ${error.response.status}. ${error.response.statusText}`)
+            console.error(`Error: ${error.response.status}. ${error.response.statusText}`)
         }
       }
     },
