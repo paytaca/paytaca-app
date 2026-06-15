@@ -128,6 +128,16 @@
             </div>
           </div>
 
+          <div v-if="currentImageUrls.length > 0" class="q-px-md q-mb-md">
+            <label class="text-md text-weight-bold block q-mb-xs">Current Images</label>
+            <div class="row q-col-gutter-sm">
+              <div v-for="(url, index) in currentImageUrls" :key="index" class="col">
+                <q-img :src="url" ratio="1" class="rounded-borders full-width" />
+              </div>
+            </div>
+            <div class="text-caption text-grey q-mt-xs">Upload new images below to replace these.</div>
+          </div>
+
           <div class="q-px-md q-mb-md">
             <label class="text-md text-weight-bold block q-mb-xs">Insert Images (max. 3) <span class="text-caption block q-mb-xs text-italic">(Accepts .jpg, .jpeg., and .png only)</span></label>
             <q-file
