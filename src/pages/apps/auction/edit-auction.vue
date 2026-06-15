@@ -226,9 +226,13 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $router = useRouter()
 
 const dataLoaded = ref(false)
-const auctionType = ref('English Auction')
-
 const auction = ref(null)
+const auctionType = computed(() => {
+  if (auctionForm.value.type) return auctionForm.value.type
+  if (!auction.value) return 'English'
+  return auction.value.type || (auction.value.type_id == 2 ? 'Dutch' : 'English')
+})
+
 const lots = ref([])
 
 const props = defineProps({
@@ -255,11 +259,10 @@ const auctionForm = ref({
 const prefillFormState = (sourceData) => {
   const parsedAuction = parseAuctionData(sourceData)
   auction.value = parsedAuction
-  auctionType.value = parsedAuction?.type || 'English'
 
   auctionForm.value = {
     title: parsedAuction.title || '',
-    type: parsedAuction.type || 'English Auction',
+    type: parsedAuction.type || (parsedAuction.type_id == 2 ? 'Dutch' : 'English'),
     start_date: formatToDateTimeLocal(parsedAuction.start_date),
     end_date: formatToDateTimeLocal(parsedAuction.end_date),
     description: parsedAuction.description || '',

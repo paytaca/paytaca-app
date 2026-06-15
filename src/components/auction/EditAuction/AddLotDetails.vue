@@ -69,15 +69,13 @@
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
             </div>
-          </div>
 
-          <div v-if="auctionType === 'English'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Floor</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Starting Price</label>
               <q-input
                 outlined
                 dense
-                v-model.number="priceThreshold"
+                v-model.number="startingPrice"
                 type="number"
                 :step="isFiatUsed ? '0.00000001' : '0.01'"
                 inputmode="decimal"
@@ -87,16 +85,16 @@
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
-                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
+                :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
             </div>
           </div>
 
-          <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
+          <div v-if="props.auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Price Reserve</label>
               <q-input
                 outlined
                 dense
@@ -110,7 +108,7 @@
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
-                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price ceiling' ]"
+                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price reserve' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
@@ -220,7 +218,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 
-defineProps({
+const props = defineProps({
   auctionType: {
     type: String,
     required: true,
@@ -238,6 +236,7 @@ const lotName = ref('Lot Title')
 const lotType = ref('Physical')
 const lotTypeOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0.002)
+const startingPrice = ref(0.002)
 const priceThreshold = ref(0.002)
 const priceDrop = ref(0.0005)
 const lotImages = ref([])
@@ -279,17 +278,17 @@ const addLot = () => {
   if (lotImages.value && lotImages.value.length > 0) {
     generatedUrls = lotImages.value.map(file => URL.createObjectURL(file))
   }
-  
+
   const payload = {
     title: lotName.value,
     category: lotType.value,
     category_id: lotType.value === 'Physical' ? 1 : 2,
     estimated_amount: estimatedPrice.value,
+    starting_price: startingPrice.value,
     threshold_bid: priceThreshold.value || 0,
     bidding_decrement: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
-    
     imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
     imageUrls: generatedUrls,
     rawFiles: lotImages.value ? [...lotImages.value] : []
@@ -299,11 +298,16 @@ const addLot = () => {
 
   isToggledAddLot.value = false
 
-  $q.notify({ type: 'positive', message: 'Lot added to layout!', timeout: 3000 })
+  $q.notify({
+    type: 'positive',
+    message: 'Lot added!',
+    timeout: 3000
+  })
   
-  lotName.value = 'Lot Title'
-  estimatedPrice.value = 0.002
-  priceThreshold.value = 0.002
+  lotName.value = ''
+  estimatedPrice.value = 0
+  startingPrice.value = 0
+  priceThreshold.value = 0
   priceDrop.value = 0.0005
   lotImages.value = []
   lotDescription.value = ''

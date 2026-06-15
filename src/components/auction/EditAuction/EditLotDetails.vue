@@ -61,15 +61,13 @@
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
             </div>
-          </div>
 
-          <div v-if="auctionType === 'English'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Floor</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Starting Price</label>
               <q-input
                 outlined
                 dense
-                v-model.number="priceThreshold"
+                v-model.number="startingPrice"
                 type="number"
                 :step="isFiatUsed ? '0.00000001' : '0.01'"
                 inputmode="decimal"
@@ -79,7 +77,7 @@
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
-                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
+                :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
@@ -88,7 +86,7 @@
 
           <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Price Reserve</label>
               <q-input
                 outlined
                 dense
@@ -102,7 +100,7 @@
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
-                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price ceiling' ]"
+                :rules="[ val => val !== null && val !== '' && val > 0 || 'Invalid price reserve' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
@@ -211,7 +209,7 @@ const props = defineProps({
   auctionType: {
     type: String,
     required: true,
-    default: 'English Auction'
+    default: 'English'
   },
   isToggledEditLot: {
     type: Boolean,
@@ -233,6 +231,7 @@ const lotName = ref('')
 const lotType = ref('Physical')
 const lotTypeOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0)
+const startingPrice = ref(0)
 const priceThreshold = ref(0)
 const priceDrop = ref(0)
 const lotImages = ref([])
@@ -257,6 +256,7 @@ watch(() => props.lotData, (newLot) => {
     lotName.value = newLot.title || ''
     lotType.value = newLot.category || newLot.type || 'Physical'
     estimatedPrice.value = newLot.estimated_amount || newLot.estimatedPrice || 0
+    startingPrice.value = newLot.starting_price || newLot.startingPrice || 0
     priceThreshold.value = newLot.threshold_bid || newLot.threshold || 0
     priceDrop.value = newLot.bidding_decrement || newLot.price_drop || 0
     isFiatUsed.value = newLot.isFiatUsed || false
@@ -287,6 +287,7 @@ const saveLot = () => {
     category: lotType.value,
     category_id: lotType.value === 'Physical' ? 1 : 2,
     estimated_amount: estimatedPrice.value,
+    starting_price: startingPrice.value,
     threshold_bid: priceThreshold.value || 0,
     bidding_decrement: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
