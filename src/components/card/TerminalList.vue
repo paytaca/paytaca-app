@@ -1,9 +1,9 @@
 <template>
   <div>
     <q-dialog class="br-12 text-bow" v-model="showDialog" full-width @before-hide="onDialogHide">
-      <q-card class="q-pa-md" style="height: 80vh;">
+      <q-card :class="['q-pa-md', $q.dark.isActive ? 'bg-grey-9' : 'bg-white']" style="height: 80vh;">
         <q-card-section class="text-h6 text-center">
-          <div>Select Merchants</div>
+          <div :class="textColor">Select Merchants</div>
           <!-- <div class="text-subtitle2" style="opacity: 0.6; font-size: 12px;">Select the merchants you want to allow for this card</div> -->
         </q-card-section>
         <q-card-section class="q-px-md q-py-none">
@@ -21,14 +21,14 @@
         </q-card-section>
         <q-card-section>
           <div class="row justify-center" v-if="terminals.length === 0">
-            <div class="text-subtitle2 text-bow" style="opacity: 0.5;">No terminals found.</div>
+            <div class="text-subtitle2 text-bow" :class="textColorGrey" style="opacity: 0.5;">No terminals found.</div>
           </div>
           <div v-else>
             <q-list>
               <q-item clickable v-for="terminal in terminals" :key="terminal?.id" @click="onSelectTerminal(terminal)">
                 <q-item-section>
                   <div class="row">
-                    <span class="col">{{ terminal?.merchant_name }} </span>
+                    <span class="col" :class="textColor">{{ terminal?.merchant_name }} </span>
                     <q-checkbox
                       dense
                       class="col-auto q-px-sm q-ma-none"
@@ -86,6 +86,14 @@ export default {
     }
   },
   emits: ['dialogHide'],
+  computed: {
+    textColor() {
+      return this.$q.dark.isActive ? 'text-white' : 'text-black'
+    },
+    textColorGrey() {
+      return this.$q.dark.isActive ? 'text-grey-4' : 'text-grey-7'
+    }
+  },
   async mounted () {
     await this.fetchTerminals()
     this.showDialog = true; // Show the dialog after fetching terminals
