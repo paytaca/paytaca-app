@@ -194,164 +194,170 @@
     <q-page-container>
       <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'" class="column no-wrap">
         <q-pull-to-refresh @refresh="refreshPage" class="col column no-wrap">
-          <q-tab-panels v-model="activeTab" animated swipeable infinite class="bg-transparent col" style="min-height: 70vh;">
-            <!-- Invoices Tab -->
-            <q-tab-panel name="invoices" class="q-pa-none">
-              <div v-touch-swipe.horizontal="handleInvoiceStatusSwipe" class="col column no-wrap">
-                <InvoiceList 
-                  ref="invoiceListRef" 
-                  :store-id="storeId"
-                  :status-filter="invoiceStatusFilter"
-                  :search-query="invoiceSearchQuery"
-                  @clear-search="clearInvoiceSearch"
-                />
-              </div>
-            </q-tab-panel>
+          <div v-touch-swipe.horizontal.mouse="handleGlobalSwipe" class="col column no-wrap" style="min-height: 70vh;">
+            <q-tab-panels 
+              v-model="activeTab" 
+              animated 
+              class="bg-transparent col"
+            >
+              <!-- Invoices Tab -->
+              <q-tab-panel name="invoices" class="q-pa-none">
+                <div class="col column no-wrap">
+                  <InvoiceList 
+                    ref="invoiceListRef" 
+                    :store-id="storeId"
+                    :status-filter="invoiceStatusFilter"
+                    :search-query="invoiceSearchQuery"
+                    @clear-search="clearInvoiceSearch"
+                  />
+                </div>
+              </q-tab-panel>
 
-            <!-- API Keys Tab -->
-            <q-tab-panel name="api_keys" class="q-pa-none">
-              <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
-              <div v-else style="height: 4px;"></div>
+              <!-- API Keys Tab -->
+              <q-tab-panel name="api_keys" class="q-pa-none">
+                <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
+                <div v-else style="height: 4px;"></div>
 
-              <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
-                <!-- Empty States -->
-                <div v-if="!fetchingData && filteredApiKeys.length === 0" class="text-center q-mt-xl">
-                  <!-- Case 1: No keys exist at all (and not searching) -->
-                  <div v-if="!searchQuery && !apiKeys.length">
-                    <q-icon name="vpn_key" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoAPIKeys') }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoKeysFound') }}</div>
-                    <q-btn unelevated rounded color="pt-primary1" :label="$t('CreateKey')" icon="add" @click="createApiKey()" />
+                <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
+                  <!-- Empty States -->
+                  <div v-if="!fetchingData && filteredApiKeys.length === 0" class="text-center q-mt-xl">
+                    <!-- Case 1: No keys exist at all (and not searching) -->
+                    <div v-if="!searchQuery && !apiKeys.length">
+                      <q-icon name="vpn_key" size="4em" class="text-grey q-mb-md" />
+                      <div class="text-h6 text-grey q-mb-xs">{{ $t('NoAPIKeys') }}</div>
+                      <div class="text-body2 text-grey q-mb-lg">{{ $t('NoKeysFound') }}</div>
+                      <q-btn unelevated rounded color="pt-primary1" :label="$t('CreateKey')" icon="add" @click="createApiKey()" />
+                    </div>
+                    <!-- Case 2: All existing keys are inactive and hidden -->
+                    <div v-else-if="hideInactive && apiKeys.some(k => k.revoked || k.has_expired) && !filteredApiKeys.length">
+                      <q-icon name="visibility_off" size="4em" class="text-grey q-mb-md" />
+                      <div class="text-h6 text-grey q-mb-xs">{{ $t('InactiveKeysHidden') }}</div>
+                      <div class="text-body2 text-grey q-mb-lg">{{ $t('AllKeysInactive') }}</div>
+                      <q-btn flat rounded color="pt-primary1" :label="$t('ShowInactive')" @click="hideInactive = false" />
+                    </div>
+                    <!-- Case 3: No keys match the search query -->
+                    <div v-else-if="searchQuery">
+                      <q-icon name="search_off" size="4em" class="text-grey q-mb-md" />
+                      <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults') }}</div>
+                      <div class="text-body2 text-grey q-mb-lg">{{ $t('NoKeySearchMatches') }}</div>
+                      <q-btn flat rounded color="pt-primary1" :label="$t('ClearSearch')" @click="searchQuery = ''; onSearch()" />
+                    </div>
                   </div>
-                  <!-- Case 2: All existing keys are inactive and hidden -->
-                  <div v-else-if="hideInactive && apiKeys.some(k => k.revoked || k.has_expired) && !filteredApiKeys.length">
-                    <q-icon name="visibility_off" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('InactiveKeysHidden') }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('AllKeysInactive') }}</div>
-                    <q-btn flat rounded color="pt-primary1" :label="$t('ShowInactive')" @click="hideInactive = false" />
-                  </div>
-                  <!-- Case 3: No keys match the search query -->
-                  <div v-else-if="searchQuery">
-                    <q-icon name="search_off" size="4em" class="text-grey q-mb-md" />
-                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoResults') }}</div>
-                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoKeySearchMatches') }}</div>
-                    <q-btn flat rounded color="pt-primary1" :label="$t('ClearSearch')" @click="searchQuery = ''; onSearch()" />
+
+                  <div v-else class="q-mt-md">
+                    <q-infinite-scroll @load="onLoadMoreKeys" :offset="250" :disable="!hasNextKeysPage">
+                      <q-list separator class="br-15 overflow-hidden border-grey-4">
+                        <q-item v-for="key in filteredApiKeys" :key="key.id" class="q-py-md">
+                          <q-item-section>
+                            <div class="row items-center no-wrap full-width">
+                              <div class="col text-weight-bold ellipsis q-pr-sm">
+                                {{ key.name }}
+                              </div>
+                              <div class="col-auto font-mono text-grey-7 text-center q-px-sm" style="width: 110px; font-size: 0.85rem;">
+                                {{ getKeyPrefix(key.id) }}
+                              </div>
+                              <div class="col-auto text-center q-px-sm" style="width: 100px;">
+                                <q-badge
+                                  :color="key.has_expired ? 'grey-5' : (key.revoked ? 'red-4' : 'green-4')"
+                                  :text-color="darkMode ? 'black' : 'white'"
+                                  rounded
+                                  class="q-px-sm text-weight-medium"
+                                  style="min-width: 80px;"
+                                >
+                                  {{ key.has_expired ? $t('Expired') : (key.revoked ? $t('Revoked') : $t('Active')) }}
+                                </q-badge>
+                              </div>
+                              <div class="col-auto text-right" style="width: 40px;">
+                                <q-btn
+                                  v-if="!key.revoked && !key.has_expired"
+                                  flat
+                                  round
+                                  dense
+                                  icon="block"
+                                  color="grey-6"
+                                  size="sm"
+                                  @click="revokeKey(key)"
+                                >
+                                  <q-tooltip>{{ $t('Revoke') }}</q-tooltip>
+                                </q-btn>
+                              </div>
+                            </div>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                      <template v-slot:loading>
+                        <div class="row justify-center q-my-md">
+                          <q-spinner-dots color="pt-primary1" size="30px" />
+                        </div>
+                      </template>
+                    </q-infinite-scroll>
                   </div>
                 </div>
+              </q-tab-panel>
 
-                <div v-else class="q-mt-md">
-                  <q-infinite-scroll @load="onLoadMoreKeys" :offset="250" :disable="!hasNextKeysPage">
-                    <q-list separator class="br-15 overflow-hidden border-grey-4">
-                      <q-item v-for="key in filteredApiKeys" :key="key.id" class="q-py-md">
-                        <q-item-section>
-                          <div class="row items-center no-wrap full-width">
-                            <div class="col text-weight-bold ellipsis q-pr-sm">
-                              {{ key.name }}
-                            </div>
-                            <div class="col-auto font-mono text-grey-7 text-center q-px-sm" style="width: 110px; font-size: 0.85rem;">
-                              {{ getKeyPrefix(key.id) }}
-                            </div>
-                            <div class="col-auto text-center q-px-sm" style="width: 100px;">
-                              <q-badge
-                                :color="key.has_expired ? 'grey-5' : (key.revoked ? 'red-4' : 'green-4')"
-                                :text-color="darkMode ? 'black' : 'white'"
-                                rounded
-                                class="q-px-sm text-weight-medium"
-                                style="min-width: 80px;"
-                              >
-                                {{ key.has_expired ? $t('Expired') : (key.revoked ? $t('Revoked') : $t('Active')) }}
-                              </q-badge>
-                            </div>
-                            <div class="col-auto text-right" style="width: 40px;">
-                              <q-btn
-                                v-if="!key.revoked && !key.has_expired"
-                                flat
-                                round
-                                dense
-                                icon="block"
-                                color="grey-6"
-                                size="sm"
-                                @click="revokeKey(key)"
-                              >
-                                <q-tooltip>{{ $t('Revoke') }}</q-tooltip>
-                              </q-btn>
-                            </div>
-                          </div>
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                    <template v-slot:loading>
-                      <div class="row justify-center q-my-md">
-                        <q-spinner-dots color="pt-primary1" size="30px" />
+              <!-- Settings Tab -->
+              <q-tab-panel name="settings">
+                <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none q-mb-md" />
+                <div class="q-gutter-y-md">
+                  <!-- Basic Configuration -->
+                  <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
+                    <q-card-section>
+                      <div class="text-subtitle1 text-weight-bold q-mb-md">{{ $t('Configuration') }}</div>
+                      
+                      <div class="q-gutter-y-sm">
+                        <div class="row justify-between items-center">
+                          <div class="text-caption text-grey">{{ $t('WebhookURL') }}</div>
+                          <div class="text-body2 text-right">{{ storeData?.webhook_url || $t('NotConfigured') }}</div>
+                        </div>
+                        <q-separator />
+                        <div class="row justify-between items-center">
+                          <div class="text-caption text-grey">{{ $t('InvoiceExpiry') }}</div>
+                          <div class="text-body2 text-right">{{ storeData?.invoice_expiration_minutes }} min</div>
+                        </div>
                       </div>
-                    </template>
-                  </q-infinite-scroll>
+                    </q-card-section>
+                    <q-card-actions align="center">
+                      <q-btn outline rounded no-caps color="pt-primary1" :label="$t('EditSettings')" @click="editStore" />
+                    </q-card-actions>
+                  </q-card>
+
+                  <!-- Webhook Key Management -->
+                  <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
+                    <q-card-section>
+                      <div class="row items-center q-mb-md">
+                        <div class="text-subtitle1 text-weight-bold">{{ $t('WebhookVerification') }}</div>
+                        <q-space />
+                        <q-btn
+                          flat
+                          round
+                          dense
+                          icon="refresh"
+                          color="pt-primary1"
+                          @click="confirmRotateWebhookKeys"
+                        >
+                          <q-tooltip>{{ $t('RotateKeys') }}</q-tooltip>
+                        </q-btn>
+                      </div>
+
+                      <div class="q-mb-sm text-caption text-grey">
+                        {{ $t('WebhookKeyDescription') }}
+                      </div>
+
+                      <div v-if="webhookPublicKey" class="font-mono bg-grey-3 q-pa-sm br-5 text-caption text-black overflow-auto" style="max-height: 100px; white-space: pre-wrap; word-break: break-all;">
+                        {{ webhookPublicKey }}
+                      </div>
+                      <div v-else class="text-center q-pa-md text-grey italic">
+                        {{ $t('NoWebhookKey') }}
+                      </div>
+                    </q-card-section>
+                    <q-card-actions v-if="webhookPublicKey" align="right">
+                      <q-btn flat dense color="pt-primary1" icon="content_copy" :label="$t('CopyKey')" @click="copyKey(webhookPublicKey)" />
+                    </q-card-actions>
+                  </q-card>
                 </div>
-              </div>
-            </q-tab-panel>
-
-            <!-- Settings Tab -->
-            <q-tab-panel name="settings">
-              <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none q-mb-md" />
-              <div class="q-gutter-y-md">
-                <!-- Basic Configuration -->
-                <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
-                  <q-card-section>
-                    <div class="text-subtitle1 text-weight-bold q-mb-md">{{ $t('Configuration') }}</div>
-                    
-                    <div class="q-gutter-y-sm">
-                      <div class="row justify-between items-center">
-                        <div class="text-caption text-grey">{{ $t('WebhookURL') }}</div>
-                        <div class="text-body2 text-right">{{ storeData?.webhook_url || $t('NotConfigured') }}</div>
-                      </div>
-                      <q-separator />
-                      <div class="row justify-between items-center">
-                        <div class="text-caption text-grey">{{ $t('InvoiceExpiry') }}</div>
-                        <div class="text-body2 text-right">{{ storeData?.invoice_expiration_minutes }} min</div>
-                      </div>
-                    </div>
-                  </q-card-section>
-                  <q-card-actions align="center">
-                    <q-btn outline rounded no-caps color="pt-primary1" :label="$t('EditSettings')" @click="editStore" />
-                  </q-card-actions>
-                </q-card>
-
-                <!-- Webhook Key Management -->
-                <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
-                  <q-card-section>
-                    <div class="row items-center q-mb-md">
-                      <div class="text-subtitle1 text-weight-bold">{{ $t('WebhookVerification') }}</div>
-                      <q-space />
-                      <q-btn
-                        flat
-                        round
-                        dense
-                        icon="refresh"
-                        color="pt-primary1"
-                        @click="confirmRotateWebhookKeys"
-                      >
-                        <q-tooltip>{{ $t('RotateKeys') }}</q-tooltip>
-                      </q-btn>
-                    </div>
-
-                    <div class="q-mb-sm text-caption text-grey">
-                      {{ $t('WebhookKeyDescription') }}
-                    </div>
-
-                    <div v-if="webhookPublicKey" class="font-mono bg-grey-3 q-pa-sm br-5 text-caption text-black overflow-auto" style="max-height: 100px; white-space: pre-wrap; word-break: break-all;">
-                      {{ webhookPublicKey }}
-                    </div>
-                    <div v-else class="text-center q-pa-md text-grey italic">
-                      {{ $t('NoWebhookKey') }}
-                    </div>
-                  </q-card-section>
-                  <q-card-actions v-if="webhookPublicKey" align="right">
-                    <q-btn flat dense color="pt-primary1" icon="content_copy" :label="$t('CopyKey')" @click="copyKey(webhookPublicKey)" />
-                  </q-card-actions>
-                </q-card>
-              </div>
-            </q-tab-panel>
-          </q-tab-panels>
+              </q-tab-panel>
+            </q-tab-panels>
+          </div>
         </q-pull-to-refresh>
       </q-page>
     </q-page-container>
@@ -443,15 +449,38 @@ function clearInvoiceSearch() {
 }
 
 const invoiceStatuses = ['ALL', 'PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
-function handleInvoiceStatusSwipe(details) {
-  const currentIndex = invoiceStatuses.indexOf(invoiceStatusFilter.value)
-  
-  if (details.direction === 'left' && currentIndex < invoiceStatuses.length - 1) {
-    // Swipe left (finger moving right-to-left) -> Next status
-    invoiceStatusFilter.value = invoiceStatuses[currentIndex + 1]
-  } else if (details.direction === 'right' && currentIndex > 0) {
-    // Swipe right (finger moving left-to-right) -> Previous status
-    invoiceStatusFilter.value = invoiceStatuses[currentIndex - 1]
+const mainTabs = ['invoices', 'api_keys', 'settings']
+
+function handleGlobalSwipe(details) {
+  if (activeTab.value === 'invoices') {
+    const currentIndex = invoiceStatuses.indexOf(invoiceStatusFilter.value)
+    if (details.direction === 'left') {
+      if (currentIndex < invoiceStatuses.length - 1) {
+        invoiceStatusFilter.value = invoiceStatuses[currentIndex + 1]
+        return
+      }
+    } else if (details.direction === 'right') {
+      if (currentIndex > 0) {
+        invoiceStatusFilter.value = invoiceStatuses[currentIndex - 1]
+        return
+      }
+    }
+  }
+
+  // Handle main tab switching (infinite)
+  const currentMainIndex = mainTabs.indexOf(activeTab.value)
+  if (details.direction === 'left') {
+    const nextTab = mainTabs[(currentMainIndex + 1) % mainTabs.length]
+    if (nextTab === 'invoices') {
+      invoiceStatusFilter.value = 'ALL'
+    }
+    activeTab.value = nextTab
+  } else if (details.direction === 'right') {
+    const nextTab = mainTabs[(currentMainIndex - 1 + mainTabs.length) % mainTabs.length]
+    if (nextTab === 'invoices') {
+      invoiceStatusFilter.value = 'CANCELLED'
+    }
+    activeTab.value = nextTab
   }
 }
 
