@@ -41,7 +41,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
 
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
     try {
-      bchOauth.clearToken()
+      //bchOauth.clearToken()
       const headers = await bchOauth.getAuthHeaders()
 
       const response = 
