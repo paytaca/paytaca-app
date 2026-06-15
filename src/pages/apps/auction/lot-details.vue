@@ -285,51 +285,62 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 // =========================================================================
 // ============================= DUTCH AUCTION =============================
 // =========================================================================
-const PRICE_DROP_INTERVAL_MS = 2000
 
-const currentTime = ref(Date.now())
-let timer = null
+// SET TESTING INTERVAL HERE (e.g., 10 * 60 * 1000 = 10 minutes in milliseconds)
+const TIME_INTERVAL_MS = 5000
+const INITIAL_SECONDS = TIME_INTERVAL_MS / 1000
 
-onMounted(() => {
-  timer = setInterval(() => { currentTime.value = Date.now() }, 1000)
-})
+const secondsRemaining = ref(INITIAL_SECONDS)
+const dynamicPriceBch = ref(0)
 
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
+let testingAuctionTimer = null
+let visualCountdownTimer = null
 
-const calculateIntervalDropPrice = (startVal, floorVal) => {
-  if (!auction.value?.start_date || !auction.value?.end_date) return startVal || 0
+const applyBchPriceDropStep = () => {
+  if (!lot.value) return
 
-  const startTime = new Date(auction.value.start_date).getTime()
-  const endTime = new Date(auction.value.end_date).getTime()
-  const now = currentTime.value
-
-  if (now <= startTime) return startVal
-  if (now >= endTime) return floorVal
-
-  const totalAuctionDuration = endTime - startTime
-  const msElapsedSinceStart = now - startTime
-  const completedIntervals = Math.floor(msElapsedSinceStart / PRICE_DROP_INTERVAL_MS)
-  const steppedTimeProgress = completedIntervals * PRICE_DROP_INTERVAL_MS
-  const progressiveTime = Math.min(steppedTimeProgress, totalAuctionDuration)
-  const ratio = progressiveTime / totalAuctionDuration
+  const bchFloor = Number(lot.value.threshold_bid || 0)
+  const bchDecrementPerStep = Number(lot.value.bidding_decrement || 0.000005)
+  const nextBch = dynamicPriceBch.value - bchDecrementPerStep
   
-  return startVal - ((startVal - floorVal) * ratio)
+  dynamicPriceBch.value = Math.max(nextBch, bchFloor)
+  
+  if (dynamicPriceBch.value <= bchFloor) {
+    if (testingAuctionTimer) clearInterval(testingAuctionTimer)
+    if (visualCountdownTimer) clearInterval(visualCountdownTimer)
+    secondsRemaining.value = 0
+  }
 }
 
+watch(lot, (newLotData) => {
+  if (!newLotData) return
+
+  if (testingAuctionTimer) clearInterval(testingAuctionTimer)
+  if (visualCountdownTimer) clearInterval(visualCountdownTimer)
+  
+  dynamicPriceBch.value = Number(newLotData.estimated_amount || 0)
+  secondsRemaining.value = INITIAL_SECONDS
+  
+  testingAuctionTimer = setInterval(() => {
+    applyBchPriceDropStep()
+    secondsRemaining.value = INITIAL_SECONDS
+  }, TIME_INTERVAL_MS)
+  
+  visualCountdownTimer = setInterval(() => {
+    if (secondsRemaining.value > 0) {
+      secondsRemaining.value--
+    }
+  }, 1000)
+}, { deep: true })
+
+onUnmounted(() => {
+  if (testingAuctionTimer) clearInterval(testingAuctionTimer)
+  if (visualCountdownTimer) clearInterval(visualCountdownTimer)
+})
+
 const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid || 0))
-
-const dutchCurrentPriceBch = computed(() => {
-  const start = Number(lot.value?.estimated_amount || 0)
-  return calculateIntervalDropPrice(start, dutchFloorPriceBch.value)
-})
-
-const dutchCurrentPriceFiat = computed(() => {
-  const start = Number(lot.value?.starting_price || lot.value?.estimated_amount_fiat || 0)
-  const floor = Number(lot.value?.threshold_bid_fiat || lot.value?.threshold_bid || 0)
-  return calculateIntervalDropPrice(start, floor)
-})
+const dutchCurrentPriceBch = computed(() => dynamicPriceBch.value)
+const dutchCurrentPriceFiat = computed(() => 0)
 
 const buyItNow = () => { 
   isToggledBuyItNow.value = true 
