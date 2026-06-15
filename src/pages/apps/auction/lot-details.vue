@@ -365,13 +365,22 @@ const handleBuyItNow = async () => {
 
     if (res.success) {
       dutchAlreadySold.value = true
+    } else {
+      throw new Error(res.error || 'Transaction failed. Please try again.')
+    }
+
+    const isSoldResult = await callAPI('lots', props.lotId, 'patch', { is_sold: true })
+
+    if (isSoldResult.success) {
       $q.notify({
         type: 'positive',
         message: `Secured for ₱${formatFiat(dutchCurrentPriceFiat.value)}!`,
         caption: `${getFormattedBCH(dutchCurrentPriceBch.value).main} BCH`
       })
+
+      await refresh()
     } else {
-      throw new Error(res.error || 'Transaction failed. Please try again.')
+      throw new Error(isSoldResult.error || 'Transaction failed. Please try again.')
     }
   } catch (err) {
     console.error(err)
