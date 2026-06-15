@@ -334,7 +334,7 @@ export default {
           page: vm.adsPageNumber,
           owner_id: vm.user.id
         }
-        params.to_peer = this.userId
+
         backend.get('/ramp-p2p/ad/', {
           params: params,
           authorize: true

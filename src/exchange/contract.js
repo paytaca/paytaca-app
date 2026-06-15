@@ -101,12 +101,9 @@ export class RampContract {
     // Deduplicate concurrent getBalance calls for the same address
     const cacheKey = address
     if (this._getBalancePromise && this._getBalanceKey === cacheKey) {
-      console.log('[RampContract.getBalance] Returning cached promise for', address)
       return this._getBalancePromise
     }
     this._getBalanceKey = cacheKey
-    console.trace('[RampContract.getBalance] New request for', address)
-
     this._getBalancePromise = this._fetchBalance(address, retry)
     try {
       const result = await this._getBalancePromise

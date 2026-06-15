@@ -782,15 +782,12 @@ export default {
            return ''
        }
      },
-getBackNavigationPath () {
-        console.log('Source param:', this.$route.query.source)
+      getBackNavigationPath () {
         // If we came from the home page (pending orders), go back there
         if (this.$route.query.source === 'home') {
-          console.log('Routing back to home page with name: transaction-index')
           return { name: 'transaction-index' }
         }
         // Default back path to orders list
-        console.log('Routing back to orders list')
         return '/apps/exchange/peer-to-peer/orders'
       },
     escrowTransferData () {
@@ -902,14 +899,12 @@ getBackNavigationPath () {
       } else if (newTab === 'chat') {
         // Only load chat if escrow is complete
         if (!this.isChatEnabled) {
-          console.log('Chat is not yet enabled - waiting for escrow')
           return
         }
         
         // Re-establish chat websocket connection when entering chat tab
         // This ensures both parties can receive messages even if one joined later
         if (this.chatRef && this.websockets.chat) {
-          console.log('Re-establishing chat websocket connection...')
           this.websockets.chat.closeConnection()
           this.websockets.chat = new WebSocketManager()
           this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
@@ -970,13 +965,11 @@ getBackNavigationPath () {
     bus.on('new-message', this.onNewMessage)
   },
   async mounted () {
-    console.trace('[order.vue] mounted() called')
     await this.loadData()
     this.setupWebSocket()
     this.ensureChatCloseCountdownTimer()
   },
   beforeUnmount () {
-    console.log('[order.vue] beforeUnmount() called')
     this.closeWSConnection()
 
     if (this.chatCloseCountdownIntervalId) {
@@ -1011,7 +1004,6 @@ getBackNavigationPath () {
     },
 
     async loadData () {
-      console.log('[order.vue] loadData() called, loadingData:', this.loadingData)
       if (this.loadingData) return
       this.loadingData = true
       try {
@@ -1178,7 +1170,6 @@ getBackNavigationPath () {
         // Re-establish chat websocket connection after loading chat data
         // This ensures fresh connection for receiving new messages
         if (this.chatRef && this.websockets.chat) {
-          console.log('Re-establishing chat websocket after loading chat data...')
           this.websockets.chat.closeConnection()
           this.websockets.chat = new WebSocketManager()
           this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
@@ -1230,7 +1221,6 @@ getBackNavigationPath () {
       // Cooldown: Prevent loading too quickly (minimum 2 seconds between loads)
       const now = Date.now()
       if (now - this.lastLoadTime < 2000) {
-        console.log('[Chat Pagination] Cooldown active, waiting...')
         done()
         return
       }
@@ -1406,7 +1396,7 @@ getBackNavigationPath () {
         let attachment = vm.chatAttachment
         let useFormData = false
         
-        console.log('Sending message:', originalMessage, 'with attachment:', !!attachment)
+
         
         let message = originalMessage
 
@@ -1999,11 +1989,9 @@ getBackNavigationPath () {
       }
       const now = Date.now()
       if (caller === 'websocket' && vm._fetchOrderLastTime && now - vm._fetchOrderLastTime < 10000) {
-        console.log(`[fetchOrder] Websocket cooldown active, skipping call from: ${caller}`)
         return
       }
       if (vm._fetchOrderInProgress) {
-        console.log(`[fetchOrder] Already in progress, skipping call from: ${caller}`)
         return
       }
       vm._fetchOrderInProgress = true

@@ -535,7 +535,8 @@ export default {
     },
     fiatAmount () {
       const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
-      return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '')
+      const symbol = this.data.order?.ad?.fiat_currency?.symbol || this.data?.ad?.fiat_currency?.symbol
+      return this.formatCurrency(amount, symbol).replace(/[^\d.,-]/g, '')
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
@@ -966,7 +967,6 @@ onSelectAttachment (methodIndex, methodId) {
       const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
-          console.log(result)
           if (result.success) {
             const txid = result.txInfo.txid
             const txidData = {
@@ -1140,7 +1140,7 @@ onSelectAttachment (methodIndex, methodId) {
       console.error(error)
       const message = 'An unexpected error has occured'
       if (!this.errorDialogActive) {
-        this.errorDialogActive = false
+        this.errorDialogActive = true
         this.$q.notify({
           type: 'warning',
           message: message,
