@@ -20,10 +20,10 @@
               {{ lot.category }}
             </q-badge>
             <q-badge
-              :color="lot.getStatus().color"
+              :color="lot.getLotStatus(auction.start_date, auction.end_date).color"
               class="q-pa-sm q-px-sm text-weight-bold"
             >
-              {{ lot.getStatus().label }}
+              {{ lot.getLotStatus(auction.start_date, auction.end_date).label }}
             </q-badge>
           </div>
         </div>
@@ -74,7 +74,7 @@
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     label="Place Bid"
-                    :disabled="lotStatus.label !== 'Open'"
+                    :disabled="lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open'"
                     @click="openDialog = !openDialog"
                     unelevated
                   />
@@ -86,7 +86,7 @@
                     style="background-color: var(--q-secondary);"
                     padding="md"
                     label="Buy It Now"
-                    :disabled="lotStatus.label !== 'Open'"
+                    :disabled="lot.getLotStatus(auction.start_date, auction.end_date).label !== 'Open'"
                     @click="buyItNow"
                     unelevated
                   />
@@ -265,19 +265,20 @@ const auction = computed(() => {
 
 const lot = ref(null)
 
-onMounted(async () => {
-  console.log("props.lotId = " + props.lotId)
+const fetchLot = async () => {
   const result = await callAPI('lots', props.lotId)
-  
   if (result.success) {
-    const parsed = LotsList.parse(result.data)
-    lot.value = parsed
-    
-    const imageResult = await callAPI(`lot-images-by-lot`, props.lotId, 'get')
+    lot.value = LotsList.parse(result.data)
+
+    const imageResult = await callAPI('lot-images-by-lot', props.lotId, 'get')
     if (imageResult.success && Array.isArray(imageResult.data)) {
       lotImages.value = imageResult.data.map(item => item.image)
     }
   }
+}
+
+onMounted(async () => {
+  await fetchLot()
 })
 
 const activeSlide = ref(0)
@@ -310,9 +311,8 @@ const smartBackPath = computed(() => {
   return `/apps/auction/${$route.params.auctionId}`
 })
 
-const refresh = (done) => {
-  setTimeout(() => {
-    done()
-  }, 1000)
+const refresh = async (done) => {
+  await fetchLot()
+  done()
 }
 </script>
