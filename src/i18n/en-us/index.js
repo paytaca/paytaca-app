@@ -1752,6 +1752,8 @@ export default {
   PaymentTransaction: "Payment transaction",
   PaymentTransactionId: "Payment Transaction ID",
   PaymentType: "Payment Type",
+  PaymentUrl: "Payment URL",
+  OpenPaymentUrl: "Open Payment URL",
   PaymentTypeUnsupported: "{currency} does not support this payment type.",
   PaymentTypes: "Payment Types",
   Payments: "Payments",

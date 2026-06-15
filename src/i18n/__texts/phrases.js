@@ -2126,6 +2126,8 @@ const phrases = {
       TransactionDisplaySettings: 'Transaction display settings',
       TokenLockupTransactionId: 'Token Lockup Transaction ID',
       PaymentTransactionId: 'Payment Transaction ID',
+      PaymentUrl: 'Payment URL',
+      OpenPaymentUrl: 'Open Payment URL',
       FailedToGetContractData: 'Failed to get contract data. Please try again later.',
       FailedToGetOracleData: 'Failed to get oracle data. Please try again later.',
       FailedToInitializeVestingContract: 'Failed to initialize the vesting contract. Please try again later.',

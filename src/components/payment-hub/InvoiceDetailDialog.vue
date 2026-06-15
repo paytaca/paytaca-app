@@ -74,6 +74,26 @@
           </div>
         </div>
 
+        <!-- Payment URL -->
+        <div v-if="invoice.payment_url" class="q-mb-md">
+          <div class="text-caption text-grey">{{ $t('PaymentUrl') }}</div>
+          <div class="row no-wrap items-center">
+            <div class="text-body2 ellipsis q-mr-xs font-mono">{{ invoice.payment_url }}</div>
+            <CopyButton :text="invoice.payment_url" />
+            <q-btn
+              flat
+              round
+              dense
+              icon="open_in_new"
+              size="sm"
+              color="pt-primary1"
+              @click="openPaymentUrl(invoice.payment_url)"
+            >
+              <q-tooltip>{{ $t('OpenPaymentUrl') }}</q-tooltip>
+            </q-btn>
+          </div>
+        </div>
+
         <!-- TX ID (if paid) -->
         <div v-if="invoice.tx_id" class="q-mb-md">
           <div class="text-caption text-grey">{{ $t('TransactionId') }}</div>
@@ -131,7 +151,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
-import { useDialogPluginComponent } from 'quasar'
+import { useQuasar, useDialogPluginComponent, openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
@@ -151,6 +171,7 @@ defineEmits([
 
 const { dialogRef, onDialogHide } = useDialogPluginComponent()
 const $store = useStore()
+const $q = useQuasar()
 
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -202,7 +223,11 @@ function formatSatoshis(sats) {
 
 function openExplorer(txid) {
   const link = getExplorerLink(txid)
-  window.open(link, '_blank')
+  if (link) openURL(link)
+}
+
+function openPaymentUrl(url) {
+  if (url) openURL(url)
 }
 
 const isExpired = computed(() => {

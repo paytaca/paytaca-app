@@ -194,7 +194,7 @@
     <q-page-container>
       <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'" class="column no-wrap">
         <q-pull-to-refresh @refresh="refreshPage" class="col column no-wrap">
-          <div v-touch-swipe.horizontal.mouse="handleGlobalSwipe" class="col column no-wrap" style="min-height: 70vh;">
+          <div v-touch-swipe.horizontal.mouse="handleGlobalSwipe" class="col column no-wrap">
             <q-tab-panels 
               v-model="activeTab" 
               animated 
