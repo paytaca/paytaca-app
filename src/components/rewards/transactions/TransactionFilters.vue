@@ -18,7 +18,7 @@
           :style="localActiveTab === tab.value ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
           @click="setTab(tab.value)"
         >
-          {{ $t(tab.label, tab.label) }}
+          {{ $t(tab.label) }}
         </button>
       </div>
     </div>
@@ -26,7 +26,11 @@
     <!-- Sort Control -->
     <div class="row items-center justify-between">
       <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-        {{ $t('Showing') }} {{ displayCount }} {{ $t(displayCount === 1 ? 'transaction' : 'transactions') }}
+        {{
+          displayCount === 1
+            ? $t('ShowingCountTransaction', { displayCount })
+            : $t('ShowingCountTransactions', { displayCount })
+        }}
       </div>
       
       <q-btn

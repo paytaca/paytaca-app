@@ -164,7 +164,7 @@
 					
 					<!-- Congratulatory Title -->
 					<div class="text-h6 text-weight-bold" :class="darkMode ? 'text-white' : 'text-grey-9'">
-						Congratulations!
+						{{ $t('Congratulations') }}
 					</div>
 					
 					<!-- Points Earned Display -->
@@ -172,7 +172,7 @@
 						class="text-body1 q-px-sm"
 						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
 					>
-						You earned {{ pointsEarned }} points from this purchase.
+						{{ $t('EloadCountPointsEarned', { points: pointsEarned }) }}
 					</div>
 					
 					<!-- Instruction Text -->
@@ -180,12 +180,12 @@
 						class="text-body1 q-px-sm q-mt-sm"
 						:class="darkMode ? 'text-grey-5' : 'text-grey-8'"
 					>
-						Check your points in the Rewards app for a detailed breakdown.
+						{{ $t('CheckRewardsAppInstructionsText') }}
 					</div>
 					
 					<!-- Navigate to Rewards Button -->
 					<q-btn
-						label="View Rewards"
+						:label="$t('ViewRewards')"
 						icon="stars"
 						rounded
 						class="button bg-grad button-glow q-mt-md"
@@ -311,7 +311,7 @@ export default {
 					this.pointsEarned = this.calculatedPoints
 					this.showRewardsSection = true
 					raiseNotifySuccess(
-						`Congratulations! You have earned ${this.pointsEarned} points!`,
+						this.$t('EloadPurchaseNotificationText'),
 						3000, 'bottom', 'mdi-party-popper'
 					)
 				} else {

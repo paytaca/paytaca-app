@@ -6,7 +6,7 @@
     />
 
     <h5 class="q-ma-none q-px-md text-primary text-weight-bold text-center">
-      {{ $t('ReferralHistory', 'Referral History') }}
+      {{ $t('ReferralHistory') }}
     </h5>
 
     <div class="q-px-md q-pt-md">
@@ -31,19 +31,19 @@
               <div class="col text-center q-pa-sm">
                 <div class="text-h6 text-bold text-primary">{{ summaryStats.total_count }}</div>
                 <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ $t('Total', 'Total') }}
+                  {{ $t('Total') }}
                 </div>
               </div>
               <div class="col text-center q-pa-sm">
                 <div class="text-h6 text-bold text-positive">{{ summaryStats.completed_count }}</div>
                 <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ $t('Completed', 'Completed') }}
+                  {{ $t('Completed') }}
                 </div>
               </div>
               <div class="col text-center q-pa-sm">
                 <div class="text-h6 text-bold text-warning">{{ summaryStats.pending_count }}</div>
                 <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  {{ $t('Pending', 'Pending') }}
+                  {{ $t('Pending') }}
                 </div>
               </div>
             </div>
@@ -53,7 +53,11 @@
             <div class="row items-center justify-center q-gutter-sm">
               <q-icon name="group" color="primary" size="sm" />
               <span class="text-subtitle1 text-weight-medium">
-                {{ summaryStats.points_earned }} points earned
+                {{
+                  summaryStats.points_earned === 1
+                    ? $t('CountPointEarned', { point: summaryStats.points_earned })
+                    : $t('CountPointsEarned', { points: summaryStats.points_earned })
+                }}
               </span>
             </div>
           </template>
@@ -81,7 +85,7 @@
                 :class="[darkMode ? 'dark' : '', { 'tab-active': activeFilterTab === tab.value }]"
                 @click="setFilterTab(tab.value)"
               >
-                {{ $t(tab.label, tab.label) }}
+                {{ $t(tab.label) }}
               </button>
             </div>
           </div>
@@ -89,7 +93,11 @@
           <!-- Sort Toggle -->
           <div class="row items-center justify-between q-mt-xs">
             <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-              {{ $t('Showing') }} {{ displayCount }} {{ $t(displayCount === 1 ? 'transaction' : 'transactions') }}
+              {{
+                displayCount === 1
+                  ? $t('ShowingCountTransaction', { displayCount })
+                  : $t('ShowingCountTransactions', { displayCount })
+              }}
             </span>
             <q-btn
               flat
@@ -149,14 +157,14 @@
                           v-if="item.has_transacted"
                           dense
                           color="positive"
-                          :label="$t('Transacted', 'Transacted')"
+                          :label="$t('Transacted')"
                           class="q-px-sm q-py-xs text-caption text-black"
                         />
                         <q-badge
                           v-else
                           dense
                           color="warning"
-                          :label="$t('Pending', 'Pending')"
+                          :label="$t('Pending')"
                           class="q-px-sm q-py-xs text-caption text-black"
                         />
                       </div>
@@ -227,8 +235,8 @@ export default {
       loadingMore: false,
 
       emptyState: {
-        title: 'No referrals yet',
-        description: 'Share your referral QR code to start earning points!'
+        title: 'ReferralStatusWarningTitle',
+        description: 'ReferralStatusWarningBody'
       }
     }
   },
@@ -287,7 +295,7 @@ export default {
       this.$copyText(hash)
       this.$q.notify({
         color: 'blue-9',
-        message: this.$t('CopiedToClipboard', 'Copied to clipboard'),
+        message: this.$t('CopiedToClipboard'),
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
@@ -323,11 +331,11 @@ export default {
           const fetchedCount = data.overall_data?.length || 0
           this.hasMoreData = fetchedCount >= this.limit
         } else {
-          this.dataError = this.$t('FailedToLoadData', 'Unable to load referral history. Please try again later.')
+          this.dataError = this.$t('ReferralHistoryError')
         }
       } catch (error) {
         console.error('Error loading referral history:', error)
-        this.dataError = this.$t('FailedToLoadData', 'Unable to load referral history. Please try again later.')
+        this.dataError = this.$t('ReferralHistoryError')
       }
 
       if (!append) this.isLoading = false

@@ -31,10 +31,10 @@
     >
       <q-icon name="history" size="48px" class="q-mb-md" />
       <div class="text-subtitle1 q-mb-sm">
-        {{ emptyState.title }}
+        {{ $t(emptyState.title) }}
       </div>
       <div class="text-body2">
-        {{ emptyState.description }}
+        {{ $t(emptyState.description) }}
       </div>
     </q-card>
     
@@ -64,7 +64,7 @@
           :loading="loadingMore"
           @click="loadMore"
         >
-          {{ $t('LoadMore', 'Load More') }}
+          {{ $t('LoadMore') }}
         </q-btn>
       </div>
     </template>
@@ -105,8 +105,8 @@ export default {
     emptyState: {
       type: Object,
       default: () => ({
-        title: 'No transactions found',
-        description: 'Start making transactions to earn points!'
+        title: 'EmptyStateDefaultTitle',
+        description: 'EmptyStateDefaultBody'
       })
     }
   },

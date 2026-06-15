@@ -56,19 +56,19 @@
                 :is="step.isCentered ? 'h5' : 'h6'"
                 class="q-ma-xs q-pb-sm text-center text-bold"
               >
-                {{ $t(step.titleKey, step.titleDefault) }}
+                {{ $t(step.titleKey) }}
               </component>
 
               <div class="row text-left">
                 <p v-for="(para, pIdx) in step.content" :key="pIdx">
-                  {{ $t(para.key, para.default) }}
+                  {{ $t(para.key) }}
                 </p>
               </div>
             </q-card-section>
 
             <q-card-actions class="justify-between q-px-lg q-pb-sm">
               <q-btn
-                label="Skip"
+                :label="$t('Skip')"
                 outline
                 class="button button-text-primary"
                 :class="getDarkModeClass(darkMode)"
@@ -78,14 +78,14 @@
               <div class="q-gutter-x-sm" :class="{ 'q-ml-auto': !step.hasBack }">
                 <q-btn
                   v-if="step.hasBack"
-                  label="Back"
+                  :label="$t('Back')"
                   outline
                   class="button button-text-primary"
                   :class="getDarkModeClass(darkMode)"
                   @click="goToStep(step.backStep)"
                 />
                 <q-btn
-                  :label="step.primaryBtn"
+                  :label="$t(step.primaryBtn)"
                   class="button"
                   :class="getDarkModeClass(darkMode)"
                   @click="handleStepAction(step)"
@@ -130,10 +130,9 @@ export default {
             isCentered: true,
             icon: 'celebration',  // Alternative: 'auto_awesome', 'emoji_events', 'card_giftcard'
             titleKey: 'RewardsHelpHome11',
-            titleDefault: 'Welcome to the Rewards Page',
             content: [
-              { key: 'RewardsHelpHome12', default: 'Start earning points today!' },
-              { key: 'RewardsHelpHome13', default: 'The Paytaca Rewards program lets you accumulate points for engaging with the Paytaca ecosystem.' }
+              { key: 'RewardsHelpHome12' },
+              { key: 'RewardsHelpHome13' }
             ],
             hasBack: false,
             primaryBtn: 'Next',
@@ -145,9 +144,8 @@ export default {
             isCentered: true,
             icon: 'insights',  // Alternative: 'lightbulb', 'query_builder', 'psychology', 'school'
             titleKey: 'RewardsHelpHome21',
-            titleDefault: 'How It Works',
             content: [
-              { key: 'RewardsHelpHome22', default: 'The more you explore and interact, the more you earn. Points convert directly into LIFT tokens.' }
+              { key: 'RewardsHelpHome22' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -165,10 +163,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpHome51',
-            titleDefault: 'Rewards Points Summary',
+            titleKey: 'RewardsHelpHome31',
             content: [
-              { key: 'RewardsHelpHome52', default: 'Here, you will see your total points, along with the estimated LIFT token equivalent and its current price. You can also expand the card to see more details.' }
+              { key: 'RewardsHelpHome32' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -186,11 +183,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpHome71',
-            titleDefault: 'Points Conversion Rate',
+            titleKey: 'RewardsHelpHome41',
             content: [
-              { key: 'RewardsHelpHome72', default: 'Each point you earn is convertible to LIFT tokens, making it easy to see the value of your rewards.' },
-              { key: 'RewardsHelpHome73', default: 'Please note that the conversion rate may be updated in the future to keep things fair and exciting for everyone.' }
+              { key: 'RewardsHelpHome42' },
+              { key: 'RewardsHelpHome43' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -203,10 +199,9 @@ export default {
             id: '5',
             isCentered: true,
             icon: 'stars',
-            titleKey: 'RewardsHelpHome41',
-            titleDefault: 'Paytaca Promos',
+            titleKey: 'RewardsHelpHome51',
             content: [
-              { key: 'RewardsHelpHome42', default: 'We have designed different promos for each type of user, each offering its own earning potential. More promos will be added soon.' }
+              { key: 'RewardsHelpHome52' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -224,10 +219,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 1,
             icon: 'redeem',
-            titleKey: 'RewardsHelpHome51',
-            titleDefault: 'User Rewards',
+            titleKey: 'RewardsHelpHome61',
             content: [
-              { key: 'RewardsHelpHome52', default: 'In the User Rewards (UR) program, points are earned by exploring and enjoying the different features of the app.' }
+              { key: 'RewardsHelpHome62' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -242,10 +236,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 2,
             icon: 'diversity_3',
-            titleKey: 'RewardsHelpHome61',
-            titleDefault: 'Refer-a-friend Promo',
+            titleKey: 'RewardsHelpHome71',
             content: [
-              { key: 'RewardsHelpHome62', default: 'In the Refer-a-Friend Promo (RFP), points are rewarded to users who successfully invite friends to use the Paytaca app using a referral code.' }
+              { key: 'RewardsHelpHome72' }
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -259,9 +252,8 @@ export default {
             isCentered: true,
             icon: 'redeem',
             titleKey: 'RewardsHelpUR11',
-            titleDefault: 'Welcome to the User Rewards Page',
             content: [
-              { key: 'RewardsHelpUR12', default: 'The User Rewards (UR) program allows you to earn points by engaging with various features of the Paytaca app.' },
+              { key: 'RewardsHelpUR12' },
             ],
             hasBack: false,
             primaryBtn: 'Next',
@@ -278,10 +270,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpUR21',
-            titleDefault: 'Accumulated Points',
+            titleKey: 'RewardsHelpShared11',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here.' },
+              { key: 'RewardsHelpShared12' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -302,11 +293,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 1,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'Redeeming Points',
+            titleKey: 'RewardsHelpShared21',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'To redeem your points, tap the Redeem Points button.' },
-              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
+              { key: 'RewardsHelpShared22' },
+              { key: 'RewardsHelpShared23' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -327,10 +317,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 2,
             icon: 'history',
-            titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'View Redeem History',
+            titleKey: 'RewardsHelpShared31',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'Tap the View Redeem History button to check your past redemptions.' },
+              { key: 'RewardsHelpShared32' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -346,10 +335,9 @@ export default {
             id: '5',
             isCentered: true,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpUR31',
-            titleDefault: 'Earning Points',
+            titleKey: 'RewardsHelpShared41',
             content: [
-              { key: 'RewardsHelpUR32', default: 'There are two ways to earn points here, which are awarded only after successfully completing the specified actions.' },
+              { key: 'RewardsHelpUR52' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -367,10 +355,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 3,
             icon: 'repeat_one',
-            titleKey: 'RewardsHelpUR41',
-            titleDefault: 'One-time Points',
+            titleKey: 'RewardsHelpUR61',
             content: [
-              { key: 'RewardsHelpUR42', default: 'One-time points can be earned only once and are awarded after completing specific tasks.' },
+              { key: 'RewardsHelpUR62' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -386,10 +373,9 @@ export default {
             id: '7',
             isCentered: true,
             icon: 'repeat_one',
-            titleKey: 'RewardsHelpUR41',
-            titleDefault: 'Earning One-time Points',
+            titleKey: 'RewardsHelpUR71',
             content: [
-              { key: 'RewardsHelpUR42', default: 'Valid transactions include purchases made with our merchants either through the Marketplace or over the counter, cash-in either through the P2P Ramp or on our vending machines, swap transactions in the Cauldron DEX, and purchases of Eload services.' },
+              { key: 'RewardsHelpUR72' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -407,10 +393,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 4,
             icon: 'loop',
-            titleKey: 'RewardsHelpUR51',
-            titleDefault: 'Continuous Points',
+            titleKey: 'RewardsHelpUR81',
             content: [
-              { key: 'RewardsHelpUR52', default: 'Continuous points can be earned multiple times and are awarded after completing various transactions.' },
+              { key: 'RewardsHelpUR82' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -423,12 +408,11 @@ export default {
             id: '9',
             isCentered: true,
             icon: 'loop',
-            titleKey: 'RewardsHelpUR51',
-            titleDefault: 'Earning Continuous Points',
+            titleKey: 'RewardsHelpUR91',
             content: [
-              { key: 'RewardsHelpUR53', default: 'You can get points when you shop with our merchants in the Marketplace or pay over the counter. Plus, you can earn even more points by buying from inactive merchants.' },
-              { key: 'RewardsHelpUR54', default: 'You can also earn points when you buy BCH through the P2P Ramp or cash in using our vending machines, as well as swapping tokens in the Cauldron DEX.' },
-              { key: 'RewardsHelpUR55', default: 'Additionally, you can obtain points when you purchase services through the Eload Service.' },
+              { key: 'RewardsHelpUR92' },
+              { key: 'RewardsHelpUR93' },
+              { key: 'RewardsHelpUR94' },
             ],
             hasBack: true,
             primaryBtn: 'Done',
@@ -437,15 +421,14 @@ export default {
             onNext: () => this.close()
           },
         ],
-        rfp: [
+        rp: [
           {
             id: '1',
             isCentered: true,
             icon: 'diversity_3',
-            titleKey: 'RewardsHelpRFP11',
-            titleDefault: 'Welcome to the Refer-a-friend Promo Page',
+            titleKey: 'RewardsHelpRP11',
             content: [
-              { key: 'RewardsHelpRFP12', default: 'The Refer-a-friend Promo (RFP) program is built to encourage users to invite friends to use the Paytaca app and explore the Paytaca ecosystem.' },
+              { key: 'RewardsHelpRP12' },
             ],
             hasBack: false,
             primaryBtn: 'Next',
@@ -462,10 +445,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 0,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'Accumulated Points',
+            titleKey: 'RewardsHelpShared11',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'Accumulated points are displayed here.' },
+              { key: 'RewardsHelpShared12' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -486,10 +468,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 1,
             icon: 'hourglass_bottom',
-            titleKey: 'RewardsHelpRFP31',
-            titleDefault: 'Points Limit',
+            titleKey: 'RewardsHelpRP31',
             content: [
-              { key: 'RewardsHelpRFP32', default: "You can only redeem a certain number of points each month. But don't worry; the limit resets at the start of each month." },
+              { key: 'RewardsHelpRP32' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -510,11 +491,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 2,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'Redeeming Points',
+            titleKey: 'RewardsHelpShared21',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'To redeem your points, tap the Redeem Points button.' },
-              { key: 'RewardsHelpRedeemPoints2', default: 'Make sure to redeem your points promptly to make the most of your rewards.' }
+              { key: 'RewardsHelpShared22' },
+              { key: 'RewardsHelpShared23' }
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -535,10 +515,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 3,
             icon: 'history',
-            titleKey: 'RewardsHelpRFP21',
-            titleDefault: 'View Redeem History',
+            titleKey: 'RewardsHelpShared31',
             content: [
-              { key: 'RewardsHelpRedeemPoints1', default: 'Tap the View Redeem History button to check your past redemptions.' },
+              { key: 'RewardsHelpShared32' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -559,10 +538,9 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 4,
             icon: 'qr_code_scanner',
-            titleKey: 'RewardsHelpRFP41',
-            titleDefault: 'Referral Code',
+            titleKey: 'RewardsHelpRP61',
             content: [
-              { key: 'RewardsHelpRFP42', default: 'Tap the button to show your referral code QR, and have your referrals scan it to earn points.' },
+              { key: 'RewardsHelpRP62' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -578,10 +556,9 @@ export default {
             id: '7',
             isCentered: true,
             icon: 'local_activity',
-            titleKey: 'RewardsHelpRFP51',
-            titleDefault: 'Earning Points',
+            titleKey: 'RewardsHelpShared41',
             content: [
-              { key: 'RewardsHelpRFP52', default: 'You will earn points once your referrals successfully set up their wallet and send their first transaction.' },
+              { key: 'RewardsHelpRP72' },
             ],
             hasBack: true,
             primaryBtn: 'Next',
@@ -599,11 +576,10 @@ export default {
             needsBoundingRects: true,
             highlightIndex: 5,
             icon: 'group',
-            titleKey: 'RewardsHelpRFP61',
-            titleDefault: 'Referral Status',
+            titleKey: 'RewardsHelpRP81',
             content: [
-              { key: 'RewardsHelpRFP62', default: 'See the status of your latest referrals here.' },
-              { key: 'RewardsHelpRFP62', default: 'Tap on View All to see all of your referrals and keep tabs on your successful ones.' },
+              { key: 'RewardsHelpRP82' },
+              { key: 'RewardsHelpRP83' },
             ],
             hasBack: true,
             primaryBtn: 'Done',

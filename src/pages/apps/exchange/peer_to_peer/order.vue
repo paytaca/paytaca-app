@@ -2212,13 +2212,14 @@ getBackNavigationPath () {
                 bch_address: buyerAddress,
                 is_ramp: true,
                 ref_id: hexToRef(txid.substring(0, 6)),
-                tx_id: txid
+                tx_id: txid,
+                bch_spent: satoshiToBch(this.order.trade_amount)
               })
 
               if (pointsResp) {
                 this.rewardNotified = true
                 this.noticeType = 'success'
-                this.errorMessage = 'Congratulations!<br><br>You have earned points for this P2P Ramp purchase!<br><br>Check your points balance in the Rewards app.'
+                this.errorMessage = this.$t('RampPurchaseNotificationText')
                 this.showNoticeDialog = true
               }
             }

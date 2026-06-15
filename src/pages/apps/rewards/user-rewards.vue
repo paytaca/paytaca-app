@@ -2,7 +2,7 @@
   <div id="app-container" class="sticky-header-container text-bow" :class="getDarkModeClass(darkMode)">
     <header-nav
       class="apps-header"
-      :title="$t('UserRewards', 'User Rewards')"
+      :title="$t('UserRewards')"
     >
       <template #top-right-menu v-if="!isLoading && !pointsError && !dataError">
         <q-btn
@@ -46,7 +46,7 @@
           <template v-else>
             <div class="card-help-highlight">
               <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ $t('YouCurrentlyHave', 'You currently have') }}
+                {{ $t('YouCurrentlyHave') }}
               </div>
               
               <div 
@@ -60,7 +60,7 @@
                   class="text-h5 text-weight-bold q-ml-xs"
                   :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                 >
-                  points
+                  {{ $t('PointsLower') }}
                 </span>
               </div>
             </div>
@@ -70,7 +70,7 @@
               size="lg"
               class="button redeem-btn card-help-highlight"
               :class="getDarkModeClass(darkMode)"
-              :label="$t('RedeemPoints', 'Redeem Points')"
+              :label="$t('RedeemPoints')"
               :disable="points === 0"
               @click="openRedeemPointsDialog"
             />
@@ -82,7 +82,7 @@
               class="button button-text-primary q-mt-md card-help-highlight"
               :style="{ minWidth: '200px' }"
               :class="getDarkModeClass(darkMode)"
-              :label="$t('ViewRedeemHistory', 'View Redeem History')"
+              :label="$t('ViewRedeemHistory')"
               @click="openRedeemHistoryDialog"
             />
           </template>
@@ -106,7 +106,7 @@
           @click="isOneTimeSectionExpanded = !isOneTimeSectionExpanded"
         >
           <q-icon name="repeat_one" size="md" class="q-mr-sm" color="primary" />
-          <span class="text-h6">{{ $t('OneTimePoints', 'One-time Points') }}</span>
+          <span class="text-h6">{{ $t('OneTimePoints') }}</span>
           <q-space />
           <div class="row items-center q-gutter-sm">
             <span
@@ -157,14 +157,14 @@
                     <div class="row items-center">
                       <q-icon name="celebration" size="32px" class="q-mr-md" />
                       <div>
-                        <div class="text-h6">Welcome, New Explorer!</div>
-                        <div class="text-caption">Complete tasks to earn points</div>
+                        <div class="text-h6">{{ $t('WelcomeCardTitle') }}</div>
+                        <div class="text-caption">{{ $t('WelcomeCardSubtitle') }}</div>
                       </div>
                     </div>
                   </q-card-section>
                   <q-card-section>
                     <div class="text-body2">
-                      Start your journey by completing the one-time tasks below. Each completed task rewards you with points that can be redeemed and exchanged for LIFT tokens!
+                      {{ $t('WelcomeCardBody') }}
                     </div>
                     <q-linear-progress
                       :value="oneTimeProgress"
@@ -174,7 +174,7 @@
                       size="8px"
                     />
                     <div class="text-caption q-mt-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ completedOneTimeCount }} of {{ totalOneTimeTasks }} tasks completed
+                      {{ $t('CountTasksCompleted', { completedOneTimeCount, totalOneTimeTasks }) }}
                     </div>
                   </q-card-section>
                 </q-card>
@@ -193,17 +193,16 @@
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            New user referral bonus
+                            {{ $t('NewUserReferralBonus') }}
                           </div>
                           <div v-if="hasReceivedFirstVisitBonus" class="text-caption text-green-7">
                             {{ $t(
-                                'EarnedOn',
-                                { date: formatDateLocaleRelative(dateJoined, false) },
-                                `Earned on ${formatDateLocaleRelative(dateJoined, false)}`
+                                'EarnedOnDate',
+                                { date: formatDateLocaleRelative(dateJoined, false) }
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                            {{ $t('NotYetEarned', 'Not yet earned') }}
+                            {{ $t('NotYetEarned') }}
                           </div>
                         </div>
                         <points-badge
@@ -230,17 +229,16 @@
                         />
                         <div class="col">
                           <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                            {{ $t('PointsFrom1stTx', 'First-time transaction bonus') }}
+                            {{ $t('PointsFrom1stTx') }}
                           </div>
                           <div v-if="hasReceivedFirstTxBonus" class="text-caption text-green-7">
                             {{ $t(
-                                'EarnedOn',
-                                { date: formatDateLocaleRelative(firstTxDate, false) },
-                                `Earned on ${formatDateLocaleRelative(firstTxDate, false)}`
+                                'EarnedOnDate',
+                                { date: formatDateLocaleRelative(firstTxDate, false) }
                               ) }}
                           </div>
                           <div v-else class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                            {{ $t('NotYetEarned', 'Not yet earned') }}
+                            {{ $t('NotYetEarned') }}
                           </div>
                         </div>
                         <points-badge
@@ -269,10 +267,10 @@
                       />
                       <div class="col q-px-md">
                         <div class="text-subtitle1 text-weight-medium" style="line-height: normal;">
-                          {{ $t('PointsFromSeven', 'First seven transactions bonus') }}
+                          {{ $t('PointsFromSeven') }}
                         </div>
                         <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                          {{ completedFirstSevenCount }}/7 transactions completed
+                          {{ $t('CountTransactionsCompleted', { completedFirstSevenCount }) }}
                         </div>
                       </div>
                       <q-linear-progress
@@ -313,7 +311,7 @@
                 >
                   <q-icon name="info" size="32px" class="q-mb-sm" />
                   <div class="text-body2">
-                    {{ $t('NonNewUsersWarning', 'Sorry, only new users can avail the one-time points.') }}
+                    {{ $t('NonNewUsersWarning') }}
                   </div>
                 </q-card>
               </q-intersection>
@@ -324,7 +322,7 @@
         <!-- Continuous Points Section -->
         <div class="section-header q-mb-sm q-mt-lg card-help-highlight">
           <q-icon name="loop" size="md" class="q-mr-sm" color="primary" />
-          <span class="text-h6">{{ $t('ContinuousPoints', 'Continuous Points') }}</span>
+          <span class="text-h6">{{ $t('ContinuousPoints') }}</span>
         </div>
   
         <!-- Loading Skeleton for Summary -->
@@ -376,14 +374,22 @@
                     style="border-radius: 50%;"
                   />
                   <div class="col">
-                    <span class="text-body2 text-weight-medium">{{ $t('Merchant', 'Merchant') }}</span>
+                    <span class="text-body2 text-weight-medium">{{ $t('Merchant') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ continuousPoints.marketplace.points }} {{ continuousPoints.marketplace.points === 1 ? 'point' : 'points' }} earned
+                      {{
+                        continuousPoints.marketplace.points === 1 
+                          ? $t('CountPointEarned', { point: continuousPoints.marketplace.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.marketplace.points })
+                      }}
                     </div>
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.marketplace.txCount }} {{ continuousPoints.marketplace.txCount === 1 ? 'transaction' : 'transactions' }}
+                      {{ 
+                        continuousPoints.marketplace.txCount === 1
+                          ? $t('CountTransaction', { txCount: continuousPoints.marketplace.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.marketplace.txCount })
+                      }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openMarketplaceHistory" />
                   </div>
@@ -399,14 +405,22 @@
                     color="white"
                   />
                   <div class="col">
-                    <span class="text-body2 text-weight-medium">{{ $t('Cashin', 'Cash-in') }}</span>
+                    <span class="text-body2 text-weight-medium">{{ $t('CashIn') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ continuousPoints.cashin.points }} {{ continuousPoints.cashin.points === 1 ? 'point' : 'points' }} earned
+                      {{
+                        continuousPoints.cashin.points === 1 
+                          ? $t('CountPointEarned', { point: continuousPoints.cashin.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.cashin.points })
+                      }}
                     </div>
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.cashin.txCount }} {{ continuousPoints.cashin.txCount === 1 ? 'transaction' : 'transactions' }}
+                      {{ 
+                        continuousPoints.cashin.txCount === 1
+                          ? $t('CountTransaction', { txCount: continuousPoints.cashin.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.cashin.txCount })
+                      }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCashinHistory" />
                   </div>
@@ -424,12 +438,20 @@
                   <div class="col">
                     <span class="text-body2 text-weight-medium">Cauldron DEX</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ continuousPoints.cauldron.points }} {{ continuousPoints.cauldron.points === 1 ? 'point' : 'points' }} earned
+                      {{
+                        continuousPoints.cauldron.points === 1 
+                          ? $t('CountPointEarned', { point: continuousPoints.cauldron.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.cauldron.points })
+                      }}
                     </div>
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.cauldron.txCount }} {{ continuousPoints.cauldron.txCount === 1 ? 'transaction' : 'transactions' }}
+                      {{ 
+                        continuousPoints.cauldron.txCount === 1
+                          ? $t('CountTransaction', { txCount: continuousPoints.cauldron.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.cauldron.txCount })
+                      }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openCauldronHistory" />
                   </div>
@@ -445,14 +467,22 @@
                     color="white"
                   />
                   <div class="col">
-                    <span class="text-body2 text-weight-medium">Eload Service</span>
+                    <span class="text-body2 text-weight-medium">{{ $t('EloadService') }}</span>
                     <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                      {{ continuousPoints.eload.points }} {{ continuousPoints.eload.points === 1 ? 'point' : 'points' }} earned
+                      {{
+                        continuousPoints.eload.points === 1 
+                          ? $t('CountPointEarned', { point: continuousPoints.eload.points })
+                          : $t('CountPointsEarned', { points: continuousPoints.eload.points })
+                      }}
                     </div>
                   </div>
                   <div class="row justify-between items-center">
                     <span class="text-body2 text-weight-bold text-primary">
-                      {{ continuousPoints.eload.txCount }} {{ continuousPoints.eload.txCount === 1 ? 'transaction' : 'transactions' }}
+                      {{ 
+                        continuousPoints.eload.txCount === 1
+                          ? $t('CountTransaction', { txCount: continuousPoints.eload.txCount })
+                          : $t('CountTransactions', { txCount: continuousPoints.eload.txCount })
+                      }}
                     </span>
                     <q-btn flat round dense icon="chevron_right" color="primary" @click.stop="openEloadHistory" />
                   </div>
@@ -655,7 +685,7 @@ export default {
         this.animatePointsCounter()
       } catch (error) {
         console.error(error)
-        this.pointsError = this.$t('FailedToLoadPoints', 'Unable to load your points at the moment. Please try again later. Rest assured, your points remain safe and intact.')
+        this.pointsError = this.$t('PointsLoadError')
       }
       
       // fetch and load data
@@ -702,7 +732,7 @@ export default {
 
         this.propagateData(urData)
       } else {
-        this.dataError = this.$t('FailedToLoadData', 'Unable to load at the moment. Please try again later.')
+        this.dataError = this.$t('DataLoadError')
       }
 
       this.isLoading = false

@@ -6,7 +6,7 @@
     />
 
     <h5 class="q-ma-none q-px-md text-primary text-weight-bold text-center">
-      {{ pageTitle }}
+      {{ $t(pageTitle) }}
     </h5>
 
     <div class="q-px-md q-pt-md">
@@ -35,7 +35,7 @@
                   :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                   style="word-break: break-word;"
                 >
-                  {{ $t(stat.label, stat.label) }}
+                  {{ $t(stat.label) }}
                 </div>
               </div>
             </div>
@@ -45,7 +45,11 @@
             <div class="row items-center justify-center q-gutter-sm">
               <q-icon name="loop" color="primary" size="sm" />
               <span class="text-subtitle1 text-weight-medium">
-                {{ summaryStats.total_points }} {{ $t('pointsEarned', 'points earned') }}
+                {{
+                  summaryStats.total_points === 1
+                    ? $t('CountPointEarned', { point: summaryStats.total_points })
+                    : $t('CountPointsEarned', { points: summaryStats.total_points })
+                }}
               </span>
             </div>
           </template>
@@ -147,7 +151,7 @@ export default {
       // Category-specific configurations
       categoryConfig: {
         marketplace: {
-          title: 'Merchant Transactions History',
+          title: 'MerchantTransactionsHistory',
           fetchType: 'merchant',
           filters: [
             { value: 'all', label: 'All' },
@@ -160,55 +164,55 @@ export default {
             { key: 'otc', count: 'otc_count', points: 'otc_points', label: 'OTC' }
           ],
           emptyState: {
-            title: 'No merchant transactions found',
-            description: 'Start placing orders or making over-the-counter purchases with Paytaca\'s partner merchants to earn points!'
+            title: 'EmptyStateMarketplaceTitle',
+            description: 'EmptyStateMarketplaceBody'
           },
-          errorMessage: 'Unable to load your merchant history. Please try again.'
+          errorMessage: 'MerchantHistoryError'
         },
         cashin: {
-          title: 'Cash-in History',
+          title: 'CashInHistory',
           fetchType: 'cashin',
           filters: [
             { value: 'all', label: 'All' },
-            { value: 'ramp', label: 'P2P Ramp', type: 'ramp' },
-            { value: 'vm', label: 'Vending Machine', type: 'vm' }
+            { value: 'ramp', label: 'P2PExchange', type: 'ramp' },
+            { value: 'vm', label: 'VendingMachine', type: 'vm' }
           ],
           stats: [
             { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' },
-            { key: 'ramp', count: 'ramp_count', points: 'ramp_points', label: 'P2P Ramp' },
-            { key: 'vm', count: 'vm_count', points: 'vm_points', label: 'Vending Machine' }
+            { key: 'ramp', count: 'ramp_count', points: 'ramp_points', label: 'P2PExchange' },
+            { key: 'vm', count: 'vm_count', points: 'vm_points', label: 'VendingMachine' }
           ],
           emptyState: {
-            title: 'No cash-in transactions found',
-            description: 'Cash in from the P2P Ramp app or through Paytaca\'s vending machine to earn points!'
+            title: 'EmptyStateCashinTitle',
+            description: 'EmptyStateCashinBody'
           },
-          errorMessage: 'Unable to load your cash-in history. Please try again.'
+          errorMessage: 'CashinHistoryError'
         },
         cauldron: {
-          title: 'Cauldron DEX History',
+          title: 'CauldronDexHistory',
           fetchType: 'cauldron',
           filters: [], // No filters for cauldron
           stats: [
             { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
           ],
           emptyState: {
-            title: 'No Cauldron DEX transactions found',
-            description: 'Swap CashTokens on Cauldron DEX to earn points!'
+            title: 'EmptyStateCauldronTitle',
+            description: 'EmptyStateCauldronBody'
           },
-          errorMessage: 'Unable to load your Cauldron DEX history. Please try again.'
+          errorMessage: 'CauldronHistoryError'
         },
         eload: {
-          title: 'E-Load Service History',
+          title: 'EloadServiceHistory',
           fetchType: 'eload',
           filters: [], // No filters for eload
           stats: [
             { key: 'total', count: 'total_count', points: 'total_points', label: 'Total' }
           ],
           emptyState: {
-            title: 'No e-load service transactions found',
-            description: 'Purchase eload services to earn points!'
+            title: 'EmptyStateEloadTitle',
+            description: 'EmptyStateEloadBody'
           },
-          errorMessage: 'Unable to load your eload service history. Please try again.'
+          errorMessage: 'EloadHistoryError'
         }
       }
     }
@@ -296,11 +300,11 @@ export default {
           const fetchedCount = data.overall_data?.length || 0
           this.hasMoreData = fetchedCount >= this.limit
         } else {
-          this.dataError = this.$t('FailedToLoadData', this.currentConfig.errorMessage)
+          this.dataError = this.$t(this.currentConfig.errorMessage)
         }
       } catch (error) {
         console.error(`Error loading ${this.category} history:`, error)
-        this.dataError = this.$t('FailedToLoadData', this.currentConfig.errorMessage)
+        this.dataError = this.$t(this.currentConfig.errorMessage)
       }
       
       if (!append)  this.isLoading = false

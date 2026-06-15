@@ -47,7 +47,7 @@
           <template v-else>
             <div class="card-help-highlight">
               <div class="text-subtitle2 q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ $t('YouCurrentlyHave', 'You currently have') }}
+                {{ $t('YouCurrentlyHave') }}
               </div>
   
               <div
@@ -61,7 +61,7 @@
                   class="text-h5 text-weight-bold q-ml-xs"
                   :class="darkMode ? 'text-grey-6' : 'text-grey-8'"
                 >
-                  points
+                  {{ $t('PointsLower') }}
                 </span>
               </div>
             </div>
@@ -73,24 +73,24 @@
                   class="q-px-md q-py-xs text-subtitle2"
                   color="secondary"
                   text-color="white"
+                  style="text-wrap: auto;"
                 >
                   <q-icon name="local_activity" size="16px" class="q-mr-xs" />
-                  {{ $t('RFPRedeemable', { redeemedPoints: getRemainingRedeemable }, `${getRemainingRedeemable} points redeemable this month`) }}
+                  {{ $t('RPRedeemablePoints', { points: getRemainingRedeemable }) }}
                 </q-badge>
               </div>
   
               <!-- Progress Bar for Redeemable Points -->
               <div class="q-mx-auto q-mb-lg" style="max-width: 280px;">
                 <div class="row justify-between text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  <span>{{ $t('MonthlyLimit', 'Monthly limit') }}</span>
+                  <span>{{ $t('MonthlyLimit') }}</span>
                   <span>
                     {{ $t(
                         'PercentageUsed',
                         { 
                           percent: Math.round(redeemedPoints / rpMax * 100),
                           points: redeemedPoints
-                        },
-                        `${Math.round(redeemedPoints / rpMax * 100)}% (${redeemedPoints} points) used`
+                        }
                       ) }}
                   </span>
                 </div>
@@ -109,7 +109,7 @@
               size="lg"
               class="button redeem-btn q-mb-md card-help-highlight"
               :class="getDarkModeClass(darkMode)"
-              :label="$t('RedeemPoints', 'Redeem Points')"
+              :label="$t('RedeemPoints')"
               :disable="points === 0 || getRemainingRedeemable <= 0"
               @click="openRedeemPointsDialog"
             />
@@ -121,7 +121,7 @@
               class="button button-text-primary q-mb-sm card-help-highlight"
               :style="{ minWidth: '200px' }"
               :class="getDarkModeClass(darkMode)"
-              :label="$t('ViewRedeemHistory', 'View Redeem History')"
+              :label="$t('ViewRedeemHistory')"
               @click="openRedeemHistoryDialog"
             />
             <br/>
@@ -130,7 +130,7 @@
               outline
               size="md"
               class="button button-text-primary referral-btn card-help-highlight"
-              :label="$t('ShowReferralQR', 'Show Referral QR')"
+              :label="$t('ShowReferralQr')"
               @click="openReferralQrDialog"
             />
           </template>
@@ -151,7 +151,7 @@
         <div class="section-header row items-center justify-between q-mb-sm card-help-highlight">
           <div class="row items-center">
             <q-icon name="group" size="md" class="q-mr-sm" color="primary" />
-            <span class="text-h6">{{ $t('ReferralStatus', 'Referral Status') }}</span>
+            <span class="text-h6">{{ $t('ReferralStatus') }}</span>
           </div>
           <q-btn
             v-if="!isLoading"
@@ -159,7 +159,7 @@
             color="primary"
             size="sm"
             icon-right="chevron_right"
-            :label="$t('ViewAll', 'View All')"
+            :label="$t('ViewAll')"
             @click="$router.push(`/apps/rewards/referral-history/${rpId}`)"
           />
         </div>
@@ -203,19 +203,19 @@
             <div class="col-4 text-center">
               <div class="text-h6 text-weight-bold text-primary">{{ totalReferralsCount }}</div>
               <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ $t('Total', 'Total') }}
+                {{ $t('Total') }}
               </div>
             </div>
             <div class="col-4 text-center">
               <div class="text-h6 text-weight-bold text-positive">{{ completedReferralsCount }}</div>
               <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ $t('Completed', 'Completed') }}
+                {{ $t('Completed') }}
               </div>
             </div>
             <div class="col-4 text-center">
               <div class="text-h6 text-weight-bold text-warning">{{ pendingReferralsCount }}</div>
               <div class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                {{ $t('Pending', 'Pending') }}
+                {{ $t('Pending') }}
               </div>
             </div>
           </div>
@@ -255,14 +255,14 @@
                             v-if="item.has_transacted"
                             dense
                             color="positive"
-                            :label="$t('Transacted', 'Transacted')"
+                            :label="$t('Transacted')"
                             class="q-px-sm q-py-xs text-caption text-black"
                           />
                           <q-badge
                             v-else
                             dense
                             color="warning"
-                            :label="$t('Pending', 'Pending')"
+                            :label="$t('Pending')"
                             class="q-px-sm q-py-xs text-caption text-black"
                           />
                         </div>
@@ -288,10 +288,10 @@
           >
             <q-icon name="group_off" size="48px" class="q-mb-md" />
             <div class="text-subtitle1 q-mb-sm">
-              {{ $t('ReferralStatusWarning1', 'No referrals yet') }}
+              {{ $t('ReferralStatusWarningTitle') }}
             </div>
             <div class="text-body2">
-              {{ $t('ReferralStatusWarning2', 'Share your referral QR code to start earning points!') }}
+              {{ $t('ReferralStatusWarningBody') }}
             </div>
           </q-card>
         </template>
@@ -299,7 +299,7 @@
     </div>
   </div>
 
-  <help-card v-model="isHelpActive" :page="'rfp'" />
+  <help-card v-model="isHelpActive" :page="'rp'" />
 </template>
 
 <script>
@@ -414,7 +414,7 @@ export default {
         this.animatePointsCounter()
       } catch (error) {
         console.error(error)
-        this.pointsError = this.$t('FailedToLoadPoints', 'Unable to load your points at the moment. Please try again later. Rest assured, your points remain safe and intact.')
+        this.pointsError = this.$t('PointsLoadError')
       }
 
       // fetch and load data
@@ -446,7 +446,7 @@ export default {
         })
         this.referralsOverallStats = rpData.rp_referrals_overall_stats
       } else {
-        this.dataError = this.$t('FailedToLoadData', 'Unable to load at the moment. Please try again later.')
+        this.dataError = this.$t('DataLoadError')
       }
 
       this.isLoading = false
@@ -463,7 +463,7 @@ export default {
       this.$copyText(hash)
       this.$q.notify({
         color: 'blue-9',
-        message: this.$t('CopiedToClipboard', 'Copied to clipboard'),
+        message: this.$t('CopiedToClipboard'),
         icon: 'mdi-clipboard-check',
         timeout: 200
       })
