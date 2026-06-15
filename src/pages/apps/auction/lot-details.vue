@@ -316,7 +316,7 @@ watch(lot, (newLotData) => {
   if (testingAuctionTimer) clearInterval(testingAuctionTimer)
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
   
-  dynamicPriceBch.value = Number(newLotData.estimated_amount || 0)
+  dynamicPriceBch.value = Number(newLotData.starting_price || 0)
   secondsRemaining.value = INITIAL_SECONDS
   
   testingAuctionTimer = setInterval(() => {
