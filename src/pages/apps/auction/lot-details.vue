@@ -285,9 +285,7 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 // =========================================================================
 // ============================= DUTCH AUCTION =============================
 // =========================================================================
-
-// SET TESTING INTERVAL HERE (e.g., 10 * 60 * 1000 = 10 minutes in milliseconds)
-const TIME_INTERVAL_MS = 5000
+const TIME_INTERVAL_MS = 1000 * 60 * 10
 const INITIAL_SECONDS = TIME_INTERVAL_MS / 1000
 
 const secondsRemaining = ref(INITIAL_SECONDS)
