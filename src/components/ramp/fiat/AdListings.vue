@@ -319,7 +319,7 @@ export default {
     formatCurrency,
     parseFiatCurrency,
     formatCompletionRate (value) {
-      return Math.floor(value || 0)
+      return Math.floor(value || 0).toString()
     },
     getThemeColor () {
       const themeColors = {
