@@ -4,7 +4,7 @@
       <div class="row justify-between items-center q-mb-sm q-px-md q-pt-md">
         <div class="row items-center q-gutter-sm">
           <q-icon name="qr_code" size="28px" color="primary" />
-          <span class="text-h6">{{ $t(`${referralType}ReferralQR`) }}</span>
+          <span class="text-h6">{{ $t(`${referralType}ReferralQrTitle`) }}</span>
         </div>
         <q-btn
           flat
@@ -20,7 +20,7 @@
 
       <div class="q-px-md q-py-sm">
         <div class="text-subtitle1 q-mb-sm">
-          {{ $t('ReferralQRDescription', 'Have new users scan this QR code or use the referral code during wallet creation.') }}
+          {{ $t('ReferralQrDescription') }}
         </div>
   
         <div class="row justify-center q-mb-md">
@@ -44,7 +44,7 @@
           }"
         >
           <div class="text-subtitle1 text-bow q-mb-xs" :class="getDarkModeClass(darkMode)">
-            {{ $t('ReferralCode', 'Referral Code') }}
+            {{ $t('ReferralCode') }}
           </div>
           <div class="row justify-center items-center q-gutter-sm">
             <code class="referral-code-text" :class="getDarkModeClass(darkMode)">
@@ -85,7 +85,7 @@ export default {
 
   data () {
     return {
-      copyTooltip: 'Copy',
+      copyTooltip: this.$t('Copy'),
       copySuccess: false,
       copyFailed: false
     }
@@ -123,20 +123,20 @@ export default {
       navigator.clipboard.writeText(this.referralCodeFull).then(() => {
         // Success state
         this.copySuccess = true
-        this.copyTooltip = 'Copied!'
+        this.copyTooltip = this.$t('CodeCopied')
         
         setTimeout(() => {
           this.copySuccess = false
-          this.copyTooltip = 'Copy'
+          this.copyTooltip = this.$t('Copy')
         }, 2000)
       }).catch(() => {
         // Failed state
         this.copyFailed = true
-        this.copyTooltip = 'Failed to copy'
+        this.copyTooltip = this.$t('FailedToCopyCode')
         
         setTimeout(() => {
           this.copyFailed = false
-          this.copyTooltip = 'Copy'
+          this.copyTooltip = this.$t('Copy')
         }, 2000)
       })
     }

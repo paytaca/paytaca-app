@@ -45,7 +45,7 @@
 
               <template v-else-if="priceError && !isSummaryExpanded">
                 <div class="text-caption" :class="darkMode ? 'text-red-5' : 'text-negative'">
-                  <q-icon name="error" size="xs" /> Price unavailable
+                  <q-icon name="error" size="xs" /> {{ $t('PriceUnavailable') }}
                 </div>
               </template>
               
@@ -54,7 +54,7 @@
                 <!-- Line 1: Points → LIFT -->
                 <div class="text-weight-medium" style="font-size: 15px !important;">
                   <span class="text-primary">
-                    {{ totalPoints.toLocaleString() }} points
+                    {{ $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
                   </span>
                   <span :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                     &nbsp;=&nbsp;
@@ -79,7 +79,7 @@
             <div v-else class="row items-center">
               <q-icon name="stars" color="primary" size="sm" class="q-mr-sm" />
               <span class="text-subtitle1 text-weight-medium">
-                Rewards Summary
+                {{ $t('RewardsSummary') }}
               </span>
             </div>
           </div>
@@ -102,17 +102,17 @@
             <!-- Total Points Display -->
             <div class="row justify-between items-baseline q-mb-xs">
               <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                Total Points
+                {{ $t('TotalPoints') }}
               </span>
               <span class="text-h6 text-weight-bold text-primary">
-                {{ totalPoints.toLocaleString() }} points
+                {{ $t('CountPoints', { points: totalPoints.toLocaleString() }) }}
               </span>
             </div>
             
             <!-- Conversion Ratio Display -->
             <div class="row justify-between items-center q-mb-xs q-px-sm">
               <span class="text-caption" :class="darkMode ? 'text-grey-5' : 'text-grey-7'">
-                Conversion Rate
+                {{ $t('ConversionRate') }}
               </span>
               <span class="text-caption text-weight-medium" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
                 {{ formattedConversionRatio }}
@@ -122,7 +122,7 @@
             <!-- LIFT Conversion Display -->
             <div class="row justify-between items-baseline q-mb-md">
               <span class="text-caption" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                Convertible to
+                {{ $t('ConvertibleTo') }}
               </span>
               <span class="text-subtitle1 text-weight-medium">
                 <span class="text-token" :class="getDarkModeClass(darkMode)">
@@ -147,7 +147,7 @@
               <!-- Current LIFT Price -->
               <div class="q-mb-sm">
                 <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  Current LIFT Price
+                  {{ $t('CurrentLiftPrice') }}
                 </div>
                 <div class="row items-center gap-sm">
                   <span class="text-body2 text-weight-medium">
@@ -169,7 +169,7 @@
                 style="border-left: 3px solid var(--q-primary);"
               >
                 <div class="text-caption q-mb-xs" :class="darkMode ? 'text-grey-6' : 'text-grey-8'">
-                  Estimated Value
+                  {{ $t('EstimatedValue') }}
                 </div>
                 <div class="column">
                   <span class="text-h6 text-weight-bold text-primary">
@@ -196,20 +196,20 @@
         class="q-mx-lg q-mt-md bg-grad text-white referral-banner"
       >
         <span>
-          {{ $t('ReferralBannerText', 'Missed your referral code? Add it before it\'s too late!') }}
+          {{ $t('ReferralBannerText') }}
         </span>
         <span class="row justify-end text-caption text-blue-grey-1 q-mb-xs">
           <template v-if="bannerRemainingTime.hours > 1">
-            {{ bannerRemainingTime.hours }} hours remaining
+            {{ $t('CountHoursRemaining', { hours: bannerRemainingTime.hours }) }}
           </template>
           <template v-else-if="bannerRemainingTime.hours === 1">
-            {{ bannerRemainingTime.hours }} hour remaining
+            {{ $t('CountHourRemaining', { hour: bannerRemainingTime.hours }) }}
           </template>
           <template v-else-if="bannerRemainingTime.hours === 0 && bannerRemainingTime.minutes > 1">
-            {{ bannerRemainingTime.minutes }} minutes remaining
+            {{ $t('CountMinutesRemaining', { minutes: bannerRemainingTime.minutes }) }}
           </template>
           <template v-else-if="bannerRemainingTime.hours === 0 && bannerRemainingTime.minutes === 1">
-            {{ bannerRemainingTime.minutes }} minute remaining
+            {{ $t('CountMinuteRemaining', { minute: bannerRemainingTime.minutes }) }}
           </template>
         </span>
         <template v-slot:action>
@@ -217,7 +217,7 @@
             <q-btn
               no-caps
               unelevated
-              :label="$t('EnterCode', 'Enter Code')"
+              :label="$t('EnterCode')"
               class="referral-banner-btn-primary"
               @click="isReferralDialogActive = true"
             />
@@ -289,7 +289,7 @@
                 class="amount-text"
                 :class="getDarkModeClass(darkMode, '', 'text-grad')"
               >
-                {{ promo.points }} points
+                {{ $t('CountPoints', { points: promo.points }) }}
               </span>
             </div>
 
@@ -387,14 +387,14 @@ export default {
       pointsType: ['ur', 'rp'/*, 'lp', 'cp', 'mp'*/],
       promos: {
         ur: {
-          name: this.$t('UserRewards', 'User Rewards'),
+          name: this.$t('UserRewards'),
           id: null,
           points: 0,
           icon: 'redeem',
           path: 'user-rewards'
         },
         rp: {
-          name: this.$t('RFPromo', 'Refer-a-Friend Promo'),
+          name: this.$t('RFPromo'),
           id: null,
           points: 0,
           icon: 'diversity_3',
@@ -513,7 +513,8 @@ export default {
     // Format conversion ratio display
     formattedConversionRatio () {
       if (!this.liftConversionRatio || this.liftConversionRatio === 0) return '--'
-      return `${this.liftConversionRatio} points = 1 LIFT`
+      const pointsTranslate = this.$t('CountPoints', { points: this.liftConversionRatio })
+      return `${pointsTranslate} = 1 LIFT`
     }
   },
 
@@ -578,11 +579,11 @@ export default {
         } else {
           this.liftBchPriceValue = null
           this.liftUsdPriceValue = null
-          this.priceError = 'LIFT token not found on Cauldron'
+          this.priceError = this.$t('LiftTokenNotFoundError')
         }
       } catch (error) {
         console.error('Error fetching LIFT price from Cauldron:', error)
-        this.priceError = 'Unable to fetch LIFT price from Cauldron'
+        this.priceError = this.$t('LiftTokenPriceFetchError')
         this.liftBchPriceValue = null
         this.liftUsdPriceValue = null
       } finally {
@@ -619,8 +620,8 @@ export default {
 
       // Check referral banner dismissal timestamp from API
       if (upData?.enable_referral_banner) {
-        this.enableReferralBanner = upData?.enable_referral_banner
         this.bannerRemainingTime = upData?.banner_remaining_time
+        this.enableReferralBanner = upData?.enable_referral_banner
       }
 
       // process fetched upData
@@ -642,12 +643,12 @@ export default {
           }
         } catch (error) {
           console.error(error)
-          this.error = this.$t('FailedToLoadPromoData', 'Unable to load promo data at the moment. Please try again later.')
+          this.error = this.$t('PromoDataLoadingError')
         }
       } else if (upData && Object.keys(upData).length === 0) {
         await createUserPromoData()
       } else {
-        this.error = this.$t('FailedToLoadPage', 'Unable to load points at the moment. Please try again later.')
+        this.error = this.$t('PointsLoadError')
       }
 
       // process fetched ratioData
