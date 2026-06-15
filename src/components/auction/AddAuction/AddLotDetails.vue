@@ -69,15 +69,13 @@
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
             </div>
-          </div>
 
-          <div v-if="auctionType === 'English'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Floor</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Starting Price</label>
               <q-input
                 outlined
                 dense
-                v-model.number="priceThreshold"
+                v-model.number="startingPrice"
                 type="number"
                 :step="isFiatUsed ? '0.00000001' : '0.01'"
                 inputmode="decimal"
@@ -87,7 +85,7 @@
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
-                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
+                :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
               <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
               <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
@@ -96,7 +94,7 @@
 
           <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Price Reserve</label>
               <q-input
                 outlined
                 dense
@@ -238,6 +236,7 @@ const lotName = ref('Lot Title')
 const lotType = ref('Physical')
 const lotTypeOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0.002)
+const startingPrice = ref(0.002)
 const priceThreshold = ref(0.002)
 const priceDrop = ref(0.0005)
 const lotImages = ref([])
@@ -284,6 +283,7 @@ const addLot = () => {
     title: lotName.value,
     type: lotType.value,
     estimatedPrice: estimatedPrice.value,
+    startingPrice: startingPrice.value,
     threshold: priceThreshold.value || 0,
     priceDrop: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
@@ -306,8 +306,9 @@ const addLot = () => {
   })
   
   lotName.value = ''
-  estimatedPrice.value = null
-  priceThreshold.value = null
+  estimatedPrice.value = 0
+  startingPrice.value = 0
+  priceThreshold.value = 0
   priceDrop.value = 0.0005
   lotImages.value = []
   lotDescription.value = ''

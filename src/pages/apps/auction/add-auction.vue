@@ -291,6 +291,7 @@ const handleCreateAuction = async () => {
       lotFormData.append('estimated_amount', lot.estimatedPrice || 0)
       lotFormData.append('threshold_bid', lot.threshold || 0)
       lotFormData.append('bidding_decrement', lot.priceDrop || lot.price_drop || 0)
+      lotFormData.append('starting_price', lot.startingPrice || 0)
 
       const lotResult = await callAPI('lots', null, 'post', lotFormData)
 
