@@ -104,7 +104,7 @@
           </div>
  
           <div class="col-12 col-sm col-md-7">
-            <div class="col rounded-borders q-pa-sm q-mb-md bg-green">
+            <div class="col rounded-borders q-pa-sm q-mb-md bg-primary">
               <div class="text-caption q-mb-xs">
                 <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
               </div>
@@ -114,7 +114,7 @@
               </div>
             </div>
 
-            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-primary">
+            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-green">
               <div class="text-caption q-mb-xs">
                 <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
               </div>
@@ -124,7 +124,7 @@
               </div>
             </div>
  
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-primary">
+            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-green">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
