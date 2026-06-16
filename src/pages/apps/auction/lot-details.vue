@@ -110,7 +110,7 @@
               </div>
               <div class="text-weight-medium">₱950</div>
               <div class="text-caption text-weight-medium">
-                {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+                {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
               </div>
             </div>
 
@@ -123,13 +123,13 @@
               </div>
               <template v-if="englishHighestBid">
                 <div class="text-weight-medium">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
                 </div>
               </template>
               <template v-else>
                 <div class="text-weight-medium" style="opacity: 0.5;">No bids yet</div>
                 <div class="text-caption text-weight-medium">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH · floor
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH · floor
                 </div>
               </template>
             </div>
@@ -143,13 +143,13 @@
               <div class="row items-end justify-between q-mb-sm">
                 <div>
                   <div class="text-weight-medium">
-                    {{ getFormattedBCH(dutchCurrentPriceBch).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                    {{ getFormattedBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(dutchCurrentPriceBch).zeros }}</span> BCH
                   </div>
                 </div>
                 <div class="text-right">
                   <div class="text-caption" style="opacity: 0.55;">Floor</div>
                   <div class="text-caption text-weight-medium">
-                    {{ getFormattedBCH(dutchFloorPriceBch).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                    {{ getFormattedBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(dutchFloorPriceBch).zeros }}</span> BCH
                   </div>
                 </div>
               </div>
@@ -466,12 +466,12 @@ const formatFiat = (val) => {
 }
 
 const getFormattedBCH = (bch) => {
-    const numStr = Number(bch).toFixed(8);
-    const match = numStr.match(/^(.*?)0*$/);
-    const main = match ? match[1] : numStr;
-    const zeros = numStr.substring(main.length);
-    return { main, zeros, full: numStr };
-  }
+  const numStr = Number(bch).toFixed(8);
+  const match = numStr.match(/^(.*?)0*$/);
+  const main = match ? match[1] : numStr;
+  const zeros = numStr.substring(main.length);
+  return { main, zeros, full: numStr };
+}
 
 const fetchAuction = async () => {
   try {

@@ -82,39 +82,42 @@
                   <q-separator class="q-my-sm" :dark="$q.dark.isActive" />
 
                   <div class="text-caption">
-                    Estimated: ₱950
-                    <span class="text-weight-medium">
-                      {{ getFormattedBCH(lot.estimatedPrice).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.estimatedPrice).zeros }}</span> BCH
+                    Estimated: {{ getFiatDisplay(lot.estimatedPrice, lot.isFiatUsed) }}
+                    <span class="text-weight-medium" style="font-size: 10px;">
+                      ({{ getBchDisplay(lot.estimatedPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.estimatedPrice, lot.isFiatUsed).zeros }}</span> BCH)
+                    </span>
+                  </div>
+
+                  <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
+
+                  <div class="text-caption">
+                    Starting: {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                    <span class="text-weight-medium" style="font-size: 10px;">
+                      ({{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span> BCH)
                     </span>
                   </div>
 
                   <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
 
                   <div v-if="auctionType === 'English'" class="text-caption">
-                    <div>
-                      Floor/Reserve: ₱950
-                      <span class="text-weight-medium" style="opacity: 0.65;">
-                        {{ getFormattedBCH(lot.threshold).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold).zeros }}</span> BCH
-                      </span>
-                    </div>
+                    Floor/Reserve: {{ getFiatDisplay(lot.threshold, lot.isFiatUsed) }}
+                    <span class="text-weight-medium" style="font-size: 10px;">
+                      ({{ getBchDisplay(lot.threshold, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold, lot.isFiatUsed).zeros }}</span> BCH)
+                    </span>
                   </div>
 
                   <div v-else-if="auctionType === 'Dutch'" class="text-caption">
-                    <div>
-                      Ceiling Price: ₱950
-                      <span class="text-weight-medium" style="opacity: 0.65;">
-                        {{ getFormattedBCH(lot.threshold).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold).zeros }}</span> BCH
-                      </span>
-                    </div>
+                    Ceiling Price: {{ getFiatDisplay(lot.threshold, lot.isFiatUsed) }}
+                    <span class="text-weight-medium" style="font-size: 10px;">
+                      ({{ getBchDisplay(lot.threshold, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold, lot.isFiatUsed).zeros }}</span> BCH)
+                    </span>
 
                     <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
 
-                    <div class="text-negative">
-                      Drops by: ₱950
-                      <span class="text-weight-medium" style="opacity: 0.65;">
-                        {{ getFormattedBCH(lot.priceDrop).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.priceDrop).zeros }}</span> BCH
-                      </span>
-                      per 10 minutes
+                    <div class="text-negative text-weight-bold">
+                      Drops by:
+                      {{ getBchDisplay(lot.priceDrop || lot.price_drop, lot.isFiatUsed).main }}(<span style="font-size: 10px; opacity: 0.4;">{{ getBchDisplay(lot.priceDrop || lot.price_drop, lot.isFiatUsed).zeros }}</span> BCH)
+                      per 10 mins
                     </div>
                   </div>
 
@@ -181,6 +184,8 @@ const $store = useStore()
 const $router = useRouter()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
+
 const auctionForm = ref({
   title: '',
   type: 'English',
@@ -238,6 +243,20 @@ const handleLotDelete = () => {
     message: 'Lot deleted successfully!',
     timeout: 3000
   })
+}
+
+const getFiatDisplay = (value, isFiatUsed) => {
+  const rate = bchToPhpRate.value
+  const numValue = Number(value) || 0
+  const phpValue = isFiatUsed ? numValue : numValue * rate
+  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} `
+}
+
+const getBchDisplay = (value, isFiatUsed) => {
+  const rate = bchToPhpRate.value
+  const numValue = Number(value) || 0
+  const bchValue = isFiatUsed ? (rate > 0 ? numValue / rate : 0) : numValue
+  return getFormattedBCH(bchValue)
 }
 
 const handleCreateAuction = async () => {
@@ -331,8 +350,6 @@ const handleCreateAuction = async () => {
     $q.loading.hide()
   }
 }
-
-
 
 const getFormattedBCH = (bch) => {
   const numStr = bch.toFixed(8);

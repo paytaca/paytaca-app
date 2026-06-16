@@ -25,7 +25,7 @@
     </div>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <ActivitySearch :placeholder="`Search my ${activityType}`"/>
+      <ActivitySearch :placeholder="`Search my ${activityType}`" />
     </div>
 
     <div class="row justify-end q-px-md q-mb-md">
@@ -274,14 +274,126 @@
 
               <q-separator spaced="sm" />
               
-              <div class="row items-center justify-between q-mb-xs">
-                <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Current Bid</span>
-                <div class="row items-baseline q-gutter-x-xs">
-                  <span class="text-weight-medium" style="font-size: 12px;">₱900.00</span>
+              <div v-if="lot.auction_type === 'English'" class="row items-center justify-between q-mb-xs">
+                <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Highest Bid</span>
+                <span class="text-caption" style="opacity: 0.65;">
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                </span>
+              </div>
+              
+              <div v-else-if="lot.auction_type === 'Dutch'" class="column q-gutter-y-xs q-mb-xs">
+                <div class="row items-center justify-between">
+                  <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Starting Price</span>
                   <span class="text-caption" style="opacity: 0.65;">
-                    {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                    {{ lot.getFormattedBCH(lot.starting_price).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.starting_price).zeros }}</span> BCH
                   </span>
                 </div>
+                <div class="row items-center justify-between">
+                  <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Drops every</span>
+                  <span class="text-caption" style="opacity: 0.65;">10 min · {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH</span>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+    </div>
+
+    <!-- All arbiters's DISPUTES actioned -->
+    <div v-if="activityType === 'Arbiter'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
+      <div class="row items-center q-pa-sm q-mb-md">
+        <div class="text-h5 q-px-xs">Arbiter</div>
+        <q-select
+          outlined
+          dense
+          v-model="arbiterType"
+          :options="arbiterTypeOptions"
+          emit-value
+          map-options
+          autocomplete="off"
+          color="pt-primary1"
+          debounce="500"
+          :bg-color="darkMode ? 'dark' : 'white'"
+          :popup-content-style="{ color: darkMode ? '#ffffff' : '#000000' }"
+          class="q-ml-sm"
+          style="width: 135px;"
+        >
+          <template v-slot:prepend>
+            <q-icon name="filter_list" size="xs" />
+          </template>
+        </q-select>
+      </div>
+      
+      <div class="row items-start">
+        <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <q-skeleton height="200px" square />
+            <q-card-section>
+              <q-skeleton type="text" width="30%" class="float-right" />
+              <q-skeleton type="text" width="70%" />
+              <q-skeleton type="text" width="30%" class="q-mt-xs" />
+              <q-skeleton type="text" width="50%" class="q-mt-xs" />
+              <q-skeleton type="text" width="50%" class="q-mt-xs" />
+            </q-card-section>
+          </q-card>
+        </div>
+        
+        <div v-else-if="isMyArbiterEmpty"
+          class="row flex-center q-mx-md q-mb-md rounded-borders"
+          :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+          style="min-height: 70px; width: 100%;"
+        >
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Appeals Found') }}</div>
+        </div>
+
+        <div v-else v-for="appeal in filteredAppeals" :key="appeal.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <q-card
+            class="pt-card text-bow cursor-pointer"
+            :class="getDarkModeClass(darkMode)"
+            @click="$router.push({ name: 'app-auction-arbiter' })"
+          >
+            <q-card-section class="q-py-sm">
+              <div class="row items-center justify-between q-mb-xs q-mt-sm">
+                <q-chip
+                  dense
+                  :color="appeal.status === 'Resolved' ? 'positive' : 'warning'"
+                  text-color="white"
+                  class="text-caption text-weight-bold"
+                  style="margin: 0; padding: 3px 8px; height: auto;"
+                >
+                  <q-icon :name="appeal.status === 'Pending' ? 'autorenew' : 'check_circle'" size="xs" class="q-mr-xs" />
+                  {{ appeal.status }}
+                </q-chip>
+                <span class="text-caption q-mt-xs" style="opacity: 0.65;">
+                  <q-icon name="schedule" size="xs" /> {{ appeal.hoursSinceFiled }}h ago
+                </span>
+              </div>
+              
+              <div class="text-subtitle1 text-weight-medium q-mb-xs">
+                Appeal #{{ appeal.number }}
+              </div>
+
+              <q-separator spaced="sm" />
+              
+              <div class="row items-center justify-between q-mb-xs text-caption">
+                <span class="text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Auction</span>
+                #{{ appeal.auctionId }}
+              </div>
+              <div class="row items-center justify-between q-mb-xs text-caption">
+                <span class="text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Lot</span>
+                #{{ appeal.lotNumber }}
+              </div>
+
+              <q-separator spaced="sm" />
+
+              <div class="row q-gutter-xs q-my-sm">
+                <q-badge
+                  v-for="reason in appeal.reasons"
+                  :key="reason"
+                  outline
+                  :text-color="darkMode ? 'white' : 'black'"
+                  :label="reason"
+                />
               </div>
             </q-card-section>
           </q-card>
@@ -314,13 +426,74 @@ const $router = useRouter()
 const activityType = ref($store.state.auction?.activityType || 'My Biddings')
 const activityTypeOptions = [
   'My Biddings',
-  'My Auctions'
+  'My Auctions',
+  'Arbiter'
 ]
 
 const auctionType = ref('All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
+const arbiterType = ref('All')
+const arbiterTypeOptions = ['Pending', 'Resolved', 'All']
+
+// Mock arbiter appeals data
+const appeals = ref([
+  {
+    id: 1,
+    number: '001',
+    auctionId: '12',
+    lotNumber: '3',
+    hoursSinceFiled: 2,
+    status: 'Pending',
+    reasons: ['Item misdescribed']
+  },
+  {
+    id: 2,
+    number: '002',
+    auctionId: '15',
+    lotNumber: '7',
+    hoursSinceFiled: 14,
+    status: 'Pending',
+    reasons: ['Item misdescribed', 'Non-delivery']
+  },
+  {
+    id: 3,
+    number: '003',
+    auctionId: '18',
+    lotNumber: '1',
+    hoursSinceFiled: 36,
+    status: 'Resolved',
+    reasons: ['Counterfeit item']
+  },
+  {
+    id: 4,
+    number: '004',
+    auctionId: '21',
+    lotNumber: '5',
+    hoursSinceFiled: 5,
+    status: 'Pending',
+    reasons: ['Non-delivery', 'Payment dispute']
+  },
+  {
+    id: 5,
+    number: '005',
+    auctionId: '24',
+    lotNumber: '2',
+    hoursSinceFiled: 72,
+    status: 'Resolved',
+    reasons: ['Item misdescribed', 'Counterfeit item']
+  },
+  {
+    id: 6,
+    number: '006',
+    auctionId: '30',
+    lotNumber: '9',
+    hoursSinceFiled: 1,
+    status: 'Pending',
+    reasons: ['Payment dispute']
+  }
+])
 
 const isLoading = ref(false)
 
@@ -347,7 +520,6 @@ const fetchLotData = async () => {
     const result = await callAPI('my-biddings/lots')
 
     if (result.success && result.data) {
-      console.log(result.data)
       const lotPromises = result.data.map(async (item) => {
         const lot = LotsList.parse(item)
 
@@ -357,8 +529,11 @@ const fetchLotData = async () => {
         ])
 
         if (auctionResult.success && auctionResult.data) {
+          auctionResult.data = parseAuctionData(auctionResult.data)
+
           lot.start_date = auctionResult.data.start_date || null
           lot.end_date = auctionResult.data.end_date || null
+          lot.auction_type = auctionResult.data.type || null
         }
 
         if (imageResult.success && Array.isArray(imageResult.data)) {
@@ -403,11 +578,21 @@ const filteredLots = computed(() => {
   return lotDetails.value.filter(lot => lot.category === lotType.value)
 })
 
+const filteredAppeals = computed(() => {
+  let result = appeals.value
+
+  if (arbiterType.value !== 'All') {
+    result = result.filter(a => a.status === arbiterType.value)
+  }
+
+  return result
+})
+
 watch(activityType, async (newType) => {
   isLoading.value = true
 
   if(newType === 'My Auctions') await fetchAuctionData()
-  else await fetchLotData()
+  else if(newType === 'My Biddings') await fetchLotData()
 
   isLoading.value = false
 
@@ -416,24 +601,6 @@ watch(activityType, async (newType) => {
 
 
 
-
-const getAuctionStatus = (startDateString, endDateString) => {
-  if (!startDateString || !endDateString) return 'Closed'
-  
-  const now = new Date()
-  const start = new Date(startDateString)
-  const end = new Date(endDateString)
-
-  if (now < start) return 'Upcoming'
-  if (now >= start && now <= end) return 'Open'
-  return 'Closed'
-}
-
-const getStatusColor = (status) => {
-  if (status === 'Upcoming') return 'orange'
-  if (status === 'Open') return 'green'
-  return 'red'
-}
 
 const getAuctionStatusInfo = (auction) => {
   if (auction && typeof auction.getStatus === 'function') {
@@ -450,11 +617,15 @@ const isMyBiddingEmpty = computed(() => {
   return !isLoading.value && filteredLots.value.length === 0
 })
 
+const isMyArbiterEmpty = computed(() => {
+  return !isLoading.value && filteredAppeals.value.length === 0
+})
+
 const refresh = async (done) => {
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else await fetchLotData()
+  else if(activityType.value === 'My Biddings') await fetchLotData()
   
   isLoading.value = false
   done()

@@ -48,7 +48,7 @@
                 dense
                 v-model.number="estimatedPrice"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -58,8 +58,31 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(estimatedPrice) }}
+              </label>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <label class="text-md text-weight-bold block q-mb-xs">Starting Price</label>
+              <q-input
+                outlined
+                dense
+                v-model.number="startingPrice"
+                type="number"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                inputmode="decimal"
+                autocomplete="off"
+                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                color="pt-primary1"
+                debounce="500"
+                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+                lazy-rules hide-bottom-space
+                :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
+              />
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(startingPrice) }}
+              </label>
             </div>
           </div>
 
@@ -71,7 +94,7 @@
                 dense
                 v-model.number="priceThreshold"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -81,8 +104,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceThreshold) }}
+              </label>
             </div>
           </div>
 
@@ -94,7 +118,7 @@
                 dense
                 v-model.number="priceThreshold"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -104,8 +128,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price ceiling' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceThreshold) }}
+              </label>
             </div>
 
             <div class="col-12 col-sm-6">
@@ -115,7 +140,7 @@
                 dense
                 v-model.number="priceDrop"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -125,8 +150,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceDrop) }}
+              </label>
             </div>
           </div>
 
@@ -226,13 +252,16 @@ const props = defineProps({
 const emit = defineEmits(['update:isToggledEditLot', 'update-lot'])
 
 const $q = useQuasar()
-const $store = useStore();
+const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
 const lotName = ref('')
 const lotType = ref('Physical')
 const lotTypeOptions = ['Physical', 'Digital']
 const estimatedPrice = ref(0)
+const startingPrice = ref(0)
 const priceThreshold = ref(0)
 const priceDrop = ref(0)
 const lotImages = ref([])
@@ -249,7 +278,35 @@ const onRejected = (rejectedEntries) => {
 }
 
 const toggleCurrency = (isFiat) => {
-  // Code block for converting user input money to its equivalent currency
+  const rate = bchToPhpRate.value
+  if (!rate) return
+
+  if (isFiat) {
+    estimatedPrice.value = Number((estimatedPrice.value * rate).toFixed(2))
+    startingPrice.value = Number((startingPrice.value * rate).toFixed(2))
+    priceThreshold.value = Number((priceThreshold.value * rate).toFixed(2))
+    priceDrop.value = Number((priceDrop.value * rate).toFixed(2))
+  } else {
+    estimatedPrice.value = Number((estimatedPrice.value / rate).toFixed(8))
+    startingPrice.value = Number((startingPrice.value / rate).toFixed(8))
+    priceThreshold.value = Number((priceThreshold.value / rate).toFixed(8))
+    priceDrop.value = Number((priceDrop.value / rate).toFixed(8))
+  }
+}
+
+const formatEquivalent = (value) => {
+  const rate = bchToPhpRate.value
+  if (!rate || !value || isNaN(value)) {
+    return isFiatUsed.value ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
+  }
+
+  if (isFiatUsed.value) {
+    const bchValue = value / rate
+    return `Equivalent BCH: ${bchValue.toFixed(8)} BCH`
+  } else {
+    const phpValue = value * rate
+    return `Equivalent PHP price: PHP ${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
 }
 
 watch(() => props.lotData, (newLot) => {
@@ -257,8 +314,9 @@ watch(() => props.lotData, (newLot) => {
     lotName.value = newLot.title || ''
     lotType.value = newLot.type || 'Physical'
     estimatedPrice.value = newLot.estimatedPrice || 0
+    startingPrice.value = newLot.startingPrice || 0
     priceThreshold.value = newLot.threshold || 0
-    priceDrop.value = newLot.price_drop || 0
+    priceDrop.value = newLot.price_drop || newLot.priceDrop || 0
     isFiatUsed.value = newLot.isFiatUsed || false
     lotDescription.value = newLot.description || ''
     
@@ -286,13 +344,15 @@ const saveLot = () => {
     title: lotName.value,
     type: lotType.value,
     estimatedPrice: estimatedPrice.value,
+    startingPrice: startingPrice.value,
     threshold: priceThreshold.value || 0,
     price_drop: priceDrop.value || 0,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
     
     imageUrl: finalImages.length > 0 ? finalImages[0] : null,
-    imageUrls: finalImages
+    imageUrls: finalImages,
+    rawFiles: lotImages.value && lotImages.value.length > 0 ? [...lotImages.value] : (props.lotData.rawFiles || [])
   }
 
   emit('update-lot', updatedPayload)

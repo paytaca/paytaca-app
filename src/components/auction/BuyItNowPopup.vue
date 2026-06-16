@@ -11,7 +11,7 @@
 
         <div class="q-mt-sm">
           <div v-if="props.currentPriceBch !== null" class="text-h5 text-weight-bold">
-            {{ formatBCH(props.currentPriceBch).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ formatBCH(props.currentPriceBch).zeros }}</span> BCH
+            {{ formatBCH(props.currentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(props.currentPriceBch).zeros }}</span> BCH
           </div>
           <p class="text-caption q-mt-xs text-grey-6">
             Price drops over time. This is the current price.

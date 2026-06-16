@@ -103,7 +103,7 @@
                 <div class="text-caption">
                   Estimated: ₱950
                   <span class="text-weight-medium">
-                    {{ getFormattedBCH(lot.estimated_amount).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+                    {{ getFormattedBCH(lot.estimated_amount).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
                   </span>
                 </div>
 
@@ -113,7 +113,7 @@
                   <div>
                     Floor/Reserve: ₱950
                     <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                      {{ getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
                     </span>
                   </div>
                 </div>
@@ -122,7 +122,7 @@
                   <div>
                     Ceiling Price: ₱950
                     <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                      {{ getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
                     </span>
                   </div>
                   
@@ -131,7 +131,7 @@
                   <div class="text-negative">
                     Drops by: ₱950 per 10 minutes
                     <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ getFormattedBCH(lot.bidding_decrement).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH
+                      {{ getFormattedBCH(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH
                     </span>
                   </div>
                 </div>
