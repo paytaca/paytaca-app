@@ -233,6 +233,7 @@
       v-model:isToggledBuyItNow="isToggledBuyItNow"
       :lot="lot"
       :auction="auction"
+      :current-price-bch="dutchCurrentPriceBch"
       :loading="buyItNowLoading"
       @confirm-buy-it-now="handleBuyItNow"
     />
