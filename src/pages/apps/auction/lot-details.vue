@@ -466,12 +466,12 @@ const formatFiat = (val) => {
 }
 
 const getFormattedBCH = (bch) => {
-    const numStr = Number(bch).toFixed(8);
-    const match = numStr.match(/^(.*?)0*$/);
-    const main = match ? match[1] : numStr;
-    const zeros = numStr.substring(main.length);
-    return { main, zeros, full: numStr };
-  }
+  const numStr = Number(bch).toFixed(8);
+  const match = numStr.match(/^(.*?)0*$/);
+  const main = match ? match[1] : numStr;
+  const zeros = numStr.substring(main.length);
+  return { main, zeros, full: numStr };
+}
 
 const fetchAuction = async () => {
   try {
