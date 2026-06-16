@@ -2,7 +2,7 @@
 
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
 import { SignatureTemplate, Contract, TransactionBuilder, Network, ElectrumNetworkProvider } from 'cashscript';
-import { TX_FEE } from '../constants.js';
+import { P2PKH_DUST, TX_FEE } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
 import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
@@ -154,10 +154,11 @@ export class TapToPay {
      */
     async getFundingInputs (amount = 0) {
         const wallet = await loadWallet()
-        const walletCashAddress = wallet.address()
         const changeAddress = wallet.changeAddress()
-        const { cumulativeValue, utxos } = await wallet.getBchUtxos(walletCashAddress, parseInt(amount))
+        const handle = `wallet:${wallet.walletHash}`
+        const { cumulativeValue, utxos } = await wallet.getBchUtxos(handle, parseInt(amount))
 
+        console.log('-----fundingUtxos:', utxos)
         // Watchtower returns utxos from both cashAddress and its changeAddress.
         // But we need to use the correct keypair for signing based on which address the UTXO belongs to
         // So we group the UTXOs by address_path
@@ -165,9 +166,11 @@ export class TapToPay {
         if (utxos.length > 0) {
             utxosByAddressPath = utxos.reduce((acc, utxo) => {
                 const path = utxo.address_path || 'unknown'
-                if (path === 'unknown') return acc
                 if (!acc[path]) {
-                    const privkey = wallet.privkey(path)
+                    let privkey = wallet.privkey()
+                    console.log('privkey1:', privkey, 'for path:', path)
+                    if (path !== 'unknown') privkey = wallet.privkey(path)
+                    console.log('privkey2:', privkey, 'for path:', path)
                     acc[path] = { 
                         privkey: privkey,
                         utxos: [] 
@@ -177,6 +180,8 @@ export class TapToPay {
                 return acc
             }, {})
         }
+
+        console.log('-----utxosByAddressPath:', utxosByAddressPath)
 
         // Keep funding UTXOs grouped by source key so each group can be signed correctly.
         const groupedBchFundingInputs = Object.values(utxosByAddressPath)
@@ -256,6 +261,36 @@ export class TapToPay {
             }
         })
 
+        // Prepare the token inputs for mutation,
+        // normalizing the input UTXOs to expected format
+        const tokenInputs = utxosToMutate.map((input) => {
+
+            const normalized = { 
+                ...input, 
+                satoshis: toBigInt(input.satoshis),
+                txid: input.txid,
+                vout: input.vout
+            }
+            
+            const category = input.token.category || input.token.tokenId
+            const amount = toBigInt(input.token.amount ?? 0)
+            const capability = input.token.capability || input.token.nft?.capability
+            const commitment = input.token.commitment || input.token.nft?.commitment
+            
+            normalized.token = { 
+                category: String(category), 
+                amount
+            }
+
+            if (capability || commitment) {
+                normalized.token.nft = { 
+                    capability: String(capability), 
+                    commitment: String(commitment) 
+                }
+            }
+            return normalized
+        })
+
         // Prepare the outputs for the mutations
         const outputs = []
         for (let i = 0; i < mutations.length; i++) {
@@ -288,6 +323,11 @@ export class TapToPay {
             // Encode the new commitment
             const newCommitment = encodeCommitment(newCommitmentData)
 
+            if (newCommitment === mutxo.token.nft.commitment) {
+                console.warn(`New commitment is the same as the current commitment for merchant hash ${merchantHash}. Skipping this mutation.`)
+                continue
+            }
+
             // Prepare the output rewriting the commitment
             const output = {
                 to: contract.tokenAddress,
@@ -306,43 +346,16 @@ export class TapToPay {
             outputs.push(output)
         }
 
-        outputs.push({
-            to: changeAddress,
-            amount: toBigInt(changeAmount)
-        })
-
-        // Prepare the token inputs for mutation,
-        // normalizing the input UTXOs to expected format
-        const tokenInputs = utxosToMutate.map((input) => {
-
-            const normalized = { 
-                ...input, 
-                satoshis: toBigInt(input.satoshis),
-                txid: input.txid,
-                vout: input.vout
-            }
-            
-            const category = input.token.category || input.token.tokenId
-            const amount = toBigInt(input.token.amount ?? 0)
-            const capability = input.token.capability || input.token.nft?.capability
-            const commitment = input.token.commitment || input.token.nft?.commitment
-            
-            normalized.token = { 
-                category: String(category), 
-                amount
-            }
-
-            if (capability || commitment) {
-                normalized.token.nft = { 
-                    capability: String(capability), 
-                    commitment: String(commitment) 
-                }
-            }
-            return normalized
-        })
-        
         if (outputs.length === 0) {
             throw new Error('No valid mutations to process. No outputs were generated.')
+        }
+
+        // Add change output if there's leftover BCH after covering the fee
+        if (changeAmount > P2PKH_DUST) {
+            outputs.push({
+                to: changeAddress,
+                amount: toBigInt(changeAmount)
+            })
         }
 
         // Prepare the contract transaction from the combined inputs and outputs
@@ -354,6 +367,9 @@ export class TapToPay {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
         })
         tx.addOutputs(outputs)
+
+        console.log('-------> inputs:', tx.inputs)
+        console.log('-------> outputs:', tx.outputs)
         
         let result
 
@@ -428,6 +444,14 @@ export class TapToPay {
             return normalized
         })
 
+        const outputs = [
+            { to: toAddress, amount: sweepAmount }
+        ]
+
+        if (changeAmount > P2PKH_DUST) {
+            outputs.push({ to: changeAddress, amount: changeAmount })
+        }
+
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})
 
@@ -435,10 +459,7 @@ export class TapToPay {
         groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
         })
-        tx.addOutputs([
-            { to: toAddress, amount: sweepAmount },
-            { to: changeAddress, amount: changeAmount }
-        ])
+        tx.addOutputs(outputs)
 
         let result
         try {
@@ -465,7 +486,7 @@ export class TapToPay {
      * Burns a specific authorization NFT held by the contract for a 
      * given merchant and token ID.
      **/
-    async burn ({ ownerWif, merchantId, broadcast = true }) {
+    async burn ({ ownerWif, merchant, broadcast = true }) {
         const contract = this.getContract()
         const ownerSig = new SignatureTemplate(ownerWif)
         const ownerPk = binToHex(ownerSig.getPublicKey())
@@ -477,17 +498,23 @@ export class TapToPay {
 
         const tokenId = reverseHex(this.contractCreationParams.authCategory)
         const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
-        console.log('--------Token UTXOs:', tokenUtxos)
         const utxoToBurn = tokenUtxos.find(utxo => {
-            const commitment = utxo.token.nft.commitment
-            const { merchant: utxoMerchant } = decodeCommitment(commitment)
             const matchingTokenId = utxo.token.category === tokenId
-            if (!merchantId) return matchingTokenId
-            const matchingMerchant = utxoMerchant?.id === merchantId
-            return matchingTokenId && matchingMerchant
-        })
+            if (!matchingTokenId) return false
 
-        console.log('--------Token UTXO to burn:', utxoToBurn)
+            const commitment = utxo.token.nft.commitment
+            const decodedCommitment = decodeCommitment(commitment)
+            
+            let merchantHash = ""
+            if (merchant) {
+                merchantHash = encodeMerchantHash({ 
+                    merchantId: merchant?.id, 
+                    merchantPk: merchant?.pubkey 
+                }).hex
+            }
+
+            return decodedCommitment.hash === merchantHash
+        })
 
         if (!utxoToBurn) {
             throw new Error('No matching token UTXO found to burn for the specified merchant and token ID')
@@ -501,33 +528,23 @@ export class TapToPay {
             changeAddress 
         } = await this.getFundingInputs(hardcodedFee)
         const changeAmount = fundingAmount - hardcodedFee
+        
+        const outputs = [
+            { to: contract.address, amount: 1000n }
+        ]
 
-        console.log('--------Change amount after fee:', changeAmount)
-        console.log('--------Funding UTXOs:', fundingUtxos)
-
-        // let tx = contract.functions.burn(ownerPk, ownerSig)
-        //     .fromP2PKH(fundingUtxos, ownerSig)
-        //     .from(utxoToBurn)
-        //     .to(walletCashAddress, changeAmount)
-        //     .to(contract.address, 1000n)
+        if (changeAmount > P2PKH_DUST) {
+            outputs.push({ to: changeAddress, amount: changeAmount })
+        }
 
         const provider = new ElectrumNetworkProvider(Network.MAINNET)
         const tx = new TransactionBuilder({provider})
 
         tx.addInput(utxoToBurn, contract.unlock.burn(ownerPk, ownerSig))
-        console.log('--------Added burn input:', tx.inputs)
         fundingUtxos.forEach(({ inputs, signatureTemplate }) => {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
         })
-        tx.addOutputs([
-            // Sending a tiny amount to self to ensure the burn is processed on-chain
-            { to: contract.address, amount: 1000n },
-            { to: changeAddress, amount: changeAmount }
-        ])
-
-        console.log('------->inputs:', tx.inputs)
-        console.log('------->outputs:', tx.outputs)
-        
+        tx.addOutputs(outputs)
         
         let result
         try {

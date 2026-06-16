@@ -871,16 +871,26 @@ export class Card {
     return sweepResponse;
   }
 
-  async burnMerchantAuthToken(tokenId, merchantId) {
+  /**
+   * Burns a merchant auth token
+   * @param {Object} options
+   * @param {Object} options.merchant - Merchant info
+   * @param {string} options.merchant.id - Merchant ID
+   * @param {string} options.merchant.pubkey - Merchant public key
+   * @param {boolean} [options.broadcast=true] - Whether to broadcast the transaction
+   * @returns {Promise<Object>}
+   */
+  async burnMerchantAuthToken({ merchant, broadcast = true } = {}) {
     this._assertContract();
     this._assertWallet();
 
     const privateKey = this.wallet.privkey();
+    const tokenId = this.category;
     const params = {
       ownerWif: privateKey,
       tokenId,
-      merchantId,
-      broadcast: true
+      merchant,
+      broadcast
     }
     console.log('Burning auth token with params:', params);
     const burnResponse = await this.contract.burn(params);

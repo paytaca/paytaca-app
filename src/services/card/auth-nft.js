@@ -160,6 +160,7 @@ class AuthNftService {
 
             sendRequests.push(new TokenSendRequest(data));
         }
+        console.log('Token send requests:', sendRequests);
         const result = await this.ctWallet.send(sendRequests);
         console.log(result);
         return result;

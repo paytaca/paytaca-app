@@ -372,14 +372,14 @@
         </q-card-section>
 
         <q-card-actions align="between">
-          <!-- <q-btn
+          <q-btn
             flat
             color="negative"
             icon="local_fire_department"
             label="Burn Token"
             :disable="!selectedAuthNFT"
             @click="burnSelectedToken"
-          /> -->
+          />
           <div class="row items-center q-gutter-sm">
             <q-btn flat label="Cancel" color="primary" @click="closeSpendLimitDialog" />
             <q-btn flat label="Save" color="primary" @click="submitMutation" />
@@ -1156,10 +1156,13 @@ export default {
         tokenData: nft.token_data
       })
 
-      const tokenId = nft.token_data?.category
-      const merchantId = null//merchant.ref_id
-      console.log('Burning auth token with tokenId:', tokenId, 'merchantId:', merchantId)
-      const result = await this.card?.burnMerchantAuthToken(tokenId, merchantId)
+      const result = await this.card?.burnMerchantAuthToken({
+        merchant: {
+          id: merchant.ref_id,
+          pubkey: merchant.public_key
+        },
+        broadcast: true
+      })
         .catch(err => {
           console.error('Burning auth token failed:', err)
           this.$q.notify({
@@ -1190,7 +1193,8 @@ export default {
     },
 
     handleMerchantClick(merchant) {
-      console.log('handleMerchantClick:', merchant.name, 'selectMultipleMode:', this.selectMultipleMode)
+      console.log('handleMerchantClick:', merchant)
+      this.selectedMerchant = merchant;
       if (this.selectMultipleMode) {
         // In select mode, toggle selection
         this.toggleMerchantSelection(merchant, !this.selectedMerchants.has(merchant.id));
