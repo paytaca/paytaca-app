@@ -274,13 +274,23 @@
 
               <q-separator spaced="sm" />
               
-              <div class="row items-center justify-between q-mb-xs">
-                <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Current Bid</span>
-                <div class="row items-baseline q-gutter-x-xs">
-                  <span class="text-weight-medium" style="font-size: 12px;">₱900.00</span>
+              <div v-if="lot.auction_type === 'English'" class="row items-center justify-between q-mb-xs">
+                <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Highest Bid</span>
+                <span class="text-caption" style="opacity: 0.65;">
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                </span>
+              </div>
+              
+              <div v-else-if="lot.auction_type === 'Dutch'" class="column q-gutter-y-xs q-mb-xs">
+                <div class="row items-center justify-between">
+                  <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Starting Price</span>
                   <span class="text-caption" style="opacity: 0.65;">
-                    {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                    {{ lot.getFormattedBCH(lot.starting_price).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.starting_price).zeros }}</span> BCH
                   </span>
+                </div>
+                <div class="row items-center justify-between">
+                  <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Drops every</span>
+                  <span class="text-caption" style="opacity: 0.65;">10 min · {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH</span>
                 </div>
               </div>
             </q-card-section>
@@ -347,7 +357,6 @@ const fetchLotData = async () => {
     const result = await callAPI('my-biddings/lots')
 
     if (result.success && result.data) {
-      console.log(result.data)
       const lotPromises = result.data.map(async (item) => {
         const lot = LotsList.parse(item)
 
@@ -357,9 +366,14 @@ const fetchLotData = async () => {
         ])
 
         if (auctionResult.success && auctionResult.data) {
+          auctionResult.data = parseAuctionData(auctionResult.data)
+
           lot.start_date = auctionResult.data.start_date || null
           lot.end_date = auctionResult.data.end_date || null
+          lot.auction_type = auctionResult.data.type || null
         }
+
+        console.log(lot)
 
         if (imageResult.success && Array.isArray(imageResult.data)) {
           lot.image = imageResult.data[0]?.image || null
@@ -416,24 +430,6 @@ watch(activityType, async (newType) => {
 
 
 
-
-const getAuctionStatus = (startDateString, endDateString) => {
-  if (!startDateString || !endDateString) return 'Closed'
-  
-  const now = new Date()
-  const start = new Date(startDateString)
-  const end = new Date(endDateString)
-
-  if (now < start) return 'Upcoming'
-  if (now >= start && now <= end) return 'Open'
-  return 'Closed'
-}
-
-const getStatusColor = (status) => {
-  if (status === 'Upcoming') return 'orange'
-  if (status === 'Open') return 'green'
-  return 'red'
-}
 
 const getAuctionStatusInfo = (auction) => {
   if (auction && typeof auction.getStatus === 'function') {
