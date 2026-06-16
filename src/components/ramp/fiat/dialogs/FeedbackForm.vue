@@ -46,6 +46,18 @@
                     :counter="!feedback.id"
                     maxlength="200"
                   />
+                  <div v-if="!btnLoading && !feedback.id" class="row q-gutter-xs q-mt-sm" style="flex-wrap: wrap;">
+                    <q-chip
+                      v-for="(option, idx) in feedbackOptions"
+                      :key="idx"
+                      :label="option.label"
+                      :color="option.color || 'grey-6'"
+                      :text-color="option.textColor || 'white'"
+                      clickable
+                      size="sm"
+                      @click="feedback.comment = option.label"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -170,6 +182,20 @@ export default {
       } else {
         return vm.feedback.rating === 0
       }
+    },
+    feedbackOptions () {
+      return [
+        { label: this.$t('FastTransaction') || 'Fast transaction', color: 'green-6' },
+        { label: this.$t('ReliableTrustworthy') || 'Reliable and trustworthy', color: 'green-6' },
+        { label: this.$t('GreatCommunication') || 'Great communication', color: 'green-6' },
+        { label: this.$t('SmoothHassleFree') || 'Smooth and hassle-free', color: 'green-6' },
+        { label: this.$t('Recommended') || 'Recommended', color: 'green-6' },
+        { label: this.$t('QuickAndEasy') || 'Quick and easy', color: 'green-6' },
+        { label: this.$t('VeryProfessional') || 'Very professional', color: 'green-6' },
+        { label: this.$t('SlowToRespond') || 'Slow to respond', color: 'orange-9' },
+        { label: this.$t('PaymentTookTooLong') || 'Payment took too long', color: 'orange-9' },
+        { label: this.$t('CouldCommunicateBetter') || 'Could communicate better', color: 'orange-9' }
+      ]
     }
   },
   mounted () {
@@ -188,7 +214,6 @@ export default {
           vm.appealed = true
         })
         .catch(error => {
-          console.log(error.response)
           if (error.response) {
             if (error.response.status === 400) {
               if (error.response?.data?.error.includes('no appeal')) {
@@ -287,7 +312,6 @@ export default {
       }
       backend.post(url, body, { authorize: true })
         .then(response => {
-          console.log(response.data)
           vm.feedback = response.data
 
           if (!vm.appealed) {
@@ -323,7 +347,6 @@ export default {
 
         backend.post(arbiterUrl, arbiterBody, { authorize: true })
           .then(response => {
-            console.log(response.data)
             vm.arbiterFeedback = response.data
 
             vm.$emit('submit', vm.feedback)
@@ -353,7 +376,6 @@ export default {
         this.timer = distance + 1
 
         if (distance < 0) {
-          console.log()
           clearInterval(x)
           this.$refs.dialog.hide()
         }

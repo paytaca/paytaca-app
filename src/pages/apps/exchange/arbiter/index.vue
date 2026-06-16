@@ -1,10 +1,8 @@
 <template>
   <router-view :key="$route.path"></router-view>
-  <AppealFooterMenu v-if="showFooterMenu" :data="footerData" v-on:clicked="switchMenu"/>
   <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="onLoggedIn"/>
 </template>
 <script>
-import AppealFooterMenu from 'src/components/ramp/appeal/AppealFooterMenu.vue'
 import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getBackendWsUrl } from 'src/exchange/backend'
@@ -13,17 +11,11 @@ import { WebSocketManager } from 'src/exchange/websocket/manager'
 
 export default {
   components: {
-    AppealFooterMenu,
     RampLogin
   },
   data () {
     return {
-      state: 'list',
       websocketManager: null,
-      showFooterMenu: true,
-      footerData: {
-        unreadOrdersCount: 0
-      },
       showLogin: false,
       forceLogin: false,
       appealListKey: 0,
@@ -69,7 +61,6 @@ export default {
   created () {
     bus.on('session-expired', this.handleSessionEvent)
     bus.on('relogged', this.refreshChildren)
-    bus.on('show-footer-menu', this.onShowFooterMenu)
     bus.on('handle-request-error', this.handleRequestError)
   },
   async mounted () {
@@ -81,12 +72,6 @@ export default {
     this.closeWSConnection()
   },
   methods: {
-    loadRouting () {
-      this.$router.push({ name: 'arbiter-appeals' })
-    },
-    onShowFooterMenu (show) {
-      this.showFooterMenu = show
-    },
     handleSessionEvent () {
       // Force re-login when session expires or token is invalid
       this.forceLogin = true
@@ -97,20 +82,9 @@ export default {
       this.appealDetailKey++
       this.appealProfileKey++
     },
-    async switchMenu (tab) {
-      const routeName = tab === 'profile' ? 'arbiter-profile' : 'arbiter-appeals'
-      await this.$router.push({ name: routeName })
-      this.state = tab
-    },
-    onSelectAppeal () {
-      this.showFooterMenu = false
-    },
     onLoggedIn () {
       this.showLogin = false
       this.forceLogin = false
-    },
-    updateUnreadCount (count) {
-      this.footerData.unreadAppealsCount = count
     },
     handleNewAppeal (data) {
       const ongoingAppeals = [...this.$store.getters['ramp/pendingAppeals']]
@@ -129,7 +103,6 @@ export default {
       this.websocketManager = new WebSocketManager()
       this.websocketManager.setWebSocketUrl(url)
       this.websocketManager.subscribeToMessages((message) => {
-        this.updateUnreadCount(message.extra.unread_count)
         if (message.type === 'NEW_APPEAL') {
           this.handleNewAppeal(message)
         }

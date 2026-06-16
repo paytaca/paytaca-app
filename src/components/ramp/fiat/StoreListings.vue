@@ -127,52 +127,20 @@
         <div v-else>
           <q-pull-to-refresh @refresh="refreshData">
             <q-list class="scroll-y" @touchstart="preventPull" ref="scrollTarget" :style="`max-height: ${minHeight - 100}px`" style="overflow:auto;">
-              <q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
+<q-item v-for="(listing, index) in listings" :key="index" clickable @click="selectListing(listing)">
                 <q-item-section>
                   <div class="q-pb-sm q-pl-md" :style="darkMode ? 'border-bottom: 1px solid grey' : 'border-bottom: 1px solid #DAE0E7'">
                     <div class="row">
                       <div class="col ib-text">
-                        <div>
-                          <span
-                            :class="{'pt-label dark': darkMode}"
-                            class="md-font-size">
-                            <!-- @click.stop.prevent="viewUserProfile(listing.owner.id, listing.is_owned)"> -->
-                            {{ userNameView(listing.owner?.name) }}
-                          </span>
-                          <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
-                        </div>
-                        <div class="row">
-                          <q-rating
-                            readonly
-                            :model-value="listing.owner.rating ? listing.owner.rating : 0"
-                            :v-model="listing.owner.rating"
-                            size="1.1em"
-                            color="yellow-9"
-                            icon="star"
-                            icon-half="star_half"
-                            />
-                          <span class="q-mx-xs sm-font-size">({{ listing.owner.rating ? parseFloat(listing.owner.rating).toFixed(1) : 0 }})</span>
-                        </div>
-                        <div class="sm-font-size">
-                          <span class="q-mr-sm">
-                            {{
-                              $t(
-                                'TradeCount',
-                                { count: listing.owner?.trade_count },
-                                `${ listing.owner?.trade_count || 0 } trades`
-                              )
-                            }}
-                          </span>
-                          <span class="q-ml-sm">
-                            {{
-                              $t(
-                                'CompletionPercentage',
-                                { percentage: formatCompletionRate(listing.owner?.completion_rate) },
-                                `${ formatCompletionRate(listing.owner?.completion_rate) }% completion`
-                              )
-                            }}
-                          </span><br>
-                        </div>
+                        <PeerInfo
+                          :peer="listing.owner"
+                          :clickable-name="false"
+                          :truncate-name="true"
+                          :show-online-status="false"
+                          :show-last-online="false"
+                          :large-name="false"
+                        />
+                        <q-badge class="q-mx-xs" v-if="listing.is_owned" rounded size="xs" color="blue-6" label="You" />
                         <span
                           class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label"
                           :class="getDarkModeClass(darkMode)">
@@ -215,6 +183,7 @@
 import FilterComponent from 'src/components/ramp/fiat/FilterComponent.vue'
 import CurrencyFilterDialog from 'src/components/ramp/fiat/dialogs/CurrencyFilterDialog.vue'
 import FilterSelectionDialog from './dialogs/FilterSelectionDialog.vue'
+import PeerInfo from 'src/components/ramp/fiat/PeerInfo.vue'
 import { formatCurrency } from 'src/exchange'
 import { ref } from 'vue'
 import { bus } from 'src/wallet/event-bus.js'
@@ -230,7 +199,8 @@ export default {
     }
   },
   components: {
-    FilterComponent
+    FilterComponent,
+    PeerInfo
   },
   emits: ['orderCanceled'],
   data () {
@@ -606,9 +576,6 @@ export default {
     },
     async selectListing (listing) {
       await this.$router.push({ name: 'p2p-store-form', params: { ad: listing.id } })
-    },
-    formatCompletionRate (value) {
-      return Math.floor(value).toString()
     },
     preventPull (e) {
       let parent = e.target

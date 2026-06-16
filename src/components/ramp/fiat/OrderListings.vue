@@ -323,15 +323,15 @@ export default {
       switch (order.trade_type) {
         case 'BUY':
           if (order.owner.name === this.userInfo.name) {
-            return 'BUYING FROM'
+            return 'Buying From'
           } else {
-            return 'SELLING TO'
+            return 'Selling To'
           }
         case 'SELL':
           if (order.owner.name === this.userInfo.name) {
-            return 'SELLING TO'
+            return 'Selling To'
           } else {
-            return 'BUYING FROM'
+            return 'Buying From'
           }
       }
     },

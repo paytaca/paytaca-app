@@ -67,7 +67,7 @@
     <!-- Payment Methods Section -->
     <div class="section-wrapper">
       <p class="section-title text-subtitle1 q-px-sm q-my-sm" :class="getDarkModeClass(darkMode)">
-        {{ $t('PAYMENTMETHODS') }}
+        {{ $t('PaymentMethods', {}, 'Payment Methods') }}
       </p>
       <div class="text-center q-px-md q-mb-md instruction-text" :class="getDarkModeClass(darkMode)">
         <span v-if="data?.type === 'buyer'">{{ order.is_cash_in ? 'You selected this payment method' : 'Upload your proof of payment for the method you used' }}</span>
@@ -535,7 +535,8 @@ export default {
     },
     fiatAmount () {
       const amount = bchToFiat(satoshiToBch(this.order?.trade_amount), this.order?.price)
-      return this.formatCurrency(amount, this.data.order?.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '')
+      const symbol = this.data.order?.ad?.fiat_currency?.symbol || this.data?.ad?.fiat_currency?.symbol
+      return this.formatCurrency(amount, symbol).replace(/[^\d.,-]/g, '')
     },
     isChipnet () {
       return this.$store.getters['global/isChipnet']
@@ -588,7 +589,13 @@ export default {
     },
     async loadData () {
       const vm = this
-      await vm.fetchOrderDetail()
+      if (vm.data?.order) {
+        vm.order = vm.data.order
+        vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
+        vm.processPaymentMethods()
+      } else {
+        await vm.fetchOrderDetail()
+      }
       vm.appealCountdown()
       vm.isloaded = true
       vm.fetchContractBalance()
@@ -888,6 +895,10 @@ onSelectAttachment (methodIndex, methodId) {
     },
     fetchContractBalance () {
       const vm = this
+      if (vm.data?.contractBalance != null) {
+        vm.contractBalance = vm.data.contractBalance
+        return
+      }
       if (vm.data?.escrow) {
         vm.data?.escrow.getBalance(vm.data?.contract.address, true)
           .then(balance => {
@@ -956,7 +967,6 @@ onSelectAttachment (methodIndex, methodId) {
       const keypair = wallet.keypair(sellerMember.address_path)
       await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
         .then(result => {
-          console.log(result)
           if (result.success) {
             const txid = result.txInfo.txid
             const txidData = {
@@ -982,51 +992,55 @@ onSelectAttachment (methodIndex, methodId) {
         })
       vm.sendingBch = false
     },
+    processPaymentMethods () {
+      const vm = this
+      let orderPaymentTypes = []
+      if (vm.order?.payment_methods_selected?.length > 0) {
+        orderPaymentTypes = vm.order.payment_methods_selected.map(method => {
+          const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
+          return { ...method, selected: selected }
+        })
+      } else {
+        orderPaymentTypes = vm.order.payment_method_opts.map(method => {
+          const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
+          return { ...method, selected: selected }
+        })
+      }
+      const adPaymentTypes = vm.order.ad.payment_methods.map(method => {
+        return { ...method, selected: false }
+      })
+
+      if (vm.data.type === 'buyer') {
+        if (vm.data?.order?.is_ad_owner) {
+          vm.paymentMethods = orderPaymentTypes
+        } else {
+          vm.paymentMethods = adPaymentTypes
+        }
+
+        if (vm.data?.order?.is_cash_in) {
+          vm.paymentMethods = orderPaymentTypes
+          vm.selectedPaymentMethods = orderPaymentTypes
+        }
+      } else {
+        vm.paymentMethods = orderPaymentTypes
+      }
+
+      vm.paymentMethods.forEach(method => {
+        const selectedMethod = vm.order?.payment_methods_selected?.find(sm => sm.id === method.id)
+        if (selectedMethod) {
+          method.attachments = selectedMethod.attachments
+          method.order_payment_id = selectedMethod.order_payment_id
+        }
+      })
+    },
+
     async fetchOrderDetail () {
       const vm = this
       await backend.get(`/ramp-p2p/order/${vm.data.order.id}/`, { authorize: true })
         .then(response => {
           vm.order = response.data
           vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
-          // Find the payment methods of seller
-          let orderPaymentTypes = []
-          if (vm.order?.payment_methods_selected?.length > 0) {
-            orderPaymentTypes = vm.order.payment_methods_selected.map(method => {
-              const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
-              return { ...method, selected: selected }
-            })
-          } else {
-            orderPaymentTypes = vm.order.payment_method_opts.map(method => {
-              const selected = vm.order.ad.payment_methods.map(admethod => { return admethod.id }).includes(method.id)
-              return { ...method, selected: selected }
-            })
-          }
-          const adPaymentTypes = vm.order.ad.payment_methods.map(method => {
-            return { ...method, selected: false }
-          })
-
-          if (vm.data.type === 'buyer') {
-            if (vm.data?.order?.is_ad_owner) {
-              vm.paymentMethods = orderPaymentTypes
-            } else {
-              vm.paymentMethods = adPaymentTypes
-            }
-
-            if (vm.data?.order?.is_cash_in) {
-              vm.paymentMethods = orderPaymentTypes
-              vm.selectedPaymentMethods = orderPaymentTypes
-            }
-          } else {
-            vm.paymentMethods = orderPaymentTypes
-          }
-
-          vm.paymentMethods.forEach(method => {
-            const selectedMethod = vm.order?.payment_methods_selected?.find(sm => sm.id === method.id)
-            if (selectedMethod) {
-              method.attachments = selectedMethod.attachments
-              method.order_payment_id = selectedMethod.order_payment_id
-            }
-          })
+          vm.processPaymentMethods()
         })
         .catch(error => {
           this.showErrorDialog(error)
@@ -1126,7 +1140,7 @@ onSelectAttachment (methodIndex, methodId) {
       console.error(error)
       const message = 'An unexpected error has occured'
       if (!this.errorDialogActive) {
-        this.errorDialogActive = false
+        this.errorDialogActive = true
         this.$q.notify({
           type: 'warning',
           message: message,

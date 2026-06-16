@@ -1,6 +1,6 @@
 <template>
   <div>
-    <router-view :key="$route.path"></router-view>
+    <router-view :key="$route.name"></router-view>
     <NoticeBoardDialog v-if="showNoticeBoard" :type="noticeBoardType" :message="noticeBoardMessage" @hide="showNoticeBoard=false"/>
     <FooterMenu v-if="showFooterMenu" :tab="currentPage" :data="footerData"/>
     <RampLogin v-if="showLogin" :force-login="forceLogin" @logged-in="showLogin = false; forceLogin = false"/>
@@ -85,7 +85,7 @@ export default {
     bus.on('post-notice', this.postNotice)
     bus.on('handle-request-error', this.handleRequestError)
   },  
-  async mounted () {    
+  async mounted () {
     await this.loadWallet()
     
     // Ensure wallet state is initialized before accessing getters
