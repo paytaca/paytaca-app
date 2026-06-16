@@ -336,6 +336,14 @@ export function paymentUriPromiseResponseHandler (error, opts = { defaultError: 
   }
 }
 
+export function withTimeout (promise, ms = 120000) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Broadcast request timed out')), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
 export function submitPromiseErrorResponseHandler (result, walletType) {
   if (result.error.indexOf('not enough balance in sender') > -1) {
     if (walletType === 'bch') raiseNotifyError($t('NotEnoughForBoth'))
