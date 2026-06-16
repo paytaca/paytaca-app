@@ -1,15 +1,14 @@
 
 
 import { Contract as MainnetContract } from '@mainnet-cash/contract';
-import { SignatureTemplate, Contract } from 'cashscript';
-import { defaultNetwork, TX_FEE } from '../constants.js';
+import { SignatureTemplate, Contract, TransactionBuilder, Network, ElectrumNetworkProvider } from 'cashscript';
+import { TX_FEE } from '../constants.js';
 import { binToHex } from '@bitauth/libauth';
-import { convertCashAddressToTokenAddress, pubkeyToPkHash } from '../utils.js';
+import { pubkeyToPkHash } from '../utils.js';
 import { decodeCommitment, encodeCommitment, encodeMerchantHash } from '../auth-nft.js';
 import artifact from './TapToPay.json';
 import Watchtower from 'src/lib/watchtower/index.js';
 import { loadWallet } from 'src/services/wallet.js';
-import { pubkeyToAddress } from 'src/utils/crypto';
 import { isTokenAddress } from 'src/utils/address-utils.js';
 
 /**
@@ -26,6 +25,9 @@ function reverseHex(hex) {
   const pairs = hex.match(/.{1,2}/g);
   return pairs ? pairs.reverse().join('') : hex;
 }
+
+// Helper to safely convert numbers/strings to BigInt
+const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
 /**
  * TapToPay contract helper bound to a specific `contractId`.
@@ -94,10 +96,8 @@ export class TapToPay {
      * @param {string} tokenAddress - Token address to query for UTXOs.
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos (tokenId, tokenAddress) {
-        console.log('Getting token UTXOs for tokenId:', tokenId)
-        console.log('At tokenAddress:', tokenAddress)
-        
+    async getTokenUtxos (tokenId, tokenAddress) {  
+        console.log(`Fetching token UTXOs with tokenId: ${tokenId} and tokenAddress: ${tokenAddress}`)      
         if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
             console.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
             return []
@@ -112,7 +112,6 @@ export class TapToPay {
             }}
         )
         result = response.data?.utxos
-        console.log('Returning token UTXOs:', result)
         return result?.map(utxo => ({
             txid: utxo.txid,
             token: {
@@ -135,12 +134,9 @@ export class TapToPay {
      */
     async getBchUtxos (amount = 0) {
         const cashAddress = this.getContract().address
-        console.log('getBchUtxos for cashAddress:', cashAddress)
         const wallet = await loadWallet()
         const rawWallet = await wallet.getRawWallet()
         const { cumulativeValue, utxos } = await rawWallet.watchtower.BCH.getBchUtxos(cashAddress, amount)
-        console.log('>>>>>>>BCH UTXOs from Watchtower:', utxos)
-        console.log('Returning BCH UTXOs:', utxos)
         return {
             cumulativeValue,
             utxos: utxos?.map(utxo => ({
@@ -152,21 +148,53 @@ export class TapToPay {
     }
 
     /**
-     * Fetches funding UTXOs for the wallet's cash address.
+     * Fetches funding inputs for the wallet's cash address.
      * @param {number} amount - Optional minimum cumulative amount of BCH UTXOs to fetch.
-     * @returns {Promise<{cumulativeValue: bigint, utxos: Array}>}
+     * @returns {Promise<{cumulativeValue: bigint, groupedUtxos: Array, changeAddress: string}>}
      */
-    async getFundingUtxos (amount = 0) {
+    async getFundingInputs (amount = 0) {
         const wallet = await loadWallet()
         const walletCashAddress = wallet.address()
         const changeAddress = wallet.changeAddress()
-
-        console.log('Wallet funding cashAddress:', walletCashAddress)
-        console.log('Wallet funding changeAddress:', changeAddress)
-
         const { cumulativeValue, utxos } = await wallet.getBchUtxos(walletCashAddress, parseInt(amount))
-        console.log('Funding UTXOs:', utxos)
-        return { cumulativeValue, utxos, changeAddress };
+
+        // Watchtower returns utxos from both cashAddress and its changeAddress.
+        // But we need to use the correct keypair for signing based on which address the UTXO belongs to
+        // So we group the UTXOs by address_path
+        let utxosByAddressPath = {}
+        if (utxos.length > 0) {
+            utxosByAddressPath = utxos.reduce((acc, utxo) => {
+                const path = utxo.address_path || 'unknown'
+                if (path === 'unknown') return acc
+                if (!acc[path]) {
+                    const privkey = wallet.privkey(path)
+                    acc[path] = { 
+                        privkey: privkey,
+                        utxos: [] 
+                    }
+                }
+                acc[path].utxos.push(utxo)
+                return acc
+            }, {})
+        }
+
+        // Keep funding UTXOs grouped by source key so each group can be signed correctly.
+        const groupedBchFundingInputs = Object.values(utxosByAddressPath)
+            .filter(group => group?.privkey && Array.isArray(group?.utxos) && group.utxos.length > 0)
+            .map(group => ({
+                signatureTemplate: new SignatureTemplate(group.privkey),
+                inputs: group.utxos.map((input) => ({
+                    satoshis: toBigInt(input.satoshis),
+                    txid: input.txid,
+                    vout: input.vout
+                }))
+            }))
+
+        return { 
+            cumulativeValue, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress
+        };
     }
 
     /**
@@ -186,9 +214,8 @@ export class TapToPay {
 
         const contract = this.getContract()
         const senderSig = new SignatureTemplate(senderWif)
-        const senderPk = senderSig.getPublicKey()
+        const senderPk = binToHex(senderSig.getPublicKey())
         const senderPkh = pubkeyToPkHash(senderPk)
-        const changeAddress = pubkeyToAddress(senderPk, defaultNetwork)
 
         if (senderPkh !== this.contractCreationParams.ownerPkh) {
             throw new Error('Sender public key hash does not match the owner public key hash');
@@ -198,17 +225,13 @@ export class TapToPay {
         const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
 
         const fee = TX_FEE
-        const { cumulativeValue, utxos: bchUtxos } = await this.getFundingUtxos(fee)
+        const { 
+            cumulativeValue, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress
+        } = await this.getFundingInputs(fee)
+        
         const changeAmount = cumulativeValue - BigInt(fee)
-        console.log('changeAmount:', changeAmount)
-        console.log('changeAddress:', changeAddress)
-        console.log('tokenAddress:', contract.tokenAddress)
-        console.log('tokenId (authCategory):', tokenId)
-        console.log('?????tokenUtxos:', tokenUtxos)
-        console.log('?????_bchUtxos:', bchUtxos)
-
-        // Helper to safely convert numbers/strings to BigInt
-        const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
 
         // Get the merchant hashes from the mutations
         const merchantHashes = mutations.map(e => { 
@@ -218,15 +241,12 @@ export class TapToPay {
             })
             return hex;
         })
-        console.log('merchantHashes for mutations:', merchantHashes)
 
         // Filter UTXOs to only those matching the token category and merchant hashes
         const utxosToMutate = tokenUtxos.filter(utxo => {
             if (utxo.token?.nft?.commitment) {
                 const commitment = utxo.token?.nft?.commitment
                 const { hash } = decodeCommitment(commitment)
-                console.log('Decoded commitment hash:', hash)
-                console.log('UTXO token category:', utxo.token.category)
                 return (
                     utxo.token.category === tokenId && 
                     merchantHashes.includes(hash)
@@ -235,8 +255,6 @@ export class TapToPay {
                 return false
             }
         })
-
-        console.log('utxosToMutate:', utxosToMutate)
 
         // Prepare the outputs for the mutations
         const outputs = []
@@ -267,11 +285,8 @@ export class TapToPay {
                 merchant: mutation.merchant
             }
 
-            console.log('newCommitmentData:', newCommitmentData)
-
             // Encode the new commitment
             const newCommitment = encodeCommitment(newCommitmentData)
-            console.log('newCommitment:', newCommitment)
 
             // Prepare the output rewriting the commitment
             const output = {
@@ -291,7 +306,10 @@ export class TapToPay {
             outputs.push(output)
         }
 
-        console.log('outputs:', outputs)
+        outputs.push({
+            to: changeAddress,
+            amount: toBigInt(changeAmount)
+        })
 
         // Prepare the token inputs for mutation,
         // normalizing the input UTXOs to expected format
@@ -322,40 +340,26 @@ export class TapToPay {
             }
             return normalized
         })
-
-        console.log('tokenInputs:', tokenInputs)
-
-        // Prepare the BCH inputs
-        const bchInputs = bchUtxos.map((input) => {
-            console.log('input??:', input)
-            const normalized = { 
-                ...input, 
-                satoshis: toBigInt(input.satoshis),
-                txid: input.txid,
-                vout: input.vout
-            }
-            console.log('normalized:', normalized)
-            return normalized
-        })
-
-        console.log('bchInputs:', bchInputs)
+        
         if (outputs.length === 0) {
             throw new Error('No valid mutations to process. No outputs were generated.')
         }
 
         // Prepare the contract transaction from the combined inputs and outputs
-        const tx = contract.functions.mutate(senderPk, senderSig)
-            .fromP2PKH(bchInputs, senderSig)
-            .from(tokenInputs)
-            .to(changeAddress, changeAmount)
-            .to(outputs)
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
+
+        tx.addInputs(tokenInputs, contract.unlock.mutate(senderPk, senderSig))
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs(outputs)
         
         let result
 
         try {
             // Build the transaction
-            console.log('[mutate] Building transaction...')
-            const txHex = await tx.build()
+            const txHex = tx.build()
             console.log('[mutate] Built transaction hex:', txHex)
 
             if (broadcast) {
@@ -393,15 +397,20 @@ export class TapToPay {
 
         const sweepResult = {}
         const hardcodedFee = TX_FEE
-        const { cumulativeValue: sweepAmount, utxos: bchUtxos } = await this.getBchUtxos()
-        const { cumulativeValue: fundingAmount, utxos: fundingUtxos, changeAddress } = await this.getFundingUtxos(hardcodedFee)
+        
+        const { 
+            cumulativeValue: sweepAmount, 
+            utxos: bchUtxos
+        } = await this.getBchUtxos()
+
+        const { 
+            cumulativeValue: fundingAmount, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress 
+        } = await this.getFundingInputs(hardcodedFee)
+
         const changeAmount = fundingAmount - BigInt(hardcodedFee)
         
-        console.log('===========sweepAmount:', sweepAmount)
-        console.log('===========bchUtxos:', bchUtxos)
-        console.log('===========fundingAmount:', fundingAmount)
-        console.log('===========fundingUtxos:', fundingUtxos)
-
         if (fundingAmount < BigInt(hardcodedFee)) {
             sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
             return sweepResult
@@ -412,7 +421,6 @@ export class TapToPay {
 
         const bchInputs = bchUtxos.map(utxo => {
             const normalized = { 
-                ...utxo, 
                 satoshis: toBigInt(utxo.satoshis),
                 txid: utxo.txid,
                 vout: utxo.vout
@@ -420,20 +428,22 @@ export class TapToPay {
             return normalized
         })
 
-        console.log('Normalized bchInputs for sweep:', bchInputs)
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
 
-        const tx = contract.functions
-            .sweep(ownerPk, ownerSig)
-            .fromP2PKH(fundingUtxos, ownerSig)
-            .from(bchInputs)
-            .to(changeAddress, changeAmount)
-            .to(toAddress, sweepAmount)
+        tx.addInputs(bchInputs, contract.unlock.sweep(ownerPk, ownerSig))
+        groupedBchFundingInputs.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs([
+            { to: toAddress, amount: sweepAmount },
+            { to: changeAddress, amount: changeAmount }
+        ])
 
         let result
         try {
             // Build the transaction
-            console.log('[sweep] Building transaction...')
-            const txHex = await tx.build()
+            const txHex = tx.build()
             console.log('[sweep] Built transaction hex:', txHex)
 
             if (broadcast) {
@@ -450,113 +460,91 @@ export class TapToPay {
         return result
     }
 
-    // /**
-    //  * TODO: For testing
-    //  * Burns a specific authorization NFT held by the contract for a 
-    //  * given merchant and token ID.
-    //  **/
-    // async burn ({ ownerWif, tokenId, merchantId, broadcast = true }) {
-    //     const contract = this.getContract()
-    //     const ownerSig = new SignatureTemplate(ownerWif)
-    //     const ownerPk = binToHex(ownerSig.getPublicKey())
-    //     const ownerPkh = pubkeyToPkHash(ownerPk)
+    /**
+     * WIP:
+     * Burns a specific authorization NFT held by the contract for a 
+     * given merchant and token ID.
+     **/
+    async burn ({ ownerWif, merchantId, broadcast = true }) {
+        const contract = this.getContract()
+        const ownerSig = new SignatureTemplate(ownerWif)
+        const ownerPk = binToHex(ownerSig.getPublicKey())
+        const ownerPkh = pubkeyToPkHash(ownerPk)
 
-    //     if (ownerPkh !== this.contractCreationParams.ownerPkh) {
-    //         throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
-    //     }
-
-    //     const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
-    //     console.log('--------Token UTXOs:', tokenUtxos)
-    //     const utxoToBurn = tokenUtxos.find(utxo => {
-    //         const commitment = utxo.token.nft.commitment
-    //         const { merchant: utxoMerchant } = decodeCommitment(commitment)
-    //         const matchingTokenId = utxo.token.category === tokenId
-    //         if (!merchantId) return matchingTokenId
-    //         const matchingMerchant = utxoMerchant?.id === merchantId
-    //         return matchingTokenId && matchingMerchant
-    //     })
-
-    //     console.log('--------Token UTXO to burn:', utxoToBurn)
-
-    //     if (!utxoToBurn) {
-    //         throw new Error('No matching token UTXO found to burn for the specified merchant and token ID')
-    //     }
-
-    //     // get funding utxos to cover the burn fee
-    //     const fee = parseInt(TX_FEE)
-    //     console.log('Estimated fee for burn transaction:', fee)
-    //     const wallet = await loadWallet()
-    //     const walletCashAddress = wallet.address()
-    //     console.log('Wallet cash address for funding:', walletCashAddress)
-    //     const { cumulativeValue, utxos: fundingUtxos } = await wallet.getBchUtxos(null, fee)
-    //     console.log('--------Funding UTXOs:', fundingUtxos)
-    //     const changeAmount = cumulativeValue - BigInt(fee)
-    //     console.log('--------Change amount after fee:', changeAmount)
-
-    //     let tx = contract.functions.burn(ownerPk, ownerSig)
-    //         .fromP2PKH(fundingUtxos, ownerSig)
-    //         .from(utxoToBurn)
-    //         .to(walletCashAddress, changeAmount)
-    //         .to(contract.address, 1000n)
-        
-    //     let result
-    //     try {
-    //         // Build the transaction
-    //         console.log('[burn] Building transaction...')
-    //         const txHex = await tx.build()
-            
-    //         if (broadcast) {
-    //             result = await tx.send()
-    //         } else {
-    //             result = { success: true, txHex }
-    //         }
-    //     } catch (error) {
-    //         throw error
-    //     }
-
-    //     return result
-    // }
-
-    async getUtxosFromWatchtower(amount = 0) {
-        console.log('amount---->>>:', amount)
-        const wallet = await loadWallet()
-        const result = await (new Watchtower().BCH.getBchUtxos(`wallet:${wallet.walletHash}`, amount))
-            .catch(error => {
-                console.error('!!!!!!!!!!!!!!!!!!:', error)
-                throw new Error('Failed to fetch UTXOs from Watchtower')
-            })
-        console.log('[getUtxosFromWatchtower] UTXOs from Watchtower:', result)
-        const normalizedUtxos = result.utxos.map(utxo => ({
-                    txid: utxo.tx_hash,
-                    vout: utxo.tx_pos,
-                    satoshis: utxo.value,
-                })) || []
-        return { utxos: normalizedUtxos, cumulativeValue: result.cumulativeValue }
-    }
-
-    async getTransactionFee (tx) {
-        let fee = TX_FEE
-        await tx.build()
-            .catch (error => {
-                console.error('Error building transaction to estimate fee:', error)
-                fee = this.parseSatoshisNeeded(error.message)
-                console.log('Parsed fee from error message:', fee)
-            })
-        return fee
-    }
-
-    parseSatoshisNeeded(message) {
-        const patterns = [
-        /(\d+)\s+satoshis\s+needed/i,
-        /needed\s*\((\d+)\)/i
-        ];
-
-        for (const pattern of patterns) {
-        const match = message.match(pattern);
-        if (match) return Number(match[1]);
+        if (ownerPkh !== this.contractCreationParams.ownerPkh) {
+            throw new Error('Owner public key hash does not match the contract\'s owner public key hash')
         }
 
-        return null;
+        const tokenId = reverseHex(this.contractCreationParams.authCategory)
+        const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
+        console.log('--------Token UTXOs:', tokenUtxos)
+        const utxoToBurn = tokenUtxos.find(utxo => {
+            const commitment = utxo.token.nft.commitment
+            const { merchant: utxoMerchant } = decodeCommitment(commitment)
+            const matchingTokenId = utxo.token.category === tokenId
+            if (!merchantId) return matchingTokenId
+            const matchingMerchant = utxoMerchant?.id === merchantId
+            return matchingTokenId && matchingMerchant
+        })
+
+        console.log('--------Token UTXO to burn:', utxoToBurn)
+
+        if (!utxoToBurn) {
+            throw new Error('No matching token UTXO found to burn for the specified merchant and token ID')
+        }
+
+        // get funding utxos to cover the burn fee
+        const hardcodedFee = TX_FEE
+        const { 
+            cumulativeValue: fundingAmount, 
+            groupedUtxos: fundingUtxos, 
+            changeAddress 
+        } = await this.getFundingInputs(hardcodedFee)
+        const changeAmount = fundingAmount - hardcodedFee
+
+        console.log('--------Change amount after fee:', changeAmount)
+        console.log('--------Funding UTXOs:', fundingUtxos)
+
+        // let tx = contract.functions.burn(ownerPk, ownerSig)
+        //     .fromP2PKH(fundingUtxos, ownerSig)
+        //     .from(utxoToBurn)
+        //     .to(walletCashAddress, changeAmount)
+        //     .to(contract.address, 1000n)
+
+        const provider = new ElectrumNetworkProvider(Network.MAINNET)
+        const tx = new TransactionBuilder({provider})
+
+        tx.addInput(utxoToBurn, contract.unlock.burn(ownerPk, ownerSig))
+        console.log('--------Added burn input:', tx.inputs)
+        fundingUtxos.forEach(({ inputs, signatureTemplate }) => {
+            tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
+        })
+        tx.addOutputs([
+            // Sending a tiny amount to self to ensure the burn is processed on-chain
+            { to: contract.address, amount: 1000n },
+            { to: changeAddress, amount: changeAmount }
+        ])
+
+        console.log('------->inputs:', tx.inputs)
+        console.log('------->outputs:', tx.outputs)
+        
+        
+        let result
+        try {
+            // Build the transaction
+            console.log('[burn] Building transaction...')
+            const txHex = tx.build()
+            
+            if (broadcast) {
+                result = await this.broadcastTransaction(txHex)
+            } else {
+                result = { success: true, txHex }
+            }
+        } catch (error) {
+            throw error
+        }
+
+        return result
     }
 
     /**
@@ -565,7 +553,7 @@ export class TapToPay {
      * @returns {Promise<Object>}
      */
     async broadcastTransaction(txHex) {
-        console.log('[broadcastTransaction] Broadcasting transaction')
+        console.log('[broadcastTransaction] Broadcasting transaction...')
         return await (new Watchtower().broadcastTx(txHex))
     }
 }
