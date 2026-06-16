@@ -593,6 +593,9 @@ export default {
         vm.order = vm.data.order
         vm.txid = vm.$store.getters['ramp/getOrderTxid'](vm.order.id, 'RELEASE')
         vm.processPaymentMethods()
+        if (vm.data.type === 'buyer' && !vm.data.order?.is_ad_owner && !vm.data.order?.is_cash_in) {
+          await vm.fetchAndMergeOwnPaymentMethods()
+        }
       } else {
         await vm.fetchOrderDetail()
       }
@@ -1045,6 +1048,31 @@ onSelectAttachment (methodIndex, methodId) {
         .catch(error => {
           this.showErrorDialog(error)
         })
+
+      if (vm.data.type === 'buyer' && !vm.data.order?.is_ad_owner && !vm.data.order?.is_cash_in) {
+        await vm.fetchAndMergeOwnPaymentMethods()
+      }
+    },
+    async fetchAndMergeOwnPaymentMethods () {
+      const vm = this
+      try {
+        const resp = await backend.get('/ramp-p2p/payment-method/', { authorize: true })
+        const ownMethods = (resp.data || []).map(m => ({
+          id: m.id,
+          payment_type: m.payment_type?.short_name || m.payment_type?.full_name || '',
+          values: m.values || [],
+          dynamic_values: [],
+          selected: false,
+          isOwnMethod: true,
+        }))
+        const existingIds = new Set(vm.paymentMethods.map(m => m.id))
+        const newMethods = ownMethods.filter(m => !existingIds.has(m.id))
+        if (newMethods.length > 0) {
+          vm.paymentMethods = [...vm.paymentMethods, ...newMethods]
+        }
+      } catch (err) {
+        console.warn('[PaymentConfirmation] Failed to fetch own payment methods:', err)
+      }
     },
     selectPaymentMethod (method, methodIndex) {
       if (method.selected) {
