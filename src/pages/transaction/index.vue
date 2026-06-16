@@ -1260,12 +1260,21 @@ export default {
 
             const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
 
+            // Check store for existing metadata (may be more complete than API response)
+            const storeAssets = this.$store.getters['assets/getAsset'](result.id)
+            const storeAsset = Array.isArray(storeAssets) && storeAssets.length > 0 ? storeAssets[0] : null
+
+            const name = storeAsset?.name || result.name || 'Unknown Token'
+            const symbol = storeAsset?.symbol || result.symbol || ''
+            const decimals = storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0)
+            const effectiveLogo = storeAsset?.logo || logo
+
             return {
               id: result.id,
-              name: result.name || 'Unknown Token',
-              symbol: result.symbol || '',
-              decimals: result.decimals || 0,
-              logo: logo,
+              name,
+              symbol,
+              decimals,
+              logo: effectiveLogo,
               balance: result.balance !== undefined ? result.balance : 0,
               favorite: result.favorite === true ? 1 : 0,
               favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
@@ -1290,29 +1299,45 @@ export default {
         const favorites = allTokens.filter(token => token.favorite === 1 || token.favorite === true)
         this.favoriteTokenIds = favorites.map(token => token.id).filter(id => id !== 'bch')
 
-        // Update store assets with balances and metadata (including icons) from API
+        // Update store assets with balances and metadata from API
         allTokens.forEach(token => {
-          // Update balance
           this.$store.commit('assets/updateAssetBalance', {
             id: token.id,
             balance: token.balance
           })
-          
-          // Update metadata including icon - API provides the latest icon
-          // Use both updateAssetMetadata and updateAssetImageUrl to ensure icon is updated
           if (token.logo) {
-            // Update full metadata
             this.$store.commit('assets/updateAssetMetadata', {
               id: token.id,
               name: token.name,
               symbol: token.symbol,
               decimals: token.decimals,
-              logo: token.logo // Use icon from API (always up-to-date)
+              logo: token.logo
             })
-            // Also update icon URL directly (works even if asset doesn't exist in store yet)
             this.$store.commit('assets/updateAssetImageUrl', {
               assetId: token.id,
               imageUrl: token.logo
+            })
+          }
+        })
+
+        // Background-fetch metadata from BCMR for tokens still missing name/symbol/logo
+        allTokens.forEach(token => {
+          if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
+            this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
+              if (metadata) {
+                const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
+                if (idx !== -1) {
+                  this.allTokensFromAPI[idx] = {
+                    ...this.allTokensFromAPI[idx],
+                    name: metadata.name || this.allTokensFromAPI[idx].name,
+                    symbol: metadata.symbol || this.allTokensFromAPI[idx].symbol,
+                    decimals: metadata.decimals !== undefined ? metadata.decimals : this.allTokensFromAPI[idx].decimals,
+                    logo: metadata.logo || this.allTokensFromAPI[idx].logo,
+                  }
+                }
+              }
+            }).catch(err => {
+              console.warn(`[HomePage] Failed to fetch BCMR metadata for ${token.id}:`, err)
             })
           }
         })

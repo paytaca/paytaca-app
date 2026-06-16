@@ -285,12 +285,30 @@ export default {
 		    if (this.isCashToken) {
 		    	try {
 		    		const directTokens = await this.fetchTokensDirectlyFromAPI()
-		    		// Use API data only - no fallback to store
 		    		this.assetList = directTokens
+
+		    		directTokens.forEach(token => {
+		    			if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
+		    				this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
+		    					if (metadata) {
+		    						const idx = this.assetList.findIndex(t => t.id === token.id)
+		    						if (idx !== -1) {
+		    							this.assetList = [
+		    								...this.assetList.slice(0, idx),
+		    								{ ...this.assetList[idx], ...metadata },
+		    								...this.assetList.slice(idx + 1),
+		    							]
+		    							this.assetListKey++
+		    						}
+		    					}
+		    				}).catch(err => {
+		    					console.warn(`[AssetList] Failed to fetch BCMR metadata for ${token.id}:`, err)
+		    				})
+		    			}
+		    		})
 		    	} catch (error) {
 		    		console.error('Error fetching tokens from API:', error)
 		    		this.networkError = true
-		    		// On error, show empty list - do not fall back to store
 		    		this.assetList = []
 		    	}
 		    } else {
@@ -693,17 +711,19 @@ export default {
 	    			// Map API response to asset format expected by the component
 	    			// API already returns tokens ordered by favorites and favorite_order
 	    			const tokens = data.results.map(result => {
-	    				// Convert IPFS URLs if needed
 	    				const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
-	    				
+
+	    				const storeAssets = this.$store.getters['assets/getAsset'](result.id)
+	    				const storeAsset = Array.isArray(storeAssets) && storeAssets.length > 0 ? storeAssets[0] : null
+
 	    				return {
 	    					id: result.id,
-	    					name: result.name || 'Unknown Token',
-	    					symbol: result.symbol || '',
-	    					decimals: result.decimals || 0,
-	    					logo: logo,
+	    					name: storeAsset?.name || result.name || 'Unknown Token',
+	    					symbol: storeAsset?.symbol || result.symbol || '',
+	    					decimals: storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0),
+	    					logo: storeAsset?.logo || logo,
 	    					balance: result.balance !== undefined ? result.balance : 0,
-	    					favorite: result.favorite === true ? 1 : 0, // Convert boolean to 1/0 format
+	    					favorite: result.favorite === true ? 1 : 0,
 	    					favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
 	    				}
 	    			})
