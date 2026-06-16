@@ -235,7 +235,7 @@
                   <q-separator spaced="sm" />
 
                   <div class="column q-gap-y-none text-negative">
-                    <div class="text-caption text-weight-medium">DROPS EVERY 10 MINUTES:</div>
+                    <div class="text-caption text-weight-bold">DROPS EVERY 10 MINUTES:</div>
                     <div class="text-caption text-weight-bold">
                       -{{ getFiatDisplay(lot.bidding_decrement) }}
                     </div>
