@@ -7,7 +7,7 @@
         <q-card
           flat
           class="create-card-action q-pa-xl text-center full-width cursor-pointer"
-          @click="onOpenCreateCardForm()"
+          @click="onOpenLinkCardForm()"
         >
           <div class="text-h4 text-weight-bold q-mb-sm text-primary">
             {{ $t('Create New Card') }}
@@ -130,9 +130,9 @@
     </q-page>
     
     <!-- Create Card Dialog -->
-    <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
-    <ResumeCreateCardDialog 
-      v-if="showResumeCreateCardDialog" 
+    <LinkCardForm v-if="showLinkCardForm" @onClose="onCloseLinkCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
+    <ResumeLinkCardDialog 
+      v-if="showResumeLinkCardDialog" 
       @resumeAttempt="onResumeCardAttempt" 
       @deleteAttempt="onDeleteCardAttempt"
       @cancelAttempt="onCancelCardAttempt"
@@ -140,27 +140,27 @@
 
 </template>
 <script>
-import CreateCardForm from 'src/components/card/CreateCardForm.vue';
-import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
-// import { createCardLogic } from 'src/components/card/createCard.js';
+import LinkCardForm from 'src/components/card/LinkCardForm.vue';
+import ResumeLinkCardDialog from 'src/components/card/ResumeLinkCardDialog.vue';
+// import { linkCardLogic } from 'src/components/card/linkCard.js';
 import { loadCardUser } from 'src/services/card/user';
-// import { clearCreateCardAttempt, getCreateCardAttempt } from 'src/services/card/storage';
+// import { clearLinkCardAttempt, getLinkCardAttempt } from 'src/services/card/storage';
 // import Card from 'src/services/card/card';
-import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
+import LinkCardAttemptMixin from 'src/mixins/card/link-card-attempt-mixin'
 
 export default {
-  mixins: [CreateCardAttemptMixin],
+  mixins: [LinkCardAttemptMixin],
   components: {
-    CreateCardForm,
-    ResumeCreateCardDialog
+    LinkCardForm,
+    ResumeLinkCardDialog
   },
 
   data () {
     return {
       // user: null,
       isloaded: false,
-      showCreateCardForm: false,
-      // showResumeCreateCardDialog: false,
+      showLinkCardForm: false,
+      // showResumeLinkCardDialog: false,
       newCardName: '',
       // idempotencyKey: '',
     }
@@ -183,7 +183,7 @@ export default {
       this.showLoading()
       await this.loadCardUser()
       this.checkExistingCards()
-      await this.checkExistingCreateCardAttempt()
+      await this.checkExistingLinkCardAttempt()
       this.isloaded = true
       this.hideLoading()
     },
