@@ -686,8 +686,9 @@ export default {
           userLocationComponents.street = components.street
           userLocationComponents.city = components.city
           userLocationComponents.country = components.country
+          userLocationComponents.formatted = coordinates.label || [components.street, components.city, components.country].filter(Boolean).join(', ')
           this.$store.commit('card/setUserLocation', userLocationComponents)
-          this.loadMerchantList({ reset: true, location: { latitude: coordinates.lat, longitude: coordinates.lng } }).then(() => this.saveMerchantsToCard())
+          this.loadMerchantList({ reset: true }).then(() => this.saveMerchantsToCard())
           return
         }
 
@@ -709,7 +710,7 @@ export default {
           userLocationComponents.formatted = `${coordinates.lat}, ${coordinates.lng}`
         }
         this.$store.commit('card/setUserLocation', userLocationComponents)
-        this.loadMerchantList({ reset: true, location: { latitude: coordinates.lat, longitude: coordinates.lng } }).then(() => this.saveMerchantsToCard())
+        this.loadMerchantList({ reset: true }).then(() => this.saveMerchantsToCard())
       })
     },
 
@@ -1226,15 +1227,20 @@ export default {
       });
 
       // Also update card store so merchant reload picks up the new location
+      const address = this.mapCoordinates.address || {}
       this.$store.commit('card/setUserLocation', {
         ...(this.userLocation || {}),
         latitude: this.mapCoordinates.latitude,
         longitude: this.mapCoordinates.longitude,
-        formatted: this.mapCoordinates.formatted || ''
+        formatted: this.mapCoordinates.formatted || '',
+        location: address.suburb || address.city_district || address.town || '',
+        street: address.road || address.street || '',
+        city: address.city || address.town || address.village || address.county || '',
+        country: address.country || ''
       });
 
       // Reload merchants with new location
-      await this.loadMerchantList({ reset: true, location: { latitude: this.mapCoordinates.latitude, longitude: this.mapCoordinates.longitude } });
+      await this.loadMerchantList({ reset: true });
       this.saveMerchantsToCard();
 
       this.$q.notify({
