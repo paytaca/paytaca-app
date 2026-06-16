@@ -325,7 +325,7 @@
       </div>
       
       <div class="row items-start">
-        <div v-if="isLoading" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
             <q-skeleton height="200px" square />
             <q-card-section>
