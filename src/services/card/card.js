@@ -293,7 +293,7 @@ export class Card {
 
     console.log('Creating card entry...');
     this._assertWallet();
-    const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
+    const idempotencyKey = `link-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
     const data = {
       alias: alias || "",

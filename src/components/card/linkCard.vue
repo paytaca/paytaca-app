@@ -20,7 +20,7 @@
           <!-- Main Create Card Button - Large Card Style -->
           <q-card
             flat
-            class="create-card-action q-pa-xl text-center full-width cursor-pointer"
+            class="link-card-action q-pa-xl text-center full-width cursor-pointer"
             :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
             @click="openLinkCardDialog"
           >
@@ -32,7 +32,7 @@
               {{ $t('Start using secure blockchain payments') }}
             </div>
             
-            <div class="create-card-icon q-mb-md">
+            <div class="link-card-icon q-mb-md">
               <q-icon name="add_circle_outline" size="48px" color="primary" />
             </div>
             

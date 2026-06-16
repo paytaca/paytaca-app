@@ -6,14 +6,14 @@
         <!-- Main Create Card Button - Large Card Style -->
         <q-card
           flat
-          class="create-card-action q-pa-xl text-center full-width cursor-pointer"
+          class="link-card-action q-pa-xl text-center full-width cursor-pointer"
           @click="onOpenLinkCardForm()"
         >
           <div class="text-h4 text-weight-bold q-mb-sm text-primary">
             {{ $t('Create New Card') }}
           </div>
           
-          <div class="create-card-icon q-mb-md">
+          <div class="link-card-icon q-mb-md">
             <q-icon name="add_circle_outline" size="48px" color="primary" />
           </div>
           
@@ -372,34 +372,34 @@ export default {
 }
 
 /* Create New Card - Glassmorphic Gold */
-.create-card-action {
+.link-card-action {
   background: transparent;
   border: 2px dashed;
   border-radius: 24px;
   transition: all 0.3s ease;
 }
 
-.body--light .create-card-action {
+.body--light .link-card-action {
   border-color: color-mix(in srgb, var(--q-primary) 30%, transparent);
   background: color-mix(in srgb, var(--q-primary) 10%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
-.body--light .create-card-action:hover {
+.body--light .link-card-action:hover {
   background: color-mix(in srgb, var(--q-primary) 10%, white);
   border-color: color-mix(in srgb, var(--q-primary) 60%, transparent);
   transform: translateY(-4px);
 }
 
-.body--dark .create-card-action {
+.body--dark .link-card-action {
   border-color: color-mix(in srgb, var(--q-primary) 20%, transparent);
   background: color-mix(in srgb, var(--q-primary) 15%, black);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
-.body--dark .create-card-action:hover {
+.body--dark .link-card-action:hover {
   background: color-mix(in srgb, var(--q-primary) 25%, black);
   border-color: color-mix(in srgb, var(--q-primary) 35%, transparent);
   transform: translateY(-4px);
