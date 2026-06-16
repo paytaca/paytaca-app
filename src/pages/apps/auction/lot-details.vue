@@ -104,7 +104,7 @@
           </div>
  
           <div class="col-12 col-sm col-md-7">
-            <div class="col rounded-borders q-pa-sm q-mb-md bg-primary">
+            <div class="col rounded-borders q-pa-sm q-mb-md bg-primary text-white">
               <div class="text-caption q-mb-xs">
                 <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
               </div>
@@ -114,7 +114,7 @@
               </div>
             </div>
 
-            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-green">
+            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-green text-white">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
@@ -134,7 +134,7 @@
               </template>
             </div>
  
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-green">
+            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-green text-white">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
@@ -395,7 +395,7 @@ onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
 })
 
-const dutchFloorPriceBch    = computed(() => Number(lot.value?.threshold_bid || 0))
+const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid || 0))
 const dutchCurrentPriceBch  = computed(() => dynamicPriceBch.value)
 
 const buyItNow = () => { 
@@ -424,11 +424,15 @@ const handleBuyItNow = async (payload = {}) => {
     })
 
     if (res.success) {
-      dutchAlreadySold.value = true
-      $q.notify({
-        type: 'positive',
-        message: `Secured for ${getFormattedBCH(dutchCurrentPriceBch.value).main}${getFormattedBCH(dutchCurrentPriceBch.value).zeros} BCH!`,
-      })
+      const resIsSold = await callAPI('lots', props.lotId, 'patch', { is_sold: true })
+
+      if (resIsSold) {
+        dutchAlreadySold.value = true
+        $q.notify({
+          type: 'positive',
+          message: `Secured for ${getFormattedBCH(dutchCurrentPriceBch.value).main}${getFormattedBCH(dutchCurrentPriceBch.value).zeros} BCH!`,
+        })
+      }
     } else {
       throw new Error(res.error || 'Transaction failed. Please try again.')
     }
