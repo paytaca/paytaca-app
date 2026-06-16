@@ -88,48 +88,11 @@
             :card="activeCard"
             :key="activeCard.id"
           />
-          <div 
+          <OrderCard
             v-else-if="activeTab === 'Order Card' && activeCard"
-            class="full-width text-center"
-          >
-            <q-icon 
-              name="credit_card" 
-              size="64px" 
-              color="primary" 
-              class="q-mb-md q-mt-lg"
-            />
-            <div 
-              class="text-h5 text-weight-bold q-mb-sm"
-              :class="textColor"
-            >
-              Your new Paytaca card awaits.
-            </div>
-            <p 
-              class="opacity-80 q-mb-lg"
-              :class="textColorGrey"
-            >
-              Global payments, Paytaca style.
-            </p>
-            <div 
-              class="text-caption q-mb-md"
-              :class="textColorGreyLight"
-              style="max-width: 400px; margin: 0 auto;"
-            >
-              <q-icon name="local_shipping" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
-              <strong>Local shipping:</strong> 7-10 business days<br/>
-              <q-icon name="public" size="16px" class="q-mr-xs" :color="$q.dark.isActive ? 'grey-5' : 'grey-6'"/>
-              <strong>International shipping:</strong> May take longer depending on destination
-            </div>
-            <q-btn 
-              :label="'Order Your Card'" 
-              color="primary" 
-              class="q-px-xl q-mt-lg text-bold"
-              unelevated
-              rounded
-              icon="open_in_new"
-              @click="openOrderCardWebsite"
-            />
-          </div>
+            :card="activeCard"
+            @order-complete="onOrderComplete"
+          />
 
           <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard"/>
           <div v-else-if="!activeCard" class="flex flex-center full-height">
@@ -264,6 +227,7 @@ import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
+import OrderCard from 'src/components/card/OrderCard.vue'
 import L from 'leaflet'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
@@ -274,7 +238,8 @@ export default {
     TransactionHistory,
     ManageAuthNFTs,
     CashInDialog,
-    CardSettings
+    CardSettings,
+    OrderCard
   },
 
   data () {
@@ -630,6 +595,15 @@ export default {
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
+    },
+
+    onOrderComplete () {
+      this.$q.notify({
+        message: 'Card order placed successfully!',
+        color: 'positive',
+        icon: 'check_circle',
+        timeout: 3000
+      })
     },
 
     async getCardBchBalance() {
