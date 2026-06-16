@@ -31,11 +31,26 @@
           style="max-width: 180px; opacity: 0.6;"
         >
           <q-icon name="account_balance_wallet" size="13px" class="q-mr-xs" />
-          <span class="ellipsis text-caption text-weight-medium" style="max-width: 130px;">CUSTOMER NAME</span>
+          <span class="ellipsis text-caption text-weight-medium" style="max-width: 130px;">{{ walletLabel }}</span>
         </q-chip>
       </q-card-section>
 
       <q-separator :dark="darkMode" />
+      
+      <q-card-section v-if="lot?.threshold_bid" class="q-py-sm">
+        <div class="row items-center q-gutter-xs text-caption" style="opacity: 0.65;">
+          <q-icon name="gavel" size="13px" />
+          <span>Highest bid:</span>
+          <span class="text-weight-bold">
+            {{ getFormattedBCH(lot.threshold_bid).main
+            }}<span style="opacity: 0.55;">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+          </span>
+        </div>
+        <div v-if="isBelowMinimum" class="text-caption text-negative q-mt-xs">
+          <q-icon name="warning" size="13px" class="q-mr-xs" />
+          Bid must be higher than the current highest bid.
+        </div>
+      </q-card-section>
 
       <q-card-section class="q-pt-md">
         <div class="text-caption text-weight-bold text-uppercase q-mb-sm">
@@ -102,7 +117,8 @@
           no-caps
           unelevated
           color="positive"
-          :disable="!price || Number(price) <= 0"
+          :disable="!price || Number(price) <= 0 || isBelowMinimum || loading"
+          :loading="loading"
           class="full-width text-weight-bold"
           style="border-radius: 12px; height: 50px; font-size: 15px;"
           @click="placeBid"
@@ -115,22 +131,50 @@
 </template>
 
 <script setup>
-import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
+import { Store } from 'src/store'
 
 const props = defineProps({
-  modelValue: Boolean
+  modelValue: Boolean,
+  lot: { type: Object, default: null },
+  auction: { type: Object, default: null },
+  loading: { type: Boolean, default: false }
 })
-const emit = defineEmits(['update:modelValue'])
 
-const $q = useQuasar()
+const emit = defineEmits(['update:modelValue', 'place-bid'])
+
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const price = ref('')
-const quickAmounts = [0.001, 0.005, 0.01, 0.05]
+
+watch(() => props.modelValue, (open) => {
+  if (open) price.value = ''
+})
+
+const walletLabel = computed(() => {
+  const wh = Store.getters['global/getWallet']('bch')?.walletHash
+  if (!wh) return 'Not connected'
+  return wh.length > 20 ? `${wh.slice(0, 10)}...${wh.slice(-10)}` : wh
+})
+
+const quickAmounts = computed(() => {
+  const base = Number(props.lot?.threshold_bid || 0)
+  const step = 0.00005
+  return [
+    parseFloat((base + step).toFixed(8)),
+    parseFloat((base + step * 2).toFixed(8)),
+    parseFloat((base + step * 5).toFixed(8)),
+    parseFloat((base + step * 10).toFixed(8))
+  ]
+})
+
+const isBelowMinimum = computed(() => {
+  if (!props.lot?.threshold_bid || !price.value) return false
+  return Number(price.value) <= Number(props.lot.threshold_bid)
+})
 
 const getFormattedBCH = (bch) => {
   const numStr = Number(bch).toFixed(8)
@@ -140,14 +184,14 @@ const getFormattedBCH = (bch) => {
   return { main, zeros, full: numStr }
 }
 
+const formatFiat = (val) => {
+  if (val == null) return '—'
+  return Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 const placeBid = () => {
-  $q.notify({
-    type: 'positive',
-    message: `Bid of ${getFormattedBCH(Number(price.value)).full} BCH placed!`,
-    timeout: 2500,
-    position: 'top',
-    icon: 'gavel'
+  emit('place-bid', {
+    bid_price_bch: parseFloat(Number(price.value).toFixed(8))
   })
-  emit('update:modelValue', false)
 }
 </script>

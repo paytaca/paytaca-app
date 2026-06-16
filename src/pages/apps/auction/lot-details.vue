@@ -115,16 +115,26 @@
             </div>
 
             <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-green">
-              <div class="text-caption q-mb-xs">
-                <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
+              <div class="row items-center justify-between q-mb-xs">
+                <div class="text-caption">
+                  <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
+                </div>
+                <q-spinner-dots v-if="englishBidPolling" size="12px" />
               </div>
-              <div class="text-weight-medium">₱950</div>
-              <div class="text-caption text-weight-medium">
-                {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
-              </div>
+              <template v-if="englishHighestBid">
+                <div class="text-weight-medium">
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                </div>
+              </template>
+              <template v-else>
+                <div class="text-weight-medium" style="opacity: 0.5;">No bids yet</div>
+                <div class="text-caption text-weight-medium">
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH · floor
+                </div>
+              </template>
             </div>
  
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-green">
+            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
@@ -132,13 +142,12 @@
               </div>
               <div class="row items-end justify-between q-mb-sm">
                 <div>
-                  <div class="text-weight-medium">₱{{ formatFiat(dutchCurrentPriceFiat) }}</div>
-                  <div class="text-caption text-weight-medium">
+                  <div class="text-weight-medium">
                     {{ getFormattedBCH(dutchCurrentPriceBch).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(dutchCurrentPriceBch).zeros }}</span> BCH
                   </div>
                 </div>
                 <div class="text-right">
-                  <div class="text-caption">Floor</div>
+                  <div class="text-caption" style="opacity: 0.55;">Floor</div>
                   <div class="text-caption text-weight-medium">
                     {{ getFormattedBCH(dutchFloorPriceBch).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(dutchFloorPriceBch).zeros }}</span> BCH
                   </div>
@@ -213,7 +222,13 @@
       </div>
     </div>
  
-    <BiddingPopup v-model="openDialog" />
+    <BiddingPopup
+      v-model="openDialog"
+      :lot="lot"
+      :auction="auction"
+      :loading="englishBidLoading"
+      @place-bid="handlePlaceBid"
+    />
     <BuyItNowPopup
       v-model:isToggledBuyItNow="isToggledBuyItNow"
       :lot="lot"
@@ -257,14 +272,11 @@ const props = defineProps({
   }
 })
 
-const openDialog = ref(false)
-const isToggledBuyItNow = ref(false)
-const buyItNowLoading = ref(false)
 const activeSlide = ref(0)
 const lotImages = ref([])
 const lot = ref(null)
 const auction = ref(null)
-const dutchAlreadySold  = ref(false)
+const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 
 const $q = useQuasar()
 const $store = useStore()
@@ -277,14 +289,61 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 // =========================================================================
 // ============================ ENGLISH AUCTION ============================
 // =========================================================================
-// Lines-of-code for English auction mechanisms
+const openDialog = ref(false)
+const englishBidLoading = ref(false)
+const englishBidPolling = ref(false)
+const englishHighestBid = computed(() => Number(lot.value?.threshold_bid || 0))
+
+const handlePlaceBid = async ({ bid_price_bch }) => {
+  if (!walletHash) {
+    $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
+    return
+  }
+
+  englishBidLoading.value = true
+  try {
+    const payload = {
+      user_id: walletHash,
+      lot_id: props.lotId,
+      bid_price_bch: Number(bid_price_bch).toFixed(8),
+      is_final_bid: true
+    }
+
+    const bidResponse = await callAPI('biddings', null, 'post', payload)
+
+    if (!bidResponse.success) {
+      throw new Error(bidResponse.error || 'Bid failed. Please try again.')
+    }
+
+    await callAPI('lots', props.lotId, 'patch', { threshold_bid: Number(bid_price_bch).toFixed(8) })
+    
+    openDialog.value = false
+    $q.notify({
+      type: 'positive',
+      icon: 'gavel',
+      message: `Bid of ${getFormattedBCH(bid_price_bch).main}${getFormattedBCH(bid_price_bch).zeros} BCH placed!`,
+      timeout: 3000
+    })
+    
+    await fetchLot()
+  } catch (err) {
+    console.error(err)
+    $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
+  } finally {
+    englishBidLoading.value = false
+  }
+}
 
 
 
 // =========================================================================
 // ============================= DUTCH AUCTION =============================
 // =========================================================================
-const TIME_INTERVAL_MS = 1000 * 60 * 10
+const isToggledBuyItNow = ref(false)
+const buyItNowLoading = ref(false)
+const dutchAlreadySold  = ref(false)
+
+const TIME_INTERVAL_MS = 1000
 const INITIAL_SECONDS = TIME_INTERVAL_MS / 1000
 
 const secondsRemaining = ref(INITIAL_SECONDS)
@@ -335,15 +394,14 @@ onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
 })
 
-const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid || 0))
-const dutchCurrentPriceBch = computed(() => dynamicPriceBch.value)
-const dutchCurrentPriceFiat = computed(() => 0)
+const dutchFloorPriceBch    = computed(() => Number(lot.value?.threshold_bid || 0))
+const dutchCurrentPriceBch  = computed(() => dynamicPriceBch.value)
 
 const buyItNow = () => { 
   isToggledBuyItNow.value = true 
 }
 
-const handleBuyItNow = async () => {
+const handleBuyItNow = async (payload = {}) => {
   isToggledBuyItNow.value = false
   if (auction.value?.type !== 'Dutch') return
 
@@ -355,32 +413,23 @@ const handleBuyItNow = async () => {
   buyItNowLoading.value = true
 
   try {
+    const bidBch = payload.bid_price_bch ?? dutchCurrentPriceBch.value
     const res = await callAPI('biddings', null, 'post', {
       user_id: walletHash,
       lot_id: props.lotId,
-      bid_price_bch: dutchCurrentPriceBch.value.toFixed(8),
+      bid_price_bch: Number(bidBch).toFixed(8),
       bid_price_fiat: 0,
       is_final_bid: true
     })
 
     if (res.success) {
       dutchAlreadySold.value = true
-    } else {
-      throw new Error(res.error || 'Transaction failed. Please try again.')
-    }
-
-    const isSoldResult = await callAPI('lots', props.lotId, 'patch', { is_sold: true })
-
-    if (isSoldResult.success) {
       $q.notify({
         type: 'positive',
-        message: `Secured for ₱${formatFiat(dutchCurrentPriceFiat.value)}!`,
-        caption: `${getFormattedBCH(dutchCurrentPriceBch.value).main} BCH`
+        message: `Secured for ${getFormattedBCH(dutchCurrentPriceBch.value).main}${getFormattedBCH(dutchCurrentPriceBch.value).zeros} BCH!`,
       })
-
-      await refresh()
     } else {
-      throw new Error(isSoldResult.error || 'Transaction failed. Please try again.')
+      throw new Error(res.error || 'Transaction failed. Please try again.')
     }
   } catch (err) {
     console.error(err)
@@ -412,7 +461,7 @@ const formatFiat = (val) => {
 }
 
 const getFormattedBCH = (bch) => {
-    const numStr = bch.toFixed(8);
+    const numStr = Number(bch).toFixed(8);
     const match = numStr.match(/^(.*?)0*$/);
     const main = match ? match[1] : numStr;
     const zeros = numStr.substring(main.length);
