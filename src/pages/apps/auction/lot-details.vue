@@ -180,7 +180,7 @@
                   <div class="text-caption col-4 q-mr-sm">
                     <q-icon name="event" size="13px" class="q-mr-xs" />Posted on
                   </div>
-                  <span>{{ auction?.date_posted || 'N/A' }}</span>
+                  <span>{{ formatAuctionDate(auction.creation_date) || 'N/A' }}</span>
                 </div>
               </q-card-section>
             </q-card>
