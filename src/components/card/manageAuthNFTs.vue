@@ -510,27 +510,30 @@ export default {
   },
   async mounted() {
     console.log('ManageAuthNFTs MOUNTED, card:', this.card)
-    await geolocationManager.getOrUpdateGeoIp()
-    const geoip = geolocationManager.geoip.value
-    if (geoip?.latitude && geoip?.longitude && !this.userLocation) {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
-        )
-        const data = await response.json()
-        const address = data?.address || {}
-        this.$store.commit('card/setUserLocation', {
-          latitude: geoip.latitude,
-          longitude: geoip.longitude,
-          formatted: data.display_name || '',
-          location: address.suburb || address.city_district || address.town || '',
-          landmark: address.suburb || '',
-          street: address.road || address.street || '',
-          city: address.city || address.town || address.village || address.county || '',
-          country: address.country || ''
-        })
-      } catch (error) {
-        console.error('Reverse geocoding on mount failed:', error)
+    this.loadSavedLocation()
+    if (!this.userLocation) {
+      await geolocationManager.getOrUpdateGeoIp()
+      const geoip = geolocationManager.geoip.value
+      if (geoip?.latitude && geoip?.longitude) {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
+          )
+          const data = await response.json()
+          const address = data?.address || {}
+          this.$store.commit('card/setUserLocation', {
+            latitude: geoip.latitude,
+            longitude: geoip.longitude,
+            formatted: data.display_name || '',
+            location: address.suburb || address.city_district || address.town || '',
+            landmark: address.suburb || '',
+            street: address.road || address.street || '',
+            city: address.city || address.town || address.village || address.county || '',
+            country: address.country || ''
+          })
+        } catch (error) {
+          console.error('Reverse geocoding on mount failed:', error)
+        }
       }
     }
     this.loadMerchantList()
@@ -1301,6 +1304,11 @@ export default {
         
         if (daysDiff < 7) {
           this.displayLocation = savedLocation.displayLocation;
+          this.$store.commit('card/setUserLocation', {
+            latitude: savedLocation.displayLocation.latitude,
+            longitude: savedLocation.displayLocation.longitude,
+            formatted: savedLocation.displayLocation.formatted || ''
+          });
           console.log('Loaded saved location for card:', cardId, 'Location:', this.displayLocation.formatted?.substring(0, 50));
         } else {
           console.log('Saved location is older than 7 days, using current location');
