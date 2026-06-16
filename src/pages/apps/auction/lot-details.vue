@@ -108,9 +108,11 @@
               <div class="text-caption q-mb-xs">
                 <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
               </div>
-              <div class="text-weight-medium">₱950</div>
+              <div class="text-weight-medium">
+                {{ getFiatDisplay(lot.estimated_amount) }}
+              </div>
               <div class="text-caption text-weight-medium">
-                {{ lot.getFormattedBCH(lot.estimated_amount).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
+                {{ getBchDisplay(lot.estimated_amount).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.estimated_amount).zeros }}</span> BCH
               </div>
             </div>
 
@@ -122,19 +124,22 @@
                 <q-spinner-dots v-if="englishBidPolling" size="12px" />
               </div>
               <template v-if="englishHighestBid">
-                <div class="text-weight-medium">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                <div class="text-weight-medium q-mb-xs">
+                  {{ getFiatDisplay(lot.threshold_bid) }}
+                </div>
+                <div class="text-caption text-weight-medium">
+                  {{ getBchDisplay(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold_bid).zeros }}</span> BCH
                 </div>
               </template>
               <template v-else>
                 <div class="text-weight-medium" style="opacity: 0.5;">No bids yet</div>
                 <div class="text-caption text-weight-medium">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH · floor
+                  {{ getFiatDisplay(lot.threshold_bid) }} · {{ getBchDisplay(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold_bid).zeros }}</span> BCH floor
                 </div>
               </template>
             </div>
- 
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-green text-white">
+
+            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-red text-white">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
@@ -143,13 +148,19 @@
               <div class="row items-end justify-between q-mb-sm">
                 <div>
                   <div class="text-weight-medium">
-                    {{ getFormattedBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                    {{ getFiatDisplay(dutchCurrentPriceBch) }}
+                  </div>
+                  <div class="text-caption text-weight-medium">
+                    {{ getBchDisplay(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ getBchDisplay(dutchCurrentPriceBch).zeros }}</span> BCH
                   </div>
                 </div>
                 <div class="text-right">
                   <div class="text-caption" style="opacity: 0.55;">Floor</div>
+                  <div class="text-body2 text-weight-bold">
+                    {{ getFiatDisplay(dutchFloorPriceBch) }}
+                  </div>
                   <div class="text-caption text-weight-medium">
-                    {{ getFormattedBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                    {{ getBchDisplay(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ getBchDisplay(dutchFloorPriceBch).zeros }}</span> BCH
                   </div>
                 </div>
               </div>
@@ -283,6 +294,20 @@ const $q = useQuasar()
 const $store = useStore()
 const $route = useRoute()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
+
+const getFiatDisplay = (bchValue) => {
+  const rate = bchToPhpRate.value
+  const numValue = Number(bchValue) || 0
+  const phpValue = numValue * rate
+  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+const getBchDisplay = (bchValue) => {
+  const numValue = Number(bchValue) || 0
+  return getFormattedBCH(numValue)
+}
 
 
 
@@ -459,11 +484,6 @@ const fetchDutchSoldStatus = async () => {
 
 
 
-
-const formatFiat = (val) => {
-  if (val == null) return '—'
-  return Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 const getFormattedBCH = (bch) => {
   const numStr = Number(bch).toFixed(8);

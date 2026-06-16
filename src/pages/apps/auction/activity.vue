@@ -226,7 +226,7 @@
         </div>
 
         <!-- Actual products -->
-        <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
@@ -274,23 +274,37 @@
 
               <q-separator spaced="sm" />
               
-              <div v-if="lot.auction_type === 'English'" class="row items-center justify-between q-mb-xs">
-                <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Highest Bid</span>
-                <span class="text-caption" style="opacity: 0.65;">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
-                </span>
+              <div v-if="lot.auction_type === 'English'" class="column q-gap-y-none q-mb-xs">
+                <div class="text-caption text-weight-medium">HIGHEST BID:</div>
+                <div class="text-caption text-weight-bold">
+                  {{ getFiatDisplay(lot.threshold_bid) }}
+                </div>
+                <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                  {{ getBchDisplay(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold_bid).zeros }}</span>&nbsp;BCH
+                </div>
               </div>
               
-              <div v-else-if="lot.auction_type === 'Dutch'" class="column q-gutter-y-xs q-mb-xs">
-                <div class="row items-center justify-between">
-                  <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Starting Price</span>
-                  <span class="text-caption" style="opacity: 0.65;">
-                    {{ lot.getFormattedBCH(lot.starting_price).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.starting_price).zeros }}</span> BCH
-                  </span>
+              <div v-else-if="lot.auction_type === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
+                <div class="column q-gap-y-none">
+                  <div class="text-caption text-weight-medium">START PRICE:</div>
+                  <div class="text-caption text-weight-bold">
+                    {{ getFiatDisplay(lot.starting_price) }}
+                  </div>
+                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    {{ getBchDisplay(lot.starting_price).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.starting_price).zeros }}</span>&nbsp;BCH
+                  </div>
                 </div>
-                <div class="row items-center justify-between">
-                  <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Drops every</span>
-                  <span class="text-caption" style="opacity: 0.65;">10 min · {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH</span>
+
+                <q-separator spaced="sm" />
+
+                <div class="column q-gap-y-none text-negative">
+                  <div class="text-caption text-weight-medium">DROPS EVERY 10M:</div>
+                  <div class="text-caption text-weight-bold">
+                    -{{ getFiatDisplay(lot.bidding_decrement) }}
+                  </div>
+                  <div  style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    -{{ getBchDisplay(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.bidding_decrement).zeros }}</span>&nbsp;BCH
+                  </div>
                 </div>
               </div>
             </q-card-section>
@@ -422,6 +436,30 @@ const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $router = useRouter()
+
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
+
+const getFiatDisplay = (bchValue) => {
+  const rate = bchToPhpRate.value
+  const numValue = Number(bchValue) || 0
+  const phpValue = numValue * rate
+  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+const getBchDisplay = (bchValue) => {
+  const numValue = Number(bchValue) || 0
+  return getFormattedBCH(numValue)
+}
+
+const getFormattedBCH = (bch) => {
+  const numStr = Number(bch).toFixed(8);
+  const match = numStr.match(/^(.*?)0*$/);
+  const main = match ? match[1] : numStr;
+  const zeros = numStr.substring(main.length);
+  return { main, zeros, full: numStr };
+}
+
+
 
 const activityType = ref($store.state.auction?.activityType || 'My Biddings')
 const activityTypeOptions = [
