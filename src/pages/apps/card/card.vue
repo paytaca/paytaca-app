@@ -259,7 +259,7 @@
 </template>
 
 <script>
-import {createCardLogic} from 'src/components/card/createCard.js'
+import {linkCardLogic} from 'src/components/card/linkCard.js'
 import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
@@ -269,7 +269,7 @@ import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
 
 export default {
-  mixins: [createCardLogic],
+  mixins: [linkCardLogic],
   components: {
     TransactionHistory,
     ManageAuthNFTs,
@@ -1101,7 +1101,7 @@ export default {
       })
     },
 
-    // Card operations - moved from createCard.js
+    // Card operations - moved from linkCard.js
     
     /**
      * Sweep UTXOs from card back to wallet
