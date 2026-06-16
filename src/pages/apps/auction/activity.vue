@@ -298,6 +298,46 @@
         </div>
       </div>
     </div>
+
+    <!-- All arbiters's DISPUTES actioned -->
+    <div v-if="activityType === 'Arbiter'" class="q-pa-sm text-bow" :class="getDarkModeClass(darkMode)">    
+      <div class="row items-center q-pa-sm q-mb-md">
+        <div class="text-h5 q-px-xs">Arbiter</div>
+      </div>
+      
+      <div class="row items-start">
+        <div v-if="isLoading" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <q-skeleton height="200px" square />
+            <q-card-section>
+              <q-skeleton type="text" width="30%" class="float-right" />
+              <q-skeleton type="text" width="70%" />
+              <q-skeleton type="text" width="30%" class="q-mt-xs" />
+              <q-skeleton type="text" width="50%" class="q-mt-xs" />
+              <q-skeleton type="text" width="50%" class="q-mt-xs" />
+            </q-card-section>
+          </q-card>
+        </div>
+
+        <!-- <div v-else-if="isMyArbiterEmpty"
+          class="row flex-center q-mx-md q-mb-md rounded-borders"
+          :class="darkMode ? 'bg-pt-dark' : 'bg-pt-light'"
+          style="min-height: 70px; width: 100%;"
+        >
+          <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Biddings Made') }}</div>
+        </div> -->
+        
+        <div v-else class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <q-card
+            class="pt-card text-bow cursor-pointer"
+            :class="getDarkModeClass(darkMode)"
+            @click="$router.push({ name: 'app-auction-arbiter' })"
+          >
+            TEST
+          </q-card>
+        </div>
+      </div>
+    </div>
   </q-pull-to-refresh>
 </template>
 
@@ -324,7 +364,8 @@ const $router = useRouter()
 const activityType = ref($store.state.auction?.activityType || 'My Biddings')
 const activityTypeOptions = [
   'My Biddings',
-  'My Auctions'
+  'My Auctions',
+  'Arbiter'
 ]
 
 const auctionType = ref('All');
@@ -421,7 +462,7 @@ watch(activityType, async (newType) => {
   isLoading.value = true
 
   if(newType === 'My Auctions') await fetchAuctionData()
-  else await fetchLotData()
+  else if(newType === 'My Biddings') await fetchLotData()
 
   isLoading.value = false
 
@@ -450,7 +491,7 @@ const refresh = async (done) => {
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else await fetchLotData()
+  else if(activityType.value === 'My Biddings') await fetchLotData()
   
   isLoading.value = false
   done()
