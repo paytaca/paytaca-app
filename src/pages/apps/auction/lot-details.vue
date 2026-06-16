@@ -134,7 +134,7 @@
               </template>
             </div>
  
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md" :class="darkMode ? 'bg-dark' : 'bg-grey-2'">
+            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-green">
               <div class="row items-center justify-between q-mb-xs">
                 <div class="text-caption">
                   <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
@@ -344,7 +344,7 @@ const isToggledBuyItNow = ref(false)
 const buyItNowLoading = ref(false)
 const dutchAlreadySold  = ref(false)
 
-const TIME_INTERVAL_MS = 1000
+const TIME_INTERVAL_MS = 1000 * 60 * 10
 const INITIAL_SECONDS = TIME_INTERVAL_MS / 1000
 
 const secondsRemaining = ref(INITIAL_SECONDS)
