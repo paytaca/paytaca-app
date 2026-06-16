@@ -361,7 +361,7 @@
                   class="text-caption text-weight-bold"
                   style="margin: 0; padding: 3px 8px; height: auto;"
                 >
-                  <q-icon name="mediation" size="xs" class="q-mr-xs" />
+                  <q-icon :name="appeal.status === 'Pending' ? 'autorenew' : 'check_circle'" size="xs" class="q-mr-xs" />
                   {{ appeal.status }}
                 </q-chip>
                 <span class="text-caption q-mt-xs" style="opacity: 0.65;">
@@ -535,8 +535,6 @@ const fetchLotData = async () => {
           lot.end_date = auctionResult.data.end_date || null
           lot.auction_type = auctionResult.data.type || null
         }
-
-        console.log(lot)
 
         if (imageResult.success && Array.isArray(imageResult.data)) {
           lot.image = imageResult.data[0]?.image || null
