@@ -54,7 +54,7 @@ export async function deriveOAuthCredentials() {
 
   const publicNode = deriveHdPublicNode(addressNode)
   const publicKey = binToHex(publicNode.publicKey)
-  const address = pubkeyToAddress(publicKey, true)
+  const address = pubkeyToAddress(publicKey, false)
 
   return {
     privateKey: binToHex(addressNode.privateKey),
@@ -140,10 +140,10 @@ export async function getAuthHeaders() {
   console.log('address: ' + credentials.address)
   console.log('walletHash: ' + credentials.walletHash)
 
-  //const isChipnet = Store.getters['global/isChipnet']
+  const isChipnet = Store.getters['global/isChipnet']
   const client = new BitcoinCashOAuthClient({
     serverUrl: baseURL,
-    network: 'chipnet', // for production
+    network: isChipnet ? 'chipnet' : 'mainnet', // for production
     authBasePath: '/auth', // for auth base path in the baseURL
     fetch: axiosFetch
   })
