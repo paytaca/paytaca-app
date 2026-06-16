@@ -23,6 +23,7 @@ export class LotsList {
    * @param {String|null} data.date_sold
    * @param {Number} data.bidding_decrement
    * @param {Number} data.category_id
+   * @param {String} data.auction_type
    * @param {Number} data.auction_id
    * @param {Array<Object|String>} data.images
    */
@@ -39,6 +40,7 @@ export class LotsList {
     this.bidding_decrement = data.bidding_decrement !== undefined ? Number(data.bidding_decrement) : 1;
     this.category_id = data.category_id || (data.category ? data.category.id : null);
     this.category = data.category || (data.category_id === 1 ? 'Physical' : 'Digital');
+    this.auction_type = data.auction_type || null
     this.auction_id = data.auction_id || (data.auction ? data.auction.id : null);
     this.start_date = data.start_date || null;
     this.end_date = data.end_date || null;
