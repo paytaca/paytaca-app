@@ -112,7 +112,7 @@
           <div class="row items-center justify-between q-mb-sm">
             <span class="text-caption text-weight-bold">BALANCE</span>
             <span class="text-body2 text-weight-bold">
-              {{ getFormattedBCH(contract.balance).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ getFormattedBCH(contract.balance).zeros }}</span> BCH
+              {{ getFormattedBCH(contract.balance).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(contract.balance).zeros }}</span> BCH
             </span>
           </div>
 

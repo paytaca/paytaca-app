@@ -277,7 +277,7 @@
               <div v-if="lot.auction_type === 'English'" class="row items-center justify-between q-mb-xs">
                 <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Highest Bid</span>
                 <span class="text-caption" style="opacity: 0.65;">
-                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+                  {{ lot.getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
                 </span>
               </div>
               
@@ -285,12 +285,12 @@
                 <div class="row items-center justify-between">
                   <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Starting Price</span>
                   <span class="text-caption" style="opacity: 0.65;">
-                    {{ lot.getFormattedBCH(lot.starting_price).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.starting_price).zeros }}</span> BCH
+                    {{ lot.getFormattedBCH(lot.starting_price).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.starting_price).zeros }}</span> BCH
                   </span>
                 </div>
                 <div class="row items-center justify-between">
                   <span class="text-caption text-weight-bold" style="text-transform: uppercase; letter-spacing: 0.4px;">Drops every</span>
-                  <span class="text-caption" style="opacity: 0.65;">10 min · {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span :style="{ opacity: darkMode ? 0.35 : 0.45 }">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH</span>
+                  <span class="text-caption" style="opacity: 0.65;">10 min · {{ lot.getFormattedBCH(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ lot.getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH</span>
                 </div>
               </div>
             </q-card-section>
