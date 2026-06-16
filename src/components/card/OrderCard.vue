@@ -183,7 +183,7 @@
 export default {
   name: 'OrderCard',
   props: {
-    card: { type: Object, required: true }
+    card: { type: Object, required: false, default: () => ({}) }
   },
   data() {
     return {
