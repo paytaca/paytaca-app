@@ -4,120 +4,37 @@
       <div v-if="type !== 'appeal'">
         <div class="xs-font-size">{{ tradeTypeLabel() }}</div>
         <div class="row justify-end">
-            <div class="col q-py-none">
-                <div style="overflow-x: auto; max-width: 200px;">
-                  <q-btn flat no-caps dense
-                      padding="none"
-                      color="primary"
-                      class="q-py-none q-my-none lg-font-size text-weight-bold"
-                      @click="onViewPeer(counterparty?.id)">
-                      {{ counterparty?.name }}
-                  </q-btn>
-                  <q-icon
-                  class="q-ml-xs"
-                  size="1em"
-                  :color="onlineStatusColor(counterparty)"
-                  :name="onlineStatusColor(counterparty) === 'orange' ? 'bedtime' : 'circle'"/>
-                </div>
-                <div class="row">
-                  <q-rating
-                  readonly
-                  :model-value="counterparty?.rating || 0"
-                  :v-model="counterparty?.rating || 0"
-                  size="1em"
-                  color="yellow-9"
-                  icon="star"
-                  icon-half="star_half"
-                  @click="onViewReviews"/>
-                  <span class="q-mx-xs sm-font-size">({{ counterparty?.rating?.toFixed(1) || 0 }})</span>
-                </div>
-                <div v-if="counterparty && counterparty?.last_online_at && counterparty?.is_online === false" class="row xs-font-size text-grey">
-                  Online {{ this.formatDate(counterparty?.last_online_at, true).toLowerCase() }}
-                </div>
-                <div v-if="!counterparty?.last_online_at" class="row xs-font-size text-grey">
-                  Offline for a long time
-                </div>
-            </div>
+          <div class="col q-py-none">
+            <PeerInfo
+              :peer="counterparty"
+              @click-name="onViewPeer"
+              @click-reviews="onViewReviews"
+            />
+          </div>
         </div>
       </div>
       <div v-else>
         <div class="row justify-between no-wrap">
           <div class="col-auto">
-            <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('BUYER') : $t('SELLER') }}</div>
-            <div class="row justify-end">
-                <div class="col q-py-none">
-                    <div style="max-width: 200px; overflow-x: auto;">
-                      <q-btn flat no-caps dense
-                          padding="none"
-                          color="primary"
-                          class="q-py-none q-my-none lg-font-size text-weight-bold"
-                          @click="onViewPeer(orderOwner.id)">
-                          {{ orderOwner.name }}
-                      </q-btn>
-                      <q-icon
-                        class="q-ml-xs"
-                        size="1em"
-                        :color="onlineStatusColor(orderOwner)"
-                        :name="onlineStatusColor(orderOwner) === 'orange' ? 'bedtime' : 'circle'"/>
-                    </div>
-                    <div class="row">
-                        <q-rating
-                        readonly
-                        :model-value="orderOwner.rating || 0"
-                        :v-model="orderOwner.rating || 0"
-                        size="1em"
-                        color="yellow-9"
-                        icon="star"
-                        @click="onViewReviews"/>
-                        <span class="q-mx-xs sm-font-size">({{ orderOwner.rating?.toFixed(1) || 0 }})</span>
-                    </div>
-                    <div v-if="orderOwner?.last_online_at && orderOwner?.is_online === false" class="row xs-font-size text-grey">
-                      Online {{ this.formatDate(orderOwner?.last_online_at, true).toLowerCase() }}
-                    </div>
-                    <div v-if="!orderOwner?.last_online_at" class="row xs-font-size text-grey">
-                      Offline for a long time
-                    </div>
-                </div>
-            </div>
+            <div class="sm-font-size">{{ ad?.trade_type === 'SELL'? $t('Buyer') : $t('Seller') }}</div>
+            <PeerInfo
+              :peer="orderOwner"
+              :show-trade-stats="false"
+              :show-reported-badge="false"
+              @click-name="onViewPeer"
+              @click-reviews="onViewReviews"
+            />
           </div>
           <div class="col-auto text-right">
-            <div class="sm-font-size">{{ ad.trade_type === 'SELL' ? $t('SELLER') : $t('BUYER') }}</div>
-            <div class="row justify-end q-py-none">
-              <div style="max-width: 125px; overflow-x: auto;">
-                <q-btn
-                    flat
-                    no-caps
-                    dense
-                    padding="none"
-                    color="primary"
-                    class="lg-font-size text-weight-bold"
-                    @click="onViewPeer(adOwner.id)">
-                    {{ adOwner.name }}
-                </q-btn>
-                <q-icon
-                  class="q-ml-xs"
-                  size="1em"
-                  :color="onlineStatusColor(adOwner)"
-                  :name="onlineStatusColor(adOwner) === 'orange' ? 'bedtime' : 'circle'"/>
-              </div>
-            </div>
-            <div class="row justify-end text-right">
-                <q-rating
-                readonly
-                :model-value="adOwner.rating || 0"
-                :v-model="adOwner.rating || 0"
-                size="1em"
-                color="yellow-9"
-                icon="star"
-                @click="onViewReviews"/>
-                <span class="q-ml-xs sm-font-size">({{ adOwner.rating?.toFixed(1) || 0 }})</span>
-            </div>
-            <div v-if="adOwner?.last_online_at && adOwner?.is_online === false" class="row xs-font-size text-grey">
-              <span class="col" style="text-align: right;">Online {{ this.formatDate(adOwner?.last_online_at, true).toLowerCase() }}</span>
-            </div>
-            <div v-if="!adOwner?.last_online_at" class="row xs-font-size text-grey text-right">
-              <span class="col" style="text-align: right;">Offline for a long time</span>
-            </div>
+            <div class="sm-font-size">{{ ad.trade_type === 'SELL' ? $t('Seller') : $t('Buyer') }}</div>
+            <PeerInfo
+              :peer="adOwner"
+              :show-trade-stats="false"
+              :show-reported-badge="false"
+              :align-right="true"
+              @click-name="onViewPeer"
+              @click-reviews="onViewReviews"
+            />
           </div>
         </div>
       </div>
@@ -134,9 +51,26 @@
                     {{ this.ad?.fiat_currency?.symbol }} {{ formatCurrency(ad?.price, this.ad?.fiat_currency?.symbol).replace(/[^\d.,-]/g, '') }}
                 </span>
                 <span class="sm-font-size q-ml-xs">/BCH </span>
+                <q-skeleton
+                  v-if="marketPriceLoading"
+                  type="text"
+                  width="40px"
+                  class="q-ml-xs inline-block"
+                  style="vertical-align: middle;"
+                />
+                <span
+                  v-else-if="pricePercentage !== null"
+                  class="sm-font-size q-ml-xs text-weight-bold cursor-pointer"
+                  :class="{
+                    'text-green': isPriceUp,
+                    'text-red': isPriceDown
+                  }">
+                  {{ isPriceUp ? '+' : '' }}{{ pricePercentage }}%
+                  <q-tooltip>{{ $t('PriceVsMarketTooltip') }}</q-tooltip>
+                </span>
               </div>
               <div v-if="type === 'order'">
-                <div class="xs-font-size q-mb-sm">{{ $t('AMOUNT', {}, 'AMOUNT') }}</div>
+                <div class="xs-font-size q-mb-sm">{{ $t('Amount', {}, 'Amount') }}</div>
                 <div>
                   <span class="col-transaction text-uppercase text-weight-bold lg-font-size pt-label" :class="getDarkModeClass(darkMode)">
                     {{ tradeAmountBCH }}
@@ -192,8 +126,10 @@
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bchToFiat, formatCurrency, formatDate, satoshiToBch } from 'src/exchange'
+import PeerInfo from 'src/components/ramp/fiat/PeerInfo.vue'
 
 export default {
+  components: { PeerInfo },
   data () {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
@@ -204,6 +140,18 @@ export default {
   props: {
     order: Object,
     ad: Object,
+    counterpartyPeerData: {
+      type: Object,
+      default: null
+    },
+    marketPrice: {
+      type: Number,
+      default: 0
+    },
+    marketPriceLoading: {
+      type: Boolean,
+      default: false
+    },
     type: {
       type: String,
       default: 'ad'
@@ -236,43 +184,50 @@ export default {
       return String(amount).replace(/[^\d.,-]/g, '')
     },
     counterparty () {
-      let counterparty = this.ad?.owner
-      if (this.order?.is_ad_owner) {
-        counterparty = this.order?.owner
+      const order = this.order
+      const user = this.userInfo
+      if (order?.members && user?.id) {
+        const counterparty = order.members.buyer?.id === user.id ? order.members.seller : order.members.buyer
+        if (this.counterpartyPeerData) {
+          return { ...counterparty, ...this.counterpartyPeerData }
+        }
+        return counterparty
       }
-      return counterparty
+      const owner = this.ad?.owner
+      const result = (owner && this.counterpartyPeerData) ? { ...owner, ...this.counterpartyPeerData } : (owner || null)
+      return result
+    },
+    pricePercentage () {
+      if (!this.marketPrice || !this.ad?.price) return null
+      const diff = ((this.ad.price - this.marketPrice) / this.marketPrice) * 100
+      return diff.toFixed(1)
+    },
+    isPriceUp () {
+      return this.pricePercentage > 0
+    },
+    isPriceDown () {
+      return this.pricePercentage < 0
     }
   },
   methods: {
     formatDate,
     formatCurrency,
     getDarkModeClass,
-    onlineStatusColor (peer) {
-      if (peer?.is_online) return 'green'
-      return 'grey-5'
-    },
-    getElapsedTimeInHours (date) {
-      const givenDateTime = new Date(date)
-      const currentDateTime = new Date()
-      const diffInMilliseconds = currentDateTime - givenDateTime
-      const diffInHours = diffInMilliseconds / (1000 * 60 * 60)
-      return diffInHours
-    },
     tradeTypeLabel () {
       const order = this.order
       if (!order) return this.$t('TradingWith')
       switch (order.trade_type) {
         case 'BUY':
           if (order.owner.name === this.userInfo.name) {
-            return 'BUYING FROM'
+            return 'Buying From'
           } else {
-            return 'SELLING TO'
+            return 'Selling To'
           }
         case 'SELL':
           if (order.owner.name === this.userInfo.name) {
-            return 'SELLING TO'
+            return 'Selling To'
           } else {
-            return 'BUYING FROM'
+            return 'Buying From'
           }
       }
     },

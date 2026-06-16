@@ -160,7 +160,7 @@
       }"
       @ok="onSecurityOk"
       @cancel="onSecurityCancel"
-      text="Swipe To Escrow"
+      text="Swipe to Escrow"
     />
   </div>
 </template>
@@ -281,7 +281,7 @@ export default {
       // generates the contract object
       await vm.generateContract()
       // mark contract as pending for verification, if the contract is already funded
-      vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+      vm.escrowBalance = vm.data?.contractBalance != null ? vm.data.contractBalance : await vm.escrowContract.getBalance(null, true)
       if (vm.escrowBalance > 0) {
         if (vm.order?.status?.value === 'CNF') {
           await vm.escrowPendingOrder()
