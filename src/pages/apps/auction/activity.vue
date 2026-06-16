@@ -234,7 +234,7 @@
           >
             <div class="relative-position">
               <q-img
-                :src="lot.images?.[0] || noImage"
+                :src="lot.image || noImage"
                 ratio="1.25"
               >
                 <template v-slot:loading>
@@ -286,13 +286,6 @@
             </q-card-section>
           </q-card>
         </div>
-
-        <!-- Empty state -->
-        <!--
-        <div>
-          {{ $t('NoProducts') }}
-        </div>
-        -->
       </div>
     </div>
   </q-pull-to-refresh>
@@ -349,22 +342,27 @@ const fetchAuctionData = async () => {
   }
 }
 
-// Can be more optimized
 const fetchLotData = async () => {
-  const result = await callAPI('my-biddings')
-
   try {
-    if (result.success && result.data) {
-      const lotPromises = result.data.map(async (item) => {
-        const lotResult = await callAPI('lots', item.lot_id)
-        if (!lotResult.success || !lotResult.data) return null
+    const result = await callAPI('my-biddings/lots')
 
-        const lot = LotsList.parse(lotResult.data)
-        
-        const auctionResult = await callAPI('auctions', lot.auction_id)
+    if (result.success && result.data) {
+      console.log(result.data)
+      const lotPromises = result.data.map(async (item) => {
+        const lot = LotsList.parse(item)
+
+        const [auctionResult, imageResult] = await Promise.all([
+          callAPI('auctions', lot.auction_id),
+          callAPI('lot-images-by-lot', lot.id)
+        ])
+
         if (auctionResult.success && auctionResult.data) {
           lot.start_date = auctionResult.data.start_date || null
           lot.end_date = auctionResult.data.end_date || null
+        }
+
+        if (imageResult.success && Array.isArray(imageResult.data)) {
+          lot.image = imageResult.data[0]?.image || null
         }
 
         return lot
