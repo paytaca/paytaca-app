@@ -1014,7 +1014,7 @@ onSelectAttachment (methodIndex, methodId) {
         if (vm.data?.order?.is_ad_owner) {
           vm.paymentMethods = orderPaymentTypes
         } else {
-          vm.paymentMethods = adPaymentTypes
+          vm.paymentMethods = orderPaymentTypes.length > 0 ? orderPaymentTypes : adPaymentTypes
         }
 
         if (vm.data?.order?.is_cash_in) {
