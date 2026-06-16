@@ -406,7 +406,7 @@
 </template>
 
 <script>
-import { createCardLogic, CardStorage } from './createCard.js'
+import { linkCardLogic, CardStorage } from './linkCard.js'
 import { getMerchantList, getMerchantsByCity } from 'src/services/card/merchants'
 import { geolocationManager } from 'src/boot/geolocation'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
@@ -419,7 +419,7 @@ import { backend as cardBackend } from 'src/services/card/backend.js';
 
 export default {
   name: 'ManageAuthNFTs',
-  mixins: [createCardLogic],
+  mixins: [linkCardLogic],
   components: { GeolocateBtn },
   props: {
     card: { type: Object, required: true }
