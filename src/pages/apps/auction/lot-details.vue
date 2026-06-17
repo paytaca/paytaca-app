@@ -101,6 +101,30 @@
                 <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('You are the author of this auction.') }}</div>
               </div>
             </div>
+
+            <div class="q-mt-md full-width">
+              <div v-if="isAuthor">
+                <q-btn
+                  outline
+                  class="text-bold text-white full-width"
+                  :color="darkMode ? 'white' : 'black'"
+                  icon="check_circle"
+                  padding="md"
+                  label="Confirm Delivery"
+                />
+              </div>
+
+              <div v-else>
+                <q-btn 
+                  outline
+                  class="text-bold text-white full-width"
+                  :color="darkMode ? 'white' : 'black'"
+                  icon="check_circle"
+                  padding="md"
+                  label="Confirm Pickup"
+                />
+              </div>
+            </div>
           </div>
  
           <div class="col-12 col-sm col-md-7">
