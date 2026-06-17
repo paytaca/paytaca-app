@@ -131,10 +131,31 @@
                   {{ output.description }}
                 </q-item-label>
               </q-item-section>
-              <q-item-section side top>
-                <q-item-label class="text-weight-bold">
-                  {{ formatSatoshis(output.amount_satoshis) }} BCH
-                </q-item-label>
+              <q-item-section side top class="text-right">
+                <template v-if="output.token">
+                  <div class="text-weight-bold row items-center justify-end no-wrap">
+                    <q-img
+                      v-if="getTokenIcon(output.token)"
+                      :src="getTokenIcon(output.token)"
+                      class="q-mr-xs"
+                      style="width: 16px; height: 16px; border-radius: 50%;"
+                      fit="contain"
+                    />
+                    <div class="ellipsis">
+                      {{ getTokenDisplayAmount(output.token) }}
+                      <q-tooltip>{{ output.token.category }}</q-tooltip>
+                    </div>
+                  </div>
+                  <div class="text-caption text-grey cursor-help" style="font-size: 0.7rem;">
+                    {{ formatSatoshis(output.amount_satoshis) }} BCH
+                    <q-tooltip>{{ $t('TokenDustAmountDescription') }}</q-tooltip>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="text-weight-bold">
+                    {{ formatSatoshis(output.amount_satoshis) }} BCH
+                  </div>
+                </template>
               </q-item-section>
             </q-item>
           </q-list>
@@ -156,6 +177,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 import { getExplorerLink } from 'src/utils/send-page-utils'
+import { convertIpfsUrl } from 'src/wallet/cashtokens'
 import CopyButton from 'src/components/CopyButton.vue'
 
 const props = defineProps({
@@ -219,6 +241,58 @@ function formatDate(dateStr) {
 function formatSatoshis(sats) {
   if (!sats) return '0.00000000'
   return (sats / 100000000).toFixed(8)
+}
+
+const allAssets = computed(() => $store.getters['assets/getAssets'] || [])
+
+function getTokenIcon(token) {
+  if (!token) return null
+  const assetId = `ct/${token.category}`
+  const asset = allAssets.value.find(a => a.id === assetId)
+  
+  if (asset && asset.logo) {
+    // Convert ipfs:// URLs to https://ipfs.paytaca.com/ipfs/ format
+    const convertedLogo = convertIpfsUrl(asset.logo)
+    if (convertedLogo.startsWith('https://ipfs.paytaca.com/ipfs')) {
+      return convertedLogo + '?pinataGatewayToken=' + process.env.PINATA_GATEWAY_TOKEN
+    }
+    return convertedLogo
+  }
+  
+  const logoGenerator = $store.getters['global/getDefaultAssetLogo']
+  if (logoGenerator) {
+    return logoGenerator(token.category)
+  }
+  
+  return null
+}
+
+function getTokenDisplayAmount(token) {
+  if (!token) return ''
+  
+  const assetId = `ct/${token.category}`
+  const asset = allAssets.value.find(a => a.id === assetId)
+  
+  let displayAmount = token.amount
+  let symbol = asset ? asset.symbol : truncateCategory(token.category)
+  
+  if (asset && asset.decimals !== undefined) {
+    displayAmount = (Number(token.amount) / (10 ** asset.decimals)).toLocaleString(undefined, {
+      maximumFractionDigits: asset.decimals
+    })
+  }
+
+  if (token.nft) {
+    const capability = token.nft.capability !== 'none' ? ` (${token.nft.capability})` : ''
+    return `NFT${capability}: ${symbol}`
+  }
+
+  return `${displayAmount} ${symbol}`
+}
+
+function truncateCategory(category) {
+  if (!category) return ''
+  return category.substring(0, 4) + '...' + category.substring(category.length - 4)
 }
 
 function openExplorer(txid) {

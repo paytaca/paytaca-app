@@ -2535,6 +2535,7 @@ export default {
   TokenDetails: "Token Details",
   TokenDistribution: "Token Distribution",
   TokenDustAmount: "Token dust amount",
+  TokenDustAmountDescription: "Small amount of BCH sent along with the token to fulfill network requirements.",
   TokenHasNoDecimals: "Token has no decimals. Value should be greater or equal to 1.",
   TokenId: "Token ID",
   TokenLockupTransactionId: "Token Lockup Transaction ID",

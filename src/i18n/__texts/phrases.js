@@ -1746,6 +1746,7 @@ const phrases = {
       TransactionHistory: 'Transaction History',
       AssetId: 'Asset ID',
       TokenId: 'Token ID',
+      TokenDustAmountDescription: 'Small amount of BCH sent along with the token to fulfill network requirements.',
       Wallet: 'Wallet',
       NoData: 'No Data',
       AvailableBalance: 'Available Balance',
