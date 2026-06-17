@@ -109,10 +109,10 @@
                 <div v-if="auctionType === 'English'" class="column q-gap-y-none q-mb-xs">
                   <div class="text-caption text-weight-medium">STARTING PRICE:</div>
                   <div class="text-caption text-weight-bold">
-                    {{ lot.isFiatUsed ? '₱' + Number(lot.startingPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : getFiatDisplay(lot.startingPrice) }}
+                    {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ getBchDisplay(lot.startingPrice).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice).zeros }}</span>&nbsp;BCH
+                    {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
                 
@@ -120,10 +120,10 @@
                   <div class="column q-gap-y-none">
                     <div class="text-caption text-weight-medium">START PRICE:</div>
                     <div class="text-caption text-weight-bold">
-                      {{ lot.isFiatUsed ? '₱' + Number(lot.startingPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : getFiatDisplay(lot.startingPrice) }}
+                      {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ getBchDisplay(lot.startingPrice).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice).zeros }}</span>&nbsp;BCH
+                      {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
 
@@ -132,10 +132,10 @@
                   <div class="column q-gap-y-none text-negative">
                     <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ lot.priceDropInterval }} MINUTES:</div>
                     <div class="text-caption text-weight-bold">
-                      -{{ lot.isFiatUsed ? '₱' + Number(lot.priceDrop).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : getFiatDisplay(lot.priceDrop) }}
+                      -{{ getFiatDisplay(lot.priceDrop, lot.isFiatUsed) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      -{{ getBchDisplay(lot.priceDrop).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.priceDrop).zeros }}</span>&nbsp;BCH
+                      -{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
                 </div>
@@ -248,18 +248,24 @@ const handleLotDelete = () => {
   })
 }
 
-const getFiatDisplay = (value, isFiatUsed) => {
-  const rate = bchToPhpRate.value
+const getFiatDisplay = (value, isFiatUsed = false) => {
   const numValue = Number(value) || 0
-  const phpValue = isFiatUsed ? numValue : numValue * rate
-  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} `
+  if (isFiatUsed) {
+    return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+  const rate = bchToPhpRate.value
+  const phpValue = numValue * rate
+  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const getBchDisplay = (value, isFiatUsed) => {
-  const rate = bchToPhpRate.value
+const getBchDisplay = (value, isFiatUsed = false) => {
   const numValue = Number(value) || 0
-  const bchValue = isFiatUsed ? (rate > 0 ? numValue / rate : 0) : numValue
-  return getFormattedBCH(bchValue)
+  if (isFiatUsed) {
+    const rate = bchToPhpRate.value
+    const bchValue = rate > 0 ? numValue / rate : 0
+    return getFormattedBCH(bchValue)
+  }
+  return getFormattedBCH(numValue)
 }
 
 const handleCreateAuction = async () => {
