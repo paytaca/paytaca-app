@@ -53,99 +53,93 @@
           </div>
 
           <div v-else v-for="(lot, index) in lots" :key="index" class="col-6 col-sm-4 col-md-3 q-pa-sm">
-            <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-              <div style="position: relative;">
-                <q-img 
-                  :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)" 
-                  ratio="1"
+            <q-card
+              class="pt-card text-bow"
+              :class="getDarkModeClass(darkMode)"
+            >
+              <div class="relative-position">
+                <q-img
+                  :src="(lot.imageUrls && lot.imageUrls.length > 0) ? lot.imageUrls[0] : (lot.imageUrl || noImage)"
+                  :ratio="1.25"
                 >
                   <template v-slot:loading>
                     <q-skeleton height="100%" width="100%" square />
                   </template>
                 </q-img>
 
-                <div style="position: absolute; top: 8px; left: 8px;">
-                  <q-chip
-                    dense
-                    text-color="white"
-                    class="text-caption text-weight-bold bg-primary"
-                    style="margin: 0; padding: 3px 8px; height: auto;"
-                  >
-                    <q-icon
-                      :name="lot.type === 'Digital' ? 'computer' : 'delivery_dining'"
-                      size="xs"
-                      class="q-mr-xs"
-                    />
-                    {{ lot.type }}
-                  </q-chip>
+                <div class="absolute-top-right q-pa-sm row q-gutter-xs" style="z-index: 10;">
+                  <q-btn 
+                    round 
+                    size="sm" 
+                    color="primary" 
+                    icon="edit" 
+                    @click="editLotDetails(lot, index)" 
+                  />
+                  <q-btn 
+                    round 
+                    size="sm" 
+                    color="negative" 
+                    icon="delete" 
+                    @click="deleteLot(lot, index)" 
+                  />
                 </div>
               </div>
 
-              <div>
-                <q-card-section>
-                  <div class="text-subtitle1 text-bold ellipsis">{{ lot.title }}</div>
+              <q-card-section class="q-py-sm">
+                <q-chip
+                  dense
+                  text-color="white"
+                  class="text-caption text-weight-bold bg-primary"
+                  style="margin: 0; padding: 3px 8px; height: auto;"
+                >
+                  <q-icon
+                    :name="lot.type === 'Digital' ? 'computer' : 'delivery_dining'"
+                    size="xs"
+                    class="q-mr-xs"
+                  />
+                  {{ lot.type || 'Physical' }}
+                </q-chip>
 
-                  <q-separator class="q-my-sm" :dark="$q.dark.isActive" />
+                <div class="text-subtitle1 text-weight-medium ellipsis-2-lines q-mb-xs q-mt-xs">
+                  {{ lot.title }}
+                </div>
 
-                  <div class="text-caption">
-                    Estimated: {{ getFiatDisplay(lot.estimatedPrice, lot.isFiatUsed) }}
-                    <span class="text-weight-medium" style="font-size: 10px;">
-                      ({{ getBchDisplay(lot.estimatedPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.estimatedPrice, lot.isFiatUsed).zeros }}</span> BCH)
-                    </span>
+                <q-separator spaced="sm" />
+
+                <div v-if="auctionType === 'English'" class="column q-gap-y-none q-mb-xs">
+                  <div class="text-caption text-weight-medium">STARTING PRICE:</div>
+                  <div class="text-caption text-weight-bold">
+                    {{ lot.isFiatUsed ? '₱' + Number(lot.startingPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : getFiatDisplay(lot.startingPrice) }}
                   </div>
-
-                  <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
-
-                  <div class="text-caption">
-                    Starting: {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
-                    <span class="text-weight-medium" style="font-size: 10px;">
-                      ({{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span> BCH)
-                    </span>
+                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    {{ getBchDisplay(lot.startingPrice).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice).zeros }}</span>&nbsp;BCH
                   </div>
-
-                  <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
-
-                  <div v-if="auctionType === 'English'" class="text-caption">
-                    Floor/Reserve: {{ getFiatDisplay(lot.threshold, lot.isFiatUsed) }}
-                    <span class="text-weight-medium" style="font-size: 10px;">
-                      ({{ getBchDisplay(lot.threshold, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold, lot.isFiatUsed).zeros }}</span> BCH)
-                    </span>
-                  </div>
-
-                  <div v-else-if="auctionType === 'Dutch'" class="text-caption">
-                    Ceiling Price: {{ getFiatDisplay(lot.threshold, lot.isFiatUsed) }}
-                    <span class="text-weight-medium" style="font-size: 10px;">
-                      ({{ getBchDisplay(lot.threshold, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold, lot.isFiatUsed).zeros }}</span> BCH)
-                    </span>
-
-                    <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
-
-                    <div class="text-negative text-weight-bold">
-                      Drops by:
-                      {{ getBchDisplay(lot.priceDrop || lot.price_drop, lot.isFiatUsed).main }}(<span style="font-size: 10px; opacity: 0.4;">{{ getBchDisplay(lot.priceDrop || lot.price_drop, lot.isFiatUsed).zeros }}</span> BCH)
-                      per 10 mins
+                </div>
+                
+                <div v-else-if="auctionType === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
+                  <div class="column q-gap-y-none">
+                    <div class="text-caption text-weight-medium">START PRICE:</div>
+                    <div class="text-caption text-weight-bold">
+                      {{ lot.isFiatUsed ? '₱' + Number(lot.startingPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : getFiatDisplay(lot.startingPrice) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      {{ getBchDisplay(lot.startingPrice).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
 
-                  <div class="row q-my-sm">
-                    <q-btn
-                      icon="edit"
-                      class="q-pa-sm"
-                      size="sm"
-                      color="green"
-                      @click="editLotDetails(lot, index)"
-                    />
+                  <q-separator spaced="sm" />
 
-                    <q-btn
-                      icon="delete"
-                      class="q-pa-sm q-ml-sm"
-                      size="sm"
-                      color="red"
-                      @click="deleteLot(lot, index)"
-                    />
+                  <div class="column q-gap-y-none text-negative">
+                    <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ lot.priceDropInterval }} MINUTES:</div>
+                    <div class="text-caption text-weight-bold">
+                      -{{ lot.isFiatUsed ? '₱' + Number(lot.priceDrop).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : getFiatDisplay(lot.priceDrop) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      -{{ getBchDisplay(lot.priceDrop).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.priceDrop).zeros }}</span>&nbsp;BCH
+                    </div>
                   </div>
-                </q-card-section>
-              </div>
+                </div>
+              </q-card-section>
             </q-card>
           </div>
         </div>
