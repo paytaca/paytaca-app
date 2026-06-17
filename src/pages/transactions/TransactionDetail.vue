@@ -201,6 +201,31 @@
           <q-separator color="grey" class="q-mt-sm ref-separator-ss"/>
         </div>
 
+        <!-- Merchant Info -->
+        <q-card
+          v-if="merchantData"
+          class="q-pa-sm q-my-md row items-center"
+          :class="getDarkModeClass(darkMode)"
+        >
+          <q-avatar v-if="merchantData.logo" size="36px" rounded>
+            <q-img :src="merchantData.logo" />
+          </q-avatar>
+          <span class="q-ml-sm text-subtitle1">{{ merchantData.name }}</span>
+          <q-badge
+            :color="merchantData.verified ? 'positive' : 'grey-6'"
+            class="q-ml-sm"
+            align="middle"
+            transparent
+          >
+            <q-icon
+              :name="merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
+              size="14px"
+              class="q-mr-xs"
+            />
+            {{ merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
+          </q-badge>
+        </q-card>
+
         <!-- Transaction ID block (copyable with explorer link below) -->
         <div class="transaction-id-section section-block-ss q-mt-md" style="margin-top: 25px;">
           <div class="text-grey text-weight-medium text-caption q-mb-sm">&nbsp;{{ $t('TransactionId')}}</div>
@@ -431,7 +456,7 @@ import axios from 'axios'
 import { getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getAssetDenomination, parseAssetDenomination, parseFiatCurrency, formatWithLocale } from 'src/utils/denomination-utils'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { getExplorerLink } from 'src/utils/send-page-utils'
+import { getExplorerLink, lookupMerchantByAddress } from 'src/utils/send-page-utils'
 import * as memoService from 'src/utils/memo-service'
 import { hexToRef as hexToRefUtil } from 'src/utils/reference-id-utils'
 import confetti from 'canvas-confetti'
@@ -493,6 +518,7 @@ export default {
       txDetails: null, // Raw transaction details with outputs
       loadingTxDetails: false,
       showQuickActions: false, // Collapsed by default
+      merchantData: null,
     }
   },
   computed: {
@@ -1064,6 +1090,9 @@ export default {
     darkMode () {
       this.updateBackgroundColors()
     },
+    recipientAddress (addr) {
+      if (addr) this.fetchMerchantData()
+    },
     'tx.asset.id' () {
       // Fetch token price when asset changes
       this.fetchTokenPrice()
@@ -1103,6 +1132,12 @@ export default {
     }
   },
   methods: {
+    async fetchMerchantData () {
+      const addr = this.recipientAddress
+      if (!addr) return
+      const data = await lookupMerchantByAddress(addr, this.$store.getters['global/isChipnet'])
+      this.merchantData = data
+    },
     async ensureAssetSettingsAuth () {
       // `fetchFavorites()` works without auth, but `saveFavorites()` / `saveCustomList()` require it.
       // Asset list page calls `assetSettings.authToken()` before saving; do the same here.
