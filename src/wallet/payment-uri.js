@@ -793,6 +793,14 @@ export class JSONPaymentProtocol {
       outputs: txInstruction?.outputs?.map(output => Object({
         amount: output?.amount,
         address: bchjs.Address.toCashAddress(output?.address),
+        token: !output?.token ? undefined : {
+          amount: output.token?.amount,
+          category: output.token?.category,
+          nft: !output.token?.nft ? undefined : {
+            capability: output.token.nft?.capability,
+            commitment: output.token.nft?.commitment,
+          }
+        }
       })),
     }
   }
