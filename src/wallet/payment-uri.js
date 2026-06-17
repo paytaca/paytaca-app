@@ -13,6 +13,7 @@ import SingleWallet from './single-wallet'
 import { TransactionBalancer } from './stablehedge/transaction-utils'
 import { toTokenAddress } from 'src/utils/crypto'
 import { watchtowerUtxoToCashscriptP2pkh } from 'src/utils/utxo-utils'
+import { isTokenAddress } from 'src/utils/address-utils'
 
 const bchjs = new BCHJS()
 /**
@@ -792,7 +793,7 @@ export class JSONPaymentProtocol {
       requiredFeePerByte: txInstruction?.requiredFeeRate,
       outputs: txInstruction?.outputs?.map(output => Object({
         amount: output?.amount,
-        address: bchjs.Address.toCashAddress(output?.address),
+        address: isTokenAddress(output.address) ? output.address : bchjs.Address.toCashAddress(output?.address),
         token: !output?.token ? undefined : {
           amount: output.token?.amount,
           category: output.token?.category,
