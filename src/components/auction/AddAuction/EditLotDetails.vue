@@ -5,7 +5,11 @@
     position="bottom"
   >
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
-      <q-form @submit.prevent="saveLot">
+      <q-form 
+        ref="editLotFormRef"
+        @submit.prevent="saveLot"
+        @validation-error="scrollToFirstError"
+      >
         <q-card-section>
           <div class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
@@ -399,7 +403,31 @@ watch(() => props.lotData, (newLot) => {
   }
 }, { immediate: true })
 
-const saveLot = () => {
+
+
+const editLotFormRef = ref(null)
+
+const scrollToFirstError = () => {
+  setTimeout(() => {
+    const firstInvalidField = document.querySelector('.q-dialog .q-field--error, .q-dialog .q-field--invalid')
+    if (firstInvalidField) {
+      firstInvalidField.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }, 50)
+}
+
+const saveLot = async () => {
+  if (editLotFormRef.value) {
+    const isValid = await editLotFormRef.value.validate()
+    if (!isValid) {
+      scrollToFirstError()
+      return
+    }
+  }
+
   let finalImages = [...currentImageUrls.value]
   if (lotImages.value && lotImages.value.length > 0) {
     finalImages = lotImages.value.map(file => URL.createObjectURL(file))

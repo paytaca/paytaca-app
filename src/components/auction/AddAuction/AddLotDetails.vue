@@ -13,7 +13,11 @@
 
   <q-dialog v-model="isToggledAddLot" position="bottom">
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
-      <q-form @submit="addLot">
+      <q-form 
+        ref="addLotFormRef"
+        @submit.prevent="addLot"
+        @validation-error="scrollToFirstError"
+      >
         <q-card-section>
           <div class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
@@ -394,7 +398,31 @@ const formatEquivalent = (value) => {
   }
 }
 
-const addLot = () => {
+
+
+const addLotFormRef = ref(null)
+
+const scrollToFirstError = () => {
+  setTimeout(() => {
+    const firstInvalidField = document.querySelector('.q-dialog .q-field--error, .q-dialog .q-field--invalid')
+    if (firstInvalidField) {
+      firstInvalidField.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }, 50)
+}
+
+const addLot = async () => {
+  if (addLotFormRef.value) {
+    const isValid = await addLotFormRef.value.validate()
+    if (!isValid) {
+      scrollToFirstError()
+      return
+    }
+  }
+
   let generatedUrls = []
   if (lotImages.value && lotImages.value.length > 0) {
     generatedUrls = lotImages.value.map(file => URL.createObjectURL(file))
