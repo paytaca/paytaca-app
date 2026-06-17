@@ -2233,6 +2233,7 @@ export default {
 
       vm.savingReceipt = true
       let wrapper = null
+      let merchantLogoEl = null
 
       try {
         const isReceived = vm.tx.record_type === 'incoming'
@@ -2433,24 +2434,74 @@ export default {
           detailsSection.appendChild(refContainer)
         }
 
-        // Merchant Info — clone from the rendered page for faithful reproduction
-        const merchantEl = document.getElementById('receipt-merchant-section')
-        if (merchantEl) {
-          // Preload the logo image so html2canvas can render the background-image
-          if (vm.merchantData?.logo) {
-            await new Promise((resolve) => {
-              const img = new Image()
-              img.crossOrigin = 'anonymous'
-              img.onload = () => resolve()
-              img.onerror = () => resolve()
-              img.src = vm.merchantData.logo
-            })
+        // Merchant Info
+        if (vm.merchantData) {
+          const merchantContainer = document.createElement('div')
+          merchantContainer.style.cssText = `
+            margin-bottom: 20px;
+            text-align: center;
+          `
+
+          const paidToLabel = document.createElement('div')
+          paidToLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+          `
+          paidToLabel.textContent = vm.$t('PaidTo', {}, 'Paid To')
+          merchantContainer.appendChild(paidToLabel)
+
+          // Logo
+          if (vm.merchantData.logo) {
+            merchantLogoEl = document.createElement('img')
+            merchantLogoEl.src = vm.merchantData.logo
+            merchantLogoEl.crossOrigin = 'anonymous'
+            merchantLogoEl.style.cssText = `
+              width: 36px;
+              height: 36px;
+              border-radius: 50%;
+              object-fit: cover;
+              vertical-align: middle;
+              margin-right: 10px;
+            `
+            merchantContainer.appendChild(merchantLogoEl)
           }
 
-          const clone = merchantEl.cloneNode(true)
-          clone.style.marginTop = '0'
-          clone.style.marginBottom = '20px'
-          detailsSection.appendChild(clone)
+          // Name
+          const nameSpan = document.createElement('span')
+          nameSpan.style.cssText = `
+            font-size: 18px;
+            font-weight: 700;
+            color: #2d3748;
+            vertical-align: middle;
+          `
+          nameSpan.textContent = vm.merchantData.name
+          merchantContainer.appendChild(nameSpan)
+
+          // Spacer
+          merchantContainer.appendChild(document.createElement('br'))
+
+          // Verified badge
+          const badge = document.createElement('span')
+          badge.style.cssText = `
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 12px;
+            color: ${vm.merchantData.verified ? '#22543d' : '#4a5568'};
+            background: ${vm.merchantData.verified ? '#c6f6d5' : '#e2e8f0'};
+          `
+          badge.textContent = vm.merchantData.verified
+            ? vm.$t('VerifiedMerchant', {}, 'Verified')
+            : vm.$t('UnverifiedMerchant', {}, 'Unverified')
+          merchantContainer.appendChild(badge)
+
+          detailsSection.appendChild(merchantContainer)
         }
 
         // Transaction ID
@@ -2619,6 +2670,14 @@ export default {
 
         // Wait for logo to load before capturing
         await loadPaytacaLogo()
+
+        // Wait for merchant logo if present
+        if (merchantLogoEl && !merchantLogoEl.complete) {
+          await new Promise((resolve) => {
+            merchantLogoEl.onload = () => resolve()
+            merchantLogoEl.onerror = () => resolve()
+          })
+        }
 
         // Small delay to ensure DOM updates are rendered
         await new Promise(resolve => setTimeout(resolve, 100))
