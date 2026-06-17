@@ -643,7 +643,7 @@ export async function sendMessage ({ state }, { roomId, text, replyTo, subject }
     subject,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
   console.log('[sendMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   const message = {
@@ -681,7 +681,7 @@ export async function sendEditMessage ({ state }, { roomId, text, editOf }) {
     editOf,
   })
 
-  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes)
+  const giftWraps = await createNip17GiftWraps(unsignedKind14, senderPrivKey, memberHexes, senderPubKey)
 
   const message = {
     id: unsignedKind14.id,
@@ -775,7 +775,7 @@ export async function sendFileMessage ({ state }, { roomId, file, replyTo, onPro
     replyTo,
   })
 
-  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes)
+  const giftWraps = await wrapKind15FileMessage(kind15Event, senderPrivKey, memberHexes, senderPubKey)
   console.log('[sendFileMessage] created', giftWraps.length, 'gift-wraps for room', roomId, 'members:', memberHexes)
 
   if (onProgress) onProgress(0.95)
