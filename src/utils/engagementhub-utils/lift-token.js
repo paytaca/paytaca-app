@@ -9,6 +9,7 @@ import { getChangeAddress } from 'src/utils/send-page-utils'
 import axios from 'axios'
 import BCHJS from "@psf/bch-js";
 import Watchtower from "watchtower-cash-js"
+import { requestManager } from 'src/utils/request-manager'
 
 import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContractv3.json'
 
@@ -28,6 +29,7 @@ export const SaleGroupPrice = {
 const ENGAGEMENT_HUB_URL =
   process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
 const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
+requestManager.attachTo(LIFTTOKEN_URL)
 
 const ORACLE_PUBKEY =
   process.env.ORACLE_PUBKEY_USD ||

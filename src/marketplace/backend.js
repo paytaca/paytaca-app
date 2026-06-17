@@ -3,6 +3,7 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { setupCache } from 'axios-cache-interceptor'
 import axios from 'axios'
 import { getCurrentWalletStorageKey, getWalletStorageKey } from 'src/utils/wallet-storage'
+import { requestManager } from 'src/utils/request-manager'
 
 const bchjs = new BCHJS()
 
@@ -28,6 +29,8 @@ export const backend = axios.create({
     return config
   },
 })
+
+requestManager.attachTo(backend)
 
 export async function sigAuthInterceptor(config) {
   if (['get', 'option'].indexOf(config.method) >= 0 && !config.forceSign) return config

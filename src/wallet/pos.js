@@ -6,12 +6,15 @@ import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { Store } from 'src/store'
 import { Wallet } from 'src/wallet'
 import { getCurrentWalletStorageKey, getWalletStorageKey, getWalletHash } from 'src/utils/wallet-storage'
+import { requestManager } from 'src/utils/request-manager'
 
 import packageInfo from '../../package.json'
 
 export const backend = axios.create({
   baseURL: process.env.MAINNET_WATCHTOWER_BASE_URL
 })
+
+requestManager.attachTo(backend)
 
 backend.interceptors.request.use(async (config) => {
   const wallet = Store.getters['global/getWallet']('bch')
