@@ -10,7 +10,11 @@
       </template>
     </HeaderNav>
 
-    <q-form @submit.prevent="handleCreateAuction">
+    <q-form
+      ref="auctionFormRef"
+      @submit.prevent="handleCreateAuction"
+      @validation-error="scrollToFirstError"
+    >
       <div>
         <AddAuctionDetails v-model:auction-form="auctionForm" />
       </div>
@@ -371,6 +375,10 @@ const validateAuctionDates = () => {
 
   if (!start_date || !end_date) {
     $q.notify({ type: 'negative', message: 'Please set both start and end dates.' })
+    
+    const dateElement = document.querySelector('.q-form .row')
+    if (dateElement) dateElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    
     return false
   }
 
@@ -394,6 +402,22 @@ const validateAuctionDates = () => {
   }
 
   return true
+}
+
+
+
+const auctionFormRef = ref(null)
+const scrollToFirstError = () => {
+  setTimeout(() => {
+    const firstInvalidField = document.querySelector('.q-field--error, .q-field--invalid')
+    
+    if (firstInvalidField) {
+      firstInvalidField.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }, 50)
 }
 </script>
 
