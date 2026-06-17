@@ -2458,7 +2458,6 @@ export default {
           if (vm.merchantData.logo) {
             merchantLogoEl = document.createElement('img')
             merchantLogoEl.src = vm.merchantData.logo
-            merchantLogoEl.crossOrigin = 'anonymous'
             merchantLogoEl.style.cssText = `
               width: 36px;
               height: 36px;
