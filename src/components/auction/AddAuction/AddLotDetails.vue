@@ -272,12 +272,12 @@ const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php'))
 
-const lotName = ref('Lot Title')
+const lotName = ref('')
 const lotType = ref('Physical')
 const lotTypeOptions = ['Physical', 'Digital']
-const estimatedPrice = ref(0.002)
-const startingPrice = ref(0.002)
-const priceThreshold = ref(0.002)
+const estimatedPrice = ref(0)
+const startingPrice = ref(0)
+const priceThreshold = ref(0)
 const priceDrop = ref(0.0005)
 const priceDropInterval = ref({ label: "Every 10 minutes", value: 10 })
 const priceDropIntervalOptions = [
@@ -430,7 +430,7 @@ const addLot = () => {
   startingPrice.value = 0
   priceThreshold.value = 0
   priceDrop.value = 0.0005
-  priceDropInterval.value = { label: "Every 10 minutes", value: 600000 } // Reset dropdown
+  priceDropInterval.value = { label: "Every 10 minutes", value: 600000 }
   lotImages.value = []
   lotDescription.value = ''
 }
