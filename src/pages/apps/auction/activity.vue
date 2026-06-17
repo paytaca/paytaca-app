@@ -25,7 +25,7 @@
     </div>
 
     <div class="q-px-md q-pt-xs q-pb-md sticky-below-header">
-      <ActivitySearch :placeholder="`Search my ${activityType}`" />
+      <ActivitySearch v-model="searchQuery" :placeholder="`Search my ${activityType}`" />
     </div>
 
     <div class="row justify-end q-px-md q-mb-md">
@@ -470,6 +470,7 @@ const activityTypeOptions = [
 
 const auctionType = ref('All');
 const auctionTypeOptions = ['English', 'Dutch', 'All']
+const searchQuery = ref('')
 const lotType = ref('All')
 const lotTypeOptions = ['Physical', 'Digital', 'All']
 const arbiterType = ref('All')
@@ -603,27 +604,48 @@ onMounted(async () => {
 })
 
 const filteredAuctions = computed(() => {
-  if (auctionType.value === 'All') {
-    return auctionDetails.value
+  let items = auctionDetails.value
+
+  if (auctionType.value !== 'All') {
+    items = items.filter(auction => auction.type === auctionType.value)
   }
-  return auctionDetails.value.filter(auction => auction.type === auctionType.value)
+
+  const query = searchQuery.value.toLowerCase().trim()
+  if (query) {
+    items = items.filter(auction => auction.title?.toLowerCase().includes(query))
+  }
+
+  return items
 })
 
 const filteredLots = computed(() => {
-  if (lotType.value === 'All') {
-    return lotDetails.value
+  let items = lotDetails.value
+
+  if (lotType.value !== 'All') {
+    items = items.filter(lot => lot.category === lotType.value)
   }
-  return lotDetails.value.filter(lot => lot.category === lotType.value)
+
+  const query = searchQuery.value.toLowerCase().trim()
+  if (query) {
+    items = items.filter(lot => lot.title?.toLowerCase().includes(query))
+  }
+
+  return items
 })
 
 const filteredAppeals = computed(() => {
-  let result = appeals.value
+  let items = appeals.value
 
   if (arbiterType.value !== 'All') {
-    result = result.filter(a => a.status === arbiterType.value)
+    items = items.filter(appeal => appeal.status === arbiterType.value)
   }
 
-  return result
+  const query = searchQuery.value.toLowerCase().trim()
+  if (query) {
+    items = items.filter(appeal => appeal.number?.includes(query))
+  }
+
+  return items
 })
 
 watch(activityType, async (newType) => {
