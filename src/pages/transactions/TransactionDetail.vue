@@ -202,29 +202,31 @@
         </div>
 
         <!-- Merchant Info -->
-        <q-card
-          v-if="merchantData"
-          class="q-pa-sm q-my-md row items-center"
-          :class="getDarkModeClass(darkMode)"
-        >
-          <q-avatar v-if="merchantData.logo" size="36px" rounded>
-            <q-img :src="merchantData.logo" />
-          </q-avatar>
-          <span class="q-ml-sm text-subtitle1">{{ merchantData.name }}</span>
-          <q-badge
-            :color="merchantData.verified ? 'positive' : 'grey-6'"
-            class="q-ml-sm"
-            align="middle"
-            transparent
+        <div v-if="merchantData" class="section-block-ss q-mt-lg text-center" style="margin-top: 25px;">
+          <div class="text-grey text-weight-medium text-caption">&nbsp;{{ $t('PaidTo', {}, 'Paid To') }}</div>
+          <q-card
+            class="q-pa-sm q-my-sm inline-block"
+            :class="getDarkModeClass(darkMode)"
           >
-            <q-icon
-              :name="merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
-              size="14px"
-              class="q-mr-xs"
-            />
-            {{ merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
-          </q-badge>
-        </q-card>
+            <q-avatar v-if="merchantData.logo" size="36px" rounded>
+              <q-img :src="merchantData.logo" />
+            </q-avatar>
+            <span class="q-ml-sm text-subtitle1">{{ merchantData.name }}</span>
+            <q-badge
+              :color="merchantData.verified ? 'positive' : 'grey-6'"
+              class="q-ml-sm"
+              align="middle"
+              transparent
+            >
+              <q-icon
+                :name="merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
+                size="14px"
+                class="q-mr-xs"
+              />
+              {{ merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
+            </q-badge>
+          </q-card>
+        </div>
 
         <!-- Transaction ID block (copyable with explorer link below) -->
         <div class="transaction-id-section section-block-ss q-mt-md" style="margin-top: 25px;">
@@ -2429,6 +2431,76 @@ export default {
           refValue.textContent = referenceId
           refContainer.appendChild(refValue)
           detailsSection.appendChild(refContainer)
+        }
+
+        // Merchant Info
+        if (vm.merchantData) {
+          const merchantContainer = document.createElement('div')
+          merchantContainer.style.cssText = `
+            margin-bottom: 20px;
+            text-align: center;
+          `
+          const paidToLabel = document.createElement('div')
+          paidToLabel.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+          `
+          paidToLabel.textContent = vm.$t('PaidTo', {}, 'Paid To')
+          merchantContainer.appendChild(paidToLabel)
+
+          const merchantCard = document.createElement('div')
+          merchantCard.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+          `
+
+          if (vm.merchantData.logo) {
+            const logoImg = document.createElement('img')
+            logoImg.src = vm.merchantData.logo
+            logoImg.style.cssText = `
+              width: 36px;
+              height: 36px;
+              border-radius: 8px;
+              object-fit: cover;
+              margin-right: 12px;
+            `
+            merchantCard.appendChild(logoImg)
+          }
+
+          const nameSpan = document.createElement('span')
+          nameSpan.style.cssText = `
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-right: 10px;
+          `
+          nameSpan.textContent = vm.merchantData.name
+          merchantCard.appendChild(nameSpan)
+
+          const badge = document.createElement('span')
+          badge.style.cssText = `
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            color: ${vm.merchantData.verified ? '#22543d' : '#4a5568'};
+            background: ${vm.merchantData.verified ? '#c6f6d5' : '#e2e8f0'};
+          `
+          const checkMark = vm.merchantData.verified ? '✓ ' : '✗ '
+          badge.textContent = checkMark + (vm.merchantData.verified ? 'Verified' : 'Unverified')
+          merchantCard.appendChild(badge)
+          merchantContainer.appendChild(merchantCard)
+          detailsSection.appendChild(merchantContainer)
         }
 
         // Transaction ID
