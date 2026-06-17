@@ -3,7 +3,6 @@ import WatchtowerSdk from 'watchtower-cash-js'
 import { secp256k1, decodePrivateKeyWif, binToHex, instantiateSha256 } from '@bitauth/libauth'
 import { privateKeyToCashAddress } from 'src/wallet/walletconnect2/tx-sign-utils'
 import { toP2pkhTestAddress } from '../../utils/address-utils'
-import { requestManager } from 'src/utils/request-manager'
 
 // type AddressPeerApp = {
 //   app_url/*:string*/,
@@ -45,17 +44,12 @@ class Watchtower extends WatchtowerSdk {
     }, 0)
   }
 
-  _fetch (url, opts = {}) {
-    const { signal, cleanup } = requestManager.createAbortController()
-    return fetch(url, { ...opts, signal }).finally(cleanup)
-  }
-
   /**
    * Returns list of external addresses
    */
   async getWalletExternalAddresses (walletHash /*: string */) /*: Promise<string[]> */ {
     let addresses = []
-    const response = await this._fetch(`${this._baseUrl}wallet-addresses/${walletHash}/?change_index=0`)
+    const response = await fetch(`${this._baseUrl}wallet-addresses/${walletHash}/?change_index=0`)
     if (response.ok) {
       addresses = await response.json()
     }
@@ -66,7 +60,7 @@ class Watchtower extends WatchtowerSdk {
    * Fetch wallet's last address index
    */
   async getLastExternalAddressIndex (walletHash/*: string */) /*: Promise<{ address:string; address_index: number } | null> */ {
-    const response = await this._fetch(`${this._baseUrl}last-address-index/wallet/${walletHash}/?exclude_pos=true`)
+    const response = await fetch(`${this._baseUrl}last-address-index/wallet/${walletHash}/?exclude_pos=true`)
     let addressAndIndex = null
     if (response.ok) {
       const responseJson = await response.json()
@@ -80,7 +74,7 @@ class Watchtower extends WatchtowerSdk {
    * is only invalidated after 3 minutes as configured in the watchtower server.
    */
   async getNonce () {
-    let getNonceResponse = await this._fetch(`${this._baseUrl}nonce/`)
+    let getNonceResponse = await fetch(`${this._baseUrl}nonce/`)
     let nonce = ''
     if (getNonceResponse.ok) {
       getNonceResponse = await getNonceResponse.json()
@@ -135,7 +129,7 @@ class Watchtower extends WatchtowerSdk {
           app_icon: appIcon
         }
       }
-      const postResponse = await this._fetch(`${this._baseUrl}wallet-address-app/`, {
+      const postResponse = await fetch(`${this._baseUrl}wallet-address-app/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -149,7 +143,7 @@ class Watchtower extends WatchtowerSdk {
 
   async getWalletConnectedApps (walletHash) {
     let addressPeerAppList = []
-    const response = await this._fetch(`${this._baseUrl}wallet-address-app/?wallet_hash=${walletHash}`)
+    const response = await fetch(`${this._baseUrl}wallet-address-app/?wallet_hash=${walletHash}`)
     if (response.ok) {
       const responseJson = await response.json()
       addressPeerAppList = responseJson.results
@@ -160,7 +154,7 @@ class Watchtower extends WatchtowerSdk {
   async getWalletConnectedAppsOfUrl (walletHash, appUrl) {
     let addressPeerAppList = []
     if (!appUrl) return addressPeerAppList
-    const response = await this._fetch(`${this._baseUrl}wallet-address-app/?wallet_hash=${walletHash}&app_url=${appUrl}`)
+    const response = await fetch(`${this._baseUrl}wallet-address-app/?wallet_hash=${walletHash}&app_url=${appUrl}`)
     if (response.ok) {
       const responseJson = await response.json()
       addressPeerAppList = responseJson.results
@@ -171,7 +165,7 @@ class Watchtower extends WatchtowerSdk {
   async getLastUsedAddressAtDappUrl (walletHash, appUrl) {
     let addressPeerAppList = []
     if (!appUrl) return addressPeerAppList
-    const response = await this._fetch(`${this._baseUrl}wallet-address-app/?wallet_hash=${walletHash}&app_url=${appUrl}&limit=1`)
+    const response = await fetch(`${this._baseUrl}wallet-address-app/?wallet_hash=${walletHash}&app_url=${appUrl}&limit=1`)
     if (response.ok) {
       const responseJson = await response.json()
       addressPeerAppList = responseJson.results
@@ -180,7 +174,7 @@ class Watchtower extends WatchtowerSdk {
   }
 
   async getAddressBchBalance (address) {
-    const response = await this._fetch(`${this._baseUrl}balance/bch/${address}`)
+    const response = await fetch(`${this._baseUrl}balance/bch/${address}`)
     if (response.ok) {
       return await response.json()
     }
@@ -194,7 +188,7 @@ class Watchtower extends WatchtowerSdk {
     if (outputFiatAmounts) {
       body.output_fiat_amounts = outputFiatAmounts
     }
-    const r = await this._fetch(`${this._baseUrl}broadcast/`, {
+    const r = await fetch(`${this._baseUrl}broadcast/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -218,7 +212,7 @@ class Watchtower extends WatchtowerSdk {
   }
 
   async uploadMultisigWallet(multisigWallet) {
-    return await this._fetch(`${this._baseUrl}multisig/wallets`, {
+    return await fetch(`${this._baseUrl}multisig/wallets`, {
       method: 'POST',
       body: JSON.stringify(multisigWallet)
     })

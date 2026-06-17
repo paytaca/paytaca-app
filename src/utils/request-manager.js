@@ -1,95 +1,44 @@
 /**
  * Centralized in-flight HTTP request manager.
  *
- * Covers axios, raw fetch(), XMLHttpRequest, and HTMLImageElement network loads.
- * Calling `abortAll()` cancels every pending request at once — the router calls
- * this on every navigation so that a user click is never blocked waiting for a
- * stale background request to finish.
+ * Each axios instance registers itself via `attachTo(axiosInstance)`.
+ * Every outgoing request gets its own AbortController whose signal is
+ * forwarded to axios.  Calling `abortAll()` cancels every pending request
+ * at once — the router calls this on every navigation so that a user click
+ * is never blocked waiting for a stale background request to finish.
  *
- * Axios requests that must survive navigation can set `config.skipAbortManager = true`.
+ * Requests that opt out (e.g. fire-and-forget mutations) can set
+ * `config.skipAbortManager = true`.
  */
 
 class RequestManager {
   constructor () {
-    /**
-     * @type {Map<string, AbortController>}
-     * Key format: 'ac:<symbol>' for controllers created by this manager.
-     */
-    this._items = new Map()
-  }
-
-  // ── Internal helpers ──────────────────────────────────────────────
-
-  _key () { return 'ac:' + Symbol() }
-
-  _register (controller) {
-    const key = this._key()
-    this._items.set(key, controller)
-    return () => this._items.delete(key)
-  }
-
-  // ── Public API ────────────────────────────────────────────────────
-
-  /**
-   * Abort every tracked in-flight request (axios, fetch, XHR, images).
-   */
-  abortAll () {
-    for (const [key, item] of this._items) {
-      try {
-        if (key.startsWith('ac:')) {
-          /** @type {AbortController} */ (item).abort()
-        } else if (key.startsWith('xhr:')) {
-          /** @type {XMLHttpRequest} */ (item).abort()
-        } else if (key.startsWith('img:')) {
-          /** @type {HTMLImageElement} */ (item).src = ''
-        }
-      } catch (_) { /* ignore race conditions */ }
-    }
-    this._items.clear()
+    /** @type {Map<symbol, AbortController>} */
+    this._controllers = new Map()
   }
 
   /**
-   * Create an AbortController tracked by this manager.
-   * Use with raw `fetch(url, { signal: controller.signal })`.
-   * Call `controller.cleanup()` when the request settles.
-   *
+   * Create a new AbortController, track it, and return its signal.
+   * The controller is automatically removed when the request settles.
    * @returns {{ signal: AbortSignal, cleanup: () => void }}
    */
-  createAbortController () {
+  _register () {
+    const key = Symbol()
     const controller = new AbortController()
-    const cleanup = this._register(controller)
-    const signal = controller.signal
-    return { signal, cleanup }
+    this._controllers.set(key, controller)
+    const cleanup = () => this._controllers.delete(key)
+    return { signal: controller.signal, cleanup }
   }
 
   /**
-   * Register an XMLHttpRequest so `abortAll()` calls `xhr.abort()`.
-   * Returns a cleanup function to call when the XHR settles.
-   *
-   * @param {XMLHttpRequest} xhr
-   * @returns {() => void}
+   * Abort every tracked in-flight request.
    */
-  registerXHR (xhr) {
-    const key = 'xhr:' + Symbol()
-    this._items.set(key, xhr)
-    return () => this._items.delete(key)
+  abortAll () {
+    for (const controller of this._controllers.values()) {
+      controller.abort()
+    }
+    this._controllers.clear()
   }
-
-  /**
-   * Register an HTMLImageElement that is loading a network URL so that
-   * `abortAll()` can cancel the load by setting `img.src = ''`.
-   * Returns a cleanup function to call when the image settles.
-   *
-   * @param {HTMLImageElement} img
-   * @returns {() => void}
-   */
-  registerImage (img) {
-    const key = 'img:' + Symbol()
-    this._items.set(key, img)
-    return () => this._items.delete(key)
-  }
-
-  // ── Axios integration ─────────────────────────────────────────────
 
   /**
    * Wire up request/response interceptors on an axios instance so that
@@ -102,7 +51,7 @@ class RequestManager {
     axiosInstance.interceptors.request.use((config) => {
       if (config.skipAbortManager) return config
 
-      const { signal, cleanup } = this.createAbortController()
+      const { signal, cleanup } = this._register()
 
       // Merge with any signal the caller already set
       if (config.signal) {
@@ -126,7 +75,7 @@ class RequestManager {
         }, { once: true })
 
         // Replace tracking with the merged controller
-        this._register(mergedController)
+        this._controllers.set(Symbol(), mergedController)
         config.signal = mergedController.signal
         return config
       }
@@ -134,7 +83,7 @@ class RequestManager {
       config.signal = signal
 
       // Attach cleanup to the config so response/error interceptors can call it
-      config._rmCleanup = cleanup
+      config._abortCleanup = cleanup
 
       return config
     })
@@ -142,11 +91,11 @@ class RequestManager {
     // Response interceptors — clean up the controller entry on settle
     axiosInstance.interceptors.response.use(
       (response) => {
-        response.config._rmCleanup?.()
+        response.config._abortCleanup?.()
         return response
       },
       (error) => {
-        error?.config?._rmCleanup?.()
+        error?.config?._abortCleanup?.()
         return Promise.reject(error)
       }
     )

@@ -294,7 +294,6 @@ import { encryptECIES, generateAES256GCMKey } from './encryption.js'
 import { BsmsDescriptor, BsmsKeyRecord } from './bsms.js'
 import { generateCosignerCredentialsFromMnemonic, generateServerCredentialsFromMnemonic, generateCoordinatorServerIdentityFromMnemonic } from './coordination.js'
 import { deriveHdKeysFromMnemonic } from './utils.js'
-import { requestManager } from 'src/utils/request-manager'
 import {
   getLockingData,
   getDepositAddress,
@@ -363,12 +362,7 @@ export class PriceOracle {
    */
   static async fetchPrice(asset, currencySymbols) {
     const url = `https://watchtower.cash/api/market-prices/?coin_ids=${asset}&currencies=${currencySymbols.join(',')}`
-    const { signal, cleanup } = requestManager.createAbortController()
-    try {
-      return await fetch(url, { signal })
-    } finally {
-      cleanup()
-    }
+    return await fetch(url)
   }
 }
 

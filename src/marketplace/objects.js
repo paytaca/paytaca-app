@@ -3,7 +3,6 @@ import { getExplorerLinkForNetwork } from "src/utils/send-page-utils"
 import { backend, cachedBackend } from "./backend"
 import { decompressEncryptedMessage, decryptMessage, decompressEncryptedImage, decryptImage } from "./chat/encryption"
 import { formatOrderStatus, lineItemPropertiesToText, parseOrderStatusColor } from './utils'
-import { requestManager } from 'src/utils/request-manager'
 
 export class Location {
   static parse(data) {
@@ -2143,15 +2142,10 @@ export class ChatMessage {
     try {
       if (!this.encryptedAttachmentUrl) return
       if (this.encryptedAttachmentFile) return
-      const { signal, cleanup } = requestManager.createAbortController()
-      try {
-        const response = await fetch(this.encryptedAttachmentUrl, { headers: { 'Accept': 'image/* application/*' }, signal })
-        const blob = await response.blob()
-        this.encryptedAttachmentFile = new nativeFileAPI.File([blob], this.encryptedAttachmentUrl)
-        return this.encryptedAttachmentFile
-      } finally {
-        cleanup()
-      }
+      const response = await fetch(this.encryptedAttachmentUrl, { headers: { 'Accept': 'image/* application/*' } })
+      const blob = await response.blob()
+      this.encryptedAttachmentFile = new nativeFileAPI.File([blob], this.encryptedAttachmentUrl)
+      return this.encryptedAttachmentFile
     } finally {
       this.$state.fetchingAttachment = false
     }
