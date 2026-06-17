@@ -317,9 +317,14 @@ const handleCreateAuction = async () => {
       lotFormData.append('description', lot.description || '')
       lotFormData.append('category_id', lot.type === 'Physical' ? 1 : 2)
       lotFormData.append('estimated_amount', lot.estimatedPrice || 0)
-      lotFormData.append('threshold_bid', lot.threshold || 0)
-      lotFormData.append('bidding_decrement', lot.priceDrop || lot.price_drop || 0)
       lotFormData.append('starting_price', lot.startingPrice || 0)
+
+      if (auctionForm.value.type === 'English') {
+        lotFormData.append('threshold_bid', lot.startingPrice || 0)
+      } else {
+        lotFormData.append('threshold_bid', lot.threshold || 0)
+        lotFormData.append('bidding_decrement', lot.priceDrop || lot.price_drop || 0)
+      }
 
       // const intervalValue = typeof lot.priceDropInterval === 'object' 
       //   ? (lot.priceDropInterval?.value || 600000) 
