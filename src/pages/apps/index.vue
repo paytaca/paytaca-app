@@ -225,7 +225,7 @@ export default {
           iconName: 'chat',
           path: '/apps/chat',
           iconStyle: 'font-size: 4em',
-          active: true,
+          active: !this.$store.getters['global/isChipnet'],
           beta: true
         },
         {
