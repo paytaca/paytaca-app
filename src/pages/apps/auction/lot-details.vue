@@ -449,10 +449,11 @@ const handleBuyItNow = async (payload = {}) => {
     })
 
     if (res.success) {
-      const resIsSold = await callAPI('lots', props.lotId, 'patch', { is_sold: true })
+      const resIsSold = await callAPI('lots', props.lotId, 'patch', { is_sold: true, date_sold: new Date().toISOString() })
 
       if (resIsSold) {
         dutchAlreadySold.value = true
+        await refresh()
         $q.notify({
           type: 'positive',
           message: `Secured for ${getFormattedBCH(dutchCurrentPriceBch.value).main}${getFormattedBCH(dutchCurrentPriceBch.value).zeros} BCH!`,
