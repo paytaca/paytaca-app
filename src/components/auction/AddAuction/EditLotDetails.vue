@@ -86,30 +86,6 @@
             </div>
           </div>
 
-          <div v-if="auctionType === 'English'" class="row q-col-gutter-md q-px-md q-mb-md">
-            <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Floor</label>
-              <q-input
-                outlined
-                dense
-                v-model.number="priceThreshold"
-                type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
-                inputmode="decimal"
-                autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
-                color="pt-primary1"
-                debounce="500"
-                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules hide-bottom-space
-                :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price floor' ]"
-              />
-              <label class="text-caption block q-mb-xs text-grey-7">
-                {{ formatEquivalent(priceThreshold) }}
-              </label>
-            </div>
-          </div>
-
           <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
               <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
