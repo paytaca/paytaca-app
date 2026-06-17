@@ -949,19 +949,14 @@ export default {
       const outputs = this.txDetails?.details?.outputs || this.txDetails?.outputs || this.tx?.outputs
       
       if (outputs && Array.isArray(outputs)) {
-        // Find outputs that are not change and have an address
-        const nonChangeOutputs = outputs.filter(output => 
+        // First output (index 0) is normally the main recipient
+        // Filter out change outputs, then take the first one by position
+        const nonChangeOutputs = outputs.filter(output =>
           !output.is_change && output.address
         )
-        
-        // If there's exactly one non-change output, use it
-        if (nonChangeOutputs.length === 1) {
+
+        if (nonChangeOutputs.length >= 1) {
           return nonChangeOutputs[0].address
-        }
-        // If multiple, try to find the one with largest amount
-        if (nonChangeOutputs.length > 1) {
-          const sorted = nonChangeOutputs.sort((a, b) => (b.value || 0) - (a.value || 0))
-          return sorted[0].address
         }
       }
       return null
