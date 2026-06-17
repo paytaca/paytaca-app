@@ -102,26 +102,41 @@
               </div>
             </div>
 
-            <div class="q-mt-md full-width">
-              <div v-if="isAuthor">
+            <div class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+              <div class="col text-center">
                 <q-btn
+                  v-if="isAuthor"
                   outline
-                  class="text-bold text-white full-width"
+                  stack
+                  class="text-bold text-caption full-width"
                   :color="darkMode ? 'white' : 'black'"
                   icon="check_circle"
-                  padding="md"
+                  padding="sm"
                   label="Confirm Delivery"
+                />
+                <q-btn
+                  v-else
+                  outline
+                  stack
+                  class="text-bold text-caption full-width"
+                  :color="darkMode ? 'white' : 'black'"
+                  icon="check_circle"
+                  padding="sm"
+                  label="Confirm Pickup"
                 />
               </div>
 
-              <div v-else>
-                <q-btn 
-                  outline
-                  class="text-bold text-white full-width"
-                  :color="darkMode ? 'white' : 'black'"
-                  icon="check_circle"
-                  padding="md"
-                  label="Confirm Pickup"
+              <div class="col q-ml-md text-center">
+                <q-btn
+                  class="text-bold text-caption full-width"
+                  color="negative"
+                  text-color="white"
+                  stack
+                  content-class="q-gap-xs"
+                  icon="gavel"
+                  padding="sm"
+                  label="File an Appeal"
+                  unelevated
                 />
               </div>
             </div>
