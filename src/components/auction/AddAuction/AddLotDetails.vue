@@ -118,7 +118,7 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Drop <span class="text-caption q-mb-xs text-italic">(every 10 minutes)</span></label>
+              <label class="text-md text-weight-bold block q-mb-xs">Price Drop</label>
               <q-input
                 outlined
                 dense
@@ -137,6 +137,21 @@
               <label class="text-caption block q-mb-xs text-grey-7">
                 {{ formatEquivalent(priceDrop) }}
               </label>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <label class="text-md text-weight-bold block q-mb-xs">Price Drop Interval</label>
+              <q-select
+                outlined
+                dense
+                v-model="priceDropInterval"
+                :options="priceDropIntervalOptions"
+                placeholder="Select auction type"
+                color="pt-primary1"
+                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+                lazy-rules hide-bottom-space
+                :rules="[ val => !!val || 'Please select an auction type' ]"
+              />
             </div>
           </div>
 
@@ -244,6 +259,16 @@ const estimatedPrice = ref(0.002)
 const startingPrice = ref(0.002)
 const priceThreshold = ref(0.002)
 const priceDrop = ref(0.0005)
+const priceDropInterval = ref({ label: "Every 10 minutes", value: 10 })
+const priceDropIntervalOptions = [
+  { label: "Every 10 minutes", value: 10 },
+  { label: "Every 30 minutes", value: 30 },
+  { label: "Every 1 hour", value: 60 },
+  { label: "Every 2 hours", value: 120 },
+  { label: "Every 4 hours", value: 240 },
+  { label: "Every 6 hours", value: 360 },
+  { label: "Every 12 hours", value: 720 }
+]
 const lotImages = ref([])
 const lotDescription = ref('')
 const isFiatUsed = ref(false)
@@ -312,6 +337,10 @@ const addLot = () => {
     generatedUrls = lotImages.value.map(file => URL.createObjectURL(file))
   }
 
+  const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object' 
+    ? priceDropInterval.value.value 
+    : priceDropInterval.value;
+
   const payload = {
     title: lotName.value,
     type: lotType.value,
@@ -319,30 +348,26 @@ const addLot = () => {
     startingPrice: startingPrice.value,
     threshold: priceThreshold.value || 0,
     priceDrop: priceDrop.value || 0,
+    priceDropInterval: rawInterval || 600000,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
     
     imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
     imageUrls: generatedUrls,
-
     rawFiles: lotImages.value ? [...lotImages.value] : []
   }
 
   emit('add-lot', payload)
-
   isToggledAddLot.value = false
 
-  $q.notify({
-    type: 'positive',
-    message: 'Lot added!',
-    timeout: 3000
-  })
+  $q.notify({ type: 'positive', message: 'Lot added!', timeout: 3000 })
   
   lotName.value = ''
   estimatedPrice.value = 0
   startingPrice.value = 0
   priceThreshold.value = 0
   priceDrop.value = 0.0005
+  priceDropInterval.value = { label: "Every 10 minutes", value: 600000 } // Reset dropdown
   lotImages.value = []
   lotDescription.value = ''
 }

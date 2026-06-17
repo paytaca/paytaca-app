@@ -218,6 +218,7 @@ const editLotDetails = (lot, index) => {
 const handleLotUpdate = (updatedLotData) => {
   if (activeEditIndex !== null) {
     updatedLotData.priceDrop = updatedLotData.price_drop ?? updatedLotData.priceDrop
+    updatedLotData.priceDropInterval = updatedLotData.priceDropInterval ?? 600000
     lots.value[activeEditIndex] = updatedLotData
   }
   isToggledEdit.value = false
@@ -311,6 +312,12 @@ const handleCreateAuction = async () => {
       lotFormData.append('threshold_bid', lot.threshold || 0)
       lotFormData.append('bidding_decrement', lot.priceDrop || lot.price_drop || 0)
       lotFormData.append('starting_price', lot.startingPrice || 0)
+
+      // const intervalValue = typeof lot.priceDropInterval === 'object' 
+      //   ? (lot.priceDropInterval?.value || 600000) 
+      //   : (lot.priceDropInterval || 600000);
+      
+      // lotFormData.append('price_drop_interval', intervalValue / 1000)
 
       const lotResult = await callAPI('lots', null, 'post', lotFormData)
 

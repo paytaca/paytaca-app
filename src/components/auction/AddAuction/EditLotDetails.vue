@@ -154,6 +154,23 @@
                 {{ formatEquivalent(priceDrop) }}
               </label>
             </div>
+
+            <div class="col-12 col-sm-6">
+              <label class="text-md text-weight-bold block q-mb-xs">Price Drop Interval</label>
+              <q-select
+                outlined
+                dense
+                v-model="priceDropInterval"
+                :options="priceDropIntervalOptions"
+                emit-value
+                map-options
+                placeholder="Select drop frequency"
+                color="pt-primary1"
+                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+                lazy-rules hide-bottom-space
+                :rules="[ val => !!val || 'Please select an interval' ]"
+              />
+            </div>
           </div>
 
           <div class="q-px-md q-mb-md">
@@ -264,6 +281,16 @@ const estimatedPrice = ref(0)
 const startingPrice = ref(0)
 const priceThreshold = ref(0)
 const priceDrop = ref(0)
+const priceDropInterval = ref({ label: "Every 10 minutes", value: 10 })
+const priceDropIntervalOptions = [
+  { label: "Every 10 minutes", value: 10 },
+  { label: "Every 30 minutes", value: 30 },
+  { label: "Every 1 hour", value: 60 },
+  { label: "Every 2 hours", value: 120 },
+  { label: "Every 4 hours", value: 240 },
+  { label: "Every 6 hours", value: 360 },
+  { label: "Every 12 hours", value: 720 }
+]
 const lotImages = ref([])
 const lotDescription = ref('')
 const isFiatUsed = ref(false)
@@ -317,6 +344,7 @@ watch(() => props.lotData, (newLot) => {
     startingPrice.value = newLot.startingPrice || 0
     priceThreshold.value = newLot.threshold || 0
     priceDrop.value = newLot.price_drop || newLot.priceDrop || 0
+    priceDropInterval.value = newLot.priceDropInterval || 600000
     isFiatUsed.value = newLot.isFiatUsed || false
     lotDescription.value = newLot.description || ''
     
@@ -334,7 +362,6 @@ watch(() => props.lotData, (newLot) => {
 
 const saveLot = () => {
   let finalImages = [...currentImageUrls.value]
-
   if (lotImages.value && lotImages.value.length > 0) {
     finalImages = lotImages.value.map(file => URL.createObjectURL(file))
   }
@@ -347,9 +374,9 @@ const saveLot = () => {
     startingPrice: startingPrice.value,
     threshold: priceThreshold.value || 0,
     price_drop: priceDrop.value || 0,
+    priceDropInterval: priceDropInterval.value,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
-    
     imageUrl: finalImages.length > 0 ? finalImages[0] : null,
     imageUrls: finalImages,
     rawFiles: lotImages.value && lotImages.value.length > 0 ? [...lotImages.value] : (props.lotData.rawFiles || [])
