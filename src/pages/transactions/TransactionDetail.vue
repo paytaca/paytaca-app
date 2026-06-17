@@ -2439,9 +2439,21 @@ export default {
           const clone = merchantEl.cloneNode(true)
           clone.style.marginTop = '0'
           clone.style.marginBottom = '20px'
-          // Remove padding/margin that the section-block-ss applies so it fits
-          // the receipt's white card
           detailsSection.appendChild(clone)
+
+          // Wait for all images in the clone to load before html2canvas captures
+          const images = clone.querySelectorAll('img')
+          const imageLoadPromises = Array.from(images).map((img) => {
+            return new Promise((resolve) => {
+              if (img.complete) {
+                resolve()
+              } else {
+                img.onload = () => resolve()
+                img.onerror = () => resolve()
+              }
+            })
+          })
+          await Promise.all(imageLoadPromises)
         }
 
         // Transaction ID
