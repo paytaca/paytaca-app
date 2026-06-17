@@ -618,6 +618,7 @@ export default {
         isLegacyAddress: false,
         isWalletAddress: false,
         cashbackData: null,
+        merchantData: null,
         incorrectAddress: false,
         cauldron: {
           enable: false,
@@ -1339,6 +1340,9 @@ export default {
           const response = await getCashbackAmount(payload)
           currentInputExtras.cashbackData = response
         }
+
+        // Look up merchant by address
+        vm.lookupMerchantForCurrentRecipient()
       }
     },
 
@@ -1475,6 +1479,7 @@ export default {
             isLegacyAddress: false,
             isWalletAddress,
             cashbackData: null,
+            merchantData: null,
             incorrectAddress: false
           }
         })
@@ -1762,6 +1767,7 @@ export default {
           cashbackData: null,
           incorrectAddress: false,
           cauldron: { enable: false, token: null, amountFormatted: '' },
+          merchantData: null,
         })
         this.currentWalletBalances.push({ balance: 0, assetId: this.asset.id })
         this.adjustWalletBalance();
@@ -2172,6 +2178,15 @@ export default {
     onQRScannerClick (value) {
       this.showQrScanner = value
     },
+    async lookupMerchantForCurrentRecipient () {
+      const currentRecipient = this.recipients[this.currentRecipientIndex]
+      const address = currentRecipient?.recipientAddress
+      if (!address) return
+      const valid = this.checkAddressValidity(address)
+      if (!valid) return
+      const merchantData = await sendPageUtils.lookupMerchantByAddress(address, this.isChipnet)
+      this.inputExtras[this.currentRecipientIndex].merchantData = merchantData
+    },
     onRecipientInput (value) {
       const [isLegacy, isDuplicate, isWalletAddress] = sendPageUtils.addressPrechecks(
         value ?? '',
@@ -2188,10 +2203,14 @@ export default {
       this.recipients[this.currentRecipientIndex].recipientAddress = value
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value === ''
       this.inputExtras[this.currentRecipientIndex].incorrectAddress = false
+      this.inputExtras[this.currentRecipientIndex].merchantData = null
       this.updateAddressPrecheckValues(isLegacy, isWalletAddress)
     },
     onEmptyRecipient (value) {
       this.inputExtras[this.currentRecipientIndex].emptyRecipient = value
+      if (!value) {
+        this.lookupMerchantForCurrentRecipient()
+      }
     },
     onSelectedDenomination (value) {
       this.inputExtras[this.currentRecipientIndex].selectedDenomination = value.denomination

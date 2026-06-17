@@ -410,6 +410,31 @@ export async function addressBelongsToWallet (address, walletHashHex, isChipnet)
   }
 }
 
+/**
+ * Look up merchant info associated with a BCH cash address.
+ * @param {string} address - BCH cash address
+ * @param {boolean} isChipnet - Whether chipnet/mainnet
+ * @returns {Promise<{name:string, logo:string, verified:boolean}|null>} Merchant data or null
+ */
+export async function lookupMerchantByAddress (address, isChipnet) {
+  if (!address) return null
+  const baseUrl = getWatchtowerApiUrl(isChipnet)
+  const url = `${baseUrl}/paytacapos/merchants/vault_address/`
+  try {
+    const { data } = await axios.post(url, { address }, { timeout: 10000 })
+    if (data?.merchant?.name) {
+      return {
+        name: data.merchant.name,
+        logo: data.merchant.logo || '',
+        verified: Boolean(data.merchant.verified)
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 export function addRemoveInputFocus (index, inputFocus) {
   const bchInput = document.getElementsByClassName('bch-input-field')
   const fiatInput = document.getElementsByClassName('fiat-input-field')
