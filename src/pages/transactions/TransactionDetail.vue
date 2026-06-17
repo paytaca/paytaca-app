@@ -2628,7 +2628,7 @@ export default {
         const footer = document.createElement('div')
         footer.style.cssText = `
           text-align: center;
-          padding-top: 15px;
+          padding-top: 5px;
         `
 
         // Paytaca logo container
@@ -2637,7 +2637,7 @@ export default {
           display: flex;
           justify-content: center;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 6px;
         `
 
         // Load Paytaca logo
@@ -2646,7 +2646,7 @@ export default {
             const logoImg = document.createElement('img')
             logoImg.src = paytacaLogoHorizontal
             logoImg.style.cssText = `
-              height: 120px;
+              height: 60px;
               width: auto;
               object-fit: contain;
               display: block;
