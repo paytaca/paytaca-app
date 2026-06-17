@@ -1,4 +1,27 @@
 <template>
+  <q-card
+    v-if="inputExtras.merchantData"
+    class="q-pa-sm q-mt-md q-mb-sm row items-center"
+    :class="getDarkModeClass(darkMode)"
+  >
+    <q-avatar v-if="(inputExtras.merchantData.logoData || inputExtras.merchantData.logo)" size="36px" rounded>
+      <q-img :src="inputExtras.merchantData.logoData || inputExtras.merchantData.logo" />
+    </q-avatar>
+    <span class="q-ml-sm text-subtitle1">{{ inputExtras.merchantData.name }}</span>
+    <q-badge
+      :color="inputExtras.merchantData.verified ? 'positive' : 'grey-6'"
+      class="q-ml-sm"
+      align="middle"
+      transparent
+    >
+      <q-icon
+        :name="inputExtras.merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
+        size="14px"
+        class="q-mr-xs"
+      />
+      {{ inputExtras.merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
+    </q-badge>
+  </q-card>
   <div class="row">
     <div class="col q-mt-sm se recipient-input-qr">
       <q-input
@@ -67,29 +90,6 @@
   >
     {{ $t('SameWalletAddressWarning') }}
   </div>
-  <q-card
-    v-if="inputExtras.merchantData"
-    class="q-pa-sm q-my-sm row items-center"
-    :class="getDarkModeClass(darkMode)"
-  >
-    <q-avatar v-if="inputExtras.merchantData.logo" size="36px" rounded>
-      <q-img :src="inputExtras.merchantData.logo" />
-    </q-avatar>
-    <span class="q-ml-sm text-subtitle1">{{ inputExtras.merchantData.name }}</span>
-    <q-badge
-      :color="inputExtras.merchantData.verified ? 'positive' : 'grey-6'"
-      class="q-ml-sm"
-      align="middle"
-      transparent
-    >
-      <q-icon
-        :name="inputExtras.merchantData.verified ? 'mdi-shield-check' : 'mdi-shield-off'"
-        size="14px"
-        class="q-mr-xs"
-      />
-      {{ inputExtras.merchantData.verified ? $t('VerifiedMerchant', {}, 'Verified') : $t('UnverifiedMerchant', {}, 'Unverified') }}
-    </q-badge>
-  </q-card>
   <div class="col-12">
     <q-input
       v-if="assetIsFT && hasFTChange && hasFTChangeAddressOption && selectedChangeAddress"

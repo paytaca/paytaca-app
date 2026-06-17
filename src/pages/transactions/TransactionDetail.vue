@@ -208,8 +208,8 @@
             class="q-pa-sm q-my-sm inline-block"
             :class="getDarkModeClass(darkMode)"
           >
-            <q-avatar v-if="merchantData.logo" size="36px" rounded>
-              <q-img :src="merchantData.logo" />
+            <q-avatar v-if="(merchantData.logoData || merchantData.logo)" size="36px" rounded>
+              <q-img :src="merchantData.logoData || merchantData.logo" />
             </q-avatar>
             <span class="q-ml-sm text-subtitle1">{{ merchantData.name }}</span>
             <q-badge
@@ -2455,9 +2455,10 @@ export default {
           merchantContainer.appendChild(paidToLabel)
 
           // Logo
-          if (vm.merchantData.logo) {
+          const logoSrc = vm.merchantData.logoData || vm.merchantData.logo
+          if (logoSrc) {
             merchantLogoEl = document.createElement('img')
-            merchantLogoEl.src = vm.merchantData.logo
+            merchantLogoEl.src = logoSrc
             merchantLogoEl.style.cssText = `
               width: 36px;
               height: 36px;
@@ -2669,14 +2670,6 @@ export default {
 
         // Wait for logo to load before capturing
         await loadPaytacaLogo()
-
-        // Wait for merchant logo if present
-        if (merchantLogoEl && !merchantLogoEl.complete) {
-          await new Promise((resolve) => {
-            merchantLogoEl.onload = () => resolve()
-            merchantLogoEl.onerror = () => resolve()
-          })
-        }
 
         // Small delay to ensure DOM updates are rendered
         await new Promise(resolve => setTimeout(resolve, 100))

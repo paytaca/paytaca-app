@@ -414,7 +414,7 @@ export async function addressBelongsToWallet (address, walletHashHex, isChipnet)
  * Look up merchant info associated with a BCH cash address.
  * @param {string} address - BCH cash address
  * @param {boolean} isChipnet - Whether chipnet/mainnet
- * @returns {Promise<{name:string, logo:string, verified:boolean}|null>} Merchant data or null
+ * @returns {Promise<{name:string, logo:string, logoData:string, verified:boolean}|null>} Merchant data or null
  */
 export async function lookupMerchantByAddress (address, isChipnet) {
   if (!address) return null
@@ -426,6 +426,7 @@ export async function lookupMerchantByAddress (address, isChipnet) {
       return {
         name: data.merchant.name,
         logo: data.merchant.logo || '',
+        logoData: data.merchant.logo_data || '',
         verified: Boolean(data.merchant.verified)
       }
     }
