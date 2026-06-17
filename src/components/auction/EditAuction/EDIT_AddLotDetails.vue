@@ -13,7 +13,11 @@
 
   <q-dialog v-model="isToggledAddLot" position="bottom">
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
-      <q-form @submit="addLot">
+      <q-form
+        ref="addLotFormRef"
+        @submit.prevent="addLot"
+        @validation-error="scrollToFirstError"
+      >
         <q-card-section>
           <div class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
@@ -56,7 +60,7 @@
                 dense
                 v-model.number="estimatedPrice"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -66,8 +70,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(estimatedPrice) }}
+              </label>
             </div>
 
             <div class="col-12 col-sm-6">
@@ -77,7 +82,7 @@
                 dense
                 v-model.number="startingPrice"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -87,8 +92,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(startingPrice) }}
+              </label>
             </div>
           </div>
 
@@ -100,7 +106,7 @@
                 dense
                 v-model.number="priceThreshold"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -110,18 +116,31 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price reserve' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceThreshold) }}
+              </label>
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Drop <span class="text-caption q-mb-xs text-italic">(every 10 minutes)</span></label>
+              <div class="row justify-between items-center q-mb-xs">
+                <label class="text-md text-weight-bold">Price Drop</label>
+                <q-btn 
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  color="primary"
+                  label="Calculate Suggested"
+                  icon="calculate"
+                  @click="calculateSuggestedDrop"
+                />
+              </div>
               <q-input
                 outlined
                 dense
                 v-model.number="priceDrop"
                 type="number"
-                :step="isFiatUsed ? '0.00000001' : '0.01'"
+                :step="isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
                 :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
@@ -131,13 +150,29 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceDrop) }}
+              </label>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <label class="text-md text-weight-bold block q-mb-xs">Price Drop Interval</label>
+              <q-select
+                outlined
+                dense
+                v-model="priceDropInterval"
+                :options="priceDropIntervalOptions"
+                placeholder="Select auction type"
+                color="pt-primary1"
+                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+                lazy-rules hide-bottom-space
+                :rules="[ val => !!val || 'Please select an auction type' ]"
+              />
             </div>
           </div>
 
           <div class="q-px-md q-mb-md">
-            <label class="text-md text-weight-bold block q-mb-xs">Insert Images (max. 3) <span class="text-caption block q-mb-xs text-italic">(Accepts .jpg, .jpeg., and .png only)</span></label>
+            <label class="text-md text-weight-bold block q-mb-xs">Insert Images (max. 3) <span class="text-caption block q-mb-xs text-italic">(Accepts .jpg, .jpeg, and .png only)</span></label>
             <q-file
               accept=".jpg, .jpeg, .png"
               outlined
@@ -213,9 +248,8 @@
 
 <script setup>
 import { useQuasar } from 'quasar'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { computed } from 'vue'
 import { useStore } from 'vuex'
 
 const props = defineProps({
@@ -223,22 +257,42 @@ const props = defineProps({
     type: String,
     required: true,
     default: 'English'
+  },
+  startDate: {
+    type: String,
+    default: ''
+  },
+  endDate: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['add-lot'])
 
 const $q = useQuasar()
-const $store = useStore();
+const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
-const lotName = ref('Lot Title')
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php'))
+
+const lotName = ref('')
 const lotType = ref('Physical')
 const lotTypeOptions = ['Physical', 'Digital']
-const estimatedPrice = ref(0.002)
-const startingPrice = ref(0.002)
-const priceThreshold = ref(0.002)
+const estimatedPrice = ref(0)
+const startingPrice = ref(0)
+const priceThreshold = ref(0)
 const priceDrop = ref(0.0005)
+const priceDropInterval = ref({ label: "Every 10 minutes", value: 10 })
+const priceDropIntervalOptions = [
+  { label: "Every 10 minutes", value: 10 },
+  { label: "Every 30 minutes", value: 30 },
+  { label: "Every 1 hour", value: 60 },
+  { label: "Every 2 hours", value: 120 },
+  { label: "Every 4 hours", value: 240 },
+  { label: "Every 6 hours", value: 360 },
+  { label: "Every 12 hours", value: 720 }
+]
 const lotImages = ref([])
 const lotDescription = ref('')
 const isFiatUsed = ref(false)
@@ -269,48 +323,151 @@ const clearImages = () => {
   hasFileOverload.value = false
 }
 
-const toggleCurrency = (isFiat) => {
-  // Code block for converting user input money to its equivalent currency
+const calculateSuggestedDrop = () => {
+  if (!props.startDate || !props.endDate) {
+    $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
+    return
+  }
+  
+  const start = new Date(props.startDate)
+  const end = new Date(props.endDate)
+  
+  const durationMinutes = (end - start) / (1000 * 60)
+
+  if (isNaN(durationMinutes) || durationMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Invalid Auction timeframe dates.', timeout: 2000 })
+    return
+  }
+  
+  const startPrice = Number(startingPrice.value) || 0
+  const reservePrice = Number(priceThreshold.value) || 0
+
+  if (startPrice <= reservePrice) {
+    $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
+    return
+  }
+
+  const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object'
+    ? priceDropInterval.value.value
+    : priceDropInterval.value
+
+  const intervalMinutes = Number(rawInterval) || 0
+
+  if (intervalMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
+    return
+  }
+  
+  const totalIntervals = durationMinutes / intervalMinutes
+
+  if (totalIntervals <= 0) return
+  
+  const calculatedDrop = (startPrice - reservePrice) / totalIntervals
+  priceDrop.value = isFiatUsed.value ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
-const addLot = () => {
+const toggleCurrency = (isFiat) => {
+  const rate = bchToPhpRate.value
+  if (!rate) return
+
+  if (isFiat) {
+    estimatedPrice.value = Number((estimatedPrice.value * rate).toFixed(2))
+    startingPrice.value = Number((startingPrice.value * rate).toFixed(2))
+    priceThreshold.value = Number((priceThreshold.value * rate).toFixed(2))
+    priceDrop.value = Number((priceDrop.value * rate).toFixed(2))
+  } else {
+    estimatedPrice.value = Number((estimatedPrice.value / rate).toFixed(8))
+    startingPrice.value = Number((startingPrice.value / rate).toFixed(8))
+    priceThreshold.value = Number((priceThreshold.value / rate).toFixed(8))
+    priceDrop.value = Number((priceDrop.value / rate).toFixed(8))
+  }
+}
+
+const formatEquivalent = (value) => {
+  const rate = bchToPhpRate.value
+  if (!rate || !value || isNaN(value)) {
+    return isFiatUsed.value ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
+  }
+
+  if (isFiatUsed.value) {
+    const bchValue = value / rate
+    return `Equivalent BCH: ${bchValue.toFixed(8)} BCH`
+  } else {
+    const phpValue = value * rate
+    return `Equivalent PHP price: PHP ${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+}
+
+const addLotFormRef = ref(null)
+
+const scrollToFirstError = () => {
+  setTimeout(() => {
+    const firstInvalidField = document.querySelector('.q-dialog .q-field--error, .q-dialog .q-field--invalid')
+    if (firstInvalidField) {
+      firstInvalidField.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }, 50)
+}
+
+const addLot = async () => {
+  if (addLotFormRef.value) {
+    const isValid = await addLotFormRef.value.validate()
+    if (!isValid) {
+      scrollToFirstError()
+      return
+    }
+  }
+
   let generatedUrls = []
   if (lotImages.value && lotImages.value.length > 0) {
     generatedUrls = lotImages.value.map(file => URL.createObjectURL(file))
   }
 
+  const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object' 
+    ? priceDropInterval.value.value 
+    : priceDropInterval.value;
+
   const payload = {
     title: lotName.value,
+    type: lotType.value,
     category: lotType.value,
     category_id: lotType.value === 'Physical' ? 1 : 2,
-    estimated_amount: estimatedPrice.value,
-    starting_price: startingPrice.value,
-    threshold_bid: priceThreshold.value || 0,
-    bidding_decrement: priceDrop.value || 0,
+    estimatedPrice: estimatedPrice.value,
+    startingPrice: startingPrice.value,
+    threshold: priceThreshold.value || 0,
+    priceDrop: priceDrop.value || 0,
+    priceDropInterval: rawInterval || 10,
     isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
+    
     imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
     imageUrls: generatedUrls,
     rawFiles: lotImages.value ? [...lotImages.value] : []
   }
 
   emit('add-lot', payload)
-
   isToggledAddLot.value = false
 
-  $q.notify({
-    type: 'positive',
-    message: 'Lot added!',
-    timeout: 3000
-  })
+  if (addLotFormRef.value) {
+    addLotFormRef.value.resetValidation()
+  }
+
+  $q.notify({ type: 'positive', message: 'Lot added!', timeout: 3000 })
   
   lotName.value = ''
+  lotType.value = 'Physical'
   estimatedPrice.value = 0
   startingPrice.value = 0
   priceThreshold.value = 0
   priceDrop.value = 0.0005
+  priceDropInterval.value = { label: "Every 10 minutes", value: 10 }
   lotImages.value = []
   lotDescription.value = ''
+  isFiatUsed.value = false
+  hasFileOverload.value = false
 }
 </script>
 

@@ -5,7 +5,11 @@
     position="bottom"
   >
     <q-card class="br-15 pt-card-2 text-bow bottom-card" :class="getDarkModeClass(darkMode)">
-      <q-form @submit.prevent="saveLot">
+      <q-form
+        ref="editLotFormRef"
+        @submit.prevent="saveLot"
+        @validation-error="scrollToFirstError"
+      >
         <q-card-section>
           <div class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
@@ -58,8 +62,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(estimatedPrice) }}
+              </label>
             </div>
 
             <div class="col-12 col-sm-6">
@@ -79,8 +84,9 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Price must be greater than 0' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(startingPrice) }}
+              </label>
             </div>
           </div>
 
@@ -102,12 +108,25 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val > 0 || 'Invalid price reserve' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceThreshold) }}
+              </label>
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Drop <span class="text-caption q-mb-xs text-italic">(every 10 minutes)</span></label>
+              <div class="row justify-between items-center q-mb-xs">
+                <label class="text-md text-weight-bold">Price Drop</label>
+                <q-btn 
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  color="primary"
+                  label="Calculate Suggested"
+                  icon="calculate"
+                  @click="calculateSuggestedDrop"
+                />
+              </div>
               <q-input
                 outlined
                 dense
@@ -123,8 +142,26 @@
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
               />
-              <label v-if="!isFiatUsed" class="text-caption block q-mb-xs">Equivalent PHP price: PHP 200.00</label>
-              <label v-else class="text-caption block q-mb-xs">Equivalent BCH: 0.01000000 BCH</label>
+              <label class="text-caption block q-mb-xs text-grey-7">
+                {{ formatEquivalent(priceDrop) }}
+              </label>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <label class="text-md text-weight-bold block q-mb-xs">Price Drop Interval</label>
+              <q-select
+                outlined
+                dense
+                v-model="priceDropInterval"
+                :options="priceDropIntervalOptions"
+                emit-value
+                map-options
+                placeholder="Select drop frequency"
+                color="pt-primary1"
+                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+                lazy-rules hide-bottom-space
+                :rules="[ val => !!val || 'Please select an interval' ]"
+              />
             </div>
           </div>
 
@@ -228,6 +265,14 @@ const props = defineProps({
   lotData: {
     type: Object,
     default: null
+  },
+  startDate: {
+    type: String,
+    default: ''
+  },
+  endDate: {
+    type: String,
+    default: ''
   }
 })
 
@@ -236,6 +281,7 @@ const emit = defineEmits(['update:isToggledEditLot', 'update-lot'])
 const $q = useQuasar()
 const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
 const lotName = ref('')
 const lotType = ref('Physical')
@@ -244,6 +290,16 @@ const estimatedPrice = ref(0)
 const startingPrice = ref(0)
 const priceThreshold = ref(0)
 const priceDrop = ref(0)
+const priceDropInterval = ref(10)
+const priceDropIntervalOptions = [
+  { label: "Every 10 minutes", value: 10 },
+  { label: "Every 30 minutes", value: 30 },
+  { label: "Every 1 hour", value: 60 },
+  { label: "Every 2 hours", value: 120 },
+  { label: "Every 4 hours", value: 240 },
+  { label: "Every 6 hours", value: 360 },
+  { label: "Every 12 hours", value: 720 }
+]
 const lotImages = ref([])
 const lotDescription = ref('')
 const isFiatUsed = ref(false)
@@ -258,17 +314,90 @@ const onRejected = (rejectedEntries) => {
 }
 
 const toggleCurrency = (isFiat) => {
-  // Code block for converting user input money to its equivalent currency
+  const rate = bchToPhpRate.value
+  if (!rate) return
+
+  if (isFiat) {
+    estimatedPrice.value = Number((estimatedPrice.value * rate).toFixed(2))
+    startingPrice.value = Number((startingPrice.value * rate).toFixed(2))
+    priceThreshold.value = Number((priceThreshold.value * rate).toFixed(2))
+    priceDrop.value = Number((priceDrop.value * rate).toFixed(2))
+  } else {
+    estimatedPrice.value = Number((estimatedPrice.value / rate).toFixed(8))
+    startingPrice.value = Number((startingPrice.value / rate).toFixed(8))
+    priceThreshold.value = Number((priceThreshold.value / rate).toFixed(8))
+    priceDrop.value = Number((priceDrop.value / rate).toFixed(8))
+  }
+}
+
+const formatEquivalent = (value) => {
+  const rate = bchToPhpRate.value
+  if (!rate || !value || isNaN(value)) {
+    return isFiatUsed.value ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
+  }
+
+  if (isFiatUsed.value) {
+    const bchValue = value / rate
+    return `Equivalent BCH: ${bchValue.toFixed(8)} BCH`
+  } else {
+    const phpValue = value * rate
+    return `Equivalent PHP price: PHP ${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+}
+
+const normalizeInterval = (value) => {
+  if (value === undefined || value === null) return 10
+  if (typeof value === 'object') return Number(value.value || 10)
+  const numeric = Number(value)
+  return Number.isNaN(numeric) ? 10 : numeric
+}
+
+const calculateSuggestedDrop = () => {
+  if (!props.startDate || !props.endDate) {
+    $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
+    return
+  }
+
+  const start = new Date(props.startDate)
+  const end = new Date(props.endDate)
+  const durationMinutes = (end - start) / (1000 * 60)
+
+  if (isNaN(durationMinutes) || durationMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Invalid Auction timeframe dates.', timeout: 2000 })
+    return
+  }
+
+  const startPrice = Number(startingPrice.value) || 0
+  const reservePrice = Number(priceThreshold.value) || 0
+
+  if (startPrice <= reservePrice) {
+    $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
+    return
+  }
+
+  const intervalMinutes = normalizeInterval(priceDropInterval.value)
+
+  if (intervalMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
+    return
+  }
+
+  const totalIntervals = durationMinutes / intervalMinutes
+  if (totalIntervals <= 0) return
+
+  const calculatedDrop = (startPrice - reservePrice) / totalIntervals
+  priceDrop.value = isFiatUsed.value ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
 watch(() => props.lotData, (newLot) => {
   if (newLot) {
     lotName.value = newLot.title || ''
     lotType.value = newLot.category || newLot.type || 'Physical'
-    estimatedPrice.value = newLot.estimated_amount || newLot.estimatedPrice || 0
-    startingPrice.value = newLot.starting_price || newLot.startingPrice || 0
-    priceThreshold.value = newLot.threshold_bid || newLot.threshold || 0
-    priceDrop.value = newLot.bidding_decrement || newLot.price_drop || 0
+    estimatedPrice.value = newLot.estimatedPrice ?? newLot.estimated_amount ?? 0
+    startingPrice.value = newLot.startingPrice ?? newLot.starting_price ?? 0
+    priceThreshold.value = newLot.threshold ?? newLot.threshold_bid ?? 0
+    priceDrop.value = newLot.priceDrop ?? newLot.bidding_decrement ?? newLot.price_drop ?? 0
+    priceDropInterval.value = normalizeInterval(newLot.priceDropInterval)
     isFiatUsed.value = newLot.isFiatUsed || false
     lotDescription.value = newLot.description || ''
     
@@ -284,18 +413,50 @@ watch(() => props.lotData, (newLot) => {
   }
 }, { immediate: true })
 
-const saveLot = () => {
+
+
+const editLotFormRef = ref(null)
+
+const scrollToFirstError = () => {
+  setTimeout(() => {
+    const firstInvalidField = document.querySelector('.q-dialog .q-field--error, .q-dialog .q-field--invalid')
+    if (firstInvalidField) {
+      firstInvalidField.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }, 50)
+}
+
+const saveLot = async () => {
+  if (editLotFormRef.value) {
+    const isValid = await editLotFormRef.value.validate()
+    if (!isValid) {
+      scrollToFirstError()
+      return
+    }
+  }
+
   let finalImages = [...currentImageUrls.value]
 
   if (lotImages.value && lotImages.value.length > 0) {
     finalImages = lotImages.value.map(file => URL.createObjectURL(file))
   }
 
+  const rawInterval = normalizeInterval(priceDropInterval.value)
+
   const updatedPayload = {
     ...props.lotData,
     title: lotName.value,
     category: lotType.value,
+    type: lotType.value,
     category_id: lotType.value === 'Physical' ? 1 : 2,
+    estimatedPrice: estimatedPrice.value,
+    startingPrice: startingPrice.value,
+    threshold: priceThreshold.value || 0,
+    priceDrop: priceDrop.value || 0,
+    priceDropInterval: rawInterval || 10,
     estimated_amount: estimatedPrice.value,
     starting_price: startingPrice.value,
     threshold_bid: priceThreshold.value || 0,

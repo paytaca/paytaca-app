@@ -59,6 +59,8 @@
     <div>
       <AddLotDetails
         :auctionType="auctionType"
+        :startDate="auctionForm.start_date"
+        :endDate="auctionForm.end_date"
         @add-lot="handleNewLot"
       />
     </div>
@@ -100,39 +102,37 @@
 
                 <q-separator class="q-my-sm" :dark="$q.dark.isActive" />
 
-                <div class="text-caption">
-                  Estimated: ₱950
-                  <span class="text-weight-medium">
-                    {{ getFormattedBCH(lot.estimated_amount).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.estimated_amount).zeros }}</span> BCH
-                  </span>
-                </div>
-
-                <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
-
-                <div v-if="auctionType === 'English'" class="text-caption">
-                  <div>
-                    Floor/Reserve: ₱950
-                    <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
-                    </span>
+                <div v-if="auctionType === 'English'" class="column q-gap-y-none q-mb-xs">
+                  <div class="text-caption text-weight-medium">STARTING PRICE:</div>
+                  <div class="text-caption text-weight-bold">
+                    {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                  </div>
+                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
 
-                <div v-else-if="auctionType === 'Dutch'" class="text-caption">
-                  <div>
-                    Ceiling Price: ₱950
-                    <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ getFormattedBCH(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
-                    </span>
+                <div v-else-if="auctionType === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
+                  <div class="column q-gap-y-none">
+                    <div class="text-caption text-weight-medium">START PRICE:</div>
+                    <div class="text-caption text-weight-bold">
+                      {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                    </div>
                   </div>
-                  
+
                   <q-separator class="q-my-xs" :dark="$q.dark.isActive" />
-                    
-                  <div class="text-negative">
-                    Drops by: ₱950 per 10 minutes
-                    <span class="text-weight-medium" style="opacity: 0.65;">
-                      {{ getFormattedBCH(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ getFormattedBCH(lot.bidding_decrement).zeros }}</span> BCH
-                    </span>
+
+                  <div class="column q-gap-y-none text-negative">
+                    <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ lot.priceDropInterval || 10 }} MINUTES:</div>
+                    <div class="text-caption text-weight-bold">
+                      -{{ getFiatDisplay(lot.priceDrop, lot.isFiatUsed) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      -{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                    </div>
                   </div>
                 </div>
 
@@ -191,6 +191,8 @@
       v-model:isToggledEditLot="isToggledEdit"
       :auctionType="auctionType"
       :lot-data="selectedLot"
+      :startDate="auctionForm.start_date"
+      :endDate="auctionForm.end_date"
       @update-lot="handleLotUpdate"
     />
 
@@ -283,8 +285,7 @@ const fetchAllData = async () => {
         lot.end_date = auction.value?.end_date || null
         lot._uuid = generateLocalId()
         lot._status = 'unchanged'
-
-        // Fetch images
+        
         const imgResult = await callAPI('lot-images-by-lot', lot.id, 'get')
         if (imgResult.success && Array.isArray(imgResult.data)) {
           lot.imageUrls = imgResult.data.map(i => i.image)
@@ -293,6 +294,25 @@ const fetchAllData = async () => {
           lot.imageUrls = lot.images || []
           lot.imageUrl = lot.imageUrls[0] || null
         }
+
+        lot.estimatedPrice = lot.estimated_price ?? lot.estimatedAmount ?? lot.estimated_amount
+        lot.startingPrice = lot.starting_price ?? lot.startingPrice ?? 0
+        lot.threshold = lot.threshold_bid ?? lot.threshold ?? 0
+        lot.priceDrop = lot.bidding_decrement ?? lot.priceDrop ?? 0
+
+        const normalizeInterval = (value) => {
+          if (value === undefined || value === null) return 10
+          if (typeof value === 'object') return Number(value.value || 10)
+          const numberValue = Number(value)
+          if (numberValue > 1000) return numberValue / 60000
+          return numberValue || 10
+        }
+
+        lot.priceDropInterval = normalizeInterval(lot.priceDropInterval)
+        lot.isFiatUsed = lot.isFiatUsed ?? false
+        lot.type = lot.type || lot.category || (lot.category_id === 1 ? 'Physical' : 'Digital')
+        lot.category = lot.category || lot.type
+        lot.category_id = lot.category_id || (lot.type === 'Physical' ? 1 : 2)
 
         return lot
       }))
@@ -369,6 +389,11 @@ const handleLotDelete = () => {
 const handleUpdateAuction = async () => {
   if (!validateAuctionDates()) return
   
+  if (visibleLots.value.length === 0) {
+    $q.notify({ type: 'negative', message: 'Please add at least one lot before saving the auction.' })
+    return
+  }
+
   $q.loading.show({ message: 'Saving auction and lot updates...' })
   
   try {
@@ -398,10 +423,16 @@ const handleUpdateAuction = async () => {
       const editFormData = new FormData()
       editFormData.append('title', lot.title)
       editFormData.append('description', lot.description || '')
-      editFormData.append('category_id', lot.category_id)
-      editFormData.append('estimated_amount', lot.estimated_amount)
-      editFormData.append('threshold_bid', lot.threshold_bid)
-      editFormData.append('bidding_decrement', lot.bidding_decrement)
+      editFormData.append('category_id', lot.category_id || (lot.type === 'Physical' ? 1 : 2))
+      editFormData.append('estimated_amount', lot.estimated_amount ?? lot.estimatedPrice ?? 0)
+      editFormData.append('starting_price', lot.starting_price ?? lot.startingPrice ?? 0)
+
+      if (auctionForm.value.type === 'English') {
+        editFormData.append('threshold_bid', lot.starting_price ?? lot.startingPrice ?? 0)
+      } else {
+        editFormData.append('threshold_bid', lot.threshold ?? lot.threshold_bid ?? 0)
+        editFormData.append('bidding_decrement', lot.priceDrop ?? lot.bidding_decrement ?? lot.price_drop ?? 0)
+      }
       
       await callAPI('lots', lot.id, 'patch', editFormData)
       
@@ -428,10 +459,16 @@ const handleUpdateAuction = async () => {
       addFormData.append('auction_id', props.auctionId)
       addFormData.append('title', lot.title)
       addFormData.append('description', lot.description || '')
-      addFormData.append('category_id', lot.category_id)
-      addFormData.append('estimated_amount', lot.estimated_amount)
-      addFormData.append('threshold_bid', lot.threshold_bid)
-      addFormData.append('bidding_decrement', lot.bidding_decrement)
+      addFormData.append('category_id', lot.category_id || (lot.type === 'Physical' ? 1 : 2))
+      addFormData.append('estimated_amount', lot.estimated_amount ?? lot.estimatedPrice ?? 0)
+      addFormData.append('starting_price', lot.starting_price ?? lot.startingPrice ?? 0)
+
+      if (auctionForm.value.type === 'English') {
+        addFormData.append('threshold_bid', lot.starting_price ?? lot.startingPrice ?? 0)
+      } else {
+        addFormData.append('threshold_bid', lot.threshold ?? lot.threshold_bid ?? 0)
+        addFormData.append('bidding_decrement', lot.priceDrop ?? lot.bidding_decrement ?? lot.price_drop ?? 0)
+      }
       
       const newLotRes = await callAPI('lots', null, 'post', addFormData)
       
@@ -498,6 +535,26 @@ const getFormattedBCH = (bch) => {
   const main = match ? match[1] : numStr;
   const zeros = numStr.substring(main.length);
   return { main, zeros, full: numStr };
+}
+
+const getFiatDisplay = (value, isFiatUsed = false) => {
+  const numValue = Number(value) || 0
+  if (isFiatUsed) {
+    return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+  const rate = $store.getters['market/getAssetPrice']('bch', 'php') || 0
+  const phpValue = numValue * rate
+  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+const getBchDisplay = (value, isFiatUsed = false) => {
+  const numValue = Number(value) || 0
+  if (isFiatUsed) {
+    const rate = $store.getters['market/getAssetPrice']('bch', 'php') || 0
+    const bchValue = rate > 0 ? numValue / rate : 0
+    return getFormattedBCH(bchValue)
+  }
+  return getFormattedBCH(numValue)
 }
 </script>
 
