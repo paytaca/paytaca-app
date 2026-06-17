@@ -134,7 +134,19 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Drop <span class="text-caption q-mb-xs text-italic">(every 10 minutes)</span></label>
+              <div class="row justify-between items-center q-mb-xs">
+                <label class="text-md text-weight-bold">Price Drop</label>
+                <q-btn 
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  color="primary"
+                  label="Calculate Suggested"
+                  icon="calculate"
+                  @click="calculateSuggestedDrop"
+                />
+              </div>
               <q-input
                 outlined
                 dense
@@ -263,6 +275,14 @@ const props = defineProps({
   lotData: {
     type: Object,
     default: null
+  },
+  startDate: {
+    type: String,
+    default: ''
+  },
+  endDate: {
+    type: String,
+    default: ''
   }
 })
 
@@ -302,6 +322,49 @@ const onRejected = (rejectedEntries) => {
     type: 'negative',
     message: `${rejectedEntries.length} file(s) did not overcome validation constraints (Max 3 images, invalid format)`
   })
+}
+
+const calculateSuggestedDrop = () => {
+  if (!props.startDate || !props.endDate) {
+    $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
+    return
+  }
+  
+  const start = new Date(props.startDate)
+  const end = new Date(props.endDate)
+  
+  const durationMinutes = (end - start) / (1000 * 60)
+
+  if (isNaN(durationMinutes) || durationMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Invalid Auction timeframe dates.', timeout: 2000 })
+    return
+  }
+  
+  const startPrice = Number(startingPrice.value) || 0
+  const reservePrice = Number(priceThreshold.value) || 0
+
+  if (startPrice <= reservePrice) {
+    $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
+    return
+  }
+
+  const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object'
+    ? priceDropInterval.value.value
+    : priceDropInterval.value
+
+  const intervalMinutes = Number(rawInterval) || 0
+
+  if (intervalMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
+    return
+  }
+  
+  const totalIntervals = durationMinutes / intervalMinutes
+
+  if (totalIntervals <= 0) return
+  
+  const calculatedDrop = (startPrice - reservePrice) / totalIntervals
+  priceDrop.value = isFiatUsed.value ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
 const toggleCurrency = (isFiat) => {

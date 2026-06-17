@@ -36,6 +36,8 @@
       <div>
         <AddLotDetails
           :auctionType="auctionType"
+          :startDate="auctionForm.start_date"
+          :endDate="auctionForm.end_date"
           @add-lot="handleNewLot"
         />
       </div>
@@ -154,6 +156,8 @@
       v-model:isToggledEditLot="isToggledEdit" 
       :lotData="selectedLot" 
       :auctionType="auctionType"
+      :startDate="auctionForm.start_date"
+      :endDate="auctionForm.end_date"
       @update-lot="handleLotUpdate" 
     />
     

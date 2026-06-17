@@ -94,7 +94,7 @@
             </div>
           </div>
 
-          <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
+          <div v-if="props.auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
               <label class="text-md text-weight-bold block q-mb-xs">Price Reserve</label>
               <q-input
@@ -118,7 +118,19 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Drop</label>
+              <div class="row justify-between items-center q-mb-xs">
+                <label class="text-md text-weight-bold">Price Drop</label>
+                <q-btn 
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  color="primary"
+                  label="Calculate Suggested"
+                  icon="calculate"
+                  @click="calculateSuggestedDrop"
+                />
+              </div>
               <q-input
                 outlined
                 dense
@@ -236,11 +248,19 @@ import { ref, computed } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 
-defineProps({
+const props = defineProps({
   auctionType: {
     type: String,
     required: true,
     default: 'English'
+  },
+  startDate: {
+    type: String,
+    default: ''
+  },
+  endDate: {
+    type: String,
+    default: ''
   }
 })
 
@@ -297,6 +317,49 @@ const onModelUpdate = (newFiles) => {
 const clearImages = () => {
   lotImages.value = []
   hasFileOverload.value = false
+}
+
+const calculateSuggestedDrop = () => {
+  if (!props.startDate || !props.endDate) {
+    $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
+    return
+  }
+  
+  const start = new Date(props.startDate)
+  const end = new Date(props.endDate)
+  
+  const durationMinutes = (end - start) / (1000 * 60)
+
+  if (isNaN(durationMinutes) || durationMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Invalid Auction timeframe dates.', timeout: 2000 })
+    return
+  }
+  
+  const startPrice = Number(startingPrice.value) || 0
+  const reservePrice = Number(priceThreshold.value) || 0
+
+  if (startPrice <= reservePrice) {
+    $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
+    return
+  }
+
+  const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object'
+    ? priceDropInterval.value.value
+    : priceDropInterval.value
+
+  const intervalMinutes = Number(rawInterval) || 0
+
+  if (intervalMinutes <= 0) {
+    $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
+    return
+  }
+  
+  const totalIntervals = durationMinutes / intervalMinutes
+
+  if (totalIntervals <= 0) return
+  
+  const calculatedDrop = (startPrice - reservePrice) / totalIntervals
+  priceDrop.value = isFiatUsed.value ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
 const toggleCurrency = (isFiat) => {
