@@ -12,6 +12,7 @@
 import { sha256 } from 'js-sha256'
 import { getEventHash, finalizeEvent } from 'nostr-tools'
 import { nip59 } from 'nostr-tools'
+import { requestManager } from 'src/utils/request-manager'
 
 /**
  * Encrypt a file using AES-256-GCM.
@@ -243,6 +244,7 @@ export function uploadToBlossom(encryptedData, serverUrl, senderPrivKey, senderP
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
+    const xhrCleanup = requestManager.registerXHR(xhr)
     xhr.open('PUT', uploadUrl, true)
     xhr.setRequestHeader('Authorization', `Nostr ${authHeader}`)
     xhr.setRequestHeader('Content-Type', 'application/octet-stream')
@@ -255,6 +257,7 @@ export function uploadToBlossom(encryptedData, serverUrl, senderPrivKey, senderP
     }
 
     xhr.onload = () => {
+      xhrCleanup()
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve({
           url: `${serverUrl}/${hashHex}`,
@@ -265,8 +268,8 @@ export function uploadToBlossom(encryptedData, serverUrl, senderPrivKey, senderP
       }
     }
 
-    xhr.onerror = () => reject(new Error('Blossom upload failed: network error'))
-    xhr.onabort = () => reject(new DOMException('Upload cancelled', 'AbortError'))
+    xhr.onerror = () => { xhrCleanup(); reject(new Error('Blossom upload failed: network error')) }
+    xhr.onabort = () => { xhrCleanup(); reject(new DOMException('Upload cancelled', 'AbortError')) }
 
     if (signal) {
       if (signal.aborted) {
@@ -319,6 +322,7 @@ export function uploadPublicToBlossom(data, mimeType, serverUrl, senderPrivKey, 
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
+    const xhrCleanup = requestManager.registerXHR(xhr)
     xhr.open('PUT', uploadUrl, true)
     xhr.setRequestHeader('Authorization', `Nostr ${authHeader}`)
     xhr.setRequestHeader('Content-Type', mimeType)
@@ -331,6 +335,7 @@ export function uploadPublicToBlossom(data, mimeType, serverUrl, senderPrivKey, 
     }
 
     xhr.onload = () => {
+      xhrCleanup()
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve({
           url: `${serverUrl}/${hashHex}`,
@@ -341,8 +346,8 @@ export function uploadPublicToBlossom(data, mimeType, serverUrl, senderPrivKey, 
       }
     }
 
-    xhr.onerror = () => reject(new Error('Blossom upload failed: network error'))
-    xhr.onabort = () => reject(new DOMException('Upload cancelled', 'AbortError'))
+    xhr.onerror = () => { xhrCleanup(); reject(new Error('Blossom upload failed: network error')) }
+    xhr.onabort = () => { xhrCleanup(); reject(new DOMException('Upload cancelled', 'AbortError')) }
 
     if (signal) {
       if (signal.aborted) {
@@ -369,14 +374,19 @@ export async function downloadFromBlossom(url, serverUrl) {
   }
 
   const downloadUrl = `${serverUrl}/${hash}`
+  const { signal, cleanup } = requestManager.createAbortController()
 
-  const response = await fetch(downloadUrl)
-  if (!response.ok) {
-    throw new Error(`Blossom download failed: ${response.status}`)
+  try {
+    const response = await fetch(downloadUrl, { signal })
+    if (!response.ok) {
+      throw new Error(`Blossom download failed: ${response.status}`)
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    return new Uint8Array(arrayBuffer)
+  } finally {
+    cleanup()
   }
-
-  const arrayBuffer = await response.arrayBuffer()
-  return new Uint8Array(arrayBuffer)
 }
 
 /**

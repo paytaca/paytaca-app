@@ -5,6 +5,7 @@ import { getDeviceId } from 'src/exchange/chat/keys'
 import * as chatUtils from 'src/exchange/chat'
 import { getEncryptionKeypairFromMnemonic, getAddress0_0PublicKey } from 'src/utils/memo-key-utils'
 import { Store } from 'src/store'
+import { requestManager } from 'src/utils/request-manager'
 
 export class ChatIdentity {
   static parse (data) {
@@ -155,10 +156,15 @@ export class ChatMessage {
     try {
       if (!this.encryptedAttachmentUrl) return
       if (this.encryptedAttachmentFile) return
-      const response = await fetch(this.encryptedAttachmentUrl, { headers: { Accept: 'image/* application/*' } })
-      const blob = await response.blob()
-      this.encryptedAttachmentFile = new File([blob], this.encryptedAttachmentUrl)
-      return this.encryptedAttachmentFile
+      const { signal, cleanup } = requestManager.createAbortController()
+      try {
+        const response = await fetch(this.encryptedAttachmentUrl, { headers: { Accept: 'image/* application/*' }, signal })
+        const blob = await response.blob()
+        this.encryptedAttachmentFile = new File([blob], this.encryptedAttachmentUrl)
+        return this.encryptedAttachmentFile
+      } finally {
+        cleanup()
+      }
     } finally {
       this.$state.fetchingAttachment = false
     }
