@@ -96,8 +96,7 @@ export class TapToPay {
      * @param {string} tokenAddress - Token address to query for UTXOs.
      * @returns {Promise<Array>}
      */
-    async getTokenUtxos (tokenId, tokenAddress) {  
-        console.log(`Fetching token UTXOs with tokenId: ${tokenId} and tokenAddress: ${tokenAddress}`)      
+    async getTokenUtxos (tokenId, tokenAddress) {      
         if (!tokenAddress || isTokenAddress(tokenAddress) === false) {
             console.warn('Invalid or missing token address for getTokenUtxos:', tokenAddress)
             return []
@@ -158,7 +157,6 @@ export class TapToPay {
         const handle = `wallet:${wallet.walletHash}`
         const { cumulativeValue, utxos } = await wallet.getBchUtxos(handle, parseInt(amount))
 
-        console.log('-----fundingUtxos:', utxos)
         // Watchtower returns utxos from both cashAddress and its changeAddress.
         // But we need to use the correct keypair for signing based on which address the UTXO belongs to
         // So we group the UTXOs by address_path
@@ -168,9 +166,7 @@ export class TapToPay {
                 const path = utxo.address_path || 'unknown'
                 if (!acc[path]) {
                     let privkey = wallet.privkey()
-                    console.log('privkey1:', privkey, 'for path:', path)
                     if (path !== 'unknown') privkey = wallet.privkey(path)
-                    console.log('privkey2:', privkey, 'for path:', path)
                     acc[path] = { 
                         privkey: privkey,
                         utxos: [] 
@@ -180,8 +176,6 @@ export class TapToPay {
                 return acc
             }, {})
         }
-
-        console.log('-----utxosByAddressPath:', utxosByAddressPath)
 
         // Keep funding UTXOs grouped by source key so each group can be signed correctly.
         const groupedBchFundingInputs = Object.values(utxosByAddressPath)
@@ -212,6 +206,10 @@ export class TapToPay {
      * @param {Object} params
      * @param {string} params.senderWif - Owner WIF used to sign the mutation.
      * @param {Array<Object>} params.mutations - Mutation objects with merchant/authorization data.
+     * @param {string} params.mutations[].merchant.id - Merchant ID for the mutation.
+     * @param {string} params.mutations[].merchant.pubkey - Merchant public key for the mutation.
+     * @param {boolean} params.mutations[].authorized - Authorization status for the mutation.
+     * @param {number} params.mutations[].spendLimitSats - Optional spend limit in satoshis for the mutation.
      * @param {boolean} [params.broadcast=true] - Broadcast the transaction when true, else return tx hex.
      * @returns {Promise<Object>} Transaction result or `{ success: true, txHex }` when not broadcasting.
      */
@@ -228,15 +226,6 @@ export class TapToPay {
 
         const tokenId = reverseHex(this.contractCreationParams.authCategory)
         const tokenUtxos = await this.getTokenUtxos(tokenId, contract.tokenAddress)
-
-        const fee = TX_FEE
-        const { 
-            cumulativeValue, 
-            groupedUtxos: groupedBchFundingInputs, 
-            changeAddress
-        } = await this.getFundingInputs(fee)
-        
-        const changeAmount = cumulativeValue - BigInt(fee)
 
         // Get the merchant hashes from the mutations
         const merchantHashes = mutations.map(e => { 
@@ -350,6 +339,21 @@ export class TapToPay {
             throw new Error('No valid mutations to process. No outputs were generated.')
         }
 
+        // Estimate the fee based on the number of inputs and outputs, and get funding UTXOs to cover it
+        const estimatedFee = this.estimateFee({ 
+            numContractInputs: tokenInputs.length, 
+            numP2pkhInputs: 1, // Assume at least 1 P2PKH input for funding
+            numOutputs: outputs.length + 1 // Mutation outputs + potential change output
+        })
+        
+        const { 
+            cumulativeValue, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress
+        } = await this.getFundingInputs(estimatedFee)
+        
+        const changeAmount = cumulativeValue - BigInt(estimatedFee)
+
         // Add change output if there's leftover BCH after covering the fee
         if (changeAmount > P2PKH_DUST) {
             outputs.push({
@@ -367,9 +371,6 @@ export class TapToPay {
             tx.addInputs(inputs, signatureTemplate.unlockP2PKH())
         })
         tx.addOutputs(outputs)
-
-        console.log('-------> inputs:', tx.inputs)
-        console.log('-------> outputs:', tx.outputs)
         
         let result
 
@@ -412,29 +413,13 @@ export class TapToPay {
         }
 
         const sweepResult = {}
-        const hardcodedFee = TX_FEE
-        
         const { 
             cumulativeValue: sweepAmount, 
             utxos: bchUtxos
         } = await this.getBchUtxos()
 
-        const { 
-            cumulativeValue: fundingAmount, 
-            groupedUtxos: groupedBchFundingInputs, 
-            changeAddress 
-        } = await this.getFundingInputs(hardcodedFee)
-
-        const changeAmount = fundingAmount - BigInt(hardcodedFee)
         
-        if (fundingAmount < BigInt(hardcodedFee)) {
-            sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
-            return sweepResult
-        }
-
-        // Helper to safely convert numbers/strings to BigInt
-        const toBigInt = (v) => (typeof v === 'bigint' ? v : BigInt(v ?? 0))
-
+        // Prepare inputs
         const bchInputs = bchUtxos.map(utxo => {
             const normalized = { 
                 satoshis: toBigInt(utxo.satoshis),
@@ -444,9 +429,30 @@ export class TapToPay {
             return normalized
         })
 
+        // Prepare outputs
         const outputs = [
             { to: toAddress, amount: sweepAmount }
         ]
+
+        // Estimate fee
+        const estimatedFee = this.estimateFee({ 
+            numContractInputs: bchInputs.length, 
+            numP2pkhInputs: 1, 
+            numOutputs: 2 
+        })
+
+        const { 
+            cumulativeValue: fundingAmount, 
+            groupedUtxos: groupedBchFundingInputs, 
+            changeAddress 
+        } = await this.getFundingInputs(estimatedFee)
+        
+        const changeAmount = fundingAmount - BigInt(estimatedFee)
+        
+        if (fundingAmount < BigInt(estimatedFee)) {
+            sweepResult = { success: false, message: 'Insufficient BCH balance to cover sweep fee.' }
+            return sweepResult
+        }
 
         if (changeAmount > P2PKH_DUST) {
             outputs.push({ to: changeAddress, amount: changeAmount })
@@ -482,7 +488,6 @@ export class TapToPay {
     }
 
     /**
-     * WIP:
      * Burns a specific authorization NFT held by the contract for a 
      * given merchant and token ID.
      **/
@@ -520,18 +525,23 @@ export class TapToPay {
             throw new Error('No matching token UTXO found to burn for the specified merchant and token ID')
         }
 
+        const outputs = [
+            { to: contract.address, amount: 1000n }
+        ]
+
         // get funding utxos to cover the burn fee
-        const hardcodedFee = TX_FEE
+        const estimatedFee = this.estimateFee({ 
+            numContractInputs: utxoToBurn.length, // The token UTXO being burned
+            numP2pkhInputs: 1, // Assume at least 1 P2PKH input for funding
+            numOutputs: outputs.length + 1 // Burn output + potential change output
+        })
+
         const { 
             cumulativeValue: fundingAmount, 
             groupedUtxos: fundingUtxos, 
             changeAddress 
-        } = await this.getFundingInputs(hardcodedFee)
-        const changeAmount = fundingAmount - hardcodedFee
-        
-        const outputs = [
-            { to: contract.address, amount: 1000n }
-        ]
+        } = await this.getFundingInputs(estimatedFee)
+        const changeAmount = fundingAmount - estimatedFee
 
         if (changeAmount > P2PKH_DUST) {
             outputs.push({ to: changeAddress, amount: changeAmount })
@@ -562,6 +572,22 @@ export class TapToPay {
         }
 
         return result
+    }
+
+    estimateFee({ numContractInputs = 0, numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
+        // CashScript contract inputs are larger due to unlocking script (redeem script + args)
+        // Approximate: ~300 bytes per contract input, ~148 bytes per P2PKH input
+        const CONTRACT_INPUT_SIZE = 300
+        const P2PKH_INPUT_SIZE = 148
+        const OUTPUT_SIZE = 34
+        const TX_OVERHEAD = 10
+
+        const estimatedSize = TX_OVERHEAD
+            + (numContractInputs * CONTRACT_INPUT_SIZE)
+            + (numP2pkhInputs * P2PKH_INPUT_SIZE)
+            + (numOutputs * OUTPUT_SIZE)
+
+        return BigInt(estimatedSize) * feeRate
     }
 
     /**

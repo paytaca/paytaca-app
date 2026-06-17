@@ -619,25 +619,19 @@ export class Card {
     this._assertWallet();
     this._assertAuthNftService();
 
-    console.log('>>>>>>Merchant:', merchant);
-    console.log('>>>>>>authorized:', authorized);
-
     if (!merchant || !merchant.id || !merchant.pubkey) {
       throw new Error('Merchant id and pubkey are required to mint merchant auth token');
     }
 
-    // First get BCH UTXOs from mainnetcash wallet
-    console.log('gettingUtxos??????')
-    // const tokenId = this.category
-    // const tokenAddress = this.wallet.tokenAddress()
-    // const tokenUtxos = await this.wallet.getTokenUtxos(tokenId, tokenAddress);
-    // console.log('>>>>>>Wallet token UTXOs:', tokenUtxos);
-    const { utxos, cumulativeValue } = await this.wallet.getBchUtxos();
-    console.log('>>>>>>Wallet BCH UTXOs:', utxos);
+    // // TODO: Prevent minting a duplicate auth token for the same merchant.
+    // // Encode the merchant hash and check first if a token with 
+    // // matching commitment already exists in the contract
+    // const merchantHash = encodeMerchantHash({ merchantId: merchant.id, merchantPk: merchant.pubkey }).hex;
+    // console.log('Encoded merchant hash:', merchantHash);
+    // const cardTokenUtxos = await this.getTokenUtxos()
 
-    // const availableSats = utxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis), 0n);
+    const { cumulativeValue } = await this.wallet.getBchUtxos();
     const availableSats = cumulativeValue;
-    console.log('Available BCH UTXOs sats:', availableSats);
     const mintSatsRequired = this.estimateTokenOpSatsRequirement();
 
     // If utxos are enough, use them to mint the auth token
@@ -690,6 +684,9 @@ export class Card {
     console.log('Issuing to recipients:', recipients);
     const result = await this.authNftService.issue({recipients});
     console.log('Auth tokens issued:', result);
+    if (result.txId) {
+      this.processTransaction(result.txId)
+    }
 
     return result;
   }
@@ -845,6 +842,7 @@ export class Card {
         broadcast
       });
 
+      console.log('>>>>>>mutateResponse:', mutateResponse);
       return mutateResponse;
     } catch (error) {
       throw error;
@@ -867,6 +865,10 @@ export class Card {
       toAddress: this.wallet.address(),
       broadcast: opts.broadcast
     });
+
+    if (sweepResponse.txid) {
+      this.processTransaction(sweepResponse.txid);
+    }
 
     return sweepResponse;
   }
@@ -894,6 +896,10 @@ export class Card {
     }
     console.log('Burning auth token with params:', params);
     const burnResponse = await this.contract.burn(params);
+    
+    if (burnResponse.txid) {
+      this.processTransaction(burnResponse.txid);
+    }
 
     return burnResponse;
   }
@@ -961,6 +967,17 @@ export class Card {
   async _waitForTransaction(delayMs = 6000) {
     console.log('Waiting for transaction confirmation for ', delayMs / 1000, 'seconds...');
     await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+
+  async processTransaction(txid) {
+    // Process the transaction and update card state as needed
+    console.log('Processing transaction:', txid);
+    await backend.post(`/cards/${this.id}/process-transaction/`, { txid }).then(response => {
+      console.log('Transaction processed successfully:', response.data);
+      // Optionally update card state based on response
+    }).catch(error => {
+      console.error('Error processing transaction:', error.response || error.message);
+    });
   }
 
   // ==================== UTILITIES ====================
