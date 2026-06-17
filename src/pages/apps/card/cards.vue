@@ -29,17 +29,17 @@
                   <div :style="{ fontSize: '20px', fontWeight: '500', color: $q.dark.isActive ? '#ffffff' : '#1a1a2e' }">
                     My Cards{{ displayedCards.length > 0 ? ' (' + displayedCards.length + ')' : '' }}
                   </div>
-                  <div class="plus-btn-circle">
-                    <q-btn
-                      dense
-                      round
-                      flat
-                      :color="$q.dark.isActive ? 'white' : 'dark'"
-                      icon="add"
-                      size="md"
-                      @click="onOpenCreateCardForm"
-                    />
-                  </div>
+                  <q-btn
+                    dense
+                    round
+                    flat
+                    :color="$q.dark.isActive ? 'white' : 'dark'"
+                    icon="link"
+                    size="md"
+                    @click="onOpenLinkCardForm"
+                  >
+                    <q-tooltip>link your card</q-tooltip>
+                  </q-btn>
                 </div>
                 <div v-if="totalBchBalance && !balancesLoading" :style="{ fontSize: '11px', fontWeight: '400', color: $q.dark.isActive ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)' }">
                   {{ totalBchBalance }} BCH total
@@ -84,7 +84,7 @@
                       <div class="text-weight-medium" style="font-size: 22px; line-height: 1.2;">
                         {{ satoshiToBch(getCardBalance(card.id)?.bch) }}
                       </div>
-                      <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.15);">
+                      <div class="row items-center justify-center" style="width: 24px; height: 24px; border-radius: 8px; background: rgba(255,255,255,0.15);">
                         <q-img src="~assets/bch-logo.png" style="width: 14px; height: 14px;" fit="contain" />
                       </div>
                     </div>
@@ -148,9 +148,9 @@
       </div>
        
       <!-- Create Card Dialog -->
-      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
-      <ResumeCreateCardDialog 
-        v-if="showResumeCreateCardDialog" 
+      <LinkCardForm v-if="showLinkCardForm" @onClose="onCloseLinkCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
+      <ResumeLinkCardDialog 
+        v-if="showResumeLinkCardDialog" 
         @resumeAttempt="onResumeCardAttempt" 
         @deleteAttempt="onDeleteCardAttempt" 
         @cancelAttempt="onCancelCardAttempt"
@@ -160,23 +160,23 @@
 </template>
 
 <script>
-import CreateCardForm from 'src/components/card/CreateCardForm.vue';
+import LinkCardForm from 'src/components/card/LinkCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
-import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
+import LinkCardAttemptMixin from 'src/mixins/card/link-card-attempt-mixin';
+import ResumeLinkCardDialog from 'src/components/card/ResumeLinkCardDialog.vue';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 import { bus } from 'src/wallet/event-bus';
-import { CardStorage } from 'src/components/card/createCard.js';
+import { CardStorage } from 'src/components/card/linkCard.js';
 
 export default {
-  mixins: [CreateCardAttemptMixin],
+  mixins: [LinkCardAttemptMixin],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
-    CreateCardForm,
-    ResumeCreateCardDialog
+    LinkCardForm,
+    ResumeLinkCardDialog
   },
 
   data () {
@@ -191,7 +191,7 @@ export default {
       gestureLock: null,
       carouselIndex: 0,
       wheelAccumulator: 0,
-      // showCreateCardDialog: false,
+      // showLinkCardDialog: false,
       newCardName: '',
       isMinting: false,
       // Backend data fetching disabled
@@ -258,7 +258,7 @@ export default {
 
     async loadData () {
       await this.loadCardUser()
-      await this.checkExistingCreateCardAttempt()
+      await this.checkExistingLinkCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
     },
@@ -273,7 +273,7 @@ export default {
     },
 
     async onCardCreated () {
-      await this.onCloseCreateCardForm()
+      await this.onCloseLinkCardForm()
       await this.fetchCards()
       this.fetchCardsBalance()
     },
@@ -613,12 +613,12 @@ export default {
     },
 
     closeDialog () {
-      this.showCreateCardDialog = false
+      this.showLinkCardDialog = false
       this.newCardName = ''
       this.isMinting = false
     },
 
-    async createCard () {
+    async linkCard () {
       if (!this.newCardName || !this.newCardName.trim()) {
         this.notifyError('Please enter a card name')
         return
@@ -643,7 +643,7 @@ export default {
       }
 
       // Save to localStorage using CardStorage
-      const createdCard = this.CardStorage.createCard(newCard);
+      const linkedCard = this.CardStorage.linkCard(newCard);
 
       // Update the displayed cards
       this.subCards = this.CardStorage.getCards();

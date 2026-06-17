@@ -1,4 +1,5 @@
 <template>
+  <!-- This should be an order form -->
   <q-layout view="lHh Lpr lFf">
     <q-page-container :class="$q.dark.isActive ? 'bg-dark' : 'bg-grey-1'">
       <CardPageHeader />
@@ -19,9 +20,9 @@
           <!-- Main Create Card Button - Large Card Style -->
           <q-card
             flat
-            class="create-card-action q-pa-xl text-center full-width cursor-pointer"
+            class="link-card-action q-pa-xl text-center full-width cursor-pointer"
             :class="$q.dark.isActive ? 'bg-grey-9' : 'bg-white'"
-            @click="openCreateCardDialog"
+            @click="openLinkCardDialog"
           >
             <div class="text-h4 text-weight-bold q-mb-sm" :class="textColor">
               {{ $t('Create New Card') }}
@@ -31,7 +32,7 @@
               {{ $t('Start using secure blockchain payments') }}
             </div>
             
-            <div class="create-card-icon q-mb-md">
+            <div class="link-card-icon q-mb-md">
               <q-icon name="add_circle_outline" size="48px" color="primary" />
             </div>
             
@@ -108,22 +109,21 @@
       </q-page>
     </q-page-container>
     
-    <!-- Create Card Dialog -->
-    <createCardDialog 
-      v-model="createCardDialog"
+    <!-- Link Card Dialog -->
+    <linkCardDialog 
+      v-model="linkCardDialog"
       v-model:newCardName="newCardName"
-      @handleCreateCard="handleCreateCard"
+      @handleLinkCard="handleLinkCard"
     />
   </q-layout>
 </template>
 
 <script>
-import { createCardLogic } from './createCard.js'
-// import createCardDialog from './createCardDialog.vue';
+import { linkCardLogic } from './linkCard.js'
 import CardPageHeader from './CardPageHeader.vue';
 
 export default {
-  mixins: [createCardLogic],
+  mixins: [linkCardLogic],
   components: {
     CardPageHeader,
   },
@@ -140,7 +140,6 @@ export default {
   mounted () {
     // Check if cards exists as soon as the component loads
     this.checkExistingCards()
-    // TODO: Switch to backend - use await this.getCards() instead
   }
 }
 </script>

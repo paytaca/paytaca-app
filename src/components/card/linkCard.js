@@ -53,11 +53,11 @@ export const CardStorage = {
   },
 
   /**
-   * Create a new card
-   * @param {Object} card - Card object to create
-   * @returns {Object} Created card
+   * Link a new card
+   * @param {Object} card - Card object to link
+   * @returns {Object} Linked card
    */
-  createCard(card) {
+  linkCard(card) {
     const cards = this.getCards();
     cards.push(card);
     this.saveCards(cards);
@@ -142,7 +142,7 @@ export const CardStorage = {
  * Base card logic mixin - contains reusable utilities and methods
  * shared across card components
  */
-export const createCardLogic = {
+export const linkCardLogic = {
   setup() {
     return {}
   },

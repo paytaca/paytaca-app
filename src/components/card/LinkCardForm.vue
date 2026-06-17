@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs" transition-show="fade" transition-hide="fade">
-    <q-card class="create-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
+    <q-card class="link-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
       <!-- Dialog Header -->
       <div class="dialog-header q-px-md q-pt-md q-pb-sm">
         <div class="row items-center justify-between">
@@ -9,8 +9,7 @@
               <q-icon name="add_card" size="24px" color="primary" />
             </div>
             <div>
-              <div class="text-h6 text-weight-bold text-primary">Create New Card</div>
-              <div class="text-caption text-primary">Link your card</div>
+              <div class="text-h6 text-weight-bold text-primary">Link your Card</div>
             </div>
           </div>
             <q-btn icon="close" flat round dense color="primary" @click="closeDialog" />
@@ -257,7 +256,7 @@
         </div>
         <q-btn 
           color="primary" 
-          style="border-radius: 24px"
+          rounded
           class="q-px-xl"
           icon="refresh"
           label="Try Again" 
@@ -268,7 +267,7 @@
       <q-card-actions v-if="state === 'form'" class="q-px-lg q-pb-lg q-pt-md">
         <q-btn 
           flat 
-          style="border-radius: 24px"
+          rounded
           label="Cancel" 
           class="q-px-lg"
           color="primary" 
@@ -277,7 +276,7 @@
         <q-btn 
           label="Create Card" 
           color="primary" 
-          style="border-radius: 24px"
+          rounded
           unelevated
           class="q-px-xl"
           :disable="!inputValidation"
@@ -294,11 +293,11 @@
 
 <script>
 import Card from 'src/services/card/card';
-import { getCreateCardAttempt } from 'src/services/card/storage';
+import { getLinkCardAttempt } from 'src/services/card/storage';
 import QrScanner from 'src/components/qr-scanner.vue';
 
 export default {
-  name: 'CreateCardDialog',
+  name: 'LinkCardDialog',
   emits: ['onClose', 'card-created'],
   components: {
     QrScanner
@@ -349,11 +348,11 @@ export default {
 
     if (this.idempotencyKey) {
       console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
-      const attempt = await getCreateCardAttempt();
+      const attempt = await getLinkCardAttempt();
       console.log('attempt from storage:', attempt)
       if (attempt) {
         this.newCardName = attempt?.alias || '';
-        this.createCard(attempt); // Start the card creation process immediately if resuming
+        this.linkCard(attempt); // Start the card creation process immediately if resuming
       }
     }
   },
@@ -408,12 +407,12 @@ export default {
       }
       console.log("valid:", valid)
       if (this.inputValidation && valid) {
-        this.createCard();
+        this.linkCard();
       }
     },
 
-    async createCard (lastAttempt = null) {
-      console.log('Creating card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
+    async linkCard (lastAttempt = null) {
+      console.log('Linking card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
       this.state = 'minting';
       const card = await Card.createInitialized()
       const opts = {
@@ -439,7 +438,7 @@ export default {
 </script>
 
 <style scoped>
-.create-card-dialog {
+.link-card-dialog {
   width: 450px;
   max-width: 90vw;
   border-radius: 24px;
@@ -448,36 +447,36 @@ export default {
   font-family: 'Rubik', sans-serif;
 }
 
-.create-card-dialog.light {
+.link-card-dialog.light {
   background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
 }
 
 /* Dialog typography */
-.create-card-dialog :deep(.text-h6) {
+.link-card-dialog :deep(.text-h6) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: -0.3px;
 }
 
-.create-card-dialog :deep(.text-subtitle2) {
+.link-card-dialog :deep(.text-subtitle2) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: 0.2px;
 }
 
-.create-card-dialog :deep(.text-h5) {
+.link-card-dialog :deep(.text-h5) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: -0.5px;
 }
 
-.create-card-dialog :deep(.text-body2) {
+.link-card-dialog :deep(.text-body2) {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   letter-spacing: 0.2px;
 }
 
-.create-card-dialog :deep(.text-caption) {
+.link-card-dialog :deep(.text-caption) {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   letter-spacing: 0.3px;
@@ -508,7 +507,7 @@ export default {
 }
 
 .method-btn {
-  border-radius: 12px;
+  border-radius: 24px;
   height: 70px;
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -526,7 +525,7 @@ export default {
 
 /* Method button base styles */
 .method-btn {
-  border-radius: 12px;
+  border-radius: 24px;
   height: 70px;
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -998,7 +997,7 @@ export default {
 }
 
 /* Button typography */
-.create-card-dialog :deep(.q-btn) {
+.link-card-dialog :deep(.q-btn) {
   font-family: 'Rubik', sans-serif;
   font-weight: 500;
   letter-spacing: 0.3px;
@@ -1023,7 +1022,7 @@ export default {
 
 /* Responsive */
 @media (max-width: 480px) {
-  .create-card-dialog {
+  .link-card-dialog {
     min-width: 100%;
     max-width: 100%;
     border-radius: 0;

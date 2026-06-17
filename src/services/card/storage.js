@@ -1,7 +1,7 @@
 import { loadCardUser } from "./user"
 import Card from "./card"
 
-export const CardCreateAttemptStatus = {
+export const CardLinkAttemptStatus = {
   CARD_INITIATED: -1,
   CARD_SAVED: 0,
   GENESIS_MINTED: 1,
@@ -10,17 +10,17 @@ export const CardCreateAttemptStatus = {
   AUTH_ISSUED: 4
 }
 
-const CREATE_CARD_ATTEMPT_STORAGE_KEY = 'card:create-attempt'
+const LINK_CARD_ATTEMPT_STORAGE_KEY = 'card:create-attempt'
 
-export async function saveCreateCardAttempt(walletHash, attempt) {
+export async function saveLinkCardAttempt(walletHash, attempt) {
   if (!walletHash) {
     const user = await loadCardUser()
     walletHash = user?.wallet?.walletHash
     if (!walletHash) {
-      throw new Error('Wallet hash is required to save create card attempt')
+      throw new Error('Wallet hash is required to save link card attempt')
     }
   }
-  const storageKey = `${CREATE_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
+  const storageKey = `${LINK_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
   localStorage.setItem(
     storageKey,
     JSON.stringify({
@@ -30,22 +30,22 @@ export async function saveCreateCardAttempt(walletHash, attempt) {
       walletHash: attempt.walletHash,
       cardId: attempt.cardId || null,
       category: attempt.category || null,
-      status: attempt.status || CardCreateAttemptStatus.CARD_SAVED,
+      status: attempt.status || CardLinkAttemptStatus.CARD_SAVED,
       createdAt: attempt.createdAt || Date.now(),
       updatedAt: Date.now(),
     })
   )
 }
 
-export async function getCreateCardAttempt(walletHash) {
+export async function getLinkCardAttempt(walletHash) {
   if (!walletHash) {
     const user = await loadCardUser()
     walletHash = user?.wallet?.walletHash
     if (!walletHash) {
-      throw new Error('Wallet hash is required to get create card attempt')
+      throw new Error('Wallet hash is required to get link card attempt')
     }
   }
-  const storageKey = `${CREATE_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
+  const storageKey = `${LINK_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
   const raw = localStorage.getItem(storageKey)
   if (!raw) return null
 
@@ -57,8 +57,8 @@ export async function getCreateCardAttempt(walletHash) {
   }
 }
 
-export async function updateCreateCardAttempt(walletHash, patch) {
-  const current = await getCreateCardAttempt(walletHash)
+export async function updateLinkCardAttempt(walletHash, patch) {
+  const current = await getLinkCardAttempt(walletHash)
   if (!current) return null
 
   const nextValue = {
@@ -67,21 +67,21 @@ export async function updateCreateCardAttempt(walletHash, patch) {
     updatedAt: Date.now(),
   }
 
-  await saveCreateCardAttempt(walletHash, nextValue)
+  await saveLinkCardAttempt(walletHash, nextValue)
   return nextValue
 }
 
-export async function clearCreateCardAttempt(walletHash) {
+export async function clearLinkCardAttempt(walletHash) {
   if (!walletHash) {
     const user = await loadCardUser()
     walletHash = user?.wallet?.walletHash
     if (!walletHash) {
-      throw new Error('Wallet hash is required to clear create card attempt')
+      throw new Error('Wallet hash is required to clear link card attempt')
     }
   }
   await Card.deleteCardAttempt(walletHash).catch(err => {
     console.warn(`Failed to delete card attempt from server: ${err.response?.data?.message || err.message}`)
   })
-  const storageKey = `${CREATE_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
+  const storageKey = `${LINK_CARD_ATTEMPT_STORAGE_KEY}:${walletHash}`
   localStorage.removeItem(storageKey)
 }

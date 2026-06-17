@@ -30,17 +30,6 @@
       </template>
     </GeolocateBtn>
 
-    <!-- Distance Filter -->
-    <div 
-      class="row items-center q-mb-md q-px-sm text-caption cursor-pointer"
-      :class="$q.dark.isActive ? 'text-grey-4' : 'text-black'"
-      @click="openDistanceDialog"
-    >
-      <span class="text-weight-medium">Proximity</span>
-      <q-icon name="near_me" size="1rem" class="q-mx-xs" color="primary" />
-      <span class="text-weight-bold">{{ radius }} km</span>
-    </div>
-
     <!-- Search bar and Select Multiple Toggle -->
     <div class="row items-center q-mb-md q-gutter-x-sm">
       <div class="col">
@@ -448,7 +437,7 @@
               icon="check" 
               label="Confirm Location" 
               unelevated
-              style="border-radius: 24px"
+              rounded
               @click="confirmLocationUpdate"
             />
           </div>
@@ -460,7 +449,7 @@
 </template>
 
 <script>
-import { createCardLogic, CardStorage } from './createCard.js'
+import { linkCardLogic, CardStorage } from './linkCard.js'
 import { getMerchantsByCity } from 'src/services/card/merchants'
 import { geolocationManager } from 'src/boot/geolocation'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
@@ -471,7 +460,7 @@ import { bchToSatoshi } from 'src/exchange/index.js';
 
 export default {
   name: 'ManageAuthNFTs',
-  mixins: [createCardLogic],
+  mixins: [linkCardLogic],
   components: { GeolocateBtn },
   inject: ['cardUser'],
   props: {
@@ -501,7 +490,7 @@ export default {
         offset: 0,
         hasMore: false
       },
-      radius: 10, // Default search radius in km - user can adjust this
+
       selectMultipleMode: false, // Toggle for select multiple mode
       selectedMerchants: new Set(), // Track selected merchants in batch mode
       batchMinting: false, // Track batch minting state
@@ -589,27 +578,30 @@ export default {
   },
   async mounted() {
     console.log('ManageAuthNFTs MOUNTED, card:', this.card)
-    await geolocationManager.getOrUpdateGeoIp()
-    const geoip = geolocationManager.geoip.value
-    if (geoip?.latitude && geoip?.longitude && !this.userLocation) {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
-        )
-        const data = await response.json()
-        const address = data?.address || {}
-        this.$store.commit('card/setUserLocation', {
-          latitude: geoip.latitude,
-          longitude: geoip.longitude,
-          formatted: data.display_name || '',
-          location: address.suburb || address.city_district || address.town || '',
-          landmark: address.suburb || '',
-          street: address.road || address.street || '',
-          city: address.city || address.town || address.village || address.county || '',
-          country: address.country || ''
-        })
-      } catch (error) {
-        console.error('Reverse geocoding on mount failed:', error)
+    this.loadSavedLocation()
+    if (!this.userLocation) {
+      await geolocationManager.getOrUpdateGeoIp()
+      const geoip = geolocationManager.geoip.value
+      if (geoip?.latitude && geoip?.longitude) {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${geoip.latitude}&lon=${geoip.longitude}`
+          )
+          const data = await response.json()
+          const address = data?.address || {}
+          this.$store.commit('card/setUserLocation', {
+            latitude: geoip.latitude,
+            longitude: geoip.longitude,
+            formatted: data.display_name || '',
+            location: address.suburb || address.city_district || address.town || '',
+            landmark: address.suburb || '',
+            street: address.road || address.street || '',
+            city: address.city || address.town || address.village || address.county || '',
+            country: address.country || ''
+          })
+        } catch (error) {
+          console.error('Reverse geocoding on mount failed:', error)
+        }
       }
     }
     this.loadMerchantList()
@@ -629,11 +621,6 @@ export default {
       console.log('Loading saved location...')
       this.loadSavedLocation()
       console.log('After loadSavedLocation, displayLocation:', this.displayLocation)
-      
-      console.log('Loading saved radius...')
-      const oldRadius = this.radius
-      this.loadSavedRadius()
-      console.log('After loadSavedRadius, radius changed from', oldRadius, 'to', this.radius)
       
       // // Initialize display location from store if no saved location
       // if (!this.displayLocation) {
@@ -670,7 +657,7 @@ export default {
       // Mark initialization complete
       this.$nextTick(() => {
         this.isInitializing = false
-        console.log('Initialization complete. Location:', this.displayLocation?.formatted?.substring(0, 50), 'Radius:', this.radius, 'Merchants:', this.merchants.length)
+        console.log('Initialization complete. Location:', this.displayLocation?.formatted?.substring(0, 50), 'Merchants:', this.merchants.length)
       })
     },
 
@@ -770,10 +757,9 @@ export default {
           userLocationComponents.street = components.street
           userLocationComponents.city = components.city
           userLocationComponents.country = components.country
+          userLocationComponents.formatted = coordinates.label || [components.street, components.city, components.country].filter(Boolean).join(', ')
           this.$store.commit('card/setUserLocation', userLocationComponents)
-          this.radius = 10
-          this.saveRadius()
-          this.loadMerchantList({ reset: true, location: { latitude: coordinates.lat, longitude: coordinates.lng } }).then(() => this.saveMerchantsToCard())
+          this.loadMerchantList({ reset: true }).then(() => this.saveMerchantsToCard())
           return
         }
 
@@ -795,9 +781,7 @@ export default {
           userLocationComponents.formatted = `${coordinates.lat}, ${coordinates.lng}`
         }
         this.$store.commit('card/setUserLocation', userLocationComponents)
-        this.radius = 10
-        this.saveRadius()
-        this.loadMerchantList({ reset: true, location: { latitude: coordinates.lat, longitude: coordinates.lng } }).then(() => this.saveMerchantsToCard())
+        this.loadMerchantList({ reset: true }).then(() => this.saveMerchantsToCard())
       })
     },
 
@@ -902,34 +886,6 @@ export default {
       if (scrollBottom >= threshold && !this.loading && !this.loadingMore && this.merchantsPagination.hasMore) {
         this.loadMerchantList()
       }
-    },
-
-    openDistanceDialog() {
-      this.$q.dialog({
-        title: 'Search Radius',
-        message: 'Find merchants within this distance from your location',
-        class: this.$q.dark.isActive ? '' : 'bg-white text-black',
-        prompt: {
-          model: this.radius,
-          type: 'number',
-          suffix: 'km',
-          isValid: val => val > 0 && val <= 500
-        }
-      })
-      .onOk(data => {
-        const newRadius = parseFloat(data)
-        if (newRadius > 0 && newRadius <= 500) {
-          this.radius = newRadius
-          // Save radius to card storage
-          this.saveRadius()
-          this.$q.notify({
-            message: `Search radius set to ${newRadius} km`,
-            color: 'positive',
-            icon: 'check',
-            timeout: 1500
-          })
-        }
-      })
     },
 
     formatSpendLimit(value) {
@@ -1437,18 +1393,20 @@ export default {
       });
 
       // Also update card store so merchant reload picks up the new location
+      const address = this.mapCoordinates.address || {}
       this.$store.commit('card/setUserLocation', {
         ...(this.userLocation || {}),
         latitude: this.mapCoordinates.latitude,
         longitude: this.mapCoordinates.longitude,
-        formatted: this.mapCoordinates.formatted || ''
+        formatted: this.mapCoordinates.formatted || '',
+        location: address.suburb || address.city_district || address.town || '',
+        street: address.road || address.street || '',
+        city: address.city || address.town || address.village || address.county || '',
+        country: address.country || ''
       });
 
-      // Reset proximity to 10km
-      this.radius = 10;
-
       // Reload merchants with new location
-      await this.loadMerchantList({ reset: true, location: { latitude: this.mapCoordinates.latitude, longitude: this.mapCoordinates.longitude } });
+      await this.loadMerchantList({ reset: true });
       this.saveMerchantsToCard();
 
       this.$q.notify({
@@ -1509,86 +1467,15 @@ export default {
         
         if (daysDiff < 7) {
           this.displayLocation = savedLocation.displayLocation;
+          this.$store.commit('card/setUserLocation', {
+            latitude: savedLocation.displayLocation.latitude,
+            longitude: savedLocation.displayLocation.longitude,
+            formatted: savedLocation.displayLocation.formatted || ''
+          });
           console.log('Loaded saved location for card:', cardId, 'Location:', this.displayLocation.formatted?.substring(0, 50));
         } else {
           console.log('Saved location is older than 7 days, using current location');
         }
-      }
-    },
-
-    // Save radius to card storage
-    saveRadius() {
-      const rawCardId = this.card?.id;
-      console.log('saveRadius called, raw card.id:', rawCardId, 'type:', typeof rawCardId, 'radius:', this.radius);
-      
-      if (!this.card || !this.card.id) {
-        console.warn('Cannot save radius - card or card.id not available')
-        return;
-      }
-      
-      const cardId = String(this.card.id);
-      console.log('Converting card ID to string:', cardId);
-      console.log('About to save radius:', this.radius, 'to card:', cardId);
-      
-      const result = CardStorage.setCardProperty(cardId, 'merchantRadius', this.radius);
-      console.log('setCardProperty returned:', result ? 'SUCCESS' : 'FAILED');
-      
-      // Verify it was saved
-      const verify = CardStorage.getCardProperty(cardId, 'merchantRadius');
-      console.log('Verification - radius saved:', verify !== undefined && verify !== null ? 'YES' : 'NO', 'Value:', verify, 'Type:', typeof verify);
-      
-      // Also check raw localStorage
-      const rawStorage = localStorage.getItem('mock_subcards');
-      if (rawStorage) {
-        const allCards = JSON.parse(rawStorage);
-        const thisCard = allCards.find(c => String(c.id) === cardId);
-        console.log('Direct localStorage check - merchantRadius:', thisCard?.merchantRadius);
-      }
-      
-      console.log('Radius save operation complete for card:', cardId);
-    },
-
-    // Load saved radius from card storage
-    loadSavedRadius() {
-      console.log('loadSavedRadius called, card:', this.card?.id, 'card type:', typeof this.card?.id);
-      
-      if (!this.card || !this.card.id) {
-        console.warn('Cannot load radius - card or card.id not available, card:', this.card)
-        return;
-      }
-      
-      const cardId = String(this.card.id);
-      console.log('Looking for radius with cardId:', cardId, '(string)');
-      
-      // Debug: Check localStorage directly
-      const rawStorage = localStorage.getItem('mock_subcards');
-      console.log('Raw localStorage mock_subcards exists:', !!rawStorage);
-      
-      if (!rawStorage) {
-        console.log('No cards in localStorage yet');
-        return;
-      }
-      
-      const allCards = JSON.parse(rawStorage);
-      console.log('Total cards in storage:', allCards.length);
-      console.log('Card IDs in storage:', allCards.map(c => ({ id: c.id, type: typeof c.id })));
-      
-      const thisCard = allCards.find(c => String(c.id) === cardId);
-      console.log('Found card in storage:', thisCard ? 'YES' : 'NO');
-      
-      if (thisCard) {
-        console.log('Card properties:', Object.keys(thisCard));
-        console.log('merchantRadius exists:', thisCard.hasOwnProperty('merchantRadius'), 'Value:', thisCard.merchantRadius, 'Type:', typeof thisCard.merchantRadius);
-      }
-      
-      const savedRadius = CardStorage.getCardProperty(cardId, 'merchantRadius');
-      console.log('CardStorage.getCardProperty result:', savedRadius, 'Type:', typeof savedRadius);
-      
-      if (savedRadius !== null && savedRadius !== undefined && typeof savedRadius === 'number') {
-        this.radius = savedRadius;
-        console.log('SUCCESS: Loaded saved radius for card:', cardId, '- Radius:', this.radius);
-      } else {
-        console.log('FAILED: No saved radius found or invalid type. savedRadius:', savedRadius, 'this.radius remains:', this.radius);
       }
     },
 
@@ -1668,22 +1555,6 @@ export default {
   },
   
   watch: {
-    // Reload merchants when search radius changes and save to card
-    radius(newRadius, oldRadius) {
-      console.log('Radius watcher triggered:', oldRadius, '->', newRadius, 'isInitializing:', this.isInitializing);
-      
-      // Skip during initialization to prevent overwriting saved values
-      if (this.isInitializing) {
-        console.log('Skipping radius save during initialization');
-        return;
-      }
-      
-      // Save radius when it changes
-      this.saveRadius();
-      this.loadMerchantList({ reset: true }).then(() => {
-        this.saveMerchantsToCard();
-      });
-    },
     // Initialize map when dialog opens
     showLocationMapDialog(val) {
       if (val) {
@@ -1747,7 +1618,7 @@ export default {
 
   .search-input-wrapper {
     background: transparent;
-    border-radius: 20px;
+    border-radius: 14px;
     border: 1.5px solid;
     border-color: rgba(0, 0, 0, 0.12);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;

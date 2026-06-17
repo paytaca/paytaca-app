@@ -109,7 +109,7 @@
 
         <!-- Order Form -->
         <div v-else-if="showReplacementLocationForm" class="order-physical-card-form">
-          <div class="row items-center justify-between q-mb-md" :class="bgColor" style="border-radius: 12px; padding: 16px;">
+          <div class="row items-center justify-between q-mb-md" :class="bgColor" style="border-radius: 16px; padding: 16px;">
             <div class="text-subtitle1 text-bold text-primary">Update Shipping Details</div>
             <q-btn icon="close" flat round dense :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" @click="resetReplacementFlow" />
           </div>
@@ -124,8 +124,8 @@
             <div class="text-caption q-mt-sm" :class="textColorGrey"><q-icon name="place" color="primary"/> Click or drag the marker to your location to auto-fill address fields.</div>
             <div ref="replacementMapContainer" class="q-mt-md order-form-map" style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid;" :style="$q.dark.isActive ? 'border-color: #424242;' : 'border-color: #ddd;'"></div>
             <div class="row justify-center q-mt-lg q-gutter-md">
-              <q-btn label="Back" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" class="q-px-xl" unelevated style="border-radius: 24px" @click="resetReplacementFlow" />
-              <q-btn label="Replace Card" color="primary" class="q-px-xl" unelevated style="border-radius: 24px" type="submit" :disable="hasCardBalance" />
+              <q-btn label="Back" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" class="q-px-xl" unelevated rounded @click="resetReplacementFlow" />
+              <q-btn label="Replace Card" color="primary" class="q-px-xl" unelevated rounded type="submit" :disable="hasCardBalance" />
               <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">Please sweep all funds before replacing your card</q-tooltip>
             </div>
           </q-form>
@@ -137,8 +137,8 @@
           <div class="text-subtitle1 q-mb-lg" :class="textColorGrey">Reason: <span class="text-capitalize">{{ replacementReason }}</span></div>
           <div class="text-caption q-mb-lg" :class="$q.dark.isActive ? 'text-grey-5' : 'text-grey'">Shipping to: {{ activeCard?.shippingAddress?.city || 'Original address on file' }}</div>
           <div class="row justify-center q-mt-lg q-gutter-md">
-            <q-btn label="Go Back" flat :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" class="q-px-xl" unelevated style="border-radius: 24px" @click="resetReplacementFlow" />
-            <q-btn label="Confirm Replacement" color="primary" class="q-px-xl" unelevated style="border-radius: 24px" @click="confirmCardReplacement" :disable="hasCardBalance" />
+            <q-btn label="Go Back" flat :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" class="q-px-xl" unelevated rounded @click="resetReplacementFlow" />
+            <q-btn label="Confirm Replacement" color="primary" class="q-px-xl" unelevated rounded @click="confirmCardReplacement" :disable="hasCardBalance" />
             <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">Please sweep all funds before replacing your card</q-tooltip>
           </div>
         </div>
@@ -148,15 +148,15 @@
           <div class="q-mb-xl">
             <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">Why do you want to replace your card?</div>
             <div class="replacement-options q-gutter-sm">
-              <q-btn v-for="option in replacementReasons" :key="option.value" :label="option.label" :outline="replacementReason !== option.value" :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" text-color="primary" class="q-ma-sm" unelevated style="border-radius: 24px" :disable="hasCardBalance" @click="selectReplacementReason(option.value)" />
+              <q-btn v-for="option in replacementReasons" :key="option.value" :label="option.label" :outline="replacementReason !== option.value" :color="replacementReason === option.value ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" text-color="primary" class="q-ma-sm" unelevated rounded :disable="hasCardBalance" @click="selectReplacementReason(option.value)" />
               <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">Please sweep all funds before replacing your card</q-tooltip>
             </div>
           </div>
           <div class="q-mb-xl" :class="{ 'disabled-section': !replacementReason }">
             <div class="text-h5 text-weight-bold q-mb-md" :class="textColor">Is your shipping location still the same?</div>
             <div class="location-options">
-              <q-btn label="Yes, proceed" :disable="!replacementReason || hasCardBalance" :outline="locationSame !== true" :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" text-color="primary" class="q-ma-sm q-px-xl" unelevated style="border-radius: 24px" @click="handleLocationSame(true)" />
-              <q-btn label="No, I need to update" :disable="!replacementReason || hasCardBalance" :outline="locationSame !== false" :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" text-color="primary" class="q-ma-sm q-px-xl" unelevated style="border-radius: 24px" @click="handleLocationSame(false)" />
+              <q-btn label="Yes, proceed" :disable="!replacementReason || hasCardBalance" :outline="locationSame !== true" :color="locationSame === true ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" text-color="primary" class="q-ma-sm q-px-xl" unelevated rounded @click="handleLocationSame(true)" />
+              <q-btn label="No, I need to update" :disable="!replacementReason || hasCardBalance" :outline="locationSame !== false" :color="locationSame === false ? 'primary' : ($q.dark.isActive ? 'grey-9' : 'grey-3')" text-color="primary" class="q-ma-sm q-px-xl" unelevated rounded @click="handleLocationSame(false)" />
               <q-tooltip v-if="hasCardBalance" anchor="top middle" self="bottom middle">Please sweep all funds before replacing your card</q-tooltip>
             </div>
           </div>
@@ -218,7 +218,7 @@
               color="info"
               class="q-px-xl"
               unelevated
-              style="border-radius: 24px"
+              rounded
               :disable="!hasCardBalance"
               @click="showSweepFundsDialog = true"
             />
@@ -303,7 +303,7 @@
               color="negative"
               class="q-px-xl"
               unelevated
-              style="border-radius: 24px"
+              rounded
               :disable="hasCardBalance"
               @click="showDeleteCardDialog = true"
             />
@@ -341,7 +341,7 @@
 <script>
 import CardMixin from 'src/mixins/card/card-mixin';
 import L from 'leaflet'
-import { CardStorage } from 'src/components/card/createCard'
+import { CardStorage } from 'src/components/card/linkCard'
 
 export default {
   name: 'CardSettings',
