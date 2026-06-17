@@ -2436,24 +2436,21 @@ export default {
         // Merchant Info — clone from the rendered page for faithful reproduction
         const merchantEl = document.getElementById('receipt-merchant-section')
         if (merchantEl) {
+          // Preload the logo image so html2canvas can render the background-image
+          if (vm.merchantData?.logo) {
+            await new Promise((resolve) => {
+              const img = new Image()
+              img.crossOrigin = 'anonymous'
+              img.onload = () => resolve()
+              img.onerror = () => resolve()
+              img.src = vm.merchantData.logo
+            })
+          }
+
           const clone = merchantEl.cloneNode(true)
           clone.style.marginTop = '0'
           clone.style.marginBottom = '20px'
           detailsSection.appendChild(clone)
-
-          // Wait for all images in the clone to load before html2canvas captures
-          const images = clone.querySelectorAll('img')
-          const imageLoadPromises = Array.from(images).map((img) => {
-            return new Promise((resolve) => {
-              if (img.complete) {
-                resolve()
-              } else {
-                img.onload = () => resolve()
-                img.onerror = () => resolve()
-              }
-            })
-          })
-          await Promise.all(imageLoadPromises)
         }
 
         // Transaction ID
