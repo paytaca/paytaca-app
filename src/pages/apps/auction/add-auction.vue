@@ -71,7 +71,7 @@
                   <q-btn 
                     round 
                     size="sm" 
-                    color="primary" 
+                    color="positive" 
                     icon="edit" 
                     @click="editLotDetails(lot, index)" 
                   />
@@ -109,10 +109,10 @@
                 <div v-if="auctionType === 'English'" class="column q-gap-y-none q-mb-xs">
                   <div class="text-caption text-weight-medium">STARTING PRICE:</div>
                   <div class="text-caption text-weight-bold">
-                    {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                    ₱{{ formatFiat(lot.starting_price_fiat) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
                 
@@ -120,22 +120,22 @@
                   <div class="column q-gap-y-none">
                     <div class="text-caption text-weight-medium">START PRICE:</div>
                     <div class="text-caption text-weight-bold">
-                      {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                      ₱{{ formatFiat(lot.starting_price_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
 
                   <q-separator spaced="sm" />
 
                   <div class="column q-gap-y-none text-negative">
-                    <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ lot.priceDropInterval }} MINUTES:</div>
+                    <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ getIntervalMinutes(lot.priceDropInterval) }} MINUTES:</div>
                     <div class="text-caption text-weight-bold">
-                      -{{ getFiatDisplay(lot.priceDrop, lot.isFiatUsed) }}
+                      -₱{{ formatFiat(lot.price_drop_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      -{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
                 </div>
@@ -207,8 +207,43 @@ const selectedLot = ref(null)
 let activeEditIndex = null
 let activeDeleteIndex = null
 
+const toBothCurrencies = (value, isFiatUsed) => {
+  const rate = bchToPhpRate.value
+  const numValue = Number(value) || 0
+
+  if (isFiatUsed) {
+    return {
+      fiat: numValue,
+      bch: rate > 0 ? numValue / rate : 0
+    }
+  }
+  return {
+    fiat: numValue * rate,
+    bch: numValue
+  }
+}
+
+const withBothCurrencies = (lot) => {
+  const estimated = toBothCurrencies(lot.estimatedPrice, lot.isFiatUsed)
+  const starting = toBothCurrencies(lot.startingPrice, lot.isFiatUsed)
+  const threshold = toBothCurrencies(lot.threshold, lot.isFiatUsed)
+  const priceDrop = toBothCurrencies(lot.price_drop ?? lot.priceDrop, lot.isFiatUsed)
+
+  return {
+    ...lot,
+    estimated_amount_bch: estimated.bch.toFixed(8),
+    estimated_amount_fiat: estimated.fiat.toFixed(2),
+    starting_price_bch: starting.bch.toFixed(8),
+    starting_price_fiat: starting.fiat.toFixed(2),
+    threshold_bid_bch: threshold.bch.toFixed(8),
+    threshold_bid_fiat: threshold.fiat.toFixed(2),
+    price_drop_bch: priceDrop.bch.toFixed(8),
+    price_drop_fiat: priceDrop.fiat.toFixed(2)
+  }
+}
+
 const handleNewLot = (lotData) => {
-  lots.value.push(lotData)
+  lots.value.push(withBothCurrencies(lotData))
 }
 
 const editLotDetails = (lot, index) => {
@@ -220,8 +255,8 @@ const editLotDetails = (lot, index) => {
 const handleLotUpdate = (updatedLotData) => {
   if (activeEditIndex !== null) {
     updatedLotData.priceDrop = updatedLotData.price_drop ?? updatedLotData.priceDrop
-    updatedLotData.priceDropInterval = updatedLotData.priceDropInterval ?? 600000
-    lots.value[activeEditIndex] = updatedLotData
+    updatedLotData.priceDropInterval = updatedLotData.priceDropInterval ?? 10
+    lots.value[activeEditIndex] = withBothCurrencies(updatedLotData)
   }
   isToggledEdit.value = false
 }
@@ -248,24 +283,19 @@ const handleLotDelete = () => {
   })
 }
 
-const getFiatDisplay = (value, isFiatUsed = false) => {
+const formatFiat = (value) => {
   const numValue = Number(value) || 0
-  if (isFiatUsed) {
-    return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
-  const rate = bchToPhpRate.value
-  const phpValue = numValue * rate
-  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const getBchDisplay = (value, isFiatUsed = false) => {
-  const numValue = Number(value) || 0
-  if (isFiatUsed) {
-    const rate = bchToPhpRate.value
-    const bchValue = rate > 0 ? numValue / rate : 0
-    return getFormattedBCH(bchValue)
-  }
-  return getFormattedBCH(numValue)
+const formatBCH = (value) => {
+  return getFormattedBCH(Number(value) || 0)
+}
+
+const getIntervalMinutes = (priceDropInterval) => {
+  return typeof priceDropInterval === 'object'
+    ? (priceDropInterval?.value || 10)
+    : (priceDropInterval || 10)
 }
 
 const handleCreateAuction = async () => {
@@ -316,21 +346,27 @@ const handleCreateAuction = async () => {
       lotFormData.append('title', lot.title)
       lotFormData.append('description', lot.description || '')
       lotFormData.append('category_id', lot.type === 'Physical' ? 1 : 2)
-      lotFormData.append('estimated_amount', lot.estimatedPrice || 0)
-      lotFormData.append('starting_price', lot.startingPrice || 0)
+      lotFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
+      lotFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
+      lotFormData.append('starting_price_bch', lot.starting_price_bch || 0)
+      lotFormData.append('starting_price_fiat', lot.starting_price_fiat || 0)
 
       if (auctionForm.value.type === 'English') {
-        lotFormData.append('threshold_bid', lot.startingPrice || 0)
+        lotFormData.append('threshold_bid_bch', lot.starting_price_bch || 0)
+        lotFormData.append('threshold_bid_fiat', lot.starting_price_fiat || 0)
       } else {
-        lotFormData.append('threshold_bid', lot.threshold || 0)
-        lotFormData.append('bidding_decrement', lot.priceDrop || lot.price_drop || 0)
-      }
+        lotFormData.append('threshold_bid_bch', lot.threshold_bid_bch || 0)
+        lotFormData.append('threshold_bid_fiat', lot.threshold_bid_fiat || 0)
+        lotFormData.append('price_drop_bch', lot.price_drop_bch || 0)
+        lotFormData.append('price_drop_fiat', lot.price_drop_fiat || 0)
 
-      // const intervalValue = typeof lot.priceDropInterval === 'object' 
-      //   ? (lot.priceDropInterval?.value || 600000) 
-      //   : (lot.priceDropInterval || 600000);
-      
-      // lotFormData.append('price_drop_interval', intervalValue / 1000)
+        const intervalMinutes = getIntervalMinutes(lot.priceDropInterval)
+        const intervalHours = Math.floor(intervalMinutes / 60)
+        const intervalRemMinutes = intervalMinutes % 60
+        const timeInterval = `${String(intervalHours).padStart(2, '0')}:${String(intervalRemMinutes).padStart(2, '0')}:00`
+
+        lotFormData.append('time_interval', timeInterval)
+      }
 
       const lotResult = await callAPI('lots', null, 'post', lotFormData)
 
