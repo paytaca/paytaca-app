@@ -16,12 +16,18 @@ export class LotsList {
    * @param {Number} data.id
    * @param {String} data.title
    * @param {String} data.description
-   * @param {Number|String} data.estimated_amount
-   * @param {Number|String} data.threshold_bid
-   * @param {Number|String} data.starting_price
+   * @param {Number|String} data.estimated_amount_bch
+   * @param {Number|String} data.estimated_amount_fiat
+   * @param {Number|String} data.threshold_bid_bch
+   * @param {Number|String} data.threshold_bid_fiat
+   * @param {Number|String} data.starting_price_bch
+   * @param {Number|String} data.starting_price_fiat
+   * @param {Number|String} data.price_drop_bch
+   * @param {Number|String} data.price_drop_fiat
+   * @param {String} data.time_interval
+   * @param {Boolean} data.is_fiat
    * @param {Boolean} data.is_sold
    * @param {String|null} data.date_sold
-   * @param {Number} data.bidding_decrement
    * @param {Number} data.category_id
    * @param {String} data.auction_type
    * @param {Number} data.auction_id
@@ -32,12 +38,20 @@ export class LotsList {
     this.id = data.id ? Number(data.id) : null;
     this.title = data.title || "Unnamed Lot";
     this.description = data.description || "";
-    this.estimated_amount = data.estimated_amount !== undefined ? Number(data.estimated_amount) : 0.00000000;
-    this.threshold_bid = data.threshold_bid !== undefined ? Number(data.threshold_bid) : 0.00000000;
-    this.starting_price = data.starting_price !== undefined ? Number(data.starting_price) : 0.00000000;
+
+    this.estimated_amount_bch = data.estimated_amount_bch !== undefined ? Number(data.estimated_amount_bch) : 0.00000000;
+    this.estimated_amount_fiat = data.estimated_amount_fiat !== undefined ? Number(data.estimated_amount_fiat) : 0.00;
+    this.threshold_bid_bch = data.threshold_bid_bch !== undefined ? Number(data.threshold_bid_bch) : 0.00000000;
+    this.threshold_bid_fiat = data.threshold_bid_fiat !== undefined ? Number(data.threshold_bid_fiat) : 0.00;
+    this.starting_price_bch = data.starting_price_bch !== undefined ? Number(data.starting_price_bch) : 0.00000000;
+    this.starting_price_fiat = data.starting_price_fiat !== undefined ? Number(data.starting_price_fiat) : 0.00;
+    this.price_drop_bch = data.price_drop_bch !== undefined ? Number(data.price_drop_bch) : 0.00000000;
+    this.price_drop_fiat = data.price_drop_fiat !== undefined ? Number(data.price_drop_fiat) : 0.00;
+    this.time_interval = data.time_interval || null;
+    this.is_fiat = !!data.is_fiat;
+
     this.is_sold = !!data.is_sold;
     this.date_sold = data.date_sold || null;
-    this.bidding_decrement = data.bidding_decrement !== undefined ? Number(data.bidding_decrement) : 1;
     this.category_id = data.category_id || (data.category ? data.category.id : null);
     this.category = data.category || (data.category_id === 1 ? 'Physical' : 'Digital');
     this.auction_type = data.auction_type || null
@@ -48,6 +62,15 @@ export class LotsList {
     this.images = Array.isArray(data.images) 
       ? data.images.map(img => typeof img === 'object' ? img.image : img) 
       : [];
+  }
+
+  // Returns the drop interval in minutes, parsed from the HH:MM:SS time_interval string
+  getIntervalMinutes() {
+    if (!this.time_interval) return 10
+    const parts = this.time_interval.split(':').map(Number)
+    if (parts.length !== 3 || parts.some(isNaN)) return 10
+    const [hours, minutes] = parts
+    return (hours * 60) + minutes
   }
   
   getFormattedBCH(bch) {
@@ -110,6 +133,7 @@ export class AuctionList {
    * @param {String} data.start_date
    * @param {String} data.end_date
    * @param {Boolean} data.is_open
+   * @param {Boolean} data.is_fiat
    * @param {String|null} data.image
    * @param {String} data.creation_date
    * @param {Number} data.type_id
@@ -125,6 +149,7 @@ export class AuctionList {
     this.start_date = data.start_date || null;
     this.end_date = data.end_date || null;
     this.is_open = data.is_open !== undefined ? !!data.is_open : true;
+    this.is_fiat = data.is_fiat !== undefined ? !!data.is_fiat : true;
     this.image = data.image || null;
     this.creation_date = data.creation_date || null;
     
