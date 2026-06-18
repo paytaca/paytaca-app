@@ -216,24 +216,50 @@
                       <q-icon name="trending_down" size="14px" class="q-mr-xs" />
                       Current Price
                     </div>
-                    <div class="row items-center justify-between no-wrap">
+                    
+                    <div class="row items-end justify-between no-wrap">
                       <div>
-                        <div class="text-h6 text-weight-bold text-negative">
-                          {{ formatFiat(dutchCurrentPriceFiat) }}
-                        </div>
-                        <div class="text-caption text-weight-medium text-negative">
-                          {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
-                        </div>
+                        <template v-if="auction?.is_fiat">
+                          <div class="text-h6 text-weight-bold text-negative" style="line-height: 1.2;">
+                            {{ formatFiat(dutchCurrentPriceFiat) }}
+                          </div>
+                          <div class="text-caption text-weight-medium text-negative q-mt-xs">
+                            {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                          </div>
+                        </template>
+                        
+                        <template v-else>
+                          <div class="text-h6 text-weight-bold text-negative" style="line-height: 1.2;">
+                            {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                          </div>
+                          <div class="text-caption text-weight-medium text-negative q-mt-xs">
+                            {{ formatFiat(dutchCurrentPriceFiat) }}
+                          </div>
+                        </template>
                       </div>
-                      <div class="text-right border-left q-pl-sm" :style="darkMode ? 'border-color: rgba(255,255,255,0.2)' : 'border-color: rgba(0,0,0,0.1)'">
-                        <div class="text-caption">Floor Limit</div>
-                        <div class="text-subtitle2 text-weight-bold">
-                          {{ formatFiat(dutchFloorPriceFiat) }}
-                        </div>
-                        <div class="text-caption">
-                          {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
-                        </div>
+                      
+                      <div class="text-right border-left q-pl-sm" :style="darkMode ? 'border-color: rgba(255,255,255,0.15)' : 'border-color: rgba(0,0,0,0.1)'">
+                        <div class="text-caption q-mb-xs">Floor Limit</div>
+                        
+                        <template v-if="auction?.is_fiat">
+                          <div class="text-subtitle2 text-weight-bold" style="line-height: 1.2;">
+                            {{ formatFiat(dutchFloorPriceFiat) }}
+                          </div>
+                          <div class="text-caption text-grey-7 q-mt-xs">
+                            {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                          </div>
+                        </template>
+
+                        <template v-else>
+                          <div class="text-subtitle2 text-weight-bold" style="line-height: 1.2;">
+                            {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                          </div>
+                          <div class="text-caption text-grey-7 q-mt-xs">
+                            {{ formatFiat(dutchFloorPriceFiat) }}
+                          </div>
+                        </template>
                       </div>
+
                     </div>
                   </q-card-section>
                 </q-card>
