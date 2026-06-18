@@ -176,19 +176,19 @@
                     <div>
                       <div v-if="auction?.is_fiat">
                         <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
-                          {{ formatFiat(lot.estimated_amount_fiat) }}
+                          {{ formatFiat(estimatedAmountFiat) }}
                         </div>
                         <div class="text-caption text-weight-medium text-primary">
-                          {{ formatBCH(lot.estimated_amount_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.estimated_amount_bch).zeros }}</span> BCH
+                          {{ formatBCH(estimatedAmountBch).main }}<span style="opacity: 0.4;">{{ formatBCH(estimatedAmountBch).zeros }}</span> BCH
                         </div>
                       </div>
 
                       <div v-else>
                         <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
-                          {{ formatBCH(lot.estimated_amount_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.estimated_amount_bch).zeros }}</span> BCH
+                          {{ formatBCH(estimatedAmountBch).main }}<span style="opacity: 0.4;">{{ formatBCH(estimatedAmountBch).zeros }}</span> BCH
                         </div>
                         <div class="text-caption text-weight-medium text-primary">
-                          {{ formatFiat(lot.estimated_amount_fiat) }}
+                          {{ formatFiat(estimatedAmountFiat) }}
                         </div>
                       </div>
                     </div>
@@ -206,23 +206,23 @@
                       </div>
                       <q-spinner-dots v-if="englishBidPolling" size="14px" color="positive" />
                     </div>
-                    
+
                     <div v-if="hasBid">
                       <div v-if="auction?.is_fiat">
                         <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
-                          {{ formatFiat(lot.threshold_bid_fiat) }}
+                          {{ formatFiat(englishCurrentFiat) }}
                         </div>
                         <div class="text-caption text-weight-medium text-positive q-mt-xs">
-                          {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH
+                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
                         </div>
                       </div>
 
                       <div v-else>
                         <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
-                          {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH
+                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
                         </div>
                         <div class="text-caption text-weight-medium text-positive q-mt-xs">
-                          {{ formatFiat(lot.threshold_bid_fiat) }}
+                          {{ formatFiat(englishCurrentFiat) }}
                         </div>
                       </div>
                     </div>
@@ -234,10 +234,10 @@
                       
                       <div class="text-caption text-weight-medium q-mt-xs">
                         <div v-if="auction?.is_fiat">
-                          {{ formatFiat(lot.threshold_bid_fiat) }} floor · {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH
+                          {{ formatFiat(englishCurrentFiat) }} floor · {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
                         </div>
                         <div v-else>
-                          {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH floor · {{ formatFiat(lot.threshold_bid_fiat) }}
+                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH floor · {{ formatFiat(englishCurrentFiat) }}
                         </div>
                       </div>
                     </div>
@@ -436,6 +436,28 @@ const formatFiat = (fiatValue) => {
 
 const formatBCH = (bchValue) => getFormattedBCH(Number(bchValue) || 0)
 
+const estimatedAmountBch = computed(() => {
+  if (!lot.value) return 0
+  const rate = bchToPhpRate.value
+  
+  if (auction.value?.is_fiat) {
+    const fiat = Number(lot.value.estimated_amount_fiat || 0)
+    return rate > 0 ? fiat / rate : 0
+  }
+  
+  return Number(lot.value.estimated_amount_bch || 0)
+})
+
+const estimatedAmountFiat = computed(() => {
+  if (!lot.value) return 0
+  
+  if (auction.value?.is_fiat) {
+    return Number(lot.value.estimated_amount_fiat || 0)
+  }
+  
+  return Number(lot.value.estimated_amount_bch || 0) * bchToPhpRate.value
+})
+
 
 
 
@@ -446,6 +468,28 @@ const openDialog = ref(false)
 const englishBidLoading = ref(false)
 const englishBidPolling = ref(false)
 const hasBid = ref(false)
+
+const englishCurrentBch = computed(() => {
+  if (!lot.value) return 0
+  const rate = bchToPhpRate.value
+  
+  if (auction.value?.is_fiat) {
+    const fiat = Number(lot.value.threshold_bid_fiat || 0)
+    return rate > 0 ? fiat / rate : 0
+  }
+  
+  return Number(lot.value.threshold_bid_bch || 0)
+})
+
+const englishCurrentFiat = computed(() => {
+  if (!lot.value) return 0
+  
+  if (auction.value?.is_fiat) {
+    return Number(lot.value.threshold_bid_fiat || 0)
+  }
+  
+  return Number(lot.value.threshold_bid_bch || 0) * bchToPhpRate.value
+})
 
 const handlePlaceBid = async ({ bid_price_bch }) => {
   if (!walletHash) {
@@ -544,8 +588,8 @@ const computeCurrentPrice = () => {
 
   if (isFiat) {
     const startFiat = Number(lot.value.starting_price_fiat || 0)
-    const floorFiat = Number(lot.value.threshold_bid_fiat  || 0)
-    const dropFiat = Number(lot.value.price_drop_fiat     || 0)
+    const floorFiat = Number(lot.value.threshold_bid_fiat || 0)
+    const dropFiat = Number(lot.value.price_drop_fiat || 0)
     const rate = bchToPhpRate.value
 
     const currentFiat = Math.max(startFiat - stepsDone * dropFiat, floorFiat)
@@ -553,8 +597,8 @@ const computeCurrentPrice = () => {
     dynamicPriceBch.value = rate > 0 ? currentFiat / rate : 0
   } else {
     const startBch = Number(lot.value.starting_price_bch || 0)
-    const floorBch = Number(lot.value.threshold_bid_bch  || 0)
-    const dropBch = Number(lot.value.price_drop_bch     || 0)
+    const floorBch = Number(lot.value.threshold_bid_bch || 0)
+    const dropBch = Number(lot.value.price_drop_bch || 0)
 
     const currentBch = Math.max(startBch - stepsDone * dropBch, floorBch)
     dynamicPriceBch.value = currentBch
@@ -566,7 +610,7 @@ const computeCurrentPrice = () => {
 
   const atFloor = isFiat
     ? dynamicPriceFiat.value <= Number(lot.value.threshold_bid_fiat || 0)
-    : dynamicPriceBch.value <= Number(lot.value.threshold_bid_bch  || 0)
+    : dynamicPriceBch.value <= Number(lot.value.threshold_bid_bch || 0)
 
   if (atFloor) {
     if (visualCountdownTimer) clearInterval(visualCountdownTimer)
@@ -631,7 +675,7 @@ onUnmounted(() => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
 })
 
-const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch  || 0))
+const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
 const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
 const dutchCurrentPriceBch = computed(() => dynamicPriceBch.value)
 const dutchCurrentPriceFiat = computed(() => dynamicPriceFiat.value)
