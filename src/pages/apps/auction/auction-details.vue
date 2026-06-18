@@ -214,10 +214,10 @@
                 <div v-if="auction?.type === 'English'" class="column q-gap-y-none q-mb-xs">
                   <div class="text-caption text-weight-medium">HIGHEST BID:</div>
                   <div class="text-caption text-weight-bold">
-                    {{ getFiatDisplay(lot.threshold_bid) }}
+                    {{ formatFiat(lot.threshold_bid_fiat) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ getBchDisplay(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold_bid).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
                 
@@ -225,22 +225,22 @@
                   <div class="column q-gap-y-none">
                     <div class="text-caption text-weight-medium">START PRICE:</div>
                     <div class="text-caption text-weight-bold">
-                      {{ getFiatDisplay(lot.starting_price) }}
+                      {{ formatFiat(lot.starting_price_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      {{ getBchDisplay(lot.starting_price).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.starting_price).zeros }}</span>&nbsp;BCH
+                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
 
                   <q-separator spaced="sm" />
 
                   <div class="column q-gap-y-none text-negative">
-                    <div class="text-caption text-weight-bold">DROPS EVERY 10 MINUTES:</div>
+                    <div class="text-caption text-weight-bold">DROPS EVERY {{ lot.getIntervalMinutes() }} MINUTES:</div>
                     <div class="text-caption text-weight-bold">
-                      -{{ getFiatDisplay(lot.bidding_decrement) }}
+                      -{{ formatFiat(lot.price_drop_fiat) }}
                     </div>
                     <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                      -{{ getBchDisplay(lot.bidding_decrement).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.bidding_decrement).zeros }}</span>&nbsp;BCH
+                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
                     </div>
                   </div>
                 </div>
@@ -286,18 +286,13 @@ const $store = useStore();
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const $route = useRoute()
 
-const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
-
-const getFiatDisplay = (bchValue) => {
-  const rate = bchToPhpRate.value
-  const numValue = Number(bchValue) || 0
-  const phpValue = numValue * rate
-  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const formatFiat = (value) => {
+  const numValue = Number(value) || 0
+  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const getBchDisplay = (bchValue) => {
-  const numValue = Number(bchValue) || 0
-  return getFormattedBCH(numValue)
+const formatBCH = (value) => {
+  return getFormattedBCH(Number(value) || 0)
 }
 
 const isLoading = ref(false)
