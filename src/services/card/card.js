@@ -5,11 +5,11 @@ import { backend } from './backend';
 import { loadWallet } from '../wallet';
 import { loadCardUser } from './user';
 import { 
-  saveLinkCardAttempt, 
-  updateLinkCardAttempt, 
-  getLinkCardAttempt,
-  clearLinkCardAttempt,
-  CardLinkAttemptStatus 
+  saveCreateCardAttempt, 
+  updateCreateCardAttempt, 
+  getCreateCardAttempt,
+  clearCreateCardAttempt,
+  CardCreateAttemptStatus 
 } from './storage';
 
 export class Card {
@@ -180,13 +180,13 @@ export class Card {
       let cardId = lastAttempt?.cardId || null;
 
       if (currentStatus < CardCreateAttemptStatus.CARD_SAVED) {
-        const { id: newCardId } = await this._linkCardEntry(alias, uid);
+        const { id: newCardId } = await this._createCardEntry(alias, uid);
         cardId = newCardId;
 
         this._notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
         
         currentStatus = CardCreateAttemptStatus.CARD_SAVED;
-        updateLinkCardAttempt(this.wallet.walletHash, { cardId, status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { cardId, status: currentStatus });
       } else {
         console.log('Resuming card creation with:', lastAttempt);
         
@@ -206,7 +206,7 @@ export class Card {
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token minted');
         
         currentStatus = CardCreateAttemptStatus.GENESIS_MINTED;
-        updateLinkCardAttempt(this.wallet.walletHash, { category: category, status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { category: category, status: currentStatus });
       }
 
       await this._ensureCardUserAuthenticated();      
@@ -216,7 +216,7 @@ export class Card {
         let savedAttempt = lastAttempt
         
         if (!category) {
-          savedAttempt = getLinkCardAttempt(this.wallet.walletHash);
+          savedAttempt = getCreateCardAttempt(this.wallet.walletHash);
           console.log('Re-fetching last attempt for category:', savedAttempt);
           category = savedAttempt?.category;
         }
@@ -225,17 +225,17 @@ export class Card {
         this.raw = await this._saveGenesis(cardId, category);
         this._notifyCallbackFn(callbackOnProgress, 'Genesis token saved to server');
         currentStatus = CardCreateAttemptStatus.GENESIS_SAVED;
-        updateLinkCardAttempt(this.wallet.walletHash, { status: currentStatus });      
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });      
       } 
 
       // Create the contract
       if (currentStatus <= CardCreateAttemptStatus.GENESIS_SAVED) {
         if (!lastAttempt) {
-          lastAttempt = await getLinkCardAttempt(this.wallet.walletHash);
+          lastAttempt = await getCreateCardAttempt(this.wallet.walletHash);
         }
         await this._generateContract(lastAttempt?.idempotencyKey);
         currentStatus = CardCreateAttemptStatus.CONTRACT_CREATED;
-        updateLinkCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
       }
       
       this.raw = (await backend.get(`/cards/${cardId}/`)).data;
@@ -249,7 +249,7 @@ export class Card {
         this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
 
         currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
-        updateLinkCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
       }
 
       console.log('Card creation completed successfully');
@@ -257,7 +257,7 @@ export class Card {
       this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
 
       // Clear the create card attempt from local storage since workflow is complete
-      clearLinkCardAttempt(this.wallet.walletHash);
+      clearCreateCardAttempt(this.wallet.walletHash);
 
       return this;
     } catch (error) {
@@ -286,14 +286,14 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _linkCardEntry(alias, uid) {
+  async _createCardEntry(alias, uid) {
     if (!alias || !uid) {
       throw new Error('Alias and UID are required to create card entry');
     }
 
     console.log('Creating card entry...');
     this._assertWallet();
-    const idempotencyKey = `link-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
+    const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
     const data = {
       alias: alias || "",
@@ -303,7 +303,7 @@ export class Card {
       address_path: this.wallet.addressPath()
     };
 
-    saveLinkCardAttempt(this.wallet.walletHash, {
+    saveCreateCardAttempt(this.wallet.walletHash, {
       idempotencyKey,
       alias: alias || "",
       uid: uid || "",
@@ -322,7 +322,7 @@ export class Card {
     
     const cardEntry = response.data;
     console.log('Card entry created:', cardEntry);
-    updateLinkCardAttempt(this.wallet.walletHash, { cardId: cardEntry.id, status: CardCreateAttemptStatus.CARD_SAVED });
+    updateCreateCardAttempt(this.wallet.walletHash, { cardId: cardEntry.id, status: CardCreateAttemptStatus.CARD_SAVED });
 
     return cardEntry;
   }
@@ -475,7 +475,7 @@ export class Card {
       
     } catch (error) {
       console.error('Error during genesis minting:', error.message || error);
-      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateLinkCardSatsRequirement(); // Default to estimated requirement if parsing fails
+      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
       if (satsNeeded) {
         console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
         await this._createFundingUtxo(BigInt(satsNeeded));
@@ -541,7 +541,7 @@ export class Card {
       return result;
     } catch (error) {
       console.error('Error during global auth token minting:', error.message || error);
-      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateLinkCardSatsRequirement(); // Default to estimated requirement if parsing fails
+      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
       if (satsNeeded) {
         console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
         await this._createFundingUtxo(BigInt(satsNeeded));
@@ -588,7 +588,7 @@ export class Card {
       return { mintResult, issueResult };
     } catch (error) {
       console.error('Error during merchant auth token issuance:', error.message || error);
-      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateLinkCardSatsRequirement(); // Default to estimated requirement if parsing fails
+      const satsNeeded = this.parseSatoshisNeeded(error.message) * 2 || this.estimateCreateCardSatsRequirement(); // Default to estimated requirement if parsing fails
       if (satsNeeded) {
         console.log(`Creating vout=0 UTXO with ${satsNeeded} sats...`);
         await this._createFundingUtxo(BigInt(satsNeeded));
@@ -944,7 +944,7 @@ export class Card {
    * Estimates total satoshis needed for both genesis and global auth token minting
    * @returns {bigint} Estimated total satoshis needed
    */
-  estimateLinkCardSatsRequirement() {
+  estimateCreateCardSatsRequirement() {
     this._assertWallet();
     return this.estimateTokenOpSatsRequirement() * 3n; // Multiplying by 3 because we are minting 2 tokens: genesis and global auth token + buffer
   }

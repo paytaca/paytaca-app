@@ -355,7 +355,7 @@ export class CardUser {
  * @param {object} wallet
  * @returns {Promise<CardUser>}
  */
-export async function fetchOrLinkCardUser(wallet) {
+export async function fetchOrCreateCardUser(wallet) {
     try {
         const response = await backend.get(`/auth/user/${wallet.walletHash}`);
         return CardUser.createInitialized(response.data);
@@ -394,7 +394,7 @@ export async function loadCardUser(forceLogin = false) {
     console.log('Loading Card User session...');
     try {
         const wallet = await loadWallet();
-        const user = await fetchOrLinkCardUser(wallet);
+        const user = await fetchOrCreateCardUser(wallet);
         
         if (forceLogin || !user.is_authenticated) {
             await user.login();

@@ -36,7 +36,7 @@
                     :color="$q.dark.isActive ? 'white' : 'dark'"
                     icon="link"
                     size="md"
-                    @click="onOpenLinkCardForm"
+                    @click="onOpenCreateCardForm"
                   >
                     <q-tooltip>link your card</q-tooltip>
                   </q-btn>
@@ -148,9 +148,9 @@
       </div>
        
       <!-- Create Card Dialog -->
-      <LinkCardForm v-if="showLinkCardForm" @onClose="onCloseLinkCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
-      <ResumeLinkCardDialog 
-        v-if="showResumeLinkCardDialog" 
+      <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey"/>
+      <ResumeCreateCardDialog 
+        v-if="showResumeCreateCardDialog" 
         @resumeAttempt="onResumeCardAttempt" 
         @deleteAttempt="onDeleteCardAttempt" 
         @cancelAttempt="onCancelCardAttempt"
@@ -160,23 +160,23 @@
 </template>
 
 <script>
-import LinkCardForm from 'src/components/card/LinkCardForm.vue';
+import CreateCardForm from 'src/components/card/CreateCardForm.vue';
 import MultiWalletDropdown from 'src/components/transactions/MultiWalletDropdown.vue';
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import LinkCardAttemptMixin from 'src/mixins/card/link-card-attempt-mixin';
-import ResumeLinkCardDialog from 'src/components/card/ResumeLinkCardDialog.vue';
+import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin';
+import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
 import { loadCardUser } from 'src/services/card/user.js';
 import { satoshiToBch } from 'src/exchange';
 import { bus } from 'src/wallet/event-bus';
-import { CardStorage } from 'src/components/card/linkCard.js';
+import { CardStorage } from 'src/components/card/createCard.js';
 
 export default {
-  mixins: [LinkCardAttemptMixin],
+  mixins: [CreateCardAttemptMixin],
   components : {
     MultiWalletDropdown,
     CardPageHeader,
-    LinkCardForm,
-    ResumeLinkCardDialog
+    CreateCardForm,
+    ResumeCreateCardDialog
   },
 
   data () {
@@ -258,7 +258,7 @@ export default {
 
     async loadData () {
       await this.loadCardUser()
-      await this.checkExistingLinkCardAttempt()
+      await this.checkExistingCreateCardAttempt()
       await this.fetchCards()
       this.fetchCardsBalance()
     },
@@ -273,7 +273,7 @@ export default {
     },
 
     async onCardCreated () {
-      await this.onCloseLinkCardForm()
+      await this.onCloseCreateCardForm()
       await this.fetchCards()
       this.fetchCardsBalance()
     },
@@ -613,12 +613,12 @@ export default {
     },
 
     closeDialog () {
-      this.showLinkCardDialog = false
+      this.showCreateCardForm = false
       this.newCardName = ''
       this.isMinting = false
     },
 
-    async linkCard () {
+    async createCard () {
       if (!this.newCardName || !this.newCardName.trim()) {
         this.notifyError('Please enter a card name')
         return
@@ -643,7 +643,7 @@ export default {
       }
 
       // Save to localStorage using CardStorage
-      const linkedCard = this.CardStorage.linkCard(newCard);
+      const linkedCard = this.CardStorage.createCard(newCard);
 
       // Update the displayed cards
       this.subCards = this.CardStorage.getCards();

@@ -449,8 +449,8 @@
 </template>
 
 <script>
-import { linkCardLogic, CardStorage } from './linkCard.js'
-import { getMerchantsByCity } from 'src/services/card/merchants'
+import { createCardLogic, CardStorage } from './createCard.js'
+import { getMerchantList, getMerchantsByCity } from 'src/services/card/merchants'
 import { geolocationManager } from 'src/boot/geolocation'
 import GeolocateBtn from 'src/components/GeolocateBtn.vue'
 import PinLocationDialog from 'src/components/PinLocationDialog.vue';
@@ -460,7 +460,7 @@ import { bchToSatoshi } from 'src/exchange/index.js';
 
 export default {
   name: 'ManageAuthNFTs',
-  mixins: [linkCardLogic],
+  mixins: [createCardLogic],
   components: { GeolocateBtn },
   inject: ['cardUser'],
   props: {

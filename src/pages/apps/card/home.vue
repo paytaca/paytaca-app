@@ -89,7 +89,7 @@
                 rounded
                 no-caps
                 class="full-width"
-                @click="onOpenLinkCardForm"
+                @click="onOpenCreateCardForm"
               />
             </div>
           </q-card>
@@ -98,9 +98,9 @@
     </q-page>
 
     <!-- Create Card Dialog -->
-    <LinkCardForm v-if="showLinkCardForm" @onClose="onCloseLinkCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
-    <ResumeLinkCardDialog
-      v-if="showResumeLinkCardDialog"
+    <CreateCardForm v-if="showCreateCardForm" @onClose="onCloseCreateCardForm" @card-created="onCardCreated" :idempotencyKey="idempotencyKey" />
+    <ResumeCreateCardDialog
+      v-if="showResumeCreateCardDialog"
       @resumeAttempt="onResumeCardAttempt"
       @deleteAttempt="onDeleteCardAttempt"
       @cancelAttempt="onCancelCardAttempt"
@@ -108,17 +108,17 @@
 </template>
 
 <script>
-import LinkCardForm from 'src/components/card/LinkCardForm.vue';
-import ResumeLinkCardDialog from 'src/components/card/ResumeLinkCardDialog.vue';
+import CreateCardForm from 'src/components/card/CreateCardForm.vue';
+import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.vue';
 import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
-import LinkCardAttemptMixin from 'src/mixins/card/link-card-attempt-mixin'
+import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
 
 export default {
-  mixins: [LinkCardAttemptMixin],
+  mixins: [CreateCardAttemptMixin],
   components: {
-    LinkCardForm,
-    ResumeLinkCardDialog,
+    CreateCardForm,
+    ResumeCreateCardDialog,
     OrderCard
   },
 
@@ -175,7 +175,7 @@ export default {
       this.showLoading()
       await this.loadCardUser()
       this.checkExistingCards()
-      await this.checkExistingLinkCardAttempt()
+      await this.checkExistingCreateCardAttempt()
       this.isloaded = true
       this.hideLoading()
     },

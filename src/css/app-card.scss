@@ -1030,11 +1030,11 @@ animation: float 6s ease-in-out infinite;
   align-items: center;
 }
 
-.link-card-icon {
+.create-card-icon {
   // Static, no hover effect
 }
 
-.link-card-action:hover .tap-icon {
+.create-card-action:hover .tap-icon {
   transform: scale(1.2);
   color: var(--q-primary);
 }
@@ -1059,8 +1059,8 @@ animation: float 6s ease-in-out infinite;
 }
 
 
-// ====== linkCard.vue styles ======
-.link-card-action {
+// ====== createCard.vue styles ======
+.create-card-action {
   border-radius: 24px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px dashed;
@@ -1071,7 +1071,7 @@ animation: float 6s ease-in-out infinite;
   }
 }
 
-.link-card-icon {
+.create-card-icon {
   // Static, no hover effect
 }
 
@@ -1083,11 +1083,11 @@ animation: float 6s ease-in-out infinite;
   transition: transform 0.3s ease;
 }
 
-.link-card-action:hover .tap-icon-container {
+.create-card-action:hover .tap-icon-container {
   transform: scale(1.1);
 }
 
-.link-card-action:hover .tap-icon {
+.create-card-action:hover .tap-icon {
   transform: scale(1.2);
   color: var(--q-primary);
 }
@@ -1117,7 +1117,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .body--light {
-  .link-card-action {
+  .create-card-action {
     border-color: var(--q-primary);
     background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 100%);
     box-shadow: 0 4px 20px rgba(25, 118, 210, 0.1);
@@ -1149,7 +1149,7 @@ animation: float 6s ease-in-out infinite;
 }
 
 .body--dark {
-  .link-card-action {
+  .create-card-action {
     border-color: rgba(255, 255, 255, 0.3);
     background: linear-gradient(145deg, rgba(50,50,50,0.9) 0%, rgba(30,30,30,0.6) 100%);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);

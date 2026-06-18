@@ -222,7 +222,7 @@
 </template>
 
 <script>
-import {linkCardLogic} from 'src/components/card/linkCard.js'
+import {createCardLogic} from 'src/components/card/createCard.js'
 import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
@@ -235,7 +235,7 @@ import { Card } from 'src/services/card/card'
 import { computed } from 'vue'
 
 export default {
-  mixins: [linkCardLogic],
+  mixins: [createCardLogic],
   components: {
     TransactionHistory,
     ManageAuthNFTs,

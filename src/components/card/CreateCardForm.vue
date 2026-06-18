@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="showDialog" persistent :maximized="$q.screen.xs" transition-show="fade" transition-hide="fade">
-    <q-card class="link-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
+    <q-card class="create-card-dialog pt-card" :class="$q.dark.isActive ? 'dark' : 'light'">
       <!-- Dialog Header -->
       <div class="dialog-header q-px-md q-pt-md q-pb-sm">
         <div class="row items-center justify-between">
@@ -9,7 +9,8 @@
               <q-icon name="add_card" size="24px" color="primary" />
             </div>
             <div>
-              <div class="text-h6 text-weight-bold text-primary">Link your Card</div>
+              <div class="text-h6 text-weight-bold text-primary">Create New Card</div>
+              <div class="text-caption text-primary">Link your card</div>
             </div>
           </div>
             <q-btn icon="close" flat round dense color="primary" @click="closeDialog" />
@@ -297,7 +298,7 @@ import { getCreateCardAttempt } from 'src/services/card/storage';
 import QrScanner from 'src/components/qr-scanner.vue';
 
 export default {
-  name: 'LinkCardDialog',
+  name: 'CreateCardDialog',
   emits: ['onClose', 'card-created'],
   components: {
     QrScanner
@@ -352,7 +353,7 @@ export default {
       console.log('attempt from storage:', attempt)
       if (attempt) {
         this.newCardName = attempt?.alias || '';
-        this.linkCard(attempt); // Start the card creation process immediately if resuming
+        this.createCard(attempt); // Start the card creation process immediately if resuming
       }
     }
   },
@@ -407,12 +408,12 @@ export default {
       }
       console.log("valid:", valid)
       if (this.inputValidation && valid) {
-        this.linkCard();
+        this.createCard();
       }
     },
 
-    async linkCard (lastAttempt = null) {
-      console.log('Linking card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
+    async createCard (lastAttempt = null) {
+      console.log('Creating card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
       this.state = 'minting';
       const card = await Card.createInitialized()
       const opts = {
@@ -438,7 +439,7 @@ export default {
 </script>
 
 <style scoped>
-.link-card-dialog {
+.create-card-dialog {
   width: 450px;
   max-width: 90vw;
   border-radius: 24px;
@@ -447,36 +448,36 @@ export default {
   font-family: 'Rubik', sans-serif;
 }
 
-.link-card-dialog.light {
+.create-card-dialog.light {
   background: color-mix(in srgb, var(--q-primary) 12%, rgba(255, 255, 255, 0.75)) !important;
 }
 
 /* Dialog typography */
-.link-card-dialog :deep(.text-h6) {
+.create-card-dialog :deep(.text-h6) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: -0.3px;
 }
 
-.link-card-dialog :deep(.text-subtitle2) {
+.create-card-dialog :deep(.text-subtitle2) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: 0.2px;
 }
 
-.link-card-dialog :deep(.text-h5) {
+.create-card-dialog :deep(.text-h5) {
   font-family: 'Rubik', sans-serif;
   font-weight: 600;
   letter-spacing: -0.5px;
 }
 
-.link-card-dialog :deep(.text-body2) {
+.create-card-dialog :deep(.text-body2) {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   letter-spacing: 0.2px;
 }
 
-.link-card-dialog :deep(.text-caption) {
+.create-card-dialog :deep(.text-caption) {
   font-family: 'Rubik', sans-serif;
   font-weight: 400;
   letter-spacing: 0.3px;
@@ -997,7 +998,7 @@ export default {
 }
 
 /* Button typography */
-.link-card-dialog :deep(.q-btn) {
+.create-card-dialog :deep(.q-btn) {
   font-family: 'Rubik', sans-serif;
   font-weight: 500;
   letter-spacing: 0.3px;
@@ -1022,7 +1023,7 @@ export default {
 
 /* Responsive */
 @media (max-width: 480px) {
-  .link-card-dialog {
+  .create-card-dialog {
     min-width: 100%;
     max-width: 100%;
     border-radius: 0;
