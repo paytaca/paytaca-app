@@ -194,7 +194,8 @@ const auctionForm = ref({
   start_date: '',
   end_date: '',
   description: '',
-  image: null
+  image: null,
+  isFiatUsed: true
 })
 
 const auctionType = computed(() => auctionForm.value.type)
@@ -320,6 +321,7 @@ const handleCreateAuction = async () => {
     auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
     auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
     auctionFormData.append('description', auctionForm.value.description)
+    auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed)
     auctionFormData.append('user_id', Store.getters['global/getWallet']('bch')?.walletHash)
     
     if (auctionForm.value.image) {

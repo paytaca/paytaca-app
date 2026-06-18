@@ -98,6 +98,13 @@
           </template>
         </q-file>
       </div>
+
+      <div class="q-px-md q-mb-md">
+        <q-checkbox 
+          v-model="form.isFiatUsed" 
+          label="Use Fiat currency as basis"
+        />
+      </div>
     </q-card-section>
   </q-card>
 </template>
