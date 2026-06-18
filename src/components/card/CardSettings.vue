@@ -341,7 +341,7 @@
 <script>
 import CardMixin from 'src/mixins/card/card-mixin';
 import L from 'leaflet'
-import { CardStorage } from 'src/components/card/linkCard'
+import { CardStorage } from 'src/components/card/createCard'
 
 export default {
   name: 'CardSettings',

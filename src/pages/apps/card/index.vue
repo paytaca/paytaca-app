@@ -19,12 +19,12 @@
 
 <script>
 import CardPageHeader from 'src/components/card/CardPageHeader.vue';
-import { linkCardLogic } from 'src/components/card/linkCard.js';
+import { createCardLogic } from 'src/components/card/createCard.js';
 import { clearCardUserCache, loadCardUser } from 'src/services/card/user';
 import { bus } from 'src/wallet/event-bus';
 
 export default {
-  mixins: [linkCardLogic],
+  mixins: [createCardLogic],
   components: {
     CardPageHeader,
   },
