@@ -339,7 +339,7 @@ export function subscribeGiftWraps(relays, myPubKey, callbacks = {}, options = {
     }, KEEPALIVE_INTERVAL_MS)
   }
 
-  _isSubscribed = true
+  _isSubscribed = _subs.length > 0
   _lastSubscribeTime = now
   _subscribedRelays = [...relays]
   _subscribedPubKey = myPubKey

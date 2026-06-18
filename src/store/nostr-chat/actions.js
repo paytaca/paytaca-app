@@ -1285,6 +1285,9 @@ export function ensureSubscribed ({ dispatch, getters }) {
   if (!getters['isInitialized']) {
     dispatch('initialize').then(() => {
       dispatch('subscribeToRelays')
+    }).catch(err => {
+      console.warn('[Nostr] Failed to initialize, clearing cooldown for retry:', err)
+      _lastEnsureTime = 0
     })
   } else {
     dispatch('subscribeToRelays')

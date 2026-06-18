@@ -908,6 +908,8 @@ export default {
         this.$pushNotifications.events.addEventListener('pushNotificationReceived', this._nostrPushListener)
       }
       this.resubscribeAddresses(mnemonic)
+
+      this.$store.dispatch('nostrChat/ensureSubscribed')
     }
 
     if (vm.$q.platform.is.bex) {
