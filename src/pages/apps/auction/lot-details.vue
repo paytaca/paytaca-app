@@ -123,7 +123,7 @@
               </div>
             </div>
 
-            <div class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+            <div v-if="lot.is_sold" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
               <div class="col text-center">
                 <q-btn
                   v-if="isAuthor"
