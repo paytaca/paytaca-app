@@ -37,18 +37,23 @@
 
       <q-separator :dark="darkMode" />
       
-      <q-card-section v-if="lot?.threshold_bid" class="q-py-sm">
+      <q-card-section class="q-py-sm">
         <div class="row items-center q-gutter-xs text-caption" style="opacity: 0.65;">
           <q-icon name="gavel" size="13px" />
-          <span>Highest bid:</span>
+          <span>{{ hasBidsYet ? 'Highest bid:' : 'Starting floor price:' }}</span>
           <span class="text-weight-bold">
-            {{ getFormattedBCH(lot.threshold_bid).main
-            }}<span style="opacity: 0.55;">{{ getFormattedBCH(lot.threshold_bid).zeros }}</span> BCH
+            <template v-if="auction?.is_fiat">
+              {{ formatFiat(currentFloorFiat) }} ({{ getFormattedBCH(currentFloorBch).main }}<span style="opacity: 0.55;">{{ getFormattedBCH(currentFloorBch).zeros }}</span> BCH)
+            </template>
+            <template v-else>
+              {{ getFormattedBCH(currentFloorBch).main }}<span style="opacity: 0.55;">{{ getFormattedBCH(currentFloorBch).zeros }}</span> BCH ({{ formatFiat(currentFloorFiat) }})
+            </template>
           </span>
         </div>
         <div v-if="isBelowMinimum" class="text-caption text-negative q-mt-xs">
           <q-icon name="warning" size="13px" class="q-mr-xs" />
-          Bid must be higher than the current highest bid.
+          <template v-if="hasBidsYet">Bid must be higher than the current floor price.</template>
+          <template v-else>Bid must be equal to or higher than the starting floor price.</template>
         </div>
       </q-card-section>
 
@@ -70,9 +75,14 @@
             class="text-weight-bold rounded-borders text-caption"
             @click="price = String(amount)"
           >
-            <span class="text-weight-bold">{{ getFormattedBCH(amount).main }}</span>
-            <span class="text-weight-bold" style="opacity: 0.55;">{{ getFormattedBCH(amount).zeros }}</span>
-            <span class="text-weight-bold q-ml-xs" style="opacity: 0.55;">BCH</span>
+            <template v-if="auction?.is_fiat">
+              <span class="text-weight-bold">₱{{ amount }}</span>
+            </template>
+            <template v-else>
+              <span class="text-weight-bold">{{ getFormattedBCH(amount).main }}</span>
+              <span class="text-weight-bold" style="opacity: 0.55;">{{ getFormattedBCH(amount).zeros }}</span>
+              <span class="text-weight-bold q-ml-xs" style="opacity: 0.55;">BCH</span>
+            </template>
           </q-btn>
         </div>
 
@@ -87,14 +97,17 @@
           type="number"
           outlined
           dense
-          placeholder="0.00000000"
+          :placeholder="auction?.is_fiat ? '0.00' : '0.00000000'"
           min="0"
-          step="0.00000001"
+          :step="auction?.is_fiat ? '1' : '0.00000001'"
           :dark="darkMode"
           input-class="text-weight-semibold"
           style="font-size: 18px;"
         >
-          <template #append>
+          <template #prefix v-if="auction?.is_fiat">
+            <span class="text-subtitle1 text-weight-bold q-mr-xs" style="opacity: 0.5;">₱</span>
+          </template>
+          <template #append v-if="!auction?.is_fiat">
             <span class="text-caption text-weight-bold" style="opacity: 0.35; letter-spacing: 0.06em;">BCH</span>
           </template>
         </q-input>
@@ -104,11 +117,16 @@
           class="row items-center q-mt-sm text-caption"
           style="opacity: 0.55;"
         >
-          <q-icon name="gavel" size="13px" class="q-mr-xs" />
-          Your bid:
-          <span class="q-ml-xs text-weight-bold text-caption">{{ getFormattedBCH(Number(price)).main }}</span><!--
-          --><span style="font-size: 11px; opacity: 0.55;">{{ getFormattedBCH(Number(price)).zeros }}</span>
-          <span style="font-size: 11px; opacity: 0.55;" class="q-ml-xs">BCH</span>
+          <q-icon name="sync" size="13px" class="q-mr-xs" />
+          Value Breakdown:
+          <span class="q-ml-xs text-weight-bold">
+            <template v-if="auction?.is_fiat">
+              {{ formatFiat(Number(price)) }} &rarr; {{ getFormattedBCH(convertedOutputBch).main }}<span style="font-size: 11px; opacity: 0.55;">{{ getFormattedBCH(convertedOutputBch).zeros }}</span> BCH
+            </template>
+            <template v-else>
+              {{ getFormattedBCH(Number(price)).main }}<span style="font-size: 11px; opacity: 0.55;">{{ getFormattedBCH(Number(price)).zeros }}</span> BCH &rarr; {{ formatFiat(convertedOutputFiat) }}
+            </template>
+          </span>
         </div>
       </q-card-section>
 
@@ -135,6 +153,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 import { Store } from 'src/store'
+import { callAPI } from 'src/auction/api'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -147,11 +166,33 @@ const emit = defineEmits(['update:modelValue', 'place-bid'])
 
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
+const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
 const price = ref('')
+const hasBidsYet = ref(false)
 
-watch(() => props.modelValue, (open) => {
-  if (open) price.value = ''
+const checkLiveBids = async () => {
+  if (!props.lot?.id) return
+
+  try {
+    const result = await callAPI(`lots/${props.lot.id}/highest-bid`)
+    
+    if (result.success && Array.isArray(result.data)) {
+      hasBidsYet.value = result.data.length > 0
+    } else {
+      hasBidsYet.value = false
+    }
+  } catch (err) {
+    console.error('Error verifying bidding logs in popup:', err)
+    hasBidsYet.value = false
+  }
+}
+
+watch(() => props.modelValue, async (open) => {
+  if (open) {
+    price.value = ''
+    await checkLiveBids()
+  }
 })
 
 const walletLabel = computed(() => {
@@ -160,20 +201,85 @@ const walletLabel = computed(() => {
   return wh.length > 20 ? `${wh.slice(0, 10)}...${wh.slice(-10)}` : wh
 })
 
+const currentFloorBch = computed(() => {
+  if (!props.lot) return 0
+  if (props.auction?.is_fiat) {
+    const fiatFloor = Number(props.lot.threshold_bid_fiat || 0)
+    return bchToPhpRate.value > 0 ? fiatFloor / bchToPhpRate.value : 0
+  }
+  return Number(props.lot.threshold_bid_bch || 0)
+})
+
+const currentFloorFiat = computed(() => {
+  if (!props.lot) return 0
+  if (props.auction?.is_fiat) {
+    return Number(props.lot.threshold_bid_fiat || 0)
+  }
+  return Number(props.lot.threshold_bid_bch || 0) * bchToPhpRate.value
+})
+
 const quickAmounts = computed(() => {
-  const base = Number(props.lot?.threshold_bid || 0)
-  const step = 0.00005
-  return [
-    parseFloat((base + step).toFixed(8)),
-    parseFloat((base + step * 2).toFixed(8)),
-    parseFloat((base + step * 5).toFixed(8)),
-    parseFloat((base + step * 10).toFixed(8))
-  ]
+  if (props.auction?.is_fiat) {
+    const base = Math.ceil(currentFloorFiat.value)
+    const step = 50
+    
+    if (!hasBidsYet.value) {
+      return [base, base + step, base + step * 2, base + step * 3]
+    }
+    return [base + step, base + step * 2, base + step * 5, base + step * 10]
+  } else {
+    const base = Number(currentFloorBch.value)
+    const step = 0.00005 
+    
+    if (!hasBidsYet.value) {
+      return [
+        base,
+        parseFloat((base + step).toFixed(8)),
+        parseFloat((base + step * 2).toFixed(8)),
+        parseFloat((base + step * 3).toFixed(8))
+      ]
+    }
+    return [
+      parseFloat((base + step).toFixed(8)),
+      parseFloat((base + step * 2).toFixed(8)),
+      parseFloat((base + step * 5).toFixed(8)),
+      parseFloat((base + step * 10).toFixed(8))
+    ]
+  }
 })
 
 const isBelowMinimum = computed(() => {
-  if (!props.lot?.threshold_bid || !price.value) return false
-  return Number(price.value) <= Number(props.lot.threshold_bid)
+  if (!price.value || Number(price.value) <= 0) return false
+  
+  if (props.auction?.is_fiat) {
+    return hasBidsYet.value 
+      ? Number(price.value) <= currentFloorFiat.value 
+      : Number(price.value) < currentFloorFiat.value
+  } else {
+    return hasBidsYet.value 
+      ? Number(price.value) <= currentFloorBch.value 
+      : Number(price.value) < currentFloorBch.value
+  }
+})
+
+const convertedOutputBch = computed(() => {
+  if (!price.value) return 0
+  
+  if (props.auction?.is_fiat) {
+    return bchToPhpRate.value > 0 ? Number(price.value) / bchToPhpRate.value : 0
+  }
+
+  return Number(price.value)
+})
+
+const convertedOutputFiat = computed(() => {
+  if (!price.value) return 0
+
+  if (props.auction?.is_fiat) {
+    return Number(price.value)
+  }
+
+  return Number(price.value) * bchToPhpRate.value
 })
 
 const getFormattedBCH = (bch) => {
@@ -186,12 +292,13 @@ const getFormattedBCH = (bch) => {
 
 const formatFiat = (val) => {
   if (val == null) return '—'
-  return Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `₱${Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const placeBid = () => {
   emit('place-bid', {
-    bid_price_bch: parseFloat(Number(price.value).toFixed(8))
+    bid_price_bch: parseFloat(convertedOutputBch.value.toFixed(8)),
+    bid_price_fiat: parseFloat(convertedOutputFiat.value.toFixed(2))
   })
 }
 </script>

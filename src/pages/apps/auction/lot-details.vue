@@ -468,6 +468,8 @@ const openDialog = ref(false)
 const englishBidLoading = ref(false)
 const englishBidPolling = ref(false)
 const hasBid = ref(false)
+const highestBidderId = ref(null)
+const isSold = computed(() => lot.value?.is_sold || false)
 
 const englishCurrentBch = computed(() => {
   if (!lot.value) return 0
@@ -491,7 +493,7 @@ const englishCurrentFiat = computed(() => {
   return Number(lot.value.threshold_bid_bch || 0) * bchToPhpRate.value
 })
 
-const handlePlaceBid = async ({ bid_price_bch }) => {
+const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
   if (!walletHash) {
     $q.notify({ type: 'warning', message: 'Please connect your wallet first.' })
     return
@@ -503,6 +505,7 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
       user_id: walletHash,
       lot_id: props.lotId,
       bid_price_bch: Number(bid_price_bch).toFixed(8),
+      bid_price_fiat: Number(bid_price_fiat).toFixed(2),
       is_final_bid: true
     }
 
@@ -512,7 +515,10 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
       throw new Error(bidResponse.error || 'Bid failed. Please try again.')
     }
 
-    await callAPI('lots', props.lotId, 'patch', { threshold_bid_bch: Number(bid_price_bch).toFixed(8) })
+    await callAPI('lots', props.lotId, 'patch', {
+      threshold_bid_bch: Number(bid_price_bch).toFixed(8),
+      threshold_bid_fiat: Number(bid_price_fiat).toFixed(2)
+    })
     
     openDialog.value = false
     $q.notify({
@@ -535,10 +541,13 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
 const checkBidStatus = async () => {
   try {
     const result = await callAPI(`lots/${props.lotId}/highest-bid`)
-    if (result.success) {
-      hasBid.value = Array.isArray(result.data) && result.data.length > 0
+
+    if (result.success && result.data && result.data.user_id !== null) {
+      hasBid.value = true
+      highestBidderId.value = result.data.user_id
     } else {
       hasBid.value = false
+      highestBidderId.value = null
     }
   } catch (err) {
     console.error('Error checking bid status:', err)
@@ -745,11 +754,11 @@ const fetchDutchSoldStatus = async () => {
 
 
 const getFormattedBCH = (bch) => {
-  const numStr = Number(bch).toFixed(8);
-  const match = numStr.match(/^(.*?)0*$/);
-  const main = match ? match[1] : numStr;
-  const zeros = numStr.substring(main.length);
-  return { main, zeros, full: numStr };
+  const numStr = Number(bch).toFixed(8)
+  const match = numStr.match(/^(.*?)0*$/)
+  const main = match ? match[1] : numStr
+  const zeros = numStr.substring(main.length)
+  return { main, zeros, full: numStr }
 }
 
 const fetchAuction = async () => {
@@ -778,8 +787,7 @@ const fetchLot = async () => {
 }
 
 const loadPageData = async () => {
-  await Promise.all([fetchLot(), fetchAuction()])
-  await fetchDutchSoldStatus()
+  await Promise.all([fetchLot(), fetchAuction(), fetchDutchSoldStatus(), checkBidStatus()])
   initializeDutchAuctionTimer(lot.value)
 }
 
@@ -808,12 +816,7 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  if (auction.type === 'English') {
-    await checkBidStatus()
-  } else {
-    dutchAlreadySold.value = false
-  }
-  
+  dutchAlreadySold.value = false
   await loadPageData()
   done()
 }
