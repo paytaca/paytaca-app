@@ -305,10 +305,28 @@
                       <div class="text-subtitle1 text-weight-bold q-mb-md">{{ $t('Configuration') }}</div>
                       
                       <div class="q-gutter-y-sm">
-                        <div class="row justify-between items-center">
-                          <div class="text-caption text-grey">{{ $t('WebhookURL') }}</div>
-                          <div class="text-body2 text-right">{{ storeData?.webhook_url || $t('NotConfigured') }}</div>
+                        <div class="row justify-between items-start">
+                          <div class="text-caption text-grey q-mr-md">{{ $t('WebhookURL') }}</div>
+                          <div class="col text-body2 text-right" style="word-break: break-all;">{{ storeData?.webhook_url || $t('NotConfigured') }}</div>
                         </div>
+                        <template v-if="storeData?.webhook_url">
+                          <q-separator />
+                          <div class="row justify-between items-center">
+                            <div class="text-caption text-grey">{{ $t('WebhookStatus') }}</div>
+                            <div class="text-body2 text-right">
+                              <q-badge :color="getWebhookStatusColor(storeData?.webhook_status)">
+                                {{ storeData?.webhook_status || 'none' }}
+                              </q-badge>
+                            </div>
+                          </div>
+                          <template v-if="storeData?.webhook_status === 'failed' && storeData?.webhook_error_message">
+                            <q-separator />
+                            <div class="row justify-between items-start">
+                              <div class="text-caption text-grey q-mr-md">{{ $t('WebhookError') }}</div>
+                              <div class="col text-body2 text-right text-red" style="word-break: break-all;">{{ storeData?.webhook_error_message }}</div>
+                            </div>
+                          </template>
+                        </template>
                         <q-separator />
                         <div class="row justify-between items-center">
                           <div class="text-caption text-grey">{{ $t('InvoiceExpiry') }}</div>
@@ -641,6 +659,15 @@ function getHostname(url) {
     return new URL(url).hostname
   } catch (e) {
     return url
+  }
+}
+
+function getWebhookStatusColor(status) {
+  switch (status) {
+    case 'verified': return 'green'
+    case 'pending': return 'orange'
+    case 'failed': return 'red'
+    default: return 'grey'
   }
 }
 

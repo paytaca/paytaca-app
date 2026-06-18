@@ -2627,6 +2627,8 @@ const phrases = {
       Revoke: "Revoke",
       Configuration: "Configuration",
       WebhookURL: "Webhook URL",
+      WebhookStatus: "Webhook Status",
+      WebhookError: "Webhook Error",
       NotConfigured: "Not configured",
       InvoiceExpiry: "Invoice Expiry",
       EditSettings: "Edit Settings",
