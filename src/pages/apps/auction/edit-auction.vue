@@ -94,7 +94,7 @@
                 <q-btn 
                   round 
                   size="sm" 
-                  color="primary" 
+                  color="positive" 
                   icon="edit" 
                   @click="editLotDetails(lot)" 
                 />
@@ -132,10 +132,10 @@
               <div v-if="auctionType === 'English'" class="column q-gap-y-none q-mb-xs">
                 <div class="text-caption text-weight-medium">STARTING PRICE:</div>
                 <div class="text-caption text-weight-bold">
-                  {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                  ₱{{ formatFiat(lot.starting_price_fiat) }}
                 </div>
                 <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                  {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                  {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
                 </div>
               </div>
 
@@ -143,22 +143,22 @@
                 <div class="column q-gap-y-none">
                   <div class="text-caption text-weight-medium">START PRICE:</div>
                   <div class="text-caption text-weight-bold">
-                    {{ getFiatDisplay(lot.startingPrice, lot.isFiatUsed) }}
+                    ₱{{ formatFiat(lot.starting_price_fiat) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.startingPrice, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                    {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
 
                 <q-separator spaced="sm" />
 
                 <div class="column q-gap-y-none text-negative">
-                  <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ lot.priceDropInterval }} MINUTES:</div>
+                  <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ getIntervalMinutes(lot.priceDropInterval) }} MINUTES:</div>
                   <div class="text-caption text-weight-bold">
-                    -{{ getFiatDisplay(lot.priceDrop, lot.isFiatUsed) }}
+                    -₱{{ formatFiat(lot.price_drop_fiat) }}
                   </div>
                   <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    -{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.priceDrop, lot.isFiatUsed).zeros }}</span>&nbsp;BCH
+                    -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
               </div>
@@ -237,6 +237,47 @@ const auctionType = computed(() => {
 
 const lots = ref([])
 
+const toBothCurrencies = (value, isFiatUsed) => {
+  const rate = $store.getters['market/getAssetPrice']('bch', 'php') || 0
+  const numValue = Number(value) || 0
+
+  if (isFiatUsed) {
+    return {
+      fiat: numValue,
+      bch: rate > 0 ? numValue / rate : 0
+    }
+  }
+  return {
+    fiat: numValue * rate,
+    bch: numValue
+  }
+}
+
+const withBothCurrencies = (lot) => {
+  const estimated = toBothCurrencies(lot.estimatedPrice, lot.isFiatUsed)
+  const starting = toBothCurrencies(lot.startingPrice, lot.isFiatUsed)
+  const threshold = toBothCurrencies(lot.threshold, lot.isFiatUsed)
+  const priceDrop = toBothCurrencies(lot.price_drop ?? lot.priceDrop, lot.isFiatUsed)
+
+  return {
+    ...lot,
+    estimated_amount_bch: estimated.bch.toFixed(8),
+    estimated_amount_fiat: estimated.fiat.toFixed(2),
+    starting_price_bch: starting.bch.toFixed(8),
+    starting_price_fiat: starting.fiat.toFixed(2),
+    threshold_bid_bch: threshold.bch.toFixed(8),
+    threshold_bid_fiat: threshold.fiat.toFixed(2),
+    price_drop_bch: priceDrop.bch.toFixed(8),
+    price_drop_fiat: priceDrop.fiat.toFixed(2)
+  }
+}
+
+const getIntervalMinutes = (priceDropInterval) => {
+  return typeof priceDropInterval === 'object'
+    ? (priceDropInterval?.value || 10)
+    : (priceDropInterval || 10)
+}
+
 const props = defineProps({
   auctionId: {
     type: [String, Number],
@@ -255,7 +296,8 @@ const auctionForm = ref({
   start_date: '',
   end_date: '',
   description: '',
-  image: null
+  image: null,
+  isFiatUsed: true
 })
 
 const prefillFormState = (sourceData) => {
@@ -268,7 +310,8 @@ const prefillFormState = (sourceData) => {
     start_date: formatToDateTimeLocal(parsedAuction.start_date),
     end_date: formatToDateTimeLocal(parsedAuction.end_date),
     description: parsedAuction.description || '',
-    image: parsedAuction.image || null
+    image: parsedAuction.image || null,
+    isFiatUsed: parsedAuction.is_fiat ?? true
   }
 }
 
@@ -294,22 +337,9 @@ const fetchAllData = async () => {
           lot.imageUrls = lot.images || []
           lot.imageUrl = lot.imageUrls[0] || null
         }
-
-        lot.estimatedPrice = lot.estimated_price ?? lot.estimatedAmount ?? lot.estimated_amount
-        lot.startingPrice = lot.starting_price ?? lot.startingPrice ?? 0
-        lot.threshold = lot.threshold_bid ?? lot.threshold ?? 0
-        lot.priceDrop = lot.bidding_decrement ?? lot.priceDrop ?? 0
-
-        const normalizeInterval = (value) => {
-          if (value === undefined || value === null) return 10
-          if (typeof value === 'object') return Number(value.value || 10)
-          const numberValue = Number(value)
-          if (numberValue > 1000) return numberValue / 60000
-          return numberValue || 10
-        }
-
-        lot.priceDropInterval = normalizeInterval(lot.priceDropInterval)
-        lot.isFiatUsed = lot.isFiatUsed ?? false
+        
+        lot.priceDropInterval = lot.getIntervalMinutes()
+        lot.isFiatUsed = lot.is_fiat
         lot.type = lot.type || lot.category || (lot.category_id === 1 ? 'Physical' : 'Digital')
         lot.category = lot.category || lot.type
         lot.category_id = lot.category_id || (lot.type === 'Physical' ? 1 : 2)
@@ -347,7 +377,7 @@ const selectedLot = ref(null)
 const handleNewLot = (lotData) => {
   lotData._uuid = generateLocalId()
   lotData._status = 'new'
-  lots.value.push(lotData)
+  lots.value.push(withBothCurrencies(lotData))
 }
 
 const editLotDetails = (lot) => {
@@ -361,7 +391,7 @@ const handleLotUpdate = (updatedLotData) => {
     if (lots.value[index]._status !== 'new') {
       updatedLotData._status = 'edited'
     }
-    lots.value[index] = updatedLotData
+    lots.value[index] = withBothCurrencies(updatedLotData)
   }
   isToggledEdit.value = false
 }
@@ -403,6 +433,7 @@ const handleUpdateAuction = async () => {
     auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
     auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
     auctionFormData.append('description', auctionForm.value.description)
+    auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed ? true : false)
     if (auctionForm.value.image instanceof File) {
       auctionFormData.append('image', auctionForm.value.image)
     }
@@ -424,14 +455,24 @@ const handleUpdateAuction = async () => {
       editFormData.append('title', lot.title)
       editFormData.append('description', lot.description || '')
       editFormData.append('category_id', lot.category_id || (lot.type === 'Physical' ? 1 : 2))
-      editFormData.append('estimated_amount', lot.estimated_amount ?? lot.estimatedPrice ?? 0)
-      editFormData.append('starting_price', lot.starting_price ?? lot.startingPrice ?? 0)
+      editFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
+      editFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
+      editFormData.append('starting_price_bch', lot.starting_price_bch || 0)
+      editFormData.append('starting_price_fiat', lot.starting_price_fiat || 0)
 
       if (auctionForm.value.type === 'English') {
-        editFormData.append('threshold_bid', lot.starting_price ?? lot.startingPrice ?? 0)
+        editFormData.append('threshold_bid_bch', lot.starting_price_bch || 0)
+        editFormData.append('threshold_bid_fiat', lot.starting_price_fiat || 0)
       } else {
-        editFormData.append('threshold_bid', lot.threshold ?? lot.threshold_bid ?? 0)
-        editFormData.append('bidding_decrement', lot.priceDrop ?? lot.bidding_decrement ?? lot.price_drop ?? 0)
+        editFormData.append('threshold_bid_bch', lot.threshold_bid_bch || 0)
+        editFormData.append('threshold_bid_fiat', lot.threshold_bid_fiat || 0)
+        editFormData.append('price_drop_bch', lot.price_drop_bch || 0)
+        editFormData.append('price_drop_fiat', lot.price_drop_fiat || 0)
+
+        const intervalMinutes = getIntervalMinutes(lot.priceDropInterval)
+        const intervalHours = Math.floor(intervalMinutes / 60)
+        const intervalRemMinutes = intervalMinutes % 60
+        editFormData.append('time_interval', `${String(intervalHours).padStart(2, '0')}:${String(intervalRemMinutes).padStart(2, '0')}:00`)
       }
       
       await callAPI('lots', lot.id, 'patch', editFormData)
@@ -460,14 +501,24 @@ const handleUpdateAuction = async () => {
       addFormData.append('title', lot.title)
       addFormData.append('description', lot.description || '')
       addFormData.append('category_id', lot.category_id || (lot.type === 'Physical' ? 1 : 2))
-      addFormData.append('estimated_amount', lot.estimated_amount ?? lot.estimatedPrice ?? 0)
-      addFormData.append('starting_price', lot.starting_price ?? lot.startingPrice ?? 0)
+      addFormData.append('estimated_amount_bch', lot.estimated_amount_bch || 0)
+      addFormData.append('estimated_amount_fiat', lot.estimated_amount_fiat || 0)
+      addFormData.append('starting_price_bch', lot.starting_price_bch || 0)
+      addFormData.append('starting_price_fiat', lot.starting_price_fiat || 0)
 
       if (auctionForm.value.type === 'English') {
-        addFormData.append('threshold_bid', lot.starting_price ?? lot.startingPrice ?? 0)
+        addFormData.append('threshold_bid_bch', lot.starting_price_bch || 0)
+        addFormData.append('threshold_bid_fiat', lot.starting_price_fiat || 0)
       } else {
-        addFormData.append('threshold_bid', lot.threshold ?? lot.threshold_bid ?? 0)
-        addFormData.append('bidding_decrement', lot.priceDrop ?? lot.bidding_decrement ?? lot.price_drop ?? 0)
+        addFormData.append('threshold_bid_bch', lot.threshold_bid_bch || 0)
+        addFormData.append('threshold_bid_fiat', lot.threshold_bid_fiat || 0)
+        addFormData.append('price_drop_bch', lot.price_drop_bch || 0)
+        addFormData.append('price_drop_fiat', lot.price_drop_fiat || 0)
+
+        const intervalMinutes = getIntervalMinutes(lot.priceDropInterval)
+        const intervalHours = Math.floor(intervalMinutes / 60)
+        const intervalRemMinutes = intervalMinutes % 60
+        addFormData.append('time_interval', `${String(intervalHours).padStart(2, '0')}:${String(intervalRemMinutes).padStart(2, '0')}:00`)
       }
       
       const newLotRes = await callAPI('lots', null, 'post', addFormData)
@@ -537,24 +588,13 @@ const getFormattedBCH = (bch) => {
   return { main, zeros, full: numStr };
 }
 
-const getFiatDisplay = (value, isFiatUsed = false) => {
+const formatFiat = (value) => {
   const numValue = Number(value) || 0
-  if (isFiatUsed) {
-    return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
-  const rate = $store.getters['market/getAssetPrice']('bch', 'php') || 0
-  const phpValue = numValue * rate
-  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const getBchDisplay = (value, isFiatUsed = false) => {
-  const numValue = Number(value) || 0
-  if (isFiatUsed) {
-    const rate = $store.getters['market/getAssetPrice']('bch', 'php') || 0
-    const bchValue = rate > 0 ? numValue / rate : 0
-    return getFormattedBCH(bchValue)
-  }
-  return getFormattedBCH(numValue)
+const formatBCH = (value) => {
+  return getFormattedBCH(Number(value) || 0)
 }
 </script>
 

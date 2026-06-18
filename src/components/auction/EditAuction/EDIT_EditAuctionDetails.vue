@@ -112,6 +112,13 @@
           </q-file>
         </div>
 
+        <div class="q-px-md q-mb-md">
+          <q-checkbox 
+            v-model="form.isFiatUsed" 
+            label="Use Fiat currency as basis"
+          />
+        </div>
+
         <div class="row justify-end q-mx-md">
           <q-btn
             type="submit"

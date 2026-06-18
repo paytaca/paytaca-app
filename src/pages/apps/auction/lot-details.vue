@@ -31,9 +31,9 @@
         <div class="row q-col-gutter-y-md q-col-gutter-x-none q-col-gutter-x-sm-md q-col-gutter-x-md-xl justify-center justify-sm-start items-start">
           <div class="col-12 col-sm-5 col-md-4 q-pr-md-lg" style="width: 100%; max-width: 380px; min-width: 280px;">
             <q-carousel
+              ref="carousel"
               v-model="activeSlide"
               animated
-              arrows
               navigation
               infinite
               height="350px"
@@ -48,8 +48,30 @@
                 :img-src="img"
               />
             </q-carousel>
- 
-            <div class="row q-col-gutter-sm justify-center q-mt-xs">
+
+            <div class="row justify-center items-center q-mt-sm full-width">
+              <q-btn
+                flat
+                round
+                icon="chevron_left"
+                :color="darkMode ? 'white' : 'primary'"
+                @click="$refs.carousel.previous()"
+              />
+              
+              <span class="text-caption text-weight-medium q-mx-md">
+                {{ activeSlide + 1 }} / {{ lotImages.length }}
+              </span>
+
+              <q-btn
+                flat
+                round
+                icon="chevron_right"
+                :color="darkMode ? 'white' : 'primary'"
+                @click="$refs.carousel.next()"
+              />
+            </div>
+
+            <div class="row q-col-gutter-sm justify-center q-mt-sm">
               <div
                 v-for="(imgSrc, index) in lotImages"
                 :key="index"
@@ -58,9 +80,8 @@
                 <q-img
                   :src="imgSrc"
                   ratio="1"
-                  style="max-width: 100%;"
                   class="rounded-borders cursor-pointer transition-effect full-width"
-                  :style="activeSlide === index ? 'border: 2px solid var(--q-secondary);' : 'opacity: 0.7;'"
+                  :style="activeSlide === index ? 'border: 2px solid var(--q-secondary); opacity: 1;' : 'opacity: 0.7;'"
                   @click="activeSlide = index"
                 />
               </div>
@@ -102,7 +123,7 @@
               </div>
             </div>
 
-            <div class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+            <div v-if="lot.is_sold" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
               <div class="col text-center">
                 <q-btn
                   v-if="isAuthor"
@@ -143,65 +164,138 @@
           </div>
  
           <div class="col-12 col-sm col-md-7">
-            <div class="col rounded-borders q-pa-sm q-mb-md bg-primary text-white">
-              <div class="text-caption q-mb-xs">
-                <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
-              </div>
-              <div class="text-weight-medium">
-                {{ getFiatDisplay(lot.estimated_amount) }}
-              </div>
-              <div class="text-caption text-weight-medium">
-                {{ getBchDisplay(lot.estimated_amount).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.estimated_amount).zeros }}</span> BCH
-              </div>
-            </div>
+            <div class="row q-col-gutter-sm q-mb-md">
+              <div class="col-12 col-sm-6">
+                <q-card flat bordered class="full-height">
+                  <q-card-section class="q-pa-sm">
+                    <div class="text-caption row items-center q-mb-sm">
+                      <q-icon name="price_change" size="14px" class="q-mr-xs" />
+                      Estimated Amount
+                    </div>
+                    
+                    <div>
+                      <div v-if="auction?.is_fiat">
+                        <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
+                          {{ formatFiat(estimatedAmountFiat) }}
+                        </div>
+                        <div class="text-caption text-weight-medium text-primary">
+                          {{ formatBCH(estimatedAmountBch).main }}<span style="opacity: 0.4;">{{ formatBCH(estimatedAmountBch).zeros }}</span> BCH
+                        </div>
+                      </div>
 
-            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-green text-white">
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="text-caption">
-                  <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
-                </div>
-                <q-spinner-dots v-if="englishBidPolling" size="12px" />
+                      <div v-else>
+                        <div class="text-h6 text-weight-bold text-primary" style="line-height: 1.2;">
+                          {{ formatBCH(estimatedAmountBch).main }}<span style="opacity: 0.4;">{{ formatBCH(estimatedAmountBch).zeros }}</span> BCH
+                        </div>
+                        <div class="text-caption text-weight-medium text-primary">
+                          {{ formatFiat(estimatedAmountFiat) }}
+                        </div>
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
-              <template v-if="englishHighestBid">
-                <div class="text-weight-medium q-mb-xs">
-                  {{ getFiatDisplay(lot.threshold_bid) }}
-                </div>
-                <div class="text-caption text-weight-medium">
-                  {{ getBchDisplay(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold_bid).zeros }}</span> BCH
-                </div>
-              </template>
-              <template v-else>
-                <div class="text-weight-medium" style="opacity: 0.5;">No bids yet</div>
-                <div class="text-caption text-weight-medium">
-                  {{ getFiatDisplay(lot.threshold_bid) }} · {{ getBchDisplay(lot.threshold_bid).main }}<span style="opacity: 0.4;">{{ getBchDisplay(lot.threshold_bid).zeros }}</span> BCH floor
-                </div>
-              </template>
-            </div>
 
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-red text-white">
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="text-caption">
-                  <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
-                </div>
-              </div>
-              <div class="row items-end justify-between q-mb-sm">
-                <div>
-                  <div class="text-weight-medium">
-                    {{ getFiatDisplay(dutchCurrentPriceBch) }}
-                  </div>
-                  <div class="text-caption text-weight-medium">
-                    {{ getBchDisplay(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ getBchDisplay(dutchCurrentPriceBch).zeros }}</span> BCH
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-caption" style="opacity: 0.55;">Floor</div>
-                  <div class="text-body2 text-weight-bold">
-                    {{ getFiatDisplay(dutchFloorPriceBch) }}
-                  </div>
-                  <div class="text-caption text-weight-medium">
-                    {{ getBchDisplay(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ getBchDisplay(dutchFloorPriceBch).zeros }}</span> BCH
-                  </div>
-                </div>
+              <div class="col-12 col-sm-6">
+                <q-card v-if="auction?.type === 'English'" flat bordered class="full-height">
+                  <q-card-section class="q-pa-sm">
+                    <div class="row items-center justify-between q-mb-sm text-caption">
+                      <div class="row items-center">
+                        <q-icon name="payments" size="14px" class="q-mr-xs" />
+                        Highest Bid
+                      </div>
+                      <q-spinner-dots v-if="englishBidPolling" size="14px" color="positive" />
+                    </div>
+
+                    <div v-if="hasBid">
+                      <div v-if="auction?.is_fiat">
+                        <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
+                          {{ formatFiat(englishCurrentFiat) }}
+                        </div>
+                        <div class="text-caption text-weight-medium text-positive q-mt-xs">
+                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
+                        </div>
+                      </div>
+
+                      <div v-else>
+                        <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
+                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
+                        </div>
+                        <div class="text-caption text-weight-medium text-positive q-mt-xs">
+                          {{ formatFiat(englishCurrentFiat) }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-else>
+                      <div class="text-subtitle1 text-weight-bold q-my-none text-grey-6" style="line-height: 1.2;">
+                        No bids yet
+                      </div>
+                      
+                      <div class="text-caption text-weight-medium q-mt-xs">
+                        <div v-if="auction?.is_fiat">
+                          {{ formatFiat(englishCurrentFiat) }} floor · {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH
+                        </div>
+                        <div v-else>
+                          {{ formatBCH(englishCurrentBch).main }}<span style="opacity: 0.4;">{{ formatBCH(englishCurrentBch).zeros }}</span> BCH floor · {{ formatFiat(englishCurrentFiat) }}
+                        </div>
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
+
+                <q-card v-else flat bordered class="full-height">
+                  <q-card-section class="q-pa-sm">
+                    <div class="text-caption row items-center q-mb-xs">
+                      <q-icon name="trending_down" size="14px" class="q-mr-xs" />
+                      Current Price
+                    </div>
+                    
+                    <div class="row items-end justify-between no-wrap">
+                      <div>
+                        <div v-if="auction?.is_fiat">
+                          <div class="text-h6 text-weight-bold text-negative" style="line-height: 1.2;">
+                            {{ formatFiat(dutchCurrentPriceFiat) }}
+                          </div>
+                          <div class="text-caption text-weight-medium text-negative q-mt-xs">
+                            {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                          </div>
+                        </div>
+                        
+                        <div v-else>
+                          <div class="text-h6 text-weight-bold text-negative" style="line-height: 1.2;">
+                            {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                          </div>
+                          <div class="text-caption text-weight-medium text-negative q-mt-xs">
+                            {{ formatFiat(dutchCurrentPriceFiat) }}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div class="text-right border-left q-pl-sm" :style="darkMode ? 'border-color: rgba(255,255,255,0.15)' : 'border-color: rgba(0,0,0,0.1)'">
+                        <div class="text-caption q-mb-xs">Floor Limit</div>
+                        
+                        <div v-if="auction?.is_fiat">
+                          <div class="text-subtitle2 text-weight-bold" style="line-height: 1.2;">
+                            {{ formatFiat(dutchFloorPriceFiat) }}
+                          </div>
+                          <div class="text-caption text-grey-7 q-mt-xs">
+                            {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                          </div>
+                        </div>
+
+                        <div v-else>
+                          <div class="text-subtitle2 text-weight-bold" style="line-height: 1.2;">
+                            {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                          </div>
+                          <div class="text-caption text-grey-7 q-mt-xs">
+                            {{ formatFiat(dutchFloorPriceFiat) }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
             </div>
  
@@ -333,20 +427,36 @@ const $q = useQuasar()
 const $store = useStore()
 const $route = useRoute()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
-
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
 
-const getFiatDisplay = (bchValue) => {
-  const rate = bchToPhpRate.value
-  const numValue = Number(bchValue) || 0
-  const phpValue = numValue * rate
-  return `₱${phpValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const formatFiat = (fiatValue) => {
+  const numValue = Number(fiatValue) || 0
+  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const getBchDisplay = (bchValue) => {
-  const numValue = Number(bchValue) || 0
-  return getFormattedBCH(numValue)
-}
+const formatBCH = (bchValue) => getFormattedBCH(Number(bchValue) || 0)
+
+const estimatedAmountBch = computed(() => {
+  if (!lot.value) return 0
+  const rate = bchToPhpRate.value
+  
+  if (auction.value?.is_fiat) {
+    const fiat = Number(lot.value.estimated_amount_fiat || 0)
+    return rate > 0 ? fiat / rate : 0
+  }
+  
+  return Number(lot.value.estimated_amount_bch || 0)
+})
+
+const estimatedAmountFiat = computed(() => {
+  if (!lot.value) return 0
+  
+  if (auction.value?.is_fiat) {
+    return Number(lot.value.estimated_amount_fiat || 0)
+  }
+  
+  return Number(lot.value.estimated_amount_bch || 0) * bchToPhpRate.value
+})
 
 
 
@@ -357,7 +467,29 @@ const getBchDisplay = (bchValue) => {
 const openDialog = ref(false)
 const englishBidLoading = ref(false)
 const englishBidPolling = ref(false)
-const englishHighestBid = computed(() => Number(lot.value?.threshold_bid || 0))
+const hasBid = ref(false)
+
+const englishCurrentBch = computed(() => {
+  if (!lot.value) return 0
+  const rate = bchToPhpRate.value
+  
+  if (auction.value?.is_fiat) {
+    const fiat = Number(lot.value.threshold_bid_fiat || 0)
+    return rate > 0 ? fiat / rate : 0
+  }
+  
+  return Number(lot.value.threshold_bid_bch || 0)
+})
+
+const englishCurrentFiat = computed(() => {
+  if (!lot.value) return 0
+  
+  if (auction.value?.is_fiat) {
+    return Number(lot.value.threshold_bid_fiat || 0)
+  }
+  
+  return Number(lot.value.threshold_bid_bch || 0) * bchToPhpRate.value
+})
 
 const handlePlaceBid = async ({ bid_price_bch }) => {
   if (!walletHash) {
@@ -380,7 +512,7 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
       throw new Error(bidResponse.error || 'Bid failed. Please try again.')
     }
 
-    await callAPI('lots', props.lotId, 'patch', { threshold_bid: Number(bid_price_bch).toFixed(8) })
+    await callAPI('lots', props.lotId, 'patch', { threshold_bid_bch: Number(bid_price_bch).toFixed(8) })
     
     openDialog.value = false
     $q.notify({
@@ -391,11 +523,26 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
     })
     
     await fetchLot()
+    await checkBidStatus()
   } catch (err) {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
   } finally {
     englishBidLoading.value = false
+  }
+}
+
+const checkBidStatus = async () => {
+  try {
+    const result = await callAPI(`lots/${props.lotId}/highest-bid`)
+    if (result.success) {
+      hasBid.value = Array.isArray(result.data) && result.data.length > 0
+    } else {
+      hasBid.value = false
+    }
+  } catch (err) {
+    console.error('Error checking bid status:', err)
+    hasBid.value = false
   }
 }
 
@@ -406,61 +553,132 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
 // =========================================================================
 const isToggledBuyItNow = ref(false)
 const buyItNowLoading = ref(false)
-const dutchAlreadySold  = ref(false)
+const dutchAlreadySold = ref(false)
 
-const TIME_INTERVAL_MS = 1000 * 60 * 10
-const INITIAL_SECONDS = TIME_INTERVAL_MS / 1000
-
-const secondsRemaining = ref(INITIAL_SECONDS)
-const dynamicPriceBch = ref(0)
-
-let testingAuctionTimer = null
+const secondsRemaining = ref(0)
+let dutchStartTime = null
 let visualCountdownTimer = null
+let dutchStartTimeout = null
 
-const applyBchPriceDropStep = () => {
+const getDutchAuctionStartTime = () => {
+  const startDate = auction.value?.start_date || lot.value?.start_date
+  if (!startDate) return null
+
+  const startTs = new Date(startDate.replace(' ', 'T')).getTime()
+  return Number.isNaN(startTs) ? null : startTs
+}
+
+const computeCurrentPrice = () => {
   if (!lot.value) return
 
-  const bchFloor = Number(lot.value.threshold_bid || 0)
-  const bchDecrementPerStep = Number(lot.value.bidding_decrement || 0.000005)
-  const nextBch = dynamicPriceBch.value - bchDecrementPerStep
+  const isFiat = auction.value?.is_fiat ?? true
+  const intervalSec = (lot.value.getIntervalMinutes() || 10) * 60
+  const startTime = getDutchAuctionStartTime()
+  const now = Date.now()
+
+  if (startTime && now < startTime) {
+    secondsRemaining.value = intervalSec
+    return
+  }
+
+  const elapsedSec = startTime
+    ? Math.max(0, (now - startTime) / 1000)
+    : (now - dutchStartTime) / 1000
+  const stepsDone = Math.floor(elapsedSec / intervalSec)
+
+  if (isFiat) {
+    const startFiat = Number(lot.value.starting_price_fiat || 0)
+    const floorFiat = Number(lot.value.threshold_bid_fiat || 0)
+    const dropFiat = Number(lot.value.price_drop_fiat || 0)
+    const rate = bchToPhpRate.value
+
+    const currentFiat = Math.max(startFiat - stepsDone * dropFiat, floorFiat)
+    dynamicPriceFiat.value = currentFiat
+    dynamicPriceBch.value = rate > 0 ? currentFiat / rate : 0
+  } else {
+    const startBch = Number(lot.value.starting_price_bch || 0)
+    const floorBch = Number(lot.value.threshold_bid_bch || 0)
+    const dropBch = Number(lot.value.price_drop_bch || 0)
+
+    const currentBch = Math.max(startBch - stepsDone * dropBch, floorBch)
+    dynamicPriceBch.value = currentBch
+    dynamicPriceFiat.value = currentBch * bchToPhpRate.value
+  }
   
-  dynamicPriceBch.value = Math.max(nextBch, bchFloor)
-  
-  if (dynamicPriceBch.value <= bchFloor) {
-    if (testingAuctionTimer) clearInterval(testingAuctionTimer)
+  const elapsedInStep = elapsedSec % intervalSec
+  secondsRemaining.value = Math.ceil(intervalSec - elapsedInStep)
+
+  const atFloor = isFiat
+    ? dynamicPriceFiat.value <= Number(lot.value.threshold_bid_fiat || 0)
+    : dynamicPriceBch.value <= Number(lot.value.threshold_bid_bch || 0)
+
+  if (atFloor) {
     if (visualCountdownTimer) clearInterval(visualCountdownTimer)
     secondsRemaining.value = 0
   }
 }
 
-watch(lot, (newLotData) => {
-  if (!newLotData) return
+const dynamicPriceBch = ref(0)
+const dynamicPriceFiat = ref(0)
 
-  if (testingAuctionTimer) clearInterval(testingAuctionTimer)
+const clearDutchTimers = () => {
+  if (visualCountdownTimer) {
+    clearInterval(visualCountdownTimer)
+    visualCountdownTimer = null
+  }
+  if (dutchStartTimeout) {
+    clearTimeout(dutchStartTimeout)
+    dutchStartTimeout = null
+  }
+}
+
+const startDutchCountdown = () => {
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
-  
-  dynamicPriceBch.value = Number(newLotData.starting_price || 0)
-  secondsRemaining.value = INITIAL_SECONDS
-  
-  testingAuctionTimer = setInterval(() => {
-    applyBchPriceDropStep()
-    secondsRemaining.value = INITIAL_SECONDS
-  }, TIME_INTERVAL_MS)
-  
-  visualCountdownTimer = setInterval(() => {
-    if (secondsRemaining.value > 0) {
-      secondsRemaining.value--
-    }
-  }, 1000)
-}, { deep: true })
+  computeCurrentPrice()
+  visualCountdownTimer = setInterval(computeCurrentPrice, 1000)
+}
+
+const initializeDutchAuctionTimer = (lotData) => {
+  if (!lotData || !auction.value || auction.value?.type !== 'Dutch') return
+  clearDutchTimers()
+
+  const startTime = getDutchAuctionStartTime()
+  const intervalSec = (lotData.getIntervalMinutes() || 10) * 60
+  const now = Date.now()
+
+  const isFiat = auction.value?.is_fiat ?? true
+  if (isFiat) {
+    dynamicPriceFiat.value = Number(lotData.starting_price_fiat || 0)
+    dynamicPriceBch.value = bchToPhpRate.value > 0
+      ? dynamicPriceFiat.value / bchToPhpRate.value : 0
+  } else {
+    dynamicPriceBch.value = Number(lotData.starting_price_bch || 0)
+    dynamicPriceFiat.value = dynamicPriceBch.value * bchToPhpRate.value
+  }
+
+  if (startTime && now < startTime) {
+    dutchStartTime = startTime
+    secondsRemaining.value = intervalSec
+    dutchStartTimeout = setTimeout(() => {
+      dutchStartTime = startTime
+      startDutchCountdown()
+    }, startTime - now)
+    return
+  }
+
+  dutchStartTime = startTime || now
+  secondsRemaining.value = intervalSec
+  startDutchCountdown()
+}
 
 onUnmounted(() => {
-  if (testingAuctionTimer) clearInterval(testingAuctionTimer)
   if (visualCountdownTimer) clearInterval(visualCountdownTimer)
 })
 
-const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid || 0))
-const dutchCurrentPriceBch  = computed(() => dynamicPriceBch.value)
+const dutchFloorPriceBch = computed(() => Number(lot.value?.threshold_bid_bch || 0))
+const dutchFloorPriceFiat = computed(() => Number(lot.value?.threshold_bid_fiat || 0))
+const dutchCurrentPriceBch = computed(() => dynamicPriceBch.value)
+const dutchCurrentPriceFiat = computed(() => dynamicPriceFiat.value)
 
 const buyItNow = () => { 
   isToggledBuyItNow.value = true 
@@ -479,11 +697,12 @@ const handleBuyItNow = async (payload = {}) => {
 
   try {
     const bidBch = payload.bid_price_bch ?? dutchCurrentPriceBch.value
+    const bidFiat = payload.bid_price_fiat ?? dutchCurrentPriceFiat.value
     const res = await callAPI('biddings', null, 'post', {
       user_id: walletHash,
       lot_id: props.lotId,
       bid_price_bch: Number(bidBch).toFixed(8),
-      bid_price_fiat: 0,
+      bid_price_fiat: Number(bidFiat).toFixed(2),
       is_final_bid: true
     })
 
@@ -553,12 +772,15 @@ const fetchLot = async () => {
     if (imageResult.success && Array.isArray(imageResult.data)) {
       lotImages.value = imageResult.data.map(item => item.image)
     }
+
+    initializeDutchAuctionTimer(lot.value)
   }
 }
 
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction()])
   await fetchDutchSoldStatus()
+  initializeDutchAuctionTimer(lot.value)
 }
 
 watch(() => [props.lotId, props.auctionId], async () => {
@@ -586,7 +808,12 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  dutchAlreadySold.value = false
+  if (auction.type === 'English') {
+    await checkBidStatus()
+  } else {
+    dutchAlreadySold.value = false
+  }
+  
   await loadPageData()
   done()
 }
