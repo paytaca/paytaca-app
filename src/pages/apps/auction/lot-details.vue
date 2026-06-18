@@ -31,9 +31,9 @@
         <div class="row q-col-gutter-y-md q-col-gutter-x-none q-col-gutter-x-sm-md q-col-gutter-x-md-xl justify-center justify-sm-start items-start">
           <div class="col-12 col-sm-5 col-md-4 q-pr-md-lg" style="width: 100%; max-width: 380px; min-width: 280px;">
             <q-carousel
+              ref="carousel"
               v-model="activeSlide"
               animated
-              arrows
               navigation
               infinite
               height="350px"
@@ -48,8 +48,30 @@
                 :img-src="img"
               />
             </q-carousel>
- 
-            <div class="row q-col-gutter-sm justify-center q-mt-xs">
+
+            <div class="row justify-center items-center q-mt-sm full-width">
+              <q-btn
+                flat
+                round
+                icon="chevron_left"
+                :color="darkMode ? 'white' : 'primary'"
+                @click="$refs.carousel.previous()"
+              />
+              
+              <span class="text-caption text-weight-medium q-mx-md">
+                {{ activeSlide + 1 }} / {{ lotImages.length }}
+              </span>
+
+              <q-btn
+                flat
+                round
+                icon="chevron_right"
+                :color="darkMode ? 'white' : 'primary'"
+                @click="$refs.carousel.next()"
+              />
+            </div>
+
+            <div class="row q-col-gutter-sm justify-center q-mt-sm">
               <div
                 v-for="(imgSrc, index) in lotImages"
                 :key="index"
@@ -58,9 +80,8 @@
                 <q-img
                   :src="imgSrc"
                   ratio="1"
-                  style="max-width: 100%;"
                   class="rounded-borders cursor-pointer transition-effect full-width"
-                  :style="activeSlide === index ? 'border: 2px solid var(--q-secondary);' : 'opacity: 0.7;'"
+                  :style="activeSlide === index ? 'border: 2px solid var(--q-secondary); opacity: 1;' : 'opacity: 0.7;'"
                   @click="activeSlide = index"
                 />
               </div>
