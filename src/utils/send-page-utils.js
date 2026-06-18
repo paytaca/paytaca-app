@@ -422,12 +422,12 @@ export async function lookupMerchantByAddress (address, isChipnet) {
   const url = `${baseUrl}/paytacapos/merchants/vault_address/`
   try {
     const { data } = await axios.post(url, { address }, { timeout: 10000 })
-    if (data?.merchant?.name) {
+    if (data?.name) {
       return {
-        name: data.merchant.name,
-        logo: data.merchant.logo || '',
-        logoData: data.merchant.logo_data || '',
-        verified: Boolean(data.merchant.verified)
+        name: data.name,
+        logo: data?.logos?.['60x60'] || '',
+        logoData: data.logo_data || '',
+        verified: Boolean(data.verified)
       }
     }
     return null

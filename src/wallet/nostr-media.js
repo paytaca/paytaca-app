@@ -201,7 +201,9 @@ export async function wrapKind15FileMessage(kind15Event, senderPrivKey, receiver
 
   if (senderPubKey) {
     return giftWraps.map((gw, i) =>
-      receiverPubKeys[i] === senderPubKey ? { ...gw, tags: [...gw.tags, ['self']] } : gw
+      (i === 0 || receiverPubKeys[i - 1] === senderPubKey)
+        ? { ...gw, tags: [...gw.tags, ['self']] }
+        : gw
     )
   }
   return giftWraps

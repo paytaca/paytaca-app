@@ -94,7 +94,11 @@ export function createUnsignedKind14({ content, senderPubKey, members, subject, 
  */
 function tagSelfGiftWraps(giftWraps, recipientPubKeys, senderPubKey) {
   return giftWraps.map((gw, i) => {
-    if (recipientPubKeys[i] === senderPubKey) {
+    // wrapManyEvents prepends a self-wrap at index 0, so giftWraps
+    // is one element longer than recipientPubKeys. Index 0 is always
+    // the self-wrap; for i > 0, recipientPubKeys[i - 1] is the
+    // recipient this gift-wrap was created for.
+    if (i === 0 || recipientPubKeys[i - 1] === senderPubKey) {
       return { ...gw, tags: [...gw.tags, ['self']] }
     }
     return gw
@@ -193,6 +197,7 @@ export async function createReadReceiptGiftWrap({ messageIds, messageId, senderP
       ...eTags,
       ['p', senderPubKey, relayHint],
       ['k', '14'],
+      ['nonotif', 'read-receipt'],
     ],
   }
   kind7.id = getEventHash(kind7)
