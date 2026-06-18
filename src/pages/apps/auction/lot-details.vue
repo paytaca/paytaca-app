@@ -207,7 +207,7 @@
                       <q-spinner-dots v-if="englishBidPolling" size="14px" color="positive" />
                     </div>
                     
-                    <div v-if="englishHighestBid">
+                    <div v-if="hasBid">
                       <div v-if="auction?.is_fiat">
                         <div class="text-h6 text-weight-bold text-positive" style="line-height: 1.2;">
                           {{ formatFiat(lot.threshold_bid_fiat) }}
@@ -445,7 +445,7 @@ const formatBCH = (bchValue) => getFormattedBCH(Number(bchValue) || 0)
 const openDialog = ref(false)
 const englishBidLoading = ref(false)
 const englishBidPolling = ref(false)
-const englishHighestBid = computed(() => Number(lot.value?.threshold_bid_bch || 0))
+const hasBid = ref(false)
 
 const handlePlaceBid = async ({ bid_price_bch }) => {
   if (!walletHash) {
@@ -479,11 +479,26 @@ const handlePlaceBid = async ({ bid_price_bch }) => {
     })
     
     await fetchLot()
+    await checkBidStatus()
   } catch (err) {
     console.error(err)
     $q.notify({ type: 'negative', message: err.message || 'Something went wrong.' })
   } finally {
     englishBidLoading.value = false
+  }
+}
+
+const checkBidStatus = async () => {
+  try {
+    const result = await callAPI(`lots/${props.lotId}/highest-bid`)
+    if (result.success) {
+      hasBid.value = Array.isArray(result.data) && result.data.length > 0
+    } else {
+      hasBid.value = false
+    }
+  } catch (err) {
+    console.error('Error checking bid status:', err)
+    hasBid.value = false
   }
 }
 
@@ -749,7 +764,12 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
-  dutchAlreadySold.value = false
+  if (auction.type === 'English') {
+    await checkBidStatus()
+  } else {
+    dutchAlreadySold.value = false
+  }
+  
   await loadPageData()
   done()
 }
