@@ -1,37 +1,8 @@
-pragma cashscript ^0.8.0;
+pragma cashscript ^0.13.0;
 
 contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 servicer, int platformFee, int arbitrationFee, bytes32 paramHash) {
-
+    
     function release(pubkey pk, sig s, bytes32 hash) {
-        require(hash == paramHash);
-        require(hash160(pk) == arbiter || hash160(pk) == auctioneer);
-        require(checkSig(s, pk));
-
-        require(tx.inputs.length == 1);
-        require(tx.outputs.length == 3);
-
-        int minerFee = 1000;
-        int fees = minerFee + platformFee + arbitrationFee;
-        int amount = tx.inputs[this.activeInputIndex].value - fees;        
-        
-        bool correctAmount = tx.outputs[0].value == amount;
-        bool correctPlatformFee = tx.outputs[1].value == platformFee;
-        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
-        
-        require(correctAmount && correctPlatformFee && correctArbitrationFee);
-
-        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
-        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
-        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
-        
-        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
-        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;
-        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;
-        
-        require(sendsToBidder && sendsToServicer && sendsToArbiter);
-    }
-
-    function refund(pubkey pk, sig s, bytes32 hash) {
         require(hash == paramHash);
         require(hash160(pk) == arbiter);
         require(checkSig(s, pk));
@@ -58,5 +29,34 @@ contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 ser
         bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;
         
         require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);
+    }
+
+    function refund(pubkey pk, sig s, bytes32 hash) {
+        require(hash == paramHash);
+        require(hash160(pk) == arbiter || hash160(pk) == auctioneer);
+        require(checkSig(s, pk));
+
+        require(tx.inputs.length == 1);
+        require(tx.outputs.length == 3);
+
+        int minerFee = 1000;
+        int fees = minerFee + platformFee + arbitrationFee;
+        int amount = tx.inputs[this.activeInputIndex].value - fees;        
+        
+        bool correctAmount = tx.outputs[0].value == amount;
+        bool correctPlatformFee = tx.outputs[1].value == platformFee;
+        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;
+        
+        require(correctAmount && correctPlatformFee && correctArbitrationFee);
+
+        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
+        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
+        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
+        
+        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
+        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;
+        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;
+        
+        require(sendsToBidder && sendsToServicer && sendsToArbiter);
     }
 }
