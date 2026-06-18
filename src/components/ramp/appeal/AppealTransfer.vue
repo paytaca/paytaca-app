@@ -204,7 +204,7 @@ export default {
             return this.delay(delayDuration)
               .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
           } else {
-            this.disableBtn = false
+            this.submitAction()
           }
         })
         .catch(error => console.error(error))

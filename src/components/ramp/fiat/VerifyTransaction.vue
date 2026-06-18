@@ -170,12 +170,13 @@ export default {
       this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(() => {
-        // Only fetch balance after contract address is loaded
-        if (this.contract?.address) {
+      this.fetchContract()
+        .then(() => {
           this.fetchContractBalance()
-        }
-      })
+        })
+        .catch(() => {
+          this.fetchContractBalance()
+        })
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
@@ -370,7 +371,7 @@ export default {
                 .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
             }
           } else {
-            this.disableBtn = false
+            this.submitAction()
           }
         })
         .catch(error => console.error(error))
