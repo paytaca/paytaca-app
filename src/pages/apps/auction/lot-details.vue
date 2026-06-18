@@ -164,65 +164,79 @@
           </div>
  
           <div class="col-12 col-sm col-md-7">
-            <div class="col rounded-borders q-pa-sm q-mb-md bg-primary text-white">
-              <div class="text-caption q-mb-xs">
-                <q-icon name="price_change" size="12px" class="q-mr-xs" />Estimated Amount
+            <div class="row q-col-gutter-sm q-mb-md">
+              <div class="col-12 col-sm-6">
+                <q-card flat bordered class="full-height">
+                  <q-card-section class="q-pa-sm">
+                    <div class="text-caption row items-center q-mb-xs">
+                      <q-icon name="price_change" size="14px" class="q-mr-xs" />
+                      Estimated Amount
+                    </div>
+                    <div class="text-h6 text-weight-bold text-primary">
+                      {{ formatFiat(lot.estimated_amount_fiat) }}
+                    </div>
+                    <div class="text-caption text-weight-medium text-primary">
+                      {{ formatBCH(lot.estimated_amount_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.estimated_amount_bch).zeros }}</span> BCH
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
-              <div class="text-weight-medium">
-                {{ formatFiat(lot.estimated_amount_fiat) }}
-              </div>
-              <div class="text-caption text-weight-medium">
-                {{ formatBCH(lot.estimated_amount_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.estimated_amount_bch).zeros }}</span> BCH
-              </div>
-            </div>
 
-            <div v-if="auction?.type === 'English'" class="col rounded-borders q-pa-sm q-mb-md bg-green text-white">
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="text-caption">
-                  <q-icon name="payments" size="12px" class="q-mr-xs" />Highest Bid
-                </div>
-                <q-spinner-dots v-if="englishBidPolling" size="12px" />
-              </div>
-              <template v-if="englishHighestBid">
-                <div class="text-weight-medium q-mb-xs">
-                  {{ formatFiat(lot.threshold_bid_fiat) }}
-                </div>
-                <div class="text-caption text-weight-medium">
-                  {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH
-                </div>
-              </template>
-              <template v-else>
-                <div class="text-weight-medium" style="opacity: 0.5;">No bids yet</div>
-                <div class="text-caption text-weight-medium">
-                  {{ formatFiat(lot.threshold_bid_fiat) }} · {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH floor
-                </div>
-              </template>
-            </div>
+              <div class="col-12 col-sm-6">
+                <q-card v-if="auction?.type === 'English'" flat bordered class="full-height">
+                  <q-card-section class="q-pa-sm">
+                    <div class="row items-center justify-between q-mb-xs text-caption">
+                      <div class="row items-center">
+                        <q-icon name="payments" size="14px" class="q-mr-xs" />
+                        Highest Bid
+                      </div>
+                      <q-spinner-dots v-if="englishBidPolling" size="14px" color="positive" />
+                    </div>
+                    
+                    <template v-if="englishHighestBid">
+                      <div class="text-h6 text-weight-bold text-positive">
+                        {{ formatFiat(lot.threshold_bid_fiat) }}
+                      </div>
+                      <div class="text-caption text-weight-medium text-positive">
+                        {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="text-subtitle1 text-weight-bold q-my-none">No bids yet</div>
+                      <div class="text-caption text-weight-medium">
+                        {{ formatFiat(lot.threshold_bid_fiat) }} · {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span> BCH floor
+                      </div>
+                    </template>
+                  </q-card-section>
+                </q-card>
 
-            <div v-else class="col-12 rounded-borders q-pa-sm q-mb-md bg-red text-white">
-              <div class="row items-center justify-between q-mb-xs">
-                <div class="text-caption">
-                  <q-icon name="trending_down" size="12px" class="q-mr-xs" />Current Price
-                </div>
-              </div>
-              <div class="row items-end justify-between q-mb-sm">
-                <div>
-                  <div class="text-weight-medium">
-                    {{ formatFiat(dutchCurrentPriceFiat) }}
-                  </div>
-                  <div class="text-caption text-weight-medium">
-                    {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-caption" style="opacity: 0.55;">Floor</div>
-                  <div class="text-body2 text-weight-bold">
-                    {{ formatFiat(dutchFloorPriceFiat) }}
-                  </div>
-                  <div class="text-caption text-weight-medium">
-                    {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
-                  </div>
-                </div>
+                <q-card v-else flat bordered class="full-height">
+                  <q-card-section class="q-pa-sm">
+                    <div class="text-caption row items-center q-mb-xs">
+                      <q-icon name="trending_down" size="14px" class="q-mr-xs" />
+                      Current Price
+                    </div>
+                    <div class="row items-center justify-between no-wrap">
+                      <div>
+                        <div class="text-h6 text-weight-bold text-negative">
+                          {{ formatFiat(dutchCurrentPriceFiat) }}
+                        </div>
+                        <div class="text-caption text-weight-medium text-negative">
+                          {{ formatBCH(dutchCurrentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchCurrentPriceBch).zeros }}</span> BCH
+                        </div>
+                      </div>
+                      <div class="text-right border-left q-pl-sm" :style="darkMode ? 'border-color: rgba(255,255,255,0.2)' : 'border-color: rgba(0,0,0,0.1)'">
+                        <div class="text-caption">Floor Limit</div>
+                        <div class="text-subtitle2 text-weight-bold">
+                          {{ formatFiat(dutchFloorPriceFiat) }}
+                        </div>
+                        <div class="text-caption">
+                          {{ formatBCH(dutchFloorPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(dutchFloorPriceBch).zeros }}</span> BCH
+                        </div>
+                      </div>
+                    </div>
+                  </q-card-section>
+                </q-card>
               </div>
             </div>
  
