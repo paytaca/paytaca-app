@@ -642,9 +642,9 @@ export default {
       }
       // DM: if a subject has been set, prefer it over the contact name
       if (room.subject) return room.subject
-      // If contact exists, use the room name (which is the contact name)
+      // If contact exists, use the contact's name (the other party)
       if (this.otherMemberContact) {
-        return room.name || this.$t('Chat', {}, 'Chat')
+        return this.otherMemberContact.name || room.name || this.$t('Chat', {}, 'Chat')
       }
       // Unknown contact: show npub in header
       return this.displayNpub || room.name || this.$t('Chat', {}, 'Chat')
