@@ -10,8 +10,19 @@
         <div class="text-h6 text-weight-bold">Buy It Now?</div>
 
         <div class="q-mt-sm">
-          <div v-if="props.currentPriceBch !== null" class="text-h5 text-weight-bold">
-            {{ formatBCH(props.currentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(props.currentPriceBch).zeros }}</span> BCH
+          <div v-if="props.currentPriceBch !== null && props.currentPriceFiat !== null" class="text-h5 text-weight-bold">
+            <div v-if="props.isFiat">
+              {{ formatFiat(props.currentPriceFiat) }}
+              <div class="text-caption q-mt-xs">
+                ≈ {{ formatBCH(props.currentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(props.currentPriceBch).zeros }}</span> BCH
+              </div>
+            </div>
+            <div v-else>
+              {{ formatBCH(props.currentPriceBch).main }}<span style="opacity: 0.4;">{{ formatBCH(props.currentPriceBch).zeros }}</span> BCH
+              <div class="text-caption q-mt-xs">
+                {{ formatFiat(props.currentPriceFiat) }}
+              </div>
+            </div>
           </div>
           <p class="text-caption q-mt-xs text-grey-6">
             Price drops over time. This is the current price.
@@ -68,6 +79,14 @@ const props = defineProps({
     type: Number,
     default: null
   },
+  currentPriceFiat: {
+    type: Number,
+    default: null
+  },
+  isFiat: {
+    type: Boolean,
+    default: false
+  },
   loading: {
     type: Boolean,
     default: false
@@ -86,14 +105,20 @@ const formatBCH = (val) => {
   if (val == null) return { main: '—', zeros: '' }
   const str = Number(val).toFixed(8)
   const [int, dec] = str.split('.')
-  const significant   = dec.replace(/0+$/, '') || '0'
+  const significant = dec.replace(/0+$/, '') || '0'
   const trailingZeros = dec.slice(significant.length)
   return { main: `${int}.${significant}`, zeros: trailingZeros }
 }
 
+const formatFiat = (value) => {
+  const numValue = Number(value) || 0
+  return `₱${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 const confirmPurchase = () => {
   emit('confirm-buy-it-now', {
-    bid_price_bch: props.currentPriceBch
+    bid_price_bch: props.currentPriceBch,
+    bid_price_fiat: props.currentPriceFiat
   })
 }
 </script>

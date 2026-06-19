@@ -442,6 +442,8 @@
       :lot="lot"
       :auction="auction"
       :current-price-bch="dutchCurrentPriceBch"
+      :current-price-fiat="dutchCurrentPriceFiat"
+      :is-fiat="auction?.is_fiat"
       :loading="buyItNowLoading"
       @confirm-buy-it-now="handleBuyItNow"
     />
