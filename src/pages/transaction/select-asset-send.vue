@@ -362,17 +362,19 @@ export default {
               return true
             })
             .map(result => {
-              // Convert IPFS URLs if needed
-              const logo = result.image_url ? convertIpfsUrl(result.image_url) : null
+              const storeAssets = this.$store.getters['assets/getAsset'](result.id)
+              const storeAsset = Array.isArray(storeAssets) && storeAssets.length > 0 ? storeAssets[0] : null
+
+              const logo = storeAsset?.logo || (result.image_url ? convertIpfsUrl(result.image_url) : null)
 
               return {
                 id: result.id,
-                name: result.name || 'Unknown Token',
-                symbol: result.symbol || '',
-                decimals: result.decimals || 0,
+                name: storeAsset?.name || result.name || 'Unknown Token',
+                symbol: storeAsset?.symbol || result.symbol || '',
+                decimals: storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0),
                 logo: logo,
                 balance: result.balance !== undefined ? result.balance : 0,
-                favorite: result.favorite === true ? 1 : 0, // Convert boolean to 1/0 format
+                favorite: result.favorite === true ? 1 : 0,
                 favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
               }
             })
@@ -393,6 +395,28 @@ export default {
         console.error('Error fetching tokens from API:', error)
         return []
       }
+    },
+    _enrichTokenMetadata () {
+      this.allTokensFromAPI.forEach(token => {
+        if (!token.name || token.name === 'Unknown Token' || !token.symbol || !token.logo) {
+          this.$store.dispatch('assets/getAssetMetadata', token.id).then(metadata => {
+            if (metadata) {
+              const idx = this.allTokensFromAPI.findIndex(t => t.id === token.id)
+              if (idx !== -1) {
+                this.allTokensFromAPI[idx] = {
+                  ...this.allTokensFromAPI[idx],
+                  name: metadata.name || this.allTokensFromAPI[idx].name,
+                  symbol: metadata.symbol || this.allTokensFromAPI[idx].symbol,
+                  decimals: metadata.decimals !== undefined ? metadata.decimals : this.allTokensFromAPI[idx].decimals,
+                  logo: metadata.logo || this.allTokensFromAPI[idx].logo,
+                }
+              }
+            }
+          }).catch(err => {
+            console.warn(`[SelectAssetSend] Failed to fetch BCMR metadata for ${token.id}:`, err)
+          })
+        }
+      })
     },
     shouldShowFavoritesLabel(asset, index) {
       // Show label if:
@@ -489,6 +513,7 @@ export default {
     // For CashTokens, fetch tokens directly from API
     if (vm.isCashToken) {
       vm.allTokensFromAPI = await vm.fetchTokensFromAPI()
+      vm._enrichTokenMetadata()
     } else {
       // For SLP, use store data (legacy behavior)
       const assets = vm.$store.getters['assets/getAssets']
@@ -541,6 +566,7 @@ export default {
       if (this.isCashToken) {
         this.fetchTokensFromAPI().then(tokens => {
           this.allTokensFromAPI = tokens
+          this._enrichTokenMetadata()
         })
       }
     },
