@@ -319,7 +319,7 @@
           <div class="empty-subtitle">{{ $t('SendFirstMessage', {}, 'Send your first message') }}</div>
         </div>
 
-        <div v-else class="messages-list">
+        <div v-else-if="ready" class="messages-list">
           <div
             v-for="(msg, index) in displayedMessages"
             :key="msg.id"
@@ -559,6 +559,8 @@ export default {
       _scrollToMessageId: null,
       // Guard to ignore the next pointerdown which may be the finger lifting
       _ignoreNextPointerDown: false,
+      ready: false,
+      _savedScrollTop: null,
       requestingToJoin: false,
       _fetchedGroupMeta: null,
       _fetchingMeta: false,
@@ -813,6 +815,30 @@ export default {
         }
       }
     },
+    ready (val) {
+      if (val) {
+        this.$nextTick(() => {
+          if (this._scrollToMessageId) {
+            this.scrollToMessage(this._scrollToMessageId)
+            this._scrollToMessageId = null
+          } else if (this._savedScrollTop) {
+            const container = this.$refs.messagesContainer
+            if (container) {
+              container.scrollTop = parseInt(this._savedScrollTop, 10)
+            }
+            this._savedScrollTop = null
+          } else {
+            this.scrollToBottom()
+            requestAnimationFrame(() => this.scrollToBottom())
+            setTimeout(() => this.scrollToBottom(), 160)
+          }
+          sessionStorage.removeItem('chat_scroll_room_id')
+          sessionStorage.removeItem('chat_scroll_message_id')
+          sessionStorage.removeItem('chat_scroll_display_limit')
+          sessionStorage.removeItem('chat_scroll_top')
+        })
+      }
+    },
   },
   mounted () {
     if (!this.room && this._isGroupLink) {
@@ -837,6 +863,7 @@ export default {
       this.displayLimit = parseInt(savedDisplayLimit, 10)
       sessionStorage.removeItem('chat_scroll_display_limit')
     }
+    this._savedScrollTop = savedScrollTop
     this.markAsRead()
     this.ensureSubscribed()
     document.addEventListener('visibilitychange', this.onVisibilityChange)
@@ -848,29 +875,10 @@ export default {
       window.addEventListener('resize', this.onViewportResize)
     }
 
-    if (canRestoreScroll && this._scrollToMessageId) {
-      this.$nextTick(() => {
-        if (savedScrollTop) {
-          const container = this.$refs.messagesContainer
-          if (container) {
-            container.scrollTop = parseInt(savedScrollTop, 10)
-          }
-          sessionStorage.removeItem('chat_scroll_top')
-          sessionStorage.removeItem('chat_scroll_room_id')
-        } else {
-          this.scrollToMessage(this._scrollToMessageId)
-        }
-        this._scrollToMessageId = null
-      })
-    } else {
-      sessionStorage.removeItem('chat_scroll_room_id')
-      sessionStorage.removeItem('chat_scroll_message_id')
-      sessionStorage.removeItem('chat_scroll_display_limit')
-      sessionStorage.removeItem('chat_scroll_top')
-      this.scrollToBottom()
-      requestAnimationFrame(() => this.scrollToBottom())
-      setTimeout(() => this.scrollToBottom(), 160)
-    }
+    // Defer message rendering so the chat input is interactive first
+    this.$nextTick(() => {
+      this.ready = true
+    })
   },
   activated () {
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
