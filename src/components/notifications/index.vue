@@ -42,6 +42,15 @@
             icon="cancel"
             @click="isCheckboxClicked = false"
           />
+          <q-checkbox
+            v-if="isCheckboxClicked"
+            :model-value="allSelected"
+            :indeterminate="someSelected"
+            @update:model-value="toggleSelectAll"
+            size="sm"
+            color="primary"
+            class="q-ml-xs"
+          />
           <q-btn
             flat
             round
@@ -264,6 +273,12 @@ export default {
       return this.$store.getters['assets/getAssets'].filter(
         item => item && item.id !== 'bch'
       )
+    },
+    allSelected () {
+      return this.checkboxList && this.checkboxList.length > 0 && this.checkboxList.every(v => v)
+    },
+    someSelected () {
+      return this.checkboxList && this.checkboxList.some(v => v) && !this.allSelected
     }
   },
 
@@ -403,6 +418,10 @@ export default {
       if (this.isCheckboxClicked) {
         this.checkboxList = new Array(this.notifsList.length).fill(false)
       }
+    },
+    toggleSelectAll (val) {
+      if (!this.checkboxList) return
+      this.checkboxList = this.checkboxList.map(() => val)
     },
     async massDeleteNotifs () {
       const vm = this
