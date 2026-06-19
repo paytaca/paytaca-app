@@ -88,12 +88,6 @@
             :card="activeCard"
             :key="activeCard.id"
           />
-          <OrderCard
-            v-else-if="activeTab === 'Order Card' && activeCard"
-            :card="activeCard"
-            @order-complete="onOrderComplete"
-          />
-
           <CardSettings v-if="activeTab === 'Card Security'" :active-card="activeCard"/>
           <div v-else-if="!activeCard" class="flex flex-center full-height">
             <q-spinner-dots color="primary" size="40px"/>
@@ -227,7 +221,6 @@ import TransactionHistory from 'src/components/card/TransactionHistory.vue'
 import ManageAuthNFTs from 'src/components/card/ManageAuthNFTs.vue'
 import CashInDialog from 'src/components/card/CashInDialog.vue'
 import CardSettings from 'src/components/card/CardSettings.vue'
-import OrderCard from 'src/components/card/OrderCard.vue'
 import L from 'leaflet'
 import { satoshiToBch } from 'src/exchange'
 import { loadCardUser } from 'src/services/card/user'
@@ -238,8 +231,7 @@ export default {
     TransactionHistory,
     ManageAuthNFTs,
     CashInDialog,
-    CardSettings,
-    OrderCard
+    CardSettings
   },
 
   data () {
@@ -285,7 +277,6 @@ export default {
         const tabMap = {
           'Transactions': 'transactions',
           'Manage Merchants': 'manage-merchants',
-          'Order Card': 'order-card',
           'Card Security': 'other-settings'
         }
         this.$router.replace({ 
@@ -304,7 +295,6 @@ export default {
       return [
         { label: 'Transactions', icon: 'receipt_long' },
         { label: 'Manage Merchants', icon: 'storefront' },
-        { label: 'Order Card', icon: 'credit_card' },
         { label: 'Card Security', icon: 'shield' }
       ]
     },
@@ -313,27 +303,9 @@ export default {
       return this.$store.getters['market/selectedCurrency']
     },
 
-    // currencyOptions () {
-    //   const options = this.$store.getters['market/currencyOptions']
-    //   let symbols = []
-    //   if (Array.isArray(options) && options.length > 0) {
-    //     symbols = options.map(c => c.symbol)
-    //   }
-    //   // Always ensure USD, PHP, and BCH are available
-    //   const requiredCurrencies = ['USD', 'PHP', 'BCH']
-    //   requiredCurrencies.forEach(currency => {
-    //     if (!symbols.includes(currency)) {
-    //       symbols.push(currency)
-    //     }
-    //   })
-    //   return symbols
-    // },
+  
 
-    // bchPriceInSelectedCurrency () {
-    //   const currencySymbol = this.selectedCurrency?.symbol || 'USD'
-    //   const price = this.$store.getters['market/getAssetPrice']('bch', currencySymbol)
-    //   return price || null
-    // },
+  
 
     hasCardBalance () {
       const balance = parseFloat(this.activeCard?.balance) || 0
@@ -410,7 +382,6 @@ export default {
       const tabMap = {
         'transactions': 'Transactions',
         'manage-merchants': 'Manage Merchants',
-        'order-card': 'Order Card',
         'other-settings': 'Card Security'
       }
       if (tabMap[requestedTab] && this.tabs.includes(tabMap[requestedTab])) {
@@ -595,15 +566,6 @@ export default {
     onCloseCashInDialog () {
       this.showCashInDialog = false
       this.getCardBchBalance() // Refresh balance after cash-in
-    },
-
-    onOrderComplete () {
-      this.$q.notify({
-        message: 'Card order placed successfully!',
-        color: 'positive',
-        icon: 'check_circle',
-        timeout: 3000
-      })
     },
 
     async getCardBchBalance() {
