@@ -7,7 +7,8 @@ export const CardCreateAttemptStatus = {
   GENESIS_MINTED: 1,
   GENESIS_SAVED: 2,
   CONTRACT_CREATED: 3,
-  AUTH_ISSUED: 4
+  AUTH_MINTED: 4,
+  AUTH_ISSUED: 5
 }
 
 const CREATE_CARD_ATTEMPT_STORAGE_KEY = 'card:create-attempt'

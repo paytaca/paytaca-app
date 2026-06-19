@@ -11,6 +11,7 @@ import {
   clearCreateCardAttempt,
   CardCreateAttemptStatus 
 } from './storage';
+import bus from 'src/services/event-bus';
 
 export class Card {
   constructor(data) {
@@ -172,7 +173,6 @@ export class Card {
     this._notifyCallbackFn(callbackOnProgress, 'Starting card creation workflow');
 
     const alias = newCard?.name
-    const uid = newCard?.uid
 
     try {
 
@@ -180,7 +180,7 @@ export class Card {
       let cardId = lastAttempt?.cardId || null;
 
       if (currentStatus < CardCreateAttemptStatus.CARD_SAVED) {
-        const { id: newCardId } = await this._createCardEntry(alias, uid);
+        const { id: newCardId } = await this._createCardEntry(alias);
         cardId = newCardId;
 
         this._notifyCallbackFn(callbackOnProgress, 'Card entry created on server');
@@ -216,7 +216,7 @@ export class Card {
         let savedAttempt = lastAttempt
         
         if (!category) {
-          savedAttempt = getCreateCardAttempt(this.wallet.walletHash);
+          savedAttempt = await getCreateCardAttempt(this.wallet.walletHash);
           console.log('Re-fetching last attempt for category:', savedAttempt);
           category = savedAttempt?.category;
         }
@@ -243,22 +243,30 @@ export class Card {
       this._initializeContract();
       this._notifyCallbackFn(callbackOnProgress, 'Contract initialized locally');
 
-      if (currentStatus <= CardCreateAttemptStatus.CONTRACT_CREATED) {
-        await this._issueGlobalAuthToken();
-        
-        this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
+      // if (currentStatus <= CardCreateAttemptStatus.CONTRACT_CREATED) {
+      //   await this._issueGlobalAuthToken(currentStatus, callbackOnProgress);
+      // }
 
-        currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
+      if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
+        await this._mintGlobalAuthToken();
+        currentStatus = CardCreateAttemptStatus.AUTH_MINTED;
         updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        this._notifyCallbackFn(callbackOnProgress, 'Global auth token minted');
       }
 
-      console.log('Card creation completed successfully');
-      
-      this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
+      if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
+        await this._issueAuthTokens();
+        currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
+        updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+        this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
+      }
 
-      // Clear the create card attempt from local storage since workflow is complete
-      clearCreateCardAttempt(this.wallet.walletHash);
-
+      if (currentStatus <= CardCreateAttemptStatus.AUTH_ISSUED) {
+        console.log('Card creation completed successfully');
+        // Clear the create card attempt from local storage since workflow is complete
+        await clearCreateCardAttempt(this.wallet.walletHash);
+        this._notifyCallbackFn(callbackOnProgress, 'Card created successfully!');
+      }
       return this;
     } catch (error) {
       console.error('Error:', error);
@@ -286,18 +294,13 @@ export class Card {
    * @private
    * @returns {Promise<Object>}
    */
-  async _createCardEntry(alias, uid) {
-    if (!alias || !uid) {
-      throw new Error('Alias and UID are required to create card entry');
-    }
-
+  async _createCardEntry(alias) {
     console.log('Creating card entry...');
     this._assertWallet();
     const idempotencyKey = `create-card-${this.wallet.pubkey()}-${crypto.randomUUID()}`;
 
     const data = {
       alias: alias || "",
-      uid: uid || "",
       wallet_hash: this.wallet.walletHash,
       public_key: this.wallet.pubkey(),
       address_path: this.wallet.addressPath()
@@ -306,7 +309,6 @@ export class Card {
     saveCreateCardAttempt(this.wallet.walletHash, {
       idempotencyKey,
       alias: alias || "",
-      uid: uid || "",
       walletHash: this.wallet.walletHash,
       createdAt: Date.now(),
     });
@@ -335,12 +337,13 @@ export class Card {
    * @returns {Promise<Object>}
    */
   async _saveGenesis(cardId, category) {
+    console.log('Saving genesis token to server:', { cardId, category });
     const data = { category };
     const response = await backend.patch(`/cards/${cardId}/`, data)
       .catch(error => {
         console.error('Error saving genesis token ID to server:', error.response || error.message);
         if (error.response && error.response.status === 403) {
-          bus.emit('sessionExpired') // Emit sessionExpired event for testing
+          bus.emit('session-expired') // Emit sessionExpired event for testing
         }
         throw error;
       });
@@ -508,15 +511,27 @@ export class Card {
     return null;
   }
 
-  /** 
-   * Complete workflow to issue global and merchant auth tokens
-   * @private
-   * @returns {Promise<void>}
-   */
-  async _issueGlobalAuthToken() {
-    await this._mintGlobalAuthToken();
-    await this._issueAuthTokens();
-  }
+  // /** 
+  //  * Complete workflow to issue global and merchant auth tokens
+  //  * @private
+  //  * @returns {Promise<void>}
+  //  */
+  // async _issueGlobalAuthToken(currentStatus = null, callbackOnProgress = null) {
+    
+  //   if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
+  //     await this._mintGlobalAuthToken();
+  //     currentStatus = CardCreateAttemptStatus.AUTH_MINTED;
+  //     updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+  //     this._notifyCallbackFn(callbackOnProgress, 'Global auth token minted');
+  //   }
+    
+  //   if (currentStatus <= CardCreateAttemptStatus.AUTH_MINTED) {
+  //     await this._issueAuthTokens();
+  //     currentStatus = CardCreateAttemptStatus.AUTH_ISSUED;
+  //     updateCreateCardAttempt(this.wallet.walletHash, { status: currentStatus });
+  //     this._notifyCallbackFn(callbackOnProgress, 'Global auth token issued');
+  //   }
+  // }
 
   /**
    * Mints global auth token for card
@@ -667,18 +682,25 @@ export class Card {
     console.log('Issuing auth token to address:', toAddress);
     const tokenId = this.category;
     const fromAddress = this.wallet.tokenAddress();
-    const authNfts = await this.authNftService.getMutableTokens(tokenId, fromAddress);
+
+    let authNfts = await this.authNftService.getMutableTokens(tokenId, fromAddress);
+
+    if (authNfts.length === 0) {
+      authNfts = await this.authNftService.ctWallet.getTokenUtxos(tokenId);
+      console.log('ctWallet authNFTs:', authNfts);
+      authNfts = authNfts.filter(utxo => utxo.token?.capability === 'mutable');
+    }
     console.log('Auth NFTs to be issued:', authNfts);
 
     const recipients = []
     authNfts.forEach(utxo => {
       recipients.push({
         address: toAddress,
-        tokenId: utxo.token?.category,
-        capability: utxo.token?.nft?.capability,
-        commitment: utxo.token?.nft?.commitment,
+        tokenId: utxo.token?.category || utxo.token?.tokenId,
+        capability: utxo.token?.nft?.capability || utxo.token?.capability,
+        commitment: utxo.token?.nft?.commitment || utxo.token?.commitment,
         amount: utxo.token.amount,
-        value: utxo.value
+        value: utxo.value || utxo.satoshis || 0,
       });
     }); 
     console.log('Issuing to recipients:', recipients);
@@ -938,6 +960,7 @@ export class Card {
     console.log('Creating vout=0 transaction...');
     this._assertWallet();
     return await this.wallet.createFundingUtxo(amount);
+    // return await this.wallet.consolidateUtxos(amount)
   }
 
   /**

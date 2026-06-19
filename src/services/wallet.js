@@ -189,9 +189,9 @@ export class Wallet {
     let result = { cumulativeValue: 0, utxos: [] }
     const wallet = await this.getRawWallet()
     if (address) {
-      result = await wallet.watchtower.BCH.getBchUtxos(address, amount)
+      result = await wallet.watchtower.BCH.getBchUtxos(address, amount, { confirmed: true })
     }
-    result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, amount)
+    result = await wallet.watchtower.BCH.getBchUtxos(`wallet:${this.walletHash}`, amount, { confirmed: true })
     return {
       cumulativeValue: result.cumulativeValue,
       utxos: result.utxos.map(utxo => ({
@@ -248,9 +248,18 @@ export class Wallet {
     if (!receivingAddress) {
       receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
     }
+
+    const { cumulativeValue, utxos } = await this.getBchUtxos(null, parseInt(satsAmount)); // Get UTXOs up to 100k sats
+    console.log('cumulativeValue:', cumulativeValue);
+    console.log('UTXOs found for vout=0:', utxos);
+    if (utxos.length === 0) {
+      console.log('No consolidation needed, 0 UTXOs found.');
+      return;
+    }
     
     // Use provided amount or estimate full requirement
-    const satsToSend = satsAmount || this.estimateTokenOpSatsRequirement();
+    const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for transaction
+    const satsToSend = cumulativeValue - estimatedFee
     const bchAmount = Number(satsToSend) / 1e8;
     
     console.log(`Sending ${satsToSend} sats (${bchAmount} BCH) to address:`, receivingAddress);
@@ -264,6 +273,51 @@ export class Wallet {
     
     return sendResult;
   }
+
+  async consolidateUtxos (receivingAddress = null) {
+    console.log('Starting UTXO consolidation process...');
+    const wallet = await this.getRawWallet();
+    if (!receivingAddress) {
+      receivingAddress = (await wallet.getAddressSetAt(0)).receiving;
+    }
+
+    const { cumulativeValue, utxos } = await this.getBchUtxos(null, 100000); // Get UTXOs up to 100k sats
+    console.log('cumulativeValue:', cumulativeValue);
+    console.log('UTXOs found for consolidation:', utxos);
+    if (utxos.length === 0) {
+      console.log('No consolidation needed, 0 UTXOs found.');
+      return;
+    }
+
+    const estimatedFee = this.estimateFee({ numP2pkhInputs: utxos.length, numOutputs: 1 }); // Estimated fee for consolidation transaction
+    const consolidationAmount = cumulativeValue - estimatedFee;
+    console.log('Estimated fee for consolidation:', estimatedFee);
+    console.log('Consolidation amount:', consolidationAmount);
+    console.log(`Consolidating ${utxos.length} UTXOs totaling ${consolidationAmount} sats to address:`, receivingAddress);
+    
+    const bchAmount = Number(consolidationAmount) / 1e8;
+    const sendResult = await wallet.sendBch(bchAmount, receivingAddress);
+    console.log('Consolidation transaction sent:', sendResult);
+
+    if (sendResult.success == false) {
+      throw new Error(`Failed to consolidate UTXOs: ${sendResult.error}`);
+    }
+    
+    return sendResult;
+  }
+
+  estimateFee({ numP2pkhInputs = 0, numOutputs = 2, feeRate = 2n } = {}) {
+    // Approximate: ~148 bytes per P2PKH input
+    const P2PKH_INPUT_SIZE = 148
+    const OUTPUT_SIZE = 34
+    const TX_OVERHEAD = 10
+
+    const estimatedSize = TX_OVERHEAD
+        + (numP2pkhInputs * P2PKH_INPUT_SIZE)
+        + (numOutputs * OUTPUT_SIZE)
+
+    return BigInt(estimatedSize) * feeRate
+    }
 
   /**
    * Estimates satoshis needed for token-related operation

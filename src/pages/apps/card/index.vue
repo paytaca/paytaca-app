@@ -73,13 +73,14 @@ export default {
     async loadData () {
       await this.loadUser()
       console.log('USER:', this.user)
-      if (this.user?.cardCount > 0) {
-        console.log('User has existing cards, redirecting to cards list')
-        this.goToCardsList()
-      } else {
-        console.log('No existing cards for user')
-        this.goToHome()
-      }
+      // if (this.user?.cardCount > 0) {
+      //   console.log('User has existing cards, redirecting to cards list')
+      //   this.goToCardsList()
+      // } else {
+      //   console.log('No existing cards for user')
+      //   this.goToHome()
+      // }
+      this.goToHome()
       clearCardUserCache() // temporary only
     },
 

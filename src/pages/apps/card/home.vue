@@ -247,7 +247,7 @@ export default {
     async loadData() {
       this.showLoading()
       await this.loadCardUser()
-      this.checkExistingCards()
+      // this.checkExistingCards()
       await this.checkExistingCreateCardAttempt()
       this.isloaded = true
       this.hideLoading()
