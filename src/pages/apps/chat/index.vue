@@ -417,6 +417,7 @@ export default {
       groupName: '',
       selectedMemberNpubs: [],
       fetchedContactDisplayName: null,
+      _profilePromptShown: false,
     }
   },
   computed: {
@@ -460,6 +461,29 @@ export default {
         return this.$t('NewPrivateGroup', {}, 'New Private Group')
       }
       return this.$t('NewChat', {}, 'New Chat')
+    },
+    missingProfileItems () {
+      const items = []
+      if (!this.$store.state.nostrChat.profile?.displayName) {
+        items.push(this.$t('DisplayName', {}, 'Display Name'))
+      }
+      if (!this.$store.state.nostrChat.profile?.bchAddress) {
+        items.push(this.$t('BchAddress', {}, 'BCH Address'))
+      }
+      return items
+    },
+    isProfileIncomplete () {
+      return this.missingProfileItems.length > 0
+    },
+    profilePromptMessage () {
+      const items = this.missingProfileItems
+      if (items.length === 2) {
+        return this.$t('ProfilePromptBothMissing', { displayName: items[0], bchAddress: items[1] }, `Set your ${items[0]} and ${items[1]} so others can identify you and send you payments.`)
+      }
+      if (items.length === 1) {
+        return this.$t('ProfilePromptOneMissing', { item: items[0] }, `Set your ${items[0]} so others can identify you and send you payments.`)
+      }
+      return ''
     },
   },
   watch: {
@@ -546,6 +570,13 @@ export default {
       if (scannedNpub && this.$route.query.npub) {
         this.handleScannedNpub(scannedNpub)
       }
+
+      // Show profile setup prompt if profile is incomplete
+      if (!this._profilePromptShown && this.isProfileIncomplete) {
+        this.$nextTick(() => {
+          this.showProfilePrompt()
+        })
+      }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
       this.$q.notify({
@@ -559,6 +590,29 @@ export default {
   },
   methods: {
     getDarkModeClass,
+    showProfilePrompt () {
+      const message = this.profilePromptMessage
+      if (!message) return
+      this._profilePromptShown = true
+      this.$q.dialog({
+        title: this.$t('CompleteYourProfile', {}, 'Complete Your Profile'),
+        message,
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        cancel: {
+          label: this.$t('Later', {}, 'Later'),
+          flat: true,
+          color: 'grey',
+        },
+        ok: {
+          label: this.$t('SetUpNow', {}, 'Set Up Now'),
+          color: 'primary',
+          flat: true,
+        },
+        persistent: true,
+      }).onOk(() => {
+        this.$router.push('/apps/chat/profile')
+      })
+    },
     selectChatType (type) {
       this.selectedChatType = type
       if (type === 'dm') {
