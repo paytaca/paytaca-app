@@ -88,10 +88,22 @@
       <div class="row items-start justify-start q-mb-md">
         <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 q-pa-xs">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-            <q-skeleton height="200px" />
-            <q-card-section class="q-py-sm">
-              <q-skeleton type="text" width="60%" />
-              <q-skeleton type="text" width="40%" class="q-mt-xs" />
+            <div class="relative-position">
+              <q-responsive :ratio="1.25">
+                <q-skeleton height="100%" width="100%" square />
+              </q-responsive>
+              
+              <q-skeleton
+                type="QChip"
+                class="absolute"
+                style="top: 8px; right: 8px; margin: 0; width: 65px; height: 20px;"
+              />
+            </div>
+
+            <q-card-section class="q-py-sm column q-gutter-y-sm">
+              <q-skeleton type="text" class="text-subtitle1" width="40%" />
+              <q-skeleton type="text" class="text-subtitle1" width="85%" />
+              <q-skeleton type="text" class="text-caption" width="60%" />
             </q-card-section>
           </q-card>
         </div>
@@ -118,7 +130,7 @@
               <q-img 
                 :src="auction?.image || noImage"
                 ratio="1.25"
-              ><!-- :src="auction.image || noImage" -->
+              >
                 <template v-slot:loading>
                   <q-skeleton height="100%" width="100%" square />
                 </template>
@@ -206,13 +218,22 @@
       <div class="row items-start" ref="productsContainer">
         <div v-if="isLoading" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-            <q-skeleton height="200px" square />
-            <q-card-section>
-              <q-skeleton type="text" width="30%" class="float-right" />
-              <q-skeleton type="text" width="70%" />
-              <q-skeleton type="text" width="30%" class="q-mt-xs" />
-              <q-skeleton type="text" width="50%" class="q-mt-xs" />
-              <q-skeleton type="text" width="50%" class="q-mt-xs" />
+            <div class="relative-position">
+              <q-responsive :ratio="1.25">
+                <q-skeleton height="100%" width="100%" square />
+              </q-responsive>
+              
+              <q-skeleton
+                type="QChip"
+                class="absolute"
+                style="top: 8px; right: 8px; margin: 0; width: 65px; height: 20px;"
+              />
+            </div>
+
+            <q-card-section class="q-py-sm column q-gutter-y-sm">
+              <q-skeleton type="text" class="text-subtitle1" width="40%" />
+              <q-skeleton type="text" class="text-subtitle1" width="85%" />
+              <q-skeleton type="text" class="text-caption" width="60%" />
             </q-card-section>
           </q-card>
         </div>
