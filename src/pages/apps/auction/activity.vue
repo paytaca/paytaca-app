@@ -225,8 +225,7 @@
           <div :class="darkMode ? 'text-white' : 'text-black'">{{ $t('No Biddings Made') }}</div>
         </div>
 
-        <!-- Actual products -->
-        <div v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+        <div v-else v-for="lot in filteredLots" :key="lot.id" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
@@ -535,6 +534,7 @@ const auctionDetails = ref([])
 const lotDetails = ref([])
 
 const fetchAuctionData = async () => {
+  auctionDetails.value = []
   const result = await callAPI('my-auctions')
 
   try {
@@ -546,10 +546,12 @@ const fetchAuctionData = async () => {
     
   } catch (err) {
     console.error('Failed to update auction details:', err)
+    auctionDetails.value = []
   }
 }
 
 const fetchLotData = async () => {
+  lotDetails.value = []
   try {
     const result = await callAPI('my-biddings/lots')
 
@@ -644,6 +646,12 @@ const filteredAppeals = computed(() => {
 })
 
 watch(activityType, async (newType) => {
+  if (newType === 'My Auctions') {
+    lotDetails.value = []
+  } else if (newType === 'My Biddings') {
+    auctionDetails.value = []
+  }
+
   isLoading.value = true
 
   if(newType === 'My Auctions') await fetchAuctionData()
@@ -677,6 +685,12 @@ const isMyArbiterEmpty = computed(() => {
 })
 
 const refresh = async (done) => {
+  if (activityType.value === 'My Auctions') {
+    auctionDetails.value = []
+  } else if (activityType.value === 'My Biddings') {
+    lotDetails.value = []
+  }
+
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
