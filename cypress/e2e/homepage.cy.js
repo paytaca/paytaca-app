@@ -18,8 +18,9 @@ describe('Home Page', () => {
   it('Checks Dashboard Tabs', () => {
     cy.visit('/', { timeout: 10000 });
 
-    cy.measureHomeButtonLoadTime('#home-button', '#home-button', 'Home');
+    cy.measureHomeButtonLoadTime('#chat-button', '#chat-button', 'Chat');
 
+    testTabNavigation('#chat-button', 'http://localhost:9000/#/apps/chat', '#Chat');
     testTabNavigation('#send-button', 'http://localhost:9000/#/send/select-asset', '#SEND');
     testTabNavigation('#receive-button', 'http://localhost:9000/#/receive/select-asset', '#RECEIVE');
     testTabNavigation('#apps-button', 'http://localhost:9000/#/apps', '#Applications');
@@ -30,7 +31,7 @@ describe('Home Page', () => {
   //On every code push using Github actions or Bitrise
   //Track load time per screen
   const appScreens = [
-    { name: 'Home', navigate: () => cy.get('#home-button').click() },
+    { name: 'Chat', navigate: () => cy.get('#chat-button').click() },
     { name: 'Send', navigate: () => cy.get('#send-button').click() },
     { name: 'Receive', navigate: () => cy.get('#receive-button').click() },
     { name: 'Apps', navigate: () => cy.get('#apps-button').click() },
