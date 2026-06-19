@@ -75,8 +75,11 @@ class RequestManager {
         }, { once: true })
 
         // Replace tracking with the merged controller
-        this._controllers.set(Symbol(), mergedController)
+        const mergedKey = Symbol()
+        this._controllers.set(mergedKey, mergedController)
+        cleanup() // Remove the original controller — merged handles it now
         config.signal = mergedController.signal
+        config._abortCleanup = () => this._controllers.delete(mergedKey)
         return config
       }
 

@@ -126,7 +126,7 @@ export default {
       if (this.transactionId) this.txidLoaded = true
     },
     loadContract () {
-      this.fetchContract().then(this.fetchContractBalance())
+      this.fetchContract().then(() => this.fetchContractBalance())
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {

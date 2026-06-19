@@ -21,8 +21,7 @@ describe('Home Page', () => {
     cy.measureHomeButtonLoadTime('#chat-button', '#chat-button', 'Chat');
 
     testTabNavigation('#chat-button', 'http://localhost:9000/#/apps/chat', '#Chat');
-    testTabNavigation('#send-button', 'http://localhost:9000/#/send/select-asset', '#SEND');
-    testTabNavigation('#receive-button', 'http://localhost:9000/#/receive/select-asset', '#RECEIVE');
+    testTabNavigation('#send-button', 'http://localhost:9000/#/transaction/list?assetID=all', '#send-button');
     testTabNavigation('#apps-button', 'http://localhost:9000/#/apps', '#Applications');
     testTabNavigation('#qr-reader-button', 'http://localhost:9000/#/qr-reader', '#qr-reader-body');
   });
@@ -33,7 +32,6 @@ describe('Home Page', () => {
   const appScreens = [
     { name: 'Chat', navigate: () => cy.get('#chat-button').click() },
     { name: 'Send', navigate: () => cy.get('#send-button').click() },
-    { name: 'Receive', navigate: () => cy.get('#receive-button').click() },
     { name: 'Apps', navigate: () => cy.get('#apps-button').click() },
     { name: 'QRreader', navigate:() => cy.get('#qr-reader-button').click() }
   ];
