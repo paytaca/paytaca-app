@@ -64,7 +64,7 @@
 
       <q-separator color="primary" />
 
-      <div class="settings-item clickable" @click="showCardReplacement = !showCardReplacement">
+      <div class="settings-item clickable" :class="{ 'cursor-not-allowed': hasCardBalance, 'opacity-50': hasCardBalance }" @click="handleCardReplacementToggle">
         <div class="settings-item-content">
           <q-icon name="autorenew" color="primary" size="24px" />
           <div class="q-ml-md">
@@ -73,6 +73,7 @@
           </div>
         </div>
         <q-icon :name="showCardReplacement ? 'expand_less' : 'expand_more'" :color="$q.dark.isActive ? 'grey-5' : 'grey-7'" />
+        <q-tooltip v-if="hasCardBalance && !showCardReplacement" anchor="top middle" self="bottom middle">Please sweep balance first before card replacement</q-tooltip>
       </div>
 
       <template v-if="showCardReplacement">
@@ -511,6 +512,10 @@ export default {
       this.showDeleteCardDialog = false
       this.$router.push({ name: 'card-list' })
     },
+    handleCardReplacementToggle () {
+      if (this.hasCardBalance && !this.showCardReplacement) return
+      this.showCardReplacement = !this.showCardReplacement
+    },
     selectReplacementReason (reason) {
       this.replacementReason = reason
     },
@@ -637,6 +642,7 @@ export default {
       this.notifySuccess('Card replacement order submitted successfully!', { icon: 'check_circle' })
       this.cardReplacementStatus = 'pending'
       this.saveCardReplacementStatus()
+      this.$router.push({ name: 'app-card' })
     },
 
     saveCardReplacementStatus () {

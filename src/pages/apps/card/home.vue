@@ -41,6 +41,11 @@
         </div>
       </div>
 
+      <!-- View My Cards -->
+      <div class="full-width text-center q-mb-md">
+        <q-btn flat dense no-caps :color="$q.dark.isActive ? 'grey-4' : 'grey-7'" icon="credit_card" label="View My Cards" @click="$router.push({ name: 'card-list' })" />
+      </div>
+
       <!-- Mode Toggle -->
       <div class="mode-toggle-container full-width q-mb-md">
         <div class="mode-toggle-inner row no-wrap items-center"
