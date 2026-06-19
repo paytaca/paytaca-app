@@ -206,8 +206,9 @@
                   content-class="q-gap-xs"
                   icon="gavel"
                   padding="sm"
-                  label="File an Appeal"
+                  label="File a Dispute"
                   unelevated
+                  @click="showSellerDispute = true"
                 />
               </div>
             </div>
@@ -428,7 +429,8 @@
         <q-skeleton type="text" width="80%" />
       </div>
     </div>
- 
+
+    <!-- =================== POP UPS =================== -->
     <BiddingPopup
       v-model="openDialog"
       :lot="lot"
@@ -446,6 +448,10 @@
       :is-fiat="auction?.is_fiat"
       :loading="buyItNowLoading"
       @confirm-buy-it-now="handleBuyItNow"
+    />
+
+    <SellerDisputePopup
+      v-model="showSellerDispute"
     />
 
     <BiddingHistoryPopup
@@ -471,6 +477,7 @@ import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
 import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
+import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
 
 defineOptions({
   directives: {
@@ -495,6 +502,9 @@ const lot = ref(null)
 const auction = ref(null)
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 const showBidHistory = ref(false)
+
+// Post-auction actions
+const showSellerDispute = ref(false)
 
 const $q = useQuasar()
 const $store = useStore()
