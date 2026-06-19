@@ -524,10 +524,12 @@
 
     <SellerDisputePopup
       v-model="showSellerDisputeDialog"
+      :lot="lot"
     />
 
     <RefundPopup
       v-model="showRefundDialog"
+      :lot="lot"
     />
 
     <BiddingHistoryPopup
