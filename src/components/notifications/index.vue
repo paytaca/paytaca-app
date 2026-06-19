@@ -37,10 +37,19 @@
             v-if="isCheckboxClicked"
             flat
             round
+            :icon="hasSelection ? 'delete' : 'cancel'"
+            :color="hasSelection ? 'red' : 'primary'"
+            :disable="isLoading || notifsList.length === 0"
+            @click="hasSelection ? massDeleteNotifs() : (isCheckboxClicked = false)"
+          />
+          <q-btn
+            v-else
+            flat
+            round
+            icon="check_box_outline_blank"
             color="primary"
-            :disable="isLoading"
-            icon="cancel"
-            @click="isCheckboxClicked = false"
+            :disable="isLoading || notifsList.length === 0"
+            @click="isCheckboxClicked = true"
           />
           <q-checkbox
             v-if="isCheckboxClicked"
@@ -49,14 +58,6 @@
             @update:model-value="toggleSelectAll"
             size="sm"
             color="primary"
-          />
-          <q-btn
-            flat
-            round
-            :disable="isLoading || notifsList.length === 0"
-            :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
-            :color="isCheckboxClicked ? 'red' : 'primary'"
-            @click="massDeleteNotifs"
           />
           <q-btn
             flat
@@ -278,6 +279,9 @@ export default {
     },
     someSelected () {
       return this.checkboxList && this.checkboxList.some(v => v) && !this.allSelected
+    },
+    hasSelection () {
+      return this.checkboxList && this.checkboxList.some(v => v)
     }
   },
 
@@ -424,23 +428,19 @@ export default {
     },
     async massDeleteNotifs () {
       const vm = this
+      const checkboxTrueList = []
 
-      if (!vm.isCheckboxClicked) vm.isCheckboxClicked = true
-      else if (vm.checkboxList.filter(a => a === true).length > 0) {
-        const checkboxTrueList = []
+      vm.checkboxList.forEach((check, i) => {
+        if (check) checkboxTrueList.push(i)
+      })
 
-        vm.checkboxList.forEach((check, i) => {
-          if (check) checkboxTrueList.push(i)
-        })
+      const notifsIds = vm.notifsList
+        .filter((a, i) => checkboxTrueList.includes(i))
+        .map(b => b.id)
 
-        const notifsIds = vm.notifsList
-          .filter((a, i) => checkboxTrueList.includes(i))
-          .map(b => b.id)
-
-        await massHideNotifs(notifsIds)
-        await vm.refreshNotifsList(null)
-        vm.isCheckboxClicked = false
-      }
+      await massHideNotifs(notifsIds)
+      await vm.refreshNotifsList(null)
+      vm.isCheckboxClicked = false
     },
     async markAllAsRead () {
       await markWalletNotifsAsRead(this.currentWalletHash)
