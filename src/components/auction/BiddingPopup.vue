@@ -177,8 +177,8 @@ const checkLiveBids = async () => {
   try {
     const result = await callAPI(`lots/${props.lot.id}/highest-bid`)
     
-    if (result.success && Array.isArray(result.data)) {
-      hasBidsYet.value = result.data.length > 0
+    if (result.success && result.data && result.data.user_id !== null) {
+      hasBidsYet.value = result.data.user_id
     } else {
       hasBidsYet.value = false
     }
