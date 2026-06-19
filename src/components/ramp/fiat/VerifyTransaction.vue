@@ -370,6 +370,14 @@ export default {
               return this.delay(delayDuration)
                 .then(() => this.exponentialBackoff(fn, retries - 1, delayDuration * 2))
             }
+            console.error('Retry exhausted — balance condition not met')
+            this.verifyingTx = false
+            this.$q.notify({
+              message: this.$t('VerificationTimedOut', {}, 'Verification timed out. Please try again.'),
+              color: 'negative',
+              icon: 'error',
+              timeout: 5000
+            })
           } else {
             this.submitAction()
           }
