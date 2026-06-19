@@ -28,33 +28,67 @@
             hide-bottom-space
           />
 
-          <q-input
-            v-model.number="form.amount"
-            :label="($t('AmountBCH') || 'Amount (BCH)') + ' *'"
-            outlined
-            dense
-            type="number"
-            step="any"
-            lazy-rules
-            :rules="[
-              val => !!val || $t('Required'),
-              val => val > 0 || 'Amount must be positive'
-            ]"
-            hide-bottom-space
-          />
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                v-model.number="form.amount"
+                :label="($t('Amount') || 'Amount') + ' *'"
+                outlined
+                dense
+                type="number"
+                step="any"
+                lazy-rules
+                :rules="[
+                  val => !!val || $t('Required'),
+                  val => val > 0 || 'Amount must be positive'
+                ]"
+                hide-bottom-space
+              />
+            </div>
+            <div class="col-4">
+              <q-select
+                v-model="form.currency"
+                :options="currencyOptions"
+                :label="$t('Currency') || 'Currency'"
+                outlined
+                dense
+                emit-value
+                map-options
+                hide-bottom-space
+              />
+            </div>
+          </div>
 
-          <q-select
-            v-model="form.interval_type"
-            :options="intervalOptions"
-            :label="($t('Interval') || 'Interval') + ' *'"
-            outlined
-            dense
-            emit-value
-            map-options
-            lazy-rules
-            :rules="[val => !!val || $t('Required')]"
-            hide-bottom-space
-          />
+          <div class="row q-col-gutter-sm">
+            <div class="col">
+              <q-input
+                v-model.number="form.period_value"
+                :label="($t('IntervalValue') || 'Interval Value') + ' *'"
+                outlined
+                dense
+                type="number"
+                step="1"
+                lazy-rules
+                :rules="[
+                  val => !!val || $t('Required'),
+                  val => Number.isInteger(val) && val > 0 || 'Must be a positive integer'
+                ]"
+                hide-bottom-space
+              />
+            </div>
+            <div class="col-5">
+              <q-select
+                v-model="form.period_type"
+                :options="periodTypeOptions"
+                :label="($t('IntervalUnit') || 'Unit') + ' *'"
+                outlined
+                dense
+                emit-value
+                map-options
+                hide-bottom-space
+              />
+            </div>
+          </div>
         </q-card-section>
 
         <q-card-actions align="right">
@@ -81,38 +115,45 @@ const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const formRef = ref(null)
 
-const intervalOptions = [
-  { label: 'Daily', value: 'DAILY' },
-  { label: 'Weekly', value: 'WEEKLY' },
-  { label: 'Monthly', value: 'MONTHLY' },
-  { label: 'Yearly', value: 'YEARLY' }
+const periodTypeOptions = [
+  { label: 'Days', value: 'days' },
+  { label: 'Blocks', value: 'blocks' }
+]
+
+const currencyOptions = [
+  { label: 'BCH', value: 'BCH' },
+  { label: 'USD', value: 'USD' },
+  { label: 'PHP', value: 'PHP' },
+  { label: 'EUR', value: 'EUR' }
 ]
 
 const form = reactive({
   name: '',
   description: '',
   amount: null,
-  interval_type: 'MONTHLY'
+  currency: 'BCH',
+  period_value: 30,
+  period_type: 'days'
 })
 
 async function onOKClick() {
   const isValid = await formRef.value.validate()
   if (!isValid) return
 
-  const periodMap = {
-    'DAILY': 1,
-    'WEEKLY': 7,
-    'MONTHLY': 30,
-    'YEARLY': 365
-  }
-
-  onDialogOK({
+  const payload = {
     name: form.name,
     description: form.description,
     amount: form.amount,
-    currency: 'BCH',
-    period_days: periodMap[form.interval_type] || 30
-  })
+    currency: form.currency
+  }
+
+  if (form.period_type === 'days') {
+    payload.period_days = form.period_value
+  } else {
+    payload.period_blocks = form.period_value
+  }
+
+  onDialogOK(payload)
 }
 
 function onCancelClick() {

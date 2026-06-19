@@ -108,6 +108,13 @@
             </template>
           </q-infinite-scroll>
         </div>
+
+        <q-page-sticky position="bottom-right" :offset="[18, 18]">
+          <q-btn fab icon="add" color="pt-primary1" @click="openSubscribeDialog">
+            <q-tooltip>{{ $t('SubscribeToPlan') || 'Subscribe to Plan' }}</q-tooltip>
+          </q-btn>
+        </q-page-sticky>
+
       </q-page>
     </q-page-container>
   </q-layout>
@@ -120,6 +127,7 @@ import { useQuasar, copyToClipboard } from 'quasar'
 import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
+import SubscribeDialog from './SubscribeDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
@@ -223,10 +231,10 @@ async function cancelSubscription(sub) {
       // 1. Fetch contract artifact
       const artifactObj = await hub.value.getContractArtifact('recurring_payments')
       const contract = new Contract(artifactObj, [
-        kit.recipient_address,
-        kit.funder_address,
-        BigInt(kit.pledge_amount),
-        BigInt(kit.period)
+        sub.merchant_address,
+        sub.funder_address,
+        BigInt(sub.pledge_satoshis),
+        BigInt(sub.period_blocks)
       ], { network: 'mainnet' })
 
       // 2. Fetch private key
@@ -234,11 +242,11 @@ async function cancelSubscription(sub) {
       let pathStr = null
       for (let i = 0; i <= (wallet.value.BCH.lastAddressIndex || 50) + 20; i++) {
         const addressSet = await wallet.value.BCH.getAddressSetAt(i)
-        if (wallet.value.BCH._normalizeAddress(addressSet.receiving.address) === wallet.value.BCH._normalizeAddress(kit.funder_address)) {
+        if (wallet.value.BCH._normalizeAddress(addressSet.receiving.address) === wallet.value.BCH._normalizeAddress(sub.funder_address)) {
           pathStr = `0/${i}`
           break
         }
-        if (wallet.value.BCH._normalizeAddress(addressSet.change.address) === wallet.value.BCH._normalizeAddress(kit.funder_address)) {
+        if (wallet.value.BCH._normalizeAddress(addressSet.change.address) === wallet.value.BCH._normalizeAddress(sub.funder_address)) {
           pathStr = `1/${i}`
           break
         }
@@ -252,15 +260,14 @@ async function cancelSubscription(sub) {
       // 3. Build & sign transaction
       const sig = new SignatureTemplate(privKeyWif)
       const txBuilder = contract.functions.cancel(sig)
-        .from(kit.utxos)
-        .to(kit.funder_address, BigInt(kit.return_amount))
-        .withHardcodedFee(BigInt(kit.miner_fee))
+        .from(kit.inputs)
+        .to(kit.outputs[0].to, BigInt(kit.outputs[0].satoshis))
       
       const rawTx = await txBuilder.build()
 
       // 4. Submit to Payment Hub
       $q.loading.show({ message: 'Submitting cancellation...' })
-      await hub.value.submitSubscriptionCancel(sub.id, rawTx)
+      await hub.value.submitSubscriptionCancel(sub.id, rawTx, false)
       
       await refreshPage()
       $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
@@ -274,6 +281,33 @@ async function cancelSubscription(sub) {
     }
   })
 }
+
+function openSubscribeDialog() {
+  $q.dialog({
+    component: SubscribeDialog
+  }).onOk(async (formData) => {
+    try {
+      $q.loading.show()
+      
+      const payload = {
+        ...formData,
+        wallet_hash: wallet.value.BCH.walletHash
+      }
+      
+      await hub.value.createSubscription(payload)
+      
+      $q.notify({ type: 'positive', message: 'Successfully subscribed to plan' })
+      await refreshPage()
+    } catch (error) {
+      console.error(error)
+      const errorMsg = error.response?.data?.error || error.message
+      $q.notify({ type: 'negative', message: 'Error subscribing: ' + errorMsg })
+    } finally {
+      $q.loading.hide()
+    }
+  })
+}
+
 </script>
 
 <style lang="scss" scoped>

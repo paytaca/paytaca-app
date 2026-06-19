@@ -2711,7 +2711,9 @@ const phrases = {
       SubscriptionCancelled: "Subscription cancelled successfully",
       Reactivate: "Reactivate",
       Deactivate: "Deactivate",
-      Plans: "Plans"
+      Plans: "Plans",
+      IntervalValue: "Interval Value",
+      IntervalUnit: "Interval Unit"
     }
   ]
 }

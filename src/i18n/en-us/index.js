@@ -1239,6 +1239,8 @@ export default {
   InsufficientLiquidity: "Insufficient liquidity to perform trade",
   InsufficientTokenBalance: "Insufficient {token} Balance",
   IntervalType: "Interval Type",
+  IntervalUnit: "Interval Unit",
+  IntervalValue: "Interval Value",
   "Invalid amount": "Invalid amount",
   InvalidAccountNumber: "Invalid Account Number",
   InvalidAddress: "Invalid address",

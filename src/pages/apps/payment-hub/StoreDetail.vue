@@ -330,12 +330,20 @@
                   <div v-else class="q-mt-md">
                     <q-infinite-scroll @load="onLoadMorePlans" :offset="250" :disable="!hasNextPlansPage">
                       <q-list separator class="br-15 overflow-hidden border-grey-4">
-                        <q-item v-for="plan in plans" :key="plan.id" class="q-py-md">
+                        <q-item v-for="plan in plans" :key="plan.id" class="q-py-md hover-bg-grey" clickable @click="openPlanDetails(plan)">
                           <q-item-section>
                             <div class="row items-center no-wrap full-width">
                               <div class="col text-weight-bold ellipsis q-pr-sm">
                                 {{ plan.name }}
-                                <div class="text-caption text-grey text-weight-regular">{{ plan.interval_type }} • {{ plan.amount_bch }} BCH</div>
+                                <div class="text-caption text-grey text-weight-regular">
+                                  {{ plan.amount }} {{ plan.currency }} • {{ plan.period_days ? plan.period_days + ' ' + ($t('Days') || 'Days') : plan.period_blocks + ' ' + ($t('Blocks') || 'Blocks') }}
+                                </div>
+                                <div v-if="plan.description" class="text-caption text-grey-8 text-weight-regular ellipsis" style="max-width: 300px;">
+                                  {{ plan.description }}
+                                </div>
+                                <div class="text-caption text-grey text-weight-regular q-mt-xs">
+                                  ID: {{ plan.id }}
+                                </div>
                               </div>
                               <div class="col-auto text-center q-px-sm" style="width: 100px;">
                                 <q-badge
@@ -357,7 +365,7 @@
                                   icon="block"
                                   color="grey-6"
                                   size="sm"
-                                  @click="deactivatePlan(plan)"
+                                  @click.stop="deactivatePlan(plan)"
                                 >
                                   <q-tooltip>{{ $t('Deactivate') || 'Deactivate' }}</q-tooltip>
                                 </q-btn>
@@ -574,6 +582,7 @@ import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
 import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
+import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
@@ -940,7 +949,21 @@ function editStore() {
   })
 }
 
-function copyKey(key) {
+function copyText(text, label = 'Text') {
+  if (!text) return
+  copyToClipboard(text)
+  $q.notify({
+    message: `${label} copied to clipboard`,
+    color: 'positive',
+    icon: 'check',
+    position: 'bottom',
+    timeout: 2000
+  })
+}
+
+// --- API Keys logic ---
+
+function copyApiKey(key) {
   copyToClipboard(key)
   $q.notify({
     message: $t('KeyCopied'),
@@ -1058,6 +1081,7 @@ function deactivatePlan(plan) {
       $q.loading.show()
       await hub.value.deactivatePlan(plan.id)
       await refreshPage()
+      $q.notify({ type: 'positive', message: 'Plan deactivated successfully' })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan') || 'Error deactivating plan' })
     } finally {
@@ -1067,6 +1091,15 @@ function deactivatePlan(plan) {
 }
 
 // --- Subscriptions logic ---
+
+function openPlanDetails(plan) {
+  $q.dialog({
+    component: PlanDetailDialog,
+    componentProps: {
+      planId: plan.id
+    }
+  })
+}
 
 async function cancelSubscription(sub) {
   $q.dialog({

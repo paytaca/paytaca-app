@@ -527,6 +527,15 @@ export class PaymentHub {
   }
 
   /**
+   * Retrieves details of a specific plan. Publicly accessible.
+   * @param {String} planId - The UUID or Short ID of the plan.
+   */
+  async getPlan(planId) {
+    const response = await backend.get(`/plans/${planId}`)
+    return response.data
+  }
+
+  /**
    * Creates a new subscription plan for a store.
    * @param {String} storeId - The UUID of the store.
    * @param {Object} planData - Data for the new plan (name, description, amount, interval_type)
