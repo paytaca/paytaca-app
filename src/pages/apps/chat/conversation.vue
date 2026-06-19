@@ -308,7 +308,7 @@
       </q-card>
     </q-dialog>
 
-    <!-- Member: normal messages + composer -->
+    <!-- Member: messages scroll area -->
     <template v-if="isRoomMember">
       <div ref="messagesContainer" class="messages-scroll-area col scroll" @click="hideContextMenu" @scroll="onMessagesScroll">
         <div v-if="displayedMessages.length === 0" class="empty-conversation">
@@ -363,37 +363,6 @@
           <q-icon name="keyboard_arrow_down" size="24px" />
         </button>
       </transition>
-
-      <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
-        <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
-        <q-icon
-          v-if="replyToMessage.isFile"
-          :name="replyToFileIcon"
-          size="18px"
-          class="reply-bar-file-icon"
-          :style="{ color: themeColor }"
-        />
-        <div class="reply-bar-body">
-          <div class="reply-bar-label" :style="{ color: themeColor }">
-            {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
-          </div>
-          <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
-        </div>
-        <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
-      </div>
-
-      <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
-        <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
-        <div class="edit-bar-body">
-          <div class="edit-bar-label" :style="{ color: themeColor }">
-            {{ $t('EditingMessage', {}, 'Editing message') }}
-          </div>
-          <div class="edit-bar-snippet">{{ editSnippet }}</div>
-        </div>
-        <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
-      </div>
-
-      <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
     </template>
 
     <!-- Non-member group: request to join card -->
@@ -451,6 +420,38 @@
         </div>
       </div>
     </template>
+
+    <!-- Reply/Edit bars + Chat input (always rendered at bottom) -->
+    <div v-if="replyToMessage" class="reply-bar" :class="getDarkModeClass(darkMode)">
+      <div class="reply-bar-indicator" :style="{ background: themeColor }"></div>
+      <q-icon
+        v-if="replyToMessage.isFile"
+        :name="replyToFileIcon"
+        size="18px"
+        class="reply-bar-file-icon"
+        :style="{ color: themeColor }"
+      />
+      <div class="reply-bar-body">
+        <div class="reply-bar-label" :style="{ color: themeColor }">
+          {{ $t('ReplyingTo', {}, 'Replying to') }} {{ replySenderName }}
+        </div>
+        <div class="reply-bar-snippet">{{ replyToSnippet }}</div>
+      </div>
+      <q-btn flat dense unelevated icon="close" size="sm" class="reply-bar-close" @click="cancelReply" />
+    </div>
+
+    <div v-if="editingMessage" class="edit-bar" :class="getDarkModeClass(darkMode)">
+      <div class="edit-bar-indicator" :style="{ background: themeColor }"></div>
+      <div class="edit-bar-body">
+        <div class="edit-bar-label" :style="{ color: themeColor }">
+          {{ $t('EditingMessage', {}, 'Editing message') }}
+        </div>
+        <div class="edit-bar-snippet">{{ editSnippet }}</div>
+      </div>
+      <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
+    </div>
+
+    <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
