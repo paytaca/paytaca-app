@@ -404,6 +404,19 @@
                 </div>
               </div>
             </div>
+
+            <div v-if="auction?.type === 'English'" class="q-mt-md full-width">
+              <q-btn
+                outline
+                dense
+                no-caps
+                color="primary"
+                icon="history"
+                label="View Bidding History"
+                class="col full-width"
+                @click="showBidHistory = true"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -423,6 +436,7 @@
       :loading="englishBidLoading"
       @place-bid="handlePlaceBid"
     />
+
     <BuyItNowPopup
       v-model:isToggledBuyItNow="isToggledBuyItNow"
       :lot="lot"
@@ -430,6 +444,11 @@
       :current-price-bch="dutchCurrentPriceBch"
       :loading="buyItNowLoading"
       @confirm-buy-it-now="handleBuyItNow"
+    />
+
+    <BiddingHistoryPopup
+      v-model="showBidHistory"
+      :lotId="props.lotId"
     />
   </q-pull-to-refresh>
 </template>
@@ -449,6 +468,7 @@ import { AuctionList, LotsList } from 'src/auction/object'
 import HeaderNav from 'src/components/header-nav.vue'
 import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
+import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 
 defineOptions({
   directives: {
@@ -472,6 +492,7 @@ const lotImages = ref([])
 const lot = ref(null)
 const auction = ref(null)
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+const showBidHistory = ref(false)
 
 const $q = useQuasar()
 const $store = useStore()
@@ -615,7 +636,6 @@ const checkUserBid = async () => {
 
   try {
     const result = await callAPI('my-biddings')
-    
     hasUserBid.value = result.success && Array.isArray(result.data) && result.data.length > 0
   } catch (err) {
     console.error('Error checking user bid history:', err)
