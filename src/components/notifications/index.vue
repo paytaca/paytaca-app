@@ -32,60 +32,56 @@
       <!-- Scrollable Content -->
       <div class="scrollable-notifs-content" :class="getDarkModeClass(darkMode)">
         <div class="q-px-md q-pt-md">
-        <div class="row items-center q-mb-sm" :class="isCheckboxClicked ? 'justify-between' : 'justify-end'">
-          <div v-if="isCheckboxClicked" class="row items-center no-wrap q-gutter-x-sm">
-            <div class="flex flex-center" style="width: 16.6667%; min-width: 16.6667%;">
-              <q-checkbox
-                :model-value="allSelected"
-                :indeterminate="someSelected"
-                @update:model-value="toggleSelectAll"
-                size="sm"
-                color="primary"
-              />
-            </div>
-            <q-btn
-              flat
-              round
-              color="primary"
-              :disable="isLoading"
-              icon="cancel"
-              @click="isCheckboxClicked = false"
-            />
-          </div>
-          <div class="row items-center q-gutter-x-sm">
-            <q-btn
-              flat
-              round
-              :disable="isLoading || notifsList.length === 0"
-              :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
-              :color="isCheckboxClicked ? 'red' : 'primary'"
-              @click="massDeleteNotifs"
-            />
-            <q-btn
-              flat
-              round
-              color="primary"
-              icon="refresh"
-              :disable="isLoading"
-              @click="refreshNotifsList()"
-            />
-            <q-btn
-              flat
-              round
-              color="primary"
-              icon="mark_chat_read"
-              :disable="isLoading || notifsList.length === 0"
-              @click="markAllAsRead()"
-            />
-            <q-btn
-              flat
-              round
-              color="primary"
-              :disable="isLoading"
-              icon="filter_alt"
-              @click="openFilterDialog"
-            />
-          </div>
+        <div class="row justify-end items-center q-mb-sm q-gutter-x-sm">
+          <q-btn
+            v-if="isCheckboxClicked"
+            flat
+            round
+            color="primary"
+            :disable="isLoading"
+            icon="cancel"
+            @click="isCheckboxClicked = false"
+          />
+          <q-checkbox
+            v-if="isCheckboxClicked"
+            :model-value="allSelected"
+            :indeterminate="someSelected"
+            @update:model-value="toggleSelectAll"
+            size="sm"
+            color="primary"
+          />
+          <q-btn
+            flat
+            round
+            :disable="isLoading || notifsList.length === 0"
+            :icon="isCheckboxClicked ? 'delete' : 'check_box_outline_blank'"
+            :color="isCheckboxClicked ? 'red' : 'primary'"
+            @click="massDeleteNotifs"
+          />
+          <q-btn
+            flat
+            round
+            color="primary"
+            icon="refresh"
+            :disable="isLoading"
+            @click="refreshNotifsList()"
+          />
+          <q-btn
+            flat
+            round
+            color="primary"
+            icon="mark_chat_read"
+            :disable="isLoading || notifsList.length === 0"
+            @click="markAllAsRead()"
+          />
+          <q-btn
+            flat
+            round
+            color="primary"
+            :disable="isLoading"
+            icon="filter_alt"
+            @click="openFilterDialog"
+          />
         </div>
 
         <template v-if="isLoading">
