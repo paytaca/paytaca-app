@@ -33,14 +33,16 @@
       <div class="scrollable-notifs-content" :class="getDarkModeClass(darkMode)">
         <div class="q-px-md q-pt-md">
         <div class="row items-center q-mb-sm" :class="isCheckboxClicked ? 'justify-between' : 'justify-end'">
-          <div v-if="isCheckboxClicked" class="row items-center q-gutter-x-sm">
-            <q-checkbox
-              :model-value="allSelected"
-              :indeterminate="someSelected"
-              @update:model-value="toggleSelectAll"
-              size="sm"
-              color="primary"
-            />
+          <div v-if="isCheckboxClicked" class="row items-center no-wrap q-gutter-x-sm">
+            <div class="flex flex-center" style="width: 16.6667%; min-width: 16.6667%;">
+              <q-checkbox
+                :model-value="allSelected"
+                :indeterminate="someSelected"
+                @update:model-value="toggleSelectAll"
+                size="sm"
+                color="primary"
+              />
+            </div>
             <q-btn
               flat
               round
