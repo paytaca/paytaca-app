@@ -491,4 +491,136 @@ export class PaymentHub {
     })
     return response.data
   }
+
+  // --- Contract Artifact Section ---
+
+  /**
+   * Retrieves the contract artifact for the given script type.
+   * @param {String} scriptType - The type of script (e.g. 'recurring_payments')
+   */
+  async getContractArtifact(scriptType = 'recurring_payments') {
+    const response = await backend.get(`/contract/artifact/`, {
+      params: { script_type: scriptType },
+      // Does not strictly require auth, but including it is safe
+    })
+    return response.data
+  }
+
+  // --- Plans Section ---
+
+  /**
+   * Lists plans for a specific store. Supports pagination.
+   * @param {String} storeId - The UUID of the store.
+   * @param {Object} params - Query parameters (e.g. { page: 1, is_active: true })
+   */
+  async listPlans(storeId, params = {}) {
+    const queryParams = {
+      store_id: storeId,
+      ...params
+    }
+    const response = await backend.get('/plans/', {
+      params: queryParams,
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Creates a new subscription plan for a store.
+   * @param {String} storeId - The UUID of the store.
+   * @param {Object} planData - Data for the new plan (name, description, amount, interval_type)
+   */
+  async createPlan(storeId, planData) {
+    const payload = {
+      store: storeId,
+      ...planData
+    }
+    const response = await backend.post('/plans/', payload, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Deactivates an existing plan.
+   * @param {String} planId - The UUID of the plan.
+   */
+  async deactivatePlan(planId) {
+    const response = await backend.delete(`/plans/${planId}/`, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  // --- Subscriptions Section ---
+
+  /**
+   * Lists subscriptions for a specific store. Supports pagination and filtering.
+   * @param {Object} params - Query parameters (e.g. { store_id: '...', status: 'ACTIVE' })
+   */
+  async listSubscriptions(params = {}) {
+    const response = await backend.get('/subscriptions/', {
+      params: params,
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Creates a new subscription. Note: usually called via Customer App / Public API with API key.
+   * But we provide it here for completeness or merchant-side creation.
+   * @param {Object} subscriptionData - Data for the subscription (plan_id, etc.)
+   * @param {String} apiKey - Required if called from public context, otherwise uses auth.
+   */
+  async createSubscription(subscriptionData, apiKey = null) {
+    const config = apiKey ? { apiKey } : { authorize: true, wallet: this.wallet }
+    const response = await backend.post('/subscriptions/', subscriptionData, config)
+    return response.data
+  }
+
+  /**
+   * Gets the parameters needed to cancel a subscription (cancel kit).
+   * @param {String} subscriptionId - The UUID of the subscription.
+   */
+  async getSubscriptionCancelKit(subscriptionId, isMerchant = false) {
+    const action = isMerchant ? 'merchant-cancel' : 'cancel'
+    const response = await backend.get(`/subscriptions/${subscriptionId}/${action}/`, {
+      authorize: true, // Needs auth/ownership (merchant or customer wallet)
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Submits a signed transaction to cancel a subscription.
+   * @param {String} subscriptionId - The UUID of the subscription.
+   * @param {String} rawTx - The signed raw transaction hex.
+   */
+  async submitSubscriptionCancel(subscriptionId, rawTx, isMerchant = false) {
+    const action = isMerchant ? 'merchant-cancel' : 'cancel'
+    const response = await backend.post(`/subscriptions/${subscriptionId}/${action}/`, {
+      raw_tx_hex: rawTx
+    }, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
+   * Reactivates a paused/cancelled subscription (if allowed).
+   * @param {String} subscriptionId - The UUID of the subscription.
+   */
+  async reactivateSubscription(subscriptionId) {
+    // Note: reactivate is not officially documented yet, but kept as placeholder
+    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate/`, {}, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
 }

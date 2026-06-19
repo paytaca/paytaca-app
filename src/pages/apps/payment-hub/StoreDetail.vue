@@ -66,6 +66,8 @@
         >
           <q-tab name="invoices" :label="$t('Invoices')" />
           <q-tab name="api_keys" :label="$t('APIKeys')" />
+          <q-tab name="plans" :label="$t('Plans') || 'Plans'" />
+          <q-tab name="subscriptions" :label="$t('Subscriptions') || 'Subscriptions'" />
           <q-tab name="settings" :label="$t('Settings')" />
         </q-tabs>
         <q-separator :dark="darkMode" />
@@ -295,6 +297,152 @@
                 </div>
               </q-tab-panel>
 
+              <!-- Plans Tab -->
+              <q-tab-panel name="plans" class="q-pa-none">
+                <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
+                <div v-else style="height: 4px;"></div>
+
+                <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
+                  <div class="row items-center q-mb-md">
+                    <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Plans') || 'Plans' }}</div>
+                    <q-space/>
+                    <q-btn
+                      unelevated
+                      rounded
+                      dense
+                      no-caps
+                      icon="add"
+                      color="pt-primary1"
+                      class="q-px-sm"
+                      :label="$t('CreatePlan') || 'Create Plan'"
+                      @click="createPlan()"
+                    >
+                    </q-btn>
+                  </div>
+
+                  <div v-if="!fetchingData && plans.length === 0" class="text-center q-mt-xl">
+                    <q-icon name="list_alt" size="4em" class="text-grey q-mb-md" />
+                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoPlans') || 'No Plans' }}</div>
+                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoPlansFound') || 'Create a plan to offer subscriptions.' }}</div>
+                    <q-btn unelevated rounded color="pt-primary1" :label="$t('CreatePlan') || 'Create Plan'" icon="add" @click="createPlan()" />
+                  </div>
+
+                  <div v-else class="q-mt-md">
+                    <q-infinite-scroll @load="onLoadMorePlans" :offset="250" :disable="!hasNextPlansPage">
+                      <q-list separator class="br-15 overflow-hidden border-grey-4">
+                        <q-item v-for="plan in plans" :key="plan.id" class="q-py-md">
+                          <q-item-section>
+                            <div class="row items-center no-wrap full-width">
+                              <div class="col text-weight-bold ellipsis q-pr-sm">
+                                {{ plan.name }}
+                                <div class="text-caption text-grey text-weight-regular">{{ plan.interval_type }} • {{ plan.amount_bch }} BCH</div>
+                              </div>
+                              <div class="col-auto text-center q-px-sm" style="width: 100px;">
+                                <q-badge
+                                  :color="plan.is_active ? 'green-4' : 'grey-5'"
+                                  :text-color="darkMode ? 'black' : 'white'"
+                                  rounded
+                                  class="q-px-sm text-weight-medium"
+                                  style="min-width: 80px;"
+                                >
+                                  {{ plan.is_active ? ($t('Active') || 'Active') : ($t('Inactive') || 'Inactive') }}
+                                </q-badge>
+                              </div>
+                              <div class="col-auto text-right" style="width: 40px;">
+                                <q-btn
+                                  v-if="plan.is_active"
+                                  flat
+                                  round
+                                  dense
+                                  icon="block"
+                                  color="grey-6"
+                                  size="sm"
+                                  @click="deactivatePlan(plan)"
+                                >
+                                  <q-tooltip>{{ $t('Deactivate') || 'Deactivate' }}</q-tooltip>
+                                </q-btn>
+                              </div>
+                            </div>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                      <template v-slot:loading>
+                        <div class="row justify-center q-my-md">
+                          <q-spinner-dots color="pt-primary1" size="30px" />
+                        </div>
+                      </template>
+                    </q-infinite-scroll>
+                  </div>
+                </div>
+              </q-tab-panel>
+
+              <!-- Subscriptions Tab -->
+              <q-tab-panel name="subscriptions" class="q-pa-none">
+                <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none" />
+                <div v-else style="height: 4px;"></div>
+
+                <div class="q-px-md q-pb-md" :class="darkMode ? 'text-grey-2' : 'text-grey-10'">
+                  <div class="row items-center q-mb-md">
+                    <div class="text-h6 q-mr-sm text-bow" :class="getDarkModeClass(darkMode)">{{ $t('Subscriptions') || 'Subscriptions' }}</div>
+                    <q-space/>
+                  </div>
+
+                  <div v-if="!fetchingData && subscriptions.length === 0" class="text-center q-mt-xl">
+                    <q-icon name="group" size="4em" class="text-grey q-mb-md" />
+                    <div class="text-h6 text-grey q-mb-xs">{{ $t('NoSubscriptions') || 'No Subscriptions' }}</div>
+                    <div class="text-body2 text-grey q-mb-lg">{{ $t('NoSubscriptionsFound') || "Users haven't subscribed yet." }}</div>
+                  </div>
+
+                  <div v-else class="q-mt-md">
+                    <q-infinite-scroll @load="onLoadMoreSubscriptions" :offset="250" :disable="!hasNextSubscriptionsPage">
+                      <q-list separator class="br-15 overflow-hidden border-grey-4">
+                        <q-item v-for="sub in subscriptions" :key="sub.id" class="q-py-md">
+                          <q-item-section>
+                            <div class="row items-center no-wrap full-width">
+                              <div class="col ellipsis q-pr-sm">
+                                <div class="text-weight-bold">{{ sub.plan_name || 'Plan' }}</div>
+                                <div class="text-caption text-grey text-weight-regular font-mono">{{ sub.subscriber_address }}</div>
+                              </div>
+                              <div class="col-auto text-center q-px-sm" style="width: 100px;">
+                                <q-badge
+                                  :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : 'grey-5')"
+                                  :text-color="darkMode ? 'black' : 'white'"
+                                  rounded
+                                  class="q-px-sm text-weight-medium"
+                                  style="min-width: 80px;"
+                                >
+                                  {{ sub.status }}
+                                </q-badge>
+                              </div>
+                              <div class="col-auto text-right" style="width: 40px;">
+                                <q-btn
+                                  v-if="sub.status === 'ACTIVE'"
+                                  flat
+                                  round
+                                  dense
+                                  icon="block"
+                                  color="grey-6"
+                                  size="sm"
+                                  @click="cancelSubscription(sub)"
+                                >
+                                  <q-tooltip>{{ $t('Cancel') || 'Cancel' }}</q-tooltip>
+                                </q-btn>
+                                  <!-- Reactivation is not supported -->
+                              </div>
+                            </div>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                      <template v-slot:loading>
+                        <div class="row justify-center q-my-md">
+                          <q-spinner-dots color="pt-primary1" size="30px" />
+                        </div>
+                      </template>
+                    </q-infinite-scroll>
+                  </div>
+                </div>
+              </q-tab-panel>
+
               <!-- Settings Tab -->
               <q-tab-panel name="settings">
                 <q-linear-progress v-if="fetchingData" query reverse rounded color="pt-primary1" class="q-mt-none q-mb-md" />
@@ -425,9 +573,12 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
+import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
+
+import { Contract, SignatureTemplate } from 'cashscript'
 
 const $route = useRoute()
 const $store = useStore()
@@ -443,12 +594,18 @@ const wallet = ref(null)
 const hub = ref(null)
 const storeData = ref(null)
 const apiKeys = ref([])
+const plans = ref([])
+const subscriptions = ref([])
 const webhookPublicKey = ref('')
 const fetchingData = ref(false)
 const hideInactive = ref(true)
 const activeTab = ref('invoices')
 const keysPage = ref(1)
 const hasNextKeysPage = ref(false)
+const plansPage = ref(1)
+const hasNextPlansPage = ref(false)
+const subscriptionsPage = ref(1)
+const hasNextSubscriptionsPage = ref(false)
 const invoiceListRef = ref(null)
 
 // Invoice Filter & Search state
@@ -467,7 +624,7 @@ function clearInvoiceSearch() {
 }
 
 const invoiceStatuses = ['ALL', 'PENDING', 'PAID', 'EXPIRED', 'CANCELLED']
-const mainTabs = ['invoices', 'api_keys', 'settings']
+const mainTabs = ['invoices', 'api_keys', 'plans', 'subscriptions', 'settings']
 
 function handleGlobalSwipe(details) {
   if (activeTab.value === 'invoices') {
@@ -606,6 +763,16 @@ async function refreshPage(done, isBackground = false) {
     apiKeys.value = data.results || []
     hasNextKeysPage.value = !!data.next
 
+    // Fetch Plans (Page 1)
+    const plansData = await paymentHub.listPlans(storeId.value, { page: 1 })
+    plans.value = plansData.results || []
+    hasNextPlansPage.value = !!plansData.next
+
+    // Fetch Subscriptions (Page 1)
+    const subsData = await paymentHub.listSubscriptions({ store_id: storeId.value, page: 1 })
+    subscriptions.value = subsData.results || []
+    hasNextSubscriptionsPage.value = !!subsData.next
+
     // Fetch Webhook Public Key
     const keyData = await paymentHub.getWebhookPublicKey(storeId.value).catch(() => null)
     webhookPublicKey.value = keyData?.public_key || ''
@@ -645,6 +812,52 @@ async function onLoadMoreKeys(index, done) {
     hasNextKeysPage.value = !!data.next
   } catch (error) {
     console.error('Error loading more keys:', error)
+  } finally {
+    done()
+  }
+}
+
+/**
+ * Loads more Plans for pagination.
+ */
+async function onLoadMorePlans(index, done) {
+  if (!hasNextPlansPage.value || fetchingData.value) {
+    done()
+    return
+  }
+
+  try {
+    plansPage.value++
+    const data = await hub.value.listPlans(storeId.value, { page: plansPage.value })
+    if (data.results?.length) {
+      plans.value.push(...data.results)
+    }
+    hasNextPlansPage.value = !!data.next
+  } catch (error) {
+    console.error('Error loading more plans:', error)
+  } finally {
+    done()
+  }
+}
+
+/**
+ * Loads more Subscriptions for pagination.
+ */
+async function onLoadMoreSubscriptions(index, done) {
+  if (!hasNextSubscriptionsPage.value || fetchingData.value) {
+    done()
+    return
+  }
+
+  try {
+    subscriptionsPage.value++
+    const data = await hub.value.listSubscriptions({ store_id: storeId.value, page: subscriptionsPage.value })
+    if (data.results?.length) {
+      subscriptions.value.push(...data.results)
+    }
+    hasNextSubscriptionsPage.value = !!data.next
+  } catch (error) {
+    console.error('Error loading more subscriptions:', error)
   } finally {
     done()
   }
@@ -808,6 +1021,115 @@ function confirmRotateWebhookKeys() {
       $q.notify({ type: 'positive', message: $t('KeysRotated') })
     } catch (error) {
       $q.notify({ type: 'negative', message: $t('ErrorRotatingKeys') })
+    } finally {
+      $q.loading.hide()
+    }
+  })
+}
+
+// --- Plans logic ---
+
+function createPlan() {
+  $q.dialog({
+    component: PlanFormDialog
+  }).onOk(async (data) => {
+    try {
+      $q.loading.show()
+      await hub.value.createPlan(storeId.value, data)
+      await refreshPage()
+      $q.notify({ type: 'positive', message: $t('PlanCreated') || 'Plan created successfully' })
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorCreatingPlan') || 'Error creating plan' })
+    } finally {
+      $q.loading.hide()
+    }
+  })
+}
+
+function deactivatePlan(plan) {
+  $q.dialog({
+    title: $t('DeactivatePlan') || 'Deactivate Plan',
+    message: ($t('DeactivatePlanConfirm') || 'Are you sure you want to deactivate {name}?').replace('{name}', plan.name),
+    ok: { label: $t('Deactivate') || 'Deactivate', color: 'red', unelevated: true, rounded: true },
+    cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  }).onOk(async () => {
+    try {
+      $q.loading.show()
+      await hub.value.deactivatePlan(plan.id)
+      await refreshPage()
+    } catch (error) {
+      $q.notify({ type: 'negative', message: $t('ErrorDeactivatingPlan') || 'Error deactivating plan' })
+    } finally {
+      $q.loading.hide()
+    }
+  })
+}
+
+// --- Subscriptions logic ---
+
+async function cancelSubscription(sub) {
+  $q.dialog({
+    title: $t('CancelSubscription') || 'Cancel Subscription',
+    message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription for {address}?').replace('{address}', sub.subscriber_address),
+    ok: { label: $t('CancelSubscription') || 'Cancel Subscription', color: 'red', unelevated: true, rounded: true },
+    cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
+    class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`
+  }).onOk(async () => {
+    try {
+      $q.loading.show({ message: 'Fetching cancellation kit...' })
+      const kit = await hub.value.getSubscriptionCancelKit(sub.id, true)
+      
+      $q.loading.show({ message: 'Signing cancellation transaction...' })
+      // 1. Fetch contract artifact
+      const artifactObj = await hub.value.getContractArtifact('recurring_payments')
+      const contract = new Contract(artifactObj, [
+        sub.merchant_address,
+        sub.funder_address,
+        BigInt(sub.pledge_satoshis),
+        BigInt(sub.period_blocks)
+      ], { network: 'mainnet' })
+
+      // 2. Fetch private key
+      // Search the current wallet for the path of the funder_address
+      let pathStr = null
+      for (let i = 0; i <= (wallet.value.BCH.lastAddressIndex || 50) + 20; i++) {
+        const addressSet = await wallet.value.BCH.getAddressSetAt(i)
+        if (wallet.value.BCH._normalizeAddress(addressSet.receiving.address) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
+          pathStr = `0/${i}`
+          break
+        }
+        if (wallet.value.BCH._normalizeAddress(addressSet.change.address) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
+          pathStr = `1/${i}`
+          break
+        }
+      }
+      
+      if (!pathStr) throw new Error('Could not find derivation path for merchant address in current wallet')
+      
+      const privKeyWif = await wallet.value.BCH.getPrivateKey(pathStr)
+      if (!privKeyWif) throw new Error('Could not derive private key for merchant address')
+
+      // 3. Build & sign transaction
+      const sig = new SignatureTemplate(privKeyWif)
+      const txBuilder = contract.functions.merchant_cancel(sig)
+        .from(kit.inputs)
+        .to(kit.outputs[0].to, BigInt(kit.outputs[0].satoshis))
+        // Hardcode a tiny fee if required or let CashScript calculate it
+      
+      const rawTx = await txBuilder.build()
+
+      // 4. Submit to Payment Hub
+      $q.loading.show({ message: 'Submitting cancellation...' })
+      await hub.value.submitSubscriptionCancel(sub.id, rawTx, true)
+      
+      await refreshPage()
+      $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
+
+    } catch (error) {
+      console.error(error)
+      const errorMsg = error.response?.data?.error || error.message
+      $q.notify({ type: 'negative', message: ($t('ErrorCancellingSubscription') || 'Error cancelling subscription: ') + errorMsg })
     } finally {
       $q.loading.hide()
     }

@@ -514,6 +514,16 @@ const routes = [
             props: true
           }
         ]
+      },
+      {
+        path: 'payment-hub-subscriptions',
+        children: [
+          {
+            path: '',
+            name: 'payment-hub-subscriptions-index',
+            component: () => import('src/pages/apps/payment-hub-subscriptions/Index.vue')
+          }
+        ]
       }
     ]
   },

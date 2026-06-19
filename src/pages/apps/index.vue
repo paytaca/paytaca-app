@@ -354,6 +354,16 @@ export default {
           beta: true
         },
         {
+          id: 'payment-hub-subscriptions',
+          name: this.$t('HubSubscriptions', {}, 'Hub Subscriptions'),
+          description: this.$t('Apps.HubSubscriptions.Description', {}, 'Manage your recurring subscriptions.'),
+          iconName: 'autorenew',
+          path: '/apps/payment-hub-subscriptions/',
+          iconStyle: 'font-size: 4.2em',
+          active: true,
+          beta: true
+        },
+        {
           id: 'support',
           name: this.$t('Support', {}, 'Support'),
           description: this.$t('Apps.Support.Description', {}, 'Get help, guides, and wallet information.'),

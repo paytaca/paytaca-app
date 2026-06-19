@@ -2691,7 +2691,27 @@ const phrases = {
       Update: "Update",
       Set: "Set",
       RevokeKeyConfirm: "Are you sure you want to revoke '{name}'? This cannot be undone",
-      DeleteStoreConfirm: "Are you sure you want to delete '{name}'?"
+      DeleteStoreConfirm: "Are you sure you want to delete '{name}'?",
+      NoPlans: "No Plans",
+      NoPlansFound: "Create a plan to offer subscriptions.",
+      CreatePlan: "Create Plan",
+      NoSubscriptions: "No Subscriptions",
+      NoSubscriptionsFound: "Users haven't subscribed yet.",
+      YouHaveNoSubscriptions: "You don't have any active subscriptions.",
+      Subscriptions: "Subscriptions",
+      HubSubscriptions: "Hub Subscriptions",
+      MySubscriptions: "My Subscriptions",
+      PlanName: "Plan Name",
+      PlanDescription: "Plan Description",
+      Amount: "Amount",
+      IntervalType: "Interval Type",
+      CancelSubscription: "Cancel Subscription",
+      CancelSubscriptionConfirm: "Are you sure you want to cancel the subscription for {address}?",
+      ErrorCancellingSubscription: "Error cancelling subscription: ",
+      SubscriptionCancelled: "Subscription cancelled successfully",
+      Reactivate: "Reactivate",
+      Deactivate: "Deactivate",
+      Plans: "Plans"
     }
   ]
 }
