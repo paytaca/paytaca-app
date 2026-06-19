@@ -46,7 +46,7 @@
             v-else
             flat
             round
-            icon="check_box_outline_blank"
+            icon="format_list_bulleted"
             color="primary"
             :disable="isLoading || notifsList.length === 0"
             @click="isCheckboxClicked = true"
