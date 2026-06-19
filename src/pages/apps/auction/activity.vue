@@ -361,13 +361,40 @@
       <div class="row items-start">
         <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 col-md-3 q-pa-sm">
           <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
-            <q-skeleton height="200px" square />
-            <q-card-section>
-              <q-skeleton type="text" width="30%" class="float-right" />
-              <q-skeleton type="text" width="70%" />
-              <q-skeleton type="text" width="30%" class="q-mt-xs" />
-              <q-skeleton type="text" width="50%" class="q-mt-xs" />
-              <q-skeleton type="text" width="50%" class="q-mt-xs" />
+            <q-card-section class="q-py-sm">
+              <div class="row items-center justify-between q-mb-xs q-mt-sm">
+                <q-skeleton 
+                  type="QChip" 
+                  style="margin: 0; width: 85px; height: 20px;" 
+                />
+                <div class="row items-center q-gutter-x-xs" style="opacity: 0.65;">
+                  <q-skeleton type="circle" size="12px" />
+                  <q-skeleton type="text" width="45px" />
+                </div>
+              </div>
+              
+              <div class="text-subtitle1 q-mb-xs q-pt-xs">
+                <q-skeleton type="text" width="110px" />
+              </div>
+
+              <q-separator spaced="sm" />
+              
+              <div class="row items-center justify-between q-mb-xs text-caption">
+                <q-skeleton type="text" width="55px" />
+                <q-skeleton type="text" width="40px" />
+              </div>
+              
+              <div class="row items-center justify-between q-mb-xs text-caption">
+                <q-skeleton type="text" width="30px" />
+                <q-skeleton type="text" width="25px" />
+              </div>
+
+              <q-separator spaced="sm" />
+              
+              <div class="row q-gutter-xs q-my-sm">
+                <q-skeleton type="QBadge" style="width: 60px; height: 18px;" />
+                <q-skeleton type="QBadge" style="width: 75px; height: 18px;" />
+              </div>
             </q-card-section>
           </q-card>
         </div>
