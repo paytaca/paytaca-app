@@ -58,6 +58,37 @@
         </div>
       </div>
 
+      <!-- Create Card -->
+      <transition v-if="activeView === 'create'" name="fade-slide" mode="out-in">
+        <div key="create" class="full-width column items-center text-center q-pt-md" style="max-width: 400px;">
+          <!-- Main Create Card Button - Large Card Style -->
+          <q-card
+            flat
+            class="create-card-action q-pa-xl text-center full-width cursor-pointer"
+            @click="onOpenCreateCardForm()"
+          >
+            <div class="text-h4 text-weight-bold q-mb-sm text-primary">
+              {{ $t('Create New Card') }}
+            </div>
+            
+            <div class="create-card-icon q-mb-md">
+              <q-icon name="add_circle_outline" size="48px" color="primary" />
+            </div>
+            
+            <div class="tap-icon-container text-center">
+              <q-icon name="touch_app" size="24px" color="primary" class="tap-icon q-mb-xs" />
+              <div class="text-caption text-primary">
+                {{ $t('Tap here to create') }}
+              </div>
+            </div>
+          </q-card>
+
+          <div class="text-body2 q-mt-md" :class="textColorGrey">
+            {{ $t('Your card will be created and linked to your wallet. You can customize the card name later.') }}
+          </div>
+        </div>
+      </transition>
+
       <!-- Order Card -->
       <transition v-if="activeView === 'order'" name="fade-slide" mode="out-in">
         <div key="order" class="order-card-root q-pt-md column items-center">
@@ -71,7 +102,7 @@
       </transition>
 
       <!-- Link Card -->
-      <transition v-else name="fade-slide" mode="out-in">
+      <transition v-if="activeView === 'link'" name="fade-slide" mode="out-in">
         <div class="full-width column items-center text-center q-pt-md" key="link">
           <div class="link-icon-ring q-mb-md">
             <div class="link-icon-inner">
@@ -145,6 +176,7 @@ import ResumeCreateCardDialog from 'src/components/card/ResumeCreateCardDialog.v
 import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
+import bus from 'src/services/event-bus';
 
 export default {
   mixins: [CreateCardAttemptMixin],
@@ -159,6 +191,7 @@ export default {
       isloaded: false,
       activeView: 'order',
       modes: [
+        { key: 'create', label: 'Create Card', icon: 'add_card' },
         { key: 'order', label: 'Order Card', icon: 'shopping_cart' },
         { key: 'link', label: 'Link Card', icon: 'link' },
       ],
@@ -202,6 +235,10 @@ export default {
     }
   },
 
+  created() {
+    bus.on('session-expired', this.handleSessionExpired);
+  },
+
   async mounted () {
     await this.loadData()
   },
@@ -215,7 +252,7 @@ export default {
       this.isloaded = true
       this.hideLoading()
     },
-    async loadCardUser(forceLogin = false) {
+    async loadCardUser({ forceLogin = false } = {}) {
       try {
         const user = await loadCardUser(forceLogin);
         this.user = user;
@@ -223,6 +260,11 @@ export default {
         console.error('Error loading card user:', err);
         this.user = null;
       }
+    },
+    async handleSessionExpired() {
+      this.showLoading()
+      await this.loadCardUser({ forceLogin: true })
+      this.hideLoading()
     },
     checkExistingCards () {
       if (this.user?.cardCount > 0 && this.$route.name === 'app-card'){
@@ -371,7 +413,7 @@ export default {
 
 // ====== Mode Toggle ======
 .mode-toggle-container {
-  max-width: 360px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -623,5 +665,39 @@ export default {
     font-size: 13px;
     padding: 7px 12px;
   }
+}
+
+/* Create New Card - Glassmorphic Gold */
+.create-card-action {
+  background: transparent;
+  border: 2px dashed;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.body--light .create-card-action {
+  border-color: color-mix(in srgb, var(--q-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--q-primary) 10%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.body--light .create-card-action:hover {
+  background: color-mix(in srgb, var(--q-primary) 10%, white);
+  border-color: color-mix(in srgb, var(--q-primary) 60%, transparent);
+  transform: translateY(-4px);
+}
+
+.body--dark .create-card-action {
+  border-color: color-mix(in srgb, var(--q-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--q-primary) 15%, black);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.body--dark .create-card-action:hover {
+  background: color-mix(in srgb, var(--q-primary) 25%, black);
+  border-color: color-mix(in srgb, var(--q-primary) 35%, transparent);
+  transform: translateY(-4px);
 }
 </style>

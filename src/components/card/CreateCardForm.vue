@@ -10,7 +10,6 @@
             </div>
             <div>
               <div class="text-h6 text-weight-bold text-primary">Create New Card</div>
-              <div class="text-caption text-primary">Link your card</div>
             </div>
           </div>
             <q-btn icon="close" flat round dense color="primary" @click="closeDialog" />
@@ -20,7 +19,7 @@
       <!-- Form State -->
       <q-card-section class="q-px-lg q-py-md" v-if="state === 'form'">
         <!-- Card UID Input Methods -->
-        <div class="input-methods q-mb-lg">
+        <!-- <div class="input-methods q-mb-lg">
           <div class="text-caption text-weight-medium q-mb-sm text-primary">
             Card UID
           </div>
@@ -65,10 +64,10 @@
               </q-btn>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <!-- Manual Input Instructions -->
-        <div class="input-section q-mb-lg method-content-area" v-if="selectedInputMethod === 'manual'">
+        <!-- <div class="input-section q-mb-lg method-content-area" v-if="selectedInputMethod === 'manual'">
           <div class="manual-input-card" :class="$q.dark.isActive ? 'manual-input-card-dark' : 'manual-input-card-light'">
             <div class="row items-center q-pa-md">
               <div class="manual-icon-container q-mr-md" :class="$q.dark.isActive ? 'manual-icon-dark' : 'manual-icon-light'">
@@ -103,10 +102,10 @@
               </template>
             </q-input>
           </div>
-        </div>
+        </div> -->
 
         <!-- NFC Instructions -->
-        <div class="nfc-instructions q-mb-lg method-content-area" v-if="selectedInputMethod === 'nfc'">
+        <!-- <div class="nfc-instructions q-mb-lg method-content-area" v-if="selectedInputMethod === 'nfc'">
           <div class="nfc-card" :class="$q.dark.isActive ? 'nfc-card-dark' : 'nfc-card-light'">
             <div class="row items-center q-pa-md">
               <div class="nfc-icon-container q-mr-md" :class="$q.dark.isActive ? 'nfc-icon-dark' : 'nfc-icon-light'">
@@ -131,10 +130,10 @@
             <q-icon name="info" size="12px" color="primary" class="q-mr-xs" />
             Make sure NFC is enabled in your phone settings
           </div>
-        </div>
+        </div> -->
 
         <!-- QR Scanner -->
-        <div class="qr-scanner-section q-mb-lg method-content-area" v-if="selectedInputMethod === 'qr'">
+        <!-- <div class="qr-scanner-section q-mb-lg method-content-area" v-if="selectedInputMethod === 'qr'">
           <div class="qr-scanner-card" :class="$q.dark.isActive ? 'qr-scanner-dark' : 'qr-scanner-light'" @click="startQrScan">
             <div class="row items-center q-pa-md cursor-pointer">
               <div class="qr-icon-container q-mr-md" :class="$q.dark.isActive ? 'qr-icon-dark' : 'qr-icon-light'">
@@ -163,13 +162,13 @@
             <q-icon name="info" size="12px" color="primary" class="q-mr-xs" />
             Ensure the QR code is clearly visible and well-lit
           </div>
-        </div>
+        </div> -->
 
         <!-- QR Scanner Component -->
-        <qr-scanner
+        <!-- <qr-scanner
           v-model="showQrScanner"
           @decode="onQrDecode"
-        />
+        /> -->
 
         <!-- Card Name Input -->
         <div class="input-section">
@@ -261,7 +260,7 @@
           class="q-px-xl"
           icon="refresh"
           label="Try Again" 
-          @click="state = 'form'; formError = '';" />
+          @click=onRetryCreateCard() />
       </q-card-section>
 
       <!-- Action Buttons (only show when in form state) -->
@@ -274,7 +273,7 @@
           color="primary" 
           @click="closeDialog" />
         <q-space />
-        <q-btn 
+        <!-- <q-btn 
           label="Create Card" 
           color="primary" 
           rounded
@@ -282,6 +281,14 @@
           class="q-px-xl"
           :disable="!inputValidation"
           :loading="validatingUid"
+          @click="onSubmitForm()"> -->
+        <q-btn 
+          label="Create Card" 
+          color="primary" 
+          rounded
+          unelevated
+          class="q-px-xl"
+          :disable="!inputValidation"
           @click="onSubmitForm()">
           <template v-slot:loading>
             <q-spinner-dots color="primary" />
@@ -335,7 +342,7 @@ export default {
       return 'text-primary';
     },
     inputValidation() {
-      return this.newCard.name && this.newCard.name.trim() && this.newCard.name.length <= 10 && this.newCard.uid;
+      return this.newCard.name && this.newCard.name.trim() && this.newCard.name.length <= 10;
     }
   },
 
@@ -344,8 +351,8 @@ export default {
     this.newCardName = '';
     this.mintingMessage = '';
     this.state = 'form';
-    this.selectedInputMethod = 'manual';
-    this.inputCardUid = true;
+    // this.selectedInputMethod = 'manual';
+    // this.inputCardUid = true;
 
     if (this.idempotencyKey) {
       console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
@@ -397,23 +404,39 @@ export default {
     },
 
     async onSubmitForm() {
-      this.validatingUid = true;
-      const { valid, message } = await Card.validateUid(this.newCard.uid);
-      this.validatingUid = false;
-      console.log('valid?', valid)
-      console.log('validation message:', message)
-      if (!valid) {
-        this.formError = message || 'Invalid Card UID';
-        return;
-      }
-      console.log("valid:", valid)
-      if (this.inputValidation && valid) {
-        this.createCard();
+      // this.validatingUid = true;
+      // const { valid, message } = await Card.validateUid(this.newCard.uid);
+      // this.validatingUid = false;
+      // console.log('valid?', valid)
+      // console.log('validation message:', message)
+      // if (!valid) {
+      //   this.formError = message || 'Invalid Card UID';
+      //   return;
+      // }
+      // console.log("valid:", valid)
+      // if (this.inputValidation && valid) {
+      //   this.createCard();
+      // }
+      this.createCard();
+    },
+
+    async onRetryCreateCard() {
+      this.mintingMessage = '';
+      this.formError = '';
+      if (this.idempotencyKey) {
+        console.log('Resuming card creation with idempotency key:', this.idempotencyKey);
+        const attempt = await getCreateCardAttempt();
+        console.log('attempt from storage:', attempt)
+        if (attempt) {
+          this.newCardName = attempt?.alias || '';
+          this.createCard(attempt); // Start the card creation process immediately if resuming
+        }
       }
     },
 
     async createCard (lastAttempt = null) {
-      console.log('Creating card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
+      // console.log('Creating card with name:', this.newCard.name, 'and UID:', this.newCard.uid);
+      console.log('Creating card with name:', this.newCard.name)
       this.state = 'minting';
       const card = await Card.createInitialized()
       const opts = {
