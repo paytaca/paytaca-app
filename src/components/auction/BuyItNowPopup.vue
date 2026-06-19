@@ -58,6 +58,7 @@
 </template>
 
 <script setup>
+import { useQuasar } from 'quasar'
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -95,6 +96,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:isToggledBuyItNow', 'confirm-buy-it-now'])
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -116,6 +118,18 @@ const formatFiat = (value) => {
 }
 
 const confirmPurchase = () => {
+  const walletBalance = $store.getters['assets/getAssets'][0].spendable
+
+  if (walletBalance < props.currentPriceBch) {
+    $q.notify({
+      type: 'negative',
+      icon: 'account_balance_wallet',
+      message: 'Insufficient balance!',
+      timeout: 3000
+    })
+    return
+  }
+
   emit('confirm-buy-it-now', {
     bid_price_bch: props.currentPriceBch,
     bid_price_fiat: props.currentPriceFiat
