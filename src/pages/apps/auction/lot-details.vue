@@ -123,45 +123,6 @@
               </div>
             </div>
 
-            <div v-if="lot.is_sold" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
-              <div class="col text-center">
-                <q-btn
-                  v-if="isAuthor"
-                  outline
-                  stack
-                  class="text-bold text-caption full-width"
-                  :color="darkMode ? 'white' : 'black'"
-                  icon="check_circle"
-                  padding="sm"
-                  label="Confirm Delivery"
-                />
-                <q-btn
-                  v-else
-                  outline
-                  stack
-                  class="text-bold text-caption full-width"
-                  :color="darkMode ? 'white' : 'black'"
-                  icon="check_circle"
-                  padding="sm"
-                  label="Confirm Pickup"
-                />
-              </div>
-
-              <div class="col q-ml-md text-center">
-                <q-btn
-                  class="text-bold text-caption full-width"
-                  color="negative"
-                  text-color="white"
-                  stack
-                  content-class="q-gap-xs"
-                  icon="gavel"
-                  padding="sm"
-                  label="File an Appeal"
-                  unelevated
-                />
-              </div>
-            </div>
-
             <div v-if="bidStatus" class="full-width q-mt-md">
               <q-banner
                 rounded
@@ -210,6 +171,45 @@
                   }}
                 </div>
               </q-banner>
+            </div>
+            
+            <div v-if="lot.is_sold" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+              <div class="col text-center">
+                <q-btn
+                  v-if="isAuthor"
+                  outline
+                  stack
+                  class="text-bold text-caption full-width"
+                  :color="darkMode ? 'white' : 'black'"
+                  icon="check_circle"
+                  padding="sm"
+                  label="Confirm Delivery"
+                />
+                <q-btn
+                  v-else
+                  outline
+                  stack
+                  class="text-bold text-caption full-width"
+                  :color="darkMode ? 'white' : 'black'"
+                  icon="check_circle"
+                  padding="sm"
+                  label="Confirm Pickup"
+                />
+              </div>
+
+              <div class="col q-ml-md text-center">
+                <q-btn
+                  class="text-bold text-caption full-width"
+                  color="negative"
+                  text-color="white"
+                  stack
+                  content-class="q-gap-xs"
+                  icon="gavel"
+                  padding="sm"
+                  label="File an Appeal"
+                  unelevated
+                />
+              </div>
             </div>
           </div>
  
