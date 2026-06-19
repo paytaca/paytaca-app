@@ -316,10 +316,15 @@ const prefillFormState = (sourceData) => {
 }
 
 const fetchAllData = async () => {
-  prefillFormState(history.state.auctionData)
-  dataLoaded.value = true
-  
   try {
+    const auctionResult = await callAPI('auctions', Number(props.auctionId))
+    if (auctionResult.success && auctionResult.data) {
+      prefillFormState(auctionResult.data)
+    } else {
+      console.error('Failed to fetch auction data')
+      return
+    }
+
     const result = await callAPI('lots-by-auction', Number(props.auctionId))
     if (result.success && result.data) {
       lots.value = await Promise.all(result.data.map(async item => {
@@ -348,7 +353,9 @@ const fetchAllData = async () => {
       }))
     }
   } catch (err) {
-    console.error('Failed to update lots:', err)
+    console.error('Failed to fetch auction or lot data:', err)
+  } finally {
+    dataLoaded.value = true
   }
 }
 
