@@ -132,8 +132,6 @@
       </q-card-section>
     </q-form>
   </q-card>
-
-  <q-separator class="q-my-md" :dark="$q.dark.isActive" />
 </template>
 
 <script setup>

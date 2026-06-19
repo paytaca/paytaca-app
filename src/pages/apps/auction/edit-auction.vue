@@ -20,40 +20,47 @@
       <div v-else class="q-card bg-transparent no-shadow text-bow q-pa-none">
         <div class="row q-col-gutter-md q-px-md q-mb-md">
           <div class="col-12 col-sm-6">
-            <q-skeleton type="text" width="30%" class="q-mb-xs" />
-            <q-skeleton type="QInput" :dark="$q.dark.isActive" />
+            <q-skeleton type="text" width="30%" class="q-mb-xs" style="height: 20px;" />
+            <q-skeleton type="QInput" :dark="$q.dark.isActive" style="height: 40px;" />
           </div>
           <div class="col-12 col-sm-6">
-            <q-skeleton type="text" width="30%" class="q-mb-xs" />
-            <q-skeleton type="QInput" :dark="$q.dark.isActive" />
+            <q-skeleton type="text" width="30%" class="q-mb-xs" style="height: 20px;" />
+            <q-skeleton type="QInput" :dark="$q.dark.isActive" style="height: 40px;" />
           </div>
         </div>
 
         <div class="row q-col-gutter-md q-px-md q-mb-md">
           <div class="col-12 col-sm-6">
-            <q-skeleton type="text" width="40%" class="q-mb-xs" />
-            <q-skeleton type="QInput" :dark="$q.dark.isActive" />
+            <q-skeleton type="text" width="40%" class="q-mb-xs" style="height: 20px;" />
+            <q-skeleton type="QInput" :dark="$q.dark.isActive" style="height: 40px;" />
           </div>
           <div class="col-12 col-sm-6">
-            <q-skeleton type="text" width="40%" class="q-mb-xs" />
-            <q-skeleton type="QInput" :dark="$q.dark.isActive" />
+            <q-skeleton type="text" width="40%" class="q-mb-xs" style="height: 20px;" />
+            <q-skeleton type="QInput" :dark="$q.dark.isActive" style="height: 40px;" />
           </div>
         </div>
 
         <div class="q-px-md q-mb-md">
-          <q-skeleton type="text" width="20%" class="q-mb-xs" />
-          <q-skeleton type="QInput" height="80px" :dark="$q.dark.isActive" />
+          <q-skeleton type="text" width="20%" class="q-mb-xs" style="height: 20px;" />
+          <q-skeleton type="QInput" height="116px" :dark="$q.dark.isActive" />
         </div>
 
         <div class="q-px-md q-mb-md">
-          <q-skeleton type="text" width="15%" class="q-mb-xs" />
-          <q-skeleton type="QInput" :dark="$q.dark.isActive" />
+          <q-skeleton type="text" width="15%" class="q-mb-xs" style="height: 20px;" />
+          <q-skeleton type="QInput" :dark="$q.dark.isActive" style="height: 40px;" />
+        </div>
+
+        <div class="q-px-md q-mb-md row items-center q-gutter-x-sm" style="height: 40px;">
+          <q-skeleton type="circle" size="20px" :dark="$q.dark.isActive" />
+          <q-skeleton type="text" width="160px" style="height: 18px;" :dark="$q.dark.isActive" />
         </div>
 
         <div class="row justify-end q-mx-md q-pt-xs">
           <q-skeleton type="QBtn" width="180px" height="36px" :dark="$q.dark.isActive" />
         </div>
       </div>
+
+      <q-separator class="q-my-md" :dark="$q.dark.isActive" />
     </div>
 
     <div>
@@ -168,19 +175,23 @@
       </div>
 
       <div v-else class="row items-start">
-        <div v-for="n in 4" :key="'lot-skeleton-' + n" class="col-6 col-sm-4 col-md-3 q-pa-sm">
-          <q-card class="pt-card no-shadow" style="border: 1px solid rgba(0,0,0,0.05)">
-            <q-skeleton height="200px" square :dark="$q.dark.isActive" />
-
-            <q-card-section>
-              <q-skeleton type="text" width="40%" height="24px" class="q-mb-sm" :dark="$q.dark.isActive" />
-              <q-skeleton type="text" width="80%" class="q-mb-xs" :dark="$q.dark.isActive" />
-              <q-skeleton type="text" width="60%" class="q-mb-md" :dark="$q.dark.isActive" />
-
-              <div class="row q-my-sm">
-                <q-skeleton type="QBtn" width="32px" height="32px" class="q-mr-sm" :dark="$q.dark.isActive" />
-                <q-skeleton type="QBtn" width="32px" height="32px" :dark="$q.dark.isActive" />
+        <div v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
+            <div class="relative-position">
+              <q-responsive :ratio="1.25">
+                <q-skeleton height="100%" width="100%" square />
+              </q-responsive>
+              
+              <div class="absolute-top-right q-pa-sm row q-gutter-xs" style="z-index: 10;">
+                <q-skeleton type="circle" size="28px" :dark="$q.dark.isActive" />
+                <q-skeleton type="circle" size="28px" :dark="$q.dark.isActive" />
               </div>
+            </div>
+
+            <q-card-section class="q-py-sm column q-gutter-y-sm">
+              <q-skeleton type="text" class="text-subtitle1" width="40%" />
+              <q-skeleton type="text" class="text-subtitle1" width="85%" />
+              <q-skeleton type="text" class="text-caption" width="60%" />
             </q-card-section>
           </q-card>
         </div>
