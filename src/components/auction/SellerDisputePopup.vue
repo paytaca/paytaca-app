@@ -76,6 +76,7 @@
 </template>
 
 <script setup>
+import { useQuasar } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
@@ -92,6 +93,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'submit'])
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 
@@ -131,6 +133,14 @@ const canSubmit = computed(() => {
 
 const handleSubmit = () => {
   if (!canSubmit.value) return
+
+  $q.notify({
+    type: 'positive',
+    icon: 'gavel',
+    message: 'Dispute submitted successfully!',
+    timeout: 4000
+  })
+
   emit('update:modelValue', false)
 }
 </script>
