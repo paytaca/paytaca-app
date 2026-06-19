@@ -151,6 +151,7 @@
 <script setup>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import { useStore } from 'vuex'
 import { Store } from 'src/store'
 import { callAPI } from 'src/auction/api'
@@ -164,6 +165,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'place-bid'])
 
+const $q = useQuasar()
 const $store = useStore()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const bchToPhpRate = computed(() => $store.getters['market/getAssetPrice']('bch', 'php') || 0)
@@ -296,6 +298,18 @@ const formatFiat = (val) => {
 }
 
 const placeBid = () => {
+  const walletBalance = $store.getters['assets/getAssets'][0].spendable
+
+  if (walletBalance < parseFloat(convertedOutputBch.value.toFixed(8))) {
+    $q.notify({
+      type: 'negative',
+      icon: 'account_balance_wallet',
+      message: 'Insufficient balance!',
+      timeout: 3000
+    })
+    return
+  }
+
   emit('place-bid', {
     bid_price_bch: parseFloat(convertedOutputBch.value.toFixed(8)),
     bid_price_fiat: parseFloat(convertedOutputFiat.value.toFixed(2))
