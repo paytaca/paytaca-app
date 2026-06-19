@@ -194,11 +194,13 @@
                   icon="check_circle"
                   padding="sm"
                   label="Confirm Pickup"
+                  @click="confirmedPickup = true"
                 />
               </div>
 
               <div class="col q-ml-md text-center">
                 <q-btn
+                  v-if="!confirmedPickup"
                   class="text-bold text-caption full-width"
                   color="negative"
                   text-color="white"
@@ -208,7 +210,21 @@
                   padding="sm"
                   label="File a Dispute"
                   unelevated
-                  @click="showSellerDispute = true"
+                  @click="showSellerDisputeDialog = true"
+                />
+
+                <q-btn
+                  v-else
+                  class="text-bold text-caption full-width"
+                  color="negative"
+                  text-color="white"
+                  stack
+                  content-class="q-gap-xs"
+                  icon="assignment_return"
+                  padding="sm"
+                  label="Refund"
+                  unelevated
+                  @click="showRefundDialog = true"
                 />
               </div>
             </div>
@@ -507,7 +523,11 @@
     />
 
     <SellerDisputePopup
-      v-model="showSellerDispute"
+      v-model="showSellerDisputeDialog"
+    />
+
+    <RefundPopup
+      v-model="showRefundDialog"
     />
 
     <BiddingHistoryPopup
@@ -534,6 +554,7 @@ import BiddingPopup from 'src/components/auction/BiddingPopup.vue'
 import BuyItNowPopup from 'src/components/auction/BuyItNowPopup.vue'
 import BiddingHistoryPopup from 'src/components/auction/BiddingHistoryPopup.vue'
 import SellerDisputePopup from 'src/components/auction/SellerDisputePopup.vue'
+import RefundPopup from 'src/components/auction/RefundPopup.vue'
 
 defineOptions({
   directives: {
@@ -561,7 +582,9 @@ const showBidHistory = ref(false)
 const isLoading = ref(false)
 
 // Post-auction actions
-const showSellerDispute = ref(false)
+const showSellerDisputeDialog = ref(false)
+const showRefundDialog = ref(false)
+const confirmedPickup = ref(false)    // Temporary confirm pickup status
 
 const $q = useQuasar()
 const $store = useStore()
