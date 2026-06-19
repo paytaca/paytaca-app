@@ -8,7 +8,7 @@
     <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
  
     <div>
-      <div v-if="lot && auction" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+      <div v-if="!isLoading && lot && auction" class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
         <div class="q-mb-lg text-left">
           <div class="text-h4 text-weight-bold q-mb-xs" style="overflow-wrap: break-word; word-wrap: break-word;">
             Lot {{ lot.id }}: <span class="text-weight-regular">{{ lot.title }}</span>
@@ -422,11 +422,67 @@
         </div>
       </div>
  
-      <div v-else class="q-pa-md column q-gutter-y-md">
-        <q-skeleton type="text" width="60%" height="32px" />
-        <q-skeleton height="350px" />
-        <q-skeleton type="text" width="40%" />
-        <q-skeleton type="text" width="80%" />
+      <div v-else class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
+        <div class="q-mb-lg text-left">
+          <q-skeleton type="text" width="70%" height="32px" class="q-mb-sm" />
+          <div class="row items-center q-gutter-sm">
+            <q-skeleton type="QBadge" width="90px" height="22px" />
+            <q-skeleton type="QBadge" width="70px" height="22px" />
+          </div>
+        </div>
+
+        <div class="row q-col-gutter-y-md q-col-gutter-x-none q-col-gutter-x-sm-md q-col-gutter-x-md-xl justify-center justify-sm-start items-start">
+          <div class="col-12 col-sm-5 col-md-4 q-pr-md-lg" style="width: 100%; max-width: 380px; min-width: 280px;">
+            <q-skeleton height="350px" class="rounded-borders full-width" />
+
+            <div class="row justify-center items-center q-mt-sm full-width">
+              <q-skeleton type="QAvatar" size="36px" />
+              <q-skeleton type="text" width="50px" class="q-mx-md" />
+              <q-skeleton type="QAvatar" size="36px" />
+            </div>
+            
+            <div class="row q-col-gutter-sm justify-center q-mt-sm">
+              <div v-for="n in 3" :key="n" class="col-4">
+                <q-skeleton class="rounded-borders full-width" style="aspect-ratio: 1;" />
+              </div>
+            </div>
+
+            <q-skeleton class="rounded-borders full-width q-mt-md" height="48px" />
+          </div>
+          
+          <div class="col-12 col-sm col-md-7">
+            <div class="row q-col-gutter-sm q-mb-md">
+              <div class="col-12 col-sm-6">
+                <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
+              </div>
+
+              <div class="col-12 col-sm-6">
+                <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
+              </div>
+            </div>
+
+            <div class="q-mb-md">
+              <q-skeleton type="rect" width="100%" height="82px" class="rounded-borders" />
+            </div>
+
+            <div class="column q-mt-xs q-mb-md">
+              <q-skeleton type="text" width="25%" class="q-mb-sm" />
+              <q-skeleton type="text" width="100%" class="q-mb-xs" />
+              <q-skeleton type="text" width="100%" class="q-mb-xs" />
+              <q-skeleton type="text" width="65%" />
+            </div>
+            
+            <div class="row q-gutter-sm">
+              <div class="col rounded-borders">
+                <q-skeleton type="rect" width="100%" height="75px" class="rounded-borders" />
+              </div>
+
+              <div class="col rounded-borders">
+                <q-skeleton type="rect" width="100%" height="75px" class="rounded-borders" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -502,6 +558,7 @@ const lot = ref(null)
 const auction = ref(null)
 const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
 const showBidHistory = ref(false)
+const isLoading = ref(false)
 
 // Post-auction actions
 const showSellerDispute = ref(false)
@@ -940,8 +997,10 @@ const smartBackPath = computed(() => {
 })
 
 const refresh = async (done) => {
+  isLoading.value = true
   dutchAlreadySold.value = false
   await loadPageData()
+  isLoading.value = false
   done()
 }
 </script>
