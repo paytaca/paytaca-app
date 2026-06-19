@@ -161,6 +161,56 @@
                 />
               </div>
             </div>
+
+            <div v-if="bidStatus" class="full-width q-mt-md">
+              <q-banner
+                rounded
+                dense
+                class="q-pa-md"
+                :class="
+                  bidStatus === 'highest' || bidStatus === 'win' ? 'bg-green-1' :
+                  bidStatus === 'outbid' ? 'bg-red-1' : 'bg-grey-3'
+                "
+              >
+                <template v-slot:avatar>
+                  <q-icon
+                    :name="
+                      bidStatus === 'highest' ? 'emoji_events' :
+                      bidStatus === 'outbid' ? 'warning' :
+                      bidStatus === 'win' ? 'celebration' : 'do_not_disturb'
+                    "
+                    :color="
+                      bidStatus === 'highest' || bidStatus === 'win' ? 'positive' :
+                      bidStatus === 'outbid' ? 'negative' : 'grey-7'
+                    "
+                    size="md"
+                  />
+                </template>
+
+                <div
+                  class="text-subtitle2 text-weight-bold"
+                  :class="
+                    bidStatus === 'highest' || bidStatus === 'win' ? 'text-green-9' :
+                    bidStatus === 'outbid' ? 'text-red-9' : 'text-grey-8'
+                  "
+                >
+                  {{
+                    bidStatus === 'highest' ? 'You are the highest bidder!' :
+                    bidStatus === 'outbid' ? 'You have been outbid!' :
+                    bidStatus === 'win' ? 'Congratulations, you won!' :
+                    'Auction closed, you did not win.'
+                  }}
+                </div>
+                <div class="text-caption text-grey-7">
+                  {{
+                    bidStatus === 'highest' ? "You're in the lead — we'll let you know if that changes." :
+                    bidStatus === 'outbid' ? 'Place a higher bid to get back in the lead.' :
+                    bidStatus === 'win' ? "We'll be in touch with next steps shortly." :
+                    'You did not win this item.'
+                  }}
+                </div>
+              </q-banner>
+            </div>
           </div>
  
           <div class="col-12 col-sm col-md-7">
@@ -468,6 +518,7 @@ const openDialog = ref(false)
 const englishBidLoading = ref(false)
 const englishBidPolling = ref(false)
 const hasBid = ref(false)
+const hasUserBid = ref(false)
 const highestBidderId = ref(null)
 const isSold = computed(() => lot.value?.is_sold || false)
 
@@ -552,8 +603,49 @@ const checkBidStatus = async () => {
   } catch (err) {
     console.error('Error checking bid status:', err)
     hasBid.value = false
+    highestBidderId.value = null
   }
 }
+
+const checkUserBid = async () => {
+  if (!walletHash) {
+    hasUserBid.value = false
+    return
+  }
+
+  try {
+    const result = await callAPI('my-biddings')
+    
+    hasUserBid.value = result.success && Array.isArray(result.data) && result.data.length > 0
+  } catch (err) {
+    console.error('Error checking user bid history:', err)
+    hasUserBid.value = false
+  }
+}
+
+const isLotClosed = computed(() => {
+  if (!lot.value || !auction.value) return false
+  const status = lot.value.getLotStatus(auction.value.start_date, auction.value.end_date).label
+  return status === 'Closed' || status === 'Sold'
+})
+
+const bidStatus = computed(() => {
+  const isHighest = highestBidderId.value === walletHash
+
+  if (!hasUserBid.value) {
+    return null
+  }
+
+  if (!hasBid.value) {
+    return isLotClosed.value ? 'did-not-win' : null
+  }
+
+  if (isSold.value || isLotClosed.value) {
+    return isHighest ? 'win' : 'did-not-win'
+  }
+
+  return isHighest ? 'highest' : 'outbid'
+})
 
 
 
@@ -787,7 +879,7 @@ const fetchLot = async () => {
 }
 
 const loadPageData = async () => {
-  await Promise.all([fetchLot(), fetchAuction(), fetchDutchSoldStatus(), checkBidStatus()])
+  await Promise.all([fetchLot(), fetchAuction(), fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
 }
 
