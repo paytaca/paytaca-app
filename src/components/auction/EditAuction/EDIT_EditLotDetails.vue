@@ -393,12 +393,20 @@ watch(() => props.lotData, (newLot) => {
   if (newLot) {
     lotName.value = newLot.title || ''
     lotType.value = newLot.category || newLot.type || 'Physical'
-    estimatedPrice.value = newLot.estimatedPrice ?? newLot.estimated_amount ?? 0
-    startingPrice.value = newLot.startingPrice ?? newLot.starting_price ?? 0
-    priceThreshold.value = newLot.threshold ?? newLot.threshold_bid ?? 0
-    priceDrop.value = newLot.priceDrop ?? newLot.bidding_decrement ?? newLot.price_drop ?? 0
+    
+    if (isFiatUsed.value) {
+      estimatedPrice.value = Number(newLot.estimated_amount_fiat ?? newLot.estimatedPrice ??  0)
+      startingPrice.value = Number(newLot.starting_price_fiat ?? newLot.startingPrice ??  0)
+      priceThreshold.value = Number(newLot.threshold_bid_fiat ?? newLot.threshold ?? 0)
+      priceDrop.value = Number(newLot.price_drop_fiat ?? newLot.priceDrop ?? newLot.bidding_decrement ?? 0)
+    } else {
+      estimatedPrice.value = Number(newLot.estimated_amount_bch ?? newLot.estimatedPrice ?? 0)
+      startingPrice.value = Number(newLot.starting_price_bch ?? newLot.startingPrice ?? 0)
+      priceThreshold.value = Number(newLot.threshold_bid_bch ?? newLot.threshold ?? 0)
+      priceDrop.value = Number(newLot.price_drop_bch ?? newLot.priceDrop ?? 0)
+    }
+    
     priceDropInterval.value = normalizeInterval(newLot.priceDropInterval)
-    isFiatUsed.value = newLot.isFiatUsed || false
     lotDescription.value = newLot.description || ''
     
     if (Array.isArray(newLot.imageUrls)) {
