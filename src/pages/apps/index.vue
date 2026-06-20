@@ -462,13 +462,13 @@ export default {
     },
     categoryDefinitions () {
       return [
-        { id: 'beta', label: this.$t('Beta', {}, 'Beta'), isBeta: true },
         { id: 'ramp-payments', label: this.$t('RampAndPayments', {}, 'Ramp & Payments') },
         { id: 'trade-defi', label: this.$t('TradeAndDeFi', {}, 'Trade & DeFi') },
         { id: 'assets-rewards', label: this.$t('AssetsAndRewards', {}, 'Assets & Rewards') },
         { id: 'wallet-connections', label: this.$t('WalletAndConnections', {}, 'Wallet & Connections') },
         { id: 'marketplace', label: this.$t('MarketplaceAndMerchant', {}, 'Marketplace & Merchant') },
         { id: 'utilities', label: this.$t('Utilities', {}, 'Utilities') },
+        { id: 'beta', label: this.$t('Beta', {}, 'Beta'), isBeta: true },
       ]
     },
     categorizedApps () {
