@@ -20,7 +20,7 @@
         />
       </template>
     </HeaderNav>
-    <div class="category-chips-bar" :class="getDarkModeClass(darkMode)">
+    <div class="category-chips-bar" :class="getDarkModeClass(darkMode)" :style="{ '--chip-active-bg': themePrimaryHex }">
       <div class="chips-scroll">
         <button
           v-for="cat in categories"
@@ -453,6 +453,14 @@ export default {
       if (theme === 'glassmorphic-green') return 'green-6'
       if (theme === 'glassmorphic-gold') return 'amber-7'
       return 'blue-6'
+    },
+    themePrimaryHex () {
+      const theme = this.$store.getters['global/theme']
+      if (theme === 'glassmorphic-red') return '#f63b7b'
+      if (theme === 'glassmorphic-green') return '#43a047'
+      if (theme === 'glassmorphic-gold') return '#e18908'
+      if (theme === 'payhero') return '#9b8447'
+      return '#3b7bf6'
     },
     chatUnreadCount () {
       return this.$store.getters['nostrChat/getTotalUnreadCount'] || 0
@@ -948,12 +956,12 @@ export default {
     &.dark {
       background: rgba(255,255,255,0.08);
       color: rgba(255,255,255,0.6);
-      &.chip-active { background: #3b7bf6; color: #fff; }
+      &.chip-active { background: var(--chip-active-bg, #3b7bf6); color: #fff; }
     }
     &.light {
       background: rgba(0,0,0,0.05);
       color: rgba(0,0,0,0.55);
-      &.chip-active { background: #3b7bf6; color: #fff; }
+      &.chip-active { background: var(--chip-active-bg, #3b7bf6); color: #fff; }
     }
     &.chip-beta {
       &.dark { border: 1px solid rgba(225, 137, 8, 0.4); }
