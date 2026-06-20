@@ -66,6 +66,9 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
 export async function initialize ({ commit, dispatch, state, rootGetters }) {
   if (state.initialized && state.keys?.pubKeyHex) {
     dispatch('fetchHistoricalMessages')
+    if (!state.profile?.displayName || !state.profile?.bchAddress) {
+      dispatch('fetchOwnProfile', state.keys.pubKeyHex).catch(() => {})
+    }
     return
   }
 
@@ -110,6 +113,28 @@ export async function initialize ({ commit, dispatch, state, rootGetters }) {
 
   // Register this wallet's Nostr pubkey in Watchtower
   dispatch('registerNostrPubkey')
+}
+
+export async function fetchOwnProfile ({ commit, dispatch, state }, pubKeyHex) {
+  if (!pubKeyHex) return
+  try {
+    const [displayName, bchAddress, avatar] = await Promise.all([
+      dispatch('fetchPublishedDisplayName', { pubKeyHex }),
+      dispatch('fetchPublishedBchAddress', { pubKeyHex }),
+      dispatch('fetchPublishedAvatar', { pubKeyHex }),
+    ])
+    if (displayName) {
+      commit('SET_PROFILE_DISPLAY_NAME', { displayName, publishedAt: Date.now() })
+    }
+    if (bchAddress) {
+      commit('SET_PROFILE_BCH_ADDRESS', { address: bchAddress, publishedAt: Date.now() })
+    }
+    if (avatar) {
+      commit('SET_PROFILE_AVATAR', { avatar, publishedAt: Date.now() })
+    }
+  } catch (err) {
+    console.warn('[Nostr] Failed to fetch own profile:', err)
+  }
 }
 
 export async function registerNostrPubkey ({ state, rootGetters }) {

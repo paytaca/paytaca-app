@@ -571,11 +571,14 @@ export default {
         this.handleScannedNpub(scannedNpub)
       }
 
-      // Show profile setup prompt if profile is incomplete
+      // Show profile setup prompt if profile is incomplete (after a short delay
+      // to allow the background profile fetch from initialize() to complete)
       if (!this._profilePromptShown && this.isProfileIncomplete) {
-        this.$nextTick(() => {
-          this.showProfilePrompt()
-        })
+        setTimeout(() => {
+          if (!this._profilePromptShown && this.isProfileIncomplete) {
+            this.showProfilePrompt()
+          }
+        }, 3000)
       }
     } catch (err) {
       console.error('Failed to initialize Nostr chat:', err)
