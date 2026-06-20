@@ -961,7 +961,9 @@ export default {
   /* ---- App row ---- */
   .app-rows {
     border-radius: 12px;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .app-row {
     display: flex;
@@ -973,14 +975,15 @@ export default {
     position: relative;
     -webkit-user-select: none;
     user-select: none;
+    border-radius: 10px;
 
     &.dark {
-      &:active { background: rgba(255,255,255,0.06); }
-      & + .app-row { border-top: 1px solid rgba(255,255,255,0.04); }
+      background: rgba(255,255,255,0.03);
+      &:active { background: rgba(255,255,255,0.08); }
     }
     &.light {
-      &:active { background: rgba(0,0,0,0.04); }
-      & + .app-row { border-top: 1px solid rgba(0,0,0,0.04); }
+      background: rgba(0,0,0,0.025);
+      &:active { background: rgba(0,0,0,0.06); }
     }
     &.app-inactive {
       cursor: default;
@@ -1011,8 +1014,8 @@ export default {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    &.dark { color: rgba(255,255,255,0.9); }
-    &.light { color: rgba(0,0,0,0.85); }
+    &.dark { color: rgba(255,255,255,0.92); }
+    &.light { color: rgba(0,0,0,0.88); }
   }
   .app-desc {
     font-size: 12px;
@@ -1024,8 +1027,8 @@ export default {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    &.dark { color: rgba(255,255,255,0.4); }
-    &.light { color: rgba(0,0,0,0.4); }
+    &.dark { color: rgba(255,255,255,0.55); }
+    &.light { color: rgba(0,0,0,0.5); }
   }
 
   .app-row-end {
@@ -1036,8 +1039,8 @@ export default {
     position: relative;
   }
   .app-chevron {
-    &.dark { color: rgba(255,255,255,0.2); }
-    &.light { color: rgba(0,0,0,0.2); }
+    &.dark { color: rgba(255,255,255,0.3); }
+    &.light { color: rgba(0,0,0,0.25); }
   }
 
   .app-unread-badge {
