@@ -73,6 +73,7 @@ import TransactionListItemSkeleton from 'src/components/transactions/Transaction
 import TransactionTimestampSettings from 'src/components/transactions/TransactionTimestampSettings.vue'
 import { getWalletByNetwork, getWatchtowerApiUrl } from 'src/wallet/chipnet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import { getCachedTransactions, setCachedTransactions, mergeTransactions } from 'src/utils/transaction-cache'
 import axios from 'axios'
 
 const recordTypeMap = {
@@ -105,6 +106,7 @@ export default {
   
   data () {
     return {
+      walletHash: null,
       transactions: [],
       transactionsLoaded: false,
       hasMoreTransactions: false,
@@ -129,14 +131,12 @@ export default {
       return this.$store.getters['global/network']
     },
     displayTransactions () {
-      // Only show dummy transactions when the tour is highlighting this section.
       if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) {
         return this.getTutorialDummyTransactions()
       }
       return this.transactions
     },
     displayHasMoreTransactions () {
-      // Never show "See more" on dummy tutorial transactions.
       if (this.tutorialMode && this.tutorialStepId === 'transactions' && this.transactionsLoaded && this.transactions.length === 0) return false
       return this.hasMoreTransactions
     },
@@ -150,7 +150,7 @@ export default {
   },
   
   mounted () {
-    this.loadTransactions()
+    this.loadFromCacheThenRefresh()
   },
   
   methods: {
@@ -212,42 +212,87 @@ export default {
         }
       ]
     },
+    async loadFromCacheThenRefresh () {
+      this.walletHash = this.resolveWalletHash()
+      if (this.walletHash) {
+        const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
+        if (cached && Array.isArray(cached.transactions) && cached.transactions.length) {
+          this.transactions = cached.transactions.slice(0, 5)
+          this.hasMoreTransactions = cached.hasMore
+          this.transactionsLoaded = true
+        }
+      }
+      if (this.wallet) {
+        this.loadTransactions()
+      } else {
+        this.$watch(() => this.wallet, (wallet) => {
+          if (wallet) {
+            if (!this.walletHash) this.walletHash = this.resolveWalletHash()
+            this.loadTransactions()
+          }
+        })
+      }
+    },
+    resolveWalletHash () {
+      if (this.walletHash) return this.walletHash
+      if (this.wallet) return getWalletByNetwork(this.wallet, 'bch').getWalletHash()
+      const storeWallet = this.$store.getters['global/getWallet']('bch')
+      if (storeWallet?.walletHash) return storeWallet.walletHash
+      return this.$store.getters['global/getWalletHashByIndex']?.(this.$store.getters['global/getWalletIndex'])
+    },
     async loadTransactions () {
-      // Legacy network-specific references removed; assets treated under BCH conventions
-      
       try {
-        this.transactionsLoaded = false
-        const walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
+        if (!this.walletHash) {
+          this.walletHash = getWalletByNetwork(this.wallet, 'bch').getWalletHash()
+        }
         const baseUrl = getWatchtowerApiUrl(this.$store.getters['global/isChipnet'])
-        const url = `${baseUrl}/history/wallet/${walletHash}/`
-        
+        const url = `${baseUrl}/history/wallet/${this.walletHash}/`
+
         const recordType = recordTypeMap[this.transactionsFilter]
         const params = {
           all: true,
           page: 1,
           type: recordType
         }
-        
+
         const response = await axios.get(url, { params })
         const transactions = response.data.history || response.data
-        
+
         if (!Array.isArray(transactions)) {
           this.transactions = []
           this.transactionsLoaded = true
           return
         }
-        
-        // Enrich transactions with asset information
+
         const enrichedTransactions = await this.enrichTransactionsWithAssetInfo(transactions)
-        
-        // Limit to 5 transactions
-        this.transactions = enrichedTransactions.slice(0, 5)
-        this.hasMoreTransactions = response.data?.has_next || enrichedTransactions.length > 5
+        const currentCached = getCachedTransactions(this.walletHash, this.transactionsFilter)
+        let merged
+        if (currentCached && Array.isArray(currentCached.transactions) && currentCached.transactions.length) {
+          merged = mergeTransactions(currentCached.transactions, enrichedTransactions)
+        } else {
+          merged = enrichedTransactions
+        }
+
+        merged.sort((a, b) => {
+          const tA = a.tx_timestamp || a.date_created || 0
+          const tB = b.tx_timestamp || b.date_created || 0
+          return tB - tA
+        })
+
+        const display = merged.slice(0, 5)
+        const hasMore = response.data?.has_next || enrichedTransactions.length > 5
+
+        this.transactions = display
+        this.hasMoreTransactions = hasMore
         this.transactionsLoaded = true
+
+        setCachedTransactions(this.walletHash, this.transactionsFilter, enrichedTransactions, hasMore)
       } catch (error) {
         console.error('Error loading latest transactions:', error)
-        this.transactions = []
-        this.transactionsLoaded = true
+        if (!this.transactionsLoaded) {
+          this.transactions = []
+          this.transactionsLoaded = true
+        }
       }
     },
     async enrichTransactionsWithAssetInfo (transactions) {
@@ -528,6 +573,12 @@ export default {
         this.transactionsFilter = value
       } else {
         this.transactionsFilter = 'all'
+      }
+      const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
+      if (cached && Array.isArray(cached.transactions) && cached.transactions.length) {
+        this.transactions = cached.transactions.slice(0, 5)
+        this.hasMoreTransactions = cached.hasMore
+        this.transactionsLoaded = true
       }
       this.loadTransactions()
     }

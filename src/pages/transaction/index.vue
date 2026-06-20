@@ -272,7 +272,6 @@
           <PendingTransactions :key="pendingTransactionsKey"/>
 
           <LatestTransactions 
-            v-if="wallet"
             ref="latest-transactions"
             :wallet="wallet"
             :denominationTabSelected="denominationTabSelected"
