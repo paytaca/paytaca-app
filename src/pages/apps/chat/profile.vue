@@ -27,7 +27,7 @@
               <img v-if="avatarDisplaySrc" :src="avatarDisplaySrc" />
               <q-icon v-else name="account_circle" size="56px" />
             </q-avatar>
-            <div class="avatar-overlay">
+            <div class="avatar-overlay" :class="{ 'avatar-overlay--always': !avatarDisplaySrc }">
               <q-icon name="camera_alt" size="20px" />
             </div>
           </div>
@@ -844,6 +844,10 @@ export default {
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.2s ease;
+}
+
+.avatar-overlay--always {
+  opacity: 1;
 }
 
 .identity-avatar {
