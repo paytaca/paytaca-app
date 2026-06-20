@@ -263,6 +263,22 @@ export async function clearChatCache() {
   }
 }
 
+export async function hasChatCache() {
+  try {
+    if (_imageThumbnailCache.size > 0 || _replyThumbnailCache.size > 0) return true
+    const db = await openDatabase()
+    return await new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly')
+      const store = tx.objectStore(STORE_NAME)
+      const countReq = store.count()
+      countReq.onsuccess = () => resolve(countReq.result > 0)
+      countReq.onerror = () => resolve(false)
+    })
+  } catch {
+    return false
+  }
+}
+
 function evictOldestThumbnail() {
   if (_imageThumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
     const firstKey = _imageThumbnailCache.keys().next().value

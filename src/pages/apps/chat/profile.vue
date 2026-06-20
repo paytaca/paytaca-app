@@ -281,7 +281,7 @@
         </div>
 
         <!-- Cache Management -->
-        <div class="danger-section q-mt-lg">
+        <div v-if="hasCache" class="danger-section q-mt-lg">
           <div class="section-label">
             {{ $t('ChatCache', {}, 'Chat Cache') }}
           </div>
@@ -310,7 +310,7 @@ import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
-import { clearChatCache } from 'src/components/chat/MessageBubble.vue'
+import { clearChatCache, hasChatCache } from 'src/components/chat/MessageBubble.vue'
 import { copyToClipboard } from 'quasar'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
 
@@ -335,6 +335,7 @@ export default {
       publishingDisplayName: false,
       removingDisplayName: false,
       clearingCache: false,
+      hasCache: false,
       addressGeneratedFromWallet: false,
       generatingAddress: false,
       pendingAvatar: null,
@@ -390,6 +391,7 @@ export default {
   },
   mounted () {
     document.addEventListener('pointerdown', this.onDocumentPointerDown, true)
+    this.checkCache()
   },
   beforeDestroy () {
     document.removeEventListener('pointerdown', this.onDocumentPointerDown, true)
@@ -771,6 +773,11 @@ export default {
         }
       })
     },
+    async checkCache () {
+      try {
+        this.hasCache = await hasChatCache()
+      } catch { this.hasCache = false }
+    },
     async confirmClearCache () {
       this.$q.dialog({
         title: this.$t('ClearChatCache', {}, 'Clear Chat Cache'),
@@ -784,6 +791,7 @@ export default {
         try {
           const success = await clearChatCache()
           if (success) {
+            this.hasCache = false
             this.$q.notify({
               type: 'positive',
               message: this.$t('ChatCacheCleared', {}, 'Chat cache cleared successfully'),
