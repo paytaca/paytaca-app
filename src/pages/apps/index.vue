@@ -922,11 +922,14 @@ export default {
   }
 
   /* ---- Category chips bar ---- */
+  .apps-header {
+    margin-bottom: 0 !important;
+  }
   .category-chips-bar {
     position: sticky;
     top: 55px;
     z-index: 2900;
-    padding: 8px 0;
+    padding: 6px 0;
     &.dark { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
     &.light { background: rgba(236, 243, 243, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
   }
