@@ -158,6 +158,15 @@ export default {
       }
     })
   },
+  activated () {
+    document.body.classList.add('pt-has-header-nav')
+    if (this.addedBodyPadding && !this.$q.platform.is.ios) {
+      document.body.style.paddingTop = '30px'
+    }
+  },
+  deactivated () {
+    if (this.addedBodyPadding) document.body.style.paddingTop = ''
+  },
   beforeUnmount () {
     if (this.addedBodyPadding) document.body.style.paddingTop = ''
     document.body.classList.remove('pt-has-header-nav')
