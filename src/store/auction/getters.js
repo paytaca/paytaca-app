@@ -23,6 +23,17 @@ export function processedItems(state) {
   })
 }
 
+// Getter for stored arbiter PK
+export function arbiterPublicKey(state) {
+  return state.arbiterPublicKey
+}
+
+// Getter for stored servicer PK
+export function servicerPublicKey(state) {
+  return state.servicerPublicKey
+}
+
+
 // const tempListings = [
 //   {
 //     id: 1,

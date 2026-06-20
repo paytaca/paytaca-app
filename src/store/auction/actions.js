@@ -25,3 +25,31 @@ export async function refreshCatalog({ commit }) {
     commit('setLoading', false)
   }
 }
+
+// Fetching ArbiterPk for contract creation
+export async function fetchArbiterPublicKey({ commit }) {
+  try {
+    const response = await callAPI('arbiter-pk')
+
+    if (response && response.success) {
+      const arbiterPk = response.data.arbiter_pk
+      commit('setArbiterPublicKey', arbiterPk)
+    }
+  } catch (error) {
+    console.error('API Sync Error inside fetchArbiterPublicKey:', error)
+  } 
+}
+
+// Fetching ServicerPk for contract creation
+export async function fetchServicerPublicKey({ commit }) {
+  try {
+    const response = await callAPI('servicer-pk')
+
+    if (response && response.success) {
+      const servicerPk = response.data.servicer_pk
+      commit('setServicerPublicKey', servicerPk)
+    }
+  } catch (error) {
+    console.error('API Sync Error inside fetchServicerPublicKey:', error)
+  } 
+}

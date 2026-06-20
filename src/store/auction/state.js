@@ -3,6 +3,8 @@ export default function () {
     listings: [],
     isLoading: false,
     auctionType: 'All',
-    activityType: 'My Biddings'
+    activityType: 'My Biddings',
+    arbiterPublicKey: '',
+    servicerPublicKey: ''
   }
 }
