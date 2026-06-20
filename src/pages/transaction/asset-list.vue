@@ -223,6 +223,7 @@ export default {
 			networkError: false,
 			favoriteLoading: {}, // { [assetId]: boolean }
 			showHidden: false,
+			hiddenIds: [],
 		}
 	},
 	computed: {
@@ -259,9 +260,6 @@ export default {
 	    },
 	    walletHash () {
 	      return this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
-	    },
-	    hiddenIds () {
-	      return getHiddenAssetIds(this.walletHash)
 	    },
 	    visibleAssetList () {
 	      const hidden = this.hiddenIds
@@ -388,6 +386,10 @@ export default {
 		    }
 
 		    this.isloaded = true
+		    this.refreshHiddenIds()
+	    },
+	    refreshHiddenIds () {
+	    	this.hiddenIds = getHiddenAssetIds(this.walletHash)
 	    },
 	    refreshList() {
 	    	this.assetListKey++
@@ -729,13 +731,13 @@ export default {
 	        }
 	      }).onOk(() => {
 	        hideAsset(vm.walletHash, asset.id)
-	        vm.assetListKey++
+	        vm.refreshHiddenIds()
 	        vm.$emit('removed-asset', asset)
 	      })
 	    },
 	    onSwipeUnhide(asset) {
 	      unhideAsset(this.walletHash, asset.id)
-	      this.assetListKey++
+	      this.refreshHiddenIds()
 	    },
 	    async fetchTokensDirectlyFromAPI () {
 	    	if (!this.isCashToken) {
