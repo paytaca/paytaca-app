@@ -696,7 +696,12 @@ export default {
         return 0
       })
       
-      // Return the first N tokens based on subscription limit
+      // Filter out hidden tokens, then return the first N based on subscription limit
+      const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
+      const hiddenIds = getHiddenAssetIds(bchWalletHash)
+      if (hiddenIds.length) {
+        return sortedTokens.filter(t => !hiddenIds.includes(t.id)).slice(0, limit)
+      }
       return sortedTokens.slice(0, limit)
     },
     tokenCardsAssets () {
