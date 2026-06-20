@@ -11,13 +11,16 @@
           flat
           round
           dense
-          icon="lightbulb"
+          :icon="viewMode === 'list' ? 'apps' : 'view_list'"
           class="text-bow"
           :class="getDarkModeClass(darkMode)"
           :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '0px' }"
-          data-tour="apps-tour-trigger"
-          @click="startAppsTour(false)"
-        />
+          @click="toggleViewMode"
+        >
+          <q-tooltip :delay="500" :class="getDarkModeClass(darkMode)">
+            {{ viewMode === 'list' ? $t('GridView', {}, 'Grid view') : $t('ListView', {}, 'List view') }}
+          </q-tooltip>
+        </q-btn>
       </template>
     </HeaderNav>
     <div class="category-chips-bar" :class="getDarkModeClass(darkMode)" :style="{ '--chip-active-bg': themePrimaryHex }">
@@ -39,7 +42,7 @@
       </div>
     </div>
 
-    <div id="apps" ref="apps" class="apps-list-container" :class="getDarkModeClass(darkMode)">
+    <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
       <section
         v-for="cat in categorizedApps"
         :key="cat.id"
@@ -56,7 +59,8 @@
 
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
 
-        <div class="app-rows">
+        <!-- List view -->
+        <div v-if="viewMode === 'list'" class="app-rows">
           <div
             v-for="(app, index) in cat.apps"
             :key="app.id || index"
@@ -65,7 +69,6 @@
               getDarkModeClass(darkMode),
               { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta }
             ]"
-            :data-tour="`apps-app-${app.id || index}`"
             @click="openApp(app)"
           >
             <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
@@ -91,77 +94,40 @@
             </div>
           </div>
         </div>
-      </section>
-    </div>
 
-    <teleport to="body">
-      <div v-if="appsTour.active" class="apps-tour-overlay" @click.self="endAppsTour">
-        <div
-          v-if="appsTour.scrims && appsTour.targetRect"
-          v-for="(rect, key) in appsTour.scrims"
-          :key="key"
-          class="apps-tour-scrim"
-          :style="{
-            top: rect.top + 'px',
-            left: rect.left + 'px',
-            width: rect.width + 'px',
-            height: rect.height + 'px',
-          }"
-        />
-
-        <div
-          v-if="appsTour.targetRect"
-          class="apps-tour-highlight"
-          :style="{
-            top: appsTour.targetRect.top + 'px',
-            left: appsTour.targetRect.left + 'px',
-            width: appsTour.targetRect.width + 'px',
-            height: appsTour.targetRect.height + 'px',
-          }"
-        />
-
-        <div
-          class="apps-tour-tooltip pt-card text-bow"
-          :class="getDarkModeClass(darkMode)"
-          :style="{
-            top: appsTour.tooltipPos.top + 'px',
-            left: appsTour.tooltipPos.left + 'px',
-          }"
-        >
-          <div class="text-subtitle1 text-weight-medium q-mb-xs">
-            {{ appsTour.steps[appsTour.stepIndex]?.title }}
-          </div>
-          <div class="text-body2">
-            {{ appsTour.steps[appsTour.stepIndex]?.body }}
-          </div>
-
-          <div class="row items-center justify-between q-mt-md">
-            <q-btn
-              flat
-              no-caps
-              :label="$t('Skip', {}, 'Skip')"
-              @click="endAppsTour"
-            />
-            <div class="row items-center q-gutter-sm">
-              <q-btn
-                flat
-                no-caps
-                :disable="appsTour.stepIndex === 0"
-                :label="$t('Back', {}, 'Back')"
-                @click="prevAppsTourStep"
-              />
-              <q-btn
-                unelevated
-                color="primary"
-                no-caps
-                :label="appsTour.stepIndex === appsTour.steps.length - 1 ? $t('Done', {}, 'Done') : $t('Next', {}, 'Next')"
-                @click="nextAppsTourStep"
-              />
+        <!-- Grid view -->
+        <div v-else class="app-grid">
+          <div
+            v-for="(app, index) in cat.apps"
+            :key="app.id || index"
+            class="app-grid-item"
+            :class="[
+              getDarkModeClass(darkMode),
+              { 'app-inactive': !app.active }
+            ]"
+            @click="openApp(app)"
+          >
+            <div class="relative-position" style="display: inline-block;">
+              <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+                <q-icon size="30px" color="white" :name="app.iconName" />
+              </div>
+              <div
+                v-if="app.id === 'chat' && chatUnreadCount > 0"
+                class="app-unread-badge"
+              >
+                {{ chatUnreadCountLabel }}
+              </div>
             </div>
+            <p
+              class="app-grid-name pt-label"
+              :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
+            >
+              {{ app.name }}
+            </p>
           </div>
         </div>
-      </div>
-    </teleport>
+      </section>
+    </div>
 
   </div>
 </template>
@@ -174,7 +140,6 @@ import MarketplaceAppSelectionDialog from 'src/components/marketplace/Marketplac
 import BetaAppDialog from 'src/components/apps/BetaAppDialog.vue'
 import HeaderNav from '../../components/header-nav'
 import { webSocketManager } from 'src/exchange/websocket/manager'
-import { buildAppsTourSteps, APPS_TOUR_SEEN_KEY } from 'src/utils/apps-tour'
 import { isNativeIOS } from 'src/utils/native-platform'
 
 export default {
@@ -189,16 +154,7 @@ export default {
   data () {
     return {
       showDebugApp: localStorage.getItem('debugAppVisible') === 'true',
-      appsTour: {
-        active: false,
-        auto: false,
-        steps: [],
-        stepIndex: 0,
-        targetRect: null,
-        scrims: null,
-        tooltipPos: { top: 24, left: 24 },
-        lastAutoScrollStepIndex: null,
-      },
+      viewMode: localStorage.getItem('appsViewMode') || 'list',
       apps: [
         {
           id: 'p2p-exchange',
@@ -495,186 +451,6 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    // ---- Apps guided tour (no dependency) ----
-    async startAppsTour (auto = false) {
-      const vm = this
-
-      if (auto && localStorage.getItem(APPS_TOUR_SEEN_KEY) === 'true') return
-      if (vm.appsTour.active) return
-
-      vm.appsTour.auto = auto
-      vm.appsTour.steps = buildAppsTourSteps((...args) => vm.$t(...args), vm.filteredApps)
-      vm.appsTour.stepIndex = 0
-      vm.appsTour.active = true
-
-      await vm.$nextTick()
-      vm._appsTourBindListeners()
-      await vm._appsTourGoTo(0)
-    },
-
-    endAppsTour () {
-      this.appsTour.active = false
-      this._appsTourUnbindListeners()
-      localStorage.setItem(APPS_TOUR_SEEN_KEY, 'true')
-    },
-
-    nextAppsTourStep () {
-      this._appsTourGoTo(this.appsTour.stepIndex + 1)
-    },
-
-    prevAppsTourStep () {
-      this._appsTourGoTo(this.appsTour.stepIndex - 1)
-    },
-
-    async _appsTourGoTo (index) {
-      const vm = this
-      if (!vm.appsTour.active) return
-      if (index < 0) return
-      if (index >= vm.appsTour.steps.length) {
-        vm.endAppsTour()
-        return
-      }
-
-      vm.appsTour.stepIndex = index
-
-      // Wait briefly for targets to exist (layout, etc.)
-      for (let i = 0; i < 10; i++) {
-        const el = vm._appsTourGetTargetEl()
-        if (el) break
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise(r => setTimeout(r, 150))
-      }
-
-      // If the target is off-screen, scroll it into view first.
-      const step = vm.appsTour.steps[vm.appsTour.stepIndex]
-      const targetEl = vm._appsTourGetTargetEl()
-      if (targetEl && vm.appsTour.lastAutoScrollStepIndex !== index) {
-        vm.appsTour.lastAutoScrollStepIndex = index
-        vm._appsTourEnsureVisible(targetEl, step?.scroll)
-        // Give the scroll a moment to settle before measuring/highlighting.
-        await new Promise(r => setTimeout(r, 350))
-      }
-
-      vm._appsTourRecalc()
-    },
-
-    _appsTourGetTargetEl () {
-      const step = this.appsTour.steps[this.appsTour.stepIndex]
-      if (!step?.selector) return null
-      return document.querySelector(step.selector)
-    },
-
-    _appsTourEnsureVisible (el, scrollMode = 'auto') {
-      if (!el?.getBoundingClientRect) return
-
-      if (scrollMode === 'top') {
-        const scroller = document.scrollingElement || document.documentElement
-        try {
-          scroller.scrollTo({ top: 0, behavior: 'smooth' })
-        } catch (_) {
-          scroller.scrollTop = 0
-        }
-        return
-      }
-
-      try {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
-      } catch (_) {
-        // Older browsers
-        el.scrollIntoView(true)
-      }
-    },
-
-    _appsTourRecalc () {
-      const step = this.appsTour.steps[this.appsTour.stepIndex]
-      const el = this._appsTourGetTargetEl()
-      if (!el) {
-        this.appsTour.targetRect = null
-        this.appsTour.scrims = null
-        this.appsTour.tooltipPos = { top: 24, left: 24 }
-        return
-      }
-
-      const rect = el.getBoundingClientRect()
-      const pad = 8
-      const targetRect = {
-        top: Math.max(0, rect.top - pad),
-        left: Math.max(0, rect.left - pad),
-        width: Math.min(window.innerWidth, rect.width + pad * 2),
-        height: Math.min(window.innerHeight, rect.height + pad * 2),
-      }
-      this.appsTour.targetRect = targetRect
-
-      // Scrims: 4 rectangles around the highlight.
-      const bottomTop = targetRect.top + targetRect.height
-      const rightLeft = targetRect.left + targetRect.width
-      this.appsTour.scrims = {
-        top: {
-          top: 0,
-          left: 0,
-          width: window.innerWidth,
-          height: Math.max(0, targetRect.top),
-        },
-        bottom: {
-          top: bottomTop,
-          left: 0,
-          width: window.innerWidth,
-          height: Math.max(0, window.innerHeight - bottomTop),
-        },
-        left: {
-          top: targetRect.top,
-          left: 0,
-          width: Math.max(0, targetRect.left),
-          height: targetRect.height,
-        },
-        right: {
-          top: targetRect.top,
-          left: rightLeft,
-          width: Math.max(0, window.innerWidth - rightLeft),
-          height: targetRect.height,
-        },
-      }
-
-      // Tooltip placement
-      const tooltipW = 320
-      const tooltipH = 160
-      const margin = 12
-
-      const availableBottom = window.innerHeight - (targetRect.top + targetRect.height)
-      const availableTop = targetRect.top
-
-      let place = step?.prefer || 'bottom'
-      if (place === 'bottom' && availableBottom < tooltipH + margin && availableTop > availableBottom) place = 'top'
-      if (place === 'top' && availableTop < tooltipH + margin && availableBottom > availableTop) place = 'bottom'
-
-      let top = place === 'top'
-        ? (targetRect.top - tooltipH - margin)
-        : (targetRect.top + targetRect.height + margin)
-      top = Math.max(margin, Math.min(window.innerHeight - tooltipH - margin, top))
-
-      let left = targetRect.left + (targetRect.width / 2) - (tooltipW / 2)
-      left = Math.max(margin, Math.min(window.innerWidth - tooltipW - margin, left))
-
-      this.appsTour.tooltipPos = { top, left }
-    },
-
-    _appsTourBindListeners () {
-      if (this._appsTourListenersBound) return
-      this._appsTourListenersBound = true
-      this._appsTourOnResize = () => this._appsTourRecalc()
-      this._appsTourOnScroll = () => this._appsTourRecalc()
-      window.addEventListener('resize', this._appsTourOnResize)
-      window.addEventListener('scroll', this._appsTourOnScroll, true)
-    },
-
-    _appsTourUnbindListeners () {
-      if (!this._appsTourListenersBound) return
-      this._appsTourListenersBound = false
-      window.removeEventListener('resize', this._appsTourOnResize)
-      window.removeEventListener('scroll', this._appsTourOnScroll, true)
-      this._appsTourOnResize = null
-      this._appsTourOnScroll = null
-    },
 
     fetchAppControl () {
       this.$store.dispatch('global/fetchAppControl')
@@ -822,6 +598,10 @@ export default {
         }, { rootMargin: '-120px 0px -60% 0px', threshold: 0 })
         sections.forEach(s => this.categoryObserver.observe(s))
       })
+    },
+    toggleViewMode () {
+      this.viewMode = this.viewMode === 'list' ? 'grid' : 'list'
+      localStorage.setItem('appsViewMode', this.viewMode)
     }
   },
   created () {
@@ -853,7 +633,6 @@ export default {
     this.setupCategoryObserver()
   },
   beforeUnmount () {
-    this._appsTourUnbindListeners()
     if (this.categoryObserver) {
       this.categoryObserver.disconnect()
       this.categoryObserver = null
@@ -863,63 +642,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-  :global(.apps-tour-overlay) {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-  }
-
-  :global(.apps-tour-scrim) {
-    position: fixed;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    pointer-events: none;
-  }
-
-  :global(.apps-tour-highlight) {
-    position: fixed;
-    border-radius: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.75);
-    pointer-events: none;
-  }
-
-  :global(.apps-tour-highlight)::after {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 16px;
-    pointer-events: none;
-    border: 2px solid rgba(59, 123, 246, 0.95);
-    box-shadow: 0 0 10px 1px rgba(59, 123, 246, 0.25);
-    animation: appsTourGlow 1.6s ease-in-out infinite;
-  }
-
-  @keyframes appsTourGlow {
-    0% {
-      box-shadow:
-        0 0 10px 1px rgba(59, 123, 246, 0.22),
-        0 0 0 0 rgba(59, 123, 246, 0);
-    }
-    50% {
-      box-shadow:
-        0 0 18px 3px rgba(59, 123, 246, 0.38),
-        0 0 34px 10px rgba(59, 123, 246, 0.18);
-    }
-    100% {
-      box-shadow:
-        0 0 10px 1px rgba(59, 123, 246, 0.22),
-        0 0 0 0 rgba(59, 123, 246, 0);
-    }
-  }
-
-  :global(.apps-tour-tooltip) {
-    position: fixed;
-    width: min(320px, calc(100vw - 24px));
-    padding: 12px 14px;
-    border-radius: 14px;
-    z-index: 100000;
-  }
 
   /* ---- Category chips bar ---- */
   .apps-header {
@@ -1146,5 +868,55 @@ export default {
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  }
+
+  /* ---- Grid view ---- */
+  .view-grid .app-rows { display: none; }
+
+  .app-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .app-grid-item {
+    flex: 0 0 calc(33.333% - 4px);
+    max-width: calc(33.333% - 4px);
+    text-align: center;
+    cursor: pointer;
+    padding: 12px 4px 8px;
+    @media (min-width: 600px) {
+      flex: 0 0 calc(16.666% - 4px);
+      max-width: calc(16.666% - 4px);
+    }
+    &.app-inactive { cursor: default; }
+  }
+  .app-grid-tile {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    &.tile-inactive { filter: grayscale(1) opacity(0.4); }
+  }
+  .app-grid-name {
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    word-break: break-all;
+    line-height: 1.2;
+    &.dark { color: rgba(255,255,255,0.85); }
+    &.light { color: rgba(0,0,0,0.8); }
+  }
+  .view-grid .app-unread-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    z-index: 11;
+  }
+  .view-grid .relative-position {
+    position: relative;
+    display: inline-block;
   }
 </style>
