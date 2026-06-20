@@ -16,11 +16,7 @@
           :class="getDarkModeClass(darkMode)"
           :style="{ 'margin-top': $q.platform.is.ios ? '-5px' : '0px' }"
           @click="toggleViewMode"
-        >
-          <q-tooltip :delay="500" :class="getDarkModeClass(darkMode)">
-            {{ viewMode === 'list' ? $t('GridView', {}, 'Grid view') : $t('ListView', {}, 'List view') }}
-          </q-tooltip>
-        </q-btn>
+        />
       </template>
     </HeaderNav>
     <div class="category-chips-bar" :class="getDarkModeClass(darkMode)" :style="{ '--chip-active-bg': themePrimaryHex }">
