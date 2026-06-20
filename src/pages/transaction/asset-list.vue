@@ -979,8 +979,8 @@ export default {
 }
 
 :deep(.q-slide-item__content) {
-  border-radius: 15px;
-  overflow: hidden;
+  border-radius: 0;
+  overflow: visible;
 }
 
 // Hidden assets section
