@@ -1,3 +1,4 @@
+import { getWalletByNetwork } from "src/wallet/chipnet"
 import { Contract, ElectrumNetworkProvider } from "cashscript"
 import escrowArtifact from 'src/cashscripts/auction/AuctionEscrow.json'
 import BCHJS from '@psf/bch-js'
@@ -7,7 +8,7 @@ const bchjs = new BCHJS()
 
 class AuctionEscrowContract {
   /**
-   * Creates a new RampContract instance.
+   * Creates a new AuctionEscrowContract instance.
    * @param {Object} publicKeys - The public keys of the parties involved in the contract.
    * @param {Object} fees - The fees associated with the contract.
    * @param {Object} bidId - The lot associated with the contract.
@@ -37,14 +38,13 @@ class AuctionEscrowContract {
       this.publicKeys.servicer,
       this.bidId
     )
-    console.log(this.hash)
 
     const contractParams = [
       arbiterPkh,
       bidderPkh, // include lang muna
       auctioneerPkh,
       servicerPkh,
-      BigInt(parseInt(this.fees.serviceFee)),
+      BigInt(parseInt(this.fees.platformFee)),
       BigInt(parseInt(this.fees.arbitrationFee)),
       this.hash
     ]
@@ -71,6 +71,7 @@ class AuctionEscrowContract {
     return CryptoJS.SHA256(message).toString()
   }
 
+
   async broadcastTransaction (txHex, priceId) {
     try {
       const broadcastData = { transaction: txHex }
@@ -83,6 +84,34 @@ class AuctionEscrowContract {
       console.error(error.response || error)
       return error.response.data
     }
+  }
+
+  // sending BCH from wallet to address
+  async sendAmountToAddress (
+    changeAddress,
+    bchAmount,
+    tokenAmount=undefined,
+    wallet,
+  ) {
+  
+    const txid = await getWalletByNetwork(wallet, 'bch').sendBch(
+      undefined,
+      '',
+      changeAddress,
+      null,
+      undefined,
+      [{
+        address: this.contract.address,
+        amount: bchAmount,
+        tokenAmount: tokenAmount
+      }],
+      undefined
+    )
+  
+    // sleep for 2 seconds to resolve UTXOs after sending to PromoContract
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    return txid
   }
 
 }
