@@ -52,9 +52,11 @@ export async function deriveOAuthCredentials() {
     throw new Error(`Failed to derive address node: ${addressNode}`)
   }
 
+  const isChipnet = Store.getters['global/isChipnet']
+
   const publicNode = deriveHdPublicNode(addressNode)
   const publicKey = binToHex(publicNode.publicKey)
-  const address = pubkeyToAddress(publicKey, false)
+  const address = pubkeyToAddress(publicKey, isChipnet)
 
   return {
     privateKey: binToHex(addressNode.privateKey),
