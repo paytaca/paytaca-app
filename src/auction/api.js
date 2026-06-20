@@ -41,7 +41,6 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
 
   for (let attempt = 0; attempt <= MAX_AUTH_RETRIES; attempt++) {
     try {
-      //bchOauth.clearToken()
       const headers = await bchOauth.getAuthHeaders()
 
       const response = 
@@ -72,7 +71,7 @@ export async function callAPI(pathname, id=null, method="get", payload=null, arg
         errorMessage = 'FORBIDDEN ACCESS (must be admin user).'
         console.log("[callAPI] " + errorMessage)
       } else {
-        errorMessage = error.response?.data?.detail || error.response?.data?.message || JSON.stringify(error.response?.data) || error.message || 'Failed to fetch'
+        errorMessage = error.response?.data?.detail || error.response?.data?.error || JSON.stringify(error.response?.data) || error.message || 'Failed to fetch'
         console.error("[callAPI] Error encountered: " + errorMessage)
       }
     
