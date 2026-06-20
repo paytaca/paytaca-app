@@ -525,6 +525,7 @@ import MessageBubble from 'src/components/chat/MessageBubble.vue'
 import ChatInput from 'src/components/chat/ChatInput.vue'
 import SendBchDialog from 'src/components/chat/SendBchDialog.vue'
 import { npubEncode } from 'nostr-tools/nip19'
+import { getCachedAvatar, setCachedAvatar } from 'src/utils/avatar-cache'
 
 export default {
   name: 'ChatConversation',
@@ -566,6 +567,7 @@ export default {
       requestingToJoin: false,
       _fetchedGroupMeta: null,
       _fetchingMeta: false,
+      otherMemberAvatar: null,
     }
   },
   computed: {
@@ -619,6 +621,10 @@ export default {
       const npub = this.otherMemberNpub
       if (!npub) return null
       return this.$store.getters['nostrChat/getContactByNpub'](npub)
+    },
+    otherMemberAvatarUrl () {
+      if (this.isGroupRoom || !this.otherMemberPubKey) return null
+      return this.otherMemberAvatar || getCachedAvatar(this.otherMemberPubKey)
     },
     isUnknownContact () {
       return this.otherMemberPubKey && !this.otherMemberContact
@@ -754,6 +760,21 @@ export default {
     },
   },
   watch: {
+    otherMemberPubKey: {
+      handler (pubKey) {
+        if (!pubKey || this.isGroupRoom) return
+        this.otherMemberAvatar = getCachedAvatar(pubKey)
+        this.$store.dispatch('nostrChat/fetchPublishedAvatar', { pubKeyHex: pubKey })
+          .then(avatar => {
+            if (avatar) {
+              setCachedAvatar(pubKey, avatar)
+              this.otherMemberAvatar = avatar
+            }
+          })
+          .catch(() => {})
+      },
+      immediate: true,
+    },
     'allMessages.length' (newLen, oldLen) {
       this.markAsRead()
 
