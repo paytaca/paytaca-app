@@ -927,7 +927,7 @@ export default {
   }
   .category-chips-bar {
     position: sticky;
-    top: 55px;
+    top: calc(-1px + env(safe-area-inset-top, 0px) + 53px);
     z-index: 2900;
     padding: 6px 0;
     &.dark { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
@@ -980,7 +980,7 @@ export default {
   }
 
   /* ---- Apps list container ---- */
-  .apps-list-container {
+  #apps.apps-list-container {
     padding: 4px 16px 120px;
     &.dark { background: transparent; }
     &.light { background: transparent; }
