@@ -73,7 +73,7 @@
 						class="asset-list-transition"
 			      	>
 			      	    <template #item="{element: asset, index}"> 
-			      	    	<q-slide-item @right="onSwipeRight(asset)" right-color="grey" class="q-my-sm">
+			      	    	<q-slide-item ref="slideRefs" @right="onSwipeRight(asset, $event)" right-color="grey" class="q-my-sm">
 			      	    		<template v-slot:right>
 			      	    			<div class="row items-center q-px-md">
 			      	    				<q-icon name="visibility_off" size="24px" color="white" />
@@ -719,10 +719,10 @@ export default {
 	    getWallet (type) {
 	      return this.$store.getters['global/getWallet'](type)
 	    },
-	    onSwipeRight(asset) {
-	      this.hideAsset(asset)
+	    onSwipeRight(asset, evt) {
+	      this.hideAsset(asset, evt)
 	    },
-	    hideAsset (asset) {
+	    hideAsset (asset, slideEvt) {
 	      const vm = this
 	      vm.$q.dialog({
 	        component: RemoveAsset,
@@ -733,6 +733,8 @@ export default {
 	        hideAsset(vm.walletHash, asset.id)
 	        vm.refreshHiddenIds()
 	        vm.$emit('removed-asset', asset)
+	      }).onCancel(() => {
+	        if (slideEvt?.reset) slideEvt.reset()
 	      })
 	    },
 	    onSwipeUnhide(asset) {
