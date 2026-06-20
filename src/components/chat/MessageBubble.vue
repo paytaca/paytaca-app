@@ -63,7 +63,7 @@
           <q-icon :name="fileIcon" size="28px" class="file-icon" :style="{ color: themeColor }" />
           <div class="file-info">
             <div class="file-name">{{ message.fileName || getFileName(message.content) }}</div>
-            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || 'File' }}</div>
+            <div class="file-meta">{{ formatFileSize(message.fileSize || message.encryptedSize) }} • {{ message.fileType || $t('File') }}</div>
           </div>
         </div>
         <div class="file-card-actions">
@@ -76,7 +76,7 @@
             :loading="isDownloading"
             @click.stop="downloadFile"
           >
-            <q-tooltip>Download</q-tooltip>
+            <q-tooltip>{{ $t('Download') }}</q-tooltip>
           </q-btn>
         </div>
       </div>
@@ -95,7 +95,7 @@
             <span class="payment-amount">{{ markup.amount }} {{ markup.symbol || 'BCH' }}</span>
           </div>
           <div v-if="markup.txid" class="payment-txid">
-            <span class="txid-label">TXID</span>
+            <span class="txid-label">{{ $t('TXID') }}</span>
             <span class="txid-value">{{ formatTxid(markup.txid) }}</span>
             <q-icon name="chevron_right" size="16px" class="payment-chevron" />
           </div>
@@ -648,7 +648,7 @@ export default {
       }
     },
     getFileName (url) {
-      if (!url) return 'Unknown file'
+      if (!url) return this.$t('UnknownFile')
       const parts = url.split('/')
       const lastPart = parts[parts.length - 1]
       // If it's a hash, add extension based on type
@@ -656,7 +656,7 @@ export default {
         const ext = this.getFileExtension()
         return `file${ext}`
       }
-      return lastPart || 'Unknown file'
+      return lastPart || this.$t('UnknownFile')
     },
     formatFileSize (bytes) {
       if (!bytes || bytes < 1024) return (bytes || 0) + ' B'

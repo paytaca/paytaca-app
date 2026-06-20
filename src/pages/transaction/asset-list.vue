@@ -179,7 +179,7 @@
 		      	<q-banner class="bg-primary text-white">
 		      		<div class="row justify-between q-pt-xs q-px-sm">
                 <div class="text-italic" style="font-size: 15px;">
-                  Network Error. Try again later
+                  {{ $t('NetworkErrorTryAgainLater') }}
                 </div>
 	              <div>
 	              	<q-btn flat padding="none" color="white" size="md" icon="refresh" @click="loadData()"/>

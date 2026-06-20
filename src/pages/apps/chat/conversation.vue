@@ -1088,8 +1088,8 @@ export default {
       const yesterday = new Date(now)
       yesterday.setDate(yesterday.getDate() - 1)
 
-      if (d.toDateString() === now.toDateString()) return 'Today'
-      if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
+      if (d.toDateString() === now.toDateString()) return this.$t('Today')
+      if (d.toDateString() === yesterday.toDateString()) return this.$t('Yesterday')
       return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
     },
     getMessageById (id) {
@@ -1294,7 +1294,7 @@ export default {
     onTipAction () {
       const recipientPubKey = this.otherMemberPubKey
       if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: 'No recipient found', timeout: 5000, closeBtn: true })
+        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
         return
       }
       this.sendAmount = 0
@@ -1605,7 +1605,7 @@ export default {
     async onCommand ({ type, amount, currency, originalText }) {
       if (type !== 'send') return
       if (!this.room) {
-        this.$q.notify({ type: 'negative', message: 'No active room', timeout: 5000, closeBtn: true })
+        this.$q.notify({ type: 'negative', message: this.$t('NoActiveRoom'), timeout: 5000, closeBtn: true })
         this.$refs.chatInput?.setText(originalText)
         return
       }
@@ -1628,7 +1628,7 @@ export default {
     async handleBchSend (amount, originalText, commandType = 'send') {
       const recipientPubKey = this.otherMemberPubKey
       if (!recipientPubKey) {
-        this.$q.notify({ type: 'negative', message: 'No recipient found', timeout: 5000, closeBtn: true })
+        this.$q.notify({ type: 'negative', message: this.$t('NoRecipientFound'), timeout: 5000, closeBtn: true })
         this.$refs.chatInput?.setText(originalText)
         return
       }

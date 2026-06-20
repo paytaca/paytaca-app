@@ -907,10 +907,10 @@ export default {
     },
     getRoomDisplayName (room) {
       const myPubKey = this.$store.getters['nostrChat/myPubKey']
-      if (!myPubKey) return room.subject || room.name || 'Chat'
+      if (!myPubKey) return room.subject || room.name || this.$t('Chat')
 
       const otherPubKey = room.members?.find(m => m !== myPubKey)
-      if (!otherPubKey) return room.subject || room.name || 'Chat'
+      if (!otherPubKey) return room.subject || room.name || this.$t('Chat')
 
       // If a subject has been set, use it as the conversation name
       if (room.subject) return room.subject
@@ -919,7 +919,7 @@ export default {
       try {
         otherNpub = npubEncode(otherPubKey)
       } catch {
-        return room.name || 'Chat'
+        return room.name || this.$t('Chat')
       }
 
       const contact = this.$store.getters['nostrChat/getContactByNpub'](otherNpub)

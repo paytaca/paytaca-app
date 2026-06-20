@@ -18,7 +18,7 @@
           color="negative"
           @click="cancelUpload"
         >
-          <q-tooltip>Cancel upload</q-tooltip>
+          <q-tooltip>{{ $t('CancelUpload') }}</q-tooltip>
         </q-btn>
       </div>
       <q-linear-progress :value="uploadProgress" color="primary" class="q-mt-sm" />
@@ -53,7 +53,7 @@
               </q-item-section>
               <q-item-section>
                 <div class="action-label">{{ $t('File', {}, 'File') }}</div>
-                <div class="action-hint">Attach an image, video, or document</div>
+                <div class="action-hint">{{ $t('AttachFileHint') }}</div>
               </q-item-section>
             </q-item>
             <q-item clickable v-close-popup @click="onTipClick" class="chat-action-item">
@@ -64,7 +64,7 @@
               </q-item-section>
               <q-item-section>
                 <div class="action-label">{{ $t('Tip', {}, 'Tip') }}</div>
-                <div class="action-hint">Send BCH or tokens</div>
+                <div class="action-hint">{{ $t('SendTipHint') }}</div>
               </q-item-section>
             </q-item>
           </q-list>
@@ -119,8 +119,8 @@
     <q-dialog v-model="showResizeDialog" persistent>
       <q-card style="min-width: 320px">
         <q-card-section class="q-pb-none">
-          <div class="text-h6">Resize Image</div>
-          <div class="text-caption text-grey">Original: {{ formatFileSize(imageOriginalSize) }}</div>
+          <div class="text-h6">{{ $t('ResizeImage') }}</div>
+          <div class="text-caption text-grey">{{ $t('OriginalSize', { size: formatFileSize(imageOriginalSize) }) }}</div>
         </q-card-section>
         <q-card-section>
           <q-option-group
@@ -131,8 +131,8 @@
           />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Skip" color="grey" v-close-popup @click="sendResizedFile(null)" />
-          <q-btn unelevated label="Resize & Send" color="primary" v-close-popup @click="sendResizedFile(resizeOption)" />
+          <q-btn flat :label="$t('Skip')" color="grey" v-close-popup @click="sendResizedFile(null)" />
+          <q-btn unelevated :label="$t('ResizeAndSend')" color="primary" v-close-popup @click="sendResizedFile(resizeOption)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -150,9 +150,9 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
 
 const RESIZE_OPTIONS = [
-  { label: 'Small (≈0.3 MB)', value: 'small', description: '800px max, 70% quality' },
-  { label: 'Medium (≤1 MB)', value: 'medium', description: '1600px max, up to 90% quality' },
-  { label: 'Large (≤2.5 MB)', value: 'large', description: '2048px max, up to 85% quality' },
+  { labelKey: 'ResizeSmall', value: 'small', description: '800px max, 70% quality' },
+  { labelKey: 'ResizeMedium', value: 'medium', description: '1600px max, up to 90% quality' },
+  { labelKey: 'ResizeLarge', value: 'large', description: '2048px max, up to 85% quality' },
 ]
 
 export default {
@@ -180,7 +180,10 @@ export default {
   },
   computed: {
     resizeOptions () {
-      return RESIZE_OPTIONS
+      return RESIZE_OPTIONS.map(opt => ({
+        ...opt,
+        label: this.$t(opt.labelKey),
+      }))
     },
     darkMode () {
       return this.$store.getters['darkmode/getStatus']

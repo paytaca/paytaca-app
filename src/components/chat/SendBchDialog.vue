@@ -508,12 +508,12 @@ export default {
       try {
         const bchWallet = getWalletByNetwork(this.wallet, 'bch')
         if (!bchWallet || typeof bchWallet.sendBch !== 'function') {
-          throw new Error('BCH wallet unavailable')
+          throw new Error(this.$t('BchWalletUnavailable'))
         }
 
         const changeAddress = await getChangeAddress('bch')
         if (!changeAddress) {
-          throw new Error('Could not get change address')
+          throw new Error(this.$t('CouldNotGetChangeAddress'))
         }
 
         const isCashToken = this.selectedAsset.id !== 'bch' && this.selectedAsset.id?.startsWith('ct/')
@@ -551,7 +551,7 @@ export default {
         )
 
         if (!sendResult?.success) {
-          throw new Error(sendResult?.error || 'Send failed')
+          throw new Error(sendResult?.error || this.$t('SendFailed'))
         }
 
         const sendAmount = isCashToken ? this.parsedAmount : this.bchAmount
@@ -566,7 +566,7 @@ export default {
         console.error('[SendBchDialog] Send failed:', err)
         this.$q.notify({
           type: 'negative',
-          message: err.message || 'Failed to send BCH',
+          message: err.message || this.$t('FailedToSendBch'),
         })
         throw err
       } finally {

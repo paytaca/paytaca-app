@@ -32,7 +32,7 @@
             </div>
           </div>
           <div class="identity-info">
-            <div class="identity-name">{{ profileDisplayName || 'No display name' }}</div>
+            <div class="identity-name">{{ profileDisplayName || $t('NoDisplayName') }}</div>
             <div class="identity-npub" @click="copyNpub">
               <span class="npub-text">{{ displayNpub }}</span>
               <q-icon name="content_copy" size="14px" class="copy-icon" />
@@ -222,7 +222,7 @@
                 <template #hint>
                   <div v-if="addressGeneratedFromWallet" class="address-hint">
                     <q-icon name="info" size="14px" />
-                    <span>This is a fresh address generated from your wallet</span>
+                    <span>{{ $t('FreshAddressHint') }}</span>
                   </div>
                 </template>
               </q-input>
