@@ -191,8 +191,6 @@
 			  
 		</div>
 
-		<footer-menu ref="footerMenu" />
-
 	</div>
 </template>
 <script>
