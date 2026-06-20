@@ -477,11 +477,12 @@ export default {
     },
     profilePromptMessage () {
       const items = this.missingProfileItems
+      const suffix = this.$t('ProfilePromptAvatarHint', {}, ' You can also set a display image so others can recognize you.')
       if (items.length === 2) {
-        return this.$t('ProfilePromptBothMissing', { displayName: items[0], bchAddress: items[1] }, `Set your ${items[0]} and ${items[1]} so others can identify you and send you payments.`)
+        return this.$t('ProfilePromptBothMissing', { displayName: items[0], bchAddress: items[1] }, `Set your ${items[0]} and ${items[1]} so others can identify you and send you payments.`) + suffix
       }
       if (items.length === 1) {
-        return this.$t('ProfilePromptOneMissing', { item: items[0] }, `Set your ${items[0]} so others can identify you and send you payments.`)
+        return this.$t('ProfilePromptOneMissing', { item: items[0] }, `Set your ${items[0]} so others can identify you and send you payments.`) + suffix
       }
       return ''
     },
