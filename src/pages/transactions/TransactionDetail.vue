@@ -685,6 +685,7 @@ export default {
       return this.gainLossAmount >= 0 ? 'text-green' : 'text-red'
     },
     txFee() {
+      if (!this.tx || this.tx.tx_fee === null || this.tx.tx_fee === undefined) return null;
       if (Number.isNaN(this.tx.tx_fee)) return null;
       return (this.tx.tx_fee / 10 ** 8);
     },
@@ -836,7 +837,7 @@ export default {
       return !favoriteIds.includes(this.tokenAssetId)
     },
     txFeeMarketValue () {
-      if (!this.tx) return ''
+      if (!this.tx || this.tx.tx_fee === null || this.tx.tx_fee === undefined) return ''
       const bchMarketValue = this.$store.getters['market/getAssetPrice']('bch', this.selectedMarketCurrency)
       if (!bchMarketValue) return ''
       const gas = this.tx.tx_fee / (10 ** 8)
@@ -2244,7 +2245,9 @@ export default {
       })
     },
     formatDate (date) {
+      if (!date) return ''
       const dateObj = new Date(date)
+      if (isNaN(dateObj.getTime())) return ''
       const langs = [this.$store.getters['global/language'], 'en-US']
       return new Intl.DateTimeFormat(langs, {
         year: 'numeric',

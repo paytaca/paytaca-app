@@ -19,7 +19,7 @@
         />
       </template>
     </HeaderNav>
-    <div class="category-chips-bar" :class="getDarkModeClass(darkMode)" :style="{ '--chip-active-bg': themePrimaryHex }">
+    <div v-if="!searchQuery" class="category-chips-bar" :class="getDarkModeClass(darkMode)" :style="{ '--chip-active-bg': themePrimaryHex }">
       <div class="chips-scroll">
         <button
           v-for="cat in categories"
@@ -28,14 +28,35 @@
           class="category-chip"
           :class="[
             getDarkModeClass(darkMode),
-            { 'chip-active': activeCategory === cat.id, 'chip-beta': cat.isBeta }
+            { 'chip-active': activeCategory === cat.id, 'chip-beta': cat.isBeta, 'chip-pinned': cat.isPinned }
           ]"
           @click="scrollToCategory(cat.id)"
         >
+          <q-icon v-if="cat.isPinned" name="mdi-pin" size="14px" />
           <span v-if="cat.isBeta" class="chip-beta-dot"></span>
           {{ cat.label }}
         </button>
       </div>
+    </div>
+
+    <div class="apps-search-bar" :class="getDarkModeClass(darkMode)">
+      <q-icon name="search" size="20px" class="search-icon" :class="getDarkModeClass(darkMode)" />
+      <input
+        ref="searchInput"
+        v-model="searchQuery"
+        type="text"
+        class="search-input"
+        :class="getDarkModeClass(darkMode)"
+        :placeholder="$t('SearchApps', {}, 'Search apps...')"
+      />
+      <q-icon
+        v-if="searchQuery"
+        name="close"
+        size="18px"
+        class="search-clear"
+        :class="getDarkModeClass(darkMode)"
+        @click="searchQuery = ''"
+      />
     </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
@@ -44,10 +65,11 @@
         :key="cat.id"
         :ref="`section-${cat.id}`"
         class="app-section"
-        :class="[getDarkModeClass(darkMode), { 'beta-section': cat.isBeta }]"
+        :class="[getDarkModeClass(darkMode), { 'beta-section': cat.isBeta, 'pinned-section': cat.isPinned }]"
         :data-category="cat.id"
       >
         <div class="section-header">
+          <q-icon v-if="cat.isPinned" name="mdi-pin" size="14px" class="section-pin-icon" :class="getDarkModeClass(darkMode)" />
           <span class="section-title">{{ cat.label }}</span>
           <span v-if="cat.isBeta" class="beta-pill">BETA</span>
           <span v-if="cat.isBeta" class="section-subtitle">{{ $t('BetaSectionHint', {}, 'Experimental features — try them out') }}</span>
@@ -63,8 +85,9 @@
             class="app-row"
             :class="[
               getDarkModeClass(darkMode),
-              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta }
+              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta, 'app-pinned-row': cat.isPinned }
             ]"
+            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
             @click="openApp(app)"
           >
             <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
@@ -77,6 +100,13 @@
             </div>
 
             <div class="app-row-end">
+              <q-icon
+                v-if="cat.isPinned"
+                name="mdi-pin"
+                size="16px"
+                class="pin-indicator"
+                :class="getDarkModeClass(darkMode)"
+              />
               <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
                 {{ chatUnreadCountLabel }}
               </div>
@@ -101,12 +131,20 @@
               getDarkModeClass(darkMode),
               { 'app-inactive': !app.active }
             ]"
+            v-on-long-press="[(event) => showAppContextMenu(app, event)]"
             @click="openApp(app)"
           >
             <div class="relative-position" style="display: inline-block;">
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
                 <q-icon size="30px" color="white" :name="app.iconName" />
               </div>
+              <q-icon
+                v-if="cat.isPinned"
+                name="mdi-pin"
+                size="14px"
+                class="pin-indicator-grid"
+                :class="getDarkModeClass(darkMode)"
+              />
               <div
                 v-if="app.id === 'chat' && chatUnreadCount > 0"
                 class="app-unread-badge"
@@ -123,6 +161,10 @@
           </div>
         </div>
       </section>
+
+      <div v-if="searchQuery && categorizedApps.length === 0" class="no-results" :class="getDarkModeClass(darkMode)">
+        {{ $t('NoAppsFound', {}, 'No apps found') }}
+      </div>
     </div>
 
   </div>
@@ -151,6 +193,8 @@ export default {
     return {
       showDebugApp: localStorage.getItem('debugAppVisible') === 'true',
       viewMode: localStorage.getItem('appsViewMode') || 'list',
+      searchQuery: '',
+      pinnedAppIds: JSON.parse(localStorage.getItem('pinnedAppIds') || '[]'),
       apps: [
         {
           id: 'p2p-exchange',
@@ -422,6 +466,7 @@ export default {
     },
     categoryDefinitions () {
       return [
+        { id: 'pinned', label: this.$t('Pinned', {}, 'Pinned'), isPinned: true },
         { id: 'ramp-payments', label: this.$t('RampAndPayments', {}, 'Ramp & Payments') },
         { id: 'trade-defi', label: this.$t('TradeAndDeFi', {}, 'Trade & DeFi') },
         { id: 'assets-rewards', label: this.$t('AssetsAndRewards', {}, 'Assets & Rewards') },
@@ -432,9 +477,18 @@ export default {
       ]
     },
     categorizedApps () {
+      const query = this.searchQuery.trim().toLowerCase()
       const result = []
       for (const cat of this.categoryDefinitions) {
-        const apps = this.filteredApps.filter(app => app.category === cat.id)
+        let apps
+        if (cat.isPinned) {
+          apps = this.filteredApps.filter(app => this.pinnedAppIds.includes(app.id))
+        } else {
+          apps = this.filteredApps.filter(app => app.category === cat.id && !this.pinnedAppIds.includes(app.id))
+        }
+        if (query) {
+          apps = apps.filter(app => this.fuzzyMatch(app.name, query))
+        }
         if (apps.length > 0) {
           result.push({ ...cat, apps })
         }
@@ -442,11 +496,20 @@ export default {
       return result
     },
     categories () {
-      return this.categorizedApps.map(cat => ({ id: cat.id, label: cat.label, isBeta: cat.isBeta }))
+      return this.categorizedApps.map(cat => ({ id: cat.id, label: cat.label, isBeta: cat.isBeta, isPinned: cat.isPinned }))
     }
   },
   methods: {
     getDarkModeClass,
+    fuzzyMatch (text, query) {
+      if (!text) return false
+      const str = String(text).toLowerCase()
+      let qi = 0
+      for (let i = 0; i < str.length && qi < query.length; i++) {
+        if (str[i] === query[qi]) qi++
+      }
+      return qi === query.length
+    },
 
     fetchAppControl () {
       this.$store.dispatch('global/fetchAppControl')
@@ -511,6 +574,43 @@ export default {
     onLongPressApp(event, app) {
       event.preventDefault()
       app?.onLongPress?.(event)
+    },
+    isPinned (appId) {
+      return this.pinnedAppIds.includes(appId)
+    },
+    togglePin (appId) {
+      if (this.pinnedAppIds.includes(appId)) {
+        this.pinnedAppIds = this.pinnedAppIds.filter(id => id !== appId)
+      } else {
+        this.pinnedAppIds = [...this.pinnedAppIds, appId]
+      }
+      localStorage.setItem('pinnedAppIds', JSON.stringify(this.pinnedAppIds))
+    },
+    showAppContextMenu (app, event) {
+      if (!app.active) return
+      const pinned = this.isPinned(app.id)
+      this.$q.bottomSheet({
+        class: `text-bow ${this.getDarkModeClass(this.darkMode)}`,
+        actions: [
+          {
+            label: pinned ? this.$t('Unpin', {}, 'Unpin') : this.$t('Pin', {}, 'Pin'),
+            icon: pinned ? ' mdi-pin-off' : 'mdi-pin',
+            id: 'pin',
+            color: this.themeColor,
+          },
+          {
+            label: this.$t('Open', {}, 'Open'),
+            icon: 'open_in_new',
+            id: 'open',
+          },
+        ],
+      }).onOk(action => {
+        if (action.id === 'pin') {
+          this.togglePin(app.id)
+        } else if (action.id === 'open') {
+          this.openApp(app)
+        }
+      })
     },
     closeExchangeWebsocket() {
       if (webSocketManager?.isOpen()) {
@@ -697,11 +797,63 @@ export default {
     flex-shrink: 0;
   }
 
+  /* ---- Search bar ---- */
+  .apps-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 16px 6px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+    transition: box-shadow 0.2s ease;
+    &:focus-within {
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+    }
+    &.dark { background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.08); }
+    &.light { background: #ffffff; border: 1px solid rgba(0,0,0,0.06); }
+  }
+  .search-icon {
+    flex-shrink: 0;
+    &.dark { color: rgba(255,255,255,0.4); }
+    &.light { color: rgba(0,0,0,0.35); }
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 15px;
+    font-weight: 400;
+    padding: 6px 0;
+    &.dark { color: rgba(255,255,255,0.9); &::placeholder { color: rgba(255,255,255,0.3); } }
+    &.light { color: rgba(0,0,0,0.85); &::placeholder { color: rgba(0,0,0,0.3); } }
+  }
+  .search-clear {
+    flex-shrink: 0;
+    cursor: pointer;
+    &.dark { color: rgba(255,255,255,0.4); }
+    &.light { color: rgba(0,0,0,0.35); }
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 48px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    &.dark { color: rgba(255,255,255,0.35); }
+    &.light { color: rgba(0,0,0,0.35); }
+  }
+
   /* ---- Apps list container ---- */
   #apps.apps-list-container {
-    padding: 4px 16px 120px;
+    padding: 4px 16px 80px !important;
     &.dark { background: transparent; }
     &.light { background: transparent; }
+  }
+
+  .sticky-header-container {
+    padding-bottom: 0;
   }
 
   /* ---- Section ---- */
@@ -768,6 +920,42 @@ export default {
     .section-header { padding: 14px 14px 8px; }
     .section-divider { margin: 0 14px; }
     .app-rows { padding: 0 4px 8px; }
+  }
+
+  /* ---- Pinned section ---- */
+  .pinned-section {
+    padding: 0 0 4px;
+    border-radius: 16px;
+    &.dark {
+      background: linear-gradient(180deg, rgba(59, 123, 246, 0.08) 0%, rgba(59, 123, 246, 0.01) 100%);
+      border: 1px solid rgba(59, 123, 246, 0.15);
+    }
+    &.light {
+      background: linear-gradient(180deg, rgba(59, 123, 246, 0.05) 0%, rgba(59, 123, 246, 0.01) 100%);
+      border: 1px solid rgba(59, 123, 246, 0.12);
+    }
+    .section-header { padding: 14px 14px 8px; }
+    .section-divider { margin: 0 14px; }
+    .app-rows { padding: 0 4px 8px; }
+  }
+  .section-pin-icon {
+    &.dark { color: rgba(59, 123, 246, 0.7); }
+    &.light { color: rgba(59, 123, 246, 0.6); }
+  }
+  .pin-indicator {
+    &.dark { color: rgba(59, 123, 246, 0.6); }
+    &.light { color: rgba(59, 123, 246, 0.5); }
+  }
+  .pin-indicator-grid {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    &.dark { color: rgba(59, 123, 246, 0.7); }
+    &.light { color: rgba(59, 123, 246, 0.6); }
+  }
+  .chip-pinned {
+    &.dark { border: 1px solid rgba(59, 123, 246, 0.3); }
+    &.light { border: 1px solid rgba(59, 123, 246, 0.2); }
   }
 
   /* ---- App row ---- */
