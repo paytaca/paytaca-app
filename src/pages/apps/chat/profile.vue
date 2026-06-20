@@ -284,6 +284,7 @@
         <div v-if="hasCache" class="danger-section q-mt-lg">
           <div class="section-label">
             {{ $t('ChatCache', {}, 'Chat Cache') }}
+            <span class="cache-size-badge">{{ formattedCacheSize }}</span>
           </div>
           <div class="section-description">
             {{ $t('ChatCacheDescription', {}, 'Cached images are stored to improve loading speed. Clear cache to free up storage space.') }}
@@ -310,7 +311,7 @@ import { validateAddress } from 'src/utils/send-page-utils'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { cachedLoadWallet } from 'src/wallet'
 import { npubEncode } from 'nostr-tools/nip19'
-import { clearChatCache, hasChatCache } from 'src/components/chat/MessageBubble.vue'
+import { clearChatCache, hasChatCache, getChatCacheSize } from 'src/components/chat/MessageBubble.vue'
 import { copyToClipboard } from 'quasar'
 import { uploadPublicToBlossom } from 'src/wallet/nostr-media'
 
@@ -336,6 +337,7 @@ export default {
       removingDisplayName: false,
       clearingCache: false,
       hasCache: false,
+      cacheSizeBytes: 0,
       addressGeneratedFromWallet: false,
       generatingAddress: false,
       pendingAvatar: null,
@@ -387,6 +389,13 @@ export default {
       if (theme === 'glassmorphic-green') return '#4caf50'
       if (theme === 'glassmorphic-gold') return '#ffa726'
       return '#3b82f6'
+    },
+    formattedCacheSize () {
+      const bytes = this.cacheSizeBytes
+      if (bytes < 1024) return `${Math.round(bytes)} B`
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
     },
   },
   mounted () {
@@ -776,6 +785,9 @@ export default {
     async checkCache () {
       try {
         this.hasCache = await hasChatCache()
+        if (this.hasCache) {
+          this.cacheSizeBytes = await getChatCacheSize()
+        }
       } catch { this.hasCache = false }
     },
     async confirmClearCache () {
@@ -1019,6 +1031,18 @@ export default {
   font-weight: 600;
   color: #dc2626;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cache-size-badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
 }
 
 .danger-section .section-description {

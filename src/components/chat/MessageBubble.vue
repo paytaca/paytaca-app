@@ -279,6 +279,39 @@ export async function hasChatCache() {
   }
 }
 
+export async function getChatCacheSize () {
+  try {
+    let totalChars = 0
+    for (const url of _imageThumbnailCache.values()) {
+      totalChars += typeof url === 'string' ? url.length : 0
+    }
+    for (const url of _replyThumbnailCache.values()) {
+      totalChars += typeof url === 'string' ? url.length : 0
+    }
+    const db = await openDatabase()
+    const dbSize = await new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly')
+      const store = tx.objectStore(STORE_NAME)
+      const cursorReq = store.openCursor()
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result
+        if (cursor) {
+          const val = cursor.value
+          if (val?.thumbnailUrl) totalChars += val.thumbnailUrl.length
+          cursor.continue()
+        } else {
+          resolve(totalChars)
+        }
+      }
+      cursorReq.onerror = () => resolve(totalChars)
+    })
+    const approxBytes = dbSize * 0.75
+    return approxBytes
+  } catch {
+    return 0
+  }
+}
+
 function evictOldestThumbnail() {
   if (_imageThumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
     const firstKey = _imageThumbnailCache.keys().next().value
