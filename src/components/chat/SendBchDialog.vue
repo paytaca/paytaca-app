@@ -35,15 +35,18 @@
 
         <!-- Amount input -->
         <div class="amount-input-section" :class="getDarkModeClass(darkMode)">
-          <input
+          <q-input
             ref="amountInput"
             v-model="amountInput"
             type="text"
-            inputmode="decimal"
-            class="amount-input"
+            inputmode="none"
+            borderless
+            dense
+            class="amount-q-input"
             :class="getDarkModeClass(darkMode)"
             :placeholder="$t('EnterAmount', {}, '0')"
-            @input="onAmountInput"
+            @focus="customKeyboardState = 'show'"
+            @keydown.prevent
           />
           <button
             v-if="selectedAsset.id === 'bch'"
@@ -128,6 +131,12 @@
         </div>
       </q-card-section>
 
+      <CustomKeyboard
+        :custom-keyboard-state="customKeyboardState"
+        @addKey="onKeyboardKey"
+        @makeKeyAction="onKeyboardAction"
+      />
+
       <div class="swipe-container q-px-md q-pb-md" :class="{ 'dimmed': sending }">
         <DragSlide
           :disable="sending || !canSend || !amountIsValid"
@@ -194,12 +203,14 @@ import { toTokenAddress } from 'src/utils/crypto'
 import { npubEncode } from 'nostr-tools/nip19'
 import { parseFiatCurrency, formatWithLocale, parseLocaleNumber } from 'src/utils/denomination-utils'
 import { convertToFiatAmount, convertFiatToSelectedAsset } from 'src/utils/send-page-utils'
+import { parseKey } from 'src/utils/custom-keyboard-utils'
 import DragSlide from 'src/components/drag-slide.vue'
+import CustomKeyboard from 'src/components/CustomKeyboard.vue'
 import axios from 'axios'
 
 export default {
   name: 'SendBchDialog',
-  components: { DragSlide },
+  components: { DragSlide, CustomKeyboard },
   props: {
     command: { type: String, default: 'send' },
     amount: { type: Number, default: 0 },
@@ -220,6 +231,7 @@ export default {
       fetchingAddress: false,
       addressLookupDone: false,
       amountInput: '',
+      customKeyboardState: 'dismiss',
       inputMode: 'fiat',
       showAssetPicker: false,
       selectedAsset: { id: 'bch', name: 'Bitcoin Cash', symbol: 'BCH', logo: 'bch-logo.png' },
@@ -310,28 +322,31 @@ export default {
     await this.loadAvailableAssets()
     await this.fetchRecipientAddress()
     if (this.amount === 0) {
-      this.$nextTick(() => this.$refs.amountInput?.focus())
+      this.$nextTick(() => {
+        this.$refs.amountInput?.focus()
+        this.customKeyboardState = 'show'
+      })
     }
   },
   methods: {
     getDarkModeClass,
-    onAmountInput (e) {
-      let val = e?.target?.value ?? this.amountInput
-      val = String(val)
-      val = val.replace(/[^0-9.]/g, '')
-      const parts = val.split('.')
-      if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('')
-      if (this.selectedAsset.id === 'bch') {
-        if (this.inputMode === 'bch' && parts[1]) {
-          val = parts[0] + '.' + parts[1].slice(0, 8)
-        } else if (this.inputMode === 'fiat' && parts[1]) {
-          val = parts[0] + '.' + parts[1].slice(0, 4)
+    onKeyboardKey (key) {
+      const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? this.amountInput.length
+      const asset = this.selectedAsset.id === 'bch' ? null : this.selectedAsset
+      this.amountInput = parseKey(key, this.amountInput, caret, asset)
+    },
+    onKeyboardAction (action) {
+      if (action === 'backspace') {
+        const el = this.$refs.amountInput?.nativeEl
+        const caret = el?.selectionStart ?? this.amountInput.length
+        if (caret > 0) {
+          this.amountInput = this.amountInput.slice(0, caret - 1) + this.amountInput.slice(caret)
         }
-      } else if (parts[1]) {
-        val = parts[0] + '.' + parts[1].slice(0, this.selectedAsset.decimals || 8)
+      } else if (action === 'delete') {
+        this.amountInput = ''
+      } else {
+        this.customKeyboardState = 'dismiss'
       }
-      this.amountInput = val
-      if (e?.target) e.target.value = val
     },
     toggleInputMode () {
       if (!this.bchPriceInFiat) return
@@ -662,24 +677,24 @@ export default {
   gap: 8px;
   padding: 16px 0 4px;
 }
-.amount-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 24px;
-  font-weight: 700;
-  text-align: center;
-  width: 100%;
-  min-width: 0;
+.amount-q-input {
   flex: 1;
-  -moz-appearance: textfield;
-  &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  &.dark { color: rgba(255,255,255,0.95); }
-  &.light { color: rgba(0,0,0,0.9); }
-  &::placeholder {
-    &.dark { color: rgba(255,255,255,0.15); }
-    &.light { color: rgba(0,0,0,0.15); }
+  text-align: center;
+  :deep(.q-field__control) {
+    padding: 0 !important;
+    height: 40px !important;
   }
+  :deep(.q-field__native) {
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  &.dark :deep(.q-field__native) { color: rgba(255,255,255,0.95); }
+  &.light :deep(.q-field__native) { color: rgba(0,0,0,0.9); }
+  :deep(.q-field__control::before) { border: none !important; }
+  :deep(.q-field__control::after) { border: none !important; }
+  :deep(.q-field--focused .q-field__control) { box-shadow: none !important; }
 }
 .amount-unit-toggle {
   font-size: 24px;

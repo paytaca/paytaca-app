@@ -971,6 +971,8 @@ export default {
     cursor: pointer;
     transition: background 0.15s ease;
     position: relative;
+    -webkit-user-select: none;
+    user-select: none;
 
     &.dark {
       &:active { background: rgba(255,255,255,0.06); }
@@ -1069,6 +1071,8 @@ export default {
     text-align: center;
     cursor: pointer;
     padding: 12px 4px 8px;
+    -webkit-user-select: none;
+    user-select: none;
     @media (min-width: 600px) {
       flex: 0 0 calc(16.666% - 4px);
       max-width: calc(16.666% - 4px);
