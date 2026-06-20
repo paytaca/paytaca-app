@@ -440,6 +440,7 @@ import AssetOptions from 'src/components/asset-options.vue'
 import PendingTransactions from 'src/components/transactions/PendingTransactions.vue'
 import LatestTransactions from 'src/components/transactions/LatestTransactions.vue'
 import * as assetSettings from 'src/utils/asset-settings'
+import { getHiddenAssetIds } from 'src/utils/hidden-assets'
 import { asyncSleep } from 'src/wallet/transaction-listener'
 import { cachedLoadWallet } from '../../wallet'
 import axios from 'axios'
@@ -1426,17 +1427,20 @@ export default {
         // Store raw list for computed favorites + "has tokens" checks
         this.allSlpTokensFromAPI = mappedTokens
 
-        // Merge into store for rendering in token cards (respect removed tokens locally).
+        // Merge into store for rendering in token cards (respect removed/hidden tokens).
         const assets = this.$store.getters['assets/getAssets'] || []
         const assetsId = assets.map(a => a.id)
         const walletIndex = this.$store.getters['global/getWalletIndex']
         const removedAssetIdsGetter = this.$store.getters['assets/getRemovedAssetIds']
         const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+        const bchWalletHash = this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
+        const hiddenIds = getHiddenAssetIds(bchWalletHash)
 
         mappedTokens.forEach(token => {
           const assetId = token?.id
           if (!assetId) return
           if (vaultRemovedAssetIds.includes(assetId)) return
+          if (hiddenIds.includes(assetId)) return
 
           // Update balance/metadata if it already exists
           if (assetsId.includes(assetId)) {
@@ -2469,6 +2473,8 @@ export default {
         const walletIndex = vm.$store.getters['global/getWalletIndex']
         const removedAssetIdsGetter = vm.$store.getters['assets/getRemovedAssetIds']
         const vaultRemovedAssetIds = removedAssetIdsGetter?.[walletIndex]?.removedAssetIds ?? []
+        const bchWalletHash = vm.wallet?.BCH?.walletHash || vm.wallet?.bch?.walletHash || ''
+        const hiddenIds = getHiddenAssetIds(bchWalletHash)
         const assetsId = assets.map(a => a.id)
 
         if (vm.isCashToken) {
@@ -2477,7 +2483,8 @@ export default {
           const allTokensFromAPI = vm.allTokensFromAPI || []
           const newTokens = allTokensFromAPI.filter(token => 
             !assetsId.includes(token.id) && 
-            !vaultRemovedAssetIds.includes(token.id)
+            !vaultRemovedAssetIds.includes(token.id) &&
+            !hiddenIds.includes(token.id)
           )
 
           newTokens.forEach(token => {

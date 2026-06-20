@@ -60,9 +60,9 @@
 			</div>
 
 			<div class="full-width tokens-list-container" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 12px ;">
-			    <q-list v-if="assetList.length > 0" :key="assetListKey" class="q-ma-md">
+			    <q-list v-if="visibleAssetList.length > 0" :key="assetListKey" class="q-ma-md">
 			      	<draggable			      		
-			      		:list="assetList" 
+			      		:list="visibleAssetList" 
 						group="assets" 
 						@start="drag=true" 
 						@end="onDragEnd" 
@@ -73,10 +73,10 @@
 						class="asset-list-transition"
 			      	>
 			      	    <template #item="{element: asset, index}"> 
-			      	    	<q-slide-item @right="onSwipeRight(asset)" right-color="red" class="q-my-sm">
+			      	    	<q-slide-item @right="onSwipeRight(asset)" right-color="grey" class="q-my-sm">
 			      	    		<template v-slot:right>
 			      	    			<div class="row items-center q-px-md">
-			      	    				<q-icon name="delete" size="24px" color="white" />
+			      	    				<q-icon name="visibility_off" size="24px" color="white" />
 			      	    			</div>
 			      	    		</template>
 				      	    	<q-card class="q-py-sm br-15 asset-card" :class="{'has-drag-handle': asset.favorite === 1}">
@@ -105,7 +105,7 @@
 									      			v-if="favoriteLoading[asset.id]"
 									      			size="2em"
 									      			color="amber-6"
-									      		/>
+									      			/>
 									      		<q-rating
 									      			v-else
 									      			readonly
@@ -119,15 +119,62 @@
 											      />			      						      				      	
 									      	</q-item-section>
 				      	    		</q-item>			      	    	
-							      </q-card>
-						      </q-slide-item>
+								      </q-card>
+							      </q-slide-item>
 			      	    </template>			      
 			        </draggable>  
 			    </q-list>
-			    <div v-else class="text-center" style="margin-top: 50px;">
+			    <div v-else-if="isloaded && !networkError" class="text-center" style="margin-top: 50px;">
 		            <q-img class="vertical-top q-my-md" src="empty-wallet.svg" style="width: 75px; fill: gray;" />
 		            <p :class="darkmode ? 'text-white' : 'text-black'">{{ $t('NoTokensToDisplay') }}</p>
 		          </div>
+
+			    <!-- Hidden assets section -->
+			    <div v-if="hiddenAssetList.length > 0" class="hidden-assets-section q-ma-md">
+			      <q-btn
+			        flat
+			        no-caps
+			        dense
+			        class="show-hidden-btn"
+			        :class="getDarkModeClass(darkmode)"
+			        :icon="showHidden ? 'expand_less' : 'expand_more'"
+			        :label="showHidden
+			          ? $t('HideHiddenAssets', {}, 'Hide hidden assets')
+			          : $t('ShowHiddenAssets', {}, { count: hiddenAssetList.length }, `Show hidden assets (${hiddenAssetList.length})`)"
+			        @click="showHidden = !showHidden"
+			      />
+			      <q-list v-if="showHidden" class="q-mt-sm">
+			        <q-slide-item
+			          v-for="asset in hiddenAssetList"
+			          :key="'hidden-' + asset.id"
+			          @right="onSwipeUnhide(asset)"
+			          right-color="green"
+			          class="q-my-sm"
+			        >
+			          <template v-slot:right>
+			            <div class="row items-center q-px-md">
+			              <q-icon name="visibility" size="24px" color="white" />
+			            </div>
+			          </template>
+			          <q-card class="q-py-sm br-15 asset-card-hidden" :class="getDarkModeClass(darkmode)">
+			            <q-item>
+			              <q-item-section avatar>
+			                <q-avatar>
+			                  <img :src="getImageUrl(asset)" class="asset-icon" @contextmenu.prevent @selectstart.prevent>
+			                </q-avatar>
+			              </q-item-section>
+			              <q-item-section>
+			                <div class="text-bold">{{ asset.name }}</div>
+			                <div :class="darkmode ? 'text-grey-5' : 'text-grey-8'">
+			                  {{ formatAssetTokenAmount(asset) }} {{ asset.symbol }}
+			                </div>
+			              </q-item-section>
+			            </q-item>
+			          </q-card>
+			        </q-slide-item>
+			      </q-list>
+			    </div>
+
 		      <div class="banner" v-if="networkError">
 		      	<q-banner class="bg-primary text-white">
 		      		<div class="row justify-between q-pt-xs q-px-sm">
@@ -157,6 +204,7 @@ import { markRaw } from '@vue/reactivity'
 import draggable from 'vuedraggable'
 import axios from 'axios'
 import { convertIpfsUrl } from 'src/wallet/cashtokens'
+import { hideAsset, unhideAsset, getHiddenAssetIds } from 'src/utils/hidden-assets'
 
 import headerNav from 'src/components/header-nav'
 import AssetFilter from '../../components/AssetFilter'
@@ -174,6 +222,7 @@ export default {
 			isloaded: false,
 			networkError: false,
 			favoriteLoading: {}, // { [assetId]: boolean }
+			showHidden: false,
 		}
 	},
 	computed: {
@@ -207,6 +256,22 @@ export default {
 	    },
 	    isChipnet () {
 	      return this.$store.getters['global/isChipnet']
+	    },
+	    walletHash () {
+	      return this.wallet?.BCH?.walletHash || this.wallet?.bch?.walletHash || ''
+	    },
+	    hiddenIds () {
+	      return getHiddenAssetIds(this.walletHash)
+	    },
+	    visibleAssetList () {
+	      const hidden = this.hiddenIds
+	      if (!hidden.length) return this.assetList
+	      return this.assetList.filter(a => !hidden.includes(a.id))
+	    },
+	    hiddenAssetList () {
+	      const hidden = this.hiddenIds
+	      if (!hidden.length) return []
+	      return this.assetList.filter(a => hidden.includes(a.id))
 	    },
 	},
 	components: {
@@ -331,9 +396,15 @@ export default {
 	    	this.drag = false
 	    	
 	    	// Ensure favorites remain grouped at the top after manual reordering
-	    	const favorites = this.assetList.filter(asset => asset.favorite === 1)
-	    	const nonFavorites = this.assetList.filter(asset => asset.favorite === 0)
-	    	this.assetList = [...favorites, ...nonFavorites]
+	    	// Only reorder visible (non-hidden) assets
+	    	const hidden = this.hiddenIds
+	    	const visible = this.assetList.filter(a => !hidden.includes(a.id))
+	    	const favorites = visible.filter(asset => asset.favorite === 1)
+	    	const nonFavorites = visible.filter(asset => asset.favorite === 0)
+	    	const reorderedVisible = [...favorites, ...nonFavorites]
+	    	// Merge reordered visible assets back with hidden ones
+	    	const hiddenAssets = this.assetList.filter(a => hidden.includes(a.id))
+	    	this.assetList = [...reorderedVisible, ...hiddenAssets]
 	    	
 	    	// Update favorite_order based on new position and save to backend
 	    	if (favorites.length > 0) {
@@ -647,25 +718,24 @@ export default {
 	      return this.$store.getters['global/getWallet'](type)
 	    },
 	    onSwipeRight(asset) {
-	      this.removeAsset(asset)
+	      this.hideAsset(asset)
 	    },
-	    removeAsset (asset) {
+	    hideAsset (asset) {
 	      const vm = this
-	      const assetName = asset.name
 	      vm.$q.dialog({
 	        component: RemoveAsset,
 	        componentProps: {
-	          assetName
+	          assetName: asset.name
 	        }
 	      }).onOk(() => {
-	        // Note: Asset removal is handled by the backend API
-	        // The removed asset will not appear in future API responses
-	        // We don't need to update Vuex store since we only use API data
-	        
-	        // Reload data from API - the removed asset will no longer appear
-	        vm.loadData()
+	        hideAsset(vm.walletHash, asset.id)
+	        vm.assetListKey++
 	        vm.$emit('removed-asset', asset)
 	      })
+	    },
+	    onSwipeUnhide(asset) {
+	      unhideAsset(this.walletHash, asset.id)
+	      this.assetListKey++
 	    },
 	    async fetchTokensDirectlyFromAPI () {
 	    	if (!this.isCashToken) {
@@ -907,5 +977,29 @@ export default {
 :deep(.q-slide-item__content) {
   border-radius: 15px;
   overflow: hidden;
+}
+
+// Hidden assets section
+.hidden-assets-section {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(128, 128, 128, 0.15);
+}
+
+.show-hidden-btn {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.6;
+  padding: 8px 0;
+  border-radius: 8px;
+  &:hover { opacity: 0.8; }
+  &.dark { color: rgba(255,255,255,0.6); }
+  &.light { color: rgba(0,0,0,0.5); }
+}
+
+.asset-card-hidden {
+  opacity: 0.5;
+  border-radius: 15px;
 }
 </style>

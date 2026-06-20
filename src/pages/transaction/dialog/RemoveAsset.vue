@@ -9,7 +9,7 @@
         <q-separator />
 
         <q-card-section class="pt-label" :class="getDarkModeClass(darkMode)">
-          <label>{{$t('AssetRemovalText') }}</label>
+          <label>{{$t('AssetHideText', {}, 'Do you want to hide this asset from your list? You can unhide it later.') }}</label>
         </q-card-section>
 
         <q-separator class="q-mb-sm" />
