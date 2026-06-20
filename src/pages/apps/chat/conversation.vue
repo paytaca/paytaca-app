@@ -881,6 +881,8 @@ export default {
     })
   },
   activated () {
+    this.markAsRead()
+    this.ensureSubscribed()
     const savedRoomId = sessionStorage.getItem('chat_scroll_room_id')
     const savedMessageId = sessionStorage.getItem('chat_scroll_message_id')
     const savedDisplayLimit = sessionStorage.getItem('chat_scroll_display_limit')
@@ -917,8 +919,15 @@ export default {
       requestAnimationFrame(() => this.scrollToBottom())
       setTimeout(() => this.scrollToBottom(), 160)
     }
+    this.$nextTick(() => {
+      this.ready = true
+    })
+  },
+  deactivated () {
+    this.ready = false
   },
   beforeUnmount () {
+    this.ready = false
     document.removeEventListener('visibilitychange', this.onVisibilityChange)
     document.removeEventListener('pointerdown', this.onDocumentPointerDown)
     if (window.visualViewport) {

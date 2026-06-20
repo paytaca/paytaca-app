@@ -180,7 +180,7 @@ export default {
   },
   methods: {
     getDarkModeClass,
-    async onClick () {
+    onClick () {
       // Check if backnavpath is a valid non-empty string or a non-empty object
       const hasValidPath = typeof this.backnavpath === 'string' 
         ? this.backnavpath.trim() !== ''
@@ -188,9 +188,9 @@ export default {
 
       if (hasValidPath) {
         if (typeof this.backnavpath === 'object') {
-          await this.$router.push(this.backnavpath)
+          this.$router.push(this.backnavpath)
         } else {
-          await this.$router.push({ path: this.backnavpath })
+          this.$router.push({ path: this.backnavpath })
         }
       } else {
         this.$router.go(-1)

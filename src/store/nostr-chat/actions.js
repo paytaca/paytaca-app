@@ -64,6 +64,11 @@ export async function reinitialize ({ commit, dispatch, state, rootGetters }) {
 }
 
 export async function initialize ({ commit, dispatch, state, rootGetters }) {
+  if (state.initialized && state.keys?.pubKeyHex) {
+    dispatch('fetchHistoricalMessages')
+    return
+  }
+
   const walletIndex = rootGetters['global/getWalletIndex']
   const mnemonic = await getMnemonic(walletIndex)
   if (!mnemonic) throw new Error('No mnemonic available')
