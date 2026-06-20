@@ -27,17 +27,48 @@
     <!-- Composer (hidden while uploading) -->
     <template v-else>
     <div class="chat-input-container">
-      <!-- File attachment button -->
+      <!-- Actions button -->
       <q-btn
         round
         unelevated
         color="grey-7"
-        icon="attach_file"
+        icon="add"
         size="sm"
         class="attach-btn"
-        @click="onAttachClick"
       >
-        <q-tooltip>Attach file</q-tooltip>
+        <q-menu
+          class="chat-actions-menu"
+          anchor="top left"
+          self="bottom left"
+          transition-show="scale"
+          transition-hide="scale"
+          :dark="darkMode"
+        >
+          <q-list dense class="chat-actions-list">
+            <q-item clickable v-close-popup @click="onAttachClick" class="chat-action-item">
+              <q-item-section avatar>
+                <div class="action-icon-wrapper action-icon-file">
+                  <q-icon name="attach_file" size="18px" color="white" />
+                </div>
+              </q-item-section>
+              <q-item-section>
+                <div class="action-label">{{ $t('File', {}, 'File') }}</div>
+                <div class="action-hint">Attach an image, video, or document</div>
+              </q-item-section>
+            </q-item>
+            <q-item clickable v-close-popup @click="onTipClick" class="chat-action-item">
+              <q-item-section avatar>
+                <div class="action-icon-wrapper action-icon-tip">
+                  <q-icon name="volunteer_activism" size="18px" color="white" />
+                </div>
+              </q-item-section>
+              <q-item-section>
+                <div class="action-label">{{ $t('Tip', {}, 'Tip') }}</div>
+                <div class="action-hint">Send BCH or tokens</div>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
       </q-btn>
       
       <!-- Quasar q-file component for iOS compatibility -->
@@ -126,7 +157,7 @@ const RESIZE_OPTIONS = [
 
 export default {
   name: 'ChatInput',
-  emits: ['send', 'command', 'focus', 'blur'],
+  emits: ['send', 'command', 'focus', 'blur', 'tip'],
   props: {
     roomId: { type: String, default: '' },
   },
@@ -184,6 +215,9 @@ export default {
           this.$refs.qFile.pickFiles()
         }
       })
+    },
+    onTipClick () {
+      this.$emit('tip')
     },
     onFileSelected (file) {
       if (!file) return
@@ -395,6 +429,7 @@ export default {
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   position: relative;
+  overflow: visible;
 }
 
 .chat-input-container:focus-within {
@@ -566,5 +601,70 @@ export default {
 
 .dark .file-size {
   color: #94a3b8;
+}
+</style>
+
+<!-- Non-scoped styles for teleported q-menu -->
+<style>
+.chat-actions-menu {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  padding: 6px !important;
+  min-width: 220px !important;
+  overflow: hidden;
+}
+.chat-actions-list {
+  padding: 0 !important;
+}
+.chat-action-item {
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  transition: background 0.15s ease !important;
+}
+.chat-action-item:hover {
+  background: #f1f5f9 !important;
+}
+.action-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-icon-file {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.action-icon-tip {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.action-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+}
+.action-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* Dark mode menu */
+body.dark .chat-actions-menu {
+  background: #1e293b !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+body.dark .chat-action-item:hover {
+  background: #334155 !important;
+}
+body.dark .action-label {
+  color: #e2e8f0;
+}
+body.dark .action-hint {
+  color: #64748b;
 }
 </style>

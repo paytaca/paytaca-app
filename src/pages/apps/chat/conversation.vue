@@ -451,7 +451,7 @@
       <q-btn flat dense unelevated icon="close" size="sm" class="edit-bar-close" @click="cancelEdit" />
     </div>
 
-    <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @focus="onInputFocus" @blur="onInputBlur" />
+    <chat-input ref="chatInput" :room-id="roomId" @send="onSend" @command="onCommand" @tip="onTipAction" @focus="onInputFocus" @blur="onInputBlur" />
 
     <!-- Message context menu -->
     <q-menu ref="contextMenu" touch-position no-parent-event class="text-bow" :class="getDarkModeClass(darkMode)">
@@ -1269,6 +1269,18 @@ export default {
           })
         }
       })
+    },
+    onTipAction () {
+      const recipientPubKey = this.otherMemberPubKey
+      if (!recipientPubKey) {
+        this.$q.notify({ type: 'negative', message: 'No recipient found', timeout: 5000, closeBtn: true })
+        return
+      }
+      this.sendAmount = 0
+      this.sendRecipientPubKey = recipientPubKey
+      this.sendPreFilledAddress = ''
+      this.sendCommand = 'tip'
+      this.showSendDialog = true
     },
     async onSend (text) {
       if (!this.room) return
