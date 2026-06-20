@@ -149,8 +149,30 @@ export default {
     }
   },
   
+  created () {
+    this.walletHash = this.resolveWalletHash()
+    if (this.walletHash) {
+      const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
+      if (cached && Array.isArray(cached.transactions) && cached.transactions.length) {
+        this.transactions = cached.transactions.slice(0, 5)
+        this.hasMoreTransactions = cached.hasMore
+        this.transactionsLoaded = true
+      }
+    }
+  },
   mounted () {
-    this.loadFromCacheThenRefresh()
+    if (!this.transactionsLoaded && this.wallet) {
+      this.loadTransactions()
+    } else if (!this.wallet) {
+      this.$watch(() => this.wallet, (wallet) => {
+        if (wallet) {
+          if (!this.walletHash) this.walletHash = this.resolveWalletHash()
+          this.loadTransactions()
+        }
+      })
+    } else {
+      this.loadTransactions()
+    }
   },
   
   methods: {
@@ -212,33 +234,24 @@ export default {
         }
       ]
     },
-    async loadFromCacheThenRefresh () {
-      this.walletHash = this.resolveWalletHash()
-      if (this.walletHash) {
-        const cached = getCachedTransactions(this.walletHash, this.transactionsFilter)
-        if (cached && Array.isArray(cached.transactions) && cached.transactions.length) {
-          this.transactions = cached.transactions.slice(0, 5)
-          this.hasMoreTransactions = cached.hasMore
-          this.transactionsLoaded = true
-        }
-      }
-      if (this.wallet) {
-        this.loadTransactions()
-      } else {
-        this.$watch(() => this.wallet, (wallet) => {
-          if (wallet) {
-            if (!this.walletHash) this.walletHash = this.resolveWalletHash()
-            this.loadTransactions()
-          }
-        })
-      }
-    },
     resolveWalletHash () {
       if (this.walletHash) return this.walletHash
       if (this.wallet) return getWalletByNetwork(this.wallet, 'bch').getWalletHash()
       const storeWallet = this.$store.getters['global/getWallet']('bch')
       if (storeWallet?.walletHash) return storeWallet.walletHash
-      return this.$store.getters['global/getWalletHashByIndex']?.(this.$store.getters['global/getWalletIndex'])
+      const byIndex = this.$store.getters['global/getWalletHashByIndex']?.(this.$store.getters['global/getWalletIndex'])
+      if (byIndex) return byIndex
+      try {
+        const raw = localStorage.getItem('vuex')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          const isChipnet = parsed?.global?.isChipnet
+          const wallets = isChipnet ? parsed?.global?.chipnet__wallets : parsed?.global?.wallets
+          const hash = wallets?.bch?.walletHash
+          if (hash) return hash
+        }
+      } catch { /* ignore */ }
+      return null
     },
     async loadTransactions () {
       try {
