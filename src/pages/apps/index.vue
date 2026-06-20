@@ -20,42 +20,78 @@
         />
       </template>
     </HeaderNav>
-    <div id="apps" ref="apps" class="text-center" :style="{ 'margin-top': '0px', 'padding-bottom': '30px' }">
-      <div class="row q-px-xs">
-        <div v-for="(app, index) in filteredApps" :key="index" class="col-xs-4 col-sm-2 col-md-1 q-px-xs q-py-md text-center" :class="{'bex-app': $q.platform.is.bex}">
+    <div class="category-chips-bar" :class="getDarkModeClass(darkMode)">
+      <div class="chips-scroll">
+        <button
+          v-for="cat in categories"
+          :key="cat.id"
+          :ref="`chip-${cat.id}`"
+          class="category-chip"
+          :class="[
+            getDarkModeClass(darkMode),
+            { 'chip-active': activeCategory === cat.id, 'chip-beta': cat.isBeta }
+          ]"
+          @click="scrollToCategory(cat.id)"
+        >
+          <span v-if="cat.isBeta" class="chip-beta-dot"></span>
+          {{ cat.label }}
+        </button>
+      </div>
+    </div>
+
+    <div id="apps" ref="apps" class="apps-list-container" :class="getDarkModeClass(darkMode)">
+      <section
+        v-for="cat in categorizedApps"
+        :key="cat.id"
+        :ref="`section-${cat.id}`"
+        class="app-section"
+        :class="[getDarkModeClass(darkMode), { 'beta-section': cat.isBeta }]"
+        :data-category="cat.id"
+      >
+        <div class="section-header">
+          <span class="section-title">{{ cat.label }}</span>
+          <span v-if="cat.isBeta" class="beta-pill">BETA</span>
+          <span v-if="cat.isBeta" class="section-subtitle">{{ $t('BetaSectionHint', {}, 'Experimental features — try them out') }}</span>
+        </div>
+
+        <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
+
+        <div class="app-rows">
           <div
-            class="relative-position"
-            style="display: inline-block;"
+            v-for="(app, index) in cat.apps"
+            :key="app.id || index"
+            class="app-row"
+            :class="[
+              getDarkModeClass(darkMode),
+              { 'app-inactive': !app.active, 'app-beta-row': cat.isBeta }
+            ]"
             :data-tour="`apps-app-${app.id || index}`"
+            @click="openApp(app)"
           >
-            <q-btn class="bg-grad" no-caps round style="padding: 20px;" @click="openApp(app)" :disable="!app.active">
-              <q-icon size="30px" color="white" :name="app.iconName"/> <br>                              
-              <q-tooltip v-if="app.description" :delay="500" class="text-body2" :class="getDarkModeClass(darkMode)">
-                {{ app.description }}
-              </q-tooltip>                              
-            </q-btn>
-            <q-badge 
-              v-if="app.beta" 
-              color="red" 
-              class="beta-badge"
-              :label="$t('Beta').toLocaleUpperCase()"
-            />
-            <div
-              v-if="app.id === 'chat' && chatUnreadCount > 0"
-              class="app-unread-badge"
-            >
-              {{ chatUnreadCountLabel }}
+            <div class="app-icon-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
+              <q-icon size="26px" color="white" :name="app.iconName" />
+            </div>
+
+            <div class="app-info">
+              <div class="app-name">{{ app.name }}</div>
+              <div class="app-desc">{{ app.description }}</div>
+            </div>
+
+            <div class="app-row-end">
+              <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
+                {{ chatUnreadCountLabel }}
+              </div>
+              <q-icon
+                v-if="app.active"
+                name="chevron_right"
+                size="22px"
+                class="app-chevron"
+                :class="getDarkModeClass(darkMode)"
+              />
             </div>
           </div>
-          <p
-            class="pt-app-name q-mt-xs q-mb-none q-mx-none pt-label"
-            :class="[getDarkModeClass(darkMode), !app.active ? 'text-grey' : '']"
-            style="word-break: break-all;"
-          >
-            {{ app.name }}
-          </p>
         </div>
-      </div>
+      </section>
     </div>
 
     <teleport to="body">
@@ -171,7 +207,8 @@ export default {
           iconName: 'img:ramp_icon_white.png',
           path: '/apps/exchange',
           iconStyle: 'width:45%; height: 45%;',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'ramp-payments'
         },
         {
           id: 'marketplace',
@@ -181,6 +218,7 @@ export default {
           path: '/apps/marketplace',
           active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'width:45%; height: 45%;',
+          category: 'marketplace',
           onLongPress: (event) => {
             event?.preventDefault?.()
             this.$q.dialog({
@@ -195,8 +233,8 @@ export default {
           iconName: 'card_membership',
           path: '/apps/eload',
           iconStyle: 'width:45%; height: 45%;',
-          // Eload backend is mainnet-only; disable entry on chipnet to avoid wrong-network orders/payments.
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'ramp-payments'
         },
         {
           id: 'collectibles',
@@ -206,7 +244,8 @@ export default {
           path: '/apps/collectibles',
           iconStyle: 'font-size: 4.5em',
           active: true,
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'assets-rewards'
         },
         {
           id: 'address-book',
@@ -216,7 +255,8 @@ export default {
           path: '/apps/address-book/',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'wallet-connections'
         },
         {
           id: 'chat',
@@ -226,7 +266,8 @@ export default {
           path: '/apps/chat',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
-          beta: true
+          beta: true,
+          category: 'beta'
         },
         {
           id: 'gifts',
@@ -235,7 +276,8 @@ export default {
           iconName: 'mdi-gift',
           path: '/apps/gifts/',
           iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'ramp-payments'
         },
         {
           id: 'lift-token',
@@ -244,7 +286,8 @@ export default {
           iconName: 'img:lift-token.png',
           path: '/apps/lift-token',
           iconStyle: 'width: 50%; height: 60%;',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'assets-rewards'
         },
         {
           id: 'rewards',
@@ -254,7 +297,8 @@ export default {
           path: '/apps/rewards',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'assets-rewards'
         },
         {
           id: 'multisig',
@@ -264,7 +308,8 @@ export default {
           path: '/apps/multisig',
           active: true,
           iconStyle: 'font-size: 4em',
-          beta: true
+          beta: true,
+          category: 'beta'
         },
         {
           id: 'cauldron',
@@ -273,7 +318,8 @@ export default {
           iconName: 'img:cauldron-logo.svg',
           path: '/apps/cauldron',
           iconStyle: 'width:45%; height: 45%;',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'trade-defi'
         },
         {
           id: 'cryptoswap',
@@ -283,7 +329,8 @@ export default {
           path: '/apps/crypto-swap',
           active: !this.$store.getters['global/isChipnet'],
           iconStyle: 'font-size: 4.7em',
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'trade-defi'
         },
         {
           id: 'anyhedge',
@@ -292,7 +339,8 @@ export default {
           iconName: 'img:anyhedge-logo.png',
           path: '/apps/anyhedge',
           iconStyle: 'width:55%; height: 55%;',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'trade-defi'
         },
         {
           id: 'stablehedge',
@@ -303,7 +351,8 @@ export default {
           iconStyle: 'width:55%; height: 55%;',
           active: !this.$store.getters['global/isChipnet'],
           beta: true,
-          betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.')
+          betaMessage: this.$t('StablehedgeBetaMessage', {}, 'Stablehedge is currently in beta. This feature allows you to create stablecoin positions backed by Bitcoin Cash. Please note that this is an experimental feature and may have limitations or risks.'),
+          category: 'beta'
         },
         {
           id: 'walletconnect',
@@ -313,7 +362,8 @@ export default {
           path: '/apps/wallet-connect',
           iconStyle: 'width:45%; height: 45%;',
           active: true,
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'wallet-connections'
         },
         {
           id: 'wizardconnect',
@@ -323,7 +373,8 @@ export default {
           path: '/apps/wizard-connect',
           iconStyle: 'font-size: 4.2em',
           active: true,
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'wallet-connections'
         },
         {
           id: 'merchant-admin',
@@ -332,7 +383,8 @@ export default {
           iconName: 'point_of_sale',
           path: '/apps/merchant-admin',
           iconStyle: 'font-size: 4em',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'marketplace'
         },
         {
           id: 'merchant-map',
@@ -341,7 +393,8 @@ export default {
           iconName: 'public',
           path: '/apps/map/',
           iconStyle: 'font-size: 4.2em',
-          active: !this.$store.getters['global/isChipnet']
+          active: !this.$store.getters['global/isChipnet'],
+          category: 'marketplace'
         },
         {
           id: 'support',
@@ -350,7 +403,8 @@ export default {
           iconName: 'support',
           path: '/apps/wallet-info',
           active: true,
-          iconStyle: 'font-size: 4em'
+          iconStyle: 'font-size: 4em',
+          category: 'utilities'
         },
         {
           id: 'settings',
@@ -360,7 +414,8 @@ export default {
           path: '/apps/settings',
           active: true,
           iconStyle: 'font-size: 4em',
-          smartBCHOnly: false
+          smartBCHOnly: false,
+          category: 'utilities'
         }
       ],
       debugApp: {
@@ -371,12 +426,15 @@ export default {
         path: '/apps/debug',
         active: true,
         iconStyle: 'font-size: 4em',
-        smartBCHOnly: false
+        smartBCHOnly: false,
+        category: 'utilities'
       },
       filteredApps: [],
       appHeight: null,
       rampAppSelection: false,
-      disableRampSelection: false
+      disableRampSelection: false,
+      activeCategory: null,
+      categoryObserver: null
     }
   },
   computed: {
@@ -401,6 +459,30 @@ export default {
     },
     chatUnreadCountLabel () {
       return this.chatUnreadCount > 99 ? '99+' : String(this.chatUnreadCount)
+    },
+    categoryDefinitions () {
+      return [
+        { id: 'beta', label: this.$t('Beta', {}, 'Beta'), isBeta: true },
+        { id: 'ramp-payments', label: this.$t('RampAndPayments', {}, 'Ramp & Payments') },
+        { id: 'trade-defi', label: this.$t('TradeAndDeFi', {}, 'Trade & DeFi') },
+        { id: 'assets-rewards', label: this.$t('AssetsAndRewards', {}, 'Assets & Rewards') },
+        { id: 'wallet-connections', label: this.$t('WalletAndConnections', {}, 'Wallet & Connections') },
+        { id: 'marketplace', label: this.$t('MarketplaceAndMerchant', {}, 'Marketplace & Merchant') },
+        { id: 'utilities', label: this.$t('Utilities', {}, 'Utilities') },
+      ]
+    },
+    categorizedApps () {
+      const result = []
+      for (const cat of this.categoryDefinitions) {
+        const apps = this.filteredApps.filter(app => app.category === cat.id)
+        if (apps.length > 0) {
+          result.push({ ...cat, apps })
+        }
+      }
+      return result
+    },
+    categories () {
+      return this.categorizedApps.map(cat => ({ id: cat.id, label: cat.label, isBeta: cat.isBeta }))
     }
   },
   methods: {
@@ -692,6 +774,46 @@ export default {
       }
       
       // Deprecated network filtering removed - no longer needed
+    },
+    scrollToCategory (categoryId) {
+      this.activeCategory = categoryId
+      const el = this.$refs[`section-${categoryId}`]?.[0]
+      if (!el) return
+      const headerHeight = 56
+      const chipsHeight = 52
+      const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - chipsHeight - 4
+      try {
+        window.scrollTo({ top, behavior: 'smooth' })
+      } catch (_) {
+        window.scrollTo(0, top)
+      }
+      const chip = this.$refs[`chip-${categoryId}`]?.[0]
+      if (chip) {
+        chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      }
+    },
+    setupCategoryObserver () {
+      if (this.categoryObserver) this.categoryObserver.disconnect()
+      this.$nextTick(() => {
+        const sections = this.categorizedApps
+          .map(cat => this.$refs[`section-${cat.id}`]?.[0])
+          .filter(Boolean)
+        if (!sections.length) return
+        this.categoryObserver = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter(e => e.isIntersecting)
+            .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+          if (visible[0]) {
+            const id = visible[0].target.getAttribute('data-category')
+            if (id && this.activeCategory !== id) {
+              this.activeCategory = id
+              const chip = this.$refs[`chip-${id}`]?.[0]
+              if (chip) chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+            }
+          }
+        }, { rootMargin: '-120px 0px -60% 0px', threshold: 0 })
+        sections.forEach(s => this.categoryObserver.observe(s))
+      })
     }
   },
   created () {
@@ -706,7 +828,8 @@ export default {
           description: this.$t('Apps.Sandbox.Description', {}, 'Experimental playground for testing features.'),
           iconName: '',
           path: '/apps/sandbox',
-          active: true
+          active: true,
+          category: 'utilities'
         })
       }
     } catch { }
@@ -719,9 +842,14 @@ export default {
   mounted () {
     this.fetchAppControl()
     this.closeExchangeWebsocket()
+    this.setupCategoryObserver()
   },
   beforeUnmount () {
     this._appsTourUnbindListeners()
+    if (this.categoryObserver) {
+      this.categoryObserver.disconnect()
+      this.categoryObserver = null
+    }
   }
 }
 </script>
@@ -785,58 +913,215 @@ export default {
     z-index: 100000;
   }
 
-  /* Hide scrollbar completely on all platforms */
-  #apps-page-container {
-    background-color: #ECF3F3;
-    min-height: 100vh;
-    padding-bottom: 30px;
-    
-    &::-webkit-scrollbar {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-      -webkit-appearance: none !important;
-    }
-    -ms-overflow-style: none !important;
-    scrollbar-width: none !important;
-    -webkit-overflow-scrolling: touch !important;
+  /* ---- Category chips bar ---- */
+  .category-chips-bar {
+    position: sticky;
+    top: 55px;
+    z-index: 2900;
+    padding: 8px 0;
+    &.dark { background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+    &.light { background: rgba(236, 243, 243, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
   }
-  .bex-app {
-    width: 107px;
-  }
-  .pt-app-name {
-    color: #000;
-    font-size: 13px
-  }
-  .app-icon {
-    vertical-align: middle;
-    align-content: center;
-    width: 50%;
-    height: 50%;
-  }
-  .pt-app {
+  .chips-scroll {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar { display: none; width: 0; height: 0; }
   }
-  
-  .beta-badge {
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 9px;
+  .category-chip {
+    flex-shrink: 0;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    &.dark {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.6);
+      &.chip-active { background: #3b7bf6; color: #fff; }
+    }
+    &.light {
+      background: rgba(0,0,0,0.05);
+      color: rgba(0,0,0,0.55);
+      &.chip-active { background: #3b7bf6; color: #fff; }
+    }
+    &.chip-beta {
+      &.dark { border: 1px solid rgba(225, 137, 8, 0.4); }
+      &.light { border: 1px solid rgba(225, 137, 8, 0.3); }
+    }
+  }
+  .chip-beta-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #e18908;
+    flex-shrink: 0;
+  }
+
+  /* ---- Apps list container ---- */
+  .apps-list-container {
+    padding: 4px 16px 120px;
+    &.dark { background: transparent; }
+    &.light { background: transparent; }
+  }
+
+  /* ---- Section ---- */
+  .app-section {
+    margin-top: 28px;
+    animation: sectionEnter 0.4s ease-out;
+    &:first-child { margin-top: 12px; }
+  }
+  @keyframes sectionEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+  .section-title {
+    font-size: 11px;
     font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 8px;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    &.dark { color: rgba(255,255,255,0.45); }
+    &.light { color: rgba(0,0,0,0.4); }
+  }
+  .beta-pill {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #e18908, #e65100);
+    color: #fff;
+    letter-spacing: 0.8px;
+  }
+  .section-subtitle {
+    font-size: 11px;
+    font-weight: 400;
+    margin-left: 4px;
+    &.dark { color: rgba(255,255,255,0.35); }
+    &.light { color: rgba(0,0,0,0.35); }
+  }
+  .section-divider {
+    height: 1px;
+    margin-bottom: 4px;
+    &.dark { background: rgba(255,255,255,0.06); }
+    &.light { background: rgba(0,0,0,0.05); }
+  }
+
+  /* ---- Beta section ---- */
+  .beta-section {
+    padding: 0 0 4px;
+    border-radius: 16px;
+    &.dark {
+      background: linear-gradient(180deg, rgba(225, 137, 8, 0.06) 0%, rgba(225, 137, 8, 0.01) 100%);
+      border: 1px solid rgba(225, 137, 8, 0.12);
+    }
+    &.light {
+      background: linear-gradient(180deg, rgba(225, 137, 8, 0.04) 0%, rgba(225, 137, 8, 0.01) 100%);
+      border: 1px solid rgba(225, 137, 8, 0.10);
+    }
+    .section-header { padding: 14px 14px 8px; }
+    .section-divider { margin: 0 14px; }
+    .app-rows { padding: 0 4px 8px; }
+  }
+
+  /* ---- App row ---- */
+  .app-rows {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .app-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    position: relative;
+
+    &.dark {
+      &:active { background: rgba(255,255,255,0.06); }
+      & + .app-row { border-top: 1px solid rgba(255,255,255,0.04); }
+    }
+    &.light {
+      &:active { background: rgba(0,0,0,0.04); }
+      & + .app-row { border-top: 1px solid rgba(0,0,0,0.04); }
+    }
+    &.app-inactive {
+      cursor: default;
+      .app-name, .app-desc { opacity: 0.35; }
+    }
+  }
+
+  .app-icon-tile {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    &.tile-inactive { filter: grayscale(1) opacity(0.4); }
+  }
+
+  .app-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .app-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    &.dark { color: rgba(255,255,255,0.9); }
+    &.light { color: rgba(0,0,0,0.85); }
+  }
+  .app-desc {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    &.dark { color: rgba(255,255,255,0.4); }
+    &.light { color: rgba(0,0,0,0.4); }
+  }
+
+  .app-row-end {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .app-chevron {
+    &.dark { color: rgba(255,255,255,0.2); }
+    &.light { color: rgba(0,0,0,0.2); }
   }
 
   .app-unread-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
@@ -850,10 +1135,5 @@ export default {
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
-    z-index: 11;
-  }
-  
-  .relative-position {
-    position: relative;
   }
 </style>
