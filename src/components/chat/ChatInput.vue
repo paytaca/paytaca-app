@@ -112,7 +112,8 @@
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { resizeImage } from 'src/wallet/nostr-media'
 
-const SEND_COMMAND_PATTERN = /^\/send\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
+const SEND_COMMAND_PATTERN = /^\/(send|tip)\s+([\d.]+)\s*([A-Za-z0-9]+)?\s*$/i
+const SEND_BARE_PATTERN = /^\/(send|tip)\s*$/i
 const MAX_CHARS = 3000
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const RESIZE_THRESHOLD = 1 * 1024 * 1024 // 1MB
@@ -326,15 +327,15 @@ export default {
       this.text = ''
       this.isSending = true
 
-      if (trimmed.startsWith('/send')) {
+      if (trimmed.match(/^\/(send|tip)\b/i)) {
         const commandMatch = trimmed.match(SEND_COMMAND_PATTERN)
         if (commandMatch) {
-          const amount = parseFloat(commandMatch[1])
+          const amount = parseFloat(commandMatch[2])
           if (!isNaN(amount) && amount > 0) {
             this.$emit('command', {
               type: 'send',
               amount,
-              currency: (commandMatch[2] || 'BCH').toUpperCase(),
+              currency: (commandMatch[3] || 'BCH').toUpperCase(),
               originalText: trimmed,
             })
             this.dismissKeyboard()
@@ -342,10 +343,22 @@ export default {
             return
           }
         }
+        // Bare /send or /tip — open send dialog without pre-filled amount
+        if (trimmed.match(SEND_BARE_PATTERN)) {
+          this.$emit('command', {
+            type: 'send',
+            amount: 0,
+            currency: 'BCH',
+            originalText: trimmed,
+          })
+          this.dismissKeyboard()
+          this.$nextTick(() => { this.isSending = false })
+          return
+        }
         this.isSending = false
         this.$q.notify({
           type: 'warning',
-          message: this.$t('InvalidSendCommand', {}, 'Invalid /send command. Usage: /send <amount> <currency>'),
+          message: this.$t('InvalidSendCommand', {}, 'Usage: /send or /send <amount> <currency>'),
           timeout: 5000,
           closeBtn: true,
         })

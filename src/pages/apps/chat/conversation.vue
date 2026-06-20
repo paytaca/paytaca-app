@@ -506,6 +506,7 @@
     <!-- Send BCH Dialog -->
     <send-bch-dialog
       v-if="showSendDialog"
+      :command="sendCommand"
       :amount="sendAmount"
       :recipient-pub-key="sendRecipientPubKey"
       :recipient-name="getSendRecipientName()"
@@ -543,6 +544,7 @@ export default {
       showRenameGroupDialog: false,
       renameGroupName: '',
       showSendDialog: false,
+      sendCommand: 'send',
       sendAmount: 0,
       sendRecipientPubKey: '',
       sendPreFilledAddress: '',
@@ -1576,9 +1578,10 @@ export default {
       }
 
       const currencyUpper = (currency || 'BCH').toUpperCase()
+      const commandType = originalText?.trim().startsWith('/tip') ? 'tip' : 'send'
 
       if (currencyUpper === 'BCH') {
-        await this.handleBchSend(amount, originalText)
+        await this.handleBchSend(amount, originalText, commandType)
       } else {
         this.$q.notify({
           type: 'info',
@@ -1589,7 +1592,7 @@ export default {
         this.$refs.chatInput?.setText(originalText)
       }
     },
-    async handleBchSend (amount, originalText) {
+    async handleBchSend (amount, originalText, commandType = 'send') {
       const recipientPubKey = this.otherMemberPubKey
       if (!recipientPubKey) {
         this.$q.notify({ type: 'negative', message: 'No recipient found', timeout: 5000, closeBtn: true })
@@ -1597,52 +1600,45 @@ export default {
         return
       }
 
-      this.$q.loading.show({ message: 'Fetching recipient address...' })
+      this.$q.loading.show({ message: this.$t('FetchingRecipientAddress', {}, 'Fetching recipient address...') })
+      let address = null
       try {
-        const address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
+        address = await this.$store.dispatch('nostrChat/fetchPublishedBchAddress', {
           pubKeyHex: recipientPubKey,
         })
-        this.$q.loading.hide()
-
-        if (!address) {
-          this.$q.notify({
-            type: 'negative',
-            message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address'),
-            timeout: 5000,
-            closeBtn: true,
-          })
-          this.$refs.chatInput?.setText(originalText)
-          return
-        }
-
-        this.sendAmount = amount
-        this.sendRecipientPubKey = recipientPubKey
-        this.sendPreFilledAddress = address
-        this.showSendDialog = true
       } catch (err) {
-        this.$q.loading.hide()
-        console.error('[Conversation] Failed to handle BCH send:', err)
+        console.error('[Conversation] Failed to fetch BCH address:', err)
+      }
+      this.$q.loading.hide()
+
+      if (!address) {
         this.$q.notify({
-          type: 'negative',
-          message: this.$t('FetchAddressFailed', {}, 'Failed to fetch recipient address'),
+          type: 'warning',
+          message: this.$t('NoPublishedBCHAddress', {}, 'Recipient has not published a BCH address — paste it manually below'),
           timeout: 5000,
           closeBtn: true,
         })
-        this.$refs.chatInput?.setText(originalText)
       }
+
+      this.sendAmount = amount || 0
+      this.sendRecipientPubKey = recipientPubKey
+      this.sendPreFilledAddress = address || ''
+      this.sendCommand = commandType
+      this.showSendDialog = true
     },
-    async onSendSuccess ({ txid, amount, recipient }) {
+    async onSendSuccess ({ txid, amount, symbol, recipient }) {
       this.showSendDialog = false
       this.sendPreFilledAddress = ''
+      const assetSymbol = symbol || 'BCH'
       this.$q.notify({
         type: 'positive',
-        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} BCH`),
+        message: this.$t('BchSentSuccess', { amount, txid: txid?.slice(0, 12) }, `Successfully sent ${amount} ${assetSymbol}`),
       })
 
       // Send confirmation message in chat with embedded markup
       if (this.room && txid) {
         try {
-          const text = `Sent ${amount} BCH [/*t:payment,a:${amount},x:${txid}*/]`
+          const text = `Sent ${amount} ${assetSymbol} [/*t:payment,a:${amount},s:${assetSymbol},x:${txid}*/]`
           const { giftWraps, message, roomId } = await this.$store.dispatch('nostrChat/sendMessage', {
             roomId: this.roomId,
             text,

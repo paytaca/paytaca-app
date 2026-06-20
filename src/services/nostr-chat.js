@@ -456,17 +456,26 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:bch-address'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch BCH address:', err)
-    return null
+  const maxAttempts = 3
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
+      const match = events?.find(e => {
+        const dTag = e.tags?.find(t => t[0] === 'd')
+        return dTag && dTag[1] === 'paytaca:bch-address'
+      })
+      if (match) return match
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+      }
+    } catch (err) {
+      console.warn(`[Nostr] fetchBchAddress attempt ${attempt + 1} failed:`, err)
+      if (attempt < maxAttempts - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+      }
+    }
   }
+  return null
 }
 
 /**
