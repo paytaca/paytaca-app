@@ -137,7 +137,7 @@
         @makeKeyAction="onKeyboardAction"
       />
 
-      <div class="swipe-container q-px-md q-pb-md" :class="{ 'dimmed': sending }">
+      <div v-if="customKeyboardState === 'dismiss'" class="swipe-container q-px-md q-pb-md" :class="{ 'dimmed': sending }">
         <DragSlide
           :disable="sending || !canSend || !amountIsValid"
           disable-absolute-bottom
