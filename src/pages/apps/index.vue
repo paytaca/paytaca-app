@@ -58,6 +58,9 @@
         @click="searchQuery = ''"
       />
     </div>
+    <div class="apps-hint-text q-px-md q-mt-xs" :class="getDarkModeClass(darkMode)">
+      {{ $t('LongPressToPin', {}, 'Long press on the app to pin or unpin.') }}
+    </div>
 
     <div id="apps" ref="apps" class="apps-list-container" :class="[getDarkModeClass(darkMode), `view-${viewMode}`]">
       <section
@@ -834,6 +837,12 @@ export default {
     cursor: pointer;
     &.dark { color: rgba(255,255,255,0.4); }
     &.light { color: rgba(0,0,0,0.35); }
+  }
+  .apps-hint-text {
+    text-align: center;
+    font-size: 12px;
+    &.dark { color: rgba(255,255,255,0.4); }
+    &.light { color: rgba(0,0,0,0.4); }
   }
 
   .no-results {
