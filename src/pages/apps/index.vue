@@ -258,7 +258,7 @@ export default {
           id: 'chat',
           name: this.$t('Chat'),
           description: this.$t('Apps.Chat.Description', {}, 'Private and group messaging over Nostr.'),
-          iconName: 'chat',
+          iconName: 'o_chat',
           path: '/apps/chat',
           iconStyle: 'font-size: 4em',
           active: !this.$store.getters['global/isChipnet'],
