@@ -35,13 +35,12 @@
 
         <!-- Amount input -->
         <div class="amount-input-section" :class="getDarkModeClass(darkMode)">
-          <q-input
+          <input
             ref="amountInput"
             v-model="amountInput"
             type="text"
             inputmode="none"
-            borderless
-            class="amount-q-input"
+            class="amount-input-field"
             :class="getDarkModeClass(darkMode)"
             :placeholder="$t('EnterAmount', {}, '0')"
             @focus="customKeyboardState = 'show'"
@@ -332,13 +331,13 @@ export default {
   methods: {
     getDarkModeClass,
     onKeyboardKey (key) {
-      const caret = this.$refs.amountInput?.nativeEl?.selectionStart ?? this.amountInput.length
+      const caret = this.$refs.amountInput?.selectionStart ?? this.amountInput.length
       const asset = this.selectedAsset.id === 'bch' ? null : this.selectedAsset
       this.amountInput = parseKey(key, this.amountInput, caret, asset)
     },
     onKeyboardAction (action) {
       if (action === 'backspace') {
-        const el = this.$refs.amountInput?.nativeEl
+        const el = this.$refs.amountInput
         const caret = el?.selectionStart ?? this.amountInput.length
         if (caret > 0) {
           this.amountInput = this.amountInput.slice(0, caret - 1) + this.amountInput.slice(caret)
@@ -691,29 +690,23 @@ export default {
   gap: 8px;
   padding: 16px 0 4px;
 }
-.amount-q-input {
+.amount-input-field {
   flex: 1;
+  font-size: 32px;
+  font-weight: 700;
   text-align: center;
-  :deep(.q-field__control) {
-    padding: 0 !important;
-    height: 48px !important;
-  }
-  :deep(.q-field__native) {
-    font-size: 32px !important;
+  letter-spacing: 0.5px;
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  padding: 0;
+  &::placeholder {
+    font-size: 32px;
     font-weight: 700;
-    text-align: center;
-    letter-spacing: 0.5px;
-    min-height: 44px;
-    &::placeholder {
-      font-size: 32px !important;
-      font-weight: 700;
-    }
   }
-  &.dark :deep(.q-field__native) { color: rgba(255,255,255,0.95); }
-  &.light :deep(.q-field__native) { color: rgba(0,0,0,0.9); }
-  :deep(.q-field__control::before) { border: none !important; }
-  :deep(.q-field__control::after) { border: none !important; }
-  :deep(.q-field--focused .q-field__control) { box-shadow: none !important; }
+  &.dark { color: rgba(255,255,255,0.95); }
+  &.light { color: rgba(0,0,0,0.9); }
 }
 .amount-unit-toggle {
   font-size: 32px;
