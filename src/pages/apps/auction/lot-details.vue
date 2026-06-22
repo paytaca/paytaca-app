@@ -173,7 +173,7 @@
               </q-banner>
             </div>
             
-            <div v-if="lot.is_sold" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
+            <div v-if="showPostAuctionActions && (isAuthor || isWinningBidder)" class="q-mt-md full-width row q-col-gutter-none items-center justify-center">
               <div class="col text-center">
                 <q-btn
                   v-if="isAuthor"
@@ -704,6 +704,7 @@ const handlePlaceBid = async ({ bid_price_bch, bid_price_fiat }) => {
     })
     
     openDialog.value = false
+    hasUserBid.value = true
     $q.notify({
       type: 'positive',
       icon: 'gavel',
@@ -760,6 +761,11 @@ const isLotClosed = computed(() => {
   return status === 'Closed' || status === 'Sold'
 })
 
+const showPostAuctionActions = computed(() => {
+  if (isSold.value) return true
+  return auction.value?.type === 'English' && isLotClosed.value && hasBid.value
+})
+
 const bidStatus = computed(() => {
   const isHighest = highestBidderId.value === walletHash
 
@@ -777,6 +783,8 @@ const bidStatus = computed(() => {
 
   return isHighest ? 'highest' : 'outbid'
 })
+
+const isWinningBidder = computed(() => bidStatus.value === 'win')
 
 
 
