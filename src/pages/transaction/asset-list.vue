@@ -141,7 +141,7 @@
 			        :icon="showHidden ? 'expand_less' : 'expand_more'"
 			        :label="showHidden
 			          ? $t('HideHiddenAssets', {}, 'Hide hidden assets')
-			                            : $t('ShowHiddenAssets', {}, { count: hiddenAssetList.length }, `Show hidden assets: ${hiddenAssetList.length}`)"
+			                            : $t('ShowHiddenAssets', { count: hiddenAssetList.length }, 'Show hidden assets')"
 			        @click="showHidden = !showHidden"
 			      />
 			      <q-list v-if="showHidden" class="q-mt-sm">
