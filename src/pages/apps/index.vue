@@ -840,7 +840,7 @@ export default {
   }
   .apps-hint-text {
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
     &.dark { color: #ffffff; }
     &.light { color: #000000; }
   }
