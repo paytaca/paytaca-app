@@ -832,7 +832,7 @@ export default {
       if (!this.isTokenTransaction || !this.tokenAssetId) return false
       // Check if token is not in favorites
       const favoriteIds = this.favorites
-        .filter(fav => fav.favorite === 1)
+        .filter(fav => fav.favorite === 1 || fav.favorite === true)
         .map(fav => fav.id)
       return !favoriteIds.includes(this.tokenAssetId)
     },
@@ -1934,10 +1934,10 @@ export default {
       }
       
       // Count current favorites (where favorite === 1)
-      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1).length
+      const currentFavoriteCount = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true).length
       
       // Check if this token is already a favorite
-      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && fav.favorite === 1)
+      const isAlreadyFavorite = currentFavorites.some(fav => fav.id === this.tokenAssetId && (fav.favorite === 1 || fav.favorite === true))
       
       // If not already a favorite, check limit
       if (!isAlreadyFavorite) {
@@ -2005,7 +2005,7 @@ export default {
             // If favorite_order doesn't exist, assign it position 1 and shift others
             if (existingOrder === null || existingOrder === undefined) {
               // Get all existing favorites with order
-              const existingFavorites = currentFavorites.filter(fav => fav.favorite === 1 && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
+              const existingFavorites = currentFavorites.filter(fav => (fav.favorite === 1 || fav.favorite === true) && fav.id !== this.tokenAssetId && fav.favorite_order !== null && fav.favorite_order !== undefined)
               const maxOrder = existingFavorites.length > 0 
                 ? Math.max(...existingFavorites.map(f => f.favorite_order))
                 : 0
@@ -2016,7 +2016,7 @@ export default {
           // Add new favorite at position 1, increment all existing favorites' favorite_order by 1
           // First, increment all existing favorites' favorite_order
           currentFavorites.forEach(fav => {
-            if (fav.favorite === 1 && fav.favorite_order !== null && fav.favorite_order !== undefined) {
+            if ((fav.favorite === 1 || fav.favorite === true) && fav.favorite_order !== null && fav.favorite_order !== undefined) {
               fav.favorite_order = fav.favorite_order + 1
             }
           })

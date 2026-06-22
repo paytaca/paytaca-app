@@ -61,17 +61,18 @@
 
 			<div class="full-width tokens-list-container" :class="darkmode ? 'text-white' : 'text-black'" style="margin-top: 12px ;">
 			    <q-list v-if="visibleAssetList.length > 0" :key="assetListKey" class="q-ma-md">
-			      	<draggable			      		
-			      		:list="visibleAssetList" 
-						group="assets" 
-						@start="drag=true" 
-						@end="onDragEnd" 
-						handle=".handle"
-						item-key="id"
-						:animation="600"
-						:transition-duration="600"
-						class="asset-list-transition"
-			      	>
+				       	<draggable			      		
+			       			:list="visibleAssetList" 
+							group="assets" 
+							@start="drag=true" 
+							@change="onDragChange"
+							@end="onDragEnd" 
+							handle=".handle"
+							item-key="id"
+							:animation="600"
+							:transition-duration="600"
+							class="asset-list-transition"
+			       		>
 			      	    <template #item="{element: asset, index}"> 
 			      	    	<q-slide-item ref="slideRefs" @right="onSwipeRight(asset, $event)" right-color="grey" class="q-my-sm">
 			      	    		<template v-slot:right>
@@ -79,12 +80,12 @@
 			      	    				<q-icon name="visibility_off" size="24px" color="white" />
 			      	    			</div>
 			      	    		</template>
-				      	    	<q-card class="q-py-sm br-15 asset-card" :class="{'has-drag-handle': asset.favorite === 1}">
-				      	    		<q-item>
-				      	    			<q-item-section v-if="asset.favorite === 1" side class="handle drag-handle">
-				      	    				<q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
-				      	    			</q-item-section>		      	    			      	    	
-									      <q-item-section avatar :class="{'q-pl-md': asset.favorite !== 1}">
+    				   	<q-card class="q-py-sm br-15 asset-card" :class="{'has-drag-handle': asset.favorite === 1 || asset.favorite === true}">
+    				   		<q-item>
+    				   			<q-item-section v-if="asset.favorite === 1 || asset.favorite === true" side class="handle drag-handle">
+    				   				<q-icon name="drag_indicator" size="20px" :color="darkmode ? 'grey-5' : 'grey-7'" />
+    				   			</q-item-section>		       					   				       		
+								      <q-item-section avatar :class="{'q-pl-md': asset.favorite !== 1 && asset.favorite !== true}">
 									          <q-avatar>
 									            <img 
 									              :src="getImageUrl(asset)" 
@@ -392,49 +393,72 @@ export default {
 	    refreshList() {
 	    	this.assetListKey++
 	    },
-	    async onDragEnd() {
-	    	this.drag = false
-	    	
-	    	// Ensure favorites remain grouped at the top after manual reordering
-	    	// Only reorder visible (non-hidden) assets
-	    	const hidden = this.hiddenIds
-	    	const visible = this.assetList.filter(a => !hidden.includes(a.id))
-	    	const favorites = visible.filter(asset => asset.favorite === 1)
-	    	const nonFavorites = visible.filter(asset => asset.favorite === 0)
-	    	const reorderedVisible = [...favorites, ...nonFavorites]
-	    	// Merge reordered visible assets back with hidden ones
-	    	const hiddenAssets = this.assetList.filter(a => hidden.includes(a.id))
-	    	this.assetList = [...reorderedVisible, ...hiddenAssets]
-	    	
-	    	// Update favorite_order based on new position and save to backend
-	    	if (favorites.length > 0) {
-	    		// Map favorites with their new favorite_order (index + 1, starting from 1)
-	    		const favoritesWithOrder = favorites.map((asset, index) => ({
-	    			id: asset.id,
-	    			favorite: asset.favorite,
-	    			favorite_order: index + 1 // favorite_order starts from 1
-	    		}))
-	    		
-	    		// Also include non-favorites with favorite: 0 and favorite_order: null
-	    		const nonFavoritesData = nonFavorites.map(asset => ({
-	    			id: asset.id,
-	    			favorite: 0,
-	    			favorite_order: null
-	    		}))
-	    		
-	    		// Combine all assets and save to backend
-	    		const allFavoritesData = [...favoritesWithOrder, ...nonFavoritesData]
-	    		
-	    		try {
-	    			const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
-	    			await assetSettings.saveFavorites(allFavoritesData, {
-	    				walletHash: this.isCashToken ? undefined : slpWalletHash
-	    			})
-	    		} catch (error) {
-	    			console.error('Error saving favorite order:', error)
-	    		}
-	    	}
-	    },
+    onDragChange (event) {
+      if (event.moved) {
+        const { oldIndex, newIndex } = event.moved
+        const hidden = this.hiddenIds
+        const visible = this.assetList.filter(a => !hidden.includes(a.id))
+        const [moved] = visible.splice(oldIndex, 1)
+        visible.splice(newIndex, 0, moved)
+        const hiddenAssets = this.assetList.filter(a => hidden.includes(a.id))
+        this.assetList = [...visible, ...hiddenAssets]
+      }
+    },
+    async onDragEnd() {
+    		this.drag = false
+    		
+    		// Ensure favorites remain grouped at the top after manual reordering
+    		// Only reorder visible (non-hidden) assets
+    		const hidden = this.hiddenIds
+    		const visible = this.assetList.filter(a => !hidden.includes(a.id))
+    		const favorites = visible.filter(asset => asset.favorite === 1 || asset.favorite === true)
+    		const nonFavorites = visible.filter(asset => asset.favorite === 0 || asset.favorite === false)
+    		const reorderedVisible = [...favorites, ...nonFavorites]
+    		// Merge reordered visible assets back with hidden ones
+    		const hiddenAssets = this.assetList.filter(a => hidden.includes(a.id))
+    		this.assetList = [...reorderedVisible, ...hiddenAssets]
+    		
+    		// Update favorite_order based on new position and save to backend
+    		if (favorites.length > 0) {
+    			// Map favorites with their new favorite_order (index + 1, starting from 1)
+    			const favoritesWithOrder = favorites.map((asset, index) => ({
+    				id: asset.id,
+    				favorite: asset.favorite,
+    				favorite_order: index + 1 // favorite_order starts from 1
+    			}))
+    			
+    			// Also include non-favorites with favorite: 0 and favorite_order: null
+    			const nonFavoritesData = nonFavorites.map(asset => ({
+    				id: asset.id,
+    				favorite: 0,
+    				favorite_order: null
+    			}))
+    			
+    		// Combine all assets and save to backend
+    		let allFavoritesData = [...favoritesWithOrder, ...nonFavoritesData]
+    		
+    		// Preserve hidden favorites that aren't in the current view
+    		const hiddenFavorites = this.assetList.filter(a => hidden.includes(a.id) && (a.favorite === 1 || a.favorite === true))
+    		hiddenFavorites.forEach(fav => {
+    			if (!allFavoritesData.some(data => data.id === fav.id)) {
+    				allFavoritesData.push({
+    					id: fav.id,
+    					favorite: 1,
+    					favorite_order: fav.favorite_order || null
+    				})
+    			}
+    		})
+    		
+    		try {
+    			const slpWalletHash = this.wallet?.SLP?.walletHash || this.wallet?.slp?.walletHash
+    			await assetSettings.saveFavorites(allFavoritesData, {
+    				walletHash: this.isCashToken ? undefined : slpWalletHash
+    			})
+    		} catch (error) {
+    			console.error('Error saving favorite order:', error)
+    		}
+    		}
+    	},
 	    // REMOVED: checkEmptyFavorites - Never update favorites in Vuex state
 	    // Favorites should only be stored in the backend API, not in Vuex
 	    // Components should fetch favorites from the API using assetSettings.fetchFavorites()
@@ -457,7 +481,7 @@ export default {
     	this.favoriteLoading = { ...this.favoriteLoading, [favAsset.id]: true }
 
     	// Toggle favorite status
-    	const wasFavorite = favAsset.favorite === 1
+    	const wasFavorite = favAsset.favorite === 1 || favAsset.favorite === true
     	
     	// Declare currentFavorites at function scope so it's accessible throughout
     	let currentFavorites = []
@@ -506,30 +530,30 @@ export default {
 	    	if (wasFavorite) {
 	    		// Set favorite_order to null for the unfavorited token
 	    		this.assetList = this.assetList.map(asset => {
-	    			if (asset.id === favAsset.id && asset.favorite === 0) {
+	    		if (asset.id === favAsset.id && (asset.favorite === 0 || asset.favorite === false)) {
 	    				return { ...asset, favorite_order: null }
 	    			}
 	    			return asset
 	    		})
 	    		
 	    		// Sort immediately: favorites first (by favorite_order), then non-favorites
-	    		this.assetList = this.assetList.sort((a, b) => {
-	    			// If one is favorite and other is not, favorite comes first
-	    			if (a.favorite === 1 && b.favorite === 0) return -1
-	    			if (a.favorite === 0 && b.favorite === 1) return 1
-	    			// If both are favorites, maintain their favorite_order
-	    			if (a.favorite === 1 && b.favorite === 1) {
-	    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
-	    					? a.favorite_order 
-	    					: Number.MAX_SAFE_INTEGER
-	    				const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
-	    					? b.favorite_order 
-	    					: Number.MAX_SAFE_INTEGER
-	    				return orderA - orderB
-	    			}
-	    			// If both are non-favorites, maintain their relative order (or sort by name/id for consistency)
-	    			// Put the newly unfavorited token first in the non-favorites list
-	    			if (a.favorite === 0 && b.favorite === 0) {
+				this.assetList = this.assetList.sort((a, b) => {
+					// If one is favorite and other is not, favorite comes first
+					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
+					if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
+					// If both are favorites, maintain their favorite_order
+					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
+						const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
+							? a.favorite_order 
+							: Number.MAX_SAFE_INTEGER
+						const orderB = (b.favorite_order !== null && b.favorite_order !== undefined && b.favorite_order > 0) 
+							? b.favorite_order 
+							: Number.MAX_SAFE_INTEGER
+						return orderA - orderB
+					}
+					// If both are non-favorites, maintain their relative order (or sort by name/id for consistency)
+					// Put the newly unfavorited token first in the non-favorites list
+					if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 0 || b.favorite === false)) {
 	    				if (a.id === favAsset.id) return -1 // Newly unfavorited comes first
 	    				if (b.id === favAsset.id) return 1
 	    				return 0 // Maintain relative order for others
@@ -542,7 +566,7 @@ export default {
 	    	// This ensures the sort uses the correct order before any async operations
 	    	if (!wasFavorite) {
 	    		// Get favorites in current view (excluding the one we're favoriting)
-	    		const favoritesInView = this.assetList.filter(asset => asset.favorite === 1 && asset.id !== favAsset.id)
+	    		const favoritesInView = this.assetList.filter(asset => (asset.favorite === 1 || asset.favorite === true) && asset.id !== favAsset.id)
 	    		
 	    		// Get valid favorite_order values from visible favorites (only count non-null, non-undefined orders)
 	    		const validOrdersInView = favoritesInView
@@ -551,7 +575,7 @@ export default {
 	    		
 	    		// Also get valid orders from API favorites (including those not in current view)
 	    		// We already fetched currentFavorites above when checking subscription limits
-	    		const allFavoritesFromAPI = currentFavorites.filter(fav => fav.favorite === 1)
+	    		const allFavoritesFromAPI = currentFavorites.filter(fav => fav.favorite === 1 || fav.favorite === true)
 	    		const validOrdersFromAPI = allFavoritesFromAPI
 	    			.map(f => f.favorite_order)
 	    			.filter(order => order !== null && order !== undefined && order > 0)
@@ -578,20 +602,20 @@ export default {
 	    		
 	    		// Now assign favorite_order to the newly favorited token (after null-order favorites)
 	    		this.assetList = this.assetList.map(asset => {
-	    			if (asset.id === favAsset.id && asset.favorite === 1) {
+	    			if (asset.id === favAsset.id && (asset.favorite === 1 || asset.favorite === true)) {
 	    				return { ...asset, favorite_order: nextOrder }
 	    			}
 	    			return asset
 	    		})
 	    		
-	    		// Sort immediately after assigning favorite_order (synchronously)
-	    		// This ensures the UI shows the correct order right away
-	    		this.assetList = this.assetList.sort((a, b) => {
-	    			// If one is favorite and other is not, favorite comes first
-	    			if (a.favorite === 1 && b.favorite === 0) return -1
-	    			if (a.favorite === 0 && b.favorite === 1) return 1
-	    			// If both are favorites, maintain their favorite_order
-	    			if (a.favorite === 1 && b.favorite === 1) {
+				// Sort immediately after assigning favorite_order (synchronously)
+				// This ensures the UI shows the correct order right away
+				this.assetList = this.assetList.sort((a, b) => {
+					// If one is favorite and other is not, favorite comes first
+					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
+					if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
+					// If both are favorites, maintain their favorite_order
+					if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
 	    				// Handle null/undefined orders - treat them as very large numbers so they sort to the end
 	    				// This ensures favorites with valid orders come first
 	    				const orderA = (a.favorite_order !== null && a.favorite_order !== undefined && a.favorite_order > 0) 
@@ -627,8 +651,8 @@ export default {
 		    	})
 		    	
 		    	// Separate favorites and non-favorites from current view
-		    	const favorites = this.assetList.filter(asset => asset.favorite === 1)
-		    	const nonFavorites = this.assetList.filter(asset => asset.favorite === 0)
+		    	const favorites = this.assetList.filter(asset => asset.favorite === 1 || asset.favorite === true)
+		    	const nonFavorites = this.assetList.filter(asset => asset.favorite === 0 || asset.favorite === false)
 		    	
 		    	// Build favorites data with favorite_order preserved
 		    	let favoritesData = []
@@ -662,15 +686,15 @@ export default {
 		    		// Preserve favorites from API that aren't in current view (assets with zero balance, etc.)
 		    		currentFavorites.forEach(fav => {
 		    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
-		    			if (!isInCurrentView && fav.favorite === 1) {
-		    				// Keep existing favorites not in current view, but adjust their order if needed
-		    				favoritesData.push({
-		    					id: fav.id,
-		    					favorite: 1,
-		    					favorite_order: fav.favorite_order || null
-		    				})
-		    			}
-		    		})
+					if (!isInCurrentView && (fav.favorite === 1 || fav.favorite === true)) {
+						// Keep existing favorites not in current view, but adjust their order if needed
+						favoritesData.push({
+							id: fav.id,
+							favorite: 1,
+							favorite_order: fav.favorite_order || null
+						})
+					}
+				})
 	    	} else {
 	    		// Favoriting: use the favorite_order values already in assetList (assigned synchronously)
 	    		// This ensures consistency between what's displayed and what's saved
@@ -683,20 +707,20 @@ export default {
 	    				favorite_order: asset.favorite_order || null
 	    			}
 	    		})
-		    		
-		    		// Add all non-favorites with favorite: 0 and favorite_order: null
-		    		nonFavorites.forEach(asset => {
-		    			favoritesData.push({
-		    				id: asset.id,
-		    				favorite: 0,
-		    				favorite_order: null
-		    			})
-		    		})
-		    		
-		    		// Preserve favorites from API that aren't in current view
-		    		currentFavorites.forEach(fav => {
-		    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
-		    			if (!isInCurrentView && fav.favorite === 1) {
+	    		
+	    		// Add all non-favorites with favorite: 0 and favorite_order: null
+	    		nonFavorites.forEach(asset => {
+	    			favoritesData.push({
+	    				id: asset.id,
+	    				favorite: 0,
+	    				favorite_order: null
+	    			})
+	    		})
+	    		
+	    		// Preserve favorites from API that aren't in current view
+	    		currentFavorites.forEach(fav => {
+	    			const isInCurrentView = this.assetList.some(asset => asset.id === fav.id)
+	    			if (!isInCurrentView && (fav.favorite === 1 || fav.favorite === true)) {
 		    				favoritesData.push({
 		    					id: fav.id,
 		    					favorite: 1,

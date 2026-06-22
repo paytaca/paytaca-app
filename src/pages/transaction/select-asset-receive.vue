@@ -220,10 +220,10 @@ export default {
         // Sort: favorites first (by favorite_order), then non-favorites
         const sortedTokens = apiTokens.sort((a, b) => {
           // If one is favorite and other is not, favorite comes first
-          if (a.favorite === 1 && b.favorite === 0) return -1
-          if (a.favorite === 0 && b.favorite === 1) return 1
+          if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 0 || b.favorite === false)) return -1
+          if ((a.favorite === 0 || a.favorite === false) && (b.favorite === 1 || b.favorite === true)) return 1
           // If both are favorites, sort by favorite_order
-          if (a.favorite === 1 && b.favorite === 1) {
+          if ((a.favorite === 1 || a.favorite === true) && (b.favorite === 1 || b.favorite === true)) {
             const orderA = a.favorite_order || 0
             const orderB = b.favorite_order || 0
             return orderA - orderB
@@ -233,8 +233,8 @@ export default {
         })
 
         // Separate favorites and non-favorites
-        const favoriteTokens = sortedTokens.filter(token => token.favorite === 1)
-        const nonFavoriteTokens = sortedTokens.filter(token => token.favorite === 0)
+        const favoriteTokens = sortedTokens.filter(token => token.favorite === 1 || token.favorite === true)
+        const nonFavoriteTokens = sortedTokens.filter(token => token.favorite === 0 || token.favorite === false)
 
         // Add unlisted CashToken
         const unlistedAsset = {

@@ -308,7 +308,7 @@ export default {
         if (!asset || !asset.id) continue
         if (asset.id === 'bch') {
           groups.push({ type: 'bch', asset })
-        } else if (asset.favorite === 1) {
+        } else if (asset.favorite === 1 || asset.favorite === true) {
           if (!hasFavorites) {
             groups.push({ type: 'favorites-label' })
             hasFavorites = true
@@ -398,12 +398,12 @@ export default {
                   logo: logo || null,
                   balance: r.balance !== undefined ? r.balance : 0,
                   decimals,
-                  favorite: r.favorite === true ? 1 : 0,
+                  favorite: r.favorite === true || r.favorite === 1 ? 1 : 0,
                   favorite_order: r.favorite_order != null ? r.favorite_order : null,
                 }
               })
 
-            const favorites = tokens.filter(t => t.favorite === 1)
+            const favorites = tokens.filter(t => t.favorite === 1 || t.favorite === true)
               .sort((a, b) => (a.favorite_order || 0) - (b.favorite_order || 0))
             assets = [...assets, ...favorites]
           }

@@ -356,7 +356,7 @@ export default {
       this.favResult = temp
       
       try { // temporary error handling to resolve temp being null
-        this.favorites = temp.filter(asset => asset.favorite === 1).map(asset => asset.id)
+        this.favorites = temp.filter(asset => asset.favorite === 1 || asset.favorite === true).map(asset => asset.id)
       } catch { }
     },
     formatAssetTokenAmount(asset) {
