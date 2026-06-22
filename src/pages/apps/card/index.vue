@@ -1,17 +1,17 @@
 <template>
   <q-layout view="lHh Lpr lFf" :class="$q.dark.isActive ? 'bg-dark' : 'card-page-bg-light'">
+    <q-header v-if="isloaded" class="bg-transparent text-bow">
+      <CardPageHeader />
+    </q-header>
+    <div v-else class="row items-center q-pa-md" style="min-height: 60px;">
+      <q-btn flat round dense icon="arrow_back" color="primary" style="opacity: 0.3" />
+      <div class="col">
+        <q-skeleton type="text" width="150px" height="30px" class="q-mx-auto" />
+      </div>
+      <div style="width: 40px;"></div>
+    </div>
     <q-page-container :class="$q.dark.isActive ? '' : 'card-page-bg-light'">
-        <!-- Show skeleton header while loading -->
-        <div v-if="!isloaded" class="row items-center q-pa-md" style="min-height: 60px;">
-          <q-btn flat round dense icon="arrow_back" color="primary" style="opacity: 0.3" />
-          <div class="col">
-            <q-skeleton type="text" width="150px" height="30px" class="q-mx-auto" />
-          </div>
-          <div style="width: 40px;"></div>
-        </div>
-        <!-- Show actual header when loaded -->
-        <CardPageHeader v-else />
-        <router-view v-if="isloaded" :key="$route.path"></router-view>
+        <router-view :key="$route.path"></router-view>
     </q-page-container>
 
   </q-layout>
@@ -73,15 +73,6 @@ export default {
     async loadData () {
       await this.loadUser()
       console.log('USER:', this.user)
-      // if (this.user?.cardCount > 0) {
-      //   console.log('User has existing cards, redirecting to cards list')
-      //   this.goToCardsList()
-      // } else {
-      //   console.log('No existing cards for user')
-      //   this.goToHome()
-      // }
-      this.goToHome()
-      clearCardUserCache() // temporary only
     },
 
     async loadUser (forceLogin = false) {
