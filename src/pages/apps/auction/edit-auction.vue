@@ -621,7 +621,7 @@ const validateAuctionDates = () => {
   }
 
   const diffHours = (end - start) / (1000 * 60 * 60)
-  if (diffHours < 24) {
+  if (diffHours < 1) {
     $q.notify({ type: 'negative', message: 'Auction must run for at least 24 hours.' })
     return false
   }
