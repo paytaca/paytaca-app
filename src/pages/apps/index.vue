@@ -74,7 +74,6 @@
         <div class="section-header">
           <q-icon v-if="cat.isPinned" name="mdi-pin" size="14px" class="section-pin-icon" :class="getDarkModeClass(darkMode)" />
           <span class="section-title">{{ cat.label }}</span>
-          <span v-if="cat.isBeta" class="beta-pill">BETA</span>
         </div>
 
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
