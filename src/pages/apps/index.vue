@@ -109,6 +109,7 @@
                 class="pin-indicator"
                 :class="getDarkModeClass(darkMode)"
               />
+              <span v-if="app.beta" class="app-beta-pill">BETA</span>
               <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
                 {{ chatUnreadCountLabel }}
               </div>
@@ -147,6 +148,7 @@
                 class="pin-indicator-grid"
                 :class="getDarkModeClass(darkMode)"
               />
+              <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
               <div
                 v-if="app.id === 'chat' && chatUnreadCount > 0"
                 class="app-unread-badge"
@@ -960,6 +962,28 @@ export default {
     right: -2px;
     &.dark { color: rgba(59, 123, 246, 0.7); }
     &.light { color: rgba(59, 123, 246, 0.6); }
+  }
+  .app-beta-pill {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #e18908, #e65100);
+    color: #fff;
+    letter-spacing: 0.6px;
+    margin-left: 4px;
+  }
+  .app-beta-pill-grid {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    font-size: 7px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #e18908, #e65100);
+    color: #fff;
+    letter-spacing: 0.5px;
   }
   .chip-pinned {
     &.dark { border: 1px solid rgba(59, 123, 246, 0.3); }
