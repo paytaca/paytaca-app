@@ -262,20 +262,34 @@ export async function removeBchAddress ({ state, commit }) {
  * Fetch a user's published BCH address from relays.
  * Returns the address string or null if not found.
  */
-export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
+export async function fetchPublishedBchAddress ({ state, commit }, { pubKeyHex }) {
   if (!pubKeyHex) {
     throw new Error('pubKeyHex is required')
+  }
+
+  const cached = state.bchAddressCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  // Return cached address if fresh
+  if (cached?.address && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.address
   }
 
   const event = await relayService.fetchBchAddress(state.relays, pubKeyHex)
 
   if (!event) {
     console.log('[Nostr] No BCH address event found on relay')
+    // Fall back to stale cache if available
+    if (cached?.address) {
+      console.log('[Nostr] Falling back to cached BCH address')
+      return cached.address
+    }
     return null
   }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] BCH address event failed signature verification')
+    if (cached?.address) return cached.address
     return null
   }
 
@@ -285,16 +299,19 @@ export async function fetchPublishedBchAddress ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] BCH address event has invalid JSON content')
+    if (cached?.address) return cached.address
     return null
   }
 
   const address = parsed?.data?.address?.trim()
   if (!address) {
     console.log('[Nostr] BCH address event has no address — was removed or empty')
+    if (cached?.address) return cached.address
     return null
   }
 
   console.log('[Nostr] Found BCH address:', address)
+  commit('CACHE_BCH_ADDRESS', { pubKeyHex, address })
   return address
 }
 

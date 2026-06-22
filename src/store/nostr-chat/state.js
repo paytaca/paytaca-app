@@ -21,6 +21,7 @@ export default function () {
     initialized: false,
     isSubscribed: false,
     relayStatus: {},
+    bchAddressCache: {}, // { [pubKeyHex]: { address, fetchedAt } }
     profile: {
       bchAddress: null,
       publishedAt: null,

@@ -208,6 +208,11 @@ export function SET_RELAYS (state, relays) {
   state.relays = relays
 }
 
+export function CACHE_BCH_ADDRESS (state, { pubKeyHex, address }) {
+  if (!state.bchAddressCache) state.bchAddressCache = {}
+  state.bchAddressCache[pubKeyHex] = { address, fetchedAt: Date.now() }
+}
+
 export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {
   if (!state.profile) state.profile = {}
   state.profile.bchAddress = address
