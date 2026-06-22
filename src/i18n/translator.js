@@ -34,6 +34,7 @@ class Translator {
 
   async translate (opts = { ignoreExisting: false }) {
     const ignoreExisting = opts?.ignoreExisting
+    const targetKeys = opts?.targetKeys
     /*
       check for supported language codes here
       https://github.com/shikar/NODE_GOOGLE_TRANSLATE/blob/master/languages.js
@@ -56,7 +57,7 @@ class Translator {
       'tl',
       'ru',
       'ar',
-      /* 
+      /*
         LANGUAGE BRANCH (variations)
 
         place the unsupported languages here,
@@ -79,7 +80,8 @@ class Translator {
     const sum = this.getTotalLines()
     console.log('Expected no. of translation keys on i18n files: ', sum)
     if (ignoreExisting) console.log('Will ignore keys with existing translation')
-    
+    if (targetKeys?.length) console.log('Targeting keys:', targetKeys.join(', '))
+
     let jsonData = {}
 
     for (let lang of supportedLangs) {
@@ -110,6 +112,13 @@ class Translator {
       for (const _group of this.texts) {
         const group = Object.assign({}, _group)
         // console.log(`Group keys: ${JSON.stringify(Object.keys(group))}`)
+
+        // If targetKeys specified, filter group to only include matching keys
+        if (targetKeys?.length) {
+          Object.keys(group).forEach(key => {
+            if (!targetKeys.includes(key)) delete group[key]
+          })
+        }
 
         const { filteredGroup, manualTranslations, existingTranslations } = this.filterGroup(
           group, manualTranslationsData, jsonData,
