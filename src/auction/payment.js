@@ -3,38 +3,50 @@ import { getChangeAddress } from 'src/utils/send-page-utils'
 import { loadWallet } from 'src/wallet'
 import { callAPI } from './api'
 import { Store } from 'src/store/'
+import { isChipnet } from 'src/store/global/getters'
+
+const ARBITRATION_FEE = 1000
+const PLATFORM_FEE = 1000
 
 /**
  * @name walletToContract
- * @param {Integer} bidId - id of the user's official bid 
+ * @param {Integer} lotId - id of the user's official bid 
  * Call this when invoking any wallet-to-contract functions
  */
-export async function walletToContract(amountBCH, bidId) {
-  // public keys
+export async function walletToContract(amountBCH, lotId) {
   try {
-    const { arbiterPk, bidderPk, auctioneerPk, servicerPk } = await getAuctionPublicKeys(bidId)
+    // get the auction public keys
+    const publicKeys = await getExistingAuctionPublicKeys(lotId)
+    console.log(publicKeys)
 
-    // make the contract here
-    const contractResult = await creatContract(arbiterPk, bidderPk, auctioneerPk, servicerPk, 1000, 1000)
-    if (!contractResult) throw new Error("Contract failed to be created.")
-
-    const payload = {
-      bid_id: bidId,
-      arbiter_pk: arbiterPk,
-      servicer_pk: servicerPk,
-      arbitration_fee: contractResult.contract.fees.arbitrationFee,
-      platform_fee: contractResult.contract.fees.platformFee
+    // just get the fixed fees
+    const fees = {
+      'arbitrationFee': ARBITRATION_FEE,
+      'platformFee': PLATFORM_FEE
     }
 
-    const response = await callAPI('create-contract', null, 'post', payload)
-    if (!response || !response.success) {
-      throw new Error("Contract details failed to be saved in the database.")
-    } 
+    // check if wallet is in chipnet
+    const isChipnet = Store.getters['global/isChipnet']
 
-    const txid = await sendBCHToContract(contractResult.contract, amountBCH)
-    if (!txid) throw new Error("Failed to transfer BCH to contract.")
+    // make the contract here
+    const contractResult = new AuctionEscrowContract(
+      publicKeys,
+      fees,
+      lotId,
+      isChipnet
+    )
+    if (!contractResult.contract) 
+      throw new Error("Contract failed to be created.")
+    
+    const contractUTXOS = await contractResult.contract.getUtxos()
+    if (contractUTXOS.length > 0)
+      throw new Error("Funds exist inside the contract! Please release/refund first before adding new funds.")
+    
+    const txid = await sendBCHToContract(contractResult, amountBCH)
+    if (!txid) 
+      throw new Error("Failed to transfer BCH to contract.")
+
     console.log("[walletToContract] Successfully transferred BCH to contract! txid = ", txid)
-
   } catch (error) {
     console.error("[walletToContract]", error)
   }
@@ -42,43 +54,54 @@ export async function walletToContract(amountBCH, bidId) {
 
 
 /**
- * !!! DO NOT CALL THIS !!!
  * @name createContract
- * @param {String} arbiterPk 
- * @param {String} bidderPk 
- * @param {String} auctioneerPk 
- * @param {String} servicerPk 
- * @param {Integer} platformFee 
- * @param {Integer} arbitrationFee 
+ * @param {Integer} lotId
  * @returns contract and is_created (boolean)
+ * Call this when establishing a new contract for a new lot
  */
-export async function creatContract(arbiterPk, bidderPk, auctioneerPk, servicerPk, platformFee, arbitrationFee) {
-  const publicKeys = {
-    arbiter: arbiterPk,
-    bidder: bidderPk,
-    auctioneer: auctioneerPk,
-    servicer: servicerPk
+export async function creatContractForLot(lotId) {
+  try {
+    // get the auction public keys
+    const publicKeys = await getNewAuctionPublicKeys(lotId)
+    console.log(publicKeys)
+
+    // just get the fixed fees
+    const fees = {
+      arbitrationFee: ARBITRATION_FEE,
+      platformFee: PLATFORM_FEE
+    }
+
+    // check if wallet is in chipnet
+    const isChipnet = Store.getters['global/isChipnet']
+
+    // creation of contract
+    const contractResult = new AuctionEscrowContract(
+      publicKeys,
+      fees,
+      lotId,
+      isChipnet 
+    )
+    if (!contractResult.contract)
+      throw new Error('Contract failed to be created')
+
+    // payload for adding contract to db
+    const payload = {
+      lot_id: lotId,
+      arbiter_pk: publicKeys.arbiter,
+      servicer_pk: publicKeys.servicer,
+      arbitration_fee: contractResult.fees.arbitrationFee,
+      platform_fee: contractResult.fees.platformFee
+    }
+
+    const response = await callAPI('create-contract', null, 'post', payload)
+    if (!response || !response.success) 
+      throw new Error("Contract details failed to be saved in the database.")
+    
+    return true
   }
-
-  const fees = {
-    platformFee,
-    arbitrationFee
-  }
-
-  // check if wallet is in chipnet
-  const isChipnet = Store.getters['global/isChipnet']
-
-  // creation of contract
-  const contract = new AuctionEscrowContract(
-    publicKeys,
-    fees,
-    1,
-    isChipnet 
-  )
-
-  return {
-    "contract": contract,
-    "is_created": (contract.contract) ? true : false
+  catch(error) {
+    console.error('[creatContractForLot]', error)
+    return false
   }
 }
 
@@ -101,34 +124,68 @@ export async function sendBCHToContract(contract, bchAmount) {
     bchAmount,
     undefined,
     wallet,
-    contract
+    contract.contract
   )
   return txid
 }
 
 // ===== HELPER FUNCTIONS =====
-// Gets the public keys needed for the auction contract
-async function getAuctionPublicKeys(bidId) {
-  const bidderPk = await getBidderPublicKey()
-  const auctioneerPk = await getAuctioneerPublicKey(bidId)
+/**
+ * Gets the public keys for a new contract
+ * @name getNewAuctionPublicKeys
+ * @param {Integer} lotId 
+ * @returns Gets the public keys needed for a NEW auction contract
+ */
+async function getNewAuctionPublicKeys(lotId) {
+  const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
   const arbiterPk = Store.getters['auction/arbiterPublicKey']
   const servicerPk = Store.getters['auction/servicerPublicKey']
 
   return {
-    bidderPk,
-    auctioneerPk,
-    arbiterPk,
-    servicerPk
+    auctioneer: auctioneerPk,
+    arbiter: arbiterPk,
+    servicer: servicerPk
   }
 }
 
-// Fetches the auctioneer public key from the server via api
-async function getAuctioneerPublicKey(bidId) {
+/**
+ * Gets the public keys from an already existing contract
+ * This is different from the getNewAuctionPublicKeys because 
+ * the current store.getters version of both servicer and arbiter PKs
+ * might be different from those saved in the contract
+ * @name getExistingAuctionPublicKeys
+ * @param {Integer} lotId 
+ * @returns Gets the public keys of an already existing contract associated with a lot
+ */
+async function getExistingAuctionPublicKeys(lotId) {
+  const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
+  const arbiterPk = await getPublicKeyFromLotId('arbiter', lotId)
+  const servicerPk = await getPublicKeyFromLotId('servicer', lotId)
+
+  console.log(arbiterPk)
+  console.log(servicerPk)
+
+  return {
+    auctioneer: auctioneerPk,
+    arbiter: arbiterPk,
+    servicer: servicerPk
+  }
+}
+
+
+/**
+ * Fetches a person's public key from the server via api
+ * @name getPublicKeyFromLotId
+ * @param {String} pkCallName - either 'auctioneer-pk', 'arbiter-pk', or 'servicer-pk
+ * @param {Integer} lotId - associated lot
+ * @returns 
+ */
+async function getPublicKeyFromLotId(pkName, lotId) {
   try {
-    const response = await callAPI('auctioneer-pk', bidId)
+    const response = await callAPI(`${pkName}-pk`, lotId)
 
     if (response && response.success) 
-      return response.data.auctioneer_pk
+      return response.data[`${pkName}_pk`]
 
     return null
     
@@ -138,16 +195,14 @@ async function getAuctioneerPublicKey(bidId) {
   } 
 }
 
-// Gets the bidder's wallet
+
+/**
+ * @name getWallet
+ * @returns the bidder's wallet
+ */
 export async function getWallet() {
   const walletIndex = Store.getters['global/getWalletIndex']
   const wallet = await loadWallet('BCH', walletIndex)
   return wallet
 }
 
-// Gets the bidder's public key from the wallet
-async function getBidderPublicKey() {
-  const wallet = await getWallet()
-  const publicKey = await wallet.BCH.getPublicKey(`0/0`)
-  return publicKey
-}

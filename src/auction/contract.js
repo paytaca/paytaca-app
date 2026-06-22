@@ -11,13 +11,13 @@ class AuctionEscrowContract {
    * Creates a new AuctionEscrowContract instance.
    * @param {Object} publicKeys - The public keys of the parties involved in the contract.
    * @param {Object} fees - The fees associated with the contract.
-   * @param {Object} bidId - The lot associated with the contract.
+   * @param {Object} lotId - The lot associated with the contract.
    * @param {boolean} [isChipnet=true] - A boolean indicating whether the contract is on the Chipnet network or not. Defaults to true.
    */
-  constructor (publicKeys, fees, bidId, isChipnet = true) {
+  constructor (publicKeys, fees, lotId, isChipnet = true) {
     this.publicKeys = publicKeys
     this.fees = fees
-    this.bidId = bidId
+    this.lotId = lotId
     this.network = (isChipnet) ? "chipnet" : "mainnet";
 
     this.initialize()
@@ -27,21 +27,20 @@ class AuctionEscrowContract {
     this.provider = new ElectrumNetworkProvider(this.network)
 
     const arbiterPkh = this.getPubKeyHash(this.publicKeys.arbiter)
-    const bidderPkh = this.getPubKeyHash(this.publicKeys.bidder) // include lang muna
     const auctioneerPkh = this.getPubKeyHash(this.publicKeys.auctioneer)
     const servicerPkh = this.getPubKeyHash(this.publicKeys.servicer)
+    console.log(arbiterPkh.toHex() + ", " + auctioneerPkh.toHex() + ", " + servicerPkh.toHex() + ", ")
 
     this.hash = this.sha256Hash(
       this.publicKeys.arbiter,
-      this.publicKeys.bidder, // include lang muna
       this.publicKeys.auctioneer,
       this.publicKeys.servicer,
-      this.bidId
+      this.lotId
     )
+    console.log("hash: " + this.hash)
 
     const contractParams = [
       arbiterPkh,
-      bidderPkh, // include lang muna
       auctioneerPkh,
       servicerPkh,
       BigInt(parseInt(this.fees.platformFee)),
@@ -66,8 +65,8 @@ class AuctionEscrowContract {
    * @param {number} timestamp - The timestamp to be included in the hash.
    * @returns {Promise<string>} A promise that resolves with the generated hash as a string.
    */
-  sha256Hash (arbiterPk, bidderPk, auctioneerPk, servicerPk, bidId) {
-    const message = arbiterPk + bidderPk + auctioneerPk + servicerPk + bidId
+  sha256Hash (arbiterPk, auctioneerPk, servicerPk, lotId) {
+    const message = arbiterPk + auctioneerPk + servicerPk + lotId
     return CryptoJS.SHA256(message).toString()
   }
 
