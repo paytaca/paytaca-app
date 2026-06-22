@@ -1,5 +1,5 @@
 <template>
-  <q-page class="column items-center q-px-md q-pb-md" style="padding-top: 0;">
+  <q-page class="column items-center q-px-md q-pb-md scroll" style="padding-top: 0; height: 100%;">
     <!-- Skeleton Loading -->
     <div v-if="!isloaded" class="column items-center full-width" style="max-width: 650px;">
       <div class="full-width q-mb-lg">
@@ -90,6 +90,21 @@
 
           <div class="text-body2 q-mt-md" :class="textColorGrey">
             {{ $t('Your card will be created and linked to your wallet. You can customize the card name later.') }}
+          </div>
+
+          <div class="create-card-chart full-width q-mt-lg">
+            <div class="text-subtitle2 text-weight-bold q-mb-sm text-left" :class="textColor">
+              {{ $t('Card Creation Activity') }}
+            </div>
+            <q-card flat class="chart-card">
+              <canvas ref="cardChart" v-show="!chartEmpty" class="chart-canvas"></canvas>
+              <div v-if="chartEmpty" class="chart-empty-state column items-center justify-center">
+                <q-icon name="bar_chart" size="48px" color="grey-4" />
+                <div class="text-caption q-mt-sm" :class="textColorGrey">
+                  {{ $t('Create your first card to see activity') }}
+                </div>
+              </div>
+            </q-card>
           </div>
         </div>
       </transition>
@@ -182,6 +197,7 @@ import OrderCard from 'src/components/card/OrderCard.vue';
 import { loadCardUser } from 'src/services/card/user';
 import CreateCardAttemptMixin from 'src/mixins/card/create-card-attempt-mixin'
 import bus from 'src/services/event-bus';
+import Chart from 'chart.js/auto'
 
 export default {
   mixins: [CreateCardAttemptMixin],
@@ -205,7 +221,9 @@ export default {
         { label: 'Printing', icon: 'print', status: 'pending' },
         { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
         { label: 'Linking', icon: 'link', status: 'pending' },
-      ]
+      ],
+      cardChart: null,
+      chartEmpty: true,
     }
   },
 
@@ -237,6 +255,9 @@ export default {
       return {
         background: `linear-gradient(to right, var(--q-primary) 0%, var(--q-primary) ${pct}%, rgba(128, 128, 128, 0.15) ${pct}%, rgba(128, 128, 128, 0.15) 100%)`
       }
+    },
+    storedCards() {
+      return this.$store?.state?.card?.cards || []
     }
   },
 
@@ -248,14 +269,43 @@ export default {
     await this.loadData()
   },
 
+  beforeUnmount() {
+    if (this.cardChart) {
+      this.cardChart.destroy()
+      this.cardChart = null
+    }
+  },
+
+  watch: {
+    activeView(view) {
+      if (view === 'create') {
+        this.$nextTick(() => this.buildCardChart())
+      }
+    },
+    storedCards: {
+      handler() {
+        if (this.activeView === 'create') {
+          this.$nextTick(() => this.buildCardChart())
+        }
+      },
+      deep: true
+    }
+  },
+
   methods: {
     async loadData() {
       this.showLoading()
       await this.loadCardUser()
-      // this.checkExistingCards()
+      if (this.user?.cardCount > 0 && this.$store) {
+        this.$store.dispatch('card/fetchCards').catch(() => {})
+      }
       await this.checkExistingCreateCardAttempt()
       this.isloaded = true
       this.hideLoading()
+      if (this.activeView === 'create') {
+        await this.$nextTick()
+        this.buildCardChart()
+      }
     },
     async loadCardUser({ forceLogin = false } = {}) {
       try {
@@ -271,11 +321,6 @@ export default {
       await this.loadCardUser({ forceLogin: true })
       this.hideLoading()
     },
-    checkExistingCards () {
-      if (this.user?.cardCount > 0 && this.$route.name === 'app-card'){
-        this.$router.push({ name: 'card-list' })
-      }
-    },
     switchView(view) {
       this.activeView = view
       if (view === 'link') {
@@ -285,6 +330,13 @@ export default {
           { label: 'Delivery', icon: 'local_shipping', status: 'done' },
           { label: 'Linking', icon: 'link', status: 'active' },
         ]
+      } else if (view === 'create') {
+        this.journeySteps = [
+          { label: 'Order Card', icon: 'shopping_cart', status: 'pending' },
+          { label: 'Printing', icon: 'print', status: 'pending' },
+          { label: 'Delivery', icon: 'local_shipping', status: 'pending' },
+          { label: 'Linking', icon: 'link', status: 'pending' },
+        ]
       } else {
         this.journeySteps = [
           { label: 'Order Card', icon: 'shopping_cart', status: 'active' },
@@ -293,6 +345,98 @@ export default {
           { label: 'Linking', icon: 'link', status: 'pending' },
         ]
       }
+    },
+    buildCardChart() {
+      if (this.cardChart) {
+        this.cardChart.destroy()
+        this.cardChart = null
+      }
+      if (!this.$refs.cardChart) return
+
+      const canvas = this.$refs.cardChart
+      const cards = this.storedCards
+
+      if (!cards || cards.length === 0) {
+        this.chartEmpty = true
+        return
+      }
+
+      const monthlyCount = {}
+      cards.forEach(card => {
+        const date = new Date(card.created_at || Date.now())
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        monthlyCount[key] = (monthlyCount[key] || 0) + 1
+      })
+
+      const sortedMonths = Object.keys(monthlyCount).sort()
+      const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      const labels = sortedMonths.map(m => {
+        const [y, mo] = m.split('-')
+        return `${monthLabels[parseInt(mo) - 1]} ${y}`
+      })
+
+      let cum = 0
+      const data = sortedMonths.map(m => {
+        cum += monthlyCount[m]
+        return cum
+      })
+
+      this.chartEmpty = false
+
+      const ctx = canvas.getContext('2d')
+      const gradient = ctx.createLinearGradient(0, 0, 0, 160)
+      gradient.addColorStop(0, 'rgba(142, 195, 81, 0.35)')
+      gradient.addColorStop(1, 'rgba(142, 195, 81, 0.02)')
+
+      this.cardChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Cards',
+            data,
+            borderColor: '#8ec351',
+            backgroundColor: gradient,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#8ec351',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1,
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              enabled: true,
+              callbacks: {
+                label: (ctx) => `${ctx.parsed.y} card${ctx.parsed.y !== 1 ? 's' : ''}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              display: true,
+              grid: { display: false },
+              ticks: { font: { size: 10 } }
+            },
+            y: {
+              display: true,
+              grid: { display: false },
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                font: { size: 10 }
+              }
+            }
+          },
+          interaction: { intersect: false, mode: 'index' }
+        }
+      })
     },
     onCardCreated () {
       this.$router.push({ name: 'card-list' })
@@ -704,5 +848,39 @@ export default {
   background: color-mix(in srgb, var(--q-primary) 25%, black);
   border-color: color-mix(in srgb, var(--q-primary) 35%, transparent);
   transform: translateY(-4px);
+}
+
+/* Card Creation Chart */
+.create-card-chart {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.create-card-chart .chart-card {
+  border-radius: 16px;
+  height: 220px;
+  overflow: hidden;
+}
+
+.body--light .create-card-chart .chart-card {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.body--dark .create-card-chart .chart-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chart-canvas {
+  width: 100% !important;
+  height: 220px !important;
+}
+
+.chart-empty-state {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
