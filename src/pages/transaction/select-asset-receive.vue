@@ -213,7 +213,7 @@ export default {
             decimals: token.decimals || 0,
             logo: token.logo,
             balance: token.balance !== undefined ? token.balance : 0,
-            favorite: token.favorite === true ? 1 : 0,
+            favorite: token.favorite === true || token.favorite === 1 ? 1 : 0,
             favorite_order: token.favorite_order !== null && token.favorite_order !== undefined ? token.favorite_order : null
           }))
 
@@ -375,7 +375,7 @@ export default {
                 decimals: storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0),
                 logo: logo,
                 balance: result.balance !== undefined ? result.balance : 0,
-                favorite: result.favorite === true ? 1 : 0,
+                favorite: result.favorite === true || result.favorite === 1 ? 1 : 0,
                 favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
               }
             })

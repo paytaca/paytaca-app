@@ -795,7 +795,7 @@ export default {
 	    					decimals: storeAsset?.decimals !== undefined ? storeAsset.decimals : (result.decimals || 0),
 	    					logo: storeAsset?.logo || logo,
 	    					balance: result.balance !== undefined ? result.balance : 0,
-	    					favorite: result.favorite === true ? 1 : 0,
+	    					favorite: result.favorite === true || result.favorite === 1 ? 1 : 0,
 	    					favorite_order: result.favorite_order !== null && result.favorite_order !== undefined ? result.favorite_order : null
 	    				}
 	    			})
@@ -868,7 +868,7 @@ export default {
 	    						decimals: result?.decimals || 0,
 	    						logo: logo,
 	    						balance: result?.balance !== undefined ? result.balance : 0,
-	    						favorite: result?.favorite === true ? 1 : 0,
+	    						favorite: result?.favorite === true || result?.favorite === 1 ? 1 : 0,
 	    						favorite_order: result?.favorite_order !== null && result?.favorite_order !== undefined ? result.favorite_order : null
 	    					}
 	    				})
