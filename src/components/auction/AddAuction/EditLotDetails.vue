@@ -123,6 +123,23 @@
             </div>
 
             <div class="col-12 col-sm-6">
+              <label class="text-md text-weight-bold block q-mb-xs">Price Drop Interval</label>
+              <q-select
+                outlined
+                dense
+                v-model="priceDropInterval"
+                :options="priceDropIntervalOptions"
+                emit-value
+                map-options
+                placeholder="Select drop frequency"
+                color="pt-primary1"
+                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
+                lazy-rules hide-bottom-space
+                :rules="[ val => !!val || 'Please select an interval' ]"
+              />
+            </div>
+
+            <div class="col-12 col-sm-6">
               <div class="row justify-between items-center q-mb-xs">
                 <label class="text-md text-weight-bold">Price Drop <span>
                   <span v-if="props.isFiatUsed">(in PHP)</span>
@@ -157,23 +174,6 @@
               <label class="text-caption block q-mb-xs text-grey-7">
                 {{ formatEquivalent(priceDrop) }}
               </label>
-            </div>
-
-            <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Drop Interval</label>
-              <q-select
-                outlined
-                dense
-                v-model="priceDropInterval"
-                :options="priceDropIntervalOptions"
-                emit-value
-                map-options
-                placeholder="Select drop frequency"
-                color="pt-primary1"
-                :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
-                lazy-rules hide-bottom-space
-                :rules="[ val => !!val || 'Please select an interval' ]"
-              />
             </div>
           </div>
 
