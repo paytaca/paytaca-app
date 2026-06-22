@@ -473,7 +473,7 @@ export default {
         if (cat.isPinned) {
           apps = this.filteredApps.filter(app => this.pinnedAppIds.includes(app.id))
         } else {
-          apps = this.filteredApps.filter(app => app.category === cat.id && !this.pinnedAppIds.includes(app.id))
+          apps = this.filteredApps.filter(app => app.category === cat.id)
         }
         if (query) {
           apps = apps.filter(app => this.fuzzyMatch(app.name, query))
