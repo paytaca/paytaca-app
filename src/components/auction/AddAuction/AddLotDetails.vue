@@ -292,18 +292,37 @@ const estimatedPrice = ref(0)
 const startingPrice = ref(0)
 const priceThreshold = ref(0)
 const priceDrop = ref(0.0005)
-const priceDropInterval = ref({ label: "Every 10 minutes", value: 10 })
-const priceDropIntervalOptions = [
-  { label: "Every 10 minutes", value: 10 },
+const lotImages = ref([])
+const lotDescription = ref('')
+
+const ALL_INTERVAL_OPTIONS = [
+  { label: "Every 15 minutes", value: 15 },
   { label: "Every 30 minutes", value: 30 },
   { label: "Every 1 hour", value: 60 },
   { label: "Every 2 hours", value: 120 },
   { label: "Every 4 hours", value: 240 },
   { label: "Every 6 hours", value: 360 },
-  { label: "Every 12 hours", value: 720 }
+  { label: "Every 12 hours", value: 720 },
+  { label: "Every 1 day", value: 1440 },
+  { label: "Every 2 days", value: 2880 },
+  { label: "Every 3 days", value: 4320 },
+  { label: "Every 1 week", value: 10080 },
 ]
-const lotImages = ref([])
-const lotDescription = ref('')
+
+const priceDropIntervalOptions = computed(() => {
+  if (!props.startDate || !props.endDate) return ALL_INTERVAL_OPTIONS
+  const durationMinutes = (new Date(props.endDate) - new Date(props.startDate)) / (1000 * 60)
+  if (isNaN(durationMinutes) || durationMinutes <= 0) return ALL_INTERVAL_OPTIONS
+  return ALL_INTERVAL_OPTIONS.filter(opt => opt.value < durationMinutes)
+})
+
+const priceDropInterval = ref({ label: "Every 15 minutes", value: 15 })
+
+watch([() => props.startDate, () => props.endDate], () => {
+  const opts = priceDropIntervalOptions.value
+  const stillValid = opts.find(o => o.value === priceDropInterval.value?.value)
+  if (!stillValid && opts.length > 0) priceDropInterval.value = opts[0]
+})
 
 const isToggledAddLot = ref(false)
 const onToggleAddLot = () => {
@@ -469,7 +488,7 @@ const addLot = async () => {
   startingPrice.value = 0
   priceThreshold.value = 0
   priceDrop.value = 0.0005
-  priceDropInterval.value = { label: "Every 10 minutes", value: 600000 }
+  priceDropInterval.value = priceDropIntervalOptions.value[0] || { label: "Every 15 minutes", value: 15 }
   lotImages.value = []
   lotDescription.value = ''
 }
