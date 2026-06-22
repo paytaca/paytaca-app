@@ -375,14 +375,25 @@ export async function removeDisplayName ({ state, commit }) {
  * Fetch a user's published display name from relays.
  * Returns the display name string or null if not found.
  */
-export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
+export async function fetchPublishedDisplayName ({ state, commit }, { pubKeyHex }) {
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
+  const cached = state.displayNameCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  if (cached?.displayName && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.displayName
+  }
+
   const event = await relayService.fetchDisplayName(state.relays, pubKeyHex)
-  if (!event) return null
+  if (!event) {
+    if (cached?.displayName) return cached.displayName
+    return null
+  }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] Display name event failed signature verification')
+    if (cached?.displayName) return cached.displayName
     return null
   }
 
@@ -391,13 +402,18 @@ export async function fetchPublishedDisplayName ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] Display name event has invalid JSON content')
+    if (cached?.displayName) return cached.displayName
     return null
   }
 
   const displayName = parsed?.data?.displayName?.trim()
-  if (!displayName) return null
+  if (!displayName) {
+    if (cached?.displayName) return cached.displayName
+    return null
+  }
 
   console.log('[Nostr] Found display name:', displayName)
+  commit('CACHE_DISPLAY_NAME', { pubKeyHex, displayName })
   return displayName
 }
 
@@ -462,14 +478,25 @@ export async function removeAvatar ({ state, commit }) {
  * Fetch a user's published avatar from relays.
  * Returns the avatar data URL string or null if not found.
  */
-export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
+export async function fetchPublishedAvatar ({ state, commit }, { pubKeyHex }) {
   if (!pubKeyHex) throw new Error('pubKeyHex is required')
 
+  const cached = state.avatarCache?.[pubKeyHex]
+  const CACHE_TTL = 3600000 // 1 hour
+
+  if (cached?.avatar && (Date.now() - cached.fetchedAt) < CACHE_TTL) {
+    return cached.avatar
+  }
+
   const event = await relayService.fetchAvatar(state.relays, pubKeyHex)
-  if (!event) return null
+  if (!event) {
+    if (cached?.avatar) return cached.avatar
+    return null
+  }
 
   if (!verifyEvent(event)) {
     console.warn('[Nostr] Avatar event failed signature verification')
+    if (cached?.avatar) return cached.avatar
     return null
   }
 
@@ -478,13 +505,18 @@ export async function fetchPublishedAvatar ({ state }, { pubKeyHex }) {
     parsed = JSON.parse(event.content || '{}')
   } catch {
     console.warn('[Nostr] Avatar event has invalid JSON content')
+    if (cached?.avatar) return cached.avatar
     return null
   }
 
   const avatar = parsed?.data?.avatar?.trim()
-  if (!avatar) return null
+  if (!avatar) {
+    if (cached?.avatar) return cached.avatar
+    return null
+  }
 
   console.log('[Nostr] Found avatar')
+  commit('CACHE_AVATAR', { pubKeyHex, avatar })
   return avatar
 }
 

@@ -213,6 +213,16 @@ export function CACHE_BCH_ADDRESS (state, { pubKeyHex, address }) {
   state.bchAddressCache[pubKeyHex] = { address, fetchedAt: Date.now() }
 }
 
+export function CACHE_DISPLAY_NAME (state, { pubKeyHex, displayName }) {
+  if (!state.displayNameCache) state.displayNameCache = {}
+  state.displayNameCache[pubKeyHex] = { displayName, fetchedAt: Date.now() }
+}
+
+export function CACHE_AVATAR (state, { pubKeyHex, avatar }) {
+  if (!state.avatarCache) state.avatarCache = {}
+  state.avatarCache[pubKeyHex] = { avatar, fetchedAt: Date.now() }
+}
+
 export function SET_PROFILE_BCH_ADDRESS (state, { address, publishedAt }) {
   if (!state.profile) state.profile = {}
   state.profile.bchAddress = address

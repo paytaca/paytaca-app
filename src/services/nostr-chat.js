@@ -501,17 +501,38 @@ export async function fetchBchAddress(relays, pubKey) {
  */
 export async function fetchDisplayName(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:display-name'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch display name:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(null) }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:display-name') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
@@ -522,17 +543,38 @@ export async function fetchDisplayName(relays, pubKey) {
  */
 export async function fetchAvatar(relays, pubKey) {
   const pool = getPool()
-  try {
-    const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-    const match = events?.find(e => {
-      const dTag = e.tags?.find(t => t[0] === 'd')
-      return dTag && dTag[1] === 'paytaca:avatar'
-    })
-    return match || null
-  } catch (err) {
-    console.warn('[Nostr] Failed to fetch avatar:', err)
-    return null
-  }
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve(null) }
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      { kinds: [30078], authors: [pubKey] },
+      {
+        onevent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:avatar') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        oneose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
+      }
+    )
+  })
 }
 
 /**
