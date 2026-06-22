@@ -98,8 +98,8 @@
             </div>
 
             <div class="app-info">
-              <div class="app-name">{{ app.name }}</div>
-              <div class="app-desc">{{ app.description }}</div>
+              <div class="app-name" :class="getDarkModeClass(darkMode)">{{ app.name }}</div>
+              <div class="app-desc" :class="getDarkModeClass(darkMode)">{{ app.description }}</div>
             </div>
 
             <div class="app-row-end">
