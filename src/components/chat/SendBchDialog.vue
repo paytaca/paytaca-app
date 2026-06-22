@@ -92,13 +92,19 @@
         </div>
 
         <!-- No published address -->
-        <div v-if="addressLookupDone && !publishedAddress && !fetchingAddress" class="no-address q-mt-md" :class="getDarkModeClass(darkMode)">
+        <div v-if="addressLookupDone && !publishedAddress && !fetchingAddress && !addressFetchError" class="no-address q-mt-md" :class="getDarkModeClass(darkMode)">
           <q-icon name="info" size="16px" color="grey-5" />
           <span>{{ $t('NoPublishedAddress', {}, 'This user has not published a BCH address. Paste their address below.') }}</span>
         </div>
 
-        <!-- Address input (only when no published address) -->
-        <div v-if="!publishedAddress" class="address-input-section q-mt-md">
+        <!-- Fetch error -->
+        <div v-if="addressFetchError" class="fetch-error q-mt-md">
+          <q-icon name="error" size="16px" color="negative" />
+          <span>{{ addressFetchError }}</span>
+        </div>
+
+        <!-- Address input (only when no published address and not fetching and no error) -->
+        <div v-if="!publishedAddress && !fetchingAddress && !addressFetchError" class="address-input-section q-mt-md">
           <div class="address-label">{{ $t('RecipientAddress', {}, 'Recipient BCH Address') }}</div>
           <q-input
             v-model="editableAddress"
@@ -132,6 +138,7 @@
       </q-card-section>
 
       <CustomKeyboard
+        v-if="!addressFetchError"
         :custom-keyboard-state="customKeyboardState"
         @addKey="onKeyboardKey"
         @makeKeyAction="onKeyboardAction"
@@ -229,6 +236,7 @@ export default {
       validatedAddress: '',
       publishedAddress: '',
       fetchingAddress: false,
+      addressFetchError: '',
       addressLookupDone: false,
       amountInput: '',
       customKeyboardState: 'dismiss',
@@ -459,6 +467,7 @@ export default {
         }
       } catch (err) {
         console.warn('[SendBchDialog] Failed to fetch recipient address:', err)
+        this.addressFetchError = this.$t('FailedToFetchAddress', {}, 'Failed to fetch recipient address. Please try again.')
       } finally {
         this.fetchingAddress = false
         this.addressLookupDone = true
@@ -838,6 +847,19 @@ export default {
   gap: 8px;
   font-size: 12px;
   color: #6b7280;
+}
+
+.fetch-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #dc2626;
+  border-left: 3px solid #dc2626;
 }
 
 /* Asset picker */
