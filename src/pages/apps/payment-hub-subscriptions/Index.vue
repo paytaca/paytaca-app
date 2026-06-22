@@ -29,77 +29,43 @@
         <div v-else>
           <q-infinite-scroll @load="onLoadMoreSubscriptions" :offset="250" :disable="!hasNextSubscriptionsPage">
             <q-list separator class="br-15 overflow-hidden border-grey-4 pt-card-2" :class="getDarkModeClass(darkMode)">
-              <q-expansion-item
+              <q-item
                 v-for="sub in subscriptions"
                 :key="sub.id"
-                group="subscriptions"
-                class="q-py-sm"
+                class="q-py-md"
+                clickable
+                v-ripple
+                @click="openDetail(sub)"
               >
-                <template v-slot:header>
-                  <q-item-section>
-                    <div class="row items-center no-wrap full-width">
-                      <div class="col ellipsis q-pr-sm">
-                        <div class="text-weight-bold">{{ sub.plan_name || 'Subscription' }}</div>
-                        <div class="text-caption text-grey text-weight-regular">{{ sub.amount_bch }} BCH / {{ sub.interval_type }}</div>
+                <q-item-section>
+                  <div class="row items-center no-wrap full-width">
+                    <div class="col ellipsis q-pr-sm">
+                      <div class="text-weight-bold">{{ sub.plan_details?.name || 'Subscription' }}</div>
+                      <div class="text-caption text-grey text-weight-regular">
+                        {{ sub.plan_details?.amount }} {{ sub.plan_details?.currency }}
+                        &bull;
+                        <span v-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') || 'days' }}</span>
+                        <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
                       </div>
-                      <div class="col-auto text-center q-px-sm" style="width: 100px;">
-                        <q-badge
-                          :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : 'grey-5')"
-                          :text-color="darkMode ? 'black' : 'white'"
-                          rounded
-                          class="q-px-sm text-weight-medium"
-                          style="min-width: 80px;"
-                        >
-                          {{ sub.status }}
-                        </q-badge>
-                      </div>
+                      <div class="text-caption text-grey-6 font-mono q-mt-xs" style="font-size: 0.7rem;">{{ sub.short_id || sub.id }}</div>
                     </div>
-                  </q-item-section>
-                </template>
-
-                <q-card class="bg-transparent">
-                  <q-card-section>
-                    <div class="q-gutter-y-sm text-body2">
-                      <div class="row justify-between">
-                        <span class="text-grey">Store:</span>
-                        <span class="text-weight-medium">{{ sub.store_name || sub.store_id }}</span>
-                      </div>
-                      <div class="row justify-between">
-                        <span class="text-grey">Contract Address:</span>
-                        <span class="font-mono text-caption q-pl-md" style="word-break: break-all; text-align: right;">{{ sub.contract_address }}</span>
-                      </div>
-                      
-                      <!-- Top-up instructions -->
-                      <div v-if="sub.status === 'ACTIVE' && sub.contract_address" class="q-mt-md bg-grey-3 q-pa-sm br-5" :class="darkMode ? 'text-black' : ''">
-                        <div class="text-caption text-weight-bold q-mb-xs">To fund this subscription:</div>
-                        <div class="text-caption">Send BCH to the contract address above. The Hub will automatically process payments from it based on the interval.</div>
-                        <div class="text-center q-mt-sm">
-                          <q-btn
-                            outline
-                            rounded
-                            size="sm"
-                            color="pt-primary1"
-                            icon="content_copy"
-                            label="Copy Address"
-                            @click="copyAddress(sub.contract_address)"
-                          />
-                        </div>
-                      </div>
+                    <div class="col-auto text-center q-px-sm" style="width: 100px;">
+                      <q-badge
+                        :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : (sub.status === 'PENDING' ? 'orange-4' : 'grey-5'))"
+                        :text-color="darkMode ? 'black' : 'white'"
+                        rounded
+                        class="q-px-sm text-weight-medium"
+                        style="min-width: 80px;"
+                      >
+                        {{ sub.status }}
+                      </q-badge>
                     </div>
-                  </q-card-section>
-
-                  <q-card-actions align="right" class="q-px-md q-pb-md q-pt-none">
-                    <q-btn
-                      v-if="sub.status === 'ACTIVE'"
-                      outline
-                      rounded
-                      color="red"
-                      :label="$t('CancelSubscription') || 'Cancel Subscription'"
-                      @click="cancelSubscription(sub)"
-                    />
-                  </q-card-actions>
-                </q-card>
-              </q-expansion-item>
+                    <div class="col-auto">
+                      <q-icon name="chevron_right" class="text-grey" />
+                    </div>
+                  </div>
+                </q-item-section>
+              </q-item>
             </q-list>
             <template v-slot:loading>
               <div class="row justify-center q-my-md">
@@ -128,6 +94,7 @@ import { useI18n } from 'vue-i18n'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import HeaderNav from 'src/components/header-nav'
 import SubscribeDialog from './SubscribeDialog.vue'
+import SubscriptionDetailDialog from './SubscriptionDetailDialog.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
@@ -201,6 +168,13 @@ async function onLoadMoreSubscriptions(index, done) {
   } finally {
     done()
   }
+}
+
+function openDetail(sub) {
+  $q.dialog({
+    component: SubscriptionDetailDialog,
+    componentProps: { subscriptionId: sub.id }
+  })
 }
 
 function copyAddress(address) {

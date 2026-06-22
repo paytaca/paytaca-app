@@ -2713,7 +2713,26 @@ const phrases = {
       Deactivate: "Deactivate",
       Plans: "Plans",
       IntervalValue: "Interval Value",
-      IntervalUnit: "Interval Unit"
+      IntervalUnit: "Interval Unit",
+      Blocks: "Blocks",
+      PlanDetails: "Plan Details",
+      PlanID: "Plan ID",
+      ShortID: "Short ID",
+      Store: "Store",
+      SubscriptionDetails: "Subscription Details",
+      SubscriptionID: "Subscription ID",
+      PledgeAmount: "Pledge Amount",
+      LastPayment: "Last Payment",
+      FunderAddress: "Funder Address",
+      MerchantAddress: "Merchant Address",
+      DeactivatePlan: "Deactivate Plan",
+      DeactivatePlanConfirm: "Are you sure you want to deactivate {name}?",
+      DescriptionOptional: "Description (Optional)",
+      ErrorCreatingPlan: "Error creating plan",
+      ErrorDeactivatingPlan: "Error deactivating plan",
+      PlanCreated: "Plan created successfully",
+      Rotate: "Rotate",
+      Subscribe: "Subscribe"
     }
   ]
 }

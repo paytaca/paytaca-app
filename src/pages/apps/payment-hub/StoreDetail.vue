@@ -404,16 +404,22 @@
                   <div v-else class="q-mt-md">
                     <q-infinite-scroll @load="onLoadMoreSubscriptions" :offset="250" :disable="!hasNextSubscriptionsPage">
                       <q-list separator class="br-15 overflow-hidden border-grey-4">
-                        <q-item v-for="sub in subscriptions" :key="sub.id" class="q-py-md">
+                        <q-item v-for="sub in subscriptions" :key="sub.id" class="q-py-md" clickable v-ripple @click="openSubscriptionDetails(sub)">
                           <q-item-section>
                             <div class="row items-center no-wrap full-width">
                               <div class="col ellipsis q-pr-sm">
-                                <div class="text-weight-bold">{{ sub.plan_name || 'Plan' }}</div>
-                                <div class="text-caption text-grey text-weight-regular font-mono">{{ sub.subscriber_address }}</div>
+                                <div class="text-weight-bold">{{ sub.plan_details?.name || 'Subscription' }}</div>
+                                <div class="text-caption text-grey text-weight-regular">
+                                  {{ sub.plan_details?.amount }} {{ sub.plan_details?.currency }}
+                                  &bull;
+                                  <span v-if="sub.plan_details?.period_days">{{ sub.plan_details.period_days }} {{ $t('Days') || 'days' }}</span>
+                                  <span v-else-if="sub.plan_details?.period_blocks">{{ sub.plan_details.period_blocks }} {{ $t('Blocks') || 'blocks' }}</span>
+                                </div>
+                                <div class="text-caption text-grey-6 font-mono q-mt-xs" style="font-size: 0.7rem;">{{ sub.funder_address || sub.subscriber_address }}</div>
                               </div>
                               <div class="col-auto text-center q-px-sm" style="width: 100px;">
                                 <q-badge
-                                  :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : 'grey-5')"
+                                  :color="sub.status === 'ACTIVE' ? 'green-4' : (sub.status === 'CANCELLED' ? 'red-4' : (sub.status === 'PENDING' ? 'orange-4' : 'grey-5'))"
                                   :text-color="darkMode ? 'black' : 'white'"
                                   rounded
                                   class="q-px-sm text-weight-medium"
@@ -431,11 +437,14 @@
                                   icon="block"
                                   color="grey-6"
                                   size="sm"
-                                  @click="cancelSubscription(sub)"
+                                  @click.stop="cancelSubscription(sub)"
                                 >
                                   <q-tooltip>{{ $t('Cancel') || 'Cancel' }}</q-tooltip>
                                 </q-btn>
                                   <!-- Reactivation is not supported -->
+                              </div>
+                              <div class="col-auto">
+                                <q-icon name="chevron_right" class="text-grey" />
                               </div>
                             </div>
                           </q-item-section>
@@ -583,6 +592,7 @@ import StoreInfoDialog from 'src/components/payment-hub/StoreInfoDialog.vue'
 import ApiKeyFormDialog from 'src/components/payment-hub/ApiKeyFormDialog.vue'
 import PlanFormDialog from 'src/components/payment-hub/PlanFormDialog.vue'
 import PlanDetailDialog from 'src/components/payment-hub/PlanDetailDialog.vue'
+import SubscriptionDetailDialog from 'src/pages/apps/payment-hub-subscriptions/SubscriptionDetailDialog.vue'
 import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
@@ -1101,10 +1111,17 @@ function openPlanDetails(plan) {
   })
 }
 
+function openSubscriptionDetails(sub) {
+  $q.dialog({
+    component: SubscriptionDetailDialog,
+    componentProps: { subscriptionId: sub.id }
+  })
+}
+
 async function cancelSubscription(sub) {
   $q.dialog({
     title: $t('CancelSubscription') || 'Cancel Subscription',
-    message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription for {address}?').replace('{address}', sub.subscriber_address),
+    message: ($t('CancelSubscriptionConfirm') || 'Are you sure you want to cancel the subscription for {address}?').replace('{address}', sub.funder_address || sub.subscriber_address),
     ok: { label: $t('CancelSubscription') || 'Cancel Subscription', color: 'red', unelevated: true, rounded: true },
     cancel: { label: $t('Cancel'), flat: true, color: 'grey' },
     class: `br-15 pt-card-2 text-bow ${getDarkModeClass(darkMode.value)}`

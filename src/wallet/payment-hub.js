@@ -592,12 +592,24 @@ export class PaymentHub {
   }
 
   /**
+   * Retrieves full details of a specific subscription.
+   * @param {String} subscriptionId - The UUID or Short ID of the subscription.
+   */
+  async getSubscription(subscriptionId) {
+    const response = await backend.get(`/subscriptions/${subscriptionId}`, {
+      authorize: true,
+      wallet: this.wallet
+    })
+    return response.data
+  }
+
+  /**
    * Gets the parameters needed to cancel a subscription (cancel kit).
    * @param {String} subscriptionId - The UUID of the subscription.
    */
   async getSubscriptionCancelKit(subscriptionId, isMerchant = false) {
     const action = isMerchant ? 'merchant-cancel' : 'cancel'
-    const response = await backend.get(`/subscriptions/${subscriptionId}/${action}/`, {
+    const response = await backend.get(`/subscriptions/${subscriptionId}/${action}`, {
       authorize: true, // Needs auth/ownership (merchant or customer wallet)
       wallet: this.wallet
     })
@@ -611,7 +623,7 @@ export class PaymentHub {
    */
   async submitSubscriptionCancel(subscriptionId, rawTx, isMerchant = false) {
     const action = isMerchant ? 'merchant-cancel' : 'cancel'
-    const response = await backend.post(`/subscriptions/${subscriptionId}/${action}/`, {
+    const response = await backend.post(`/subscriptions/${subscriptionId}/${action}`, {
       raw_tx_hex: rawTx
     }, {
       authorize: true,
@@ -626,7 +638,7 @@ export class PaymentHub {
    */
   async reactivateSubscription(subscriptionId) {
     // Note: reactivate is not officially documented yet, but kept as placeholder
-    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate/`, {}, {
+    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, {}, {
       authorize: true,
       wallet: this.wallet
     })
