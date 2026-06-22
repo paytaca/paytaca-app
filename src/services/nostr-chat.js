@@ -468,7 +468,7 @@ export async function fetchBchAddress(relays, pubKey) {
 
     const sub = pool.subscribeMany(
       relays,
-      [{ kinds: [30078], authors: [pubKey] }],
+      { kinds: [30078], authors: [pubKey] },
       {
         onevent(event) {
           if (resolved) return
