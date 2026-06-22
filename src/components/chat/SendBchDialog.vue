@@ -137,7 +137,7 @@
         @makeKeyAction="onKeyboardAction"
       />
 
-      <div v-if="customKeyboardState === 'dismiss'" class="swipe-container q-px-md q-pb-md" :class="{ 'dimmed': sending }">
+      <div v-if="customKeyboardState === 'dismiss' && amountIsValid" class="swipe-container q-px-md q-pb-md" :class="{ 'dimmed': sending }">
         <DragSlide
           :disable="sending || !canSend || !amountIsValid"
           disable-absolute-bottom
@@ -321,12 +321,6 @@ export default {
     await this.loadWallet()
     await this.loadAvailableAssets()
     await this.fetchRecipientAddress()
-    if (this.amount === 0) {
-      this.$nextTick(() => {
-        this.$refs.amountInput?.focus()
-        this.customKeyboardState = 'show'
-      })
-    }
   },
   methods: {
     getDarkModeClass,
