@@ -138,8 +138,6 @@ export default {
   },
 
   mounted () {
-    // Check if cards exists as soon as the component loads
-    this.checkExistingCards()
   }
 }
 </script>
