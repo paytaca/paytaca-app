@@ -683,6 +683,10 @@ export default {
     font-weight: 700;
     text-align: center;
     letter-spacing: 0.5px;
+    &::placeholder {
+      font-size: 24px;
+      font-weight: 700;
+    }
   }
   &.dark :deep(.q-field__native) { color: rgba(255,255,255,0.95); }
   &.light :deep(.q-field__native) { color: rgba(0,0,0,0.9); }
