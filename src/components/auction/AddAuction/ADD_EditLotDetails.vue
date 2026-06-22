@@ -212,14 +212,6 @@
             />
           </div>
 
-          <div class="q-px-md q-mb-md">
-            <q-checkbox 
-              v-model="isFiatUsed" 
-              label="Use Fiat currency"
-              @update:model-value="toggleCurrency" 
-            />
-          </div>
-
           <div class="row justify-end q-mx-md">
             <q-btn
               no-caps
@@ -263,6 +255,11 @@ const props = defineProps({
   endDate: {
     type: String,
     default: ''
+  },
+  isFiatUsed: {
+    type: Boolean,
+    required: true,
+    default: true
   }
 })
 
@@ -293,7 +290,6 @@ const priceDropIntervalOptions = [
 ]
 const lotImages = ref([])
 const lotDescription = ref('')
-const isFiatUsed = ref(false)
 
 const currentImageUrls = ref([])
 
@@ -344,7 +340,7 @@ const calculateSuggestedDrop = () => {
   if (totalIntervals <= 0) return
   
   const calculatedDrop = (startPrice - reservePrice) / totalIntervals
-  priceDrop.value = isFiatUsed.value ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
+  priceDrop.value = props.isFiatUsed ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
 const toggleCurrency = (isFiat) => {
@@ -367,10 +363,10 @@ const toggleCurrency = (isFiat) => {
 const formatEquivalent = (value) => {
   const rate = bchToPhpRate.value
   if (!rate || !value || isNaN(value)) {
-    return isFiatUsed.value ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
+    return props.isFiatUsed ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
   }
 
-  if (isFiatUsed.value) {
+  if (props.isFiatUsed) {
     const bchValue = value / rate
     return `Equivalent BCH: ${bchValue.toFixed(8)} BCH`
   } else {
@@ -388,7 +384,6 @@ watch(() => props.lotData, (newLot) => {
     priceThreshold.value = newLot.threshold || 0
     priceDrop.value = newLot.price_drop || newLot.priceDrop || 0
     priceDropInterval.value = newLot.priceDropInterval || 600000
-    isFiatUsed.value = newLot.isFiatUsed || false
     lotDescription.value = newLot.description || ''
     
     if (Array.isArray(newLot.imageUrls)) {
@@ -442,7 +437,6 @@ const saveLot = async () => {
     threshold: priceThreshold.value || 0,
     price_drop: priceDrop.value || 0,
     priceDropInterval: priceDropInterval.value,
-    isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
     imageUrl: finalImages.length > 0 ? finalImages[0] : null,
     imageUrls: finalImages,

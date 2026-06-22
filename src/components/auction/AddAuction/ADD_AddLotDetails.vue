@@ -54,16 +54,19 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Estimated Price</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Estimated Price <span>
+                <span v-if="props.isFiatUsed">(in PHP)</span>
+                <span v-else>(in BCH)</span>
+              </span></label>
               <q-input
                 outlined
                 dense
                 v-model.number="estimatedPrice"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -76,16 +79,19 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Starting Price</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Starting Price <span>
+                <span v-if="props.isFiatUsed">(in PHP)</span>
+                <span v-else>(in BCH)</span>
+              </span></label>
               <q-input
                 outlined
                 dense
                 v-model.number="startingPrice"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -100,16 +106,19 @@
 
           <div v-if="props.auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Reserve</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Price Reserve <span>
+                <span v-if="props.isFiatUsed">(in PHP)</span>
+                <span v-else>(in BCH)</span>
+              </span></label>
               <q-input
                 outlined
                 dense
                 v-model.number="priceThreshold"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -123,7 +132,10 @@
 
             <div class="col-12 col-sm-6">
               <div class="row justify-between items-center q-mb-xs">
-                <label class="text-md text-weight-bold">Price Drop</label>
+                <label class="text-md text-weight-bold">Price Drop <span>
+                  <span v-if="props.isFiatUsed">(in PHP)</span>
+                  <span v-else>(in BCH)</span>
+                </span></label>
                 <q-btn 
                   flat
                   dense
@@ -140,10 +152,10 @@
                 dense
                 v-model.number="priceDrop"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -222,14 +234,6 @@
             />
           </div>
 
-          <div class="q-px-md q-mb-md">
-            <q-checkbox 
-              v-model="isFiatUsed" 
-              label="Use Fiat currency"
-              @update:model-value="toggleCurrency" 
-            />
-          </div>
-
           <div class="row justify-end q-mx-md">
             <q-btn
               no-caps
@@ -248,7 +252,7 @@
 
 <script setup>
 import { useQuasar } from 'quasar'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 
@@ -265,6 +269,11 @@ const props = defineProps({
   endDate: {
     type: String,
     default: ''
+  },
+  isFiatUsed: {
+    type: Boolean,
+    required: true,
+    default: true
   }
 })
 
@@ -295,7 +304,6 @@ const priceDropIntervalOptions = [
 ]
 const lotImages = ref([])
 const lotDescription = ref('')
-const isFiatUsed = ref(false)
 
 const isToggledAddLot = ref(false)
 const onToggleAddLot = () => {
@@ -363,8 +371,12 @@ const calculateSuggestedDrop = () => {
   if (totalIntervals <= 0) return
   
   const calculatedDrop = (startPrice - reservePrice) / totalIntervals
-  priceDrop.value = isFiatUsed.value ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
+  priceDrop.value = props.isFiatUsed ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
+
+watch(() => props.isFiatUsed, (newVal) => {
+  toggleCurrency(newVal)
+})
 
 const toggleCurrency = (isFiat) => {
   const rate = bchToPhpRate.value
@@ -386,10 +398,10 @@ const toggleCurrency = (isFiat) => {
 const formatEquivalent = (value) => {
   const rate = bchToPhpRate.value
   if (!rate || !value || isNaN(value)) {
-    return isFiatUsed.value ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
+    return props.isFiatUsed ? 'Equivalent BCH: 0.00000000 BCH' : 'Equivalent PHP price: PHP 0.00'
   }
 
-  if (isFiatUsed.value) {
+  if (props.isFiatUsed) {
     const bchValue = value / rate
     return `Equivalent BCH: ${bchValue.toFixed(8)} BCH`
   } else {
@@ -440,7 +452,6 @@ const addLot = async () => {
     threshold: priceThreshold.value || 0,
     priceDrop: priceDrop.value || 0,
     priceDropInterval: rawInterval || 600000,
-    isFiatUsed: isFiatUsed.value,
     description: lotDescription.value,
     
     imageUrl: generatedUrls.length > 0 ? generatedUrls[0] : null,
