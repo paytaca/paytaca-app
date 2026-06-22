@@ -41,7 +41,6 @@
             type="text"
             inputmode="none"
             borderless
-            dense
             class="amount-q-input"
             :class="getDarkModeClass(darkMode)"
             :placeholder="$t('EnterAmount', {}, '0')"
@@ -697,15 +696,16 @@ export default {
   text-align: center;
   :deep(.q-field__control) {
     padding: 0 !important;
-    height: 40px !important;
+    height: 48px !important;
   }
   :deep(.q-field__native) {
-    font-size: 32px;
+    font-size: 32px !important;
     font-weight: 700;
     text-align: center;
     letter-spacing: 0.5px;
+    min-height: 44px;
     &::placeholder {
-      font-size: 32px;
+      font-size: 32px !important;
       font-weight: 700;
     }
   }
