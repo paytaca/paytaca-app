@@ -1023,8 +1023,8 @@ export default {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    &.dark { color: rgba(255,255,255,0.92); }
-    &.light { color: rgba(0,0,0,0.88); }
+    &.dark { color: #ffffff; }
+    &.light { color: #000000; }
   }
   .app-desc {
     font-size: 12px;
@@ -1036,8 +1036,8 @@ export default {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    &.dark { color: rgba(255,255,255,0.55); }
-    &.light { color: rgba(0,0,0,0.5); }
+    &.dark { color: rgba(255,255,255,0.75); }
+    &.light { color: rgba(0,0,0,0.65); }
   }
 
   .app-row-end {
