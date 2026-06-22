@@ -263,12 +263,12 @@
 
               <q-chip
                 dense
-                :color="lot.getStatus().color"
+                :color="getLotStatusInfo(lot).color"
                 text-color="white"
                 class="absolute text-caption text-weight-bold"
                 style="top: 8px; right: 8px; margin: 0; padding: 3px 8px; height: auto;"
               >
-                {{ lot.getStatus().label }}
+                {{ getLotStatusInfo(lot).label }}
               </q-chip>
             </div>
 
@@ -294,36 +294,72 @@
               <q-separator spaced="sm" />
               
               <div v-if="lot.auction_type === 'English'" class="column q-gap-y-none q-mb-xs">
-                <div class="text-caption text-weight-medium">HIGHEST BID:</div>
-                <div class="text-caption text-weight-bold">
-                  {{ formatFiat(lot.threshold_bid_fiat) }}
-                </div>
-                <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                  {{ formatBCH(lot.threshold_bid_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.threshold_bid_bch).zeros }}</span>&nbsp;BCH
-                </div>
+                <div class="text-caption text-weight-medium">{{ getEnglishPriceInfo(lot).label }}</div>
+
+                <template v-if="lot.is_fiat">
+                  <div class="text-caption text-weight-bold">
+                    {{ formatFiat(getEnglishPriceInfo(lot).fiat) }}
+                  </div>
+                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    {{ formatBCH(getEnglishPriceInfo(lot).bch).main }}<span style="opacity: 0.4;">{{ formatBCH(getEnglishPriceInfo(lot).bch).zeros }}</span>&nbsp;BCH
+                  </div>
+                </template>
+
+                <template v-else>
+                  <div class="text-caption text-weight-bold">
+                    {{ formatBCH(getEnglishPriceInfo(lot).bch).main }}<span style="opacity: 0.4;">{{ formatBCH(getEnglishPriceInfo(lot).bch).zeros }}</span>&nbsp;BCH
+                  </div>
+                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    {{ formatFiat(getEnglishPriceInfo(lot).fiat) }}
+                  </div>
+                </template>
               </div>
               
               <div v-else-if="lot.auction_type === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
                 <div class="column q-gap-y-none">
                   <div class="text-caption text-weight-medium">START PRICE:</div>
-                  <div class="text-caption text-weight-bold">
-                    {{ formatFiat(lot.starting_price_fiat) }}
-                  </div>
-                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
-                  </div>
+
+                  <template v-if="lot.is_fiat">
+                    <div class="text-caption text-weight-bold">
+                      {{ formatFiat(lot.starting_price_fiat) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                  </template>
+
+                  <template v-else>
+                    <div class="text-caption text-weight-bold">
+                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      {{ formatFiat(lot.starting_price_fiat) }}
+                    </div>
+                  </template>
                 </div>
 
                 <q-separator spaced="sm" />
 
                 <div class="column q-gap-y-none text-negative">
                   <div class="text-caption text-weight-bold">DROPS EVERY {{ lot.getIntervalMinutes() }}M:</div>
-                  <div class="text-caption text-weight-bold">
-                    -{{ formatFiat(lot.price_drop_fiat) }}
-                  </div>
-                  <div  style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
-                  </div>
+
+                  <template v-if="lot.is_fiat">
+                    <div class="text-caption text-weight-bold">
+                      -{{ formatFiat(lot.price_drop_fiat) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                  </template>
+
+                  <template v-else>
+                    <div class="text-caption text-weight-bold">
+                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      -{{ formatFiat(lot.price_drop_fiat) }}
+                    </div>
+                  </template>
                 </div>
               </div>
             </q-card-section>
@@ -580,6 +616,34 @@ const isLoading = ref(false)
 const auctionDetails = ref([])
 const lotDetails = computed(() => $store.state.auction.myBiddings || [])
 
+const lotHasBid = ref({})
+
+const fetchHasBidForLots = async (lotsArr) => {
+  const englishLots = (lotsArr || []).filter((lot) => lot.auction_type === 'English')
+
+  await Promise.all(englishLots.map(async (lot) => {
+    try {
+      const result = await callAPI(`lots/${lot.id}/highest-bid`)
+      lotHasBid.value[lot.id] = !!(result.success && result.data && result.data.user_id !== null)
+    } catch (err) {
+      console.error(`Failed to check bid status for lot ${lot.id}:`, err)
+      lotHasBid.value[lot.id] = false
+    }
+  }))
+}
+
+watch(lotDetails, (newLots) => {
+  fetchHasBidForLots(newLots)
+}, { immediate: true })
+
+const getEnglishPriceInfo = (lot) => {
+  return {
+    label: lotHasBid.value[lot.id] ? 'HIGHEST BID:' : 'STARTING PRICE:',
+    fiat: lot.threshold_bid_fiat,
+    bch: lot.threshold_bid_bch
+  }
+}
+
 const fetchAuctionData = async () => {
   auctionDetails.value = []
   const result = await callAPI('my-auctions')
@@ -677,6 +741,13 @@ watch(activityType, async (newType) => {
 const getAuctionStatusInfo = (auction) => {
   if (auction && typeof auction.getStatus === 'function') {
     return auction.getStatus();
+  }
+  return { label: 'NaN', color: 'purple' };
+}
+
+const getLotStatusInfo = (lot) => {
+  if (lot && typeof lot.getStatus === 'function') {
+    return lot.getStatus();
   }
   return { label: 'NaN', color: 'purple' };
 }
