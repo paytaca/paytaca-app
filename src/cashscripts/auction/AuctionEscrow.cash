@@ -30,17 +30,12 @@ contract Escrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int platf
         require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);
     }
 
-    function refund(bytes20 bidder, pubkey pk, bytes32 hash) {
-        require(hash == paramHash);
-        require(hash160(pk) == arbiter || hash160(pk) == auctioneer);
+    function refund(bytes20 bidderPKH, pubkey pky, bytes32 hashy) {
+        require(hashy == paramHash);
+        require(hash160(pky) == arbiter || hash160(pky) == auctioneer);
 
         require(tx.inputs.length == 1);
         require(tx.outputs.length == 3);
-
-        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
-        bytes senderLockingBytecode = tx.inputs[this.activeInputIndex].lockingBytecode; 
-
-        require(senderLockingBytecode == bidderLock);
 
         int minerFee = 1000;
         int fees = minerFee + platformFee + arbitrationFee;
@@ -52,9 +47,10 @@ contract Escrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int platf
         
         require(correctAmount && correctPlatformFee && correctArbitrationFee);
 
+        bytes25 bidderLock = new LockingBytecodeP2PKH(bidderPKH);
         bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
         bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
-        
+
         bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
         bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;
         bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;
