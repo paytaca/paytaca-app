@@ -470,7 +470,7 @@ export async function fetchBchAddress(relays, pubKey) {
       relays,
       [{ kinds: [30078], authors: [pubKey] }],
       {
-        onEvent(event) {
+        onevent(event) {
           if (resolved) return
           const dTag = event.tags?.find(t => t[0] === 'd')
           if (dTag && dTag[1] === 'paytaca:bch-address') {
@@ -480,7 +480,7 @@ export async function fetchBchAddress(relays, pubKey) {
             resolve(event)
           }
         },
-        onEose() {
+        oneose() {
           activeRelays--
           if (activeRelays <= 0 && !resolved) {
             resolved = true
