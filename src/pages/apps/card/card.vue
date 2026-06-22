@@ -55,7 +55,7 @@
             </div>
           </div>
 
-          <div class="row justify-center full-width q-mt-sm">
+          <div class="row justify-center full-width q-mt-sm q-mb-sm">
             <q-btn label="Fund" class="cash-in-btn bg-grad text-white q-px-lg" @click="openCashInDialog" />
           </div>
         </div>
@@ -437,38 +437,6 @@ export default {
       return this.capitalizeFirst(name) || 'Card'
     },
 
-    /* Helper method to get card BCH balance using Card class
-     * Uses card.getBchBalance() which returns card.raw.bch_balance from backend
-     * Falls back to card.balance from localStorage if method not available
-     * 
-     * Usage: {{ getCardBchBalance() }} in template
-     * 
-     * getCardBchBalance () {
-     *   if (!this.activeCard) return '0.00'
-     *   try {
-     *     // Use getBchBalance() from Card class
-     *     const balance = this.activeCard.getBchBalance?.() ?? this.activeCard.balance
-     *     return typeof balance === 'number' ? balance.toFixed(2) : (balance || '0.00')
-     *   } catch (error) {
-     *     console.error('Error getting card balance:', error)
-     *     return this.activeCard?.balance || '0.00'
-     *   }
-     * },
-     * 
-     * // Async version for real-time blockchain balance
-     * async getCardContractBalance () {
-     *   if (!this.activeCard) return '0.00'
-     *   try {
-     *     // Fetches directly from blockchain using getContractBalance()
-     *     const balance = await this.activeCard.getContractBalance()
-     *     return typeof balance === 'number' ? balance.toFixed(8) : (balance || '0.00')
-     *   } catch (error) {
-     *     console.error('Error getting contract balance:', error)
-     *     return this.activeCard?.balance || '0.00'
-     *   }
-     * },
-     */
-
     async loadSpecificCard (fetchFreshCard = false) {
       // Try multiple ways to get the card ID
       let cardId = null
@@ -592,42 +560,6 @@ export default {
           this.bchBalance = 0
         })
     },
-
-    /*
-    async fetchBackendData () {
-      if (!this.activeCard?.id) return
-      
-      this.loading = true
-      this.dataError = null
-      
-      try {
-        const { Card } = await import('src/services/card/card')
-        const card = await Card.createInitialized({ raw: { id: this.activeCard.id } })
-        
-        // Fetch balances
-        const bchUtxos = await card.getBchUtxos()
-        const bchBalanceSats = bchUtxos.reduce((sum, utxo) => sum + BigInt(utxo.satoshis || 0), 0n)
-        const bchBalance = (Number(bchBalanceSats) / 100000000).toFixed(8)
-        
-        // Fetch addresses from raw data
-        this.backendData = {
-          balance: bchBalance,
-          contractAddress: card.raw?.contract_id,
-          tokenAddress: card.raw?.token_address,
-          cashAddress: card.raw?.cash_address,
-          category: card.raw?.category,
-          utxos: bchUtxos,
-          raw: card.raw
-        }
-      } catch (error) {
-        console.error('Failed to fetch card data from backend:', error)
-        this.dataError = error.message
-        // Keep backendData as null to show skeleton/empty state
-      } finally {
-        this.loading = false
-      }
-    },
-    */
 
     async saveCardName () {
       if (this.newCardName && this.newCardName.trim()) {
