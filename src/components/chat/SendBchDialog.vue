@@ -451,7 +451,13 @@ export default {
         this.publishedAddress = this.preFilledAddress
         this.editableAddress = this.preFilledAddress
         this.addressLookupDone = true
-        this.$nextTick(() => this.onAddressChange())
+        this.$nextTick(() => {
+          this.onAddressChange()
+          if (!this.amountInput) {
+            this.$refs.amountInput?.focus()
+            this.customKeyboardState = 'show'
+          }
+        })
         return
       }
 
@@ -463,7 +469,13 @@ export default {
         if (address) {
           this.publishedAddress = address
           this.editableAddress = address
-          this.$nextTick(() => this.onAddressChange())
+          this.$nextTick(() => {
+            this.onAddressChange()
+            if (!this.amountInput) {
+              this.$refs.amountInput?.focus()
+              this.customKeyboardState = 'show'
+            }
+          })
         }
       } catch (err) {
         console.warn('[SendBchDialog] Failed to fetch recipient address:', err)
