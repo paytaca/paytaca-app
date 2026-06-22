@@ -68,6 +68,7 @@
         :auctionType="auctionType"
         :startDate="auctionForm.start_date"
         :endDate="auctionForm.end_date"
+        :isFiatUsed="auctionForm.isFiatUsed"
         @add-lot="handleNewLot"
       />
     </div>
@@ -138,17 +139,7 @@
 
               <div v-if="auctionType === 'English'" class="column q-gap-y-none q-mb-xs">
                 <div class="text-caption text-weight-medium">STARTING PRICE:</div>
-                <div class="text-caption text-weight-bold">
-                  ₱{{ formatFiat(lot.starting_price_fiat) }}
-                </div>
-                <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                  {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
-                </div>
-              </div>
-
-              <div v-else-if="auctionType === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
-                <div class="column q-gap-y-none">
-                  <div class="text-caption text-weight-medium">START PRICE:</div>
+                <div v-if="auctionForm.isFiatUsed">
                   <div class="text-caption text-weight-bold">
                     ₱{{ formatFiat(lot.starting_price_fiat) }}
                   </div>
@@ -156,16 +147,56 @@
                     {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
                   </div>
                 </div>
+                <div v-else>
+                  <div class="text-caption text-weight-bold">
+                    {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                  </div>
+                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                    ₱{{ formatFiat(lot.starting_price_fiat) }}
+                  </div>
+                </div>
+              </div>
+
+              <div v-else-if="auctionType === 'Dutch'" class="column q-gap-y-sm q-mb-xs">
+                <div class="column q-gap-y-none">
+                  <div class="text-caption text-weight-medium">START PRICE:</div>
+                  <div v-if="auctionForm.isFiatUsed">
+                    <div class="text-caption text-weight-bold">
+                      ₱{{ formatFiat(lot.starting_price_fiat) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                  </div>
+                  <div v-else>
+                    <div class="text-caption text-weight-bold">
+                      {{ formatBCH(lot.starting_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.starting_price_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      ₱{{ formatFiat(lot.starting_price_fiat) }}
+                    </div>
+                  </div>
+                </div>
 
                 <q-separator spaced="sm" />
 
                 <div class="column q-gap-y-none text-negative">
                   <div class="text-caption text-weight-bold uppercase">DROPS EVERY {{ getIntervalMinutes(lot.priceDropInterval) }} MINUTES:</div>
-                  <div class="text-caption text-weight-bold">
-                    -₱{{ formatFiat(lot.price_drop_fiat) }}
+                  <div v-if="auctionForm.isFiatUsed">
+                    <div class="text-caption text-weight-bold">
+                      -₱{{ formatFiat(lot.price_drop_fiat) }}
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                    </div>
                   </div>
-                  <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
-                    -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                  <div v-else>
+                    <div class="text-caption text-weight-bold">
+                      -{{ formatBCH(lot.price_drop_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(lot.price_drop_bch).zeros }}</span>&nbsp;BCH
+                    </div>
+                    <div style="opacity: 0.65; margin-top: -2px; font-size: 11px;">
+                      -₱{{ formatFiat(lot.price_drop_fiat) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -204,6 +235,7 @@
       :lot-data="selectedLot"
       :startDate="auctionForm.start_date"
       :endDate="auctionForm.end_date"
+      :isFiatUsed="auctionForm.isFiatUsed"
       @update-lot="handleLotUpdate"
     />
 
@@ -227,9 +259,9 @@ import { AuctionList, LotsList } from 'src/auction/object.js'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
-import EditAuctionDetails from 'src/components/auction/EditAuction/EDIT_EditAuctionDetails.vue'
-import AddLotDetails from 'src/components/auction/EditAuction/EDIT_AddLotDetails.vue'
-import EditLotDetails from 'src/components/auction/EditAuction/EDIT_EditLotDetails.vue'
+import EditAuctionDetails from 'src/components/auction/EditAuction/EditAuctionDetails.vue'
+import AddLotDetails from 'src/components/auction/EditAuction/AddLotDetails.vue'
+import EditLotDetails from 'src/components/auction/EditAuction/EditLotDetails.vue'
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 
@@ -589,7 +621,7 @@ const validateAuctionDates = () => {
   }
 
   const diffHours = (end - start) / (1000 * 60 * 60)
-  if (diffHours < 24) {
+  if (diffHours < 1) {
     $q.notify({ type: 'negative', message: 'Auction must run for at least 24 hours.' })
     return false
   }
