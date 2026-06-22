@@ -1,5 +1,5 @@
 import { callAPI } from 'src/auction/api'
-import { AuctionList } from 'src/auction/object'
+import { AuctionList, LotsList } from 'src/auction/object'
 
 export async function filterAuctionItems({ commit }, type) {
   commit('updateAuctionType', type)
@@ -26,7 +26,48 @@ export async function refreshCatalog({ commit }) {
   }
 }
 
-// Fetching ArbiterPk for contract creation
+export async function fetchMyBiddings({ commit }) {
+  let lots = []
+
+  try {
+    const result = await callAPI('my-biddings/lots')
+
+    if (result && result.success && Array.isArray(result.data)) {
+      const lotPromises = result.data.map(async (item) => {
+        const lot = LotsList.parse(item)
+
+        const [auctionResult, imageResult] = await Promise.all([
+          callAPI('auctions', lot.auction_id),
+          callAPI('lot-images-by-lot', lot.id)
+        ])
+
+        if (auctionResult && auctionResult.success && auctionResult.data) {
+          const auctionData = auctionResult.data instanceof AuctionList
+            ? auctionResult.data
+            : AuctionList.parse(auctionResult.data)
+
+          lot.start_date = auctionData.start_date || null
+          lot.end_date = auctionData.end_date || null
+          lot.auction_type = auctionData.type || null
+        }
+
+        if (imageResult && imageResult.success && Array.isArray(imageResult.data)) {
+          lot.image = imageResult.data[0]?.image || null
+        }
+
+        return lot
+      })
+
+      lots = (await Promise.all(lotPromises)).filter(Boolean)
+    }
+  } catch (error) {
+    console.error('API Sync Error inside fetchLots:', error)
+    lots = []
+  }
+
+  commit('setMyBiddings', lots)
+}
+
 export async function fetchArbiterPublicKey({ commit }) {
   try {
     const response = await callAPI('arbiter-pk')

@@ -2,6 +2,10 @@ export function setListings(state, allAuctions) {
   state.listings = allAuctions
 }
 
+export function setMyBiddings(state, myBiddings) {
+  state.myBiddings = myBiddings
+}
+
 export function setLoading(state, loading) {
   state.isLoading = loading
 }

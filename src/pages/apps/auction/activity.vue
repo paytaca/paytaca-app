@@ -470,7 +470,7 @@ import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { computed, ref, onMounted, watch, nextTick, onActivated, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
-import { AuctionList, LotsList } from 'src/auction/object.js'
+import { AuctionList } from 'src/auction/object.js'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -578,7 +578,7 @@ const appeals = ref([
 const isLoading = ref(false)
 
 const auctionDetails = ref([])
-const lotDetails = ref([])
+const lotDetails = computed(() => $store.state.auction.myBiddings || [])
 
 const fetchAuctionData = async () => {
   auctionDetails.value = []
@@ -597,42 +597,6 @@ const fetchAuctionData = async () => {
   }
 }
 
-const fetchLotData = async () => {
-  lotDetails.value = []
-  try {
-    const result = await callAPI('my-biddings/lots')
-
-    if (result.success && result.data) {
-      const lotPromises = result.data.map(async (item) => {
-        const lot = LotsList.parse(item)
-
-        const [auctionResult, imageResult] = await Promise.all([
-          callAPI('auctions', lot.auction_id),
-          callAPI('lot-images-by-lot', lot.id)
-        ])
-
-        if (auctionResult.success && auctionResult.data) {
-          auctionResult.data = parseAuctionData(auctionResult.data)
-
-          lot.start_date = auctionResult.data.start_date || null
-          lot.end_date = auctionResult.data.end_date || null
-          lot.auction_type = auctionResult.data.type || null
-        }
-
-        if (imageResult.success && Array.isArray(imageResult.data)) {
-          lot.image = imageResult.data[0]?.image || null
-        }
-
-        return lot
-      })
-
-      lotDetails.value = (await Promise.all(lotPromises)).filter(Boolean)
-    }
-  } catch(err) {
-    console.error('Failed to update lots:', err)
-  }
-}
-
 const parseAuctionData = (data) => {
   if (!data) return null
   return data instanceof AuctionList ? data : AuctionList.parse(data)
@@ -642,7 +606,7 @@ onMounted(async () => {
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else await fetchLotData()
+  else await $store.dispatch('auction/fetchMyBiddings')
   
   isLoading.value = false
 })
@@ -693,16 +657,14 @@ const filteredAppeals = computed(() => {
 })
 
 watch(activityType, async (newType) => {
-  if (newType === 'My Auctions') {
-    lotDetails.value = []
-  } else if (newType === 'My Biddings') {
+  if (newType === 'My Biddings') {
     auctionDetails.value = []
   }
 
   isLoading.value = true
 
   if(newType === 'My Auctions') await fetchAuctionData()
-  else if(newType === 'My Biddings') await fetchLotData()
+  else if(newType === 'My Biddings') await $store.dispatch('auction/fetchMyBiddings')
 
   isLoading.value = false
 
@@ -734,14 +696,12 @@ const isMyArbiterEmpty = computed(() => {
 const refresh = async (done) => {
   if (activityType.value === 'My Auctions') {
     auctionDetails.value = []
-  } else if (activityType.value === 'My Biddings') {
-    lotDetails.value = []
   }
 
   isLoading.value = true
 
   if(activityType.value === 'My Auctions') await fetchAuctionData()
-  else if(activityType.value === 'My Biddings') await fetchLotData()
+  else if(activityType.value === 'My Biddings') await $store.dispatch('auction/fetchMyBiddings')
   
   isLoading.value = false
   done()

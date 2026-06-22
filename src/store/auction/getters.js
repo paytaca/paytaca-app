@@ -23,6 +23,10 @@ export function processedItems(state) {
   })
 }
 
+export function myBiddings(state) {
+  return state.myBiddings || []
+}
+
 // Getter for stored arbiter PK
 export function arbiterPublicKey(state) {
   return state.arbiterPublicKey
