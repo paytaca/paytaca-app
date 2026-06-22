@@ -30,12 +30,17 @@
           :is-cash-token="isCashToken"
           :back-path="backPath"
         />
-        <div v-else-if="jpp && !jpp.txids?.length" class="jpp-panel-container">
+        <div v-else-if="jpp" class="jpp-panel-container">
           <JppPaymentPanel
+            v-if="!jpp.txids?.length"
             :jpp="jpp"
             :wallet="wallet"
             class="q-mx-md"
             @paid="onJppPaymentSucess()"
+          />
+          <JppPaymentSuccessPanel
+            v-else
+            :jpp="jpp"
           />
         </div>
         <div
@@ -481,6 +486,7 @@ import QRUploader from 'src/components/QRUploader'
 import PointsReceivedDialog from 'src/components/rewards/dialogs/PointsReceivedDialog.vue'
 import LoadingWalletDialog from 'src/components/multi-wallet/LoadingWalletDialog.vue'
 import SendSuccessPage from 'src/components/send-page/SendSuccessPage.vue'
+import JppPaymentSuccessPanel from 'src/components/send-page/JppPaymentSuccessPanel.vue'
 import { hexToRef } from 'src/utils/reference-id-utils'
 import CauldronSendSummary from 'src/components/send-page/CauldronSendSummary.vue'
 import { MultiCauldronPoolTracker } from 'src/wallet/cauldron/pool-tracker'
@@ -509,6 +515,7 @@ export default {
     Pin,
     BiometricWarningAttempt,
     SendSuccessPage,
+    JppPaymentSuccessPanel,
     CauldronSendSummary,
   },
 
@@ -1420,6 +1427,7 @@ export default {
       // skip the usual route when found a valid JSON payment protocol url
       if (paymentUriData?.jpp?.valid) {
         this.jpp = await sendPageUtils.handleJpp(paymentUriData.jpp.paymentUri, this.darkMode)
+        window.jpp = this.jpp;
         return
       }
 
@@ -1429,72 +1437,6 @@ export default {
     // jpp
     async onJppPaymentSucess () {
       this.$forceUpdate()
-      const txid = this.jpp?.txids?.[0]
-      if (!txid) return
-      
-      this.txid = txid
-      this.txTimestamp = Date.now()
-
-      // Set amount and recipient data from JPP so showSendSuccess displays correctly
-      const totalSats = this.jpp?.totalSendAmountSats ?? this.jpp?.total ?? 0
-      if (totalSats > 0) {
-        const bchAmount = totalSats / 10 ** 8
-        this.totalAmountSent = bchAmount
-        this.totalFiatAmountSent = Number(this.convertToFiatAmount(bchAmount))
-      }
-      if (this.jpp?.parsed?.outputs?.length) {
-        const walletAddress = sendPageUtils.getWallet('bch')?.lastAddress
-        this.recipients = this.jpp.parsed.outputs.map((output) => {
-          const amountBch = (output.amount || 0) / 10 ** 8
-          return {
-            amount: amountBch,
-            fiatAmount: this.convertToFiatAmount(amountBch),
-            fixedAmount: true,
-            recipientAddress: output.address ?? '',
-            paymentAckMemo: ''
-          }
-        })
-        this.inputExtras = this.jpp.parsed.outputs.map((output) => {
-          const [, , isWalletAddress] = sendPageUtils.addressPrechecks(
-            output.address ?? '',
-            [],
-            walletAddress
-          )
-          const amountBch = (output.amount || 0) / 10 ** 8
-          return {
-            amountFormatted: formatWithLocale(amountBch, this.decimalObj(false)),
-            fiatFormatted: formatWithLocale(
-              this.convertToFiatAmount(amountBch),
-              this.decimalObj(true)
-            ),
-            balanceExceeded: false,
-            setMax: false,
-            emptyRecipient: false,
-            selectedDenomination: this.denomination,
-            isBip21: false,
-            isLegacyAddress: false,
-            isWalletAddress,
-            cashbackData: null,
-            incorrectAddress: false
-          }
-        })
-      }
-      
-      // Show send success only for consolidation (own-wallet) sends; otherwise go to transaction detail.
-      const isConsolidation = await this.checkConsolidationViaAddressInfo()
-
-      if (isConsolidation) {
-        this.showSendSuccess()
-      } else {
-        // Redirect to transaction detail with state so it can show tx before watchtower indexes
-        const { route, query, state } = this.buildTransactionDetailState(txid, { timestamp: this.txTimestamp })
-        this.$router.push({
-          name: route,
-          params: { txid },
-          query,
-          state
-        })
-      }
     },
 
     // bip21
