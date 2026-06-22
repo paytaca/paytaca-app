@@ -144,7 +144,7 @@
         <!--PLACE EACH CORRESP THING INSIDE A TEMPLATE WITH V-IFS AND V-FORS-->
         <div class="row items-start" ref="productsContainer">
           <!-- Skeleton loaders -->
-          <div v-if="isLoading" class="col-6 col-sm-4 col-md-3 q-pa-sm">
+          <div v-if="isLoading" v-for="n in 6" :key="`skeleton-${n}`" class="col-6 col-sm-4 col-md-3 q-pa-sm">
             <q-card class="pt-card text-bow" :class="getDarkModeClass(darkMode)">
               <div class="relative-position">
                 <q-responsive :ratio="1.25">
