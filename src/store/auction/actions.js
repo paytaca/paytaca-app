@@ -49,6 +49,7 @@ export async function fetchMyBiddings({ commit }) {
           lot.start_date = auctionData.start_date || null
           lot.end_date = auctionData.end_date || null
           lot.auction_type = auctionData.type || null
+          lot.is_fiat = auctionData.is_fiat
         }
 
         if (imageResult && imageResult.success && Array.isArray(imageResult.data)) {
