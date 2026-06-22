@@ -2704,7 +2704,7 @@ export default {
   Tokenomics: "Tokenomics",
   Tokens: "Tokens",
   TokensInCirculation: "Tokens in circulation",
-  TokensInstruction: "Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens.",
+  TokensInstruction: "Click on star button to mark token as favorite. You may also customize the ordering of your favorite tokens. Swipe left to hide or unhide a token.",
   TooManyAttempts: "Too many attempts. Please try again later.",
   Tools: "Tools",
   Topic: "Topic",
