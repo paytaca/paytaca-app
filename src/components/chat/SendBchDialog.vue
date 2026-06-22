@@ -700,12 +700,12 @@ export default {
     height: 40px !important;
   }
   :deep(.q-field__native) {
-    font-size: 24px;
+    font-size: 32px;
     font-weight: 700;
     text-align: center;
     letter-spacing: 0.5px;
     &::placeholder {
-      font-size: 24px;
+      font-size: 32px;
       font-weight: 700;
     }
   }
@@ -716,7 +716,7 @@ export default {
   :deep(.q-field--focused .q-field__control) { box-shadow: none !important; }
 }
 .amount-unit-toggle {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   border: none;
   background: transparent;
@@ -739,7 +739,7 @@ export default {
   }
 }
 .amount-unit-static {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   padding: 0 4px;
   &.dark { color: rgba(255,255,255,0.7); }
