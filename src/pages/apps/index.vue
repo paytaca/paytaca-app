@@ -841,8 +841,8 @@ export default {
   .apps-hint-text {
     text-align: center;
     font-size: 12px;
-    &.dark { color: rgba(255,255,255,0.4); }
-    &.light { color: rgba(0,0,0,0.4); }
+    &.dark { color: #ffffff; }
+    &.light { color: #000000; }
   }
 
   .no-results {
