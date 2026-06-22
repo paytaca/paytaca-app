@@ -75,7 +75,6 @@
           <q-icon v-if="cat.isPinned" name="mdi-pin" size="14px" class="section-pin-icon" :class="getDarkModeClass(darkMode)" />
           <span class="section-title">{{ cat.label }}</span>
           <span v-if="cat.isBeta" class="beta-pill">BETA</span>
-          <span v-if="cat.isBeta" class="section-subtitle">{{ $t('BetaSectionHint', {}, 'Experimental features — try them out') }}</span>
         </div>
 
         <div class="section-divider" :class="getDarkModeClass(darkMode)"></div>
@@ -476,7 +475,7 @@ export default {
         { id: 'wallet-connections', label: this.$t('WalletAndConnections', {}, 'Wallet & Connections') },
         { id: 'marketplace', label: this.$t('MarketplaceAndMerchant', {}, 'Marketplace & Merchant') },
         { id: 'utilities', label: this.$t('Utilities', {}, 'Utilities') },
-        { id: 'beta', label: this.$t('Beta', {}, 'Beta'), isBeta: true },
+        { id: 'beta', label: this.$t('Experimental', {}, 'Experimental'), isBeta: true },
       ]
     },
     categorizedApps () {
