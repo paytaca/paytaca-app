@@ -361,6 +361,23 @@
                         </div>
                       </div>
                     </div>
+
+                    <div v-if="!dutchAtFloor" class="q-mt-sm">
+                      <div class="row items-center justify-between text-caption q-mb-xs">
+                        Next price drop in
+                        <span class="text-weight-medium">{{ formatCountdown(secondsRemaining) }} left</span>
+                      </div>
+                      <q-linear-progress
+                        :value="dutchIntervalProgress"
+                        color="negative"
+                        :track-color="darkMode ? 'grey-9' : 'grey-3'"
+                        size="6px"
+                        rounded
+                      />
+                    </div>
+                    <div v-else class="text-caption text-center q-mt-sm" style="opacity: 0.6;">
+                      Floor price reached
+                    </div>
                   </q-card-section>
                 </q-card>
               </div>
@@ -771,6 +788,8 @@ const buyItNowLoading = ref(false)
 const dutchAlreadySold = ref(false)
 
 const secondsRemaining = ref(0)
+const intervalDurationSec = ref(600)
+const dutchAtFloor = ref(false)
 let dutchStartTime = null
 let visualCountdownTimer = null
 let dutchStartTimeout = null
@@ -788,11 +807,13 @@ const computeCurrentPrice = () => {
 
   const isFiat = auction.value?.is_fiat ?? true
   const intervalSec = (lot.value.getIntervalMinutes() || 10) * 60
+  intervalDurationSec.value = intervalSec
   const startTime = getDutchAuctionStartTime()
   const now = Date.now()
 
   if (startTime && now < startTime) {
     secondsRemaining.value = intervalSec
+    dutchAtFloor.value = false
     return
   }
 
@@ -831,10 +852,27 @@ const computeCurrentPrice = () => {
     if (visualCountdownTimer) clearInterval(visualCountdownTimer)
     secondsRemaining.value = 0
   }
+
+  dutchAtFloor.value = atFloor
 }
 
 const dynamicPriceBch = ref(0)
 const dynamicPriceFiat = ref(0)
+
+const dutchIntervalProgress = computed(() => {
+  if (!intervalDurationSec.value) return 0
+  return Math.max(0, Math.min(1, secondsRemaining.value / intervalDurationSec.value))
+})
+
+const formatCountdown = (totalSeconds) => {
+  const seconds = Math.max(0, Math.floor(totalSeconds || 0))
+  
+  const hour = Math.floor(seconds / 3600).toString().padStart(2, '0')
+  const minute = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0')
+  const second = (seconds % 60).toString().padStart(2, '0')
+  
+  return `${hour}:${minute}:${second}`
+}
 
 const clearDutchTimers = () => {
   if (visualCountdownTimer) {
