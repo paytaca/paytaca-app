@@ -102,13 +102,6 @@
             </div>
 
             <div class="app-row-end">
-              <q-icon
-                v-if="cat.isPinned"
-                name="mdi-pin"
-                size="16px"
-                class="pin-indicator"
-                :class="getDarkModeClass(darkMode)"
-              />
               <span v-if="app.beta" class="app-beta-pill">BETA</span>
               <div v-if="app.id === 'chat' && chatUnreadCount > 0" class="app-unread-badge">
                 {{ chatUnreadCountLabel }}
@@ -141,13 +134,6 @@
               <div class="app-grid-tile bg-grad" :class="{ 'tile-inactive': !app.active }">
                 <q-icon size="30px" color="white" :name="app.iconName" />
               </div>
-              <q-icon
-                v-if="cat.isPinned"
-                name="mdi-pin"
-                size="14px"
-                class="pin-indicator-grid"
-                :class="getDarkModeClass(darkMode)"
-              />
               <span v-if="app.beta" class="app-beta-pill-grid">BETA</span>
               <div
                 v-if="app.id === 'chat' && chatUnreadCount > 0"
