@@ -46,16 +46,19 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Estimated Price</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Estimated Price <span>
+                <span v-if="props.isFiatUsed">(in PHP)</span>
+                <span v-else>(in BCH)</span>
+              </span></label>
               <q-input
                 outlined
                 dense
                 v-model.number="estimatedPrice"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -68,16 +71,19 @@
             </div>
 
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Starting Price</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Starting Price <span>
+                <span v-if="props.isFiatUsed">(in PHP)</span>
+                <span v-else>(in BCH)</span>
+              </span></label>
               <q-input
                 outlined
                 dense
                 v-model.number="startingPrice"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -92,16 +98,19 @@
 
           <div v-if="auctionType === 'Dutch'" class="row q-col-gutter-md q-px-md q-mb-md">
             <div class="col-12 col-sm-6">
-              <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling</label>
+              <label class="text-md text-weight-bold block q-mb-xs">Price Ceiling <span>
+                <span v-if="props.isFiatUsed">(in PHP)</span>
+                <span v-else>(in BCH)</span>
+              </span></label>
               <q-input
                 outlined
                 dense
                 v-model.number="priceThreshold"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -115,7 +124,10 @@
 
             <div class="col-12 col-sm-6">
               <div class="row justify-between items-center q-mb-xs">
-                <label class="text-md text-weight-bold">Price Drop</label>
+                <label class="text-md text-weight-bold">Price Drop <span>
+                  <span v-if="props.isFiatUsed">(in PHP)</span>
+                  <span v-else>(in BCH)</span>
+                </span></label>
                 <q-btn 
                   flat
                   dense
@@ -132,10 +144,10 @@
                 dense
                 v-model.number="priceDrop"
                 type="number"
-                :step="isFiatUsed ? '0.01' : '0.00000001'"
+                :step="props.isFiatUsed ? '0.01' : '0.00000001'"
                 inputmode="decimal"
                 autocomplete="off"
-                :placeholder="isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
+                :placeholder="props.isFiatUsed ? 'Enter PHP' : 'Enter BCH'"
                 color="pt-primary1"
                 debounce="500"
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
@@ -343,23 +355,6 @@ const calculateSuggestedDrop = () => {
   priceDrop.value = props.isFiatUsed ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
-const toggleCurrency = (isFiat) => {
-  const rate = bchToPhpRate.value
-  if (!rate) return
-
-  if (isFiat) {
-    estimatedPrice.value = Number((estimatedPrice.value * rate).toFixed(2))
-    startingPrice.value = Number((startingPrice.value * rate).toFixed(2))
-    priceThreshold.value = Number((priceThreshold.value * rate).toFixed(2))
-    priceDrop.value = Number((priceDrop.value * rate).toFixed(2))
-  } else {
-    estimatedPrice.value = Number((estimatedPrice.value / rate).toFixed(8))
-    startingPrice.value = Number((startingPrice.value / rate).toFixed(8))
-    priceThreshold.value = Number((priceThreshold.value / rate).toFixed(8))
-    priceDrop.value = Number((priceDrop.value / rate).toFixed(8))
-  }
-}
-
 const formatEquivalent = (value) => {
   const rate = bchToPhpRate.value
   if (!rate || !value || isNaN(value)) {
@@ -375,15 +370,24 @@ const formatEquivalent = (value) => {
   }
 }
 
-watch(() => props.lotData, (newLot) => {
+watch([() => props.lotData, () => props.isFiatUsed], ([newLot]) => {
   if (newLot) {
     lotName.value = newLot.title || ''
     lotType.value = newLot.type || 'Physical'
-    estimatedPrice.value = newLot.estimatedPrice || 0
-    startingPrice.value = newLot.startingPrice || 0
-    priceThreshold.value = newLot.threshold || 0
-    priceDrop.value = newLot.price_drop || newLot.priceDrop || 0
-    priceDropInterval.value = newLot.priceDropInterval || 600000
+
+    if (props.isFiatUsed) {
+      estimatedPrice.value = Number(newLot.estimated_amount_fiat) || 0
+      startingPrice.value = Number(newLot.starting_price_fiat) || 0
+      priceThreshold.value = Number(newLot.threshold_bid_fiat) || 0
+      priceDrop.value = Number(newLot.price_drop_fiat) || 0
+    } else {
+      estimatedPrice.value = Number(newLot.estimated_amount_bch) || 0
+      startingPrice.value = Number(newLot.starting_price_bch) || 0
+      priceThreshold.value = Number(newLot.threshold_bid_bch) || 0
+      priceDrop.value = Number(newLot.price_drop_bch) || 0
+    }
+
+    priceDropInterval.value = newLot.priceDropInterval || { label: "Every 10 minutes", value: 10 }
     lotDescription.value = newLot.description || ''
     
     if (Array.isArray(newLot.imageUrls)) {
