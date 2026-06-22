@@ -259,9 +259,9 @@ import { AuctionList, LotsList } from 'src/auction/object.js'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
-import EditAuctionDetails from 'src/components/auction/EditAuction/EDIT_EditAuctionDetails.vue'
-import AddLotDetails from 'src/components/auction/EditAuction/EDIT_AddLotDetails.vue'
-import EditLotDetails from 'src/components/auction/EditAuction/EDIT_EditLotDetails.vue'
+import EditAuctionDetails from 'src/components/auction/EditAuction/EditAuctionDetails.vue'
+import AddLotDetails from 'src/components/auction/EditAuction/AddLotDetails.vue'
+import EditLotDetails from 'src/components/auction/EditAuction/EditLotDetails.vue'
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 

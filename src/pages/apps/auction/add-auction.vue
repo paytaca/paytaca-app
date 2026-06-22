@@ -207,9 +207,9 @@ import { Store } from 'src/store'
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
 import AuctionHeaderMenu from 'src/components/auction/AuctionHeaderMenu.vue'
-import AddAuctionDetails from 'src/components/auction/AddAuction/ADD_AddAuctionDetails.vue'
-import AddLotDetails from 'src/components/auction/AddAuction/ADD_AddLotDetails.vue'
-import EditLotDetails from 'src/components/auction/AddAuction/ADD_EditLotDetails.vue'
+import AddAuctionDetails from 'src/components/auction/AddAuction/AddAuctionDetails.vue'
+import AddLotDetails from 'src/components/auction/AddAuction/AddLotDetails.vue'
+import EditLotDetails from 'src/components/auction/AddAuction/EditLotDetails.vue'
 import ConfirmDeleteDialog from 'src/components/auction/ConfirmDeleteDialog.vue'
 import noImage from 'src/assets/no-image.svg'
 
