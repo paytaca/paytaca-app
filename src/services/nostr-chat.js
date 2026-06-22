@@ -456,26 +456,41 @@ export async function fetchKind10050(relays, pubKey) {
  */
 export async function fetchBchAddress(relays, pubKey) {
   const pool = getPool()
-  const maxAttempts = 3
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const events = await pool.querySync(relays, { kinds: [30078], authors: [pubKey] })
-      const match = events?.find(e => {
-        const dTag = e.tags?.find(t => t[0] === 'd')
-        return dTag && dTag[1] === 'paytaca:bch-address'
-      })
-      if (match) return match
-      if (attempt < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+  return new Promise((resolve) => {
+    let resolved = false
+    let activeRelays = relays.length
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        resolve(null)
       }
-    } catch (err) {
-      console.warn(`[Nostr] fetchBchAddress attempt ${attempt + 1} failed:`, err)
-      if (attempt < maxAttempts - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)))
+    }, 8000)
+
+    const sub = pool.subscribeMany(
+      relays,
+      [{ kinds: [30078], authors: [pubKey] }],
+      {
+        onEvent(event) {
+          if (resolved) return
+          const dTag = event.tags?.find(t => t[0] === 'd')
+          if (dTag && dTag[1] === 'paytaca:bch-address') {
+            resolved = true
+            clearTimeout(timer)
+            sub.close()
+            resolve(event)
+          }
+        },
+        onEose() {
+          activeRelays--
+          if (activeRelays <= 0 && !resolved) {
+            resolved = true
+            clearTimeout(timer)
+            resolve(null)
+          }
+        },
       }
-    }
-  }
-  return null
+    )
+  })
 }
 
 /**
