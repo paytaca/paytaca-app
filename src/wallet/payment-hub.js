@@ -498,11 +498,8 @@ export class PaymentHub {
    * Retrieves the contract artifact for the given script type.
    * @param {String} scriptType - The type of script (e.g. 'recurring_payments')
    */
-  async getContractArtifact(scriptType = 'recurring_payments') {
-    const response = await backend.get(`/contract/artifact/`, {
-      params: { script_type: scriptType },
-      // Does not strictly require auth, but including it is safe
-    })
+  async getContractArtifact() {
+    const response = await backend.get(`/contract/artifact`)
     return response.data
   }
 

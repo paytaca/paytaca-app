@@ -598,6 +598,7 @@ import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
 import { Contract, SignatureTemplate } from 'cashscript'
+import { decodeCashAddress } from '@bitauth/libauth'
 
 const $route = useRoute()
 const $store = useStore()
@@ -1132,10 +1133,10 @@ async function cancelSubscription(sub) {
       
       $q.loading.show({ message: 'Signing cancellation transaction...' })
       // 1. Fetch contract artifact
-      const artifactObj = await hub.value.getContractArtifact('recurring_payments')
+      const artifactObj = await hub.value.getContractArtifact()
       const contract = new Contract(artifactObj, [
-        sub.merchant_address,
-        sub.funder_address,
+        decodeCashAddress(sub.merchant_address).payload,
+        decodeCashAddress(sub.funder_address).payload,
         BigInt(sub.pledge_satoshis),
         BigInt(sub.period_blocks)
       ], { network: 'mainnet' })
@@ -1143,13 +1144,14 @@ async function cancelSubscription(sub) {
       // 2. Fetch private key
       // Search the current wallet for the path of the funder_address
       let pathStr = null
-      for (let i = 0; i <= (wallet.value.BCH.lastAddressIndex || 50) + 20; i++) {
+      const searchLimit = Math.max(wallet.value.BCH.lastAddressIndex || 0, 50) + 200
+      for (let i = 0; i <= searchLimit; i++) {
         const addressSet = await wallet.value.BCH.getAddressSetAt(i)
-        if (wallet.value.BCH._normalizeAddress(addressSet.receiving.address) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
+        if (wallet.value.BCH._normalizeAddress(addressSet.receiving) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
           pathStr = `0/${i}`
           break
         }
-        if (wallet.value.BCH._normalizeAddress(addressSet.change.address) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
+        if (wallet.value.BCH._normalizeAddress(addressSet.change) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
           pathStr = `1/${i}`
           break
         }
