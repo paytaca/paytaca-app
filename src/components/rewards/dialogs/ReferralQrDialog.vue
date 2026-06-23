@@ -33,6 +33,24 @@
             :size="200"
           />
         </div>
+
+        <div class="row justify-center q-mb-md">
+          <q-btn
+            unelevated
+            no-caps
+            :label="$t('SaveQR')"
+            icon="download"
+            color="primary"
+            class="save-image-btn"
+            :loading="savingQR"
+            :disable="savingQR"
+            @click="saveReferralQRImage"
+          >
+            <template v-slot:loading>
+              <q-spinner-dots color="white" size="24px" />
+            </template>
+          </q-btn>
+        </div>
   
         <!-- Referral Code Display -->
         <div 
@@ -72,6 +90,10 @@
 
 <script>
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import html2canvas from 'html2canvas'
+import QRCode from 'qrcode-svg'
+import { Capacitor } from '@capacitor/core'
+import SaveToGallery from 'src/utils/save-to-gallery'
 
 export default {
   name: 'ReferralQrDialog',
@@ -87,7 +109,8 @@ export default {
     return {
       copyTooltip: this.$t('Copy'),
       copySuccess: false,
-      copyFailed: false
+      copyFailed: false,
+      savingQR: false
     }
   },
 
@@ -139,6 +162,222 @@ export default {
           this.copyTooltip = this.$t('Copy')
         }, 2000)
       })
+    },
+
+    async saveReferralQRImage () {
+      if (!this.referralCodeFull) return
+      if (this.savingQR) return
+      this.savingQR = true
+
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--q-primary').trim() || '#1976d2'
+
+      let wrapper = null
+
+      try {
+        wrapper = document.createElement('div')
+        wrapper.style.cssText = `
+          background: #ffffff;
+          padding: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          width: 400px;
+          box-sizing: border-box;
+          border: 15px solid ${primaryColor};
+        `
+
+        const titleRow = document.createElement('div')
+        titleRow.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
+          padding: 16px 24px 0;
+        `
+
+        const titleText = document.createElement('span')
+        titleText.style.cssText = `
+          font-size: 20px;
+          font-weight: 600;
+          color: #222;
+        `
+        titleText.textContent = this.$t(`${this.referralType}ReferralQrTitle`)
+        titleRow.appendChild(titleText)
+        wrapper.appendChild(titleRow)
+
+        const separator = document.createElement('div')
+        separator.style.cssText = `
+          height: 1px;
+          background: #e0e0e0;
+          margin: 16px 0 20px;
+        `
+        wrapper.appendChild(separator)
+
+        const contentInner = document.createElement('div')
+        contentInner.style.cssText = `
+          padding: 0 24px;
+        `
+
+        const description = document.createElement('div')
+        description.style.cssText = `
+          font-size: 16px;
+          color: #555;
+          text-align: left;
+          margin-bottom: 24px;
+          line-height: 1.5;
+        `
+        description.textContent = this.$t('ReferralQrDescription')
+        contentInner.appendChild(description)
+
+        const qrContainer = document.createElement('div')
+        qrContainer.style.cssText = `
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          border: 3px solid ${primaryColor};
+          border-radius: 10px;
+          margin-bottom: 24px;
+        `
+
+        const qrcode = new QRCode({
+          content: this.referralCodeFull,
+          width: 300,
+          height: 300,
+          swap: true,
+          join: true,
+          ecl: 'Q',
+          padding: 4
+        })
+
+        const parser = new DOMParser()
+        const svgDoc = parser.parseFromString(qrcode.svg(), 'image/svg+xml')
+        const svgElement = svgDoc.documentElement
+        svgElement.setAttribute('width', '300')
+        svgElement.setAttribute('height', '300')
+        qrContainer.appendChild(svgElement)
+        contentInner.appendChild(qrContainer)
+
+        const referralLabel = document.createElement('div')
+        referralLabel.style.cssText = `
+          font-size: 14px;
+          font-weight: 600;
+          color: #888;
+          text-align: center;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        `
+        referralLabel.textContent = this.$t('ReferralCode')
+        contentInner.appendChild(referralLabel)
+
+        const referralCodeDisplay = document.createElement('div')
+        referralCodeDisplay.style.cssText = `
+          font-family: 'Courier New', monospace;
+          font-size: 16px;
+          font-weight: bolder;
+          color: ${primaryColor};
+          text-align: center;
+          letter-spacing: 1px;
+          padding-bottom: 24px;
+        `
+        referralCodeDisplay.textContent = this.referralCodeFull
+        contentInner.appendChild(referralCodeDisplay)
+
+        wrapper.appendChild(contentInner)
+
+        document.body.appendChild(wrapper)
+
+        const canvas = await html2canvas(wrapper, {
+          backgroundColor: '#ffffff',
+          scale: 3,
+          logging: false,
+          useCORS: true,
+          allowTaint: true
+        })
+
+        document.body.removeChild(wrapper)
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+        if (!blob) {
+          throw new Error('canvas.toBlob() returned null')
+        }
+
+        const filename = `referral-code-${this.referralCodeFull}.png`
+
+        const isMobile = Capacitor.getPlatform() !== 'web'
+
+        if (isMobile) {
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              try {
+                if (typeof reader.result !== 'string') {
+                  return reject(new Error('FileReader result is not a string'))
+                }
+                const data = reader.result.split(',')[1]
+                if (!data) {
+                  return reject(new Error('Failed to extract base64 data'))
+                }
+                resolve(data)
+              } catch (e) {
+                reject(e)
+              }
+            }
+            reader.onerror = (event) => reject(reader.error || event)
+            reader.onabort = () => reject(new Error('FileReader aborted'))
+            reader.readAsDataURL(blob)
+          })
+
+          try {
+            await SaveToGallery.saveImage({ base64Data, filename })
+            this.$q.notify({
+              message: this.$t('QRSavedToPhotos'),
+              color: 'positive',
+              icon: 'check_circle',
+              position: 'top',
+              timeout: 2000
+            })
+          } catch (error) {
+            console.error('[SaveReferralQR] Error saving to photos:', error)
+            this.$q.notify({
+              message: this.$t('ErrorSavingQR'),
+              color: 'negative',
+              icon: 'error',
+              position: 'top',
+              timeout: 3000
+            })
+          }
+        } else {
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+
+          this.$q.notify({
+            message: this.$t('QRSavedToPhotos'),
+            color: 'positive',
+            icon: 'check_circle',
+            position: 'top',
+            timeout: 2000
+          })
+        }
+      } catch (error) {
+        console.error('[SaveReferralQR] Error creating image:', error)
+        this.$q.notify({
+          message: this.$t('ErrorSavingQR'),
+          color: 'negative',
+          icon: 'error',
+          position: 'top',
+          timeout: 3000
+        })
+      } finally {
+        if (wrapper && wrapper.parentNode === document.body) {
+          document.body.removeChild(wrapper)
+        }
+        this.savingQR = false
+      }
     }
   }
 }
