@@ -6,16 +6,16 @@ const bchjs = new BCHJS()
 
 /**
  * @name callContractFunction
- * @param {Integer} lotId - id of a specific bid
+ * @param {Integer} bidId - id of a specific bid
  * @returns tx_details or null
- * Call this when invoking release function
+ * Call this when invoking release function (only for disputes)
  */
-export async function callContractRelease(lotId) {
+export async function callContractRelease(bidId) {
   const publicKey = await getPublicKey()
 
   const payload = {
-    lot_id: lotId,
-    user_pk: publicKey
+    bid_id: bidId,
+  user_pk: publicKey
   }
 
   try {
@@ -31,20 +31,48 @@ export async function callContractRelease(lotId) {
   } 
 }
 
+
 /**
- * @name callContractRefund
- * @param {Integer} lotId - id of a specific bid
+ * @name callContractReturn
+ * @param {Integer} bidId - id of a specific bid
  * @returns tx_details or null
- * Call this when invoking refund function
+ * Call this when invoking return function (when a user outbids someone)
  */
-export async function callContractRefund(lotId) {
+export async function callContractReturn(bidId) {
   const publicKey = await getPublicKey()
-  const bidderPk = await getBidderPublicKey(lotId)
+  const bidderPk = await getBidderPublicKey(bidId)
 
   const payload = {
-    lot_id: lotId,
+    bid_id: bidId,
     user_pk: publicKey,
-    bidder_pk: bidderPk
+  }
+
+  try {
+    const response = await callAPI('return', null, 'post', payload)
+
+    if (response && response.success) {
+      console.log(`[callContractReturn] Successfully called return function from contract! Here are the details: ${response.data.tx_details}`)
+      return response.data.tx_details
+    }
+    throw new Error()
+  } catch (error) {
+    return null
+  } 
+}
+
+/**
+ * @name callContractRefund
+ * @param {Integer} bidId - id of a specific bid
+ * @returns tx_details or null
+ * Call this when invoking refund function (only for disputes)
+ */
+export async function callContractRefund(bidId) {
+  const publicKey = await getPublicKey()
+  const bidderPk = await getBidderPublicKey(bidId)
+
+  const payload = {
+    bid_id: bidId,
+    user_pk: publicKey,
   }
 
   try {
@@ -75,19 +103,19 @@ async function getPublicKey(addressIndex=0) {
 
 /**
  * @name getBidderPublicKeyHash
- * @param {Integer} lotId 
+ * @param {Integer} bidId 
  * @returns bidder's public key hash
  */
-async function getBidderPublicKey(lotId) {
+async function getBidderPublicKey(bidId) {
   try {
-    const response = await callAPI('bidder-pk', lotId)
+    const response = await callAPI('bidder-pk', bidId)
 
     if (response && response.success) 
       return response.data.bidder_pk
     throw new Error()
 
   } catch (error) {
-    console.error('API Sync Error inside getAuctioneerPublicKey:', error)
+    console.error('API Sync Error inside getBidderPublicKey:', error)
     return null
   } 
 }

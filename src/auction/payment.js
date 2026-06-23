@@ -10,39 +10,21 @@ const PLATFORM_FEE = 1000
 
 /**
  * @name walletToContract
- * @param {Integer} lotId - id of the user's official bid 
+ * @param {Integer} bidId - id of the user's official bid 
  * Call this when invoking any wallet-to-contract functions
  */
-export async function walletToContract(amountBCH, lotId) {
+export async function walletToContract(amountBCH, bidId) {
   try {
-    // get the auction public keys
-    const publicKeys = await getExistingAuctionPublicKeys(lotId)
-    console.log(publicKeys)
-
-    // just get the fixed fees
-    const fees = {
-      'arbitrationFee': ARBITRATION_FEE,
-      'platformFee': PLATFORM_FEE
-    }
-
-    // check if wallet is in chipnet
-    const isChipnet = Store.getters['global/isChipnet']
-
     // make the contract here
-    const contractResult = new AuctionEscrowContract(
-      publicKeys,
-      fees,
-      lotId,
-      isChipnet
-    )
-    if (!contractResult.contract) 
+    const contractResult = await creatContractForBid(bidId)
+    if (!contractResult.is_created) 
       throw new Error("Contract failed to be created.")
     
-    const contractUTXOS = await contractResult.contract.getUtxos()
+    const contractUTXOS = await contractResult.contract.contract.getUtxos()
     if (contractUTXOS.length > 0)
       throw new Error("Funds exist inside the contract! Please release/refund first before adding new funds.")
     
-    const txid = await sendBCHToContract(contractResult, amountBCH)
+    const txid = await sendBCHToContract(contractResult.contract, amountBCH)
     if (!txid) 
       throw new Error("Failed to transfer BCH to contract.")
 
@@ -55,15 +37,14 @@ export async function walletToContract(amountBCH, lotId) {
 
 /**
  * @name createContract
- * @param {Integer} lotId
+ * @param {Integer} bidId
  * @returns contract and is_created (boolean)
  * Call this when establishing a new contract for a new lot
  */
-export async function creatContractForLot(lotId) {
+export async function creatContractForBid(bidId) {
   try {
     // get the auction public keys
-    const publicKeys = await getNewAuctionPublicKeys(lotId)
-    console.log(publicKeys)
+    const publicKeys = await getNewAuctionPublicKeys(bidId)
 
     // just get the fixed fees
     const fees = {
@@ -78,15 +59,15 @@ export async function creatContractForLot(lotId) {
     const contractResult = new AuctionEscrowContract(
       publicKeys,
       fees,
-      lotId,
+      bidId,
       isChipnet 
     )
-    if (!contractResult.contract)
+    if (!contractResult.contract.getUtxos())
       throw new Error('Contract failed to be created')
 
     // payload for adding contract to db
     const payload = {
-      lot_id: lotId,
+      bid_id: bidId,
       arbiter_pk: publicKeys.arbiter,
       servicer_pk: publicKeys.servicer,
       arbitration_fee: contractResult.fees.arbitrationFee,
@@ -97,11 +78,17 @@ export async function creatContractForLot(lotId) {
     if (!response || !response.success) 
       throw new Error("Contract details failed to be saved in the database.")
     
-    return true
+    return {
+      contract: contractResult,
+      is_created: true
+    }
   }
   catch(error) {
-    console.error('[creatContractForLot]', error)
-    return false
+    console.error('[creatContractForBid]', error)
+    return {
+      contract: null,
+      is_created: false
+    }
   }
 }
 
@@ -133,56 +120,33 @@ export async function sendBCHToContract(contract, bchAmount) {
 /**
  * Gets the public keys for a new contract
  * @name getNewAuctionPublicKeys
- * @param {Integer} lotId 
+ * @param {Integer} bidId 
  * @returns Gets the public keys needed for a NEW auction contract
  */
-async function getNewAuctionPublicKeys(lotId) {
-  const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
+async function getNewAuctionPublicKeys(bidId) {
+  const auctioneerPk = await getPublicKeyFromBidId('auctioneer', bidId)
+  const bidderPk = await getBidderPublicKey('0/0')
   const arbiterPk = Store.getters['auction/arbiterPublicKey']
   const servicerPk = Store.getters['auction/servicerPublicKey']
 
   return {
     auctioneer: auctioneerPk,
+    bidder: bidderPk,
     arbiter: arbiterPk,
     servicer: servicerPk
   }
 }
-
-/**
- * Gets the public keys from an already existing contract
- * This is different from the getNewAuctionPublicKeys because 
- * the current store.getters version of both servicer and arbiter PKs
- * might be different from those saved in the contract
- * @name getExistingAuctionPublicKeys
- * @param {Integer} lotId 
- * @returns Gets the public keys of an already existing contract associated with a lot
- */
-async function getExistingAuctionPublicKeys(lotId) {
-  const auctioneerPk = await getPublicKeyFromLotId('auctioneer', lotId)
-  const arbiterPk = await getPublicKeyFromLotId('arbiter', lotId)
-  const servicerPk = await getPublicKeyFromLotId('servicer', lotId)
-
-  console.log(arbiterPk)
-  console.log(servicerPk)
-
-  return {
-    auctioneer: auctioneerPk,
-    arbiter: arbiterPk,
-    servicer: servicerPk
-  }
-}
-
 
 /**
  * Fetches a person's public key from the server via api
- * @name getPublicKeyFromLotId
+ * @name getPublicKeyFromBidId
  * @param {String} pkCallName - either 'auctioneer-pk', 'arbiter-pk', or 'servicer-pk
- * @param {Integer} lotId - associated lot
+ * @param {Integer} bidId - associated lot
  * @returns 
  */
-async function getPublicKeyFromLotId(pkName, lotId) {
+async function getPublicKeyFromBidId(pkName, bidId) {
   try {
-    const response = await callAPI(`${pkName}-pk`, lotId)
+    const response = await callAPI(`${pkName}-pk`, bidId)
 
     if (response && response.success) 
       return response.data[`${pkName}_pk`]
@@ -193,6 +157,17 @@ async function getPublicKeyFromLotId(pkName, lotId) {
     console.error('API Sync Error inside getAuctioneerPublicKey:', error)
     return null
   } 
+}
+
+
+/**
+ * @name getBidderPublicKey
+ * @returns the bidder's public key
+ */
+export async function getBidderPublicKey(addressPath) {
+  const wallet = await getWallet()
+  const bidderPk = await wallet.BCH.getPublicKey(addressPath)
+  return bidderPk
 }
 
 
