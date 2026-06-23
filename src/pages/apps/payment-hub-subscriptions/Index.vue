@@ -113,7 +113,7 @@ import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
 // Add imports for subscription cancelling signing logic
-import { Contract, SignatureTemplate, ElectrumNetworkProvider } from 'cashscript'
+import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
 import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
 
 const $store = useStore()
@@ -216,6 +216,10 @@ async function cancelSubscription(sub) {
       $q.loading.show({ message: 'Fetching cancellation kit...' })
       const kit = await hub.value.getSubscriptionCancelKit(sub.id)
 
+      if (!kit.inputs || kit.inputs.length === 0) {
+        throw new Error('No funds available to cancel. This subscription may have already been cancelled or drained.')
+      }
+
       $q.loading.show({ message: 'Signing cancellation transaction...' })
 
       const getPayload = (addr) => {
@@ -265,9 +269,9 @@ async function cancelSubscription(sub) {
         ...input,
         satoshis: BigInt(input.satoshis)
       }))
-      const txBuilder = contract.functions.reclaim(sig.getPublicKey(), sig)
-        .from(formattedInputs)
-        .to(toAddress, BigInt(kit.outputs[0].satoshis))
+      const txBuilder = new TransactionBuilder({ provider })
+      txBuilder.addInputs(formattedInputs, contract.unlock.reclaim(sig.getPublicKey(), sig))
+      txBuilder.addOutput({ to: toAddress, amount: BigInt(kit.outputs[0].satoshis) })
 
       const rawTx = await txBuilder.build()
 

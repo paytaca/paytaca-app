@@ -35,7 +35,6 @@
     "@capacitor/share": "^5.0.8",
     "@cashlab/cauldron": "^1.0.2",
     "@cashscript/utils": "^0.11.5",
-    "@cashscript/utils13": "npm:@cashscript/utils@^0.13.1",
     "@electron/remote": "^1.2.0",
     "@generalprotocols/anyhedge": "^2.0.2",
     "@ionic/pwa-elements": "^3.0.2",
