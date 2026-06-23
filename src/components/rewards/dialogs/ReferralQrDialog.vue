@@ -23,14 +23,14 @@
           {{ $t('ReferralQrDescription') }}
         </div>
   
-        <div class="row justify-center q-mb-md">
+        <div class="row justify-center q-mb-sm">
           <qr-code
             name="rfp-qr"
             border-width="3px"
             border-color="var(--q-primary)"
             :qr-id="0"
             :text="referralCodeFull"
-            :size="200"
+            :size="180"
           />
         </div>
 
