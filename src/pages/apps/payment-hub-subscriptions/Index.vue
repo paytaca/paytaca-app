@@ -215,7 +215,7 @@ async function cancelSubscription(sub) {
     try {
       $q.loading.show({ message: 'Fetching cancellation kit...' })
       const kit = await hub.value.getSubscriptionCancelKit(sub.id)
-      
+
       $q.loading.show({ message: 'Signing cancellation transaction...' })
 
       const getPayload = (addr) => {
@@ -227,7 +227,7 @@ async function cancelSubscription(sub) {
         if (typeof decoded === 'string') throw new Error(decoded)
         return decoded.payload
       }
-      
+
       const merchantPayload = getPayload(sub.merchant_address)
       const funderPayload = getPayload(sub.funder_address)
 
@@ -238,8 +238,8 @@ async function cancelSubscription(sub) {
       const artifactObj = await hub.value.getContractArtifact()
       const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
       const contract = new Contract(artifactObj, [
-        funderPayload,
         merchantPayload,
+        funderPayload,
         BigInt(sub.pledge_satoshis),
         BigInt(sub.period_blocks)
       ], { provider })
@@ -262,7 +262,7 @@ async function cancelSubscription(sub) {
       }
 
       if (!pathStr) throw new Error('Could not find derivation path for funder address in current wallet')
-      
+
       const privKeyWif = await bchWallet.getPrivateKey(pathStr)
       console.log("Funder Payload Target:", String(funderPayload))
       console.log("Derived Path:", pathStr)
@@ -282,13 +282,13 @@ async function cancelSubscription(sub) {
       const txBuilder = contract.functions.reclaim(sig.getPublicKey(), sig)
         .from(formattedInputs)
         .to(toAddress, BigInt(kit.outputs[0].satoshis))
-      
+
       const rawTx = await txBuilder.build()
 
       // 4. Submit to Payment Hub
       $q.loading.show({ message: 'Submitting cancellation...' })
       await hub.value.submitSubscriptionCancel(sub.id, rawTx, false)
-      
+
       await refreshPage()
       $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
 
@@ -308,17 +308,17 @@ function openSubscribeDialog() {
   }).onOk(async (formData) => {
     try {
       $q.loading.show()
-      
+
       const isChipnet = $store.getters['global/isChipnet']
       const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
-      
+
       const payload = {
         ...formData,
         wallet_hash: bchWallet.walletHash
       }
-      
+
       await hub.value.createSubscription(payload)
-      
+
       $q.notify({ type: 'positive', message: 'Successfully subscribed to plan' })
       await refreshPage()
     } catch (error) {

@@ -1153,8 +1153,8 @@ async function cancelSubscription(sub) {
       const artifactObj = await hub.value.getContractArtifact()
       const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
       const contract = new Contract(artifactObj, [
-        funderPayload,
         merchantPayload,
+        funderPayload,
         BigInt(sub.pledge_satoshis),
         BigInt(sub.period_blocks)
       ], { provider })
