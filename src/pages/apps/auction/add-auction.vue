@@ -203,7 +203,6 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
-import { createContractForLot } from 'src/auction/payment'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -410,18 +409,6 @@ const handleCreateAuction = async () => {
       }
 
       const lotId = lotResult.data.id
-      console.log("Created lot ID: " + lotId)
-
-      try {
-        $q.loading.show({ 
-          message: `Initializing smart contract parameters for "${lot.title}"...` 
-        })
-        await createContractForLot(lotId)
-      } catch (contractError) {
-        console.error(`Contract initialization failed for lot ${lotId}:`, contractError)
-        throw new Error(`Failed to establish payment protocol for: ${lot.title}. Details: ${contractError.message}`)
-      }
-
       const files = lot.rawFiles && lot.rawFiles.length > 0 ? lot.rawFiles : (lot.file ? [lot.file] : [])
 
       for (const file of files) {
