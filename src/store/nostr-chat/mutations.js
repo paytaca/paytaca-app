@@ -75,6 +75,16 @@ export function UPDATE_ROOM_TYPE (state, { roomId, type }) {
 }
 
 export function REMOVE_ROOM (state, roomId) {
+  if (!state.deletedRooms) state.deletedRooms = {}
+  const messages = state.messages[roomId] || []
+  const knownMessageIds = {}
+  for (const msg of messages) {
+    if (msg.id) knownMessageIds[msg.id] = true
+  }
+  state.deletedRooms[roomId] = {
+    deletedAt: Date.now(),
+    knownMessageIds,
+  }
   state.rooms = state.rooms.filter(r => r.id !== roomId)
   delete state.messages[roomId]
 }

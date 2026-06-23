@@ -1,5 +1,5 @@
 import { deriveNostrKeys, createUnsignedKind14, createNip17GiftWraps, computeRoomId, createKind10050, createReadReceiptGiftWrap, createReactionGiftWraps, createKind5DeletionGiftWraps } from 'src/wallet/nostr'
-import { finalizeEvent, verifyEvent, utils as nostrUtils } from 'nostr-tools'
+import { finalizeEvent, verifyEvent, getEventHash, utils as nostrUtils } from 'nostr-tools'
 const { hexToBytes } = nostrUtils
 import { getMnemonic } from 'src/wallet'
 import { decode as nip19Decode } from 'nostr-tools/nip19'
@@ -550,6 +550,14 @@ export async function fetchHistoricalMessages ({ state, dispatch }) {
   } catch (err) {
     console.warn('[Nostr] Failed to fetch historical messages:', err)
   }
+
+  // Clean up deletedRooms entries for rooms that were restored during the historical fetch.
+  // This allows future live messages to apply subject updates normally.
+  for (const roomId of Object.keys(state.deletedRooms || {})) {
+    if (state.rooms.some(r => r.id === roomId)) {
+      delete state.deletedRooms[roomId]
+    }
+  }
 }
 
 export async function addContact ({ state, commit }, { name, npub }) {
@@ -997,6 +1005,12 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // NIP-17 seal pubkey verification is performed inside unwrapGiftWrap().
   // If we reach here, the rumor has already been verified.
 
+  // nip59.unwrapEvent returns unsigned rumors without an `id` field.
+  // Compute it so message-based dedup (deletedRooms.knownMessageIds) works.
+  if (!rumor.id) {
+    rumor.id = getEventHash(rumor)
+  }
+
   const myPubKey = state.keys.pubKeyHex
 
   // Handle Kind 7 read receipts (👀 reactions)
@@ -1092,6 +1106,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     let room = state.rooms.find(r => r.id === roomId)
     if (!room) {
       if (state.blockedContacts?.includes(rumor.pubkey)) return
+      const deletedEntry = state.deletedRooms?.[roomId]
+      if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       const isGroup = roomMembers.length > 2
       const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
       room = {
@@ -1104,6 +1120,7 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
         updatedAt: rumor.created_at,
       }
       commit('ADD_ROOM', room)
+      if (state.deletedRooms?.[roomId]) delete state.deletedRooms[roomId]
     } else if (room.type !== 'group' && roomMembers.length > 2) {
       commit('UPDATE_ROOM_TYPE', { roomId, type: 'group' })
     }
@@ -1155,6 +1172,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
       (r.members || []).slice().sort().join(',') === memberKey
     )
     if (existingByMembers) {
+      const deletedEntry = state.deletedRooms?.[existingByMembers.id]
+      if (deletedEntry?.knownMessageIds?.[rumor.id]) return
       // Reuse the existing room — store the message under its ID
       room = existingByMembers
       const replyTo = rumor.tags.find(t => t[0] === 'e')?.[1] || null
@@ -1188,6 +1207,9 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
     // Skip auto-creation if the sender is blocked
     if (state.blockedContacts?.includes(rumor.pubkey)) return
 
+    const deletedEntry = state.deletedRooms?.[roomId]
+    if (deletedEntry?.knownMessageIds?.[rumor.id]) return
+
     const isGroup = roomMembers.length > 2
     const contact = state.contacts.find(c => c.pubKeyHex === rumor.pubkey)
     room = {
@@ -1214,7 +1236,8 @@ export function receiveMessage ({ commit, state }, { rumor, sealPubkey }) {
   // Only apply subject changes from messages that are not older than the
   // room's current updatedAt. This prevents old messages from re-applying
   // a subject that was cleared/updated by a newer local action.
-  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0)) {
+  // Also skip subject updates while the room is in deletedRooms (restored from delete).
+  if (hasSubjectTag && room.subject !== subject && rumor.created_at >= (room.updatedAt || 0) && !state.deletedRooms?.[roomId]) {
     commit('UPDATE_ROOM_SUBJECT', { roomId, subject: subject || null })
     if (!subject && room.type !== 'group') {
       const memberPubKeys = (room.members || []).filter(pk => pk !== state.keys?.pubKeyHex)
