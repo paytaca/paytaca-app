@@ -1,10 +1,10 @@
 pragma cashscript ^0.13.0;
 
-contract Escrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int platformFee, int arbitrationFee, bytes32 paramHash) {
+contract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 servicer, int platformFee, int arbitrationFee, bytes32 paramHash) {
     
     function release(pubkey pk, bytes32 hash) {
         require(hash == paramHash);
-        require(hash160(pk) == arbiter);
+        require(hash160(pk) == arbiter || hash160(pk) == bidder);
 
         require(tx.inputs.length == 1);
         require(tx.outputs.length == 3);
@@ -30,9 +30,27 @@ contract Escrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int platf
         require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);
     }
 
-    function refund(bytes20 bidderPKH, pubkey pky, bytes32 hashy) {
-        require(hashy == paramHash);
-        require(hash160(pky) == arbiter || hash160(pky) == auctioneer);
+    function return(pubkey pk, bytes32 hash) {
+        require(hash == paramHash);
+        require(hash160(pk) != bidder);
+
+        require(tx.inputs.length == 1);
+        require(tx.outputs.length == 1);
+
+        int amount = tx.inputs[this.activeInputIndex].value;   
+        bool correctAmount = tx.outputs[0].value == amount;
+
+        require(correctAmount);
+
+        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
+        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;
+        
+        require(sendsToBidder);
+    }
+
+    function refund(pubkey pk, bytes32 hash) {
+        require(hash == paramHash);
+        require(hash160(pk) == arbiter || hash160(pk) == auctioneer);
 
         require(tx.inputs.length == 1);
         require(tx.outputs.length == 3);
@@ -47,7 +65,7 @@ contract Escrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int platf
         
         require(correctAmount && correctPlatformFee && correctArbitrationFee);
 
-        bytes25 bidderLock = new LockingBytecodeP2PKH(bidderPKH);
+        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);
         bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);
         bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);
 

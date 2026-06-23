@@ -1,129 +1,72 @@
 {
   "contractName": "Escrow",
   "constructorInputs": [
-    {
-      "name": "arbiter",
-      "type": "bytes20"
-    },
-    {
-      "name": "auctioneer",
-      "type": "bytes20"
-    },
-    {
-      "name": "servicer",
-      "type": "bytes20"
-    },
-    {
-      "name": "platformFee",
-      "type": "int"
-    },
-    {
-      "name": "arbitrationFee",
-      "type": "int"
-    },
-    {
-      "name": "paramHash",
-      "type": "bytes32"
-    }
+    { "name": "arbiter", "type": "bytes20" },
+    { "name": "bidder", "type": "bytes20" },
+    { "name": "auctioneer", "type": "bytes20" },
+    { "name": "servicer", "type": "bytes20" },
+    { "name": "platformFee", "type": "int" },
+    { "name": "arbitrationFee", "type": "int" },
+    { "name": "paramHash", "type": "bytes32" }
   ],
   "abi": [
     {
       "name": "release",
       "inputs": [
-        {
-          "name": "pk",
-          "type": "pubkey"
-        },
-        {
-          "name": "hash",
-          "type": "bytes32"
-        }
+        { "name": "pk", "type": "pubkey" },
+        { "name": "hash", "type": "bytes32" }
+      ]
+    },
+    {
+      "name": "return",
+      "inputs": [
+        { "name": "pk", "type": "pubkey" },
+        { "name": "hash", "type": "bytes32" }
       ]
     },
     {
       "name": "refund",
       "inputs": [
-        {
-          "name": "bidderPKH",
-          "type": "bytes20"
-        },
-        {
-          "name": "pky",
-          "type": "pubkey"
-        },
-        {
-          "name": "hashy",
-          "type": "bytes32"
-        }
+        { "name": "pk", "type": "pubkey" },
+        { "name": "hash", "type": "bytes32" }
       ]
     }
   ],
-  "bytecode": "OP_6 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_8 OP_ROLL OP_SIZE 20 OP_EQUALVERIFY OP_6 OP_ROLL OP_EQUALVERIFY OP_6 OP_ROLL OP_HASH160 OP_OVER OP_EQUALVERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY e803 OP_4 OP_PICK OP_ADD OP_5 OP_PICK OP_ADD OP_INPUTINDEX OP_UTXOVALUE OP_SWAP OP_SUB OP_0 OP_OUTPUTVALUE OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_5 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_ROT OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_NIP OP_ELSE OP_6 OP_ROLL OP_1 OP_NUMEQUALVERIFY OP_6 OP_ROLL OP_SIZE 14 OP_EQUALVERIFY OP_8 OP_ROLL OP_SIZE 20 OP_EQUALVERIFY OP_7 OP_ROLL OP_EQUALVERIFY OP_6 OP_PICK OP_HASH160 OP_2 OP_PICK OP_EQUAL OP_7 OP_ROLL OP_HASH160 OP_4 OP_ROLL OP_EQUAL OP_BOOLOR OP_VERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY e803 OP_4 OP_PICK OP_ADD OP_5 OP_PICK OP_ADD OP_INPUTINDEX OP_UTXOVALUE OP_SWAP OP_SUB OP_0 OP_OUTPUTVALUE OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_5 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_SWAP OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_ENDIF",
-  "source": "pragma cashscript ^0.13.0;\n\ncontract Escrow(bytes20 arbiter, bytes20 auctioneer, bytes20 servicer, int platformFee, int arbitrationFee, bytes32 paramHash) {\n    \n    function release(pubkey pk, bytes32 hash) {\n        require(hash == paramHash);\n        require(hash160(pk) == arbiter);\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 3);\n\n        int minerFee = 1000;\n        int fees = minerFee + platformFee + arbitrationFee;\n        int amount = tx.inputs[this.activeInputIndex].value - fees;        \n        \n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctPlatformFee = tx.outputs[1].value == platformFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n\n        require(correctAmount && correctPlatformFee && correctArbitrationFee);\n\n        bytes25 auctioneerLock = new LockingBytecodeP2PKH(auctioneer);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n        \n        bool sendsToAuctioneer = tx.outputs[0].lockingBytecode == auctioneerLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        \n        require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);\n    }\n\n    function refund(bytes20 bidderPKH, pubkey pky, bytes32 hashy) {\n        require(hashy == paramHash);\n        require(hash160(pky) == arbiter || hash160(pky) == auctioneer);\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 3);\n\n        int minerFee = 1000;\n        int fees = minerFee + platformFee + arbitrationFee;\n        int amount = tx.inputs[this.activeInputIndex].value - fees;     \n\n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctPlatformFee = tx.outputs[1].value == platformFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n        \n        require(correctAmount && correctPlatformFee && correctArbitrationFee);\n\n        bytes25 bidderLock = new LockingBytecodeP2PKH(bidderPKH);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n\n        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        \n        require(sendsToBidder && sendsToServicer && sendsToArbiter);\n    }\n}",
-  "fingerprint": "69efec86fcb9fa6c1c72d93289682d73aca80b10a3196cf302f20b1f9e7fe479",
+  "bytecode": "OP_7 OP_PICK OP_0 OP_NUMEQUAL OP_IF OP_9 OP_ROLL OP_7 OP_ROLL OP_EQUALVERIFY OP_7 OP_PICK OP_HASH160 OP_OVER OP_EQUAL OP_8 OP_ROLL OP_HASH160 OP_3 OP_ROLL OP_EQUAL OP_BOOLOR OP_VERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY e803 OP_4 OP_PICK OP_ADD OP_5 OP_PICK OP_ADD OP_INPUTINDEX OP_UTXOVALUE OP_SWAP OP_SUB OP_0 OP_OUTPUTVALUE OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_5 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_ROT OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_NIP OP_ELSE OP_7 OP_PICK OP_1 OP_NUMEQUAL OP_IF OP_9 OP_ROLL OP_7 OP_ROLL OP_EQUALVERIFY OP_7 OP_ROLL OP_HASH160 OP_2 OP_PICK OP_EQUAL OP_NOT OP_VERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_INPUTINDEX OP_UTXOVALUE OP_0 OP_OUTPUTVALUE OP_NUMEQUALVERIFY 76a914 OP_ROT OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_EQUALVERIFY OP_2DROP OP_2DROP OP_2DROP OP_1 OP_ELSE OP_7 OP_ROLL OP_2 OP_NUMEQUALVERIFY OP_8 OP_ROLL OP_7 OP_ROLL OP_EQUALVERIFY OP_6 OP_PICK OP_HASH160 OP_OVER OP_EQUAL OP_7 OP_ROLL OP_HASH160 OP_4 OP_ROLL OP_EQUAL OP_BOOLOR OP_VERIFY OP_TXINPUTCOUNT OP_1 OP_NUMEQUALVERIFY OP_TXOUTPUTCOUNT OP_3 OP_NUMEQUALVERIFY e803 OP_4 OP_PICK OP_ADD OP_5 OP_PICK OP_ADD OP_INPUTINDEX OP_UTXOVALUE OP_SWAP OP_SUB OP_0 OP_OUTPUTVALUE OP_NUMEQUAL OP_1 OP_OUTPUTVALUE OP_5 OP_ROLL OP_NUMEQUAL OP_2 OP_OUTPUTVALUE OP_6 OP_ROLL OP_NUMEQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_VERIFY 76a914 OP_ROT OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT 76a914 OP_3 OP_ROLL OP_CAT 88ac OP_CAT OP_0 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_1 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_2 OP_OUTPUTBYTECODE OP_3 OP_ROLL OP_EQUAL OP_ROT OP_ROT OP_BOOLAND OP_SWAP OP_BOOLAND OP_ENDIF OP_ENDIF",
+  "source": "pragma cashscript ^0.13.0;\n\ncontract Escrow(bytes20 arbiter, bytes20 bidder, bytes20 auctioneer, bytes20 servicer, int platformFee, int arbitrationFee, bytes32 paramHash) {\n    \n    function release(pubkey pk, bytes32 hash) {\n        require(hash == paramHash);\n        require(hash160(pk) == arbiter || hash160(pk) == bidder);\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 3);\n\n        int minerFee = 1000;\n        int fees = minerFee + platformFee + arbitrationFee;\n        int amount = tx.inputs[this.activeInputIndex].value - fees;        \n        \n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctPlatformFee = tx.outputs[1].value == platformFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n\n        require(correctAmount && correctPlatformFee && correctArbitrationFee);\n\n        bytes25 auctioneerLock = new LockingBytecodeP2PKH(auctioneer);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n        \n        bool sendsToAuctioneer = tx.outputs[0].lockingBytecode == auctioneerLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        \n        require(sendsToAuctioneer && sendsToServicer && sendsToArbiter);\n    }\n\n    function return(pubkey pk, bytes32 hash) {\n        require(hash == paramHash);\n        require(hash160(pk) != bidder);\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 1);\n\n        int amount = tx.inputs[this.activeInputIndex].value;   \n        bool correctAmount = tx.outputs[0].value == amount;\n\n        require(correctAmount);\n\n        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);\n        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;\n        \n        require(sendsToBidder);\n    }\n\n    function refund(pubkey pk, bytes32 hash) {\n        require(hash == paramHash);\n        require(hash160(pk) == arbiter || hash160(pk) == auctioneer);\n\n        require(tx.inputs.length == 1);\n        require(tx.outputs.length == 3);\n\n        int minerFee = 1000;\n        int fees = minerFee + platformFee + arbitrationFee;\n        int amount = tx.inputs[this.activeInputIndex].value - fees;     \n\n        bool correctAmount = tx.outputs[0].value == amount;\n        bool correctPlatformFee = tx.outputs[1].value == platformFee;\n        bool correctArbitrationFee = tx.outputs[2].value == arbitrationFee;\n        \n        require(correctAmount && correctPlatformFee && correctArbitrationFee);\n\n        bytes25 bidderLock = new LockingBytecodeP2PKH(bidder);\n        bytes25 servicerLock = new LockingBytecodeP2PKH(servicer);\n        bytes25 arbiterLock = new LockingBytecodeP2PKH(arbiter);\n\n        bool sendsToBidder = tx.outputs[0].lockingBytecode == bidderLock;\n        bool sendsToServicer = tx.outputs[1].lockingBytecode == servicerLock;\n        bool sendsToArbiter = tx.outputs[2].lockingBytecode == arbiterLock;\n        \n        require(sendsToBidder && sendsToServicer && sendsToArbiter);\n    }\n}",
+  "fingerprint": "61fe0cdf6a65a34c970f83a0ee5479f000593873c870f2b59c62572049217dd2",
   "debug": {
-    "bytecode": "5679009c63587a82012088567a88567aa97888c3519dc4539d02e803547993557993c0c67c9400cc9c51cc557a9c52cc567a9c7b7b9a7c9a690376a9147b7e0288ac7e0376a914537a7e0288ac7e0376a914537a7e0288ac7e00cd537a8751cd537a8752cd537a877b7b9a7c9a7767567a519d567a82011488587a82012088577a885679a9527987577aa9547a879b69c3519dc4539d02e803547993557993c0c67c9400cc9c51cc557a9c52cc567a9c7b7b9a7c9a690376a9147c7e0288ac7e0376a914537a7e0288ac7e0376a914537a7e0288ac7e00cd537a8751cd537a8752cd537a877b7b9a7c9a68",
-    "sourceMap": "5:4:31:5;;;;;:32:5:44;;;;;6:24:6:33;;:8::35:1;7:24:7:26:0;;:16::27:1;:31::38:0;:8::40:1;9:16:9:32:0;:36::37;:8::39:1;10:16:10:33:0;:37::38;:8::40:1;12:23:12:27:0;13:30:13:41;;:19:::1;:44::58:0;;:19:::1;14:31:14:52:0;:21::59:1;:62::66:0;:21:::1;16:40:16:41:0;:29::48:1;:::58;17:45:17:46:0;:34::53:1;:57::68:0;;:34:::1;18:48:18:49:0;:37::56:1;:60::74:0;;:37:::1;20:16:20:29:0;:33::51;:16:::1;:55::76:0;:16:::1;:8::78;22:33:22:69:0;:58::68;:33::69:1;;;23:31:23:65:0;:56::64;;:31::65:1;;;24:30:24:63:0;:55::62;;:30::63:1;;;26:44:26:45:0;:33::62:1;:66::80:0;;:33:::1;27:42:27:43:0;:31::60:1;:64::76:0;;:31:::1;28:41:28:42:0;:30::59:1;:63::74:0;;:30:::1;30:16:30:33:0;:37::52;:16:::1;:56::70:0;:8::72:1;5:46:31:5;:4;33::59::0;;;;:20:33:37;;;;;:51::64;;;;;34:25:34:34;;:8::36:1;35:24:35:27:0;;:16::28:1;:32::39:0;;:16:::1;:51::54:0;;:43::55:1;:59::69:0;;:43:::1;:16;:8::71;37:16:37:32:0;:36::37;:8::39:1;38:16:38:33:0;:37::38;:8::40:1;40:23:40:27:0;41:30:41:41;;:19:::1;:44::58:0;;:19:::1;42:31:42:52:0;:21::59:1;:62::66:0;:21:::1;44:40:44:41:0;:29::48:1;:::58;45:45:45:46:0;:34::53:1;:57::68:0;;:34:::1;46:48:46:49:0;:37::56:1;:60::74:0;;:37:::1;48:16:48:29:0;:33::51;:16:::1;:55::76:0;:16:::1;:8::78;50:29:50:64:0;:54::63;:29::64:1;;;51:31:51:65:0;:56::64;;:31::65:1;;;52:30:52:63:0;:55::62;;:30::63:1;;;54:40:54:41:0;:29::58:1;:62::72:0;;:29:::1;55:42:55:43:0;:31::60:1;:64::76:0;;:31:::1;56:41:56:42:0;:30::59:1;:63::74:0;;:30:::1;58:16:58:29:0;:33::48;:16:::1;:52::66:0;:8::68:1;3:0:60:1",
+    "bytecode": "5779009c63597a577a885779a97887587aa9537a879b69c3519dc4539d02e803547993557993c0c67c9400cc9c51cc557a9c52cc567a9c7b7b9a7c9a690376a9147b7e0288ac7e0376a914537a7e0288ac7e0376a914537a7e0288ac7e00cd537a8751cd537a8752cd537a877b7b9a7c9a77675779519c63597a577a88577aa95279879169c3519dc4519dc0c600cc9d0376a9147b7e0288ac7e00cd886d6d6d5167577a529d587a577a885679a97887577aa9547a879b69c3519dc4539d02e803547993557993c0c67c9400cc9c51cc557a9c52cc567a9c7b7b9a7c9a690376a9147b7e0288ac7e0376a914537a7e0288ac7e0376a914537a7e0288ac7e00cd537a8751cd537a8752cd537a877b7b9a7c9a6868",
+    "sourceMap": "5:4:31:5;;;;;6:16:6:20;;:24::33;;:8::35:1;7:24:7:26:0;;:16::27:1;:31::38:0;:16:::1;:50::52:0;;:42::53:1;:57::63:0;;:42:::1;:16;:8::65;9:16:9:32:0;:36::37;:8::39:1;10:16:10:33:0;:37::38;:8::40:1;12:23:12:27:0;13:30:13:41;;:19:::1;:44::58:0;;:19:::1;14:31:14:52:0;:21::59:1;:62::66:0;:21:::1;16:40:16:41:0;:29::48:1;:::58;17:45:17:46:0;:34::53:1;:57::68:0;;:34:::1;18:48:18:49:0;:37::56:1;:60::74:0;;:37:::1;20:16:20:29:0;:33::51;:16:::1;:55::76:0;:16:::1;:8::78;22:33:22:69:0;:58::68;:33::69:1;;;23:31:23:65:0;:56::64;;:31::65:1;;;24:30:24:63:0;:55::62;;:30::63:1;;;26:44:26:45:0;:33::62:1;:66::80:0;;:33:::1;27:42:27:43:0;:31::60:1;:64::76:0;;:31:::1;28:41:28:42:0;:30::59:1;:63::74:0;;:30:::1;30:16:30:33:0;:37::52;:16:::1;:56::70:0;:8::72:1;5:46:31:5;:4;33::49::0;;;;;34:16:34:20;;:24::33;;:8::35:1;35:24:35:26:0;;:16::27:1;:31::37:0;;:16:::1;;:8::39;37:16:37:32:0;:36::37;:8::39:1;38:16:38:33:0;:37::38;:8::40:1;40:31:40:52:0;:21::59:1;41:40:41:41:0;:29::48:1;::43:31;45::45:61:0;:54::60;:29::61:1;;;46:40:46:41:0;:29::58:1;::48:31;33:45:49:5;;;;:4;51::77::0;;;;52:16:52:20;;:24::33;;:8::35:1;53:24:53:26:0;;:16::27:1;:31::38:0;:16:::1;:50::52:0;;:42::53:1;:57::67:0;;:42:::1;:16;:8::69;55:16:55:32:0;:36::37;:8::39:1;56:16:56:33:0;:37::38;:8::40:1;58:23:58:27:0;59:30:59:41;;:19:::1;:44::58:0;;:19:::1;60:31:60:52:0;:21::59:1;:62::66:0;:21:::1;62:40:62:41:0;:29::48:1;:::58;63:45:63:46:0;:34::53:1;:57::68:0;;:34:::1;64:48:64:49:0;:37::56:1;:60::74:0;;:37:::1;66:16:66:29:0;:33::51;:16:::1;:55::76:0;:16:::1;:8::78;68:29:68:61:0;:54::60;:29::61:1;;;69:31:69:65:0;:56::64;;:31::65:1;;;70:30:70:63:0;:55::62;;:30::63:1;;;72:40:72:41:0;:29::58:1;:62::72:0;;:29:::1;73:42:73:43:0;:31::60:1;:64::76:0;;:31:::1;74:41:74:42:0;:30::59:1;:63::74:0;;:30:::1;76:16:76:29:0;:33::48;:16:::1;:52::66:0;:8::68:1;3:0:78:1;",
     "logs": [],
     "requires": [
-      {
-        "ip": 18,
-        "line": 6
-      },
-      {
-        "ip": 23,
-        "line": 7
-      },
-      {
-        "ip": 26,
-        "line": 9
-      },
-      {
-        "ip": 29,
-        "line": 10
-      },
-      {
-        "ip": 59,
-        "line": 20
-      },
-      {
-        "ip": 97,
-        "line": 30
-      },
-      {
-        "ip": 115,
-        "line": 34
-      },
-      {
-        "ip": 129,
-        "line": 35
-      },
-      {
-        "ip": 132,
-        "line": 37
-      },
-      {
-        "ip": 135,
-        "line": 38
-      },
-      {
-        "ip": 165,
-        "line": 48
-      },
-      {
-        "ip": 203,
-        "line": 58
-      }
-    ],
-    "sourceTags": "5:9:pv;97:101:pv;102:106:pv"
+      { "ip": 16, "line": 6 },
+      { "ip": 29, "line": 7 },
+      { "ip": 32, "line": 9 },
+      { "ip": 35, "line": 10 },
+      { "ip": 65, "line": 20 },
+      { "ip": 103, "line": 30 },
+      { "ip": 114, "line": 34 },
+      { "ip": 122, "line": 35 },
+      { "ip": 125, "line": 37 },
+      { "ip": 128, "line": 38 },
+      { "ip": 133, "line": 43 },
+      { "ip": 141, "line": 48 },
+      { "ip": 155, "line": 52 },
+      { "ip": 168, "line": 53 },
+      { "ip": 171, "line": 55 },
+      { "ip": 174, "line": 56 },
+      { "ip": 204, "line": 66 },
+      { "ip": 242, "line": 76 }
+    ]
   },
   "compiler": {
     "name": "cashc",
     "version": "0.13.1",
     "options": {
-      "enforceFunctionParameterTypes": true,
+      "enforceFunctionParameterTypes": false,
       "enforceLocktimeGuard": true
     }
   },
-  "updatedAt": "2026-06-22T09:35:23.735Z"
+  "updatedAt": "2026-06-23T07:29:29.017Z"
 }
