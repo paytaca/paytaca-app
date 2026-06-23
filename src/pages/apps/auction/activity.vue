@@ -121,8 +121,9 @@
             class="pt-card text-bow cursor-pointer"
             :class="getDarkModeClass(darkMode)"
             @click="$router.push({ 
-              name: 'app-auction-edit', 
-              params: { auctionId: auction.id }
+              name: 'app-auction-details', 
+              params: { auctionId: auction.id },
+              query: { from: 'activity' }
             })"
           >
             <div class="relative-position">

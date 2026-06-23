@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refresh"
   >
-    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav" />
+    <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row q-col-gutter-md justify-start items-start">
@@ -476,6 +476,12 @@ const isLotEmpty = computed(() => {
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction?.value.user_id
+})
+
+const smartBackPath = computed(() => {
+  const sourceContext = $route.query.from
+  if (sourceContext === 'activity') return '/apps/auction/activity'
+  return `/apps/auction`
 })
 
 const refresh = async (done) => {
