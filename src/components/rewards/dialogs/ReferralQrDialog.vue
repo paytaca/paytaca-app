@@ -55,17 +55,13 @@
         <!-- Referral Code Display -->
         <div 
           class="referral-code-container q-mb-md"
-          :class="{ 
-            'copy-success': copySuccess, 
-            'copy-failed': copyFailed,
-            [getDarkModeClass(darkMode)]: true 
-          }"
+          :class="[getDarkModeClass(darkMode)]"
         >
           <div class="text-subtitle1 text-bow q-mb-xs" :class="getDarkModeClass(darkMode)">
             {{ $t('ReferralCode') }}
           </div>
           <div class="row justify-center items-center q-gutter-sm">
-            <code class="referral-code-text" :class="getDarkModeClass(darkMode)">
+            <code class="referral-code-text" :class="[getDarkModeClass(darkMode), { 'copy-success': copySuccess, 'copy-failed': copyFailed }]">
               {{ referralCodeFull }}
             </code>
             <q-btn
@@ -90,14 +86,26 @@
             Share Referral Code Link
           </div>
           <div
-            class="row items-center no-wrap q-py-sm q-px-sm rounded-borders cursor-pointer justify-between"
+            class="row items-center no-wrap q-py-sm q-px-sm rounded-borders"
+            :class="{ 'copy-success': linkCopySuccess, 'copy-failed': linkCopyFailed }"
             style="border: 1px solid grey;"
-            @click="copyReferralShareUrl"
           >
-            <div style="overflow-y: auto; white-space: nowrap;">
+            <div style="overflow-y: auto; white-space: nowrap; flex: 1;">
               {{ referralShareUrl }}
             </div>
-            <q-icon name="content_copy" size="1.25em" class="q-ml-sm" />
+            <q-btn
+              flat
+              dense
+              round
+              size="sm"
+              :icon="linkCopyButtonIcon"
+              :color="linkCopyButtonColor"
+              class="copy-btn q-ml-sm"
+              :class="{ 'copy-success-icon': linkCopySuccess, 'copy-failed-icon': linkCopyFailed }"
+              @click="copyReferralShareUrl"
+            >
+              <q-tooltip>{{ linkCopyTooltip }}</q-tooltip>
+            </q-btn>
           </div>
           <div class="q-mt-xs row flex-center no-wrap q-gutter-x-sm" style="overflow-x: auto;">
             <template v-for="shareLink in shareLinks" :key="shareLink.label">
@@ -142,7 +150,10 @@ export default {
       copyTooltip: this.$t('Copy'),
       copySuccess: false,
       copyFailed: false,
-      savingQR: false
+      savingQR: false,
+      linkCopySuccess: false,
+      linkCopyFailed: false,
+      linkCopyTooltip: this.$t('Copy')
     }
   },
 
@@ -205,6 +216,16 @@ export default {
 
       return links
     },
+    linkCopyButtonIcon () {
+      if (this.linkCopySuccess) return 'check'
+      if (this.linkCopyFailed) return 'close'
+      return 'content_copy'
+    },
+    linkCopyButtonColor () {
+      if (this.linkCopySuccess) return 'positive'
+      if (this.linkCopyFailed) return 'negative'
+      return undefined
+    },
     copyButtonIcon () {
       if (this.copySuccess) return 'check'
       if (this.copyFailed) return 'close'
@@ -221,12 +242,25 @@ export default {
     getDarkModeClass,
 
     copyReferralShareUrl () {
-      this.$copyText(this.referralShareUrl)
-      this.$q.notify({
-        message: this.$t('CopiedToClipboard'),
-        timeout: 800,
-        color: 'blue-9',
-        icon: 'mdi-clipboard-check'
+      this.linkCopySuccess = false
+      this.linkCopyFailed = false
+
+      this.$copyText(this.referralShareUrl).then(() => {
+        this.linkCopySuccess = true
+        this.linkCopyTooltip = this.$t('CopiedToClipboard')
+
+        setTimeout(() => {
+          this.linkCopySuccess = false
+          this.linkCopyTooltip = this.$t('Copy')
+        }, 2000)
+      }).catch(() => {
+        this.linkCopyFailed = true
+        this.linkCopyTooltip = this.$t('FailedToCopyCode')
+
+        setTimeout(() => {
+          this.linkCopyFailed = false
+          this.linkCopyTooltip = this.$t('Copy')
+        }, 2000)
       })
     },
     
@@ -484,18 +518,18 @@ export default {
   border-radius: 8px;
   background: rgba(128, 128, 128, 0.1);
   transition: all 0.3s ease;
-  
-  &.copy-success {
-    background: rgba(76, 175, 80, 0.2) !important;
-    box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
-    animation: successPulse 0.5s ease;
-  }
-  
-  &.copy-failed {
-    background: rgba(244, 67, 54, 0.2) !important;
-    box-shadow: 0 0 12px rgba(244, 67, 54, 0.4);
-    animation: failShake 0.5s ease;
-  }
+}
+
+.copy-success {
+  background: rgba(76, 175, 80, 0.2) !important;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+  animation: successPulse 0.5s ease;
+}
+
+.copy-failed {
+  background: rgba(244, 67, 54, 0.2) !important;
+  box-shadow: 0 0 12px rgba(244, 67, 54, 0.4);
+  animation: failShake 0.5s ease;
 }
 
 @keyframes successPulse {
