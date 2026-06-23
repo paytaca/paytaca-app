@@ -36,6 +36,7 @@ export async function walletToContract(amountBCH, bidId) {
 
 
 /**
+<<<<<<< HEAD
  * @name createContract
  * @param {Integer} bidId
  * @returns contract and is_created (boolean)

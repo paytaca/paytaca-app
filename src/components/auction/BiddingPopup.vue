@@ -298,17 +298,17 @@ const formatFiat = (val) => {
 }
 
 const placeBid = () => {
-  // const walletBalance = $store.getters['assets/getAssets'][0].spendable
+  const walletBalance = $store.getters['assets/getAssets'][0].spendable
 
-  // if (walletBalance < parseFloat(convertedOutputBch.value.toFixed(8))) {
-  //   $q.notify({
-  //     type: 'negative',
-  //     icon: 'account_balance_wallet',
-  //     message: 'Insufficient balance!',
-  //     timeout: 3000
-  //   })
-  //   return
-  // }
+  if (walletBalance < parseFloat(convertedOutputBch.value.toFixed(8))) {
+    $q.notify({
+      type: 'negative',
+      icon: 'account_balance_wallet',
+      message: 'Insufficient balance!',
+      timeout: 3000
+    })
+    return
+  }
 
   emit('place-bid', {
     bid_price_bch: parseFloat(convertedOutputBch.value.toFixed(8)),

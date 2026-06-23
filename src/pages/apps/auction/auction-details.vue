@@ -5,7 +5,7 @@
     :class="getDarkModeClass(darkMode)"
     @refresh="refresh"
   >
-    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction" class="header-nav" />
+    <HeaderNav :title="$t('Auction')" :backnavpath="smartBackPath" class="header-nav" />
 
     <div class="q-pa-md text-bow" :class="getDarkModeClass(darkMode)">
       <div class="row q-col-gutter-md justify-start items-start">
@@ -20,17 +20,33 @@
           </div>
 
           <div class="col-12 col-sm-auto flex column" style="max-width: 450px; min-width: 280px;">
-            <div class="row items-center q-gutter-sm q-mb-sm">
-              <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
-                <q-icon name="gavel" size="12px" class="q-mr-xs" />
-                {{ auction.type }} Auction
-              </q-badge>
-              <q-badge
-                :color="getAuctionStatusInfo(auction).color"
-                class="q-pa-sm q-px-sm text-weight-bold"
-              >
-                {{ getAuctionStatusInfo(auction).label }}
-              </q-badge>
+            <div class="row items-center justify-between full-width q-mb-sm">
+              <div class="row items-center q-gutter-sm">
+                <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
+                  <q-icon name="gavel" size="12px" class="q-mr-xs" />
+                  {{ auction.type }} Auction
+                </q-badge>
+                <q-badge
+                  :color="getAuctionStatusInfo(auction).color"
+                  class="q-pa-sm q-px-sm text-weight-bold"
+                >
+                  {{ getAuctionStatusInfo(auction).label }}
+                </q-badge>
+              </div>
+              
+              <div v-if="isAuthor">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="edit"
+                  :color="darkMode ? 'white' : 'grey-7'"
+                  @click="$router.push({ 
+                    name: 'app-auction-edit', 
+                    params: { auctionId: auction.id }
+                  })"
+                />
+              </div>
             </div>
 
             <div class="text-h5 text-weight-medium q-mb-md">
@@ -476,6 +492,12 @@ const isLotEmpty = computed(() => {
 const isAuthor = computed(() => {
   const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
   return walletHash === auction?.value.user_id
+})
+
+const smartBackPath = computed(() => {
+  const sourceContext = $route.query.from
+  if (sourceContext === 'activity') return '/apps/auction/activity'
+  return `/apps/auction`
 })
 
 const refresh = async (done) => {

@@ -166,6 +166,8 @@ const isLoading = computed(() => $store.state.auction?.isLoading || false)
 
 onMounted(async () => {
   await $store.dispatch('auction/refreshCatalog')
+  await $store.dispatch('auction/fetchArbiterPublicKey')
+  await $store.dispatch('auction/fetchServicerPublicKey')
 })
 
 const auctionSearchQuery = ref('')

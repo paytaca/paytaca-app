@@ -4,7 +4,7 @@
     class="auction-container"
     :class="getDarkModeClass(darkMode)"
   >
-    <HeaderNav :title="$t('Auction')" backnavpath="/apps/auction/activity" class="header-nav">
+    <HeaderNav :title="$t('Auction')" :backnavpath="`/apps/auction/${props.auctionId}`" class="header-nav">
       <template v-slot:top-right-menu>
         <AuctionHeaderMenu />
       </template>
@@ -420,9 +420,25 @@ const fetchAllData = async () => {
 
 const formatToDateTimeLocal = (dateString) => {
   if (!dateString) return ''
+
   const date = new Date(dateString)
+
   if (isNaN(date.getTime())) return ''
-  return date.toISOString().slice(0, 16)
+  
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const localDateTimeToUTC = (localString) => {
+  if (!localString) return ''
+  const date = new Date(localString)
+  if (isNaN(date.getTime())) return ''
+  return date.toISOString()
 }
 
 onMounted(async () => {
@@ -500,8 +516,8 @@ const handleUpdateAuction = async () => {
     const auctionFormData = new FormData()
     auctionFormData.append('title', auctionForm.value.title)
     auctionFormData.append('type_id', auctionForm.value.type === 'English' ? 1 : 2)
-    auctionFormData.append('start_date', auctionForm.value.start_date ? new Date(auctionForm.value.start_date).toISOString() : '')
-    auctionFormData.append('end_date', auctionForm.value.end_date ? new Date(auctionForm.value.end_date).toISOString() : '')
+    auctionFormData.append('start_date', localDateTimeToUTC(auctionForm.value.start_date))
+    auctionFormData.append('end_date', localDateTimeToUTC(auctionForm.value.end_date))
     auctionFormData.append('description', auctionForm.value.description)
     auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed ? true : false)
     if (auctionForm.value.image instanceof File) {
