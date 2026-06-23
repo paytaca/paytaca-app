@@ -19,7 +19,7 @@
       <q-separator />
 
       <div class="q-px-md q-py-sm">
-        <div class="text-subtitle1 q-mb-sm">
+        <div class="text-subtitle1 q-mb-sm" style="line-height: 1.5rem;">
           {{ $t('ReferralQrDescription') }}
         </div>
   
