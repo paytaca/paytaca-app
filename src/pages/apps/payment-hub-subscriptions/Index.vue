@@ -244,24 +244,10 @@ async function cancelSubscription(sub) {
         BigInt(sub.period_blocks)
       ], { provider })
 
-      // 2. Fetch private key
-      // Search the current wallet for the path of the funder_address
-      let pathStr = null
-      const funderPayloadStr = String(funderPayload)
-      const searchLimit = Math.max(bchWallet.lastAddressIndex || 0, 50) + 200
-      for (let i = 0; i <= searchLimit; i++) {
-        const addressSet = await bchWallet.getAddressSetAt(i)
-        if (String(decodeCashAddress(addressSet.receiving).payload) === funderPayloadStr) {
-          pathStr = `0/${i}`
-          break
-        }
-        if (String(decodeCashAddress(addressSet.change).payload) === funderPayloadStr) {
-          pathStr = `1/${i}`
-          break
-        }
-      }
-
-      if (!pathStr) throw new Error('Could not find derivation path for funder address in current wallet')
+      // 2. Fetch private key using the exact address index
+      const addressIndex = sub.funder_address_index
+      if (addressIndex == null) throw new Error('Funder address index not provided by backend')
+      const pathStr = `0/${addressIndex}`
 
       const privKeyWif = await bchWallet.getPrivateKey(pathStr)
       console.log("Funder Payload Target:", String(funderPayload))

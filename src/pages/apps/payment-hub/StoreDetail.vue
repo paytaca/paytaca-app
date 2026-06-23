@@ -28,7 +28,7 @@
                 <q-btn flat round dense icon="edit" size="sm" class="q-ml-sm text-grey flex-shrink-0" @click="editStore" />
               </div>
               <div class="text-caption text-grey">ID: {{ storeId }}</div>
-              
+
               <div class="row items-center q-mt-sm q-gutter-x-md">
                 <div v-if="storeData?.website_url" class="row items-center text-caption text-pt-primary1 cursor-pointer" @click="openLink(storeData.website_url)">
                   <q-icon name="language" size="14px" class="q-mr-xs" />
@@ -197,16 +197,16 @@
       <q-page :class="darkMode ? 'bg-pt-dark-page' : 'bg-pt-light-page'" class="column no-wrap">
         <q-pull-to-refresh @refresh="refreshPage" class="col column no-wrap">
           <div v-touch-swipe.horizontal.mouse="handleGlobalSwipe" class="col column no-wrap">
-            <q-tab-panels 
-              v-model="activeTab" 
-              animated 
+            <q-tab-panels
+              v-model="activeTab"
+              animated
               class="bg-transparent col"
             >
               <!-- Invoices Tab -->
               <q-tab-panel name="invoices" class="q-pa-none">
                 <div class="col column no-wrap">
-                  <InvoiceList 
-                    ref="invoiceListRef" 
+                  <InvoiceList
+                    ref="invoiceListRef"
                     :store-id="storeId"
                     :status-filter="invoiceStatusFilter"
                     :search-query="invoiceSearchQuery"
@@ -468,7 +468,7 @@
                   <q-card flat bordered class="br-15 pt-card-2" :class="getDarkModeClass(darkMode)">
                     <q-card-section>
                       <div class="text-subtitle1 text-weight-bold q-mb-md">{{ $t('Configuration') }}</div>
-                      
+
                       <div class="q-gutter-y-sm">
                         <div class="row justify-between items-start">
                           <div class="text-caption text-grey q-mr-md">{{ $t('WebhookURL') }}</div>
@@ -597,7 +597,7 @@ import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
-import { Contract, SignatureTemplate, ElectrumNetworkProvider } from 'cashscript'
+import { Contract, SignatureTemplate, ElectrumNetworkProvider, TransactionBuilder } from 'cashscript13'
 import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
 
 const $route = useRoute()
@@ -767,15 +767,15 @@ async function refreshPage(done, isBackground = false) {
   }
   try {
     const paymentHub = await initHub(isBackground)
-    
+
     // Fetch full store metadata
     storeData.value = await paymentHub.getStore(storeId.value)
-    
+
     // Construct ordering string
     const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
 
     // Fetch API keys (Page 1)
-    const data = await paymentHub.listApiKeys(storeId.value, { 
+    const data = await paymentHub.listApiKeys(storeId.value, {
       page: 1,
       ordering: ordering,
       search: searchQuery.value || undefined
@@ -821,7 +821,7 @@ async function onLoadMoreKeys(index, done) {
   try {
     keysPage.value++
     const ordering = (orderDir.value === 'desc' ? '-' : '') + orderBy.value
-    const data = await hub.value.listApiKeys(storeId.value, { 
+    const data = await hub.value.listApiKeys(storeId.value, {
       page: keysPage.value,
       ordering: ordering,
       search: searchQuery.value || undefined
@@ -992,10 +992,10 @@ function createApiKey() {
     try {
       $q.loading.show()
       const newKeyData = await hub.value.generateApiKey(storeId.value, data.name, data.expiry_date)
-      
+
       // The secret key is only shown once.
       const secret = newKeyData.key || newKeyData.secret || newKeyData.token
-      
+
       $q.dialog({
         title: $t('KeyGenerated'),
         message: $t('KeySecretWarning'),
@@ -1119,6 +1119,10 @@ function openSubscriptionDetails(sub) {
   })
 }
 
+function calculateMinerFee(numInputs, numOuputs) {
+  return numInputs * 460 + numOutputs * 60
+}
+
 async function cancelSubscription(sub) {
   $q.dialog({
     title: $t('CancelSubscription') || 'Cancel Subscription',
@@ -1130,7 +1134,7 @@ async function cancelSubscription(sub) {
     try {
       $q.loading.show({ message: 'Fetching cancellation kit...' })
       const kit = await hub.value.getSubscriptionCancelKit(sub.id, true)
-      
+
       $q.loading.show({ message: 'Signing cancellation transaction...' })
 
       const getPayload = (addr) => {
@@ -1142,7 +1146,7 @@ async function cancelSubscription(sub) {
         if (typeof decoded === 'string') throw new Error(decoded)
         return decoded.payload
       }
-      
+
       const merchantPayload = getPayload(sub.merchant_address)
       const funderPayload = getPayload(sub.funder_address)
 
@@ -1160,27 +1164,16 @@ async function cancelSubscription(sub) {
       ], { provider })
 
       console.log("Locally Generated Contract Address:", contract.address)
+      if (!kit.inputs || kit.inputs.length === 0) {
+        throw new Error('No funds available to cancel. This subscription may have already been cancelled or drained.')
+      }
       console.log("Actual Contract Address from Kit:", kit.inputs[0].address)
 
-      // 2. Fetch private key
-      // Search the current wallet for the path of the funder_address
-      let pathStr = null
-      const merchantPayloadStr = String(merchantPayload)
-      const searchLimit = Math.max(bchWallet.lastAddressIndex || 0, 50) + 200
-      for (let i = 0; i <= searchLimit; i++) {
-        const addressSet = await bchWallet.getAddressSetAt(i)
-        if (String(decodeCashAddress(addressSet.receiving).payload) === merchantPayloadStr) {
-          pathStr = `0/${i}`
-          break
-        }
-        if (String(decodeCashAddress(addressSet.change).payload) === merchantPayloadStr) {
-          pathStr = `1/${i}`
-          break
-        }
-      }
-      
-      if (!pathStr) throw new Error('Could not find derivation path for merchant address in current wallet')
-      
+      // 2. Fetch private key using the exact address index
+      const addressIndex = sub.merchant_address_index
+      if (addressIndex == null) throw new Error('Merchant address index not provided by backend')
+      const pathStr = `0/${addressIndex}`
+
       const privKeyWif = await bchWallet.getPrivateKey(pathStr)
       console.log("Merchant Payload Target:", String(merchantPayload))
       console.log("Derived Path:", pathStr)
@@ -1197,17 +1190,34 @@ async function cancelSubscription(sub) {
         ...input,
         satoshis: BigInt(input.satoshis)
       }))
-      const txBuilder = contract.functions.merchantCancel(sig.getPublicKey(), sig)
-        .from(formattedInputs)
-        .to(toAddress, BigInt(kit.outputs[0].satoshis))
-        // Hardcode a tiny fee if required or let CashScript calculate it
-      
+      const txBuilder = new TransactionBuilder({ provider })
+      txBuilder.addInputs(formattedInputs, contract.unlock.merchantCancel(sig.getPublicKey(), sig))
+      txBuilder.addOutput({ to: toAddress, amount: BigInt(kit.outputs[0].satoshis) })
+
+      const arrayToHex = (arr) => '0x' + Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
+
+      console.log("=== CASHSCRIPT PLAYGROUND DEBUG ===")
+      console.log("Contract Arguments:")
+      console.log("1. recipient:", arrayToHex(merchantPayload))
+      console.log("2. funder:", arrayToHex(funderPayload))
+      console.log("3. pledge:", sub.pledge_satoshis)
+      console.log("4. period:", sub.period_blocks)
+      console.log("\nFunction Arguments (merchantCancel):")
+      console.log("1. pk: (Derived from privKeyWif in playground)")
+      console.log("2. sig: (Derived from privKeyWif in playground)")
+      console.log("-> privKeyWif:", privKeyWif)
+      console.log("\nTransaction Inputs:")
+      console.log(JSON.stringify(formattedInputs, (key, value) => typeof value === 'bigint' ? value.toString() : value, 2))
+      console.log("\nTransaction Outputs:")
+      console.log(JSON.stringify([{ to: toAddress, satoshis: kit.outputs[0].satoshis }], null, 2))
+      console.log("===================================")
+
       const rawTx = await txBuilder.build()
 
       // 4. Submit to Payment Hub
       $q.loading.show({ message: 'Submitting cancellation...' })
       await hub.value.submitSubscriptionCancel(sub.id, rawTx, true)
-      
+
       await refreshPage()
       $q.notify({ type: 'positive', message: $t('SubscriptionCancelled') || 'Subscription cancelled successfully' })
 
