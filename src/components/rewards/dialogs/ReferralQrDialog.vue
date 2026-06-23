@@ -1,7 +1,8 @@
 <template>
   <q-dialog persistent ref="dialogRef" seamless class="no-click-outside">
-    <q-card class="pt-card-2 text-bow" :class="getDarkModeClass(darkMode)">
-      <div class="row justify-between items-center q-mb-sm q-px-md q-pt-md">
+    <q-card class="pt-card-2 text-bow dialog-card" :class="getDarkModeClass(darkMode)">
+      <!-- Dialog Title -->
+      <div class="row justify-between items-center q-mb-sm q-px-md q-pt-md dialog-title">
         <div class="row items-center q-gutter-sm">
           <q-icon name="qr_code" size="28px" color="primary" />
           <span class="text-h6">{{ $t(`${referralType}ReferralQrTitle`) }}</span>
@@ -16,9 +17,10 @@
         />
       </div>
 
-      <q-separator />
+      <q-separator class="dialog-separator" />
 
-      <div class="q-px-md q-py-sm">
+      <!-- Dialog Body -->
+      <div class="q-px-md q-py-sm dialog-body">
         <div class="text-subtitle1 q-mb-sm" style="line-height: 1.5rem;">
           {{ $t('ReferralQrDescription') }}
         </div>
@@ -605,5 +607,24 @@ export default {
   100% {
     transform: scale(1);
   }
+}
+
+.dialog-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.dialog-title {
+  flex-shrink: 0;
+}
+
+.dialog-separator {
+  flex-shrink: 0;
+}
+
+.dialog-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 </style>
