@@ -362,7 +362,10 @@
                       </div>
                     </div>
 
-                    <div v-if="!dutchAtFloor" class="q-mt-sm">
+                    <div v-if="dutchAlreadySold" class="text-caption text-center q-mt-sm text-positive text-weight-medium">
+                      <q-icon name="check_circle" size="12px" class="q-mr-xs" />Sold
+                    </div>
+                    <div v-else-if="!dutchAtFloor" class="q-mt-sm">
                       <div class="row items-center justify-between text-caption q-mb-xs">
                         Next price drop in
                         <span class="text-weight-medium">{{ formatCountdown(secondsRemaining) }} left</span>
@@ -813,6 +816,10 @@ const getDutchAuctionStartTime = () => {
 
 const computeCurrentPrice = () => {
   if (!lot.value) return
+  if (dutchAlreadySold.value) {
+    clearDutchTimers()
+    return
+  }
 
   const isFiat = auction.value?.is_fiat ?? true
   const intervalSec = (lot.value.getIntervalMinutes() || 10) * 60
@@ -902,6 +909,7 @@ const startDutchCountdown = () => {
 
 const initializeDutchAuctionTimer = (lotData) => {
   if (!lotData || !auction.value || auction.value?.type !== 'Dutch') return
+  if (dutchAlreadySold.value) return
   clearDutchTimers()
 
   const startTime = getDutchAuctionStartTime()
@@ -975,6 +983,7 @@ const handleBuyItNow = async (payload = {}) => {
         await walletToContract(Number(bidBch).toFixed(8), props.lotId)
 
         dutchAlreadySold.value = true
+        clearDutchTimers()
         await refresh()
         $q.notify({
           type: 'positive',
