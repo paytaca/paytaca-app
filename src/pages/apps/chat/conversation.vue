@@ -320,6 +320,17 @@
         </div>
 
         <div v-else-if="ready" class="messages-list">
+          <div v-if="allMessages.length > displayLimit" class="load-more-container">
+            <button
+              class="load-more-btn"
+              :class="getDarkModeClass(darkMode)"
+              :disabled="isLoadingMore"
+              @click="loadMoreMessages"
+            >
+              <q-spinner v-if="isLoadingMore" size="16px" class="load-more-spinner" />
+              <template v-else>{{ $t('LoadPreviousMessages', {}, 'Load previous messages') }}</template>
+            </button>
+          </div>
           <div
             v-for="(msg, index) in displayedMessages"
             :key="msg.id"
@@ -1201,10 +1212,6 @@ export default {
       if (!container) return
       const threshold = 80
       this.showScrollToBottom = container.scrollTop + container.clientHeight < container.scrollHeight - threshold
-
-      if (container.scrollTop < 50 && !this.isLoadingMore && !this._allMessagesLoaded) {
-        this.loadMoreMessages()
-      }
     },
     loadMoreMessages () {
       if (this.allMessages.length <= this.displayLimit) {
@@ -2091,6 +2098,54 @@ export default {
 
 .scroll-to-bottom-btn.dark:hover {
   background: #475569;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.load-more-btn {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  padding: 6px 20px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.load-more-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.load-more-btn:active {
+  transform: scale(0.97);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.load-more-btn.dark {
+  border-color: #475569;
+  color: #94a3b8;
+}
+
+.load-more-btn.dark:hover {
+  background: #334155;
+  border-color: #64748b;
+  color: #e2e8f0;
+}
+
+.load-more-spinner {
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .scroll-btn-fade-enter-active,
