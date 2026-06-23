@@ -355,6 +355,7 @@ const handleCreateAuction = async () => {
     auctionFormData.append('description', auctionForm.value.description)
     auctionFormData.append('is_fiat', auctionForm.value.isFiatUsed)
     auctionFormData.append('user_id', Store.getters['global/getWallet']('bch')?.walletHash)
+    auctionFormData.append('fiat_name', 'PHP')
     
     if (auctionForm.value.image) {
       auctionFormData.append('image', auctionForm.value.image)
