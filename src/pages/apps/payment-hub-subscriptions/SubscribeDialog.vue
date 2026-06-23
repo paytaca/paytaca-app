@@ -45,11 +45,10 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
-import { useDialogPluginComponent, useQuasar } from 'quasar'
+import { useDialogPluginComponent } from 'quasar'
 import { useStore } from 'vuex'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { authToken } from 'src/wallet/payment-hub'
-import { cachedLoadWallet } from 'src/wallet'
+import { PaymentHub } from 'src/wallet/payment-hub'
 
 defineEmits([
   ...useDialogPluginComponent.emits
@@ -57,7 +56,6 @@ defineEmits([
 
 const { dialogRef, onDialogHide, onDialogOK, onDialogCancel } = useDialogPluginComponent()
 const $store = useStore()
-const $q = useQuasar()
 const darkMode = computed(() => $store.getters['darkmode/getStatus'])
 const formRef = ref(null)
 
@@ -71,24 +69,11 @@ async function onOKClick() {
   const isValid = await formRef.value.validate()
   if (!isValid) return
 
-  $q.loading.show({ message: 'Authenticating...' })
-  try {
-    const walletIndex = $store.getters['global/getWalletIndex']
-    const wallet = await cachedLoadWallet('BCH', walletIndex)
-    const token = await authToken.get(wallet)
+  const payload = { plan: form.plan }
+  // if (form.merchant_address) payload.merchant_address = form.merchant_address
+  // if (form.funder_address) payload.funder_address = form.funder_address
 
-    const payload = { 
-      plan: form.plan,
-      oauth: token
-    }
-
-    onDialogOK(payload)
-  } catch (error) {
-    console.error('Failed to get auth token:', error)
-    $q.notify({ type: 'negative', message: 'Authentication failed' })
-  } finally {
-    $q.loading.hide()
-  }
+  onDialogOK(payload)
 }
 
 function onCancelClick() {
