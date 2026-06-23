@@ -597,8 +597,8 @@ import InvoiceList from 'src/components/payment-hub/InvoiceList.vue'
 import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
-import { Contract, SignatureTemplate } from 'cashscript'
-import { decodeCashAddress } from '@bitauth/libauth'
+import { Contract, SignatureTemplate, ElectrumNetworkProvider } from 'cashscript'
+import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
 
 const $route = useRoute()
 const $store = useStore()
@@ -1132,26 +1132,48 @@ async function cancelSubscription(sub) {
       const kit = await hub.value.getSubscriptionCancelKit(sub.id, true)
       
       $q.loading.show({ message: 'Signing cancellation transaction...' })
+
+      const getPayload = (addr) => {
+        if (/^[0-9a-fA-F]{40}$/.test(addr)) {
+          return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
+        }
+        if (!addr.includes(':')) addr = 'bitcoincash:' + addr
+        const decoded = decodeCashAddress(addr)
+        if (typeof decoded === 'string') throw new Error(decoded)
+        return decoded.payload
+      }
+      
+      const merchantPayload = getPayload(sub.merchant_address)
+      const funderPayload = getPayload(sub.funder_address)
+
+      const isChipnet = $store.getters['global/isChipnet']
+      const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
+
       // 1. Fetch contract artifact
       const artifactObj = await hub.value.getContractArtifact()
+      const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
       const contract = new Contract(artifactObj, [
-        decodeCashAddress(sub.merchant_address).payload,
-        decodeCashAddress(sub.funder_address).payload,
+        funderPayload,
+        merchantPayload,
         BigInt(sub.pledge_satoshis),
         BigInt(sub.period_blocks)
-      ], { network: 'mainnet' })
+      ], { provider })
+
+      console.log("Locally Generated Contract Address:", contract.address)
+      console.log("Actual Contract Address from Kit:", kit.inputs[0].address)
 
       // 2. Fetch private key
       // Search the current wallet for the path of the funder_address
       let pathStr = null
-      const searchLimit = Math.max(wallet.value.BCH.lastAddressIndex || 0, 50) + 200
+      const merchantPayloadStr = String(merchantPayload)
+      const searchLimit = Math.max(bchWallet.lastAddressIndex || 0, 50) + 200
       for (let i = 0; i <= searchLimit; i++) {
-        const addressSet = await wallet.value.BCH.getAddressSetAt(i)
-        if (wallet.value.BCH._normalizeAddress(addressSet.receiving) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
+        const addressSet = await bchWallet.getAddressSetAt(i)
+        if (String(decodeCashAddress(addressSet.receiving).payload) === merchantPayloadStr) {
           pathStr = `0/${i}`
           break
         }
-        if (wallet.value.BCH._normalizeAddress(addressSet.change) === wallet.value.BCH._normalizeAddress(sub.merchant_address)) {
+        if (String(decodeCashAddress(addressSet.change).payload) === merchantPayloadStr) {
           pathStr = `1/${i}`
           break
         }
@@ -1159,14 +1181,25 @@ async function cancelSubscription(sub) {
       
       if (!pathStr) throw new Error('Could not find derivation path for merchant address in current wallet')
       
-      const privKeyWif = await wallet.value.BCH.getPrivateKey(pathStr)
+      const privKeyWif = await bchWallet.getPrivateKey(pathStr)
+      console.log("Merchant Payload Target:", String(merchantPayload))
+      console.log("Derived Path:", pathStr)
       if (!privKeyWif) throw new Error('Could not derive private key for merchant address')
 
       // 3. Build & sign transaction
       const sig = new SignatureTemplate(privKeyWif)
-      const txBuilder = contract.functions.merchant_cancel(sig)
-        .from(kit.inputs)
-        .to(kit.outputs[0].to, BigInt(kit.outputs[0].satoshis))
+      const toAddress = encodeCashAddress(
+        isChipnet ? 'bchtest' : 'bitcoincash',
+        'p2pkh',
+        getPayload(kit.outputs[0].to)
+      )
+      const formattedInputs = kit.inputs.map(input => ({
+        ...input,
+        satoshis: BigInt(input.satoshis)
+      }))
+      const txBuilder = contract.functions.merchantCancel(sig.getPublicKey(), sig)
+        .from(formattedInputs)
+        .to(toAddress, BigInt(kit.outputs[0].satoshis))
         // Hardcode a tiny fee if required or let CashScript calculate it
       
       const rawTx = await txBuilder.build()

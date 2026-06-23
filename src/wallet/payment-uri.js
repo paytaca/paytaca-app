@@ -432,7 +432,8 @@ export class JSONPaymentProtocol {
    */
   async getUtxosFromWallet(wallet, category, nft) {
     const params = {
-      confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
+      // THIS IS TEMPORARY!!! NOTE: CHANGE THIS BACK WHEN IN PROD
+      // confirmed: this.source == JPPSourceTypes.BITPAY ? true : undefined,
       is_cashtoken: category ? true : undefined,
       is_cashtoken_nft: nft?.capability ? true : undefined,
     }

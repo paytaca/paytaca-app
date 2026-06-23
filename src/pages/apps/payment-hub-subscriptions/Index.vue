@@ -113,8 +113,8 @@ import { PaymentHub } from 'src/wallet/payment-hub'
 import { loadWallet } from 'src/wallet'
 
 // Add imports for subscription cancelling signing logic
-import { Contract, SignatureTemplate } from 'cashscript'
-import { decodeCashAddress } from '@bitauth/libauth'
+import { Contract, SignatureTemplate, ElectrumNetworkProvider } from 'cashscript'
+import { decodeCashAddress, encodeCashAddress } from '@bitauth/libauth'
 
 const $store = useStore()
 const $q = useQuasar()
@@ -217,26 +217,45 @@ async function cancelSubscription(sub) {
       const kit = await hub.value.getSubscriptionCancelKit(sub.id)
       
       $q.loading.show({ message: 'Signing cancellation transaction...' })
+
+      const getPayload = (addr) => {
+        if (/^[0-9a-fA-F]{40}$/.test(addr)) {
+          return new Uint8Array(addr.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
+        }
+        if (!addr.includes(':')) addr = 'bitcoincash:' + addr
+        const decoded = decodeCashAddress(addr)
+        if (typeof decoded === 'string') throw new Error(decoded)
+        return decoded.payload
+      }
+      
+      const merchantPayload = getPayload(sub.merchant_address)
+      const funderPayload = getPayload(sub.funder_address)
+
+      const isChipnet = $store.getters['global/isChipnet']
+      const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
+
       // 1. Fetch contract artifact
       const artifactObj = await hub.value.getContractArtifact()
+      const provider = new ElectrumNetworkProvider(isChipnet ? 'chipnet' : 'mainnet')
       const contract = new Contract(artifactObj, [
-        decodeCashAddress(sub.merchant_address).payload,
-        decodeCashAddress(sub.funder_address).payload,
+        funderPayload,
+        merchantPayload,
         BigInt(sub.pledge_satoshis),
         BigInt(sub.period_blocks)
-      ], { network: 'mainnet' })
+      ], { provider })
 
       // 2. Fetch private key
       // Search the current wallet for the path of the funder_address
       let pathStr = null
-      const searchLimit = Math.max(wallet.value.BCH.lastAddressIndex || 0, 50) + 200
+      const funderPayloadStr = String(funderPayload)
+      const searchLimit = Math.max(bchWallet.lastAddressIndex || 0, 50) + 200
       for (let i = 0; i <= searchLimit; i++) {
-        const addressSet = await wallet.value.BCH.getAddressSetAt(i)
-        if (wallet.value.BCH._normalizeAddress(addressSet.receiving) === wallet.value.BCH._normalizeAddress(sub.funder_address)) {
+        const addressSet = await bchWallet.getAddressSetAt(i)
+        if (String(decodeCashAddress(addressSet.receiving).payload) === funderPayloadStr) {
           pathStr = `0/${i}`
           break
         }
-        if (wallet.value.BCH._normalizeAddress(addressSet.change) === wallet.value.BCH._normalizeAddress(sub.funder_address)) {
+        if (String(decodeCashAddress(addressSet.change).payload) === funderPayloadStr) {
           pathStr = `1/${i}`
           break
         }
@@ -244,14 +263,25 @@ async function cancelSubscription(sub) {
 
       if (!pathStr) throw new Error('Could not find derivation path for funder address in current wallet')
       
-      const privKeyWif = await wallet.value.BCH.getPrivateKey(pathStr)
+      const privKeyWif = await bchWallet.getPrivateKey(pathStr)
+      console.log("Funder Payload Target:", String(funderPayload))
+      console.log("Derived Path:", pathStr)
       if (!privKeyWif) throw new Error('Could not derive private key for funder address')
 
       // 3. Build & sign transaction
       const sig = new SignatureTemplate(privKeyWif)
-      const txBuilder = contract.functions.cancel(sig)
-        .from(kit.inputs)
-        .to(kit.outputs[0].to, BigInt(kit.outputs[0].satoshis))
+      const toAddress = encodeCashAddress(
+        isChipnet ? 'bchtest' : 'bitcoincash',
+        'p2pkh',
+        getPayload(kit.outputs[0].to)
+      )
+      const formattedInputs = kit.inputs.map(input => ({
+        ...input,
+        satoshis: BigInt(input.satoshis)
+      }))
+      const txBuilder = contract.functions.reclaim(sig.getPublicKey(), sig)
+        .from(formattedInputs)
+        .to(toAddress, BigInt(kit.outputs[0].satoshis))
       
       const rawTx = await txBuilder.build()
 
@@ -279,9 +309,12 @@ function openSubscribeDialog() {
     try {
       $q.loading.show()
       
+      const isChipnet = $store.getters['global/isChipnet']
+      const bchWallet = isChipnet ? wallet.value.BCH_CHIP : wallet.value.BCH
+      
       const payload = {
         ...formData,
-        wallet_hash: wallet.value.BCH.walletHash
+        wallet_hash: bchWallet.walletHash
       }
       
       await hub.value.createSubscription(payload)
