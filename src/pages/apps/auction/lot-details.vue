@@ -566,6 +566,7 @@ import { useQuasar, date } from 'quasar'
 import { callAPI } from 'src/auction/api'
 import { Store } from 'src/store'
 import { AuctionList, LotsList } from 'src/auction/object'
+import { walletToContract } from 'src/auction/payment'
 
 // Components
 import HeaderNav from 'src/components/header-nav.vue'
@@ -971,6 +972,8 @@ const handleBuyItNow = async (payload = {}) => {
       const resIsSold = await callAPI('lots', props.lotId, 'patch', { is_sold: true, date_sold: new Date().toISOString() })
 
       if (resIsSold) {
+        await walletToContract(Number(bidBch).toFixed(8), props.lotId)
+
         dutchAlreadySold.value = true
         await refresh()
         $q.notify({
