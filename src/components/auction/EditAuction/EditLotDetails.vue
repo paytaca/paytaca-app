@@ -170,6 +170,7 @@
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
+                @update:model-value="onPriceDropManualInput"
               />
               <label class="text-caption block q-mb-xs text-grey-7">
                 {{ formatEquivalent(priceDrop) }}
@@ -252,7 +253,7 @@
 
 <script setup>
 import { useQuasar } from 'quasar'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, watchEffect } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 
@@ -340,6 +341,61 @@ const onRejected = (rejectedEntries) => {
   })
 }
 
+const isManualOverride = ref(false)
+
+const calculateSuggestedDrop = () => {
+  if (suggestedPriceDrop.value !== null) {
+    isManualOverride.value = false
+    priceDrop.value = suggestedPriceDrop.value
+  } else {
+    if (!props.startDate || !props.endDate) {
+      $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
+    } else if (!startingPrice.value || startingPrice.value <= (priceThreshold.value || 0)) {
+      $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
+    } else {
+      $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
+    }
+  }
+}
+
+const suggestedPriceDrop = computed(() => {
+  if (!props.startDate || !props.endDate) return null
+  const start = new Date(props.startDate)
+  const end = new Date(props.endDate)
+  const durationMinutes = (end - start) / (1000 * 60)
+  if (isNaN(durationMinutes) || durationMinutes <= 0) return null
+
+  const startPrice = Number(startingPrice.value) || 0
+  const reservePrice = Number(priceThreshold.value) || 0
+  if (startPrice <= reservePrice) return null
+
+  const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object'
+    ? priceDropInterval.value.value
+    : priceDropInterval.value
+  const intervalMinutes = Number(rawInterval) || 0
+  if (intervalMinutes <= 0) return null
+
+  const totalIntervals = durationMinutes / intervalMinutes
+  if (totalIntervals <= 0) return null
+
+  const drop = (startPrice - reservePrice) / totalIntervals
+  return props.isFiatUsed ? parseFloat(drop.toFixed(2)) : parseFloat(drop.toFixed(8))
+})
+
+watchEffect(() => {
+  if (!isManualOverride.value && suggestedPriceDrop.value !== null) {
+    priceDrop.value = suggestedPriceDrop.value
+  }
+})
+
+const onPriceDropManualInput = (val) => {
+  if (suggestedPriceDrop.value !== null && val !== suggestedPriceDrop.value) {
+    isManualOverride.value = true
+  }
+}
+
+
+
 watch(() => props.isFiatUsed, (newVal, oldVal) => {
   if (oldVal !== undefined) toggleCurrency(newVal)
 })
@@ -382,43 +438,6 @@ const normalizeInterval = (value) => {
   if (typeof value === 'object') return Number(value.value || 10)
   const numeric = Number(value)
   return Number.isNaN(numeric) ? 10 : numeric
-}
-
-const calculateSuggestedDrop = () => {
-  if (!props.startDate || !props.endDate) {
-    $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
-    return
-  }
-
-  const start = new Date(props.startDate)
-  const end = new Date(props.endDate)
-  const durationMinutes = (end - start) / (1000 * 60)
-
-  if (isNaN(durationMinutes) || durationMinutes <= 0) {
-    $q.notify({ type: 'warning', message: 'Invalid Auction timeframe dates.', timeout: 2000 })
-    return
-  }
-
-  const startPrice = Number(startingPrice.value) || 0
-  const reservePrice = Number(priceThreshold.value) || 0
-
-  if (startPrice <= reservePrice) {
-    $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
-    return
-  }
-
-  const intervalMinutes = normalizeInterval(priceDropInterval.value)
-
-  if (intervalMinutes <= 0) {
-    $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
-    return
-  }
-
-  const totalIntervals = durationMinutes / intervalMinutes
-  if (totalIntervals <= 0) return
-
-  const calculatedDrop = (startPrice - reservePrice) / totalIntervals
-  priceDrop.value = props.isFiatUsed ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
 }
 
 watch(() => props.lotData, (newLot) => {

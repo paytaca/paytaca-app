@@ -176,6 +176,7 @@
                 :bg-color="$q.dark.isActive ? 'pt-dark' : 'pt-light'"
                 lazy-rules hide-bottom-space
                 :rules="[ val => val !== null && val !== '' && val >= 0 || 'Invalid price drop value' ]"
+                @update:model-value="onPriceDropManualInput"
               />
               <label class="text-caption block q-mb-xs text-grey-7">
                 {{ formatEquivalent(priceDrop) }}
@@ -252,7 +253,7 @@
 
 <script setup>
 import { useQuasar } from 'quasar'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, watchEffect } from 'vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { useStore } from 'vuex'
 
@@ -350,48 +351,60 @@ const clearImages = () => {
   hasFileOverload.value = false
 }
 
+const isManualOverride = ref(false)
+
 const calculateSuggestedDrop = () => {
-  if (!props.startDate || !props.endDate) {
-    $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
-    return
+  if (suggestedPriceDrop.value !== null) {
+    isManualOverride.value = false
+    priceDrop.value = suggestedPriceDrop.value
+  } else {
+    if (!props.startDate || !props.endDate) {
+      $q.notify({ type: 'warning', message: 'Please define Auction Start and End dates first.', timeout: 2000 })
+    } else if (!startingPrice.value || startingPrice.value <= (priceThreshold.value || 0)) {
+      $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
+    } else {
+      $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
+    }
   }
-  
+}
+
+const suggestedPriceDrop = computed(() => {
+  if (!props.startDate || !props.endDate) return null
   const start = new Date(props.startDate)
   const end = new Date(props.endDate)
-  
   const durationMinutes = (end - start) / (1000 * 60)
+  if (isNaN(durationMinutes) || durationMinutes <= 0) return null
 
-  if (isNaN(durationMinutes) || durationMinutes <= 0) {
-    $q.notify({ type: 'warning', message: 'Invalid Auction timeframe dates.', timeout: 2000 })
-    return
-  }
-  
   const startPrice = Number(startingPrice.value) || 0
   const reservePrice = Number(priceThreshold.value) || 0
-
-  if (startPrice <= reservePrice) {
-    $q.notify({ type: 'warning', message: 'Starting price must be higher than the reserve price to calculate drops.', timeout: 2500 })
-    return
-  }
+  if (startPrice <= reservePrice) return null
 
   const rawInterval = priceDropInterval.value && typeof priceDropInterval.value === 'object'
     ? priceDropInterval.value.value
     : priceDropInterval.value
-
   const intervalMinutes = Number(rawInterval) || 0
+  if (intervalMinutes <= 0) return null
 
-  if (intervalMinutes <= 0) {
-    $q.notify({ type: 'warning', message: 'Please select a valid drop interval frequency.', timeout: 2000 })
-    return
-  }
-  
   const totalIntervals = durationMinutes / intervalMinutes
+  if (totalIntervals <= 0) return null
 
-  if (totalIntervals <= 0) return
-  
-  const calculatedDrop = (startPrice - reservePrice) / totalIntervals
-  priceDrop.value = props.isFiatUsed ? parseFloat(calculatedDrop.toFixed(2)) : parseFloat(calculatedDrop.toFixed(8))
+  const drop = (startPrice - reservePrice) / totalIntervals
+  return props.isFiatUsed ? parseFloat(drop.toFixed(2)) : parseFloat(drop.toFixed(8))
+})
+
+watchEffect(() => {
+  if (!isManualOverride.value && suggestedPriceDrop.value !== null) {
+    priceDrop.value = suggestedPriceDrop.value
+  }
+})
+
+const onPriceDropManualInput = (val) => {
+  if (suggestedPriceDrop.value !== null && val !== suggestedPriceDrop.value) {
+    isManualOverride.value = true
+  }
 }
+
+
 
 watch(() => props.isFiatUsed, (newVal) => {
   toggleCurrency(newVal)
@@ -496,6 +509,7 @@ const addLot = async () => {
   startingPrice.value = 0
   priceThreshold.value = 0
   priceDrop.value = 0.0005
+  isManualOverride.value = false
   priceDropInterval.value = priceDropIntervalOptions.value[0] || { label: "Every 15 minutes", value: 15 }
   lotImages.value = []
   lotDescription.value = ''
