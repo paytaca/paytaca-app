@@ -568,8 +568,9 @@ export class PaymentHub {
    * @param {Object} params - Query parameters (e.g. { store_id: '...', status: 'ACTIVE' })
    */
   async listSubscriptions(params = {}) {
+    const oauth = await authToken.get(this.wallet)
     const response = await backend.get('/subscriptions/', {
-      params: params,
+      params: { ...params, oauth },
       authorize: true,
       wallet: this.wallet
     })
@@ -583,6 +584,9 @@ export class PaymentHub {
    * @param {String} apiKey - Required if called from public context, otherwise uses auth.
    */
   async createSubscription(subscriptionData, apiKey = null) {
+    if (!apiKey && !subscriptionData.oauth) {
+      subscriptionData.oauth = await authToken.get(this.wallet)
+    }
     const config = apiKey ? { apiKey } : { authorize: true, wallet: this.wallet }
     const response = await backend.post('/subscriptions/', subscriptionData, config)
     return response.data
@@ -593,7 +597,9 @@ export class PaymentHub {
    * @param {String} subscriptionId - The UUID or Short ID of the subscription.
    */
   async getSubscription(subscriptionId) {
+    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}`, {
+      params: { oauth },
       authorize: true,
       wallet: this.wallet
     })
@@ -606,7 +612,9 @@ export class PaymentHub {
    */
   async getSubscriptionCancelKit(subscriptionId, isMerchant = false) {
     const action = isMerchant ? 'merchant-cancel' : 'cancel'
+    const oauth = await authToken.get(this.wallet)
     const response = await backend.get(`/subscriptions/${subscriptionId}/${action}`, {
+      params: { oauth },
       authorize: true, // Needs auth/ownership (merchant or customer wallet)
       wallet: this.wallet
     })
@@ -620,8 +628,10 @@ export class PaymentHub {
    */
   async submitSubscriptionCancel(subscriptionId, rawTx, isMerchant = false) {
     const action = isMerchant ? 'merchant-cancel' : 'cancel'
+    const oauth = await authToken.get(this.wallet)
     const response = await backend.post(`/subscriptions/${subscriptionId}/${action}`, {
-      raw_tx_hex: rawTx
+      raw_tx_hex: rawTx,
+      oauth
     }, {
       authorize: true,
       wallet: this.wallet
@@ -635,7 +645,8 @@ export class PaymentHub {
    */
   async reactivateSubscription(subscriptionId) {
     // Note: reactivate is not officially documented yet, but kept as placeholder
-    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, {}, {
+    const oauth = await authToken.get(this.wallet)
+    const response = await backend.post(`/subscriptions/${subscriptionId}/reactivate`, { oauth }, {
       authorize: true,
       wallet: this.wallet
     })

@@ -153,7 +153,7 @@ async function refreshPage(done = null, showLoading = true) {
   subscriptionsPage.value = 1
   try {
     const paymentHub = await initHub()
-    const subsData = await paymentHub.listSubscriptions({ page: 1, is_subscriber: true })
+    const subsData = await paymentHub.listSubscriptions({ page: 1, customer: true })
     subscriptions.value = subsData.results || []
     hasNextSubscriptionsPage.value = !!subsData.next
   } catch (error) {
@@ -173,7 +173,7 @@ async function onLoadMoreSubscriptions(index, done) {
 
   try {
     subscriptionsPage.value++
-    const data = await hub.value.listSubscriptions({ page: subscriptionsPage.value, is_subscriber: true })
+    const data = await hub.value.listSubscriptions({ page: subscriptionsPage.value, customer: true })
     if (data.results?.length) {
       subscriptions.value.push(...data.results)
     }
