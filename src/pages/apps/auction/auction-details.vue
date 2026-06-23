@@ -20,17 +20,33 @@
           </div>
 
           <div class="col-12 col-sm-auto flex column" style="max-width: 450px; min-width: 280px;">
-            <div class="row items-center q-gutter-sm q-mb-sm">
-              <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
-                <q-icon name="gavel" size="12px" class="q-mr-xs" />
-                {{ auction.type }} Auction
-              </q-badge>
-              <q-badge
-                :color="getAuctionStatusInfo(auction).color"
-                class="q-pa-sm q-px-sm text-weight-bold"
-              >
-                {{ getAuctionStatusInfo(auction).label }}
-              </q-badge>
+            <div class="row items-center justify-between full-width q-mb-sm">
+              <div class="row items-center q-gutter-sm">
+                <q-badge color="primary" class="q-pa-sm q-px-sm text-weight-bold">
+                  <q-icon name="gavel" size="12px" class="q-mr-xs" />
+                  {{ auction.type }} Auction
+                </q-badge>
+                <q-badge
+                  :color="getAuctionStatusInfo(auction).color"
+                  class="q-pa-sm q-px-sm text-weight-bold"
+                >
+                  {{ getAuctionStatusInfo(auction).label }}
+                </q-badge>
+              </div>
+              
+              <div v-if="isAuthor">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="edit"
+                  :color="darkMode ? 'white' : 'grey-7'"
+                  @click="$router.push({ 
+                    name: 'app-auction-edit', 
+                    params: { auctionId: auction.id }
+                  })"
+                />
+              </div>
             </div>
 
             <div class="text-h5 text-weight-medium q-mb-md">
