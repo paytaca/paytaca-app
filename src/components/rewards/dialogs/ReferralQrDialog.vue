@@ -82,6 +82,36 @@
               <q-tooltip>{{ copyTooltip }}</q-tooltip>
             </q-btn>
           </div>
+
+          <q-separator class="q-my-sm" />
+
+          <div class="text-subtitle1 text-bow q-mb-xs" :class="getDarkModeClass(darkMode)">
+            <!-- {{ $t('ShareReferralCodeLink') }} -->
+            Share Referral Code Link
+          </div>
+          <div
+            class="row items-center no-wrap q-py-sm q-px-sm rounded-borders cursor-pointer justify-between"
+            style="border: 1px solid grey;"
+            @click="copyReferralShareUrl"
+          >
+            <div style="overflow-y: auto; white-space: nowrap;">
+              {{ referralShareUrl }}
+            </div>
+            <q-icon name="content_copy" size="1.25em" class="q-ml-sm" />
+          </div>
+          <div class="q-mt-xs row flex-center no-wrap q-gutter-x-sm" style="overflow-x: auto;">
+            <template v-for="shareLink in shareLinks" :key="shareLink.label">
+              <q-btn
+                flat
+                rounded
+                padding="md"
+                size="md"
+                :icon="shareLink.icon"
+                :href="shareLink.url"
+                target="_blank"
+              />
+            </template>
+          </div>
         </div>
       </div>
     </q-card>
@@ -89,10 +119,10 @@
 </template>
 
 <script>
-import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import html2canvas from 'html2canvas'
-import QRCode from 'qrcode-svg'
 import { Capacitor } from '@capacitor/core'
+import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
+import QRCode from 'qrcode-svg'
+import html2canvas from 'html2canvas'
 import SaveToGallery from 'src/utils/save-to-gallery'
 
 export default {
@@ -104,6 +134,8 @@ export default {
     promoType: { type: String, default: '' },
     referralType: { type: String, default: '' }
   },
+
+  inject: ['$copyText'],
 
   data () {
     return {
@@ -121,6 +153,58 @@ export default {
     referralCodeFull () {
       return `${this.promoType.toUpperCase()}-${this.code}-${this.promoId}`
     },
+    referralShareUrl () {
+      const code = this.referralCodeFull
+      return `https://example.url.com/code/${code}`
+    },
+    shareLinks () {
+      const encodedUrl = encodeURI(this.referralShareUrl)
+      const fbAppId = 438643061338284
+      const isMobile = this.$q.platform.is.mobile
+      const links = {}
+
+      links.fb = {
+        label: 'facebook',
+        icon: 'fab fa-facebook',
+        url: `https://www.facebook.com/dialog/share?app_id=${fbAppId}&href=${encodedUrl}&display=popup`
+      }
+
+      if (isMobile) {
+        links.messenger = {
+          label: 'messenger',
+          icon: 'fab fa-facebook-messenger',
+          url: `fb-messenger://share/?link=${encodedUrl}&app_id=${fbAppId}`
+        }
+      }
+
+      links.twitter = {
+        label: 'twitter',
+        icon: 'fab fa-twitter',
+        url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=Paytaca%20Referral&via=_paytaca_&related=_paytaca_`
+      }
+
+      links.telegram = {
+        label: 'telegram',
+        icon: 'telegram',
+        url: isMobile
+          ? `tg://msg_url?url=${encodedUrl}&text=Paytaca%20Referral`
+          : `https://t.me/share?url=${encodedUrl}&text=Paytaca%20Referral`
+      }
+
+      links.whatsapp = {
+        label: 'whatsapp',
+        icon: 'fab fa-whatsapp',
+        url: `https://wa.me/?text=Paytaca%20Referral%0A${encodedUrl}`
+      }
+
+      links.email = {
+        label: 'email',
+        icon: 'email',
+        url: `mailto:?body=Paytaca%20Referral:%20${encodedUrl}`
+      }
+
+      return links
+    },
     copyButtonIcon () {
       if (this.copySuccess) return 'check'
       if (this.copyFailed) return 'close'
@@ -135,6 +219,16 @@ export default {
 
   methods: {
     getDarkModeClass,
+
+    copyReferralShareUrl () {
+      this.$copyText(this.referralShareUrl)
+      this.$q.notify({
+        message: this.$t('CopiedToClipboard'),
+        timeout: 800,
+        color: 'blue-9',
+        icon: 'mdi-clipboard-check'
+      })
+    },
     
     copyReferralCode () {
       if (!this.referralCodeFull) return
