@@ -54,12 +54,12 @@ export async function walletToContract(amountBCH, lotId) {
 
 
 /**
- * @name createContract
+ * @name createContractForLot
  * @param {Integer} lotId
  * @returns contract and is_created (boolean)
  * Call this when establishing a new contract for a new lot
  */
-export async function creatContractForLot(lotId) {
+export async function createContractForLot(lotId) {
   try {
     // get the auction public keys
     const publicKeys = await getNewAuctionPublicKeys(lotId)
@@ -100,7 +100,7 @@ export async function creatContractForLot(lotId) {
     return true
   }
   catch(error) {
-    console.error('[creatContractForLot]', error)
+    console.error('[createContractForLot]', error)
     return false
   }
 }
