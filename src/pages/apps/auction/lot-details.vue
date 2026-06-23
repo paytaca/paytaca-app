@@ -312,7 +312,43 @@
                 </q-card>
 
                 <q-card v-else flat bordered class="full-height">
-                  <q-card-section class="q-pa-sm">
+                  <q-card-section v-if="lot.is_sold" class="q-pa-sm">
+                    <div class="text-caption row items-center q-mb-sm">
+                      <q-icon name="price_change" size="14px" class="q-mr-xs" />
+                      Winning Bid Details
+                    </div>
+
+                    <div v-if="winningBid">
+                      <div v-if="auction?.is_fiat">
+                        <div class="text-h6 text-weight-bold text-green" style="line-height: 1.2;">
+                          {{ formatFiat(winningBid.bid_price_fiat) }}
+                        </div>
+                        <div class="text-caption text-weight-medium text-green">
+                          {{ formatBCH(winningBid.bid_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(winningBid.bid_price_bch).zeros }}</span> BCH
+                        </div>
+                      </div>
+
+                      <div v-else>
+                        <div class="text-h6 text-weight-bold text-green" style="line-height: 1.2;">
+                          {{ formatBCH(winningBid.bid_price_bch).main }}<span style="opacity: 0.4;">{{ formatBCH(winningBid.bid_price_bch).zeros }}</span> BCH
+                        </div>
+                        <div class="text-caption text-weight-medium text-green">
+                          {{ formatFiat(winningBid.bid_price_fiat) }}
+                        </div>
+                      </div>
+
+                      <div class="text-caption text-grey-6 q-mt-xs">
+                        <q-icon name="schedule" size="11px" class="q-mr-xs" />
+                        {{ formatAuctionDate(winningBid.bidding_date) }}
+                      </div>
+                    </div>
+
+                    <div v-else class="text-caption text-grey-6">
+                      Loading bid details...
+                    </div>
+                  </q-card-section>
+
+                  <q-card-section v-else class="q-pa-sm">
                     <div class="text-caption row items-center q-mb-xs">
                       <q-icon name="trending_down" size="14px" class="q-mr-xs" />
                       Current Price
@@ -798,6 +834,7 @@ const isWinningBidder = computed(() => bidStatus.value === 'win')
 const isToggledBuyItNow = ref(false)
 const buyItNowLoading = ref(false)
 const dutchAlreadySold = ref(false)
+const winningBid = ref(null)
 
 const secondsRemaining = ref(0)
 const intervalDurationSec = ref(600)
@@ -1012,6 +1049,19 @@ const fetchDutchSoldStatus = async () => {
   }
 }
 
+const fetchWinningBid = async () => {
+  if (auction.value?.type !== 'Dutch') return
+
+  try {
+    const res = await callAPI(`lots/${props.lotId}/highest-bid`)
+    if (res.success && res.data) {
+      winningBid.value = res.data
+    }
+  } catch (err) {
+    console.warn('Could not fetch winning bid:', err)
+  }
+}
+
 
 
 
@@ -1053,6 +1103,7 @@ const fetchLot = async () => {
 const loadPageData = async () => {
   await Promise.all([fetchLot(), fetchAuction(), fetchDutchSoldStatus(), checkBidStatus(), checkUserBid()])
   initializeDutchAuctionTimer(lot.value)
+  await fetchWinningBid()
 }
 
 watch(() => [props.lotId, props.auctionId], async () => {
