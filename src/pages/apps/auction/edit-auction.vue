@@ -297,6 +297,22 @@ const toBothCurrencies = (value, isFiatUsed) => {
 }
 
 const withBothCurrencies = (lot) => {
+  const hasNewFields = lot.estimated_amount_fiat !== undefined || lot.estimated_amount_bch !== undefined
+
+  if (hasNewFields) {
+    return {
+      ...lot,
+      estimated_amount_bch: Number(lot.estimated_amount_bch || 0).toFixed(8),
+      estimated_amount_fiat: Number(lot.estimated_amount_fiat || 0).toFixed(2),
+      starting_price_bch: Number(lot.starting_price_bch || 0).toFixed(8),
+      starting_price_fiat: Number(lot.starting_price_fiat || 0).toFixed(2),
+      threshold_bid_bch: Number(lot.threshold_bid_bch || 0).toFixed(8),
+      threshold_bid_fiat: Number(lot.threshold_bid_fiat || 0).toFixed(2),
+      price_drop_bch: Number(lot.price_drop_bch || 0).toFixed(8),
+      price_drop_fiat: Number(lot.price_drop_fiat || 0).toFixed(2),
+    }
+  }
+  
   const estimated = toBothCurrencies(lot.estimatedPrice, lot.isFiatUsed)
   const starting = toBothCurrencies(lot.startingPrice, lot.isFiatUsed)
   const threshold = toBothCurrencies(lot.threshold, lot.isFiatUsed)
@@ -311,7 +327,7 @@ const withBothCurrencies = (lot) => {
     threshold_bid_bch: threshold.bch.toFixed(8),
     threshold_bid_fiat: threshold.fiat.toFixed(2),
     price_drop_bch: priceDrop.bch.toFixed(8),
-    price_drop_fiat: priceDrop.fiat.toFixed(2)
+    price_drop_fiat: priceDrop.fiat.toFixed(2),
   }
 }
 
@@ -431,7 +447,8 @@ const handleNewLot = (lotData) => {
 }
 
 const editLotDetails = (lot) => {
-  selectedLot.value = JSON.parse(JSON.stringify(lot))
+  const rawFiles = lot.rawFiles || []
+  selectedLot.value = { ...JSON.parse(JSON.stringify(lot)), rawFiles }
   isToggledEdit.value = true
 }
 
@@ -440,6 +457,9 @@ const handleLotUpdate = (updatedLotData) => {
   if (index !== -1) {
     if (lots.value[index]._status !== 'new') {
       updatedLotData._status = 'edited'
+    }
+    if (!updatedLotData.rawFiles || updatedLotData.rawFiles.length === 0) {
+      updatedLotData.rawFiles = lots.value[index].rawFiles || []
     }
     lots.value[index] = withBothCurrencies(updatedLotData)
   }
