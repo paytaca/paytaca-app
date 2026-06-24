@@ -424,6 +424,17 @@ const fetchAllData = async () => {
   } catch (err) {
     console.error('Failed to update lots:', err)
   }
+
+  if (auction.value?.type === 'Dutch' && lots.value.length) {
+    const allSold = lots.value.every(l => l.is_sold)
+    const notYetClosed = new Date(auction.value.end_date) > new Date()
+    if (allSold && notYetClosed) {
+      await callAPI('auctions', props.auctionId, 'patch', {
+        end_date: new Date().toISOString()
+      })
+      auction.value.end_date = new Date().toISOString()
+    }
+  }
 }
 
 onMounted(async () => {
