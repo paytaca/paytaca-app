@@ -320,6 +320,7 @@ export default {
       this.$q.dialog({
         title: this.$t('ClearSubjectTitle', {}, 'Clear subject'),
         message: this.$t('ClearSubjectConfirm', {}, 'Are you sure you want to clear the subject?'),
+        class: `pt-card text-bow ${this.getDarkModeClass(this.darkMode)}`,
         cancel: true,
         persistent: true,
       }).onOk(() => {
